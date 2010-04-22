@@ -1,26 +1,22 @@
 #!/usr/bin/env python
 
 import alembic
+import sys
+from optparse import OptionParser
 
 def main(argv=None):
-    from os.path import isfile
-    from sys import stdin
-
-    if argv is None:
-        import sys
-        argv = sys.argv
-
-    from optparse import OptionParser
 
     parser = OptionParser("usage: %prog [options] <command>")
+    parser.add_option("-d", "--dir", type="string", action="store", help="Location of script directory.")
 
     opts, args = parser.parse_args(argv[1:])
     if len(args) < 1:
         parser.error("no command specified") # Will exit
 
     command = args[0]
-    alembic.main(options, command)
+
+    alembic.main(options, file_config, command)
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv)
 
