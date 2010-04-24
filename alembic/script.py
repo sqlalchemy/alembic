@@ -1,6 +1,6 @@
 import os
 
-class Script(object):
+class ScriptDirectory(object):
     def __init__(self, dir):
         self.dir = dir
         

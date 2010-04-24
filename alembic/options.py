@@ -1,5 +1,9 @@
 
-
+def get_option_parser():
+    parser = OptionParser("usage: %prog [options] <command>")
+    parser.add_option("-d", "--dir", type="string", action="store", help="Location of script directory.")
+    
+    
 class Options(object):
     def __init__(self, options):
         self.options = options

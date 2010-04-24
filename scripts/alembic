@@ -5,9 +5,7 @@ import sys
 from optparse import OptionParser
 
 def main(argv=None):
-
-    parser = OptionParser("usage: %prog [options] <command>")
-    parser.add_option("-d", "--dir", type="string", action="store", help="Location of script directory.")
+    parser = alembic.options.get_option_parser()
 
     opts, args = parser.parse_args(argv[1:])
     if len(args) < 1:
