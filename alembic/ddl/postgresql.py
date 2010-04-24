@@ -1,0 +1,1 @@
+"ALTER TABLE foo   ADD COLUMN bat integer NOT NULL DEFAULT 7;"
