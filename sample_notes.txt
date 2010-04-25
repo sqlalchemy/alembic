@@ -3,7 +3,30 @@
 
 # commands:
 
+alembic list-templates
+    Available templates:
+
+        generic - plain migration template
+        pylons - uses Pylons .ini file and environment
+        multidb - illustrates multi-database usage
+
 alembic init ./scripts
+    --template argument is required.
+
+    Available templates:
+    
+        generic - plain migration template
+        pylons - uses Pylons .ini file and environment
+        multidb - illustrates multi-database usage
+        
+alembic init --template=generic ./scripts
+    using template 'generic'....
+    creating script dir './scripts'....
+    copying 'env.py'...
+    copying 'script.py.mako'...
+    generating 'alembic.ini'...
+    done !  edit 'sqlalchemy.url' in alembic.ini
+
 alembic revision -m "do something else"
 alembic upgrade
 alembic revert -r jQq57
@@ -13,69 +36,13 @@ alembic branches
 
 # with pylons - use paster commands ?
 
-
 scripts directory looks like:
-
 
 ./scripts/
             env.py
-            script_template.py
+            script.py.mako
             lfh56_do_this.py
             jQq57_do_that.py
             Pzz19_do_something_else.py
             
-            
-            
-# env.py looks like:
-# ------------------------------------
-
-from alembic import options, context
-
-import logging
-logging.fileConfig(options.config_file)
-
-engine = create_engine(options.get_main_option('url'))
-
-connection = engine.connect()
-context.configure_connection(connection)
-trans = connection.begin()
-try:
-    run_migrations()
-    trans.commit()
-except:
-    trans.rollback()
-    
-
-# a pylons env.py looks like:
-# --------------------------------------
-
-from alembic import options, context
-
-from name_of_project.config import environment
-environment.setup_app(whatever)
-
-engine = environment.engine # or meta.engine, whatever it has to be here
-
-connection = engine.connect()
-context.configure_connection(connection)
-trans = connection.begin()
-try:
-    run_migrations()
-    trans.commit()
-except:
-    trans.rollback()
-
-# script template
-# -----------------------------------------
-from alembic.op import *
-
-def upgrade_%(up_revision)s():
-    pass
-
-def downgrade_%(down_revision)s():
-    pass
-
-
-
-
             
