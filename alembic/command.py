@@ -1,18 +1,9 @@
 from alembic.script import ScriptDirectory
-from alembic import options
+from alembic import options, util
 import os
 import sys
+import shutil
 
-def _status(msg, fn, *arg, **kw):
-    sys.stdout.write("  " + msg + "...")
-    try:
-        ret = fn(*arg, **kw)
-        sys.stdout.write("done\n")
-        return ret
-    except:
-        sys.stdout.write("FAILED\n")
-        raise
-    
 def list_templates(opts):
     """List available templates"""
     
@@ -32,13 +23,32 @@ def init(opts):
     """Initialize a new scripts directory."""
     
     dir_, = opts.get_command_args(1, 'alembic init <directory>')
-    if not _status("Checking for directory %s" % dir_, 
-                        os.access, dir_, os.F_OK):
-        _status("Creating directory %s" % dir_,
-                    os.makedirs, dir_)
-    else:
+    if os.access(dir_, os.F_OK):
         opts.err("Directory %s already exists" % dir_)
-    # copy files...
+
+    util.status("Creating directory %s" % os.path.abspath(dir_),
+                os.makedirs, dir_)
+    template_dir = os.path.join(opts.get_template_directory(),
+                                    opts.cmd_line_options.template)
+    if not os.access(template_dir, os.F_OK):
+        opts.err("No such template %r" % opts.cmd_line_options.template)
+    for file_ in os.listdir(template_dir):
+        if file_ == 'alembic.ini.mako':
+            config_file = os.path.abspath(opts.cmd_line_options.config)
+            util.status("Generating %s" % config_file,
+                util.template_to_file,
+                os.path.join(template_dir, file_),
+                config_file,
+                script_location=dir_
+            )
+        else:
+            output_file = os.path.join(dir_, file_)
+            util.status("Generating %s" % os.path.abspath(output_file), 
+                        shutil.copy, 
+                        os.path.join(template_dir, file_), output_file)
+
+    util.msg("\nPlease edit configuration/connection/logging "\
+            "settings in %r before proceeding." % config_file)
     
 def upgrade(opts):
     """Upgrade to the latest version."""

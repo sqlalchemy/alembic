@@ -3,10 +3,7 @@ import ConfigParser
 import inspect
 import os
 import sys
-
-def format_opt(opt, hlp, padding=22):
-    return "  " + opt + \
-        ((padding - len(opt)) * " ") + hlp
+from alembic import util
     
 def get_option_parser():
     from alembic import command
@@ -28,7 +25,7 @@ def get_option_parser():
                 "usage: %prog [options] <command> [command arguments]\n\n"
                 "Available Commands:\n" +
                 "\n".join([
-                    format_opt(cmd, hlp)
+                    util.format_opt(cmd, hlp)
                     for cmd, hlp in commands
                 ])
                 )
