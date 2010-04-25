@@ -1,9 +1,19 @@
-from alembic.script import Script
+from alembic.script import ScriptDirectory
+from alembic import options
 
-def main(options, command):
-    raise NotImplementedError("yeah yeah nothing here yet")
+def main(argv=None):
 
+    parser = options.get_option_parser()
 
+    opts, args = parser.parse_args(argv[1:])
+    if len(args) < 1:
+        parser.error("no command specified") # Will exit
+
+    print opts.config
+
+def list_templates(options):
+    """List available templates"""
+    
 def init(options):
     """Initialize a new scripts directory."""
     

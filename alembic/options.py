@@ -1,6 +1,36 @@
+from optparse import OptionParser
+import ConfigParser
+import textwrap
 
 def get_option_parser():
-    parser = OptionParser("usage: %prog [options] <command>")
+    # TODO: 
+    # OK, what's the super option parser library that 
+    # allows <command> plus command-specfic sub-options ?
+    
+    # TODO: pull the commands from command.py directly here
+    parser = OptionParser(
+                "usage: %prog [options] <command>\n\n"
+                "Available Commands:\n"
+                "  list-templates\n"
+                "  init\n"
+                "  revision\n"
+                "  upgrade\n"
+                "  revert\n"
+                "  history\n"
+                "  splice\n"
+                "  branches"
+                )
+    parser.add_option("-c", "--config", 
+                        type="string", 
+                        default="alembic.ini", 
+                        help="Alternate config file")
+    parser.add_option("-t", "--template",
+                        type="string",
+                        help="Setup template for use with 'init'")
+    parser.add_option("-r", "--rev",
+                        type="string",
+                        help="Revsion identifier for usage with 'revert'"
+    )
     return parser
     
 class Options(object):
