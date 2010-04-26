@@ -1,12 +1,14 @@
-from sqlalchemy import util
+from alembic import util
+from sqlalchemy.types import NULLTYPE
+from sqlalchemy import schema
 
-NO_VALUE = util.symbol("NO_VALUE")
+__all__ = ['alter_column', 'add_foreign_key']
 
 def alter_column(table_name, column_name, 
-                    nullable=NO_VALUE,
-                    server_default=NO_VALUE,
-                    name=NO_VALUE,
-                    type_=NO_VALUE
+                    nullable=util.NO_VALUE,
+                    server_default=util.NO_VALUE,
+                    name=util.NO_VALUE,
+                    type_=util.NO_VALUE
 ):
     """Issue ALTER COLUMN using the current change context."""
     
@@ -16,3 +18,34 @@ def alter_column(table_name, column_name,
         name=name,
         type_=type_
     )
+
+
+def _foreign_key_constraint(name, source, referent, local_cols, remote_cols):
+    m = schema.MetaData()
+    t1 = schema.Table(source, m, 
+            *[schema.Column(n, NULLTYPE) for n in local_cols])
+    t2 = schema.Table(referent, m, 
+            *[schema.Column(n, NULLTYPE) for n in remote_cols])
+
+    f = schema.ForeignKeyConstraint(local_cols, 
+                                        ["%s.%s" % (referent, name) 
+                                        for name in remote_cols],
+                                        name=name
+                                        )
+    t1.append_constraint(f)
+    return f
+
+def _unique_constraint(name, source, local_cols):
+    t = schema.Table(source, schema.MetaData(), 
+                *[schema.Column(n, NULLTYPE) for n in local_cols])
+    return schema.UniqueConstraint(*t.c, name=name)
+    
+def create_foreign_key(name, source, referent, local_cols, remote_cols):
+    context.add_constraint(
+                _foreign_key_constraint(source, referent, local_cols, remote_cols)
+            )
+
+def create_unique_constraint(name, source, local_cols):
+    context.add_constraint(
+                _unique_constraint(name, source, local_cols)
+            )

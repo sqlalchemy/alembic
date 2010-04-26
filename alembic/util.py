@@ -2,6 +2,10 @@ from mako.template import Template
 import sys
 import os
 import textwrap
+from sqlalchemy import util
+
+NO_VALUE = util.symbol("NO_VALUE")
+
 
 def template_to_file(template_file, dest, **kw):
     f = open(dest, 'w')
