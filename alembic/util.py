@@ -6,6 +6,10 @@ from sqlalchemy import util
 
 NO_VALUE = util.symbol("NO_VALUE")
 
+try:
+    width = int(os.environ['COLUMNS'])
+except (KeyError, ValueError):
+    width = 80
 
 def template_to_file(template_file, dest, **kw):
     f = open(dest, 'w')
@@ -19,8 +23,8 @@ def format_opt(opt, hlp, padding=22):
     return "  " + opt + \
         ((padding - len(opt)) * " ") + hlp
 
-def status(msg, fn, *arg, **kw):
-    sys.stdout.write("  " + msg + "...")
+def status(message, fn, *arg, **kw):
+    msg(message + "...", False)
     try:
         ret = fn(*arg, **kw)
         sys.stdout.write("done\n")
@@ -30,5 +34,9 @@ def status(msg, fn, *arg, **kw):
         raise
 
 
-def msg(msg):
-    sys.stdout.write(textwrap.wrap(msg))
+def msg(msg, newline=True):
+    lines = textwrap.wrap(msg, width)
+    if len(lines) > 1:
+        for line in lines[0:-1]:
+            sys.stdout.write("  " +line + "\n")
+    sys.stdout.write("  " + lines[-1] + ("\n" if newline else ""))

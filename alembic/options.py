@@ -72,7 +72,7 @@ class Options(object):
         return dict(self.file_config.items(name))
      
     def err(self, msg):
-        sys.stderr.write(msg + "\n")
+        util.msg(msg)
         sys.exit(-1)
         
     def get_main_option(self, name, default=None):

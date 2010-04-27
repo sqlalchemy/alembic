@@ -2,7 +2,6 @@ from alembic.script import ScriptDirectory
 from alembic import options, util
 import os
 import sys
-import shutil
 
 def list_templates(opts):
     """List available templates"""
@@ -28,6 +27,9 @@ def init(opts):
 
     util.status("Creating directory %s" % os.path.abspath(dir_),
                 os.makedirs, dir_)
+
+    script = ScriptDirectory(dir_)
+
     template_dir = os.path.join(opts.get_template_directory(),
                                     opts.cmd_line_options.template)
     if not os.access(template_dir, os.F_OK):
@@ -35,20 +37,26 @@ def init(opts):
     for file_ in os.listdir(template_dir):
         if file_ == 'alembic.ini.mako':
             config_file = os.path.abspath(opts.cmd_line_options.config)
-            util.status("Generating %s" % config_file,
-                util.template_to_file,
-                os.path.join(template_dir, file_),
-                config_file,
-                script_location=dir_
-            )
+            if os.access(config_file, os.F_OK):
+                util.msg("File %s already exists, skipping" % config_file)
+            else:
+                script.generate_template(
+                    os.path.join(template_dir, file_),
+                    config_file,
+                    script_location=dir_
+                )
         else:
             output_file = os.path.join(dir_, file_)
-            util.status("Generating %s" % os.path.abspath(output_file), 
-                        shutil.copy, 
-                        os.path.join(template_dir, file_), output_file)
+            script.copy_file(
+                os.path.join(template_dir, file_), 
+                output_file
+            )
 
-    util.msg("\nPlease edit configuration/connection/logging "\
+    util.msg("Please edit configuration/connection/logging "\
             "settings in %r before proceeding." % config_file)
+
+def revision(opts):
+    """Create a new revision file."""
     
 def upgrade(opts):
     """Upgrade to the latest version."""
@@ -72,8 +80,6 @@ def history(opts):
 def splice(opts):
     """'splice' two branches, creating a new revision file."""
     
-def revision(opts):
-    """Create a new revision file."""
     
 def branches(opts):
     """Show current un-spliced branch points"""
