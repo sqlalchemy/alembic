@@ -4,6 +4,8 @@ import os
 import textwrap
 from sqlalchemy import util
 import imp
+import warnings
+import re
 
 NO_VALUE = util.symbol("NO_VALUE")
 
@@ -24,8 +26,8 @@ def format_opt(opt, hlp, padding=22):
     return "  " + opt + \
         ((padding - len(opt)) * " ") + hlp
 
-def status(message, fn, *arg, **kw):
-    msg(message + "...", False)
+def status(_statmsg, fn, *arg, **kw):
+    msg(_statmsg + "...", False)
     try:
         ret = fn(*arg, **kw)
         sys.stdout.write("done\n")
@@ -34,7 +36,9 @@ def status(message, fn, *arg, **kw):
         sys.stdout.write("FAILED\n")
         raise
 
-
+def warn(msg):
+    warnings.warn(msg)
+    
 def msg(msg, newline=True):
     lines = textwrap.wrap(msg, width)
     if len(lines) > 1:

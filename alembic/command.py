@@ -28,6 +28,10 @@ def init(opts):
 
     util.status("Creating directory %s" % os.path.abspath(dir_),
                 os.makedirs, dir_)
+    
+    versions = os.path.join(dir_, 'versions')
+    util.status("Creating directory %s" % os.path.abspath(versions),
+                os.makedirs, versions)
 
     script = ScriptDirectory(dir_, opts)
 
@@ -61,7 +65,7 @@ def revision(opts):
     """Create a new revision file."""
 
     script = ScriptDirectory.from_options(opts)
-    script.generate_rev(uuid.uuid4())
+    script.generate_rev(uuid.uuid4(), opts.cmd_line_options.message)
     
 def upgrade(opts):
     """Upgrade to the latest version."""

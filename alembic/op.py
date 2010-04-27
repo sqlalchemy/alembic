@@ -2,7 +2,7 @@ from alembic import util
 from sqlalchemy.types import NULLTYPE
 from sqlalchemy import schema
 
-__all__ = ['alter_column', 'add_foreign_key']
+__all__ = ['alter_column', 'create_foreign_key', 'create_unique_constraint']
 
 def alter_column(table_name, column_name, 
                     nullable=util.NO_VALUE,

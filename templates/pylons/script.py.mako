@@ -1,3 +1,5 @@
+"""${message}"""
+
 from alembic.op import *
 
 def upgrade_${up_revision}():
