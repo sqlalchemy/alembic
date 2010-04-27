@@ -2,6 +2,7 @@ from alembic.script import ScriptDirectory
 from alembic import options, util
 import os
 import sys
+import uuid
 
 def list_templates(opts):
     """List available templates"""
@@ -28,12 +29,13 @@ def init(opts):
     util.status("Creating directory %s" % os.path.abspath(dir_),
                 os.makedirs, dir_)
 
-    script = ScriptDirectory(dir_)
+    script = ScriptDirectory(dir_, opts)
 
     template_dir = os.path.join(opts.get_template_directory(),
                                     opts.cmd_line_options.template)
     if not os.access(template_dir, os.F_OK):
         opts.err("No such template %r" % opts.cmd_line_options.template)
+        
     for file_ in os.listdir(template_dir):
         if file_ == 'alembic.ini.mako':
             config_file = os.path.abspath(opts.cmd_line_options.config)
@@ -57,6 +59,9 @@ def init(opts):
 
 def revision(opts):
     """Create a new revision file."""
+
+    script = ScriptDirectory.from_options(opts)
+    script.generate_rev(uuid.uuid4())
     
 def upgrade(opts):
     """Upgrade to the latest version."""
