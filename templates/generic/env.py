@@ -10,7 +10,7 @@ connection = engine.connect()
 context.configure_connection(connection)
 trans = connection.begin()
 try:
-    run_migrations()
+    context.run_migrations()
     trans.commit()
 except:
     trans.rollback()

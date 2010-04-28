@@ -1,8 +1,7 @@
 from alembic.script import ScriptDirectory
-from alembic import options, util
+from alembic import util
 import os
-import sys
-import uuid
+import functools
 
 def list_templates(config):
     """List available templates"""
@@ -70,22 +69,22 @@ def upgrade(config):
     """Upgrade to the latest version."""
 
     script = ScriptDirectory.from_config(config)
+    context._migration_fn = script.upgrade_from
+    script.run_env()
     
-    # ...
-    
-def revert(config):
+def revert(config, revision):
     """Revert to a specific previous version."""
     
     script = ScriptDirectory.from_config(config)
-
-    # ...
+    context._migration_fn = functools.partial(script.downgrade_to, revision)
+    script.run_env()
 
 def history(config):
     """List changeset scripts in chronological order."""
 
     script = ScriptDirectory.from_config(config)
     
-def splice(config):
+def splice(config, parent, child):
     """'splice' two branches, creating a new revision file."""
     
     

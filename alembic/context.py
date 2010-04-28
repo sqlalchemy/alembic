@@ -1,5 +1,6 @@
 from alembic.ddl import base
 from alembic import util
+from sqlalchemy import MetaData, Table, Column, String
 
 class ContextMeta(type):
     def __init__(cls, classname, bases, dict_):
@@ -9,14 +10,36 @@ class ContextMeta(type):
         return newtype
 
 _context_impls = {}
-    
+
+_meta = MetaData()
+_version = Table('alembic_version', _meta, 
+                Column('version_num', String(32), nullable=False)
+            )
+
 class DefaultContext(object):
     __metaclass__ = ContextMeta
+    __dialect__ = 'default'
     
-    def __init__(self, options, connection):
-        self.options = options
+    def __init__(self, connection, fn):
         self.connection = connection
+        self._migrations_fn = fn
+        
+    def _current_rev(self):
+        _version.create(self.connection, checkfirst=True)
+        return self.connection.scalar(_version.select())
     
+    def _update_current_rev(self, old, new):
+        if old is None:
+            self.connection.execute(_version.insert(), {'version_num':new})
+        else:
+            self.connection.execute(_version.update(), {'version_num':new})
+            
+    def run_migrations(self, **kw):
+        current_rev = self._current_rev()
+        for change in self._migrations_fn(current_rev):
+            change.execute()            
+        self._update_current_rev(current_rev, change.upgrade)
+        
     def _exec(self, construct):
         pass
         
@@ -37,4 +60,12 @@ class DefaultContext(object):
     def add_constraint(self, const):
         self._exec(schema.AddConstraint(const))
 
-        
+
+def configure_connection(connection):
+    global _context
+    _context = _context_impls[connection.dialect.name](connection, _migration_fn)
+    
+def run_migrations(**kw):
+    global _context
+    _context.run_migrations(**kw)
+    

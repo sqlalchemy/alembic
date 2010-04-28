@@ -22,6 +22,15 @@ class ScriptDirectory(object):
         return ScriptDirectory(
                     options.get_main_option('script_location'))
 
+    def upgrade_from(self, current_rev):
+        return []
+
+    def downgrade_to(self, destination, current_rev):
+        return []
+
+    def run_env(self):
+        pass
+
     @util.memoized_property
     def _revision_map(self):
         map_ = {}

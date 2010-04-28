@@ -24,7 +24,7 @@ for name in re.split(r',\s*', db_names):
 try:
     for name, rec in engines.items():
         context.configure_connection(rec['connection'])
-        run_migrations(engine=name)
+        context.run_migrations(engine=name)
 
     if USE_TWOPHASE:
         for rec in engines.values():
