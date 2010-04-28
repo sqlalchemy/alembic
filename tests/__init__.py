@@ -19,29 +19,18 @@ def assert_compiled(element, assert_string, dialect=None):
     dialect = _get_dialect(dialect)
     eq_(unicode(element.compile(dialect=dialect)), assert_string)
 
-def _testing_options(**kw):
-    from alembic.options import Options, get_option_parser
+def _testing_config(**kw):
+    from alembic.config import Config
     if not os.access(staging_directory, os.F_OK):
         os.mkdir(staging_directory)
-    kw.setdefault(
-            'config', 
-            os.path.join(staging_directory, 'test_alembic.ini')
-        )
-
-    return Options(
-                get_option_parser(), 
-                ["./scripts/alembic"] + \
-                list(itertools.chain(*[["--%s" % k, "%s" % v] for k, v in kw.items()])) + \
-                ["init"] +\
-                [os.path.join(staging_directory, 'scripts')]
-            )
+    return Config(os.path.join(staging_directory, 'test_alembic.ini'))
     
 def staging_env(create=True):
     from alembic import command, script
-    opt = _testing_options()
+    cfg = _testing_config()
     if create:
-        command.init(opt)
-    return script.ScriptDirectory.from_options(opt)
+        command.init(cfg, os.path.join(staging_directory, 'scripts'))
+    return script.ScriptDirectory.from_config(cfg)
     
 def clear_staging_env():
     shutil.rmtree(staging_directory, True)

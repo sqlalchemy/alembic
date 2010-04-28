@@ -39,6 +39,11 @@ def status(_statmsg, fn, *arg, **kw):
         sys.stdout.write("FAILED\n")
         raise
 
+def err(message):
+    msg(message)
+    sys.exit(-1)
+
+
 def warn(msg):
     warnings.warn(msg)
     

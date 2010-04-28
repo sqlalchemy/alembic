@@ -8,21 +8,19 @@ _rev_file = re.compile(r'([a-z0-9]+)\.py$')
 _mod_def_re = re.compile(r'(upgrade|downgrade)_([a-z0-9]+)')
 
 class ScriptDirectory(object):
-    def __init__(self, dir, options):
+    def __init__(self, dir):
         self.dir = dir
         self.versions = os.path.join(self.dir, 'versions')
         
         if not os.access(dir, os.F_OK):
-            options.err("Path doesn't exist: %r.  Please use "
+            util.err("Path doesn't exist: %r.  Please use "
                         "the 'init' command to create a new "
                         "scripts folder." % dir)
-        self.options = options
         
     @classmethod
-    def from_options(cls, options):
+    def from_config(cls, options):
         return ScriptDirectory(
-                    options.get_main_option('script_location'), 
-                    options)
+                    options.get_main_option('script_location'))
 
     @util.memoized_property
     def _revision_map(self):
