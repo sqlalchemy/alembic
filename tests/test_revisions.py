@@ -24,7 +24,7 @@ def test_004_rev():
     eq_(script.upgrade, abc)
     eq_(script.downgrade, None)
     assert os.access(os.path.join(env.dir, 'versions', '%s.py' % abc), os.F_OK)
-    assert callable(getattr(script.module, 'upgrade_%s' % abc))
+    assert callable(script.module.upgrade)
     eq_(env._get_heads(), [abc])
     
 def test_005_nextrev():
@@ -32,8 +32,9 @@ def test_005_nextrev():
     eq_(script.upgrade, def_)
     eq_(script.downgrade, abc)
     eq_(env._revision_map[abc].nextrev, def_)
-    assert callable(getattr(script.module, 'upgrade_%s' % def_))
-    assert callable(getattr(script.module, 'downgrade_%s' % abc))
+    assert script.module.down_revision == abc
+    assert callable(script.module.upgrade)
+    assert callable(script.module.downgrade)
     eq_(env._get_heads(), [def_])
 
 def test_006_from_clean_env():

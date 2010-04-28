@@ -1,22 +1,25 @@
 """${message}"""
 
+# downgrade revision identifier, used by Alembic.
+down_revision = ${repr(down_revision)}
+
 from alembic.op import *
 
-def upgrade_${up_revision}(engine):
-    eval("upgrade_%s_${up_revision}" % engine.name)()
+def upgrade(engine):
+    eval("upgrade_%s" % engine.name)()
 
 % if down_revision:
-def downgrade_${down_revision}(engine):
-    eval("upgrade_%s_${down_revision}" % engine.name)()
+def downgrade(engine):
+    eval("upgrade_%s" % engine.name)()
 % else:
 # this is the origin node, no downgrade !
 % endif
 
 
 % for engine in ["engine1", "engine2"]:
-    def upgrade_${engine}_${up_revision}():
+    def upgrade_${engine}():
         pass
 
-    def downgrade_${engine}_${down_revision}():
+    def downgrade_${engine}():
         pass
 % endfor

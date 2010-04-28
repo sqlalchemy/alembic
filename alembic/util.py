@@ -8,6 +8,7 @@ import warnings
 import re
 import time
 import random
+import uuid
 
 NO_VALUE = util.symbol("NO_VALUE")
 
@@ -58,9 +59,7 @@ def load_python_file(dir_, filename):
     return module
 
 def rev_id():
-    v1 = int(time.time()) * 10000
-    v2 = random.randint(0, 9999)
-    val = v1 + v2
+    val = int(uuid.uuid4()) % 100000000000000
     return hex(val)[2:-1]
     
 class memoized_property(object):

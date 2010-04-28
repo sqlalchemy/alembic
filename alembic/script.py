@@ -4,7 +4,7 @@ import shutil
 import re
 import inspect
 
-_rev_file = re.compile(r'[a-z0-9]+\.py$')
+_rev_file = re.compile(r'([a-z0-9]+)\.py$')
 _mod_def_re = re.compile(r'(upgrade|downgrade)_([a-z0-9]+)')
 
 class ScriptDirectory(object):
@@ -101,31 +101,20 @@ class ScriptDirectory(object):
 class Script(object):
     nextrev = None
     
-    def __init__(self, module):
+    def __init__(self, module, rev_id):
         self.module = module
-        self.upgrade = self.downgrade = None
-        for name in dir(module):
-            m = _mod_def_re.match(name)
-            if not m:
-                continue
-            fn = getattr(module, name)
-            if not inspect.isfunction(fn):
-                continue
-            if m.group(1) == 'upgrade':
-                self.upgrade = m.group(2)
-            elif m.group(1) == 'downgrade':
-                self.downgrade = m.group(2)
-        if not self.downgrade and not self.upgrade:
-            raise Exception("Script %s has no upgrade or downgrade path" % module)
+        self.upgrade = rev_id
+        self.downgrade = getattr(module, 'down_revision', None)
     
     def __str__(self):
         return "revision %s" % self.upgrade
         
     @classmethod
     def from_path(cls, dir_, filename):
-        if not _rev_file.match(filename):
+        m = _rev_file.match(filename)
+        if not m:
             return None
         
         module = util.load_python_file(dir_, filename)
-        return Script(module)
+        return Script(module, m.group(1))
         
