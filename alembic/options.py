@@ -49,10 +49,14 @@ class Options(object):
                 self.cmd_line_args = parser.parse_args(argv[1:])
         if len(self.cmd_line_args) < 1:
             self.err("no command specified")
-        self.config_file_name = self.cmd_line_options.config
-        self.file_config = ConfigParser.ConfigParser()
-        self.file_config.read([self.config_file_name])
     
+    @util.memoized_property
+    def file_config(self):
+        self.config_file_name = self.cmd_line_options.config
+        file_config = ConfigParser.ConfigParser()
+        file_config.read([self.config_file_name])
+        return file_config
+        
     def get_command(self):
         return self.cmd_line_args[0]
     

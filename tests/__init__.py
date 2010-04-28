@@ -1,4 +1,4 @@
-from sqlalchemy.test.testing import eq_
+from sqlalchemy.test.testing import eq_, ne_
 from sqlalchemy.util import defaultdict
 from sqlalchemy.engine import url, default
 import shutil
@@ -27,10 +27,13 @@ def _testing_options(**kw):
             'config', 
             os.path.join(staging_directory, 'test_alembic.ini')
         )
+
     return Options(
                 get_option_parser(), 
-                list(itertools.chain(*[["--%s" % k, "%r" % v] for k, v in kw.items()]) )
-                + [os.path.join(staging_directory, 'scripts')]
+                ["./scripts/alembic"] + \
+                list(itertools.chain(*[["--%s" % k, "%s" % v] for k, v in kw.items()])) + \
+                ["init"] +\
+                [os.path.join(staging_directory, 'scripts')]
             )
     
 def staging_env(create=True):

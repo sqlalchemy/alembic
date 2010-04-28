@@ -6,6 +6,8 @@ from sqlalchemy import util
 import imp
 import warnings
 import re
+import time
+import random
 
 NO_VALUE = util.symbol("NO_VALUE")
 
@@ -55,6 +57,12 @@ def load_python_file(dir_, filename):
     del sys.modules[module_id]
     return module
 
+def rev_id():
+    v1 = int(time.time()) * 10000
+    v2 = random.randint(0, 9999)
+    val = v1 + v2
+    return hex(val)[2:-1]
+    
 class memoized_property(object):
     """A read-only @property that is only evaluated once."""
     def __init__(self, fget, doc=None):

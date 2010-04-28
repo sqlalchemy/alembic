@@ -1,4 +1,5 @@
-from tests import clear_staging_env, staging_env, eq_
+from tests import clear_staging_env, staging_env, eq_, ne_
+from alembic import util
 import os
 
 def test_001_environment():
@@ -8,38 +9,44 @@ def test_001_environment():
         assert_set
     )
 
-def test_002_heads():
+def test_002_rev_ids():
+    global abc, def_
+    abc = util.rev_id()
+    def_ = util.rev_id()
+    ne_(abc, def_)
+    
+def test_003_heads():
     eq_(env._get_heads(), [])
     
-def test_003_rev():
-    script = env.generate_rev("abc", "this is a message")
+def test_004_rev():
+    script = env.generate_rev(abc, "this is a message")
     eq_(script.module.__doc__,"this is a message")
-    eq_(script.upgrade, "abc")
+    eq_(script.upgrade, abc)
     eq_(script.downgrade, None)
-    assert os.access(os.path.join(env.dir, 'versions', 'abc.py'), os.F_OK)
-    assert callable(script.module.upgrade_abc)
-    eq_(env._get_heads(), ["abc"])
+    assert os.access(os.path.join(env.dir, 'versions', '%s.py' % abc), os.F_OK)
+    assert callable(getattr(script.module, 'upgrade_%s' % abc))
+    eq_(env._get_heads(), [abc])
     
-def test_004_nextrev():
-    script = env.generate_rev("def", "this is the next rev")
-    eq_(script.upgrade, "def")
-    eq_(script.downgrade, "abc")
-    eq_(env._revision_map["abc"].nextrev, "def")
-    assert callable(script.module.upgrade_def)
-    assert callable(script.module.downgrade_abc)
-    eq_(env._get_heads(), ["def"])
+def test_005_nextrev():
+    script = env.generate_rev(def_, "this is the next rev")
+    eq_(script.upgrade, def_)
+    eq_(script.downgrade, abc)
+    eq_(env._revision_map[abc].nextrev, def_)
+    assert callable(getattr(script.module, 'upgrade_%s' % def_))
+    assert callable(getattr(script.module, 'downgrade_%s' % abc))
+    eq_(env._get_heads(), [def_])
 
-def test_005_from_clean_env():
+def test_006_from_clean_env():
     # test the environment so far with a 
     # new ScriptDirectory instance.
     
     env = staging_env(create=False)
-    abc = env._revision_map["abc"]
-    def_ = env._revision_map["def"]
-    eq_(abc.nextrev, "def")
-    eq_(abc.upgrade, "abc")
-    eq_(def_.downgrade, "abc")
-    eq_(env._get_heads(), ["def"])
+    abc_rev = env._revision_map[abc]
+    def_rev = env._revision_map[def_]
+    eq_(abc_rev.nextrev, def_)
+    eq_(abc_rev.upgrade, abc)
+    eq_(def_rev.downgrade, abc)
+    eq_(env._get_heads(), [def_])
     
 def setup():
     global env
