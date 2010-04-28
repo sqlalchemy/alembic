@@ -65,7 +65,7 @@ def revision(opts):
     """Create a new revision file."""
 
     script = ScriptDirectory.from_options(opts)
-    script.generate_rev(uuid.uuid4(), opts.cmd_line_options.message)
+    script.generate_rev(str(uuid.uuid4().hex), opts.cmd_line_options.message)
     
 def upgrade(opts):
     """Upgrade to the latest version."""

@@ -4,8 +4,8 @@ import shutil
 import re
 import inspect
 
-_uuid_re = re.compile(r'[a-z0-9]{32}\.py$')
-_mod_def_re = re.compile(r'(upgrade|downgrade)_([a-z0-9]{32})')
+_rev_file = re.compile(r'[a-z0-9]+\.py$')
+_mod_def_re = re.compile(r'(upgrade|downgrade)_([a-z0-9]+)')
 
 class ScriptDirectory(object):
     def __init__(self, dir, options):
@@ -50,7 +50,7 @@ class ScriptDirectory(object):
         heads = []
         for script in self._revision_map.values():
             if script.nextrev is None:
-                heads.append(script)
+                heads.append(script.upgrade)
         return heads
     
     def _get_origin(self):
@@ -84,13 +84,19 @@ class ScriptDirectory(object):
             current_head = current_heads[0]
         else:
             current_head = None
+        filename = "%s.py" % revid
         self.generate_template(
             os.path.join(self.dir, "script.py.mako"),
-            os.path.join(self.versions, "%s.py" % revid.hex), 
-            up_revision=str(revid.hex),
-            down_revision=current_head.upgrade if current_head else None,
-            message=message if message is not None else ("Alembic revision %s" % revid.hex)
+            os.path.join(self.versions, filename), 
+            up_revision=str(revid),
+            down_revision=current_head,
+            message=message if message is not None else ("Alembic revision %s" % revid)
         )
+        script = Script.from_path(self.versions, filename)
+        self._revision_map[script.upgrade] = script
+        if script.downgrade:
+            self._revision_map[script.downgrade].nextrev = script.upgrade
+        return script
         
 class Script(object):
     nextrev = None
@@ -117,10 +123,9 @@ class Script(object):
         
     @classmethod
     def from_path(cls, dir_, filename):
-        if not _uuid_re.match(filename):
+        if not _rev_file.match(filename):
             return None
         
-        print "LOAD PYTHON FILE", filename
         module = util.load_python_file(dir_, filename)
         return Script(module)
         

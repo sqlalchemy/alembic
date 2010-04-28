@@ -5,7 +5,7 @@ import shutil
 import os
 import itertools
 
-testing_directory = os.path.join(os.path.dirname(__file__), 'scratch')
+staging_directory = os.path.join(os.path.dirname(__file__), 'scratch')
 
 _dialects = defaultdict(lambda name:url.URL(drivername).get_dialect()())
 def _get_dialect(name):
@@ -19,26 +19,27 @@ def assert_compiled(element, assert_string, dialect=None):
     dialect = _get_dialect(dialect)
     eq_(unicode(element.compile(dialect=dialect)), assert_string)
 
-
 def _testing_options(**kw):
     from alembic.options import Options, get_option_parser
-    os.mkdir(testing_directory)
+    if not os.access(staging_directory, os.F_OK):
+        os.mkdir(staging_directory)
     kw.setdefault(
             'config', 
-            os.path.join(testing_directory, 'test_alembic.ini')
+            os.path.join(staging_directory, 'test_alembic.ini')
         )
     return Options(
                 get_option_parser(), 
                 list(itertools.chain(*[["--%s" % k, "%r" % v] for k, v in kw.items()]) )
-                + [os.path.join(testing_directory, 'scripts')]
+                + [os.path.join(staging_directory, 'scripts')]
             )
     
-def _testing_env():
+def staging_env(create=True):
     from alembic import command, script
     opt = _testing_options()
-    command.init(opt)
+    if create:
+        command.init(opt)
     return script.ScriptDirectory.from_options(opt)
     
-def _clear_testing_directory():
-    shutil.rmtree(testing_directory, True)
+def clear_staging_env():
+    shutil.rmtree(staging_directory, True)
     
