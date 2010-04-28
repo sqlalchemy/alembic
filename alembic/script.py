@@ -23,13 +23,16 @@ class ScriptDirectory(object):
                     options.get_main_option('script_location'))
 
     def upgrade_from(self, current_rev):
-        return []
+        script = self._revision_map[current_rev]
+        while script:
+            yield script.module.upgrade, script.upgrade
+            script = script.nextrev
 
     def downgrade_to(self, destination, current_rev):
         return []
-
+        
     def run_env(self):
-        pass
+        util.load_python_file(self.dir, 'env.py')
 
     @util.memoized_property
     def _revision_map(self):

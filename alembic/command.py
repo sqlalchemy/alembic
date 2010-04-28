@@ -1,5 +1,5 @@
 from alembic.script import ScriptDirectory
-from alembic import util
+from alembic import util, ddl, context
 import os
 import functools
 
@@ -70,6 +70,7 @@ def upgrade(config):
 
     script = ScriptDirectory.from_config(config)
     context._migration_fn = script.upgrade_from
+    context.config = config
     script.run_env()
     
 def revert(config, revision):

@@ -36,12 +36,15 @@ class DefaultContext(object):
             
     def run_migrations(self, **kw):
         current_rev = self._current_rev()
-        for change in self._migrations_fn(current_rev):
-            change.execute()            
-        self._update_current_rev(current_rev, change.upgrade)
+        for change, rev in self._migrations_fn(current_rev):
+            change.execute(**kw)
+        self._update_current_rev(current_rev, rev)
         
     def _exec(self, construct):
         pass
+    
+    def execute(self, sql):
+        self._exec(sql)
         
     def alter_column(self, table_name, column_name, 
                         nullable=util.NO_VALUE,
@@ -63,9 +66,8 @@ class DefaultContext(object):
 
 def configure_connection(connection):
     global _context
-    _context = _context_impls[connection.dialect.name](connection, _migration_fn)
+    _context = _context_impls.get(connection.dialect.name, DefaultContext)(connection, _migration_fn)
     
 def run_migrations(**kw):
-    global _context
     _context.run_migrations(**kw)
     

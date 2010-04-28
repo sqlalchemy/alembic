@@ -1,10 +1,11 @@
-from alembic import options, context
+from alembic import context
 from sqlalchemy import engine_from_config
-import logging
+from logging.config import fileConfig
+config = context.config
 
-logging.fileConfig(options.config_file)
+fileConfig(config.config_file_name)
 
-engine = engine_from_config(options.get_section('alembic'), prefix='sqlalchemy.')
+engine = engine_from_config(config.get_section('alembic'), prefix='sqlalchemy.')
 
 connection = engine.connect()
 context.configure_connection(connection)

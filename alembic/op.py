@@ -49,3 +49,6 @@ def create_unique_constraint(name, source, local_cols):
     context.add_constraint(
                 _unique_constraint(name, source, local_cols)
             )
+
+def execute(sql):
+    context.execute(sql)
