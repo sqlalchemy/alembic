@@ -8,9 +8,5 @@ from alembic.op import *
 def upgrade():
     pass
 
-% if down_revision:
 def downgrade():
     pass
-% else:
-# this is the origin node, no downgrade !
-% endif

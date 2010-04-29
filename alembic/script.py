@@ -18,21 +18,37 @@ class ScriptDirectory(object):
                         "scripts folder." % dir)
         
     @classmethod
-    def from_config(cls, options):
+    def from_config(cls, config):
         return ScriptDirectory(
-                    options.get_main_option('script_location'))
-
-    def upgrade_from(self, current_rev):
-        head = self._current_head()
-        script = self._revision_map[head]
-        scripts = []
-        while script.upgrade != current_rev:
-            scripts.append((script.module.upgrade, script.upgrade))
-            script = self._revision_map[script.downgrade]
-        return reversed(scripts)
+                    config.get_main_option('script_location'))
+    
+    def _get_rev(self, id_):
+        if id_ == 'head':
+            return self._current_head()
+        elif id_ == 'base':
+            return None
+        else:
+            return id_
+            
+    def _revs(self, upper, lower):
+        lower = self._revision_map[self._get_rev(lower)]
+        upper = self._revision_map[self._get_rev(upper)]
+        script = upper
+        while script != lower:
+            yield script
+            script = self._revision_map[script.down_revision]
+        
+    def upgrade_from(self, destination, current_rev):
+        return [
+            (script.module.upgrade, script.revision) for script in 
+            reversed(list(self._revs(destination, current_rev)))
+            ]
         
     def downgrade_to(self, destination, current_rev):
-        return []
+        return [
+            (script.module.downgrade, script.down_revision) for script in 
+            self._revs(current_rev, destination)
+            ]
         
     def run_env(self):
         util.load_python_file(self.dir, 'env.py')
@@ -44,18 +60,19 @@ class ScriptDirectory(object):
             script = Script.from_path(self.versions, file_)
             if script is None:
                 continue
-            if script.upgrade in map_:
-                util.warn("Revision %s is present more than once" % script.upgrade)
-            map_[script.upgrade] = script
+            if script.revision in map_:
+                util.warn("Revision %s is present more than once" % script.revision)
+            map_[script.revision] = script
         for rev in map_.values():
-            if rev.downgrade is None:
+            if rev.down_revision is None:
                 continue
-            if rev.downgrade not in map_:
+            if rev.down_revision not in map_:
                 util.warn("Revision %s referenced from %s is not present"
-                            % (rev.downgrade, rev))
-                rev.downgrade = None
+                            % (rev.down_revision, rev))
+                rev.down_revision = None
             else:
-                map_[rev.downgrade].nextrev = rev.upgrade
+                map_[rev.down_revision].nextrev = rev.revision
+        map_[None] = None
         return map_
     
     def _current_head(self):
@@ -71,16 +88,16 @@ class ScriptDirectory(object):
         # TODO: keep map sorted chronologically
         heads = []
         for script in self._revision_map.values():
-            if script.nextrev is None:
-                heads.append(script.upgrade)
+            if script and script.nextrev is None:
+                heads.append(script.revision)
         return heads
     
     def _get_origin(self):
         # TODO: keep map sorted chronologically
         
         for script in self._revision_map.values():
-            if script.downgrade is None \
-                and script.upgrade in self._revision_map:
+            if script.down_revision is None \
+                and script.revision in self._revision_map:
                 return script
         else:
             return None
@@ -109,9 +126,9 @@ class ScriptDirectory(object):
             message=message if message is not None else ("Alembic revision %s" % revid)
         )
         script = Script.from_path(self.versions, filename)
-        self._revision_map[script.upgrade] = script
-        if script.downgrade:
-            self._revision_map[script.downgrade].nextrev = script.upgrade
+        self._revision_map[script.revision] = script
+        if script.down_revision:
+            self._revision_map[script.down_revision].nextrev = script.revision
         return script
         
 class Script(object):
@@ -119,12 +136,12 @@ class Script(object):
     
     def __init__(self, module, rev_id):
         self.module = module
-        self.upgrade = rev_id
-        self.downgrade = getattr(module, 'down_revision', None)
+        self.revision = rev_id
+        self.down_revision = getattr(module, 'down_revision', None)
     
     def __str__(self):
-        return "revision %s" % self.upgrade
-        
+        return "revision %s" % self.revision
+    
     @classmethod
     def from_path(cls, dir_, filename):
         m = _rev_file.match(filename)

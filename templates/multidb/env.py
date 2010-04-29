@@ -35,3 +35,4 @@ try:
 except:
     for rec in engines.values():
         rec['transaction'].rollback()
+    raise

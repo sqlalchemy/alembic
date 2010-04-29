@@ -25,10 +25,6 @@ def template_to_file(template_file, dest, **kw):
     f.close()
 
 
-def format_opt(opt, hlp, padding=22):
-    return "  " + opt + \
-        ((padding - len(opt)) * " ") + hlp
-
 def status(_statmsg, fn, *arg, **kw):
     msg(_statmsg + "...", False)
     try:

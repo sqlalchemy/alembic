@@ -13,22 +13,48 @@ def main(argv):
     # and derives everything from callables ?
     # we're inventing here a bit.
     
-    commands = dict([
-                (fn.__name__, fn) for fn in 
-                [getattr(command, n) for n in dir(command)]
-                if inspect.isfunction(fn) and 
-                    fn.__name__[0] != '_' and 
-                    fn.__module__ == 'alembic.command'
-                ])
+    commands = {}
+    for fn in [getattr(command, n) for n in dir(command)]:
+        if inspect.isfunction(fn) and \
+            fn.__name__[0] != '_' and \
+            fn.__module__ == 'alembic.command':
+            
+            spec = inspect.getargspec(fn)
+            if spec[3]:
+                positional = spec[0][1:-len(spec[3])]
+                kwarg = spec[0][-len(spec[3]):]
+            else:
+                positional = spec[0][1:]
+                kwarg = []
+            
+            commands[fn.__name__] = {
+                'name':fn.__name__,
+                'fn':fn,
+                'positional':positional,
+                'kwargs':kwarg
+            }
+
+    def format_cmd(cmd):
+        return "%s %s" % (
+            cmd['name'], 
+            " ".join(["<%s>" % p for p in cmd['positional']])
+        )
     
+    def format_opt(cmd, padding=32):
+        opt = format_cmd(cmd)
+        return "  " + opt + \
+                ((padding - len(opt)) * " ") + cmd['fn'].__doc__
+        
     parser = OptionParser(
                 "usage: %prog [options] <command> [command arguments]\n\n"
                 "Available Commands:\n" +
                 "\n".join(sorted([
-                    util.format_opt(fn.__name__.replace('_', '-'), fn.__doc__)
-                    for fn in commands.values()
-                ]))
+                    format_opt(cmd)
+                    for cmd in commands.values()
+                ])) +
+                "\n\n<revision> is a hex revision id or 'head'"
                 )
+                
     parser.add_option("-c", "--config", 
                         type="string", 
                         default="alembic.ini", 
@@ -53,28 +79,19 @@ def main(argv):
     except KeyError:
         util.err("no such command %r" % cmd)
         
-    spec = inspect.getargspec(cmd_fn)
-    if spec[3]:
-        positional = spec[0][1:-len(spec[3])]
-        kwarg = spec[0][-len(spec[3]):]
-    else:
-        positional = spec[0][1:]
-        kwarg = []
-        
     kw = dict(
         (k, getattr(cmd_line_options, k)) 
-        for k in kwarg
+        for k in cmd_fn['kwargs']
     )
         
-    if len(cmd_line_args) != len(positional):
-        util.err("Usage: %s %s [options] %s" % (
+    if len(cmd_line_args) != len(cmd_fn['positional']):
+        util.err("Usage: %s %s [options]" % (
                         os.path.basename(argv[0]), 
-                        cmd, 
-                        " ".join(["<%s>" % p for p in positional])
+                        format_cmd(cmd_fn)
                     ))
 
     cfg = config.Config(cmd_line_options.config)
-    cmd_fn(cfg, *cmd_line_args, **kw)
+    cmd_fn['fn'](cfg, *cmd_line_args, **kw)
 
 
 

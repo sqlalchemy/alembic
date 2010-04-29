@@ -1,8 +1,9 @@
 from alembic import util
+from alembic.context import get_context
 from sqlalchemy.types import NULLTYPE
 from sqlalchemy import schema
 
-__all__ = ['alter_column', 'create_foreign_key', 'create_unique_constraint']
+__all__ = ['alter_column', 'create_foreign_key', 'create_unique_constraint', 'execute']
 
 def alter_column(table_name, column_name, 
                     nullable=util.NO_VALUE,
@@ -41,14 +42,14 @@ def _unique_constraint(name, source, local_cols):
     return schema.UniqueConstraint(*t.c, name=name)
     
 def create_foreign_key(name, source, referent, local_cols, remote_cols):
-    context.add_constraint(
+    get_context().add_constraint(
                 _foreign_key_constraint(source, referent, local_cols, remote_cols)
             )
 
 def create_unique_constraint(name, source, local_cols):
-    context.add_constraint(
+    get_context().add_constraint(
                 _unique_constraint(name, source, local_cols)
             )
 
 def execute(sql):
-    context.execute(sql)
+    get_context().execute(sql)

@@ -65,19 +65,20 @@ def revision(config, message=None):
     script = ScriptDirectory.from_config(config)
     script.generate_rev(util.rev_id(), message)
     
-def upgrade(config):
-    """Upgrade to the latest version."""
+def upgrade(config, revision):
+    """Upgrade to a later version."""
 
     script = ScriptDirectory.from_config(config)
-    context._migration_fn = script.upgrade_from
+    context._migration_fn = functools.partial(script.upgrade_from, revision)
     context.config = config
     script.run_env()
     
 def revert(config, revision):
-    """Revert to a specific previous version."""
+    """Revert to a previous version."""
     
     script = ScriptDirectory.from_config(config)
     context._migration_fn = functools.partial(script.downgrade_to, revision)
+    context.config = config
     script.run_env()
 
 def history(config):

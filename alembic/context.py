@@ -29,19 +29,24 @@ class DefaultContext(object):
         return self.connection.scalar(_version.select())
     
     def _update_current_rev(self, old, new):
-        if old is None:
+        if new is None:
+            self.connection.execute(_version.delete())
+        elif old is None:
             self.connection.execute(_version.insert(), {'version_num':new})
         else:
             self.connection.execute(_version.update(), {'version_num':new})
             
     def run_migrations(self, **kw):
         current_rev = self._current_rev()
+        rev = -1
         for change, rev in self._migrations_fn(current_rev):
-            change.execute(**kw)
-        self._update_current_rev(current_rev, rev)
+            print "-> %s" % (rev, )
+            change(**kw)
+        if rev != -1:
+            self._update_current_rev(current_rev, rev)
         
     def _exec(self, construct):
-        pass
+        self.connection.execute(construct)
     
     def execute(self, sql):
         self._exec(sql)
@@ -70,4 +75,6 @@ def configure_connection(connection):
     
 def run_migrations(**kw):
     _context.run_migrations(**kw)
-    
+
+def get_context():
+    return _context

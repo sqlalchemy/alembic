@@ -24,3 +24,4 @@ try:
     trans.commit()
 except:
     trans.rollback()
+    raise
