@@ -23,11 +23,14 @@ class ScriptDirectory(object):
                     options.get_main_option('script_location'))
 
     def upgrade_from(self, current_rev):
-        script = self._revision_map[current_rev]
-        while script:
-            yield script.module.upgrade, script.upgrade
-            script = script.nextrev
-
+        head = self._current_head()
+        script = self._revision_map[head]
+        scripts = []
+        while script.upgrade != current_rev:
+            scripts.append((script.module.upgrade, script.upgrade))
+            script = self._revision_map[script.downgrade]
+        return reversed(scripts)
+        
     def downgrade_to(self, destination, current_rev):
         return []
         
@@ -55,6 +58,15 @@ class ScriptDirectory(object):
                 map_[rev.downgrade].nextrev = rev.upgrade
         return map_
     
+    def _current_head(self):
+        current_heads = self._get_heads()
+        if len(current_heads) > 1:
+            raise Exception("Only a single head supported so far...")
+        if current_heads:
+            return current_heads[0]
+        else:
+            return None
+        
     def _get_heads(self):
         # TODO: keep map sorted chronologically
         heads = []
@@ -87,13 +99,7 @@ class ScriptDirectory(object):
                     src, dest)
     
     def generate_rev(self, revid, message):
-        current_heads = self._get_heads()
-        if len(current_heads) > 1:
-            raise Exception("Only a single head supported so far...")
-        if current_heads:
-            current_head = current_heads[0]
-        else:
-            current_head = None
+        current_head = self._current_head()
         filename = "%s.py" % revid
         self.generate_template(
             os.path.join(self.dir, "script.py.mako"),
