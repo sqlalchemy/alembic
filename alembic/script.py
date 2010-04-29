@@ -3,6 +3,7 @@ from alembic import util
 import shutil
 import re
 import inspect
+import datetime
 
 _rev_file = re.compile(r'([a-z0-9]+)\.py$')
 _mod_def_re = re.compile(r'(upgrade|downgrade)_([a-z0-9]+)')
@@ -73,7 +74,7 @@ class ScriptDirectory(object):
                             % (rev.down_revision, rev))
                 rev.down_revision = None
             else:
-                map_[rev.down_revision].nextrev = rev.revision
+                map_[rev.down_revision].add_nextrev(rev.revision)
         map_[None] = None
         return map_
     
@@ -87,16 +88,13 @@ class ScriptDirectory(object):
             return None
         
     def _get_heads(self):
-        # TODO: keep map sorted chronologically
         heads = []
         for script in self._revision_map.values():
-            if script and script.nextrev is None:
+            if script and script.is_head:
                 heads.append(script.revision)
         return heads
     
     def _get_origin(self):
-        # TODO: keep map sorted chronologically
-        
         for script in self._revision_map.values():
             if script.down_revision is None \
                 and script.revision in self._revision_map:
@@ -125,24 +123,45 @@ class ScriptDirectory(object):
             os.path.join(self.versions, filename), 
             up_revision=str(revid),
             down_revision=current_head,
-            message=message if message is not None else ("Alembic revision %s" % revid)
+            create_date=datetime.datetime.now(),
+            message=message if message is not None else ("empty message")
         )
         script = Script.from_path(self.versions, filename)
         self._revision_map[script.revision] = script
         if script.down_revision:
-            self._revision_map[script.down_revision].nextrev = script.revision
+            self._revision_map[script.down_revision].add_nextrev(script.revision)
         return script
         
 class Script(object):
-    nextrev = None
+    nextrev = frozenset()
     
     def __init__(self, module, rev_id):
         self.module = module
         self.revision = rev_id
         self.down_revision = getattr(module, 'down_revision', None)
     
+    @property
+    def doc(self):
+        return re.split(r"\n\n", self.module.__doc__)[0]
+
+    def add_nextrev(self, rev):
+        self.nextrev = self.nextrev.union([rev])
+        
+    @property
+    def is_head(self):
+        return not bool(self.nextrev)
+    
+    @property
+    def is_branch_point(self):
+        return len(self.nextrev) > 1
+        
     def __str__(self):
-        return "revision %s" % self.revision
+        return "%s -> %s%s%s, %s" % (
+                        self.down_revision, 
+                        self.revision, 
+                        " (head)" if self.is_head else "", 
+                        " (branchpoint)" if self.is_branch_point else "",
+                        self.doc)
     
     @classmethod
     def from_path(cls, dir_, filename):

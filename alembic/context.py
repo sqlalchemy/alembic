@@ -9,7 +9,7 @@ class ContextMeta(type):
     def __init__(cls, classname, bases, dict_):
         newtype = type.__init__(cls, classname, bases, dict_)
         if '__dialect__' in dict_:
-            _context_impls[dict_['__dialect__']] = newtype
+            _context_impls[dict_['__dialect__']] = cls
         return newtype
 
 _context_impls = {}

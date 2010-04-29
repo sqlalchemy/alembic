@@ -22,12 +22,12 @@ def init(config, directory, template='generic'):
     """Initialize a new scripts directory."""
     
     if os.access(directory, os.F_OK):
-        util.err("Directory %s already exists" % directory)
+        raise util.CommandException("Directory %s already exists" % directory)
 
     template_dir = os.path.join(config.get_template_directory(),
                                     template)
     if not os.access(template_dir, os.F_OK):
-        util.err("No such template %r" % template)
+        raise util.CommandException("No such template %r" % template)
 
     util.status("Creating directory %s" % os.path.abspath(directory),
                 os.makedirs, directory)
@@ -73,7 +73,7 @@ def upgrade(config, revision):
     context.config = config
     script.run_env()
     
-def revert(config, revision):
+def downgrade(config, revision):
     """Revert to a previous version."""
     
     script = ScriptDirectory.from_config(config)
@@ -85,6 +85,36 @@ def history(config):
     """List changeset scripts in chronological order."""
 
     script = ScriptDirectory.from_config(config)
+    heads = set(script._get_heads())
+    base = script._get_rev("base")
+    while heads:
+        todo = set(heads)
+        heads = set()
+        for head in todo:
+            print 
+            if head in heads:
+                break
+            for sc in script._revs(head, base):
+                if sc.is_branch_point and sc.revision not in todo:
+                    heads.add(sc.revision)
+                    break
+                else:
+                    print sc
+
+def current(config):
+    """Display the current revision for each database."""
+    
+    script = ScriptDirectory.from_config(config)
+    def display_version(rev):
+        print "Current revision for %s: %s" % (
+                            util.obfuscate_url_pw(
+                                context.get_context().connection.engine.url),
+                            script._get_rev(rev))
+        return []
+        
+    context._migration_fn = display_version
+    context.config = config
+    script.run_env()
     
 def splice(config, parent, child):
     """'splice' two branches, creating a new revision file."""

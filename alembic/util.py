@@ -3,6 +3,7 @@ import sys
 import os
 import textwrap
 from sqlalchemy import util
+from sqlalchemy.engine import url
 import imp
 import warnings
 import re
@@ -42,7 +43,12 @@ def err(message):
     msg(message)
     sys.exit(-1)
 
-
+def obfuscate_url_pw(u):
+    u = url.make_url(u)
+    if u.password:
+        u.password = 'XXXXX'
+    return str(u)
+    
 def warn(msg):
     warnings.warn(msg)
     
