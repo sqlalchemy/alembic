@@ -12,6 +12,9 @@ import uuid
 
 NO_VALUE = util.symbol("NO_VALUE")
 
+class CommandError(Exception):
+    pass
+    
 try:
     width = int(os.environ['COLUMNS'])
 except (KeyError, ValueError):

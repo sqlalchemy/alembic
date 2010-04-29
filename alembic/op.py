@@ -3,7 +3,11 @@ from alembic.context import get_context
 from sqlalchemy.types import NULLTYPE
 from sqlalchemy import schema
 
-__all__ = ['alter_column', 'create_foreign_key', 'create_unique_constraint', 'execute']
+__all__ = [
+            'alter_column', 
+            'create_foreign_key', 
+            'create_unique_constraint', 
+            'execute']
 
 def alter_column(table_name, column_name, 
                     nullable=util.NO_VALUE,

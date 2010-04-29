@@ -13,7 +13,7 @@ class ScriptDirectory(object):
         self.versions = os.path.join(self.dir, 'versions')
         
         if not os.access(dir, os.F_OK):
-            util.err("Path doesn't exist: %r.  Please use "
+            raise util.CommandError("Path doesn't exist: %r.  Please use "
                         "the 'init' command to create a new "
                         "scripts folder." % dir)
         
@@ -24,15 +24,17 @@ class ScriptDirectory(object):
     
     def _get_rev(self, id_):
         if id_ == 'head':
-            return self._current_head()
+            id_ = self._current_head()
         elif id_ == 'base':
-            return None
-        else:
-            return id_
+            id_ = None
+        try:
+            return self._revision_map[id_]
+        except KeyError:
+            raise util.CommandError("No such revision %s" % id_)
             
     def _revs(self, upper, lower):
-        lower = self._revision_map[self._get_rev(lower)]
-        upper = self._revision_map[self._get_rev(upper)]
+        lower = self._get_rev(lower)
+        upper = self._get_rev(upper)
         script = upper
         while script != lower:
             yield script

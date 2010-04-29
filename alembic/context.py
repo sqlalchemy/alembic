@@ -1,6 +1,9 @@
 from alembic.ddl import base
 from alembic import util
 from sqlalchemy import MetaData, Table, Column, String
+import logging
+
+log = logging.getLogger(__name__)
 
 class ContextMeta(type):
     def __init__(cls, classname, bases, dict_):
@@ -29,6 +32,9 @@ class DefaultContext(object):
         return self.connection.scalar(_version.select())
     
     def _update_current_rev(self, old, new):
+        if old == new:
+            return
+            
         if new is None:
             self.connection.execute(_version.delete())
         elif old is None:
@@ -37,13 +43,13 @@ class DefaultContext(object):
             self.connection.execute(_version.update(), {'version_num':new})
             
     def run_migrations(self, **kw):
-        current_rev = self._current_rev()
-        rev = -1
+        current_rev = prev_rev = rev = self._current_rev()
         for change, rev in self._migrations_fn(current_rev):
-            print "-> %s" % (rev, )
+            log.info("Running %s %s -> %s", change.__name__, prev_rev, rev)
             change(**kw)
-        if rev != -1:
-            self._update_current_rev(current_rev, rev)
+            prev_rev = rev
+        
+        self._update_current_rev(current_rev, rev)
         
     def _exec(self, construct):
         self.connection.execute(construct)
