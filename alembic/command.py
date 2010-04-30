@@ -85,22 +85,18 @@ def history(config):
     """List changeset scripts in chronological order."""
 
     script = ScriptDirectory.from_config(config)
-    heads = set(script._get_heads())
-    base = script._get_rev("base")
-    while heads:
-        todo = set(heads)
-        heads = set()
-        for head in todo:
-            print 
-            if head in heads:
-                break
-            for sc in script._revs(head, base):
-                if sc.is_branch_point and sc.revision not in todo:
-                    heads.add(sc.revision)
-                    break
-                else:
-                    print sc
+    for sc in script.walk_revisions():
+        if sc.is_head:
+            print
+        print sc
 
+def branches(config):
+    """Show current un-spliced branch points"""
+    script = ScriptDirectory.from_config(config)
+    for sc in script.walk_revisions():
+        if sc.is_branch_point:
+            print sc
+    
 def current(config):
     """Display the current revision for each database."""
     
@@ -120,5 +116,3 @@ def splice(config, parent, child):
     """'splice' two branches, creating a new revision file."""
     
     
-def branches(config):
-    """Show current un-spliced branch points"""

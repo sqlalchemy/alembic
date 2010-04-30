@@ -23,6 +23,8 @@ class DefaultContext(object):
     __metaclass__ = ContextMeta
     __dialect__ = 'default'
     
+    transactional_ddl = False
+    
     def __init__(self, connection, fn):
         self.connection = connection
         self._migrations_fn = fn
@@ -43,13 +45,20 @@ class DefaultContext(object):
             self.connection.execute(_version.update(), {'version_num':new})
             
     def run_migrations(self, **kw):
+        log.info("Context class %s.", self.__class__.__name__)
+        log.info("Will assume %s DDL.", 
+                        "transactional" if self.transactional_ddl 
+                        else "non-transactional")
         current_rev = prev_rev = rev = self._current_rev()
         for change, rev in self._migrations_fn(current_rev):
             log.info("Running %s %s -> %s", change.__name__, prev_rev, rev)
             change(**kw)
+            if not self.transactional_ddl:
+                self._update_current_rev(prev_rev, rev)
             prev_rev = rev
-        
-        self._update_current_rev(current_rev, rev)
+            
+        if self.transactional_ddl:
+            self._update_current_rev(current_rev, rev)
         
     def _exec(self, construct):
         self.connection.execute(construct)

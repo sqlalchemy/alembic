@@ -23,6 +23,28 @@ class ScriptDirectory(object):
         return ScriptDirectory(
                     config.get_main_option('script_location'))
     
+    def walk_revisions(self):
+        """Iterate through all revisions.
+        
+        This is actually a breadth-first tree traversal,
+        with leaf nodes being heads.
+        
+        """
+        heads = set(self._get_heads())
+        base = self._get_rev("base")
+        while heads:
+            todo = set(heads)
+            heads = set()
+            for head in todo:
+                if head in heads:
+                    break
+                for sc in self._revs(head, base):
+                    if sc.is_branch_point and sc.revision not in todo:
+                        heads.add(sc.revision)
+                        break
+                    else:
+                        yield sc
+        
     def _get_rev(self, id_):
         if id_ == 'head':
             id_ = self._current_head()
