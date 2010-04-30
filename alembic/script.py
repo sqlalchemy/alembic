@@ -100,12 +100,16 @@ class ScriptDirectory(object):
         map_[None] = None
         return map_
     
-    def rev_path(self, rev_id):
+    def _rev_path(self, rev_id):
         filename = "%s.py" % rev_id
         return os.path.join(self.versions, filename)
     
-    def refresh(self, rev_id):
-        script = Script.from_path(self.rev_path(rev_id))
+    def write(self, rev_id, content):
+        path = self._rev_path(rev_id)
+        file(path, 'w').write(content)
+        if os.access(path + "c", os.F_OK):
+            os.unlink(path + "c")
+        script = Script.from_path(path)
         old = self._revision_map[script.revision]
         if old.down_revision != script.down_revision:
             raise Exception("Can't change down_revision on a refresh operation.")
@@ -151,7 +155,7 @@ class ScriptDirectory(object):
     
     def generate_rev(self, revid, message):
         current_head = self._current_head()
-        path = self.rev_path(revid)
+        path = self._rev_path(revid)
         self.generate_template(
             os.path.join(self.dir, "script.py.mako"),
             path,
