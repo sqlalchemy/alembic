@@ -22,12 +22,12 @@ def init(config, directory, template='generic'):
     """Initialize a new scripts directory."""
     
     if os.access(directory, os.F_OK):
-        raise util.CommandException("Directory %s already exists" % directory)
+        raise util.CommandError("Directory %s already exists" % directory)
 
     template_dir = os.path.join(config.get_template_directory(),
                                     template)
     if not os.access(template_dir, os.F_OK):
-        raise util.CommandException("No such template %r" % template)
+        raise util.CommandError("No such template %r" % template)
 
     util.status("Creating directory %s" % os.path.abspath(directory),
                 os.makedirs, directory)
@@ -65,20 +65,26 @@ def revision(config, message=None):
     script = ScriptDirectory.from_config(config)
     script.generate_rev(util.rev_id(), message)
     
-def upgrade(config, revision):
+def upgrade(config, revision, sql=False):
     """Upgrade to a later version."""
 
     script = ScriptDirectory.from_config(config)
-    context._migration_fn = functools.partial(script.upgrade_from, revision)
-    context.config = config
+    context.opts(
+        config,
+        fn = functools.partial(script.upgrade_from, revision),
+        as_sql = sql
+    )
     script.run_env()
     
-def downgrade(config, revision):
+def downgrade(config, revision, sql=False):
     """Revert to a previous version."""
     
     script = ScriptDirectory.from_config(config)
-    context._migration_fn = functools.partial(script.downgrade_to, revision)
-    context.config = config
+    context.opts(
+        config,
+        fn = functools.partial(script.downgrade_to, revision),
+        as_sql = sql,
+    )
     script.run_env()
 
 def history(config):
@@ -107,9 +113,11 @@ def current(config):
                                 context.get_context().connection.engine.url),
                             script._get_rev(rev))
         return []
-        
-    context._migration_fn = display_version
-    context.config = config
+    
+    context.opts(
+        config,
+        fn = display_version
+    )    
     script.run_env()
     
 def splice(config, parent, child):

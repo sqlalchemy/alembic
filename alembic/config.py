@@ -79,7 +79,7 @@ def main(argv):
                     format_opt(cmd)
                     for cmd in commands.values()
                 ])) +
-                "\n\n<revision> is a hex revision id or 'head'"
+                "\n\n<revision> is a hex revision id, 'head' or 'base'."
                 )
 
     parser.add_option("-c", "--config", 
@@ -93,6 +93,9 @@ def main(argv):
     parser.add_option("-m", "--message",
                         type="string",
                         help="Message string to use with 'revision'")
+    parser.add_option("--sql",
+                        action="store_true",
+                        help="Dump output to a SQL file")
 
     cmd_line_options, cmd_line_args = parser.parse_args(argv[1:])
 

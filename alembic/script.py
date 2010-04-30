@@ -82,7 +82,7 @@ class ScriptDirectory(object):
     def _revision_map(self):
         map_ = {}
         for file_ in os.listdir(self.versions):
-            script = Script.from_path(self.versions, file_)
+            script = Script.from_filename(self.versions, file_)
             if script is None:
                 continue
             if script.revision in map_:
@@ -100,6 +100,18 @@ class ScriptDirectory(object):
         map_[None] = None
         return map_
     
+    def rev_path(self, rev_id):
+        filename = "%s.py" % rev_id
+        return os.path.join(self.versions, filename)
+    
+    def refresh(self, rev_id):
+        script = Script.from_path(self.rev_path(rev_id))
+        old = self._revision_map[script.revision]
+        if old.down_revision != script.down_revision:
+            raise Exception("Can't change down_revision on a refresh operation.")
+        self._revision_map[script.revision] = script
+        script.nextrev = old.nextrev
+        
     def _current_head(self):
         current_heads = self._get_heads()
         if len(current_heads) > 1:
@@ -139,16 +151,16 @@ class ScriptDirectory(object):
     
     def generate_rev(self, revid, message):
         current_head = self._current_head()
-        filename = "%s.py" % revid
+        path = self.rev_path(revid)
         self.generate_template(
             os.path.join(self.dir, "script.py.mako"),
-            os.path.join(self.versions, filename), 
+            path,
             up_revision=str(revid),
             down_revision=current_head,
             create_date=datetime.datetime.now(),
             message=message if message is not None else ("empty message")
         )
-        script = Script.from_path(self.versions, filename)
+        script = Script.from_path(path)
         self._revision_map[script.revision] = script
         if script.down_revision:
             self._revision_map[script.down_revision].add_nextrev(script.revision)
@@ -186,11 +198,15 @@ class Script(object):
                         self.doc)
     
     @classmethod
-    def from_path(cls, dir_, filename):
+    def from_path(cls, path):
+        dir_, filename = os.path.split(path)
+        return cls.from_filename(dir_, filename)
+        
+    @classmethod
+    def from_filename(cls, dir_, filename):
         m = _rev_file.match(filename)
         if not m:
             return None
-        
         module = util.load_python_file(dir_, filename)
         return Script(module, m.group(1))
         
