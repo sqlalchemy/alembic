@@ -18,7 +18,10 @@ def _get_dialect(name):
     
 def assert_compiled(element, assert_string, dialect=None):
     dialect = _get_dialect(dialect)
-    eq_(unicode(element.compile(dialect=dialect)), assert_string)
+    eq_(
+        unicode(element.compile(dialect=dialect)).replace("\n", "").replace("\t", ""),
+        assert_string.replace("\n", "").replace("\t", "")
+    )
 
 def _testing_config():
     from alembic.config import Config

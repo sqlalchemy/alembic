@@ -1,4 +1,3 @@
-from alembic.ddl import base
 from alembic import util
 from sqlalchemy import MetaData, Table, Column, String, literal_column, text
 from sqlalchemy.schema import CreateTable
@@ -110,6 +109,7 @@ def opts(cfg, **kw):
     
 def configure_connection(connection):
     global _context
+    from alembic.ddl import base
     _context = _context_impls.get(connection.dialect.name, DefaultContext)(connection, **_context_opts)
     
 def run_migrations(**kw):
