@@ -22,35 +22,33 @@ Alembic is an open ended migrations tool.
 Basic operation involves the creation of script files, 
 each representing a version transition for one or more databases.  
 The scripts execute within the context of a particular connection 
-and transactional configuration that is locally configurable.
+and transactional configuration that is explicitly constructed.
 
 Key goals of Alembic are:
 
- * extremely flexible and obvious configuration, including the 
-   capability to deal with multiple database setups, both vertical
-   and horizontally partioned patterns
- * complete control over the engine/transactional environment 
-   in which migrations run, with an emphasis on all migrations running
-   under a single transaction per-engine if supported by the 
-   underlying database, as well as using two-phase commit if
-   running with multiple databases.
- * The ability to generate any set of migration scripts as textual
-   SQL files.
- * rudimental capability to deal with source code branches, 
-   by organizing migration scripts based on dependency references,
-   and providing a "splice" command to bridge two branches.
- * allowing an absolute minimum of typing, both to run commands 
-   as well as to create new migrations.   Simple migration
-   commands on existing schema constructs use only strings and 
-   flags, not requiring the usage of SQLAlchemy metadata objects.
-   Columns can be added without the need for Table/MetaData 
-   objects.  Engines and connections need not be referenced
-   in script files.
- * Old migration files can be deleted if those older versions
-   are no longer needed.
- * The ability to integrate seamlessly and simply with frameworks 
-   such as Pylons, using the framework's SQLAlchemy environment 
-   to keep database connection configuration centralized.
+ * Super-minimalistic migration scripts.  For simple ALTER 
+   operations, modifying columns and adding/dropping constraints, 
+   no SQLAlchemy constructs are needed, just table and column 
+   names plus flags.
+ * Transparent and explicit declaration of all configuration 
+   as well as the engine/transactional environment in which 
+   migrations run, based on templates which generate the
+   migration environment.  The environment can be modified 
+   to suit the specifics of the use case.
+ * Support for multiple-database configurations, including
+   migrations that are run for all / some connections.
+ * Support for running migrations transactionally for 
+   "transactional DDL" backends, which include Postgresql and 
+   SQLite.
+ * Allowing any series of migrations to be generated as SQL 
+   scripts.
+ * Support for branched series of migrations, including the
+   ability to view branches and "splice" them together.
+ * The ability to "prune" old migration scripts, setting the
+   "root" of the system to a newer file.
+ * The ability to integrate configuration with other frameworks.
+   A Pylons template is included which pulls all configuration
+   from the Pylons project environment.
     
 """,
       classifiers=[
