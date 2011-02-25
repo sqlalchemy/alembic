@@ -108,8 +108,9 @@ class ScriptDirectory(object):
     def write(self, rev_id, content):
         path = self._rev_path(rev_id)
         open(path, 'w').write(content)
-        if os.access(path + "c", os.F_OK):
-            os.unlink(path + "c")
+        pyc_path = util.pyc_file_from_path(path)
+        if os.access(pyc_path, os.F_OK):
+            os.unlink(pyc_path)
         script = Script.from_path(path)
         old = self._revision_map[script.revision]
         if old.down_revision != script.down_revision:

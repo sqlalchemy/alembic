@@ -68,6 +68,21 @@ def load_python_file(dir_, filename):
     del sys.modules[module_id]
     return module
 
+def pyc_file_from_path(path):
+    """Given a python source path, locate the .pyc.
+    
+    See http://www.python.org/dev/peps/pep-3147/
+                        #detecting-pep-3147-availability
+        http://www.python.org/dev/peps/pep-3147/#file-extension-checks
+    
+    """
+    import imp
+    has3147 = hasattr(imp, 'get_tag')
+    if has3147:
+        return imp.cache_from_source(path)
+    else:
+        return path + "c"
+
 def rev_id():
     val = int(uuid.uuid4()) % 100000000000000
     return hex(val)[2:-1]
