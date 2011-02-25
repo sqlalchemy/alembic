@@ -40,7 +40,7 @@ def _testing_config():
 def _sqlite_testing_config():
     cfg = _testing_config()
     dir_ = os.path.join(staging_directory, 'scripts')
-    file(cfg.config_file_name, 'w').write("""
+    open(cfg.config_file_name, 'w').write("""
 [alembic]
 script_location = %s
 sqlalchemy.url = sqlite:///%s/foo.db

@@ -10,7 +10,7 @@ def test_foreign_key():
                     ['foo', 'bar'], ['bat', 'hoho'])
     assert_compiled(
         AddConstraint(fk),
-        "ALTER TABLE t1 ADD CONSTRAINT hoho FOREIGN KEY(foo, bar) "
+        "ALTER TABLE t1 ADD CONSTRAINT fk_test FOREIGN KEY(foo, bar) "
             "REFERENCES t2 (bat, hoho)"
     )
 

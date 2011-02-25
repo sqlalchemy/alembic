@@ -33,8 +33,8 @@ def _foreign_key_constraint(name, source, referent, local_cols, remote_cols):
             *[schema.Column(n, NULLTYPE) for n in remote_cols])
 
     f = schema.ForeignKeyConstraint(local_cols, 
-                                        ["%s.%s" % (referent, name) 
-                                        for name in remote_cols],
+                                        ["%s.%s" % (referent, n) 
+                                        for n in remote_cols],
                                         name=name
                                         )
     t1.append_constraint(f)
