@@ -13,14 +13,14 @@ def datafiles():
         if files:
             out.append((root, [os.path.join(root, f) for f in files]))
     return out
-    
+
 setup(name='alembic',
       version=VERSION,
       description="A database migration tool for SQLAlchemy.",
       long_description="""\
 Alembic is an open ended migrations tool.
 Basic operation involves the creation of script files, 
-each representing a version transition for one or more databases.  
+each representing a version transition for one or more databases.
 The scripts execute within the context of a particular connection 
 and transactional configuration that is explicitly constructed.
 
@@ -49,7 +49,7 @@ Key goals of Alembic are:
  * The ability to integrate configuration with other frameworks.
    A Pylons template is included which pulls all configuration
    from the Pylons project environment.
-    
+
 """,
       classifiers=[
       'Development Status :: 3 - Alpha',

@@ -4,10 +4,10 @@ from sqlalchemy.schema import DDLElement
 
 class AlterTable(DDLElement):
     """Represent an ALTER TABLE statement.
-    
+
     Only the string name and optional schema name of the table
     is required, not a full Table object.
-    
+
     """
     def __init__(self, table_name, schema=None):
         self.table_name = table_name
@@ -37,7 +37,7 @@ class ColumnDefault(AlterColumn):
     def __init__(self, name, column_name, default, schema=None):
         super(ColumnDefault, self).__init__(name, column_name, schema=schema)
         self.default = default
-    
+
 class AddColumn(AlterTable):
     def __init__(self, name, column, schema=None):
         super(AddColumn, self).__init__(name, schema=schema)
@@ -60,7 +60,7 @@ def visit_column_nullable(element, compiler, **kw):
 
 def quote_dotted(name, quote):
     """quote the elements of a dotted name"""
-    
+
     result = '.'.join([quote(x) for x in name.split('.')])
     return result
 

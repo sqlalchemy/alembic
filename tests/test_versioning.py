@@ -8,7 +8,7 @@ def test_001_revisions():
     a = util.rev_id()
     b = util.rev_id()
     c = util.rev_id()
-    
+
     script = ScriptDirectory.from_config(cfg)
     script.generate_rev(a, None)
     script.write(a, """
@@ -51,8 +51,8 @@ def downgrade():
     execute("DROP TABLE bat")
 
 """ % b)
-    
-    
+
+
 def test_002_upgrade():
     command.upgrade(cfg, c)
     db = sqlite_db()
@@ -88,7 +88,7 @@ def setup():
     global cfg, env
     env = staging_env()
     cfg = _sqlite_testing_config()
-    
-    
+
+
 def teardown():
     clear_staging_env()

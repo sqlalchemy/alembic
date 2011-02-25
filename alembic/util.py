@@ -15,7 +15,7 @@ NO_VALUE = util.symbol("NO_VALUE")
 
 class CommandError(Exception):
     pass
-    
+
 try:
     width = int(os.environ['COLUMNS'])
 except (KeyError, ValueError):
@@ -48,10 +48,10 @@ def obfuscate_url_pw(u):
     if u.password:
         u.password = 'XXXXX'
     return str(u)
-    
+
 def warn(msg):
     warnings.warn(msg)
-    
+
 def msg(msg, newline=True):
     lines = textwrap.wrap(msg, width)
     if len(lines) > 1:
@@ -61,7 +61,7 @@ def msg(msg, newline=True):
 
 def load_python_file(dir_, filename):
     """Load a file from the given path as a Python module."""
-    
+
     module_id = re.sub(r'\W', "_", filename)
     path = os.path.join(dir_, filename)
     module = imp.load_source(module_id, path, open(path, 'rb'))
@@ -71,7 +71,7 @@ def load_python_file(dir_, filename):
 def rev_id():
     val = int(uuid.uuid4()) % 100000000000000
     return hex(val)[2:-1]
-    
+
 class memoized_property(object):
     """A read-only @property that is only evaluated once."""
     def __init__(self, fget, doc=None):

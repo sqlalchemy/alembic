@@ -5,7 +5,7 @@ import functools
 
 def list_templates(config):
     """List available templates"""
-    
+
     print "Available templates:\n"
     for tempname in os.listdir(config.get_template_directory()):
         readme = os.path.join(
@@ -14,13 +14,13 @@ def list_templates(config):
                         'README')
         synopsis = open(readme).next()
         print util.format_opt(tempname, synopsis)
-    
+
     print "\nTemplates are used via the 'init' command, e.g.:"
     print "\n  alembic init --template pylons ./scripts"
-    
+
 def init(config, directory, template='generic'):
     """Initialize a new scripts directory."""
-    
+
     if os.access(directory, os.F_OK):
         raise util.CommandError("Directory %s already exists" % directory)
 
@@ -31,7 +31,7 @@ def init(config, directory, template='generic'):
 
     util.status("Creating directory %s" % os.path.abspath(directory),
                 os.makedirs, directory)
-    
+
     versions = os.path.join(directory, 'versions')
     util.status("Creating directory %s" % os.path.abspath(versions),
                 os.makedirs, versions)
@@ -64,7 +64,7 @@ def revision(config, message=None):
 
     script = ScriptDirectory.from_config(config)
     script.generate_rev(util.rev_id(), message)
-    
+
 def upgrade(config, revision, sql=False):
     """Upgrade to a later version."""
 
@@ -75,10 +75,10 @@ def upgrade(config, revision, sql=False):
         as_sql = sql
     )
     script.run_env()
-    
+
 def downgrade(config, revision, sql=False):
     """Revert to a previous version."""
-    
+
     script = ScriptDirectory.from_config(config)
     context.opts(
         config,
@@ -102,10 +102,10 @@ def branches(config):
     for sc in script.walk_revisions():
         if sc.is_branch_point:
             print sc
-    
+
 def current(config):
     """Display the current revision for each database."""
-    
+
     script = ScriptDirectory.from_config(config)
     def display_version(rev):
         print "Current revision for %s: %s" % (
@@ -113,14 +113,14 @@ def current(config):
                                 context.get_context().connection.engine.url),
                             script._get_rev(rev))
         return []
-    
+
     context.opts(
         config,
         fn = display_version
-    )    
+    )
     script.run_env()
-    
+
 def splice(config, parent, child):
     """'splice' two branches, creating a new revision file."""
-    
-    
+
+

@@ -11,14 +11,14 @@ def test_foreign_key():
         AddConstraint(fk),
         "ALTER TABLE t1 ADD CONSTRAINT hoho FOREIGN KEY(foo, bar) REFERENCES t2 (bat, hoho)"
     )
-    
+
 def test_unique_constraint():
     uc = op._unique_constraint('uk_test', 't1', ['foo', 'bar'])
     assert_compiled(
         AddConstraint(uc),
         "ALTER TABLE t1 ADD CONSTRAINT uk_test UNIQUE (foo, bar)"
     )
-    
+
 
 def test_table():
     tb = op._table("some_table", 
@@ -50,7 +50,7 @@ def test_table():
             "FOREIGN KEY(foo_id) REFERENCES foo (id), "
             "FOREIGN KEY(foo_bar) REFERENCES foo (bar))"
     )
-    
+
     m = MetaData()
     foo = Table('foo', m, Column('id', Integer, primary_key=True))
     tb = op._table("some_table", 

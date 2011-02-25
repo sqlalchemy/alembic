@@ -14,10 +14,10 @@ def test_002_rev_ids():
     abc = util.rev_id()
     def_ = util.rev_id()
     ne_(abc, def_)
-    
+
 def test_003_heads():
     eq_(env._get_heads(), [])
-    
+
 def test_004_rev():
     script = env.generate_rev(abc, "this is a message")
     eq_(script.doc, "this is a message")
@@ -26,7 +26,7 @@ def test_004_rev():
     assert os.access(os.path.join(env.dir, 'versions', '%s.py' % abc), os.F_OK)
     assert callable(script.module.upgrade)
     eq_(env._get_heads(), [abc])
-    
+
 def test_005_nextrev():
     script = env.generate_rev(def_, "this is the next rev")
     eq_(script.revision, def_)
@@ -40,7 +40,7 @@ def test_005_nextrev():
 def test_006_from_clean_env():
     # test the environment so far with a 
     # new ScriptDirectory instance.
-    
+
     env = staging_env(create=False)
     abc_rev = env._revision_map[abc]
     def_rev = env._revision_map[def_]
@@ -48,10 +48,10 @@ def test_006_from_clean_env():
     eq_(abc_rev.revision, abc)
     eq_(def_rev.down_revision, abc)
     eq_(env._get_heads(), [def_])
-    
+
 def setup():
     global env
     env = staging_env()
-    
+
 def teardown():
     clear_staging_env()

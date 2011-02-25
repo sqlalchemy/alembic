@@ -4,17 +4,17 @@ import ConfigParser
 import inspect
 import os
 import sys
-    
+
 class Config(object):
     def __init__(self, file_):
         self.config_file_name = file_
-    
+
     @util.memoized_property
     def file_config(self):
         file_config = ConfigParser.ConfigParser()
         file_config.read([self.config_file_name])
         return file_config
-        
+
     def get_template_directory(self):
         # TODO: what's the official way to get at
         # setuptools-installed datafiles ?

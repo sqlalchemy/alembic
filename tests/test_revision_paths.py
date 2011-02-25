@@ -11,13 +11,13 @@ def setup():
     c = env.generate_rev(util.rev_id(), None)
     d = env.generate_rev(util.rev_id(), None)
     e = env.generate_rev(util.rev_id(), None)
-    
+
 def teardown():
     clear_staging_env()
 
 
 def test_upgrade_path():
-    
+
     eq_(
         env.upgrade_from(e.revision, c.revision),
         [
@@ -34,7 +34,7 @@ def test_upgrade_path():
             (c.module.upgrade, c.revision),
         ]
     )
-    
+
 def test_downgrade_path():
 
     eq_(

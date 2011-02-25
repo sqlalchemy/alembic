@@ -12,23 +12,23 @@ class ScriptDirectory(object):
     def __init__(self, dir):
         self.dir = dir
         self.versions = os.path.join(self.dir, 'versions')
-        
+
         if not os.access(dir, os.F_OK):
             raise util.CommandError("Path doesn't exist: %r.  Please use "
                         "the 'init' command to create a new "
                         "scripts folder." % dir)
-        
+
     @classmethod
     def from_config(cls, config):
         return ScriptDirectory(
                     config.get_main_option('script_location'))
-    
+
     def walk_revisions(self):
         """Iterate through all revisions.
-        
+
         This is actually a breadth-first tree traversal,
         with leaf nodes being heads.
-        
+
         """
         heads = set(self._get_heads())
         base = self._get_rev("base")
@@ -44,7 +44,7 @@ class ScriptDirectory(object):
                         break
                     else:
                         yield sc
-        
+
     def _get_rev(self, id_):
         if id_ == 'head':
             id_ = self._current_head()
@@ -54,7 +54,7 @@ class ScriptDirectory(object):
             return self._revision_map[id_]
         except KeyError:
             raise util.CommandError("No such revision %s" % id_)
-            
+
     def _revs(self, upper, lower):
         lower = self._get_rev(lower)
         upper = self._get_rev(upper)
@@ -62,19 +62,19 @@ class ScriptDirectory(object):
         while script != lower:
             yield script
             script = self._revision_map[script.down_revision]
-        
+
     def upgrade_from(self, destination, current_rev):
         return [
             (script.module.upgrade, script.revision) for script in 
             reversed(list(self._revs(destination, current_rev)))
             ]
-        
+
     def downgrade_to(self, destination, current_rev):
         return [
             (script.module.downgrade, script.down_revision) for script in 
             self._revs(current_rev, destination)
             ]
-        
+
     def run_env(self):
         util.load_python_file(self.dir, 'env.py')
 
@@ -99,11 +99,11 @@ class ScriptDirectory(object):
                 map_[rev.down_revision].add_nextrev(rev.revision)
         map_[None] = None
         return map_
-    
+
     def _rev_path(self, rev_id):
         filename = "%s.py" % rev_id
         return os.path.join(self.versions, filename)
-    
+
     def write(self, rev_id, content):
         path = self._rev_path(rev_id)
         file(path, 'w').write(content)
@@ -115,7 +115,7 @@ class ScriptDirectory(object):
             raise Exception("Can't change down_revision on a refresh operation.")
         self._revision_map[script.revision] = script
         script.nextrev = old.nextrev
-        
+
     def _current_head(self):
         current_heads = self._get_heads()
         if len(current_heads) > 1:
@@ -124,14 +124,14 @@ class ScriptDirectory(object):
             return current_heads[0]
         else:
             return None
-        
+
     def _get_heads(self):
         heads = []
         for script in self._revision_map.values():
             if script and script.is_head:
                 heads.append(script.revision)
         return heads
-    
+
     def _get_origin(self):
         for script in self._revision_map.values():
             if script.down_revision is None \
@@ -139,7 +139,7 @@ class ScriptDirectory(object):
                 return script
         else:
             return None
-        
+
     def generate_template(self, src, dest, **kw):
         util.status("Generating %s" % os.path.abspath(dest),
             util.template_to_file,
@@ -147,12 +147,12 @@ class ScriptDirectory(object):
             dest,
             **kw
         )
-        
+
     def copy_file(self, src, dest):
         util.status("Generating %s" % os.path.abspath(dest), 
                     shutil.copy, 
                     src, dest)
-    
+
     def generate_rev(self, revid, message):
         current_head = self._current_head()
         path = self._rev_path(revid)
@@ -169,30 +169,30 @@ class ScriptDirectory(object):
         if script.down_revision:
             self._revision_map[script.down_revision].add_nextrev(script.revision)
         return script
-        
+
 class Script(object):
     nextrev = frozenset()
-    
+
     def __init__(self, module, rev_id):
         self.module = module
         self.revision = rev_id
         self.down_revision = getattr(module, 'down_revision', None)
-    
+
     @property
     def doc(self):
         return re.split(r"\n\n", self.module.__doc__)[0]
 
     def add_nextrev(self, rev):
         self.nextrev = self.nextrev.union([rev])
-        
+
     @property
     def is_head(self):
         return not bool(self.nextrev)
-    
+
     @property
     def is_branch_point(self):
         return len(self.nextrev) > 1
-        
+
     def __str__(self):
         return "%s -> %s%s%s, %s" % (
                         self.down_revision, 
@@ -200,12 +200,12 @@ class Script(object):
                         " (head)" if self.is_head else "", 
                         " (branchpoint)" if self.is_branch_point else "",
                         self.doc)
-    
+
     @classmethod
     def from_path(cls, path):
         dir_, filename = os.path.split(path)
         return cls.from_filename(dir_, filename)
-        
+
     @classmethod
     def from_filename(cls, dir_, filename):
         m = _rev_file.match(filename)
@@ -213,4 +213,3 @@ class Script(object):
             return None
         module = util.load_python_file(dir_, filename)
         return Script(module, m.group(1))
-        

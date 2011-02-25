@@ -1,4 +1,3 @@
-from sqlalchemy.test.testing import eq_, ne_
 from sqlalchemy.util import defaultdict
 from sqlalchemy.engine import url, default
 import shutil
@@ -14,14 +13,22 @@ def _get_dialect(name):
         return default.DefaultDialect()
     else:
         return _dialects[name]
-    
-    
+
+
 def assert_compiled(element, assert_string, dialect=None):
     dialect = _get_dialect(dialect)
     eq_(
         unicode(element.compile(dialect=dialect)).replace("\n", "").replace("\t", ""),
         assert_string.replace("\n", "").replace("\t", "")
     )
+
+def eq_(a, b, msg=None):
+    """Assert a == b, with repr messaging on failure."""
+    assert a == b, msg or "%r != %r" % (a, b)
+
+def ne_(a, b, msg=None):
+    """Assert a != b, with repr messaging on failure."""
+    assert a != b, msg or "%r == %r" % (a, b)
 
 def _testing_config():
     from alembic.config import Config
@@ -62,21 +69,20 @@ format = %%(levelname)-5.5s [%%(name)s] %%(message)s
 datefmt = %%H:%%M:%%S
     """ % (dir_, dir_))
     return cfg
-    
+
 def sqlite_db():
     # sqlite caches table pragma info 
     # per connection, so create a new
     # engine for each assertion
     dir_ = os.path.join(staging_directory, 'scripts')
     return create_engine('sqlite:///%s/foo.db' % dir_)
-    
+
 def staging_env(create=True):
     from alembic import command, script
     cfg = _testing_config()
     if create:
         command.init(cfg, os.path.join(staging_directory, 'scripts'))
     return script.ScriptDirectory.from_config(cfg)
-    
+
 def clear_staging_env():
     shutil.rmtree(staging_directory, True)
-    

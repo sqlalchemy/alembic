@@ -16,7 +16,7 @@ def alter_column(table_name, column_name,
                     type_=util.NO_VALUE
 ):
     """Issue ALTER COLUMN using the current change context."""
-    
+
     context.alter_column(table_name, column_name, 
         nullable=nullable,
         server_default=server_default,
@@ -38,7 +38,7 @@ def _foreign_key_constraint(name, source, referent, local_cols, remote_cols):
                                         name=name
                                         )
     t1.append_constraint(f)
-    
+
     return f
 
 def _unique_constraint(name, source, local_cols):
@@ -56,7 +56,7 @@ def _table(name, *columns, **kw):
 def _ensure_table_for_fk(metadata, fk):
     """create a placeholder Table object for the referent of a
     ForeignKey.
-    
+
     """
     if isinstance(fk._colspec, basestring):
         table_key, cname = fk._colspec.split('.')
