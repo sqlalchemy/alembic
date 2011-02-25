@@ -107,7 +107,7 @@ class ScriptDirectory(object):
 
     def write(self, rev_id, content):
         path = self._rev_path(rev_id)
-        file(path, 'w').write(content)
+        open(path, 'w').write(content)
         if os.access(path + "c", os.F_OK):
             os.unlink(path + "c")
         script = Script.from_path(path)
