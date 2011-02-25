@@ -49,7 +49,7 @@ def _unique_constraint(name, source, local_cols):
 def _table(name, *columns, **kw):
     m = schema.MetaData()
     t = schema.Table(name, m, *columns, **kw)
-    for f in t._foreign_keys:
+    for f in t.foreign_keys:
         _ensure_table_for_fk(m, f)
     return t
 
