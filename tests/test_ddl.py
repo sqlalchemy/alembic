@@ -10,7 +10,8 @@ def test_add_column():
         "ALTER TABLE footable ADD COLUMN foocol VARCHAR(50) NOT NULL"
     )
     assert_compiled(
-        AddColumn("footable", Column("foocol", String(50), server_default="12")),
+        AddColumn("footable", Column("foocol", String(50),
+                            server_default="12")),
         "ALTER TABLE footable ADD COLUMN foocol VARCHAR(50) DEFAULT '12'"
     )
 
@@ -25,4 +26,3 @@ def test_column_nullable():
         ColumnNullable("footable", "foocol", False),
         "ALTER TABLE footable ALTER COLUMN foocol NOT NULL"
     )
-    

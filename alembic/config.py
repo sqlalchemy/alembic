@@ -1,9 +1,8 @@
 from alembic import command, util
-from optparse import OptionParser
+from argparse import ArgumentParser
 import ConfigParser
 import inspect
 import os
-import sys
 
 class Config(object):
     def __init__(self, file_):
@@ -34,13 +33,36 @@ class Config(object):
 
 def main(argv):
 
-    # TODO: 
-    # OK, what's the super option parser library that 
-    # allows <command> plus command-specfic sub-options,
-    # and derives everything from callables ?
-    # we're inventing here a bit.
+    def add_options(parser, positional, kwargs):
+        parser.add_argument("-c", "--config", 
+                            type=str, 
+                            default="alembic.ini", 
+                            help="Alternate config file")
+        if 'template' in kwargs:
+            parser.add_argument("-t", "--template",
+                            default='generic',
+                            type=str,
+                            help="Setup template for use with 'init'")
+        if 'message' in kwargs:
+            parser.add_argument("-m", "--message",
+                            type=str,
+                            help="Message string to use with 'revision'")
+        if 'sql' in kwargs:
+            parser.add_argument("--sql",
+                            action="store_true",
+                            help="Don't emit SQL to database - dump to "
+                                    "standard output instead")
 
-    commands = {}
+        positional_help = {
+            'directory':"location of scripts directory",
+            'revision':"revision identifier"
+        }
+        for arg in positional:
+            subparser.add_argument(arg, help=positional_help.get(arg))
+
+    parser = ArgumentParser()
+    subparsers = parser.add_subparsers()
+
     for fn in [getattr(command, n) for n in dir(command)]:
         if inspect.isfunction(fn) and \
             fn.__name__[0] != '_' and \
@@ -54,74 +76,21 @@ def main(argv):
                 positional = spec[0][1:]
                 kwarg = []
 
-            commands[fn.__name__] = {
-                'name':fn.__name__,
-                'fn':fn,
-                'positional':positional,
-                'kwargs':kwarg
-            }
+            subparser =  subparsers.add_parser(
+                                fn.__name__, 
+                                help=fn.__doc__)
+            add_options(subparser, positional, kwarg)
+            subparser.set_defaults(cmd=(fn, positional, kwarg))
 
-    def format_cmd(cmd):
-        return "%s %s" % (
-            cmd['name'], 
-            " ".join(["<%s>" % p for p in cmd['positional']])
-        )
+    options = parser.parse_args()
 
-    def format_opt(cmd, padding=32):
-        opt = format_cmd(cmd)
-        return "  " + opt + \
-                ((padding - len(opt)) * " ") + cmd['fn'].__doc__
+    fn, positional, kwarg = options.cmd
 
-    parser = OptionParser(
-                "usage: %prog [options] <command> [command arguments]\n\n"
-                "Available Commands:\n" +
-                "\n".join(sorted([
-                    format_opt(cmd)
-                    for cmd in commands.values()
-                ])) +
-                "\n\n<revision> is a hex revision id, 'head' or 'base'."
+    cfg = Config(options.config)
+    try:
+        fn(cfg, 
+                    *[getattr(options, k) for k in positional], 
+                    **dict((k, getattr(options, k)) for k in kwarg)
                 )
-
-    parser.add_option("-c", "--config", 
-                        type="string", 
-                        default="alembic.ini", 
-                        help="Alternate config file")
-    parser.add_option("-t", "--template",
-                        default='generic',
-                        type="string",
-                        help="Setup template for use with 'init'")
-    parser.add_option("-m", "--message",
-                        type="string",
-                        help="Message string to use with 'revision'")
-    parser.add_option("--sql",
-                        action="store_true",
-                        help="Dump output to a SQL file")
-
-    cmd_line_options, cmd_line_args = parser.parse_args(argv[1:])
-
-    if len(cmd_line_args) < 1:
-        util.err("no command specified")
-
-    cmd = cmd_line_args.pop(0).replace('-', '_')
-
-    try:
-        cmd_fn = commands[cmd]
-    except KeyError:
-        util.err("no such command %r" % cmd)
-
-    kw = dict(
-        (k, getattr(cmd_line_options, k)) 
-        for k in cmd_fn['kwargs']
-    )
-
-    if len(cmd_line_args) != len(cmd_fn['positional']):
-        util.err("Usage: %s %s [options]" % (
-                        os.path.basename(argv[0]), 
-                        format_cmd(cmd_fn)
-                    ))
-
-    cfg = Config(cmd_line_options.config)
-    try:
-        cmd_fn['fn'](cfg, *cmd_line_args, **kw)
     except util.CommandError, e:
         util.err(str(e))

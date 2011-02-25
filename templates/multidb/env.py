@@ -13,14 +13,15 @@ engines = {}
 for name in re.split(r',\s*', db_names):
     engines[name] = rec = {}
     rec['engine'] = engine = \
-                engine_from_config(options.get_section(name), prefix='sqlalchemy.')
+                engine_from_config(options.get_section(name),
+                                prefix='sqlalchemy.')
     rec['connection'] = conn = engine.connect()
-    
+
     if USE_TWOPHASE:
         rec['transaction'] = conn.begin_twophase()
     else:
         rec['transaction'] = conn.begin()
-    
+
 try:
     for name, rec in engines.items():
         context.configure_connection(rec['connection'])
@@ -29,7 +30,7 @@ try:
     if USE_TWOPHASE:
         for rec in engines.values():
             rec['transaction'].prepare()
-        
+
     for rec in engines.values():
         rec['transaction'].commit()
 except:

@@ -13,7 +13,7 @@ def list_templates(config):
                         tempname, 
                         'README')
         synopsis = open(readme).next()
-        print util.format_opt(tempname, synopsis)
+        print "%s - %s" % (tempname, synopsis)
 
     print "\nTemplates are used via the 'init' command, e.g.:"
     print "\n  alembic init --template pylons ./scripts"

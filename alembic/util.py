@@ -74,6 +74,7 @@ def rev_id():
 
 class memoized_property(object):
     """A read-only @property that is only evaluated once."""
+
     def __init__(self, fget, doc=None):
         self.fget = fget
         self.__doc__ = doc or fget.__doc__

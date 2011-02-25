@@ -23,7 +23,8 @@ def test_004_rev():
     eq_(script.doc, "this is a message")
     eq_(script.revision, abc)
     eq_(script.down_revision, None)
-    assert os.access(os.path.join(env.dir, 'versions', '%s.py' % abc), os.F_OK)
+    assert os.access(
+        os.path.join(env.dir, 'versions', '%s.py' % abc), os.F_OK)
     assert callable(script.module.upgrade)
     eq_(env._get_heads(), [abc])
 

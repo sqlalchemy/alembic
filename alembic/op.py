@@ -76,7 +76,8 @@ def _ensure_table_for_fk(metadata, fk):
 
 def create_foreign_key(name, source, referent, local_cols, remote_cols):
     get_context().add_constraint(
-                _foreign_key_constraint(source, referent, local_cols, remote_cols)
+                _foreign_key_constraint(source, referent, 
+                        local_cols, remote_cols)
             )
 
 def create_unique_constraint(name, source, local_cols):

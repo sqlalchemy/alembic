@@ -86,7 +86,8 @@ class ScriptDirectory(object):
             if script is None:
                 continue
             if script.revision in map_:
-                util.warn("Revision %s is present more than once" % script.revision)
+                util.warn("Revision %s is present more than once" %
+                                script.revision)
             map_[script.revision] = script
         for rev in map_.values():
             if rev.down_revision is None:
@@ -112,7 +113,8 @@ class ScriptDirectory(object):
         script = Script.from_path(path)
         old = self._revision_map[script.revision]
         if old.down_revision != script.down_revision:
-            raise Exception("Can't change down_revision on a refresh operation.")
+            raise Exception("Can't change down_revision "
+                                "on a refresh operation.")
         self._revision_map[script.revision] = script
         script.nextrev = old.nextrev
 
@@ -167,7 +169,8 @@ class ScriptDirectory(object):
         script = Script.from_path(path)
         self._revision_map[script.revision] = script
         if script.down_revision:
-            self._revision_map[script.down_revision].add_nextrev(script.revision)
+            self._revision_map[script.down_revision].\
+                    add_nextrev(script.revision)
         return script
 
 class Script(object):

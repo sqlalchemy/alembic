@@ -1,5 +1,6 @@
 from alembic import util
-from sqlalchemy import MetaData, Table, Column, String, literal_column, text
+from sqlalchemy import MetaData, Table, Column, String, literal_column, \
+    text
 from sqlalchemy.schema import CreateTable
 import logging
 
@@ -33,7 +34,8 @@ class DefaultContext(object):
 
     def _current_rev(self):
         if self.as_sql:
-            if not self.connection.dialect.has_table(self.connection, 'alembic_version'):
+            if not self.connection.dialect.has_table(self.connection,
+                    'alembic_version'):
                 self._exec(CreateTable(_version))
                 return None
         else:
@@ -47,9 +49,13 @@ class DefaultContext(object):
         if new is None:
             self._exec(_version.delete())
         elif old is None:
-            self._exec(_version.insert().values(version_num=literal_column("'%s'" % new)))
+            self._exec(_version.insert().
+                        values(version_num=literal_column("'%s'" % new))
+                    )
         else:
-            self._exec(_version.update().values(version_num=literal_column("'%s'" % new)))
+            self._exec(_version.update().
+                        values(version_num=literal_column("'%s'" % new))
+                    )
 
     def run_migrations(self, **kw):
         log.info("Context class %s.", self.__class__.__name__)
@@ -78,7 +84,9 @@ class DefaultContext(object):
         if isinstance(construct, basestring):
             construct = text(construct)
         if self.as_sql:
-            print unicode(construct.compile(dialect=self.connection.dialect)).replace("\t", "    ") + ";"
+            print unicode(
+                    construct.compile(dialect=self.connection.dialect)
+                    ).replace("\t", "    ") + ";"
         else:
             self.connection.execute(construct)
 
@@ -95,7 +103,9 @@ class DefaultContext(object):
         if nullable is not util.NO_VALUE:
             self._exec(base.ColumnNullable(table_name, column_name, nullable))
         if server_default is not util.NO_VALUE:
-            self._exec(base.ColumnDefault(table_name, column_name, server_default))
+            self._exec(base.ColumnDefault(
+                                table_name, column_name, server_default
+                            ))
 
         # ... etc
 
@@ -110,7 +120,9 @@ def opts(cfg, **kw):
 def configure_connection(connection):
     global _context
     from alembic.ddl import base
-    _context = _context_impls.get(connection.dialect.name, DefaultContext)(connection, **_context_opts)
+    _context = _context_impls.get(
+                    connection.dialect.name, 
+                    DefaultContext)(connection, **_context_opts)
 
 def run_migrations(**kw):
     _context.run_migrations(**kw)
