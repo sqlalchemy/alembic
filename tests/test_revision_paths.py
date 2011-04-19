@@ -19,7 +19,7 @@ def teardown():
 def test_upgrade_path():
 
     eq_(
-        env.upgrade_from(e.revision, c.revision),
+        env.upgrade_from(False, e.revision, c.revision),
         [
             (d.module.upgrade, d.revision),
             (e.module.upgrade, e.revision),
@@ -27,7 +27,7 @@ def test_upgrade_path():
     )
 
     eq_(
-        env.upgrade_from(c.revision, None),
+        env.upgrade_from(False, c.revision, None),
         [
             (a.module.upgrade, a.revision),
             (b.module.upgrade, b.revision),
@@ -38,7 +38,7 @@ def test_upgrade_path():
 def test_downgrade_path():
 
     eq_(
-        env.downgrade_to(c.revision, e.revision),
+        env.downgrade_to(False, c.revision, e.revision),
         [
             (e.module.downgrade, e.down_revision),
             (d.module.downgrade, d.down_revision),
@@ -46,7 +46,7 @@ def test_downgrade_path():
     )
 
     eq_(
-        env.downgrade_to(None, c.revision),
+        env.downgrade_to(False, None, c.revision),
         [
             (c.module.downgrade, c.down_revision),
             (b.module.downgrade, b.down_revision),

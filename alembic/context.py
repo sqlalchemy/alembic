@@ -1,7 +1,7 @@
 from alembic import util
 from sqlalchemy import MetaData, Table, Column, String, literal_column, \
     text
-from sqlalchemy.schema import CreateTable
+from sqlalchemy import schema, create_engine
 import logging
 
 log = logging.getLogger(__name__)
@@ -93,6 +93,29 @@ class DefaultContext(object):
     def execute(self, sql):
         self._exec(sql)
 
+    @util.memoized_property
+    def _stdout_connection(self):
+        def dump(construct, *multiparams, **params):
+            self._exec(construct)
+
+        return create_engine(self.connection.engine.url, 
+                        strategy="mock", executor=dump)
+
+    @property
+    def bind(self):
+        """Return a bind suitable for passing to the create() 
+        or create_all() methods of MetaData, Table.
+        
+        Note that when "standard output" mode is enabled, 
+        this bind will be a "mock" connection handler that cannot
+        return results and is only appropriate for DDL.
+        
+        """
+        if self.as_sql:
+            return self._stdout_connection
+        else:
+            return self.connection
+
     def alter_column(self, table_name, column_name, 
                         nullable=util.NO_VALUE,
                         server_default=util.NO_VALUE,
@@ -111,6 +134,14 @@ class DefaultContext(object):
 
     def add_constraint(self, const):
         self._exec(schema.AddConstraint(const))
+
+    def create_table(self, table):
+        self._exec(schema.CreateTable(table))
+        for index in table.indexes:
+            self._exec(schema.CreateIndex(index))
+
+    def drop_table(self, table):
+        self._exec(schema.DropTable(table))
 
 def opts(cfg, **kw):
     global _context_opts, config

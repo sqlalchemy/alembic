@@ -71,7 +71,7 @@ def upgrade(config, revision, sql=False):
     script = ScriptDirectory.from_config(config)
     context.opts(
         config,
-        fn = functools.partial(script.upgrade_from, revision),
+        fn = functools.partial(script.upgrade_from, sql, revision),
         as_sql = sql
     )
     script.run_env()
@@ -82,7 +82,7 @@ def downgrade(config, revision, sql=False):
     script = ScriptDirectory.from_config(config)
     context.opts(
         config,
-        fn = functools.partial(script.downgrade_to, revision),
+        fn = functools.partial(script.downgrade_to, sql, revision),
         as_sql = sql,
     )
     script.run_env()

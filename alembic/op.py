@@ -6,7 +6,11 @@ from sqlalchemy import schema
 __all__ = [
             'alter_column', 
             'create_foreign_key', 
+            'create_table',
+            'drop_table',
             'create_unique_constraint', 
+            'get_context',
+            'get_bind',
             'execute']
 
 def alter_column(table_name, column_name, 
@@ -90,5 +94,13 @@ def create_table(name, *columns, **kw):
         _table(name, *columns, **kw)
     )
 
+def drop_table(name, *columns, **kw):
+    get_context().drop_table(
+        _table(name, *columns, **kw)
+    )
+
 def execute(sql):
     get_context().execute(sql)
+
+def get_bind():
+    return get_context().bind

@@ -5,8 +5,9 @@ import inspect
 import os
 
 class Config(object):
-    def __init__(self, file_):
+    def __init__(self, file_, ini_section='alembic'):
         self.config_file_name = file_
+        self.config_ini_section = ini_section
 
     @util.memoized_property
     def file_config(self):
@@ -21,21 +22,18 @@ class Config(object):
         return dict(self.file_config.items(name))
 
     def get_main_option(self, name, default=None):
-        if not self.file_config.has_section('alembic'):
+        if not self.file_config.has_section(self.config_ini_section):
             util.err("No config file %r found, or file has no "
-                                "'[alembic]' section" % self.config_file_name)
-        if self.file_config.get('alembic', name):
-            return self.file_config.get('alembic', name)
+                                "'[%s]' section" % 
+                                (self.config_file_name, self.config_ini_section))
+        if self.file_config.get(self.config_ini_section, name):
+            return self.file_config.get(self.config_ini_section, name)
         else:
             return default
 
 def main(argv):
 
     def add_options(parser, positional, kwargs):
-        parser.add_argument("-c", "--config", 
-                            type=str, 
-                            default="alembic.ini", 
-                            help="Alternate config file")
         if 'template' in kwargs:
             parser.add_argument("-t", "--template",
                             default='generic',
@@ -59,6 +57,14 @@ def main(argv):
             subparser.add_argument(arg, help=positional_help.get(arg))
 
     parser = ArgumentParser()
+    parser.add_argument("-c", "--config", 
+                        type=str, 
+                        default="alembic.ini", 
+                        help="Alternate config file")
+    parser.add_argument("-n", "--name", 
+                        type=str, 
+                        default="alembic", 
+                        help="Name of section in .ini file to use for Alembic config")
     subparsers = parser.add_subparsers()
 
     for fn in [getattr(command, n) for n in dir(command)]:
@@ -84,7 +90,7 @@ def main(argv):
 
     fn, positional, kwarg = options.cmd
 
-    cfg = Config(options.config)
+    cfg = Config(options.config, options.name)
     try:
         fn(cfg, 
                     *[getattr(options, k) for k in positional], 
