@@ -14,13 +14,6 @@ VERSION = re.compile(r".*__version__ = '(.*?)'", re.S).match(v.read()).group(1)
 v.close()
 
 
-def datafiles():
-    out = []
-    for root, dirs, files in os.walk('./templates'):
-        if files:
-            out.append((root, [os.path.join(root, f) for f in files]))
-    return out
-
 setup(name='alembic',
       version=VERSION,
       description="A database migration tool for SQLAlchemy.",
@@ -72,8 +65,8 @@ Key goals of Alembic are:
       url='http://bitbucket.org/zzzeek/alembic',
       license='MIT',
       packages=find_packages('.', exclude=['examples*', 'test*']),
+      include_package_data=True,
       scripts=['scripts/alembic'],
-      data_files=datafiles(),
       tests_require = ['nose >= 0.11'],
       test_suite = "nose.collector",
       zip_safe=False,

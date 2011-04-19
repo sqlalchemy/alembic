@@ -1,10 +1,8 @@
-# any kind of "*" pulls in __init__.pyc files,
-# so all extensions are explicit.
-
-recursive-include docs *.html *.css *.txt *.js *.jpg *.png *.py Makefile *.rst *.mako *.sty 
+recursive-include docs *
 recursive-include test *.py *.dat
+recursive-include alembic/templates *
 
-include README* LICENSE distribute_setup.py ez_setup.py CHANGES*
+include README* LICENSE distribute_setup.py CHANGES*
 
 prune doc/build/output
 
