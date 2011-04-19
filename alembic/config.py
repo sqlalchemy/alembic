@@ -1,4 +1,4 @@
-from alembic import command, util
+from alembic import command, util, package_dir
 from argparse import ArgumentParser
 import ConfigParser
 import inspect
@@ -15,9 +15,7 @@ class Config(object):
         return file_config
 
     def get_template_directory(self):
-        # TODO: what's the official way to get at
-        # setuptools-installed datafiles ?
-        return os.path.join(os.path.dirname(__file__), '..', 'templates')
+        return os.path.join(package_dir, 'templates')
 
     def get_section(self, name):
         return dict(self.file_config.items(name))
