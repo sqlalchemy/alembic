@@ -120,6 +120,25 @@ def current(config):
     )
     script.run_env()
 
+def stamp(config, revision, sql=False):
+    """'stamp' the revision table with the given revision; don't
+    run any migrations."""
+
+    script = ScriptDirectory.from_config(config)
+    def do_stamp(rev):
+        current = context.get_context()._current_rev()
+        dest = script._get_rev(revision)
+        if dest is not None:
+            dest = dest.revision
+        context.get_context()._update_current_rev(current, dest)
+        return []
+    context.opts(
+        config, 
+        fn = do_stamp,
+        as_sql = sql,
+    )
+    script.run_env()
+
 def splice(config, parent, child):
     """'splice' two branches, creating a new revision file."""
 
