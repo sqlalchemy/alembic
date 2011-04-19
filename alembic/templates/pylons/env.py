@@ -6,12 +6,19 @@ be loaded from there.
 """
 from alembic import options, context
 from paste.deploy import loadapp
-from pylons import config
 import logging
 
-config_file = options.get_main_option('pylons_config_file')
-logging.fileConfig(config_file)
-wsgi_app = loadapp('config:%s' % config_file, relative_to='.')
+try:
+    # if pylons app already in, don't create a new app
+    from pylons import config
+    config['__file__']
+except:
+    # can use config['__file__'] here, i.e. the Pylons
+    # ini file, instead of alembic.ini
+    config_file = options.get_main_option('pylons_config_file')
+    config_file = options.config_file_name
+    logging.config.fileConfig(config_file)
+    wsgi_app = loadapp('config:%s' % config_file, relative_to='.')
 
 # customize this section for non-standard engine configurations.
 meta = __import__("%s.model.meta" % config['pylons.package']).model.meta
