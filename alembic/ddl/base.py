@@ -67,7 +67,7 @@ def visit_column_nullable(element, compiler, **kw):
     return "%s %s %s" % (
         alter_table(compiler, element.table_name, element.schema),
         alter_column(compiler, element.column_name),
-        "NULL" if element.nullable else "NOT NULL"
+        "NULL" if element.nullable else "SET NOT NULL"
     )
 
 def quote_dotted(name, quote):

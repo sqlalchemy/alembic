@@ -122,7 +122,7 @@ class DefaultContext(object):
                         nullable=util.NO_VALUE,
                         server_default=util.NO_VALUE,
                         name=util.NO_VALUE,
-                        type=util.NO_VALUE,
+                        type_=util.NO_VALUE,
                         schema=None,
     ):
 
@@ -133,7 +133,10 @@ class DefaultContext(object):
                                 table_name, column_name, server_default,
                                 schema=schema
                             ))
-
+        if type_ is not util.NO_VALUE:
+            self._exec(base.ColumnType(
+                                table_name, column_name, type_, schema=schema
+                            ))
         # ... etc
 
     def add_column(self, table_name, column):

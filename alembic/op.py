@@ -6,6 +6,8 @@ from sqlalchemy import schema
 __all__ = [
             'alter_column', 
             'add_column',
+            'drop_column',
+            'add_constraint',
             'create_foreign_key', 
             'create_table',
             'drop_table',
@@ -29,6 +31,17 @@ def _foreign_key_constraint(name, source, referent, local_cols, remote_cols):
     t1.append_constraint(f)
 
     return f
+
+def _ensure_table_for_constraint(name, constraint):
+    if getattr(constraint, 'parent', None) is not None:
+        return
+    if isinstance(constraint, schema.UniqueConstraint):
+        # TODO: what if constraint has Column objects already
+        columns = [schema.Column(n, NULLTYPE) for n in 
+                        constraint._pending_colargs]
+    else:
+        columns = []
+    return schema.Table(name, schema.MetaData(), *(columns + [constraint]) )
 
 def _unique_constraint(name, source, local_cols):
     t = schema.Table(source, schema.MetaData(), 
@@ -82,14 +95,14 @@ def alter_column(table_name, column_name,
         type_=type_
     )
 
-def add_column(table_name, column_name, 
-                    type_, **kw):
-    c = _column(column_name, type_, **kw)
-    t = _table(table_name, c)
+def add_column(table_name, column):
+    t = _table(table_name, column)
     get_context().add_column(
         table_name,
-        c
+        column
     )
+    for constraint in [f.constraint for f in t.foreign_keys]:
+        get_context().add_constraint(constraint)
 
 def drop_column(table_name, column_name):
     get_context().drop_column(
@@ -97,10 +110,15 @@ def drop_column(table_name, column_name):
         _column(column_name, NULLTYPE)
     )
 
+def add_constraint(table_name, constraint):
+    _ensure_table_for_constraint(table_name, constraint)
+    get_context().add_constraint(
+        constraint
+    )
 
 def create_foreign_key(name, source, referent, local_cols, remote_cols):
     get_context().add_constraint(
-                _foreign_key_constraint(source, referent, 
+                _foreign_key_constraint(name, source, referent, 
                         local_cols, remote_cols)
             )
 

@@ -5,6 +5,7 @@ import os
 import itertools
 from sqlalchemy import create_engine
 from alembic import context
+import re
 
 staging_directory = os.path.join(os.path.dirname(__file__), 'scratch')
 
@@ -45,14 +46,16 @@ class _op_fixture(context.DefaultContext):
         self.assertion = []
 
     def _exec(self, construct):
+        sql = unicode(construct.compile())
+        sql = re.sub(r'[\n\t]', '', sql)
         self.assertion.append(
-            unicode(construct.compile())
+            sql
         )
 
-    def assert_(self, sql):
+    def assert_(self, *sql):
         # TODO: make this more flexible about 
         # whitespace and such
-        eq_("\n".join(self.assertion), sql)
+        eq_(self.assertion, list(sql))
 
 def _sqlite_testing_config():
     cfg = _testing_config()
