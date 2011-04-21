@@ -43,11 +43,23 @@ class AddColumn(AlterTable):
         super(AddColumn, self).__init__(name, schema=schema)
         self.column = column
 
+class DropColumn(AlterTable):
+    def __init__(self, name, column, schema=None):
+        super(DropColumn, self).__init__(name, schema=schema)
+        self.column = column
+
 @compiles(AddColumn)
 def visit_add_column(element, compiler, **kw):
     return "%s %s" % (
         alter_table(compiler, element.table_name, element.schema),
         add_column(compiler, element.column, **kw)
+    )
+
+@compiles(DropColumn)
+def visit_drop_column(element, compiler, **kw):
+    return "%s %s" % (
+        alter_table(compiler, element.table_name, element.schema),
+        drop_column(compiler, element.column.name, **kw)
     )
 
 @compiles(ColumnNullable)

@@ -5,6 +5,7 @@ from sqlalchemy import schema
 
 __all__ = [
             'alter_column', 
+            'add_column',
             'create_foreign_key', 
             'create_table',
             'drop_table',
@@ -12,22 +13,6 @@ __all__ = [
             'get_context',
             'get_bind',
             'execute']
-
-def alter_column(table_name, column_name, 
-                    nullable=util.NO_VALUE,
-                    server_default=util.NO_VALUE,
-                    name=util.NO_VALUE,
-                    type_=util.NO_VALUE
-):
-    """Issue ALTER COLUMN using the current change context."""
-
-    context.alter_column(table_name, column_name, 
-        nullable=nullable,
-        server_default=server_default,
-        name=name,
-        type_=type_
-    )
-
 
 def _foreign_key_constraint(name, source, referent, local_cols, remote_cols):
     m = schema.MetaData()
@@ -57,6 +42,9 @@ def _table(name, *columns, **kw):
         _ensure_table_for_fk(m, f)
     return t
 
+def _column(name, type_, **kw):
+    return schema.Column(name, type_, **kw)
+
 def _ensure_table_for_fk(metadata, fk):
     """create a placeholder Table object for the referent of a
     ForeignKey.
@@ -77,6 +65,38 @@ def _ensure_table_for_fk(metadata, fk):
             rel_t = metadata.tables[table_key]
         if not rel_t.c.contains_column(cname):
             rel_t.append_column(schema.Column(cname, NULLTYPE))
+
+
+def alter_column(table_name, column_name, 
+                    nullable=util.NO_VALUE,
+                    server_default=util.NO_VALUE,
+                    name=util.NO_VALUE,
+                    type_=util.NO_VALUE
+):
+    """Issue ALTER COLUMN using the current change context."""
+
+    get_context().alter_column(table_name, column_name, 
+        nullable=nullable,
+        server_default=server_default,
+        name=name,
+        type_=type_
+    )
+
+def add_column(table_name, column_name, 
+                    type_, **kw):
+    c = _column(column_name, type_, **kw)
+    t = _table(table_name, c)
+    get_context().add_column(
+        table_name,
+        c
+    )
+
+def drop_column(table_name, column_name):
+    get_context().drop_column(
+        table_name,
+        _column(column_name, NULLTYPE)
+    )
+
 
 def create_foreign_key(name, source, referent, local_cols, remote_cols):
     get_context().add_constraint(

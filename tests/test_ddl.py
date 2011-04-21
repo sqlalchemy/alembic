@@ -3,6 +3,7 @@ from sqlalchemy.schema import Column
 from sqlalchemy.types import String, Integer, DateTime
 from alembic.ddl.base import AddColumn, ColumnNullable, ColumnType, ColumnName
 
+# TODO: should these all just go to test_op ?
 
 def test_add_column():
     assert_compiled(

@@ -4,6 +4,7 @@ import shutil
 import os
 import itertools
 from sqlalchemy import create_engine
+from alembic import context
 
 staging_directory = os.path.join(os.path.dirname(__file__), 'scratch')
 
@@ -36,6 +37,22 @@ def _testing_config():
     if not os.access(staging_directory, os.F_OK):
         os.mkdir(staging_directory)
     return Config(os.path.join(staging_directory, 'test_alembic.ini'))
+
+class _op_fixture(context.DefaultContext):
+    def __init__(self):
+        # TODO: accept dialect here.
+        context._context = self
+        self.assertion = []
+
+    def _exec(self, construct):
+        self.assertion.append(
+            unicode(construct.compile())
+        )
+
+    def assert_(self, sql):
+        # TODO: make this more flexible about 
+        # whitespace and such
+        eq_("\n".join(self.assertion), sql)
 
 def _sqlite_testing_config():
     cfg = _testing_config()

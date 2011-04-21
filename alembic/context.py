@@ -2,8 +2,10 @@ from alembic import util
 from sqlalchemy import MetaData, Table, Column, String, literal_column, \
     text
 from sqlalchemy import schema, create_engine
-import logging
+from sqlalchemy.util import importlater
 
+import logging
+base = importlater("alembic.ddl", "base")
 log = logging.getLogger(__name__)
 
 class ContextMeta(type):
@@ -120,17 +122,25 @@ class DefaultContext(object):
                         nullable=util.NO_VALUE,
                         server_default=util.NO_VALUE,
                         name=util.NO_VALUE,
-                        type=util.NO_VALUE
+                        type=util.NO_VALUE,
+                        schema=None,
     ):
 
         if nullable is not util.NO_VALUE:
-            self._exec(base.ColumnNullable(table_name, column_name, nullable))
+            self._exec(base.ColumnNullable(table_name, column_name, nullable, schema=schema))
         if server_default is not util.NO_VALUE:
             self._exec(base.ColumnDefault(
-                                table_name, column_name, server_default
+                                table_name, column_name, server_default,
+                                schema=schema
                             ))
 
         # ... etc
+
+    def add_column(self, table_name, column):
+        self._exec(base.AddColumn(table_name, column))
+
+    def drop_column(self, table_name, column):
+        self._exec(base.DropColumn(table_name, column))
 
     def add_constraint(self, const):
         self._exec(schema.AddConstraint(const))
