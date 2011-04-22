@@ -3,7 +3,8 @@
 from tests import _op_fixture
 from alembic import op
 from sqlalchemy import Integer, Column, ForeignKey, \
-            UniqueConstraint, Table, MetaData
+            UniqueConstraint, Table, MetaData, String
+from sqlalchemy.sql import table
 
 def test_add_column():
     context = _op_fixture()
@@ -115,4 +116,5 @@ def test_create_table_two_fk():
             "FOREIGN KEY(foo_id) REFERENCES foo (id), "
             "FOREIGN KEY(foo_bar) REFERENCES foo (bar))"
     )
+
 

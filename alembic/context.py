@@ -3,6 +3,8 @@ from sqlalchemy import MetaData, Table, Column, String, literal_column, \
     text
 from sqlalchemy import schema, create_engine
 from sqlalchemy.util import importlater
+from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.sql.expression import _BindParamClause
 
 import logging
 base = importlater("alembic.ddl", "base")
@@ -82,15 +84,21 @@ class DefaultContext(object):
         if self.as_sql and self.transactional_ddl:
             print "COMMIT;\n"
 
-    def _exec(self, construct):
+    def _exec(self, construct, *args, **kw):
         if isinstance(construct, basestring):
             construct = text(construct)
         if self.as_sql:
+            if args or kw:
+                raise Exception("Execution arguments not allowed with as_sql")
             print unicode(
-                    construct.compile(dialect=self.connection.dialect)
+                    construct.compile(dialect=self.dialect)
                     ).replace("\t", "    ") + ";"
         else:
-            self.connection.execute(construct)
+            self.connection.execute(construct, *args, **kw)
+
+    @property
+    def dialect(self):
+        return self.connection.dialect
 
     def execute(self, sql):
         self._exec(sql)
@@ -155,6 +163,23 @@ class DefaultContext(object):
 
     def drop_table(self, table):
         self._exec(schema.DropTable(table))
+
+    def bulk_insert(self, table, rows):
+        if self.as_sql:
+            for row in rows:
+                self._exec(table.insert().values(**dict(
+                    (k, _literal_bindparam(k, v, type_=table.c[k].type))
+                    for k, v in row.items()
+                )))
+        else:
+            self._exec(table.insert(), *rows)
+
+class _literal_bindparam(_BindParamClause):
+    pass
+
+@compiles(_literal_bindparam)
+def _render_literal_bindparam(element, compiler, **kw):
+    return compiler.render_literal_bindparam(element, **kw)
 
 def opts(cfg, **kw):
     global _context_opts, config

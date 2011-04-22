@@ -137,6 +137,9 @@ def drop_table(name, *columns, **kw):
         _table(name, *columns, **kw)
     )
 
+def bulk_insert(table, rows):
+    get_context().bulk_insert(table, rows)
+
 def execute(sql):
     get_context().execute(sql)
 

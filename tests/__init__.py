@@ -1,21 +1,26 @@
-from sqlalchemy.util import defaultdict
 from sqlalchemy.engine import url, default
 import shutil
 import os
 import itertools
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from alembic import context
 import re
+from alembic.context import _context_impls
+from alembic import ddl
 
 staging_directory = os.path.join(os.path.dirname(__file__), 'scratch')
 
-_dialects = defaultdict(lambda name:url.URL(drivername).get_dialect()())
+_dialects = {}
 def _get_dialect(name):
-    if name is None:
+    if name is None or name == 'default':
         return default.DefaultDialect()
     else:
-        return _dialects[name]
-
+        try:
+            return _dialects[name]
+        except KeyError:
+            dialect_mod = getattr(__import__('sqlalchemy.dialects.%s' % name).dialects, name)
+            _dialects[name] = d = dialect_mod.dialect()
+            return d
 
 def assert_compiled(element, assert_string, dialect=None):
     dialect = _get_dialect(dialect)
@@ -39,23 +44,34 @@ def _testing_config():
         os.mkdir(staging_directory)
     return Config(os.path.join(staging_directory, 'test_alembic.ini'))
 
-class _op_fixture(context.DefaultContext):
-    def __init__(self):
-        # TODO: accept dialect here.
-        context._context = self
-        self.assertion = []
+def _op_fixture(dialect='default', as_sql=False):
+    _base = _context_impls[dialect]
+    class ctx(_base):
+        def __init__(self, dialect='default', as_sql=False):
+            self._dialect = _get_dialect(dialect)
 
-    def _exec(self, construct):
-        sql = unicode(construct.compile())
-        sql = re.sub(r'[\n\t]', '', sql)
-        self.assertion.append(
-            sql
-        )
+            context._context = self
+            self.as_sql = as_sql
+            self.assertion = []
 
-    def assert_(self, *sql):
-        # TODO: make this more flexible about 
-        # whitespace and such
-        eq_(self.assertion, list(sql))
+        @property
+        def dialect(self):
+            return self._dialect
+
+        def _exec(self, construct, *args, **kw):
+            if isinstance(construct, basestring):
+                construct = text(construct)
+            sql = unicode(construct.compile(dialect=self.dialect))
+            sql = re.sub(r'[\n\t]', '', sql)
+            self.assertion.append(
+                sql
+            )
+
+        def assert_(self, *sql):
+            # TODO: make this more flexible about 
+            # whitespace and such
+            eq_(self.assertion, list(sql))
+    return ctx(dialect, as_sql)
 
 def _sqlite_testing_config():
     cfg = _testing_config()
