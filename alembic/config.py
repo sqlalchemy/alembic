@@ -48,7 +48,10 @@ def main(argv):
                             action="store_true",
                             help="Don't emit SQL to database - dump to "
                                     "standard output instead")
-
+        # TODO:
+        # --dialect - name of dialect when --sql mode is set - *no DB connections
+        # should occur, add this to env.py templates as a conditional*
+        # --init-version-table - add CREATE for version table
         positional_help = {
             'directory':"location of scripts directory",
             'revision':"revision identifier"

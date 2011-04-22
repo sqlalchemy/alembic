@@ -11,6 +11,7 @@ __all__ = [
             'create_foreign_key', 
             'create_table',
             'drop_table',
+            'bulk_insert',
             'create_unique_constraint', 
             'get_context',
             'get_bind',

@@ -38,10 +38,10 @@ class DefaultContext(object):
 
     def _current_rev(self):
         if self.as_sql:
-            if not self.connection.dialect.has_table(self.connection,
-                    'alembic_version'):
-                self._exec(CreateTable(_version))
-                return None
+            # TODO: no coverage here !
+            # TODO: what if migrations table is needed on remote DB ?? 
+            # need an option
+            raise Exception("revisions must be specified with --sql")
         else:
             _version.create(self.connection, checkfirst=True)
         return self.connection.scalar(_version.select())
@@ -70,7 +70,11 @@ class DefaultContext(object):
         if self.as_sql and self.transactional_ddl:
             print "BEGIN;\n"
 
-        current_rev = prev_rev = rev = self._current_rev()
+        if self.as_sql:
+            # TODO: coverage, --sql with just one rev == error
+            current_rev = prev_rev = rev = None
+        else:
+            current_rev = prev_rev = rev = self._current_rev()
         for change, rev in self._migrations_fn(current_rev):
             log.info("Running %s %s -> %s", change.__name__, prev_rev, rev)
             change(**kw)
@@ -89,6 +93,7 @@ class DefaultContext(object):
             construct = text(construct)
         if self.as_sql:
             if args or kw:
+                # TODO: coverage
                 raise Exception("Execution arguments not allowed with as_sql")
             print unicode(
                     construct.compile(dialect=self.dialect)
@@ -135,7 +140,8 @@ class DefaultContext(object):
     ):
 
         if nullable is not util.NO_VALUE:
-            self._exec(base.ColumnNullable(table_name, column_name, nullable, schema=schema))
+            self._exec(base.ColumnNullable(table_name, column_name, 
+                                nullable, schema=schema))
         if server_default is not util.NO_VALUE:
             self._exec(base.ColumnDefault(
                                 table_name, column_name, server_default,
@@ -145,7 +151,6 @@ class DefaultContext(object):
             self._exec(base.ColumnType(
                                 table_name, column_name, type_, schema=schema
                             ))
-        # ... etc
 
     def add_column(self, table_name, column):
         self._exec(base.AddColumn(table_name, column))

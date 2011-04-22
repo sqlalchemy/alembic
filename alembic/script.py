@@ -66,6 +66,9 @@ class ScriptDirectory(object):
             if script is None and lower is not None:
                 raise util.CommandError("Couldn't find revision %s" % downrev)
 
+    # TODO: call range_ok -> as_sql and do as_sql validation
+    # here - range is required in as_sql mode, not allowed in 
+    # non-as_sql mode. split into upgrade_to/upgrade_to_as_sql
     def upgrade_from(self, range_ok, destination, current_rev):
         if destination is not None and ':' in destination:
             if not range_ok:
@@ -79,6 +82,9 @@ class ScriptDirectory(object):
             reversed(list(revs))
             ]
 
+    # TODO: call range_ok -> as_sql and do as_sql validation
+    # here - range is required in as_sql mode, not allowed in 
+    # non-as_sql mode.  split into downgrade_to/downgrade_to_as_sql
     def downgrade_to(self, range_ok, destination, current_rev):
         if destination is not None and ':' in destination:
             if not range_ok:
