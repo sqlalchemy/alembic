@@ -13,44 +13,13 @@ v = open(os.path.join(os.path.dirname(__file__), 'alembic', '__init__.py'))
 VERSION = re.compile(r".*__version__ = '(.*?)'", re.S).match(v.read()).group(1)
 v.close()
 
+readme = os.path.join(os.path.dirname(__file__), 'README.rst')
+
 
 setup(name='alembic',
       version=VERSION,
       description="A database migration tool for SQLAlchemy.",
-      long_description="""\
-Alembic is an open ended migrations tool.
-Basic operation involves the creation of script files, 
-each representing a version transition for one or more databases.
-The scripts execute within the context of a particular connection 
-and transactional configuration that is explicitly constructed.
-
-Key goals of Alembic are:
-
- * Super-minimalistic migration scripts.  For simple ALTER 
-   operations, modifying columns and adding/dropping constraints, 
-   no SQLAlchemy constructs are needed, just table and column 
-   names plus flags.
- * Transparent and explicit declaration of all configuration 
-   as well as the engine/transactional environment in which 
-   migrations run, starting with templates which generate the
-   migration environment.  The environment can be modified 
-   to suit the specifics of the use case.
- * Support for multiple-database configurations, including
-   migrations that are run for all / some connections.
- * Support for running migrations transactionally for 
-   "transactional DDL" backends, which include Postgresql and 
-   Microsoft SQL Server.
- * Allowing any series of migrations to be generated as SQL 
-   scripts to standard out, instead of emitting to the database.
- * Support for branched series of migrations, including the
-   ability to view branches and "splice" them together.
- * The ability to "prune" old migration scripts, setting the
-   "root" of the system to a newer file.
- * The ability to integrate configuration with other frameworks.
-   A sample Pylons template is included which pulls all 
-   configuration from the Pylons project environment.
-
-""",
+      long_description=file(readme).read(),
       classifiers=[
       'Development Status :: 3 - Alpha',
       'Environment :: Console',
