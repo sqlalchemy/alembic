@@ -102,6 +102,11 @@ def branches(config):
     for sc in script.walk_revisions():
         if sc.is_branch_point:
             print sc
+            for rev in sc.nextrev:
+                print "%s -> %s" % (
+                    " " * len(str(sc.down_revision)),
+                    script._get_rev(rev)
+                )
 
 def current(config):
     """Display the current revision for each database."""

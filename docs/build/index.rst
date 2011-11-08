@@ -2,7 +2,8 @@
 Welcome to Alembic's documentation!
 ===================================
 
-Contents:
+`Alembic <http://bitbucket.org/zzzeek/alembic>`_ is a lightweight database migration tool for usage
+with the `SQLAlchemy <http://www.sqlalchemy.org>`_ Database Toolkit for Python.
 
 .. toctree::
    :maxdepth: 2

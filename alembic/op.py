@@ -1,7 +1,9 @@
 from alembic import util
 from alembic.context import get_context
 from sqlalchemy.types import NULLTYPE
-from sqlalchemy import schema
+from sqlalchemy import schema, sql
+
+util.importlater.resolve_all()
 
 __all__ = [
             'alter_column', 

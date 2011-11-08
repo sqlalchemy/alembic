@@ -2,12 +2,11 @@ from alembic import util
 from sqlalchemy import MetaData, Table, Column, String, literal_column, \
     text
 from sqlalchemy import schema, create_engine
-from sqlalchemy.util import importlater
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.sql.expression import _BindParamClause
 
 import logging
-base = importlater("alembic.ddl", "base")
+base = util.importlater("alembic.ddl", "base")
 log = logging.getLogger(__name__)
 
 class ContextMeta(type):
@@ -215,6 +214,10 @@ def configure_connection(connection):
                     DefaultContext)(connection, **_context_opts)
 
 def run_migrations(**kw):
+    """Run migrations as determined by the current command line configuration
+    as well as versioning information present (or not) in the current 
+    database connection (if one is present).
+    """
     _context.run_migrations(**kw)
 
 def get_context():

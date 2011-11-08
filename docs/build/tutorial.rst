@@ -2,7 +2,7 @@
 Tutorial
 ========
 
-Alembic provides for the creation, management, and invocation of *change management* 
+`Alembic <http://bitbucket.org/zzzeek/alembic>`_ provides for the creation, management, and invocation of *change management* 
 scripts for a relational database, using `SQLAlchemy <http://www.sqlalchemy.org>`_ as the underlying engine.
 This tutorial will provide a full introduction to the theory and usage of this tool.
 
@@ -177,8 +177,8 @@ This file contains the following features:
   ``[formatter_*]`` - these sections are all part of Python's standard logging configuration,
   the mechanics of which are documented at `Configuration File Format <http://docs.python.org/library/logging.config.html#configuration-file-format>`_.
   As is the case with the database connection, these directives are used directly as the
-  result of the ``logging.config.fileConfig()`` call present in the fully customizable
-  ``env.py`` script.
+  result of the ``logging.config.fileConfig()`` call present in the 
+  ``env.py`` script, which you're free to modify.
 
 For starting up with just a single database and the generic configuration, setting up
 the SQLAlchemy URL is all that's needed::
@@ -190,12 +190,12 @@ Create a Migration Script
 
 With the environment in place we can create a new revision, using ``alembic revision``::
 
-    $ alembic revision -m "add a column"
+    $ alembic revision -m "create account table"
     Generating /path/to/yourproject/alembic/versions/1975ea83b712.py...done
 
-A new file 1975ea83b712.py is generated.  Looking inside the file::
+A new file ``1975ea83b712.py`` is generated.  Looking inside the file::
 
-    """add a column
+    """create account table
 
     Revision ID: 1975ea83b712
     Revises: None
@@ -251,18 +251,338 @@ We can then add some directives to our script, suppose adding a new table ``acco
     def downgrade():
         drop_table('account')
 
-foo::
+:func:`.create_table` and :func:`.drop_table` are Alembic directives.   Alembic provides 
+all the basic database migration operations via these directives, which are designed to be as simple and 
+minimalistic as possible; 
+there's no reliance upon existing table metadata for most of these directives.  They draw upon
+a global "context" that indicates how to get at a database connection (if any; migrations can 
+dump SQL/DDL directives to files as well) in order to invoke the command.   This global
+context is set up, like everything else, in the ``env.py`` script.
+
+An overview of all Alembic directives is at :ref:`ops`.
+
+Running our First Migration
+===========================
+
+We now want to run our migration.   Assuming our database is totally clean, it's as
+yet unversioned.   The ``alembic upgrade`` command will run upgrade operations, proceeding
+from the current database revision, in this example ``None``, to the given target revision.
+We can specify ``1975ea83b712`` as the revision we'd like to upgrade to, but it's easier
+in most cases just to tell it "the most recent", in this case ``head``::
+
+    $ alembic upgrade head 
+    INFO  [alembic.context] Context class PostgresqlContext.
+    INFO  [alembic.context] Will assume transactional DDL.
+    INFO  [alembic.context] Running upgrade None -> 1975ea83b712
+
+Wow that rocked !   Note that the information we see on the screen is the result of the
+logging configuration set up in ``alembic.ini`` - logging the ``alembic`` stream to the 
+console (standard error, specifically).
+
+The process which occurred here included that Alembic first checked if the database had
+a table called ``alembic_version``, and if not, created it.   It looks in this table
+for the current version, if any, and then calculates the path from this version to 
+the version requested, in this case ``head``, which is known to be ``1975ea83b712``.
+It then invokes the ``upgrade()`` method in each file to get to the target revision.
+
+Running our Second Migration
+=============================
+
+OK let's do another one so we have some things to play with.    We again create a revision
+file::
+
+    $ alembic revision -m "Add a column"
+    Generating /path/to/yourapp/alembic/versions/ae1027a6acf.py...done
+
+Let's edit this file and add a new column to the ``account`` table::
+
+    """Add a column
+
+    Revision ID: ae1027a6acf
+    Revises: 1975ea83b712
+    Create Date: 2011-11-08 12:37:36.714947
+
+    """
+
+    # downgrade revision identifier, used by Alembic.
+    down_revision = '1975ea83b712'
+
+    from alembic.op import *
+    from sqlalchemy import DateTime, Column
 
     def upgrade():
-        add_column('accounts', 
-            Column('account_id', INTEGER, ForeignKey('accounts.id'))
+        add_column('account', Column('last_transaction_date', DateTime))
+
+    def downgrade():
+        drop_column('account', 'last_transaction_date')
+
+Running again to ``head``::
+
+    $ alembic upgrade head 
+    INFO  [alembic.context] Context class PostgresqlContext.
+    INFO  [alembic.context] Will assume transactional DDL.
+    INFO  [alembic.context] Running upgrade 1975ea83b712 -> ae1027a6acf
+
+We've now added the ``last_transaction_date`` column to the database.
+
+Getting Information
+===================
+
+With a few revisions present we can get some information about the state of things.
+
+First we can view the current revision::
+
+    $ alembic current
+    INFO  [alembic.context] Context class PostgresqlContext.
+    INFO  [alembic.context] Will assume transactional DDL.
+    Current revision for postgresql://scott:XXXXX@localhost/test: 1975ea83b712 -> ae1027a6acf (head), Add a column
+
+We can also view history::
+
+    $ alembic history
+
+    1975ea83b712 -> ae1027a6acf (head), Add a column
+    None -> 1975ea83b712, empty message
+
+Downgrading
+===========
+
+We can illustrate a downgrade back to nothing, by calling ``alembic downgrade`` back 
+to the beginning, which in Alembic is called ``base``::
+
+    $ alembic downgrade base
+    INFO  [alembic.context] Context class PostgresqlContext.
+    INFO  [alembic.context] Will assume transactional DDL.
+    INFO  [alembic.context] Running downgrade ae1027a6acf -> 1975ea83b712
+    INFO  [alembic.context] Running downgrade 1975ea83b712 -> None
+
+Back to nothing - and up again::
+
+    $ alembic upgrade head  
+    INFO  [alembic.context] Context class PostgresqlContext.
+    INFO  [alembic.context] Will assume transactional DDL.
+    INFO  [alembic.context] Running upgrade None -> 1975ea83b712
+    INFO  [alembic.context] Running upgrade 1975ea83b712 -> ae1027a6acf
+
+Auto Generating Migrations
+===========================
+
+.. note:: this functionality is not yet implemented.  Specific details here
+   are subject to change.
+
+Alembic can view the status of the database and compare against the table metadata 
+in the application, generating the "obvious" migrations based on a comparison.  This
+is achieved using the ``--autogenerate`` option to the ``alembic`` command.
+
+To use autogenerate, we first need to modify our ``env.py`` so that it gets access
+to a table metadata object that contains the target.  Suppose our application
+has a `declarative base <http://www.sqlalchemy.org/docs/orm/extensions/declarative.html#synopsis>`_
+in ``myapp.mymodel``.  This base contains a :class:`~sqlalchemy.schema.MetaData` object which
+contains :class:`~sqlalchemy.schema.Table` objects defining our database.  We make sure this
+is loaded in ``env.py`` and then passed to :func:`.context.configure_connection` via
+``use_metadata``::
+
+    from myapp.mymodel import Base
+
+    connection = engine.connect()
+    context.configure_connection(connection, use_metadata=Base.metadata)
+    trans = connection.begin()
+    try:
+        context.run_migrations()
+        trans.commit()
+    except:
+        trans.rollback()
+        raise
+
+We then create an upgrade file in the usual way adding ``--autogenerate``.  Suppose
+our :class:`~sqlalchemy.schema.MetaData` contained a definition for the ``account`` table,
+and the database did not.  We'd get output like::
+
+    $ alembic revision --autogenerate -m "Added account table"
+    INFO [alembic.context] Detected added table 'account'
+    Generating /Users/classic/Desktop/tmp/alembic/versions/27c6a30d7c24.py...done
+
+We can then view our file ``27c6a30d7c24.py`` and see that a rudimentary migration
+is already present::
+
+    """empty message
+
+    Revision ID: 27c6a30d7c24
+    Revises: None
+    Create Date: 2011-11-08 11:40:27.089406
+
+    """
+
+    # downgrade revision identifier, used by Alembic.
+    down_revision = None
+
+    from alembic.op import *
+
+    import sqlalchemy as sa
+
+    def upgrade():
+        create_table(
+            'account',
+            sa.Column('id', sa.INTEGER, primary_key=True),
+            sa.Column('name', sa.VARCHAR(50), nullable=False),
+            sa.Column('description', sa.VARCHAR(200)),
+            sa.Column('last_transaction_date', sa.DATETIME)
         )
 
     def downgrade():
-        drop_column('organization', 'account_id')
-        drop_table("accounts")
+        drop_table("account")
+
+The migration hasn't actually run yet, of course.  We do that via the usual ``upgrade``
+command.   We should also go into our migration file and alter it as needed, including 
+adjustments to the directives as well as the addition of other directives which these may
+be dependent on - specifically data changes in between creates/alters/drops.   The autogenerate
+feature can currently detect:
+
+* Table additions, removals.
+* Column additions, removals
+* Change of column type, nullable status
+
+Autogenerate can *not* detect:
+
+* Changes of table name.   These will come out as an add/drop of two different
+  tables, and should be hand-edited into a name change instead.
+* Changes of column name.  Like table name changes, these are detected as
+  a column add/drop pair, which is not at all the same as a name change.
+* Constraint addition/removal.   This is potentially possible but is not
+  yet implemented.
 
 
+Generating SQL Scripts
+======================
+
+A major capability of Alembic is to generate migrations as SQL scripts, instead of running
+them against the database.   This is a critical feature when working in large organizations
+where access to DDL is restricted, and SQL scripts must be handed off to DBAs.   Alembic makes
+this easy via the ``--sql`` option passed to any ``upgrade`` or ``downgrade`` command.   We 
+can, for example, generate a script that revises up to rev ``ae1027a6acf``::
+
+    $ alembic upgrade ae1027a6acf --sql
+    INFO  [alembic.context] Context class PostgresqlContext.
+    INFO  [alembic.context] Will assume transactional DDL.
+    BEGIN;
+
+    INFO  [alembic.context] Running upgrade None -> 1975ea83b712
+
+    CREATE TABLE account (
+        id SERIAL NOT NULL, 
+        name VARCHAR(50) NOT NULL, 
+        description VARCHAR(200), 
+        PRIMARY KEY (id)
+    )
+
+    ;
+    INFO  [alembic.context] Running upgrade 1975ea83b712 -> ae1027a6acf
+    ALTER TABLE account ADD COLUMN last_transaction_date TIMESTAMP WITHOUT TIME ZONE;
+    INSERT INTO alembic_version (version_num) VALUES ('ae1027a6acf');
+    COMMIT;
+
+While the logging configuration dumped to standard error, the actual script was dumped to standard output - 
+so typically we'd be using output redirection to generate a script::
+
+    $ alembic upgrade ae1027a6acf --sql > migration.sql
+
+Generating on a Range
+---------------------
+
+Notice that our migration script started at the base - this is the default when using the ``--sql`` 
+operation, which does not otherwise make usage of a database connection, so does not retrieve
+any starting version.    We usually will want 
+to specify a start/end version.  This is allowed when using the ``--sql`` option only
+using the ``start:end`` syntax::
+
+    $ alembic upgrade 1975ea83b712:ae1027a6acf --sql > migration.sql
+
+Writing Migration Scripts to Support Script Generation
+------------------------------------------------------
+
+The challenge of SQL script generation is that the scripts we generate can't rely upon
+any client/server database access.  This means a migration script that pulls some rows
+into memory via a ``SELECT`` statement will not work in ``--sql`` mode.   It's also
+important that the Alembic directives, all of which are designed specifically to work
+in both "live execution" as well as "offline SQL generation" mode, are used.
+
+
+Working with Branches
+=====================
+
+A *branch* describes when a source tree is broken up into two versions representing
+two independent sets of changes.   The challenge of a branch is to *merge* the
+branches into a single series of changes.  Alembic's GUID-based version number scheme
+allows branches to be reconciled.
+
+Consider if we merged into our source repository another branch which contained
+a revision for another table called ``shopping_cart``.   This revision was made
+against our first Alembic revision, the one that generated ``account``.   After
+loading the second source tree in, a new file ``27c6a30d7c24.py`` exists within
+our ``versions`` directory.   Both it, as well as ``ae1027a6acf.py``, reference
+``1975ea83b712`` as the "downgrade" revision.  To illustrate::
+
+    # main source tree:
+    1975ea83b712 (add account table) -> ae1027a6acf (add a column)
+
+    # branched source tree
+    1975ea83b712 (add account table) -> 27c6a30d7c24 (add shopping cart table)
+
+So above we can see 1975ea83b712 is our *branch point*.  The Alembic command ``branches``
+illustrates this fact::
+
+    $ alembic branches
+    None -> 1975ea83b712 (branchpoint), add account table
+         -> 1975ea83b712 -> 27c6a30d7c24 (head), add shopping cart table
+         -> 1975ea83b712 -> ae1027a6acf (head), add a column
+
+History shows it too, illustrating two ``head`` entries as well
+as a ``branchpoint``::
+
+    $ alembic history
+
+    1975ea83b712 -> 27c6a30d7c24 (head), add shopping cart table
+
+    1975ea83b712 -> ae1027a6acf (head), add a column
+    None -> 1975ea83b712 (branchpoint), add account table
+
+Alembic will also refuse to run any migrations until this is resolved [TODO: alembic dumps the
+whole stack, needs to return just a message]::
+
+    $ alembic upgrade head
+    INFO  [alembic.context] Context class PostgresqlContext.
+    INFO  [alembic.context] Will assume transactional DDL.
+    Exception: Only a single head supported so far...
+
+We resolve this branch by editing the files to be in a straight line.   In this case we edit 
+``27c6a30d7c24.py`` to point to ``ae1027a6acf.py``::
+
+    """add shopping cart table
+
+    Revision ID: 27c6a30d7c24
+    Revises: ae1027a6acf  # changed from 1975ea83b712
+    Create Date: 2011-11-08 13:02:14.212810
+
+    """
+
+    # downgrade revision identifier, used by Alembic.
+    # changed from 1975ea83b712
+    down_revision = 'ae1027a6acf'
+
+The ``branches`` command then shows no branches::
+
+    $ alembic branches
+    $
+
+And the history is similarly linear::
+
+    $ alembic history
+
+    ae1027a6acf -> 27c6a30d7c24 (head), add shopping cart table
+    1975ea83b712 -> ae1027a6acf, add a column
+    None -> 1975ea83b712, add account table
+
+.. note:: A future command called ``splice`` will automate this process.
 
 
 .. _building_uptodate:
