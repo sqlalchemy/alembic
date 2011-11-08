@@ -82,12 +82,12 @@ def _ensure_table_for_fk(metadata, fk):
 
 
 def alter_column(table_name, column_name, 
-                    nullable=util.NO_VALUE,
-                    server_default=util.NO_VALUE,
-                    name=util.NO_VALUE,
-                    type_=util.NO_VALUE
+                    nullable=None,
+                    server_default=False,
+                    name=None,
+                    type_=None
 ):
-    """Issue ALTER COLUMN using the current change context."""
+    """Issue an "alter column" instruction using the current change context."""
 
     get_context().alter_column(table_name, column_name, 
         nullable=nullable,
@@ -97,6 +97,16 @@ def alter_column(table_name, column_name,
     )
 
 def add_column(table_name, column):
+    """Issue an "add column" instruction using the current change context.
+    
+    e.g.::
+    
+        add_column('organization', 
+            Column('account_id', INTEGER, ForeignKey('accounts.id'))
+        )        
+    
+    """
+
     t = _table(table_name, column)
     get_context().add_column(
         table_name,
@@ -106,43 +116,119 @@ def add_column(table_name, column):
         get_context().add_constraint(constraint)
 
 def drop_column(table_name, column_name):
+    """Issue a "drop column" instruction using the current change context.
+    
+    e.g.::
+    
+        drop_column('organization', 'account_id')
+    
+    """
+
     get_context().drop_column(
         table_name,
         _column(column_name, NULLTYPE)
     )
 
 def add_constraint(table_name, constraint):
+    """Issue an "add constraint" instruction using the current change context."""
+
     _ensure_table_for_constraint(table_name, constraint)
     get_context().add_constraint(
         constraint
     )
 
 def create_foreign_key(name, source, referent, local_cols, remote_cols):
+    """Issue a "create foreign key" instruction using the current change context."""
+
     get_context().add_constraint(
                 _foreign_key_constraint(name, source, referent, 
                         local_cols, remote_cols)
             )
 
 def create_unique_constraint(name, source, local_cols):
+    """Issue a "create unique constraint" instruction using the current change context."""
+
     get_context().add_constraint(
                 _unique_constraint(name, source, local_cols)
             )
 
 def create_table(name, *columns, **kw):
+    """Issue a "create table" instruction using the current change context.
+    
+    This directive receives an argument list similar to that of the 
+    traditional :class:`sqlalchemy.schema.Table` construct, but without the
+    metadata::
+        
+        from sqlalchemy import INTEGER, VARCHAR, NVARCHAR, Column
+        from alembic.op import create_table
+
+        create_table(
+            'accounts',
+            Column('id', INTEGER, primary_key=True),
+            Column('name', VARCHAR(50), nullable=False),
+            Column('description', NVARCHAR(200))
+        )
+
+    """
+
     get_context().create_table(
         _table(name, *columns, **kw)
     )
 
 def drop_table(name, *columns, **kw):
+    """Issue a "drop table" instruction using the current change context.
+    
+    
+    e.g.::
+    
+        drop_table("accounts")
+        
+    """
     get_context().drop_table(
         _table(name, *columns, **kw)
     )
 
 def bulk_insert(table, rows):
+    """Issue a "bulk insert" operation using the current change context.
+    
+    This provides a means of representing an INSERT of multiple rows
+    which works equally well in the context of executing on a live 
+    connection as well as that of generating a SQL script.   In the 
+    case of a SQL script, the values are rendered inline into the 
+    statement.
+    
+    e.g.::
+    
+        from myapp.mymodel import accounts_table
+        from datetime import date
+        
+        bulk_insert(accounts_table,
+            [
+                {'id':1, 'name':'John Smith', 'create_date':date(2010, 10, 5)},
+                {'id':2, 'name':'Ed Williams', 'create_date':date(2007, 5, 27)},
+                {'id':3, 'name':'Wendy Jones', 'create_date':date(2008, 8, 15)},
+            ]
+        )
+      """
     get_context().bulk_insert(table, rows)
 
 def execute(sql):
+    """Execute the given SQL using the current change context.
+    
+    In a SQL script context, the statement is emitted directly to the 
+    output stream.
+    
+    """
     get_context().execute(sql)
 
 def get_bind():
+    """Return the current 'bind'.
+    
+    Under normal circumstances, this is the 
+    :class:`sqlalchemy.engine.Connection` currently being used
+    to emit SQL to the database.
+    
+    In a SQL script context, this value is ``None``. [TODO: verify this]
+    
+    """
     return get_context().bind

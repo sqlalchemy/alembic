@@ -99,6 +99,18 @@ class ScriptDirectory(object):
             ]
 
     def run_env(self):
+        """Run the script environment.
+        
+        This basically runs the ``env.py`` script present
+        in the migration environment.   It is called exclusively
+        by the command functions in :mod:`alembic.command`.
+        
+        As ``env.py`` runs :func:`.context.configure_connection`, 
+        the connection environment should be set up first.   This
+        is typically achieved using the :func:`.context.opts`.
+        
+        
+        """
         util.load_python_file(self.dir, 'env.py')
 
     @util.memoized_property

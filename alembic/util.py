@@ -2,7 +2,6 @@ from mako.template import Template
 import sys
 import os
 import textwrap
-from sqlalchemy import util
 from sqlalchemy.engine import url
 import imp
 import warnings
@@ -11,7 +10,6 @@ import time
 import random
 import uuid
 
-NO_VALUE = util.symbol("NO_VALUE")
 
 class CommandError(Exception):
     pass

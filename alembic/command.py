@@ -140,6 +140,11 @@ def stamp(config, revision, sql=False):
     script.run_env()
 
 def splice(config, parent, child):
-    """'splice' two branches, creating a new revision file."""
+    """'splice' two branches, creating a new revision file.
+    
+    this command isn't implemented right now.
+    
+    """
+    raise NotImplementedError()
 
 

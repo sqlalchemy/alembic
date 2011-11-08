@@ -132,22 +132,22 @@ class DefaultContext(object):
             return self.connection
 
     def alter_column(self, table_name, column_name, 
-                        nullable=util.NO_VALUE,
-                        server_default=util.NO_VALUE,
-                        name=util.NO_VALUE,
-                        type_=util.NO_VALUE,
+                        nullable=None,
+                        server_default=False,
+                        name=None,
+                        type_=None,
                         schema=None,
     ):
 
-        if nullable is not util.NO_VALUE:
+        if nullable is not None:
             self._exec(base.ColumnNullable(table_name, column_name, 
                                 nullable, schema=schema))
-        if server_default is not util.NO_VALUE:
+        if server_default is not False:
             self._exec(base.ColumnDefault(
                                 table_name, column_name, server_default,
                                 schema=schema
                             ))
-        if type_ is not util.NO_VALUE:
+        if type_ is not None:
             self._exec(base.ColumnType(
                                 table_name, column_name, type_, schema=schema
                             ))
@@ -187,11 +187,27 @@ def _render_literal_bindparam(element, compiler, **kw):
     return compiler.render_literal_bindparam(element, **kw)
 
 def opts(cfg, **kw):
+    """Set up options that will be used by the :func:`.configure_connection`
+    function.
+    
+    This basically sets some global variables.
+    
+    """
     global _context_opts, config
     _context_opts = kw
     config = cfg
 
 def configure_connection(connection):
+    """Configure the migration environment against a specific
+    database connection, an instance of :class:`sqlalchemy.engine.Connection`.
+    
+    This function is typically called from the ``env.py``
+    script within a migration environment.  It can be called
+    multiple times for an invocation.  The most recent :class:`~sqlalchemy.engine.Connection`
+    for which it was called is the one that will be operated upon
+    by the next call to :func:`.run_migrations`.
+    
+    """
     global _context
     from alembic.ddl import base
     _context = _context_impls.get(
