@@ -30,6 +30,16 @@ The goals of Alembic are:
   structures for simple operations like these - the functions themselves
   generate minimalist schema structures behind the scenes to achieve the given
   DDL sequence.
+* "auto generation" of migrations, to the degree this is feasible.  There
+  is a strong desire for migration tools that "figure out" what needs to 
+  change automatically.  While real world migrations are far more complex than
+  what can be automatically determined (thus contributing to the author's
+  skepticism of such tools), SQLAlchemy has mature and comprehensive schema
+  reflection capabilities, which should be used here.   The tool will be 
+  able to detect table adds/drops as well as column adds/drops/mutations,
+  and generate directives into new migration scripts automatically 
+  for these operations.  The migration script can then be edited as needed before
+  being run.
 * Full support for migrations generated as SQL scripts.   Those of us who 
   work in corporate environments know that direct access to DDL commands on a
   production database is a rare privilege, and DBAs want textual SQL scripts.
