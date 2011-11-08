@@ -53,7 +53,10 @@ The goals of Alembic are:
   use case. Alembic has no issue talking to SQLite of course but most ALTER
   statements won't work.
 
-Alembic is working at a rudimentary level and includes a little bit of support
-for Postgresql and Microsoft SQL Server. As of yet the documentation hasn't
-been written - this is really the only thing left before an early release can
-be put out.
+Alembic is working at a rudimentary level, and has been tested so far
+against Postgresql and Microsoft SQL Server.  It works on SQLite to the
+degree that SQLite supports migrations (which is very little), and should also
+have partial functionality for MySQL, Oracle and Firebird (to the degree those
+databases support standard ANSI DDL).
+
+Documentation is at `ReadTheDocs <http://readthedocs.org/docs/alembic/en/latest/index.html>`_.
