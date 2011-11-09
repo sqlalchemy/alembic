@@ -76,9 +76,8 @@ class ScriptDirectory(object):
             revs = self._revs(*reversed(destination.split(':', 2)))
         else:
             revs = self._revs(destination, current_rev)
-
         return [
-            (script.module.upgrade, script.revision) for script in 
+            (script.module.upgrade, script.down_revision, script.revision) for script in 
             reversed(list(revs))
             ]
 
@@ -89,12 +88,12 @@ class ScriptDirectory(object):
         if destination is not None and ':' in destination:
             if not range_ok:
                 raise util.CommandError("Range revision not allowed")
-            revs = self._revs(*reversed(destination.split(':', 2)))
+            revs = self._revs(*destination.split(':', 2))
         else:
             revs = self._revs(current_rev, destination)
 
         return [
-            (script.module.downgrade, script.down_revision) for script in 
+            (script.module.downgrade, script.revision, script.down_revision) for script in 
             revs
             ]
 

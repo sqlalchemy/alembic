@@ -21,17 +21,17 @@ def test_upgrade_path():
     eq_(
         env.upgrade_from(False, e.revision, c.revision),
         [
-            (d.module.upgrade, d.revision),
-            (e.module.upgrade, e.revision),
+            (d.module.upgrade, c.revision, d.revision),
+            (e.module.upgrade, d.revision, e.revision),
         ]
     )
 
     eq_(
         env.upgrade_from(False, c.revision, None),
         [
-            (a.module.upgrade, a.revision),
-            (b.module.upgrade, b.revision),
-            (c.module.upgrade, c.revision),
+            (a.module.upgrade, None, a.revision),
+            (b.module.upgrade, a.revision, b.revision),
+            (c.module.upgrade, b.revision, c.revision),
         ]
     )
 
@@ -40,16 +40,16 @@ def test_downgrade_path():
     eq_(
         env.downgrade_to(False, c.revision, e.revision),
         [
-            (e.module.downgrade, e.down_revision),
-            (d.module.downgrade, d.down_revision),
+            (e.module.downgrade, e.revision, e.down_revision),
+            (d.module.downgrade, d.revision, d.down_revision),
         ]
     )
 
     eq_(
         env.downgrade_to(False, None, c.revision),
         [
-            (c.module.downgrade, c.down_revision),
-            (b.module.downgrade, b.down_revision),
-            (a.module.downgrade, a.down_revision),
+            (c.module.downgrade, c.revision, c.down_revision),
+            (b.module.downgrade, b.revision, b.down_revision),
+            (a.module.downgrade, a.revision, a.down_revision),
         ]
     )

@@ -4,6 +4,7 @@ from sqlalchemy import MetaData, Table, Column, String, literal_column, \
 from sqlalchemy import schema, create_engine
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.sql.expression import _BindParamClause
+import sys
 
 import logging
 base = util.importlater("alembic.ddl", "base")
@@ -30,10 +31,15 @@ class DefaultContext(object):
     transactional_ddl = False
     as_sql = False
 
-    def __init__(self, connection, fn, as_sql=False):
-        self.connection = connection
+    def __init__(self, connection, fn, as_sql=False, output_buffer=sys.stdout):
+        if as_sql:
+            self.connection = self._stdout_connection(connection)
+            assert self.connection is not None
+        else:
+            self.connection = connection
         self._migrations_fn = fn
         self.as_sql = as_sql
+        self.output_buffer = output_buffer
 
     def _current_rev(self):
         if self.as_sql:
@@ -48,7 +54,6 @@ class DefaultContext(object):
     def _update_current_rev(self, old, new):
         if old == new:
             return
-
         if new is None:
             self._exec(_version.delete())
         elif old is None:
@@ -67,14 +72,16 @@ class DefaultContext(object):
                         else "non-transactional")
 
         if self.as_sql and self.transactional_ddl:
-            print "BEGIN;\n"
+            self.static_output("BEGIN;\n")
 
-        if self.as_sql:
-            # TODO: coverage, --sql with just one rev == error
-            current_rev = prev_rev = rev = None
-        else:
-            current_rev = prev_rev = rev = self._current_rev()
-        for change, rev in self._migrations_fn(current_rev):
+        current_rev = False
+        for change, prev_rev, rev in self._migrations_fn(
+                                        self._current_rev() 
+                                        if not self.as_sql else None):
+            if current_rev is False:
+                current_rev = prev_rev
+                if self.as_sql and not current_rev:
+                    _version.create(self.connection)
             log.info("Running %s %s -> %s", change.__name__, prev_rev, rev)
             change(**kw)
             if not self.transactional_ddl:
@@ -84,8 +91,11 @@ class DefaultContext(object):
         if self.transactional_ddl:
             self._update_current_rev(current_rev, rev)
 
+        if self.as_sql and not rev:
+            _version.drop(self.connection)
+
         if self.as_sql and self.transactional_ddl:
-            print "COMMIT;\n"
+            self.static_output("COMMIT;\n")
 
     def _exec(self, construct, *args, **kw):
         if isinstance(construct, basestring):
@@ -94,9 +104,9 @@ class DefaultContext(object):
             if args or kw:
                 # TODO: coverage
                 raise Exception("Execution arguments not allowed with as_sql")
-            print unicode(
+            self.static_output(unicode(
                     construct.compile(dialect=self.dialect)
-                    ).replace("\t", "    ") + ";"
+                    ).replace("\t", "    ") + ";")
         else:
             self.connection.execute(construct, *args, **kw)
 
@@ -104,15 +114,17 @@ class DefaultContext(object):
     def dialect(self):
         return self.connection.dialect
 
+    def static_output(self, text):
+        self.output_buffer.write(text + "\n")
+
     def execute(self, sql):
         self._exec(sql)
 
-    @util.memoized_property
-    def _stdout_connection(self):
+    def _stdout_connection(self, connection):
         def dump(construct, *multiparams, **params):
             self._exec(construct)
 
-        return create_engine(self.connection.engine.url, 
+        return create_engine(connection.engine.url, 
                         strategy="mock", executor=dump)
 
     @property
@@ -125,10 +137,7 @@ class DefaultContext(object):
         return results and is only appropriate for DDL.
         
         """
-        if self.as_sql:
-            return self._stdout_connection
-        else:
-            return self.connection
+        return self.connection
 
     def alter_column(self, table_name, column_name, 
                         nullable=None,
@@ -185,6 +194,8 @@ class _literal_bindparam(_BindParamClause):
 def _render_literal_bindparam(element, compiler, **kw):
     return compiler.render_literal_bindparam(element, **kw)
 
+_context_opts = {}
+
 def opts(cfg, **kw):
     """Set up options that will be used by the :func:`.configure_connection`
     function.
@@ -192,8 +203,8 @@ def opts(cfg, **kw):
     This basically sets some global variables.
     
     """
-    global _context_opts, config
-    _context_opts = kw
+    global config
+    _context_opts.update(kw)
     config = cfg
 
 def configure_connection(connection):

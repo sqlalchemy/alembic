@@ -7,6 +7,7 @@ from alembic import context
 import re
 from alembic.context import _context_impls
 from alembic import ddl
+import StringIO
 
 staging_directory = os.path.join(os.path.dirname(__file__), 'scratch')
 
@@ -29,6 +30,20 @@ def assert_compiled(element, assert_string, dialect=None):
                     replace("\n", "").replace("\t", ""),
         assert_string.replace("\n", "").replace("\t", "")
     )
+
+def capture_context_buffer():
+    buf = StringIO.StringIO()
+
+    class capture(object):
+        def __enter__(self):
+            context._context_opts['output_buffer'] = buf
+            return buf
+
+        def __exit__(self, *arg, **kw):
+            print buf.getvalue()
+            context._context_opts.pop('output_buffer', None)
+
+    return capture()
 
 def eq_(a, b, msg=None):
     """Assert a == b, with repr messaging on failure."""
