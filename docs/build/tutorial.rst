@@ -466,20 +466,25 @@ can, for example, generate a script that revises up to rev ``ae1027a6acf``::
     INFO  [alembic.context] Will assume transactional DDL.
     BEGIN;
 
-    INFO  [alembic.context] Running upgrade None -> 1975ea83b712
+    CREATE TABLE alembic_version (
+        version_num VARCHAR(32) NOT NULL
+    );
 
+    INFO  [alembic.context] Running upgrade None -> 1975ea83b712
     CREATE TABLE account (
         id SERIAL NOT NULL, 
         name VARCHAR(50) NOT NULL, 
         description VARCHAR(200), 
         PRIMARY KEY (id)
-    )
+    );
 
-    ;
     INFO  [alembic.context] Running upgrade 1975ea83b712 -> ae1027a6acf
     ALTER TABLE account ADD COLUMN last_transaction_date TIMESTAMP WITHOUT TIME ZONE;
+
     INSERT INTO alembic_version (version_num) VALUES ('ae1027a6acf');
+
     COMMIT;
+
 
 While the logging configuration dumped to standard error, the actual script was dumped to standard output - 
 so typically we'd be using output redirection to generate a script::
@@ -593,12 +598,12 @@ Building an Up to Date Database from Scratch
 There's a theory of database migrations that says that the revisions in existence for a database should be
 able to go from an entirely blank schema to the finished product, and back again.   Alembic can roll
 this way.   Though we think it's kind of overkill, considering that SQLAlchemy itself can emit 
-the full CREATE statements for any given model using :meth:`.MetaData.create_all`.   If you check out
+the full CREATE statements for any given model using :meth:`~sqlalchemy.schema.MetaData.create_all`.   If you check out
 a copy of an application, running this will give you the entire database in one shot, without the need
 to run through all those migration files, which are instead tailored towards applying incremental
 changes to an existing database.
 
-Alembic can integrate with a :meth:`.MetaData.create_all` script quite easily.  After running the
+Alembic can integrate with a :meth:`~sqlalchemy.schema.MetaData.create_all` script quite easily.  After running the
 create operation, tell Alembic to create a new version table, and to stamp it with the most recent
 revision (i.e. ``head``)::
 

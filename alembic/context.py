@@ -72,7 +72,7 @@ class DefaultContext(object):
                         else "non-transactional")
 
         if self.as_sql and self.transactional_ddl:
-            self.static_output("BEGIN;\n")
+            self.static_output("BEGIN;")
 
         current_rev = False
         for change, prev_rev, rev in self._migrations_fn(
@@ -95,7 +95,7 @@ class DefaultContext(object):
             _version.drop(self.connection)
 
         if self.as_sql and self.transactional_ddl:
-            self.static_output("COMMIT;\n")
+            self.static_output("COMMIT;")
 
     def _exec(self, construct, *args, **kw):
         if isinstance(construct, basestring):
@@ -106,7 +106,7 @@ class DefaultContext(object):
                 raise Exception("Execution arguments not allowed with as_sql")
             self.static_output(unicode(
                     construct.compile(dialect=self.dialect)
-                    ).replace("\t", "    ") + ";")
+                    ).replace("\t", "    ").strip() + ";")
         else:
             self.connection.execute(construct, *args, **kw)
 
@@ -115,7 +115,7 @@ class DefaultContext(object):
         return self.connection.dialect
 
     def static_output(self, text):
-        self.output_buffer.write(text + "\n")
+        self.output_buffer.write(text + "\n\n")
 
     def execute(self, sql):
         self._exec(sql)
