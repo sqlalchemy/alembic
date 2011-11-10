@@ -74,7 +74,7 @@ class DefaultContext(object):
         if self.as_sql and self.transactional_ddl:
             self.static_output("BEGIN;")
 
-        current_rev = False
+        current_rev = rev = False
         for change, prev_rev, rev in self._migrations_fn(
                                         self._current_rev() 
                                         if not self.as_sql else None):
@@ -88,11 +88,12 @@ class DefaultContext(object):
                 self._update_current_rev(prev_rev, rev)
             prev_rev = rev
 
-        if self.transactional_ddl:
-            self._update_current_rev(current_rev, rev)
+        if rev is not False:
+            if self.transactional_ddl:
+                self._update_current_rev(current_rev, rev)
 
-        if self.as_sql and not rev:
-            _version.drop(self.connection)
+            if self.as_sql and not rev:
+                _version.drop(self.connection)
 
         if self.as_sql and self.transactional_ddl:
             self.static_output("COMMIT;")

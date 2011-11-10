@@ -81,6 +81,10 @@ def test_005_upgrade():
     assert db.dialect.has_table(db.connect(), 'bar')
     assert not db.dialect.has_table(db.connect(), 'bat')
 
+def test_006_upgrade_again():
+    command.upgrade(cfg, b)
+
+
 # TODO: test some invalid movements
 
 
