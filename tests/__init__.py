@@ -122,6 +122,42 @@ datefmt = %%H:%%M:%%S
     """ % (dir_, dir_))
     return cfg
 
+def _no_sql_testing_config():
+    """use a postgresql url with no host so that connections guaranteed to fail"""
+    cfg = _testing_config()
+    dir_ = os.path.join(staging_directory, 'scripts')
+    open(cfg.config_file_name, 'w').write("""
+[alembic]
+script_location = %s
+sqlalchemy.url = postgresql://
+
+[loggers]
+keys = root
+
+[handlers]
+keys = console
+
+[logger_root]
+level = WARN
+handlers = console
+qualname =
+
+[handler_console]
+class = StreamHandler
+args = (sys.stderr,)
+level = NOTSET
+formatter = generic
+
+[formatters]
+keys = generic
+
+[formatter_generic]
+format = %%(levelname)-5.5s [%%(name)s] %%(message)s
+datefmt = %%H:%%M:%%S
+
+""" % (dir_))
+    return cfg
+
 def sqlite_db():
     # sqlite caches table pragma info 
     # per connection, so create a new

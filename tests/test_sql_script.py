@@ -1,11 +1,11 @@
-from tests import clear_staging_env, staging_env, _sqlite_testing_config, sqlite_db, eq_, ne_, capture_context_buffer
+from tests import clear_staging_env, staging_env, _no_sql_testing_config, sqlite_db, eq_, ne_, capture_context_buffer
 from alembic import command, util
 from alembic.script import ScriptDirectory
 
 def setup():
     global cfg, env
     env = staging_env()
-    cfg = _sqlite_testing_config()
+    cfg = _no_sql_testing_config()
 
     global a, b, c
     a = util.rev_id()
@@ -96,3 +96,8 @@ def test_version_to_middle():
     assert "DROP STEP 2" in buf.getvalue()
     assert "DROP STEP 1" not in buf.getvalue()
 
+
+def test_stamp():
+    with capture_context_buffer() as buf:
+        command.stamp(cfg, "head", sql=True)
+    assert "UPDATE alembic_version SET version_num='%s';" % c in buf.getvalue()

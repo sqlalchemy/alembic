@@ -8,12 +8,17 @@ fileConfig(config.config_file_name)
 engine = engine_from_config(
             config.get_section('alembic'), prefix='sqlalchemy.')
 
-connection = engine.connect()
-context.configure_connection(connection)
-trans = connection.begin()
-try:
+if not context.requires_connection():
+    context.configure(dialect_name=engine.name)
     context.run_migrations()
-    trans.commit()
-except:
-    trans.rollback()
-    raise
+else:
+    connection = engine.connect()
+    context.configure(connection=connection, dialect_name=engine.name)
+
+    trans = connection.begin()
+    try:
+        context.run_migrations()
+        trans.commit()
+    except:
+        trans.rollback()
+        raise

@@ -131,7 +131,10 @@ def stamp(config, revision, sql=False):
 
     script = ScriptDirectory.from_config(config)
     def do_stamp(rev):
-        current = context.get_context()._current_rev()
+        if sql:
+            current = False
+        else:
+            current = context.get_context()._current_rev()
         dest = script._get_rev(revision)
         if dest is not None:
             dest = dest.revision

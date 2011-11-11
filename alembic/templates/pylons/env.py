@@ -23,12 +23,16 @@ except:
 # customize this section for non-standard engine configurations.
 meta = __import__("%s.model.meta" % config['pylons.package']).model.meta
 
-connection = meta.engine.connect()
-context.configure_connection(connection)
-trans = connection.begin()
-try:
+if not context.requires_connection():
+    context.configure(dialect_name=meta.engine.name)
     context.run_migrations()
-    trans.commit()
-except:
-    trans.rollback()
-    raise
+else:
+    connection = meta.engine.connect()
+    context.configure_connection(connection)
+    trans = connection.begin()
+    try:
+        context.run_migrations()
+        trans.commit()
+    except:
+        trans.rollback()
+        raise

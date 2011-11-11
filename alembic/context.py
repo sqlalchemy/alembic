@@ -2,6 +2,7 @@ from alembic import util
 from sqlalchemy import MetaData, Table, Column, String, literal_column, \
     text
 from sqlalchemy import schema, create_engine
+from sqlalchemy.engine import url as sqla_url
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.sql.expression import _BindParamClause
 import sys
@@ -31,7 +32,10 @@ class DefaultContext(object):
     transactional_ddl = False
     as_sql = False
 
-    def __init__(self, connection, fn, as_sql=False, output_buffer=sys.stdout):
+    def __init__(self, dialect, connection, fn, as_sql=False, 
+                        output_buffer=None,
+                        transactional_ddl=None):
+        self.dialect = dialect
         if as_sql:
             self.connection = self._stdout_connection(connection)
             assert self.connection is not None
@@ -39,7 +43,12 @@ class DefaultContext(object):
             self.connection = connection
         self._migrations_fn = fn
         self.as_sql = as_sql
-        self.output_buffer = output_buffer
+        if output_buffer is None:
+            self.output_buffer = sys.stdout
+        else:
+            self.output_buffer = output_buffer
+        if transactional_ddl is not None:
+            self.transactional_ddl = transactional_ddl
 
     def _current_rev(self):
         if self.as_sql:
@@ -67,6 +76,8 @@ class DefaultContext(object):
 
     def run_migrations(self, **kw):
         log.info("Context class %s.", self.__class__.__name__)
+        if self.as_sql:
+            log.info("Generating static SQL")
         log.info("Will assume %s DDL.", 
                         "transactional" if self.transactional_ddl 
                         else "non-transactional")
@@ -111,10 +122,6 @@ class DefaultContext(object):
         else:
             self.connection.execute(construct, *args, **kw)
 
-    @property
-    def dialect(self):
-        return self.connection.dialect
-
     def static_output(self, text):
         self.output_buffer.write(text + "\n\n")
 
@@ -125,7 +132,7 @@ class DefaultContext(object):
         def dump(construct, *multiparams, **params):
             self._exec(construct)
 
-        return create_engine(connection.engine.url, 
+        return create_engine("%s://" % self.dialect.name, 
                         strategy="mock", executor=dump)
 
     @property
@@ -196,6 +203,7 @@ def _render_literal_bindparam(element, compiler, **kw):
     return compiler.render_literal_bindparam(element, **kw)
 
 _context_opts = {}
+_context = None
 
 def opts(cfg, **kw):
     """Set up options that will be used by the :func:`.configure_connection`
@@ -208,9 +216,29 @@ def opts(cfg, **kw):
     _context_opts.update(kw)
     config = cfg
 
-def configure_connection(connection):
-    """Configure the migration environment against a specific
-    database connection, an instance of :class:`sqlalchemy.engine.Connection`.
+def requires_connection():
+    """Return True if the current migrations environment should have
+    an active database connection.
+    
+    """
+    return not _context_opts.get('as_sql', False)
+
+def configure(
+        connection=None,
+        url=None,
+        dialect_name=None,
+        transactional_ddl=None,
+        output_buffer=None
+    ):
+    """Configure the migration environment.
+    
+    The important thing needed here is first a way to figure out
+    what kind of "dialect" is in use.   The second is to pass
+    an actual database connection, if one is required.
+    
+    If the :func:`requires_connection` function returns False,
+    then no connection is needed here.  Otherwise, the
+    object should be an instance of :class:`sqlalchemy.engine.Connection`.
     
     This function is typically called from the ``env.py``
     script within a migration environment.  It can be called
@@ -218,12 +246,44 @@ def configure_connection(connection):
     for which it was called is the one that will be operated upon
     by the next call to :func:`.run_migrations`.
     
+    :param connection: a :class:`sqlalchemy.engine.Connection`.  The type of dialect
+     to be used will be derived from this.
+    :param url: a string database url, or a :class:`sqlalchemy.engine.url.URL` object.
+     The type of dialect to be used will be derived from this if ``connection`` is
+     not passed.
+    :param dialect_name: string name of a dialect, such as "postgresql", "mssql", etc.
+     The type of dialect to be used will be derived from this if ``connection``
+     and ``url`` are not passed.
+    :param transactional_ddl: Force the usage of "transactional" DDL on or off;
+     this otherwise defaults to whether or not the dialect in use supports it.
+    :param output_buffer: a file-like object that will be used for textual output
+     when the ``--sql`` option is used to generate SQL scripts.  Defaults to
+     ``sys.stdout`` it not passed here.
     """
+
+    if connection:
+        dialect = connection.dialect
+    elif url:
+        url = sqla_url.make_url(url)
+        dialect = url.get_dialect()()
+    elif dialect_name:
+        url = sqla_url.make_url("%s://" % dialect_name)
+        dialect = url.get_dialect()()
+    else:
+        raise Exception("Connection, url, or dialect_name is required.")
+
     global _context
     from alembic.ddl import base
+    opts = _context_opts.copy()
+    opts.setdefault("transactional_ddl", transactional_ddl)
+    opts.setdefault("output_buffer", output_buffer)
     _context = _context_impls.get(
-                    connection.dialect.name, 
-                    DefaultContext)(connection, **_context_opts)
+                    dialect.name, 
+                    DefaultContext)(dialect, connection, **opts)
+
+def configure_connection(connection):
+    """Deprecated; use :func:`alembic.context.configure`."""
+    configure(connection=connection)
 
 def run_migrations(**kw):
     """Run migrations as determined by the current command line configuration
@@ -232,5 +292,16 @@ def run_migrations(**kw):
     """
     _context.run_migrations(**kw)
 
+def execute(sql):
+    """Execute the given SQL using the current change context.
+    
+    In a SQL script context, the statement is emitted directly to the 
+    output stream.
+    
+    """
+    get_context().execute(sql)
+
 def get_context():
+    if _context is None:
+        raise Exception("No context has been configured yet.")
     return _context

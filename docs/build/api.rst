@@ -9,7 +9,10 @@ env.py Directives
 =================
 
 .. autofunction:: sqlalchemy.engine.engine_from_config
-.. autofunction:: alembic.context.configure_connection
+.. autofunction:: alembic.context.configure
+.. autofunction:: alembic.context.get_context
+.. autofunction:: alembic.context.execute
+.. autofunction:: alembic.context.requires_connection
 .. autofunction:: alembic.context.run_migrations
 
 Internals
