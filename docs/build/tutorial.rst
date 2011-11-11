@@ -511,6 +511,49 @@ into memory via a ``SELECT`` statement will not work in ``--sql`` mode.   It's a
 important that the Alembic directives, all of which are designed specifically to work
 in both "live execution" as well as "offline SQL generation" mode, are used.
 
+Customizing the Environment
+---------------------------
+
+Users of the ``--sql`` option are encouraged to hack their ``env.py`` files to suit their
+needs.  An ``env.py`` script can detect if the ``--sql`` option is in effect by reading
+:func:`.context.requires_connection`.  
+
+For example, a multiple database configuration may want to run through each 
+database and set the output of the migrations to different named files - the :func:`.context.configure`
+function accepts a parameter ``output_buffer`` for this purpose::
+
+    from alembic import context
+    import myapp
+    import sys
+
+    db_1 = myapp.db_1
+    db_2 = myapp.db_2
+
+    if not context.requires_connection():
+        for name, engine, file_ in [
+            ("db1", db_1, "db1.sql"),
+            ("db2", db_2, "db2.sql"),
+        ]:
+            context.configure(
+                        url=engine.url, 
+                        transactional_ddl=False, 
+                        output_buffer=file(file_, 'w'))
+            context.execute("-- running migrations for '%s'" % name)
+            context.run_migrations(name=name)
+            sys.stderr.write("Wrote file '%s'" % file_)
+    else:
+        for name, engine, file_ in [
+            ("db1", db_1, "db1.sql"),
+            ("db2", db_2, "db2.sql"),
+        ]:
+            connection = engine.connect()
+            context.configure(connection=connection)
+            try:
+                context.run_migrations(name=name)
+                session.commit()
+            except:
+                session.rollback()
+                raise
 
 Working with Branches
 =====================

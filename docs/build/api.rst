@@ -18,13 +18,26 @@ env.py Directives
 Internals
 =========
 
-.. automodule:: alembic.config
-    :members:
-    :undoc-members:
+.. currentmodule:: alembic.command
+
+Commands
+--------
+
+Alembic commands are all represented by functions in the :mod:`alembic.command`
+package.  They all accept the same style of usage, being sent
+the :class:`~.alembic.config.Config` object as the first argument.
+
 
 .. automodule:: alembic.command
     :members:
     :undoc-members:
+
+Misc
+----
+.. automodule:: alembic.config
+    :members:
+    :undoc-members:
+
 
 .. automodule:: alembic.script
     :members:
@@ -47,6 +60,7 @@ MySQL
 .. automodule:: alembic.ddl.mysql
     :members:
     :undoc-members:
+    :show-inheritance:
 
 MS-SQL
 ^^^^^^
@@ -54,6 +68,7 @@ MS-SQL
 .. automodule:: alembic.ddl.mssql
     :members:
     :undoc-members:
+    :show-inheritance:
 
 Postgresql
 ^^^^^^^^^^
@@ -61,6 +76,7 @@ Postgresql
 .. automodule:: alembic.ddl.postgresql
     :members:
     :undoc-members:
+    :show-inheritance:
 
 SQLite
 ^^^^^^
@@ -68,3 +84,4 @@ SQLite
 .. automodule:: alembic.ddl.sqlite
     :members:
     :undoc-members:
+    :show-inheritance:

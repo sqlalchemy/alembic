@@ -5,6 +5,19 @@ import inspect
 import os
 
 class Config(object):
+    """Represent an Alembic configuration.
+    
+    You can get at one of these by specifying the name of 
+    an .ini file::
+    
+        from alembic.config import Config
+        alembic_cfg = Config("/path/to/yourapp/alembic.ini")
+    
+    With a :class:`.Config` object, you can then
+    run Alembic commands programmatically using the directives
+    in :mod:`alembic.command`.
+    
+    """
     def __init__(self, file_, ini_section='alembic'):
         self.config_file_name = file_
         self.config_ini_section = ini_section
@@ -32,6 +45,7 @@ class Config(object):
             return default
 
 def main(argv):
+    """The console runner function for Alembic."""
 
     def add_options(parser, positional, kwargs):
         if 'template' in kwargs:

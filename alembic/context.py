@@ -236,17 +236,17 @@ def configure(
     what kind of "dialect" is in use.   The second is to pass
     an actual database connection, if one is required.
     
-    If the :func:`requires_connection` function returns False,
+    If the :func:`.requires_connection` function returns False,
     then no connection is needed here.  Otherwise, the
-    object should be an instance of :class:`sqlalchemy.engine.Connection`.
+    object should be an instance of :class:`sqlalchemy.engine.base.Connection`.
     
     This function is typically called from the ``env.py``
     script within a migration environment.  It can be called
-    multiple times for an invocation.  The most recent :class:`~sqlalchemy.engine.Connection`
+    multiple times for an invocation.  The most recent :class:`~sqlalchemy.engine.base.Connection`
     for which it was called is the one that will be operated upon
     by the next call to :func:`.run_migrations`.
     
-    :param connection: a :class:`sqlalchemy.engine.Connection`.  The type of dialect
+    :param connection: a :class:`sqlalchemy.engine.base.Connection`.  The type of dialect
      to be used will be derived from this.
     :param url: a string database url, or a :class:`sqlalchemy.engine.url.URL` object.
      The type of dialect to be used will be derived from this if ``connection`` is
@@ -289,6 +289,16 @@ def run_migrations(**kw):
     """Run migrations as determined by the current command line configuration
     as well as versioning information present (or not) in the current 
     database connection (if one is present).
+    
+    The function accepts optional ``**kw`` arguments.   If these are
+    passed, they are sent directly to the ``upgrade()`` and ``downgrade()``
+    functions within each target revision file.   By modifying the
+    ``script.py.mako`` file so that the ``upgrade()`` and ``downgrade()``
+    functions accept arguments, parameters can be passed here so that
+    contextual information, usually information to identify a particular
+    database in use, can be passed from a custom ``env.py`` script
+    to the migration functions.
+    
     """
     _context.run_migrations(**kw)
 
@@ -302,6 +312,14 @@ def execute(sql):
     get_context().execute(sql)
 
 def get_context():
+    """Return the current :class:`.DefaultContext` object.
+    
+    This object is the entrypoint to dialect specific behavior.
+    
+    Generally, env.py scripts should access the module-level functions
+    in :mod:`alebmic.context` to get at this object's functionality.
+    
+    """
     if _context is None:
         raise Exception("No context has been configured yet.")
     return _context

@@ -9,6 +9,9 @@ _rev_file = re.compile(r'([a-z0-9]+)\.py$')
 _mod_def_re = re.compile(r'(upgrade|downgrade)_([a-z0-9]+)')
 
 class ScriptDirectory(object):
+    """Provides operations upon an Alembic script directory.
+    
+    """
     def __init__(self, dir):
         self.dir = dir
         self.versions = os.path.join(self.dir, 'versions')
@@ -209,6 +212,7 @@ class ScriptDirectory(object):
         return script
 
 class Script(object):
+    """Represent a single revision file in a ``versions/`` directory."""
     nextrev = frozenset()
 
     def __init__(self, module, rev_id):
