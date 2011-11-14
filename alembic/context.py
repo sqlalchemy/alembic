@@ -32,12 +32,11 @@ class DefaultContext(object):
     transactional_ddl = False
     as_sql = False
 
-    def __init__(self, dialect, script, connection, fn, as_sql=False, 
+    def __init__(self, dialect, script, connection, fn, 
+                        as_sql=False, 
                         output_buffer=None,
                         transactional_ddl=None,
-                        starting_rev=None,
-                        destination_rev=None,
-                        tag=None):
+                        starting_rev=None):
         self.dialect = dialect
         self.script = script
         if as_sql:
@@ -54,8 +53,6 @@ class DefaultContext(object):
         if transactional_ddl is not None:
             self.transactional_ddl = transactional_ddl
         self._start_from_rev = starting_rev
-        self.destination_rev = destination_rev
-        self.tag = tag
 
     def _current_rev(self):
         if self.as_sql:
@@ -263,17 +260,11 @@ def get_revision_argument():
     as is 'base' which is translated to None.
 
     """
-    if _context is not None:
-        return _script._as_rev_number(get_context().destination_rev)
-    else:
-        return _script._as_rev_number(_context_opts['destination_rev'])
+    return _script._as_rev_number(_context_opts['destination_rev'])
 
 def get_tag_argument():
     """Return the value passed for the ``--tag`` argument, if any."""
-    if _context is not None:
-        return get_context().tag
-    else:
-        return _context_opts.get('tag', None)
+    return _context_opts.get('tag', None)
 
 def configure(
         connection=None,
@@ -313,6 +304,10 @@ def configure(
     :param output_buffer: a file-like object that will be used for textual output
      when the ``--sql`` option is used to generate SQL scripts.  Defaults to
      ``sys.stdout`` it not passed here.
+    :param starting_rev: Override the "starting revision" argument when using
+     ``--sql`` mode.
+    :param tag: a string tag for usage by custom ``env.py`` scripts.  Set via
+     the ``--tag`` option, can be overridden here.
      
     """
 
@@ -329,7 +324,7 @@ def configure(
 
     global _context
     from alembic.ddl import base
-    opts = _context_opts.copy()
+    opts = _context_opts
     if transactional_ddl is not None:
         opts["transactional_ddl"] =  transactional_ddl
     if output_buffer is not None:
@@ -340,7 +335,14 @@ def configure(
         opts['tag'] = tag
     _context = _context_impls.get(
                     dialect.name, 
-                    DefaultContext)(dialect, _script, connection, **opts)
+                    DefaultContext)(
+                        dialect, _script, connection, 
+                        opts['fn'],
+                        as_sql=opts.get('as_sql', False), 
+                        output_buffer=opts.get("output_buffer"),
+                        transactional_ddl=opts.get("transactional_ddl"),
+                        starting_rev=opts.get("starting_rev")
+                    )
 
 def configure_connection(connection):
     """Deprecated; use :func:`alembic.context.configure`."""
