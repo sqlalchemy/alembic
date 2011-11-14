@@ -24,7 +24,8 @@ except:
 meta = __import__("%s.model.meta" % config['pylons.package']).model.meta
 
 if not context.requires_connection():
-    context.configure(dialect_name=meta.engine.name)
+    context.configure(
+                dialect_name=meta.engine.name)
     context.run_migrations()
 else:
     connection = meta.engine.connect()

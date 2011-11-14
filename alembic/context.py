@@ -32,10 +32,14 @@ class DefaultContext(object):
     transactional_ddl = False
     as_sql = False
 
-    def __init__(self, dialect, connection, fn, as_sql=False, 
+    def __init__(self, dialect, script, connection, fn, as_sql=False, 
                         output_buffer=None,
-                        transactional_ddl=None):
+                        transactional_ddl=None,
+                        starting_rev=None,
+                        destination_rev=None,
+                        tag=None):
         self.dialect = dialect
+        self.script = script
         if as_sql:
             self.connection = self._stdout_connection(connection)
             assert self.connection is not None
@@ -49,14 +53,18 @@ class DefaultContext(object):
             self.output_buffer = output_buffer
         if transactional_ddl is not None:
             self.transactional_ddl = transactional_ddl
+        self._start_from_rev = starting_rev
+        self.destination_rev = destination_rev
+        self.tag = tag
 
     def _current_rev(self):
         if self.as_sql:
-            # TODO: no coverage here !
-            # TODO: what if migrations table is needed on remote DB ?? 
-            # need an option
-            raise Exception("revisions must be specified with --sql")
+            return self._start_from_rev
         else:
+            if self._start_from_rev:
+                raise util.CommandError(
+                    "Can't specify current_rev to context "
+                    "when using a database connection")
             _version.create(self.connection, checkfirst=True)
         return self.connection.scalar(_version.select())
 
@@ -87,8 +95,7 @@ class DefaultContext(object):
 
         current_rev = rev = False
         for change, prev_rev, rev in self._migrations_fn(
-                                        self._current_rev() 
-                                        if not self.as_sql else None):
+                                        self._current_rev()):
             if current_rev is False:
                 current_rev = prev_rev
                 if self.as_sql and not current_rev:
@@ -204,16 +211,18 @@ def _render_literal_bindparam(element, compiler, **kw):
 
 _context_opts = {}
 _context = None
+_script = None
 
-def opts(cfg, **kw):
+def _opts(cfg, script, **kw):
     """Set up options that will be used by the :func:`.configure_connection`
     function.
     
     This basically sets some global variables.
     
     """
-    global config
+    global config, _script
     _context_opts.update(kw)
+    _script = script
     config = cfg
 
 def requires_connection():
@@ -223,12 +232,45 @@ def requires_connection():
     """
     return not _context_opts.get('as_sql', False)
 
+def get_head_revision():
+    """Return the value of the 'head' revision."""
+    rev = _script._get_rev('head')
+    if rev is not None:
+        return rev.revision
+    else:
+        return None
+
+def get_starting_revision_argument():
+    """Return the 'starting revision' argument,
+    if the revision was passed as start:end.
+    
+    This is only usable in "offline" mode.
+
+    """
+    return get_context()._start_from_rev
+
+def get_revision_argument():
+    """Get the 'destination' revision argument.
+    
+    This will be the target rev number.  'head'
+    is translated into the actual version number
+    as is 'base' which is translated to None.
+
+    """
+    return get_context().destination_rev
+
+def get_tag_argument():
+    """Return the value passed for the ``--tag`` argument, if any."""
+    return get_context().tag
+
 def configure(
         connection=None,
         url=None,
         dialect_name=None,
         transactional_ddl=None,
-        output_buffer=None
+        output_buffer=None,
+        starting_rev=None,
+        tag=None
     ):
     """Configure the migration environment.
     
@@ -259,6 +301,7 @@ def configure(
     :param output_buffer: a file-like object that will be used for textual output
      when the ``--sql`` option is used to generate SQL scripts.  Defaults to
      ``sys.stdout`` it not passed here.
+     
     """
 
     if connection:
@@ -275,11 +318,17 @@ def configure(
     global _context
     from alembic.ddl import base
     opts = _context_opts.copy()
-    opts.setdefault("transactional_ddl", transactional_ddl)
-    opts.setdefault("output_buffer", output_buffer)
+    if transactional_ddl is not None:
+        opts["transactional_ddl"] =  transactional_ddl
+    if output_buffer is not None:
+        opts["output_buffer"] = output_buffer
+    if starting_rev:
+        opts['starting_rev'] = starting_rev
+    if tag:
+        opts['tag'] = tag
     _context = _context_impls.get(
                     dialect.name, 
-                    DefaultContext)(dialect, connection, **opts)
+                    DefaultContext)(dialect, _script, connection, **opts)
 
 def configure_connection(connection):
     """Deprecated; use :func:`alembic.context.configure`."""

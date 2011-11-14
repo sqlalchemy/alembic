@@ -121,7 +121,7 @@ The file generated with the "generic" configuration looks like::
     # A generic, single database configuration.
 
     [alembic]
-    script_location = alembic
+    script_location = %(here)s/alembic
     sqlalchemy.url = driver://user:pass@localhost/dbname
 
     # Logging configuration
@@ -158,6 +158,11 @@ The file generated with the "generic" configuration looks like::
     [formatter_generic]
     format = %(levelname)-5.5s [%(name)s] %(message)s
     datefmt = %H:%M:%S
+
+The file is read using Python's :class:`ConfigParser.ConfigParser` object, installing
+the variable ``here`` as a substitution variable.   This can be used to produce absolute
+pathnames to directories and files, as we do above with the path to the Alembic
+script location.
 
 This file contains the following features:
 
@@ -456,7 +461,8 @@ Generating SQL Scripts
 ======================
 
 A major capability of Alembic is to generate migrations as SQL scripts, instead of running
-them against the database.   This is a critical feature when working in large organizations
+them against the database - this is also referred to as "offline" mode.   
+This is a critical feature when working in large organizations
 where access to DDL is restricted, and SQL scripts must be handed off to DBAs.   Alembic makes
 this easy via the ``--sql`` option passed to any ``upgrade`` or ``downgrade`` command.   We 
 can, for example, generate a script that revises up to rev ``ae1027a6acf``::
@@ -487,20 +493,36 @@ can, for example, generate a script that revises up to rev ``ae1027a6acf``::
 
 
 While the logging configuration dumped to standard error, the actual script was dumped to standard output - 
-so typically we'd be using output redirection to generate a script::
+so in the absence of further configuration (described later in this section), we'd at first be using output 
+redirection to generate a script::
 
     $ alembic upgrade ae1027a6acf --sql > migration.sql
 
-Generating on a Range
----------------------
+Getting the Start Version
+--------------------------
 
-Notice that our migration script started at the base - this is the default when using the ``--sql`` 
-operation, which does not otherwise make usage of a database connection, so does not retrieve
-any starting version.    We usually will want 
-to specify a start/end version.  This is allowed when using the ``--sql`` option only
-using the ``start:end`` syntax::
+Notice that our migration script started at the base - this is the default when using offline 
+mode, as no database connection is present and there's no ``alembic_version`` table to read from.
+
+One way to provide a starting version in offline mode is to provide a range to the command line.
+This is accomplished by providing the "version" in ``start:end`` syntax::
 
     $ alembic upgrade 1975ea83b712:ae1027a6acf --sql > migration.sql
+
+The ``start:end`` syntax is only allowed in offline mode; in "online" mode, the ``alembic_version``
+table is always used to get at the current version.
+
+It's also possible to have the ``env.py`` script retrieve the "last" version from 
+the local environment, such as from a local file.   A scheme like this would basically
+treat a local file in the same way ``alembic_version`` works::
+
+    if not context.requires_connection():
+        version_file = os.path.join(os.path.dirname(config.config_file_name), "version.txt"))
+        current_version = file_(version_file).read()
+        context.configure(dialect_name=engine.name, current_version=current_version)
+        start, end = context.run_migrations()
+        if end:
+            file_(version_file, 'w').write(end)
 
 Writing Migration Scripts to Support Script Generation
 ------------------------------------------------------

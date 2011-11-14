@@ -3,6 +3,7 @@ USE_TWOPHASE = False
 from alembic import options, context
 from sqlalchemy import engine_from_config
 import re
+import sys
 
 import logging
 logging.fileConfig(options.config_file)
@@ -18,8 +19,12 @@ for name in re.split(r',\s*', db_names):
 
 if not context.requires_connection():
     for name, rec in engines.items():
+        # Write output to individual per-engine files.
+        file_ = "%s.sql" % name
+        sys.stderr.write("Writing output to %s\n" % file_)
         context.configure(
-                    dialect_name=rec['engine'].name
+                    dialect_name=rec['engine'].name,
+                    output_buffer=file(file_, 'w')
                 )
         context.run_migrations(engine=name)
 else:

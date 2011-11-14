@@ -65,25 +65,46 @@ def revision(config, message=None):
     script = ScriptDirectory.from_config(config)
     script.generate_rev(util.rev_id(), message)
 
-def upgrade(config, revision, sql=False):
+def upgrade(config, revision, sql=False, tag=None):
     """Upgrade to a later version."""
 
     script = ScriptDirectory.from_config(config)
-    context.opts(
+
+    starting_rev = None
+    if ":" in revision:
+        if not sql:
+            raise util.CommandError("Range revision not allowed")
+        starting_rev, revision = revision.split(':', 2)
+    context._opts(
         config,
-        fn = functools.partial(script.upgrade_from, sql, revision),
-        as_sql = sql
+        script,
+        fn = functools.partial(script.upgrade_from, revision),
+        as_sql = sql,
+        starting_rev = starting_rev,
+        destination_rev = revision,
+        tag = tag
     )
     script.run_env()
 
-def downgrade(config, revision, sql=False):
+def downgrade(config, revision, sql=False, tag=None):
     """Revert to a previous version."""
 
     script = ScriptDirectory.from_config(config)
-    context.opts(
+
+    starting_rev = None
+    if ":" in revision:
+        if not sql:
+            raise util.CommandError("Range revision not allowed")
+        starting_rev, revision = revision.split(':', 2)
+
+    context._opts(
         config,
-        fn = functools.partial(script.downgrade_to, sql, revision),
+        script,
+        fn = functools.partial(script.downgrade_to, revision),
         as_sql = sql,
+        starting_rev = starting_rev,
+        destination_rev = revision,
+        tag = tag
     )
     script.run_env()
 
@@ -119,13 +140,14 @@ def current(config):
                             script._get_rev(rev))
         return []
 
-    context.opts(
+    context._opts(
         config,
+        script,
         fn = display_version
     )
     script.run_env()
 
-def stamp(config, revision, sql=False):
+def stamp(config, revision, sql=False, tag=None):
     """'stamp' the revision table with the given revision; don't
     run any migrations."""
 
@@ -140,10 +162,13 @@ def stamp(config, revision, sql=False):
             dest = dest.revision
         context.get_context()._update_current_rev(current, dest)
         return []
-    context.opts(
+    context._opts(
         config, 
+        script,
         fn = do_stamp,
         as_sql = sql,
+        destination_rev = revision,
+        tag = tag
     )
     script.run_env()
 

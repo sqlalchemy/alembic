@@ -22,24 +22,62 @@ class Config(object):
         self.config_file_name = file_
         self.config_ini_section = ini_section
 
+    config_file_name = None
+    """Filesystem path to the .ini file in use."""
+
+    config_ini_section = None
+    """Name of the config file section to read basic configuration
+    from.  Defaults to ``alembic``, that is the ``[alembic]`` section
+    of the .ini file.  This value is modified using the ``-n/--name``
+    option to the Alembic runnier.
+    
+    """
+
     @util.memoized_property
     def file_config(self):
-        file_config = ConfigParser.ConfigParser()
+        """Return the underlying :class:`ConfigParser` object.
+        
+        Direct access to the .ini file is available here,
+        though the :meth:`.Config.get_section` and 
+        :meth:`.Config.get_main_option`
+        methods provide a possibly simpler interface.
+        """
+
+        file_config = ConfigParser.ConfigParser({
+                                    'here':
+                                    os.path.abspath(os.path.dirname(self.config_file_name))})
         file_config.read([self.config_file_name])
         return file_config
 
     def get_template_directory(self):
+        """Return the directory where Alembic setup templates are found.
+        
+        This method is used by the alembic ``init`` and ``list_templates``
+        commands.
+        
+        """
         return os.path.join(package_dir, 'templates')
 
     def get_section(self, name):
+        """Return all the configuration options from a given .ini file section
+        as a dictionary.
+        
+        """
         return dict(self.file_config.items(name))
 
     def get_main_option(self, name, default=None):
+        """Return an option from the 'main' section of the .ini file.
+        
+        This defaults to being a key from the ``[alembic]`` 
+        section, unless the ``-n/--name`` flag were used to 
+        indicate a different section.
+        
+        """
         if not self.file_config.has_section(self.config_ini_section):
             util.err("No config file %r found, or file has no "
                                 "'[%s]' section" % 
                                 (self.config_file_name, self.config_ini_section))
-        if self.file_config.get(self.config_ini_section, name):
+        if self.file_config.has_option(self.config_ini_section, name):
             return self.file_config.get(self.config_ini_section, name)
         else:
             return default
@@ -61,7 +99,13 @@ def main(argv):
             parser.add_argument("--sql",
                             action="store_true",
                             help="Don't emit SQL to database - dump to "
-                                    "standard output instead")
+                                    "standard output/file instead")
+        if 'tag' in kwargs:
+            parser.add_argument("--tag",
+                            type=str,
+                            help="Arbitrary 'tag' name - can be used by "
+                            "custom env.py scripts.")
+
         # TODO:
         # --dialect - name of dialect when --sql mode is set - *no DB connections
         # should occur, add this to env.py templates as a conditional*

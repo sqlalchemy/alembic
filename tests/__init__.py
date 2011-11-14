@@ -3,13 +3,15 @@ import shutil
 import os
 import itertools
 from sqlalchemy import create_engine, text
-from alembic import context
+from alembic import context, util
 import re
+from alembic.script import ScriptDirectory
 from alembic.context import _context_impls
 from alembic import ddl
 import StringIO
 
 staging_directory = os.path.join(os.path.dirname(__file__), 'scratch')
+files_directory = os.path.join(os.path.dirname(__file__), 'files')
 
 _dialects = {}
 def _get_dialect(name):
@@ -86,6 +88,7 @@ def _op_fixture(dialect='default', as_sql=False):
             # TODO: make this more flexible about 
             # whitespace and such
             eq_(self.assertion, list(sql))
+    _context_impls[dialect] = _base
     return ctx(dialect, as_sql)
 
 def _sqlite_testing_config():
@@ -121,6 +124,22 @@ format = %%(levelname)-5.5s [%%(name)s] %%(message)s
 datefmt = %%H:%%M:%%S
     """ % (dir_, dir_))
     return cfg
+
+def _env_file_fixture(txt):
+    dir_ = os.path.join(staging_directory, 'scripts')
+    txt = """
+from alembic import context
+
+config = context.config
+""" + txt
+
+    path = os.path.join(dir_, "env.py")
+    pyc_path = util.pyc_file_from_path(path)
+    if os.access(pyc_path, os.F_OK):
+        os.unlink(pyc_path)
+
+    file(path, 'w').write(txt)
+
 
 def _no_sql_testing_config():
     """use a postgresql url with no host so that connections guaranteed to fail"""
@@ -174,3 +193,53 @@ def staging_env(create=True):
 
 def clear_staging_env():
     shutil.rmtree(staging_directory, True)
+
+
+def three_rev_fixture(cfg):
+    a = util.rev_id()
+    b = util.rev_id()
+    c = util.rev_id()
+
+    script = ScriptDirectory.from_config(cfg)
+    script.generate_rev(a, None)
+    script.write(a, """
+down_revision = None
+
+from alembic.op import *
+
+def upgrade():
+    execute("CREATE STEP 1")
+
+def downgrade():
+    execute("DROP STEP 1")
+
+""")
+
+    script.generate_rev(b, None)
+    script.write(b, """
+down_revision = '%s'
+
+from alembic.op import *
+
+def upgrade():
+    execute("CREATE STEP 2")
+
+def downgrade():
+    execute("DROP STEP 2")
+
+""" % a)
+
+    script.generate_rev(c, None)
+    script.write(c, """
+down_revision = '%s'
+
+from alembic.op import *
+
+def upgrade():
+    execute("CREATE STEP 3")
+
+def downgrade():
+    execute("DROP STEP 3")
+
+""" % b)
+    return a, b, c

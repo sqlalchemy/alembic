@@ -1,6 +1,5 @@
-from tests import clear_staging_env, staging_env, _no_sql_testing_config, sqlite_db, eq_, ne_, capture_context_buffer
+from tests import clear_staging_env, staging_env, _no_sql_testing_config, sqlite_db, eq_, ne_, capture_context_buffer, three_rev_fixture
 from alembic import command, util
-from alembic.script import ScriptDirectory
 
 def setup():
     global cfg, env
@@ -8,52 +7,7 @@ def setup():
     cfg = _no_sql_testing_config()
 
     global a, b, c
-    a = util.rev_id()
-    b = util.rev_id()
-    c = util.rev_id()
-
-    script = ScriptDirectory.from_config(cfg)
-    script.generate_rev(a, None)
-    script.write(a, """
-down_revision = None
-
-from alembic.op import *
-
-def upgrade():
-    execute("CREATE STEP 1")
-
-def downgrade():
-    execute("DROP STEP 1")
-
-""")
-
-    script.generate_rev(b, None)
-    script.write(b, """
-down_revision = '%s'
-
-from alembic.op import *
-
-def upgrade():
-    execute("CREATE STEP 2")
-
-def downgrade():
-    execute("DROP STEP 2")
-
-""" % a)
-
-    script.generate_rev(c, None)
-    script.write(c, """
-down_revision = '%s'
-
-from alembic.op import *
-
-def upgrade():
-    execute("CREATE STEP 3")
-
-def downgrade():
-    execute("DROP STEP 3")
-
-""" % b)
+    a, b, c = three_rev_fixture(cfg)
 
 def teardown():
     clear_staging_env()
