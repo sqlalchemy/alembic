@@ -55,6 +55,14 @@ def ne_(a, b, msg=None):
     """Assert a != b, with repr messaging on failure."""
     assert a != b, msg or "%r == %r" % (a, b)
 
+def assert_raises_message(except_cls, msg, callable_, *args, **kwargs):
+    try:
+        callable_(*args, **kwargs)
+        assert False, "Callable did not raise an exception"
+    except except_cls, e:
+        assert re.search(msg, str(e)), "%r !~ %s" % (msg, e)
+        print str(e)
+
 def _testing_config():
     from alembic.config import Config
     if not os.access(staging_directory, os.F_OK):
@@ -193,7 +201,7 @@ def staging_env(create=True):
 
 def clear_staging_env():
     shutil.rmtree(staging_directory, True)
-
+    context._clear()
 
 def three_rev_fixture(cfg):
     a = util.rev_id()

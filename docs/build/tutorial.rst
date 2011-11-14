@@ -519,10 +519,10 @@ treat a local file in the same way ``alembic_version`` works::
     if not context.requires_connection():
         version_file = os.path.join(os.path.dirname(config.config_file_name), "version.txt"))
         current_version = file_(version_file).read()
-        context.configure(dialect_name=engine.name, current_version=current_version)
-        start, end = context.run_migrations()
-        if end:
-            file_(version_file, 'w').write(end)
+        context.configure(dialect_name=engine.name, starting_version=current_version)
+        end_version = context.get_revision_argument()
+        context.run_migrations()
+        file_(version_file, 'w').write(end)
 
 Writing Migration Scripts to Support Script Generation
 ------------------------------------------------------

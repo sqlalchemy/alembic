@@ -1,72 +1,135 @@
 from tests import clear_staging_env, staging_env, \
     _no_sql_testing_config, sqlite_db, eq_, ne_, \
-    capture_context_buffer, three_rev_fixture, _env_file_fixture
+    capture_context_buffer, three_rev_fixture, _env_file_fixture,\
+    assert_raises_message
 from alembic import command, util
+from unittest import TestCase
 
-def setup():
-    global cfg, env
-    env = staging_env()
-    cfg = _no_sql_testing_config()
 
-    global a, b, c
-    a, b, c = three_rev_fixture(cfg)
+class OfflineEnvironmentTest(TestCase):
+    def setUp(self):
+        env = staging_env()
+        self.cfg = _no_sql_testing_config()
 
-def teardown():
-    clear_staging_env()
+        global a, b, c
+        a, b, c = three_rev_fixture(self.cfg)
 
-def test_not_requires_connection():
-    _env_file_fixture("""
+    def tearDown(self):
+        clear_staging_env()
+
+    def test_not_requires_connection(self):
+        _env_file_fixture("""
 assert not context.requires_connection()
 """)
-    command.upgrade(cfg, a, sql=True)
-    command.downgrade(cfg, a, sql=True)
+        command.upgrade(self.cfg, a, sql=True)
+        command.downgrade(self.cfg, a, sql=True)
 
-def test_requires_connection():
-    _env_file_fixture("""
+    def test_requires_connection(self):
+        _env_file_fixture("""
 assert context.requires_connection()
 """)
-    command.upgrade(cfg, a)
-    command.downgrade(cfg, a)
+        command.upgrade(self.cfg, a)
+        command.downgrade(self.cfg, a)
 
 
-def test_starting_rev():
-    _env_file_fixture("""
+    def test_starting_rev_post_context(self):
+        _env_file_fixture("""
 context.configure(dialect_name='sqlite', starting_rev='x')
 assert context.get_starting_revision_argument() == 'x'
 """)
-    command.upgrade(cfg, a, sql=True)
-    command.downgrade(cfg, a, sql=True)
+        command.upgrade(self.cfg, a, sql=True)
+        command.downgrade(self.cfg, a, sql=True)
+        command.current(self.cfg)
+        command.stamp(self.cfg, a)
 
+    def test_starting_rev_pre_context(self):
+        _env_file_fixture("""
+assert context.get_starting_revision_argument() == 'x'
+""")
+        command.upgrade(self.cfg, "x:y", sql=True)
+        command.downgrade(self.cfg, "x:y", sql=True)
+        command.stamp(self.cfg, a)
 
-def test_destination_rev():
-    _env_file_fixture("""
+    def test_starting_rev_current_pre_context(self):
+        _env_file_fixture("""
+assert context.get_starting_revision_argument() is None
+""")
+        assert_raises_message(
+            util.CommandError,
+            "No starting revision argument is available.",
+            command.current, self.cfg
+        )
+
+    def test_destination_rev_pre_context(self):
+        _env_file_fixture("""
+assert context.get_revision_argument() == '%s'
+""" % b)
+        command.upgrade(self.cfg, b, sql=True)
+        command.downgrade(self.cfg, b, sql=True)
+        command.stamp(self.cfg, b, sql=True)
+
+    def test_destination_rev_post_context(self):
+        _env_file_fixture("""
 context.configure(dialect_name='sqlite')
 assert context.get_revision_argument() == '%s'
 """ % b)
-    command.upgrade(cfg, b, sql=True)
-    command.downgrade(cfg, b, sql=True)
+        command.upgrade(self.cfg, b, sql=True)
+        command.downgrade(self.cfg, b, sql=True)
+        command.stamp(self.cfg, b, sql=True)
 
+    def test_head_rev_pre_context(self):
+        _env_file_fixture("""
+assert context.get_head_revision() == '%s'
+""" % c)
+        command.upgrade(self.cfg, b, sql=True)
+        command.downgrade(self.cfg, b, sql=True)
+        command.stamp(self.cfg, b, sql=True)
+        command.current(self.cfg)
 
-def test_head_rev():
-    _env_file_fixture("""
+    def test_head_rev_post_context(self):
+        _env_file_fixture("""
 context.configure(dialect_name='sqlite')
 assert context.get_head_revision() == '%s'
 """ % c)
-    command.upgrade(cfg, b, sql=True)
-    command.downgrade(cfg, b, sql=True)
+        command.upgrade(self.cfg, b, sql=True)
+        command.downgrade(self.cfg, b, sql=True)
+        command.stamp(self.cfg, b, sql=True)
+        command.current(self.cfg)
 
-def test_tag_cmd_arg():
-    _env_file_fixture("""
+    def test_tag_pre_context(self):
+        _env_file_fixture("""
+assert context.get_tag_argument() == 'hi'
+""")
+        command.upgrade(self.cfg, b, sql=True, tag='hi')
+        command.downgrade(self.cfg, b, sql=True, tag='hi')
+
+    def test_tag_pre_context_None(self):
+        _env_file_fixture("""
+assert context.get_tag_argument() is None
+""")
+        command.upgrade(self.cfg, b, sql=True)
+        command.downgrade(self.cfg, b, sql=True)
+
+    def test_tag_cmd_arg(self):
+        _env_file_fixture("""
 context.configure(dialect_name='sqlite')
 assert context.get_tag_argument() == 'hi'
 """)
-    command.upgrade(cfg, b, sql=True, tag='hi')
-    command.downgrade(cfg, b, sql=True, tag='hi')
+        command.upgrade(self.cfg, b, sql=True, tag='hi')
+        command.downgrade(self.cfg, b, sql=True, tag='hi')
 
-def test_tag_cfg_arg():
-    _env_file_fixture("""
+    def test_tag_cfg_arg(self):
+        _env_file_fixture("""
 context.configure(dialect_name='sqlite', tag='there')
 assert context.get_tag_argument() == 'there'
 """)
-    command.upgrade(cfg, b, sql=True, tag='hi')
-    command.downgrade(cfg, b, sql=True, tag='hi')
+        command.upgrade(self.cfg, b, sql=True, tag='hi')
+        command.downgrade(self.cfg, b, sql=True, tag='hi')
+
+    def test_tag_None(self):
+        _env_file_fixture("""
+context.configure(dialect_name='sqlite')
+assert context.get_tag_argument() is None
+""")
+        command.upgrade(self.cfg, b, sql=True)
+        command.downgrade(self.cfg, b, sql=True)

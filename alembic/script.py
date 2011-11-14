@@ -49,14 +49,18 @@ class ScriptDirectory(object):
                         yield sc
 
     def _get_rev(self, id_):
-        if id_ == 'head':
-            id_ = self._current_head()
-        elif id_ == 'base':
-            id_ = None
+        id_ = self._as_rev_number(id_)
         try:
             return self._revision_map[id_]
         except KeyError:
             raise util.CommandError("No such revision %s" % id_)
+
+    def _as_rev_number(self, id_):
+        if id_ == 'head':
+            id_ = self._current_head()
+        elif id_ == 'base':
+            id_ = None
+        return id_
 
     def _revs(self, upper, lower):
         lower = self._get_rev(lower)

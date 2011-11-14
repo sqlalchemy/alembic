@@ -225,6 +225,11 @@ def _opts(cfg, script, **kw):
     _script = script
     config = cfg
 
+def _clear():
+    global _context_opts, _context, _script
+    _context = _script = None
+    _context_opts = {}
+
 def requires_connection():
     """Return True if the current migrations environment should have
     an active database connection.
@@ -234,11 +239,7 @@ def requires_connection():
 
 def get_head_revision():
     """Return the value of the 'head' revision."""
-    rev = _script._get_rev('head')
-    if rev is not None:
-        return rev.revision
-    else:
-        return None
+    return _script._as_rev_number("head")
 
 def get_starting_revision_argument():
     """Return the 'starting revision' argument,
@@ -247,7 +248,12 @@ def get_starting_revision_argument():
     This is only usable in "offline" mode.
 
     """
-    return get_context()._start_from_rev
+    if _context is not None:
+        return _script._as_rev_number(get_context()._start_from_rev)
+    elif 'starting_rev' in _context_opts:
+        return _script._as_rev_number(_context_opts['starting_rev'])
+    else:
+        raise util.CommandError("No starting revision argument is available.")
 
 def get_revision_argument():
     """Get the 'destination' revision argument.
@@ -257,11 +263,17 @@ def get_revision_argument():
     as is 'base' which is translated to None.
 
     """
-    return get_context().destination_rev
+    if _context is not None:
+        return _script._as_rev_number(get_context().destination_rev)
+    else:
+        return _script._as_rev_number(_context_opts['destination_rev'])
 
 def get_tag_argument():
     """Return the value passed for the ``--tag`` argument, if any."""
-    return get_context().tag
+    if _context is not None:
+        return get_context().tag
+    else:
+        return _context_opts.get('tag', None)
 
 def configure(
         connection=None,
