@@ -216,12 +216,9 @@ def get_revision_argument():
     """Get the 'destination' revision argument.
 
     This is typically the argument passed to the 
-    ``upgrade`` or ``downgrade`` command, but can
-    be overridden via the ``destination_rev`` argument
-    passed to :func:`.configure`.
+    ``upgrade`` or ``downgrade`` command.
     
-    If 
-    it was specified as ``head``, the actual 
+    If it was specified as ``head``, the actual 
     version number is returned; if specified
     as ``base``, ``None`` is returned.
 
@@ -262,7 +259,8 @@ def configure(
     
     If the :func:`.requires_connection` function returns False,
     then no connection is needed here.  Otherwise, the
-    object should be an instance of :class:`sqlalchemy.engine.base.Connection`.
+    ``connection`` parameter should be present as an 
+    instance of :class:`sqlalchemy.engine.base.Connection`.
     
     This function is typically called from the ``env.py``
     script within a migration environment.  It can be called
@@ -282,7 +280,7 @@ def configure(
      this otherwise defaults to whether or not the dialect in use supports it.
     :param output_buffer: a file-like object that will be used for textual output
      when the ``--sql`` option is used to generate SQL scripts.  Defaults to
-     ``sys.stdout`` it not passed here.
+     ``sys.stdout`` if not passed here.
     :param starting_rev: Override the "starting revision" argument when using
      ``--sql`` mode.
     :param tag: a string tag for usage by custom ``env.py`` scripts.  Set via
