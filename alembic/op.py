@@ -1,4 +1,5 @@
 from alembic import util
+from alembic.ddl import impl
 from alembic.context import get_impl, get_context
 from sqlalchemy.types import NULLTYPE
 from sqlalchemy import schema, sql
@@ -14,6 +15,7 @@ __all__ = sorted([
             'drop_table',
             'drop_index',
             'create_index',
+            'inline_literal',
             'bulk_insert',
             'create_unique_constraint', 
             'get_context',
@@ -299,8 +301,16 @@ def bulk_insert(table, rows):
     
     e.g.::
     
-        from myapp.mymodel import accounts_table
         from datetime import date
+        from sqlalchemy.sql import table, column
+        from sqlalchemy import String, Integer, Date
+        
+        # Create an ad-hoc table to use for the insert statement.
+        accounts_table = table('account',
+            column('id', Integer),
+            column('name', String),
+            column('create_date', Date)
+        )
         
         bulk_insert(accounts_table,
             [
@@ -311,6 +321,40 @@ def bulk_insert(table, rows):
         )
       """
     get_impl().bulk_insert(table, rows)
+
+def inline_literal(value, type_=None):
+    """Produce an 'inline literal' expression, suitable for 
+    using in an INSERT, UPDATE, or DELETE statement.
+    
+    When using Alembic in "offline" mode, CRUD operations
+    aren't compatible with SQLAlchemy's default behavior surrounding
+    literal values,
+    which is that they are converted into bound values and passed
+    separately into the ``execute()`` method of the DBAPI cursor.   
+    An offline SQL
+    script needs to have these rendered inline.  While it should
+    always be noted that inline literal values are an **enormous**
+    security hole in an application that handles untrusted input,
+    a schema migration is not run in this context, so 
+    literals are safe to render inline, with the caveat that
+    advanced types like dates may not be supported directly
+    by SQLAlchemy.
+
+    See :func:`.op.execute` for an example usage of
+    :func:`.inline_literal`.
+    
+    :param value: The value to render.  Strings, integers, and simple
+     numerics should be supported.   Other types like boolean,
+     dates, etc. may or may not be supported yet by various 
+     backends.
+    :param type_: optional - a :class:`sqlalchemy.types.TypeEngine` 
+     subclass stating the type of this value.  In SQLAlchemy 
+     expressions, this is usually derived automatically
+     from the Python type of the value itself, as well as
+     based on the context in which the value is used.
+
+    """
+    return impl._literal_bindparam(None, value, type_=type_)
 
 def execute(sql):
     """Execute the given SQL using the current change context.
@@ -326,24 +370,44 @@ def execute(sql):
         connection = get_bind()
     
     Also note that any parameterized statement here *will not work*
-    in offline mode - any kind of UPDATE or DELETE needs to render
-    inline expressions.   Due to these limitations, 
-    :func:`.execute` is overall not spectacularly useful for migration 
-    scripts that wish to run in offline mode.  Consider using the Alembic 
-    directives, or if the environment is only meant to run in 
-    "online" mode, use the ``get_context().bind``.
+    in offline mode - INSERT, UPDATE and DELETE statements which refer
+    to literal values would need to render
+    inline expressions.   For simple use cases, the :func:`.inline_literal`
+    function can be used for **rudimentary** quoting of string values.
+    For "bulk" inserts, consider using :func:`~alembic.op.bulk_insert`.
+    
+    For example, to emit an UPDATE statement which is equally
+    compatible with both online and offline mode::
+    
+        from sqlalchemy.sql import table, column
+        from sqlalchemy import String
+        from alembic.op import execute, inline_literal
+        
+        account = table('account', 
+            column('name', String)
+        )
+        execute(
+            account.update().\\
+                where(account.c.name==inline_literal('account 1')).\\
+                values({'name':inline_literal('account 2')})
+                )
+    
+    Note above we also used the SQLAlchemy :func:`sqlalchemy.sql.expression.table`
+    and :func:`sqlalchemy.sql.expression.column` constructs to make a brief,
+    ad-hoc table construct just for our UPDATE statement.  A full
+    :class:`~sqlalchemy.schema.Table` construct of course works perfectly
+    fine as well, though note it's a recommended practice to at least ensure
+    the definition of a table is self-contained within the migration script,
+    rather than imported from a module that may break compatibility with
+    older migrations.
     
     :param sql: Any legal SQLAlchemy expression, including:
     
     * a string
-    * a :func:`sqlalchemy.sql.expression.text` construct, with the caveat that
-      bound parameters won't work correctly in offline mode.
-    * a :func:`sqlalchemy.sql.expression.insert` construct.  If working 
-      in offline mode, consider using :func:`alembic.op.bulk_insert`
-      instead to support parameterization.
+    * a :func:`sqlalchemy.sql.expression.text` construct.
+    * a :func:`sqlalchemy.sql.expression.insert` construct.
     * a :func:`sqlalchemy.sql.expression.update`, :func:`sqlalchemy.sql.expression.insert`, 
-      or :func:`sqlalchemy.sql.expression.delete`  construct, with the caveat
-      that bound parameters won't work correctly in offline mode.
+      or :func:`sqlalchemy.sql.expression.delete`  construct.
     * Pretty much anything that's "executable" as described
       in :ref:`sqlexpression_toplevel`.
 

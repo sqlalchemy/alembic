@@ -1,15 +1,15 @@
 from tests import _op_fixture
 from alembic import op
-from sqlalchemy import Integer, Column, ForeignKey, \
-            UniqueConstraint, Table, MetaData, String
-from sqlalchemy.sql import table
+from sqlalchemy import Integer, \
+            UniqueConstraint, String
+from sqlalchemy.sql import table, column
 
 def _test_bulk_insert(dialect, as_sql):
     context = _op_fixture(dialect, as_sql)
     t1 = table("ins_table",
-                Column('id', Integer, primary_key=True),
-                Column('v1', String()),
-                Column('v2', String()),
+                column('id', Integer),
+                column('v1', String()),
+                column('v2', String()),
     )
     op.bulk_insert(t1, [
         {'id':1, 'v1':'row v1', 'v2':'row v5'},
@@ -27,10 +27,10 @@ def test_bulk_insert():
 
 def test_bulk_insert_wrong_cols():
     context = _op_fixture('postgresql')
-    t1 = Table("ins_table", MetaData(),
-                Column('id', Integer, primary_key=True),
-                Column('v1', String()),
-                Column('v2', String()),
+    t1 = table("ins_table", 
+                column('id', Integer),
+                column('v1', String()),
+                column('v2', String()),
     )
     op.bulk_insert(t1, [
         {'v1':'row v1', },

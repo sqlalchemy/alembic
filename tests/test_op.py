@@ -126,4 +126,26 @@ def test_create_table_two_fk():
             "FOREIGN KEY(foo_bar) REFERENCES foo (bar))"
     )
 
+def test_inline_literal():
+    context = _op_fixture()
+    from sqlalchemy.sql import table, column
+    from sqlalchemy import String, Integer
 
+    account = table('account', 
+        column('name', String),
+        column('id', Integer)
+    )
+    op.execute(
+        account.update().\
+            where(account.c.name==op.inline_literal('account 1')).\
+            values({'name':op.inline_literal('account 2')})
+            )
+    op.execute(
+        account.update().\
+            where(account.c.id==op.inline_literal(1)).\
+            values({'id':op.inline_literal(2)})
+            )
+    context.assert_(
+        "UPDATE account SET name='account 2' WHERE account.name = 'account 1'",
+        "UPDATE account SET id=2 WHERE account.id = 1"
+    )
