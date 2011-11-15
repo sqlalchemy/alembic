@@ -70,7 +70,7 @@ class Context(object):
                     )
 
     def run_migrations(self, **kw):
-        log.info("Context class %s.", self.__class__.__name__)
+        log.info("Context impl %s.", self.impl.__class__.__name__)
         if self.as_sql:
             log.info("Generating static SQL")
         log.info("Will assume %s DDL.", 
