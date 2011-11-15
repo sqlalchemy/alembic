@@ -99,6 +99,12 @@ class DefaultImpl(object):
     def drop_table(self, table):
         self._exec(schema.DropTable(table))
 
+    def create_index(self, index):
+        self._exec(schema.CreateIndex(index))
+
+    def drop_index(self, index):
+        self._exec(schema.DropIndex(index))
+
     def bulk_insert(self, table, rows):
         if self.as_sql:
             for row in rows:

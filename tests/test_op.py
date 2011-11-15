@@ -24,6 +24,14 @@ def test_add_column_fk():
         "ALTER TABLE t1 ADD FOREIGN KEY(c1) REFERENCES c2 (id)"
     )
 
+def test_add_column_fk_self_referential():
+    context = _op_fixture()
+    op.add_column('t1', Column('c1', Integer, ForeignKey('t1.c2'), nullable=False))
+    context.assert_(
+        "ALTER TABLE t1 ADD COLUMN c1 INTEGER NOT NULL",
+        "ALTER TABLE t1 ADD FOREIGN KEY(c1) REFERENCES t1 (c2)"
+    )
+
 def test_drop_column():
     context = _op_fixture()
     op.drop_column('t1', 'c1')
@@ -62,26 +70,27 @@ def test_add_unique_constraint():
         "ALTER TABLE t1 ADD CONSTRAINT uk_test UNIQUE (foo, bar)"
     )
 
-def test_add_unique_constraint_table_detached():
+def test_create_index():
     context = _op_fixture()
-    op.add_constraint('t1', UniqueConstraint('foo', 'bar', name="uk_test"))
+    op.create_index('ik_test', 't1', ['foo', 'bar'])
     context.assert_(
-        "ALTER TABLE t1 ADD CONSTRAINT uk_test UNIQUE (foo, bar)"
+        "CREATE INDEX ik_test ON t1 (foo, bar)"
     )
 
-def test_add_unique_constraint_table_attached():
+
+def test_drop_index():
     context = _op_fixture()
-    uq = UniqueConstraint('foo', 'bar', name="uk_test")
-    t1 = Table('t1', MetaData(),
-        Column('foo', Integer),
-        Column('bar', Integer),
-        uq
-    )
-    op.add_constraint('t1', uq)
+    op.drop_index('ik_test')
     context.assert_(
-        "ALTER TABLE t1 ADD CONSTRAINT uk_test UNIQUE (foo, bar)"
+        "DROP INDEX ik_test"
     )
 
+def test_drop_table():
+    context = _op_fixture()
+    op.drop_table('tb_test')
+    context.assert_(
+        "DROP TABLE tb_test"
+    )
 
 def test_create_table_fk_and_schema():
     context = _op_fixture()

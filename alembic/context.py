@@ -344,37 +344,11 @@ def run_migrations(**kw):
 
 def execute(sql):
     """Execute the given SQL using the current change context.
-    
-    In a SQL script context, the statement is emitted directly to the 
-    output stream.   There is *no* return result, however, as this
-    function is oriented towards generating a change script
-    that can run in "offline" mode.  For full interaction
-    with a connected database, use the "bind" available 
-    from the context::
-    
-        connection = get_context().bind
-    
-    Also note that any parameterized statement here *will not work*
-    in offline mode - any kind of UPDATE or DELETE needs to render
-    inline expressions.   Due to these limitations, 
-    :func:`.execute` is overall not spectacularly useful for migration 
-    scripts that wish to run in offline mode.  Consider using the Alembic 
-    directives, or if the environment is only meant to run in 
-    "online" mode, use the ``get_context().bind``.
-    
-    :param sql: Any legal SQLAlchemy expression, including:
-    
-    * a string
-    * a :func:`sqlalchemy.sql.expression.text` construct, with the caveat that
-      bound parameters won't work correctly in offline mode.
-    * a :func:`sqlalchemy.sql.expression.insert` construct.  If working 
-      in offline mode, consider using :func:`alembic.op.bulk_insert`
-      instead to support parameterization.
-    * a :func:`sqlalchemy.sql.expression.update`, :func:`sqlalchemy.sql.expression.insert`, 
-      or :func:`sqlalchemy.sql.expression.delete`  construct, with the caveat
-      that bound parameters won't work correctly in offline mode.
-    * Pretty much anything that's "executable" as described
-      in :ref:`sqlexpression_toplevel`.
+
+    The behavior of :func:`.context.execute` is the same
+    as that of :func:`.op.execute`.  Please see that
+    function's documentation for full detail including
+    caveats and limitations.
 
     This function requires that a :class:`.Context` has first been 
     made available via :func:`.configure`.
