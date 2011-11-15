@@ -280,7 +280,8 @@ def configure(
      this otherwise defaults to whether or not the dialect in use supports it.
     :param output_buffer: a file-like object that will be used for textual output
      when the ``--sql`` option is used to generate SQL scripts.  Defaults to
-     ``sys.stdout`` if not passed here.
+     ``sys.stdout`` if not passed here and also not present on the :class:`.Config`
+     object.  The value here overrides that of the :class:`.Config` object.
     :param starting_rev: Override the "starting revision" argument when using
      ``--sql`` mode.
     :param tag: a string tag for usage by custom ``env.py`` scripts.  Set via
@@ -305,6 +306,8 @@ def configure(
         opts["transactional_ddl"] =  transactional_ddl
     if output_buffer is not None:
         opts["output_buffer"] = output_buffer
+    elif config.output_buffer is not None:
+        opts["output_buffer"] = config.output_buffer
     if starting_rev:
         opts['starting_rev'] = starting_rev
     if tag:

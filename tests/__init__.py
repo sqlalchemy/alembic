@@ -92,14 +92,6 @@ def _op_fixture(dialect='default', as_sql=False):
         def __init__(self, dialect='default', as_sql=False):
             self.dialect = _get_dialect(dialect)
             self.impl = Impl(self.dialect, as_sql)
-#            super(ctx, self).__init__(_get_dialect(dialect), None, None, None, as_sql=as_sql)
-
-#    def __init__(self, dialect, script, connection, fn, 
-#                        as_sql=False, 
-#                       output_buffer=None,
-#                        transactional_ddl=None,
-#                        starting_rev=None):
-
 
             context._context = self
             self.as_sql = as_sql

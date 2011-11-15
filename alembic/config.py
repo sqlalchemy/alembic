@@ -26,9 +26,20 @@ class Config(object):
     in :mod:`alembic.command`.
 
     """
-    def __init__(self, file_, ini_section='alembic'):
+    def __init__(self, file_, ini_section='alembic', output_buffer=None):
+        """Construct a new :class:`.Config`
+        
+        :param file_: name of the .ini file to open.
+        :param ini_section: name of the main Alembic section within the 
+         .ini file
+        :param output_buffer: optional file-like input buffer which
+         will be passed to the :class:`.Context` - used to redirect
+         access when using Alembic programmatically.
+
+        """
         self.config_file_name = file_
         self.config_ini_section = ini_section
+        self.output_buffer = output_buffer
 
     config_file_name = None
     """Filesystem path to the .ini file in use."""
@@ -72,6 +83,14 @@ class Config(object):
 
         """
         return dict(self.file_config.items(name))
+
+    def set_main_option(self, name, value):
+        """Set an option programmatically within the 'main' section.
+        
+        This overrides whatever was in the .ini file.
+        
+        """
+        self.file_config.set(self.config_ini_section, name, value)
 
     def get_section_option(self, section, name, default=None):
         """Return an option from the given section of the .ini file.
