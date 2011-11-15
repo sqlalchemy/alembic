@@ -6,9 +6,10 @@ from sqlalchemy import create_engine, text
 from alembic import context, util
 import re
 from alembic.script import ScriptDirectory
-from alembic.context import _context_impls
+from alembic.context import Context
 from alembic import ddl
 import StringIO
+from alembic.ddl.impl import _impls
 
 staging_directory = os.path.join(os.path.dirname(__file__), 'scratch')
 files_directory = os.path.join(os.path.dirname(__file__), 'files')
@@ -70,18 +71,12 @@ def _testing_config():
     return Config(os.path.join(staging_directory, 'test_alembic.ini'))
 
 def _op_fixture(dialect='default', as_sql=False):
-    _base = _context_impls[dialect]
-    class ctx(_base):
-        def __init__(self, dialect='default', as_sql=False):
-            self._dialect = _get_dialect(dialect)
-
-            context._context = self
-            self.as_sql = as_sql
+    impl = _impls[dialect]
+    class Impl(impl):
+        def __init__(self, dialect, as_sql):
             self.assertion = []
-
-        @property
-        def dialect(self):
-            return self._dialect
+            self.dialect = dialect
+            self.as_sql = as_sql
 
         def _exec(self, construct, *args, **kw):
             if isinstance(construct, basestring):
@@ -92,11 +87,28 @@ def _op_fixture(dialect='default', as_sql=False):
                 sql
             )
 
+
+    class ctx(Context):
+        def __init__(self, dialect='default', as_sql=False):
+            self.dialect = _get_dialect(dialect)
+            self.impl = Impl(self.dialect, as_sql)
+#            super(ctx, self).__init__(_get_dialect(dialect), None, None, None, as_sql=as_sql)
+
+#    def __init__(self, dialect, script, connection, fn, 
+#                        as_sql=False, 
+#                       output_buffer=None,
+#                        transactional_ddl=None,
+#                        starting_rev=None):
+
+
+            context._context = self
+            self.as_sql = as_sql
+
         def assert_(self, *sql):
             # TODO: make this more flexible about 
             # whitespace and such
-            eq_(self.assertion, list(sql))
-    _context_impls[dialect] = _base
+            eq_(self.impl.assertion, list(sql))
+
     return ctx(dialect, as_sql)
 
 def _sqlite_testing_config():

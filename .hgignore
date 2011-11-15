@@ -5,4 +5,5 @@ syntax:regexp
 .pyc$
 .orig$
 .egg-info
-
+.coverage
+alembic.ini

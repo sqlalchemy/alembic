@@ -1,5 +1,5 @@
-from alembic.context import DefaultContext
+from alembic.ddl.impl import DefaultImpl
 
-class PostgresqlContext(DefaultContext):
+class PostgresqlImpl(DefaultImpl):
     __dialect__ = 'postgresql'
     transactional_ddl = True

@@ -1,5 +1,5 @@
 from alembic import util
-from alembic.context import get_context
+from alembic.context import get_impl, get_context
 from sqlalchemy.types import NULLTYPE
 from sqlalchemy import schema, sql
 
@@ -91,7 +91,7 @@ def alter_column(table_name, column_name,
 ):
     """Issue an "alter column" instruction using the current change context."""
 
-    get_context().alter_column(table_name, column_name, 
+    get_impl().alter_column(table_name, column_name, 
         nullable=nullable,
         server_default=server_default,
         name=name,
@@ -110,12 +110,12 @@ def add_column(table_name, column):
     """
 
     t = _table(table_name, column)
-    get_context().add_column(
+    get_impl().add_column(
         table_name,
         column
     )
     for constraint in [f.constraint for f in t.foreign_keys]:
-        get_context().add_constraint(constraint)
+        get_impl().add_constraint(constraint)
 
 def drop_column(table_name, column_name):
     """Issue a "drop column" instruction using the current change context.
@@ -126,7 +126,7 @@ def drop_column(table_name, column_name):
     
     """
 
-    get_context().drop_column(
+    get_impl().drop_column(
         table_name,
         _column(column_name, NULLTYPE)
     )
@@ -135,14 +135,14 @@ def add_constraint(table_name, constraint):
     """Issue an "add constraint" instruction using the current change context."""
 
     _ensure_table_for_constraint(table_name, constraint)
-    get_context().add_constraint(
+    get_impl().add_constraint(
         constraint
     )
 
 def create_foreign_key(name, source, referent, local_cols, remote_cols):
     """Issue a "create foreign key" instruction using the current change context."""
 
-    get_context().add_constraint(
+    get_impl().add_constraint(
                 _foreign_key_constraint(name, source, referent, 
                         local_cols, remote_cols)
             )
@@ -150,7 +150,7 @@ def create_foreign_key(name, source, referent, local_cols, remote_cols):
 def create_unique_constraint(name, source, local_cols):
     """Issue a "create unique constraint" instruction using the current change context."""
 
-    get_context().add_constraint(
+    get_impl().add_constraint(
                 _unique_constraint(name, source, local_cols)
             )
 
@@ -173,7 +173,7 @@ def create_table(name, *columns, **kw):
 
     """
 
-    get_context().create_table(
+    get_impl().create_table(
         _table(name, *columns, **kw)
     )
 
@@ -186,7 +186,7 @@ def drop_table(name, *columns, **kw):
         drop_table("accounts")
         
     """
-    get_context().drop_table(
+    get_impl().drop_table(
         _table(name, *columns, **kw)
     )
 
@@ -212,7 +212,7 @@ def bulk_insert(table, rows):
             ]
         )
       """
-    get_context().bulk_insert(table, rows)
+    get_impl().bulk_insert(table, rows)
 
 def execute(sql):
     """Execute the given SQL using the current change context.
@@ -221,7 +221,7 @@ def execute(sql):
     output stream.
     
     """
-    get_context().execute(sql)
+    get_impl().execute(sql)
 
 def get_bind():
     """Return the current 'bind'.
@@ -233,4 +233,4 @@ def get_bind():
     In a SQL script context, this value is ``None``. [TODO: verify this]
     
     """
-    return get_context().bind
+    return get_impl().bind

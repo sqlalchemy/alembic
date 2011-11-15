@@ -1,5 +1,5 @@
-from alembic.context import DefaultContext
+from alembic.ddl.impl import DefaultImpl
 
-class SQLiteContext(DefaultContext):
+class SQLiteImpl(DefaultImpl):
     __dialect__ = 'sqlite'
     transactional_ddl = True

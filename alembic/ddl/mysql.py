@@ -1,5 +1,5 @@
-from alembic.context import DefaultContext
+from alembic.ddl.impl import DefaultImpl
 
-class MySQLContext(DefaultContext):
+class MySQLImpl(DefaultImpl):
     __dialect__ = 'mysql'
 

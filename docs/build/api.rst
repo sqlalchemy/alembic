@@ -54,6 +54,10 @@ DDL Internals
     :members:
     :undoc-members:
 
+.. automodule:: alembic.ddl.impl
+    :members:
+    :undoc-members:
+
 MySQL
 ^^^^^
 

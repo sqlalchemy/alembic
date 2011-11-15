@@ -517,12 +517,16 @@ the local environment, such as from a local file.   A scheme like this would bas
 treat a local file in the same way ``alembic_version`` works::
 
     if not context.requires_connection():
-        version_file = os.path.join(os.path.dirname(config.config_file_name), "version.txt"))
-        current_version = file_(version_file).read()
+        version_file = os.path.join(os.path.dirname(config.config_file_name), "version.txt")
+        if os.path.exists(version_file):
+            current_version = file_(version_file).read()
+        else:
+            current_version = None
         context.configure(dialect_name=engine.name, starting_version=current_version)
-        end_version = context.get_revision_argument()
         context.run_migrations()
-        file_(version_file, 'w').write(end)
+        end_version = context.get_revision_argument()
+        if end_version and end_version != current_version:
+            file_(version_file, 'w').write(end_version)
 
 Writing Migration Scripts to Support Script Generation
 ------------------------------------------------------

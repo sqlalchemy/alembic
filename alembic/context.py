@@ -1,37 +1,26 @@
 from alembic import util
 from sqlalchemy import MetaData, Table, Column, String, literal_column, \
     text
-from sqlalchemy import schema, create_engine
+from sqlalchemy import create_engine
 from sqlalchemy.engine import url as sqla_url
-from sqlalchemy.ext.compiler import compiles
-from sqlalchemy.sql.expression import _BindParamClause
 import sys
+from alembic import ddl
 
 import logging
-base = util.importlater("alembic.ddl", "base")
 log = logging.getLogger(__name__)
-
-class ContextMeta(type):
-    def __init__(cls, classname, bases, dict_):
-        newtype = type.__init__(cls, classname, bases, dict_)
-        if '__dialect__' in dict_:
-            _context_impls[dict_['__dialect__']] = cls
-        return newtype
-
-_context_impls = {}
 
 _meta = MetaData()
 _version = Table('alembic_version', _meta, 
                 Column('version_num', String(32), nullable=False)
             )
 
-class DefaultContext(object):
-    __metaclass__ = ContextMeta
-    __dialect__ = 'default'
-
-    transactional_ddl = False
-    as_sql = False
-
+class Context(object):
+    """Maintains state throughout the migration running process.
+    
+    Mediates the relationship between an ``env.py`` environment script, 
+    a :class:`.ScriptDirectory` instance, and a :class:`.DDLImpl` instance.
+    
+    """
     def __init__(self, dialect, script, connection, fn, 
                         as_sql=False, 
                         output_buffer=None,
@@ -46,13 +35,14 @@ class DefaultContext(object):
             self.connection = connection
         self._migrations_fn = fn
         self.as_sql = as_sql
-        if output_buffer is None:
-            self.output_buffer = sys.stdout
-        else:
-            self.output_buffer = output_buffer
-        if transactional_ddl is not None:
-            self.transactional_ddl = transactional_ddl
+        self.output_buffer = output_buffer if output_buffer else sys.stdout
+
         self._start_from_rev = starting_rev
+        self.impl = ddl.DefaultImpl.get_by_dialect(dialect)(
+                            dialect, connection, self.as_sql,
+                            transactional_ddl,
+                            self.output_buffer
+                            )
 
     def _current_rev(self):
         if self.as_sql:
@@ -69,13 +59,13 @@ class DefaultContext(object):
         if old == new:
             return
         if new is None:
-            self._exec(_version.delete())
+            self.impl._exec(_version.delete())
         elif old is None:
-            self._exec(_version.insert().
+            self.impl._exec(_version.insert().
                         values(version_num=literal_column("'%s'" % new))
                     )
         else:
-            self._exec(_version.update().
+            self.impl._exec(_version.update().
                         values(version_num=literal_column("'%s'" % new))
                     )
 
@@ -84,11 +74,11 @@ class DefaultContext(object):
         if self.as_sql:
             log.info("Generating static SQL")
         log.info("Will assume %s DDL.", 
-                        "transactional" if self.transactional_ddl 
+                        "transactional" if self.impl.transactional_ddl 
                         else "non-transactional")
 
-        if self.as_sql and self.transactional_ddl:
-            self.static_output("BEGIN;")
+        if self.as_sql and self.impl.transactional_ddl:
+            self.impl.static_output("BEGIN;")
 
         current_rev = rev = False
         for change, prev_rev, rev in self._migrations_fn(
@@ -99,42 +89,26 @@ class DefaultContext(object):
                     _version.create(self.connection)
             log.info("Running %s %s -> %s", change.__name__, prev_rev, rev)
             change(**kw)
-            if not self.transactional_ddl:
+            if not self.impl.transactional_ddl:
                 self._update_current_rev(prev_rev, rev)
             prev_rev = rev
 
         if rev is not False:
-            if self.transactional_ddl:
+            if self.impl.transactional_ddl:
                 self._update_current_rev(current_rev, rev)
 
             if self.as_sql and not rev:
                 _version.drop(self.connection)
 
-        if self.as_sql and self.transactional_ddl:
-            self.static_output("COMMIT;")
-
-    def _exec(self, construct, *args, **kw):
-        if isinstance(construct, basestring):
-            construct = text(construct)
-        if self.as_sql:
-            if args or kw:
-                # TODO: coverage
-                raise Exception("Execution arguments not allowed with as_sql")
-            self.static_output(unicode(
-                    construct.compile(dialect=self.dialect)
-                    ).replace("\t", "    ").strip() + ";")
-        else:
-            self.connection.execute(construct, *args, **kw)
-
-    def static_output(self, text):
-        self.output_buffer.write(text + "\n\n")
+        if self.as_sql and self.impl.transactional_ddl:
+            self.impl.static_output("COMMIT;")
 
     def execute(self, sql):
-        self._exec(sql)
+        self.impl._exec(sql)
 
     def _stdout_connection(self, connection):
         def dump(construct, *multiparams, **params):
-            self._exec(construct)
+            self.impl._exec(construct)
 
         return create_engine("%s://" % self.dialect.name, 
                         strategy="mock", executor=dump)
@@ -151,60 +125,6 @@ class DefaultContext(object):
         """
         return self.connection
 
-    def alter_column(self, table_name, column_name, 
-                        nullable=None,
-                        server_default=False,
-                        name=None,
-                        type_=None,
-                        schema=None,
-    ):
-
-        if nullable is not None:
-            self._exec(base.ColumnNullable(table_name, column_name, 
-                                nullable, schema=schema))
-        if server_default is not False:
-            self._exec(base.ColumnDefault(
-                                table_name, column_name, server_default,
-                                schema=schema
-                            ))
-        if type_ is not None:
-            self._exec(base.ColumnType(
-                                table_name, column_name, type_, schema=schema
-                            ))
-
-    def add_column(self, table_name, column):
-        self._exec(base.AddColumn(table_name, column))
-
-    def drop_column(self, table_name, column):
-        self._exec(base.DropColumn(table_name, column))
-
-    def add_constraint(self, const):
-        self._exec(schema.AddConstraint(const))
-
-    def create_table(self, table):
-        self._exec(schema.CreateTable(table))
-        for index in table.indexes:
-            self._exec(schema.CreateIndex(index))
-
-    def drop_table(self, table):
-        self._exec(schema.DropTable(table))
-
-    def bulk_insert(self, table, rows):
-        if self.as_sql:
-            for row in rows:
-                self._exec(table.insert().values(**dict(
-                    (k, _literal_bindparam(k, v, type_=table.c[k].type))
-                    for k, v in row.items()
-                )))
-        else:
-            self._exec(table.insert(), *rows)
-
-class _literal_bindparam(_BindParamClause):
-    pass
-
-@compiles(_literal_bindparam)
-def _render_literal_bindparam(element, compiler, **kw):
-    return compiler.render_literal_bindparam(element, **kw)
 
 _context_opts = {}
 _context = None
@@ -323,7 +243,6 @@ def configure(
         raise Exception("Connection, url, or dialect_name is required.")
 
     global _context
-    from alembic.ddl import base
     opts = _context_opts
     if transactional_ddl is not None:
         opts["transactional_ddl"] =  transactional_ddl
@@ -333,9 +252,7 @@ def configure(
         opts['starting_rev'] = starting_rev
     if tag:
         opts['tag'] = tag
-    _context = _context_impls.get(
-                    dialect.name, 
-                    DefaultContext)(
+    _context = Context(
                         dialect, _script, connection, 
                         opts['fn'],
                         as_sql=opts.get('as_sql', False), 
@@ -363,7 +280,7 @@ def run_migrations(**kw):
     to the migration functions.
     
     """
-    _context.run_migrations(**kw)
+    get_context().run_migrations(**kw)
 
 def execute(sql):
     """Execute the given SQL using the current change context.
@@ -386,3 +303,6 @@ def get_context():
     if _context is None:
         raise Exception("No context has been configured yet.")
     return _context
+
+def get_impl():
+    return get_context().impl
