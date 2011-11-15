@@ -18,11 +18,11 @@ class Context(object):
     """Maintains state throughout the migration running process.
     
     Mediates the relationship between an ``env.py`` environment script, 
-    a :class:`.ScriptDirectory` instance, and a :class:`.DDLImpl` instance.
+    a :class:`.ScriptDirectory` instance, and a :class:`.DefaultImpl` instance.
 
-    The :class:`.Context` is available via the :func:`.get_context` function,
-    though usually one would call the various module level functions
-    described here.
+    The :class:`.Context` is available directly via the :func:`.get_context` function,
+    though usually it is referenced behind the scenes by the various module level functions
+    within the :mod:`alembic.context` module.
     
     """
     def __init__(self, dialect, script, connection, fn, 
@@ -121,16 +121,34 @@ class Context(object):
 
     @property
     def bind(self):
-        """Return a bind suitable for passing to the create() 
-        or create_all() methods of MetaData, Table.
+        """Return the current "bind".
+        
+        In online mode, this is an instance of
+        :class:`sqlalchemy.engine.base.Connection`, and is suitable
+        for ad-hoc execution of any kind of usage described 
+        in :ref:`sqlexpression_toplevel` as well as 
+        for usage with the :meth:`sqlalchemy.schema.Table.create`
+        and :meth:`sqlalchemy.schema.MetaData.create_all` methods
+        of :class:`.Table`, :class:`.MetaData`.
         
         Note that when "standard output" mode is enabled, 
         this bind will be a "mock" connection handler that cannot
-        return results and is only appropriate for DDL.
+        return results and is only appropriate for a very limited
+        subset of commands.
         
         """
         return self.connection
 
+config = None
+"""The current :class:`.Config` object.
+
+This is the gateway to the ``alembic.ini`` or other
+.ini file in use for the current command.
+
+This function does not require that the :class:`.Context` 
+has been configured.
+
+"""
 
 _context_opts = {}
 _context = None
@@ -159,12 +177,20 @@ def requires_connection():
     
     Currently, this is ``True`` or ``False`` depending 
     on the the ``--sql`` flag passed.
+
+    This function does not require that the :class:`.Context` 
+    has been configured.
     
     """
     return not _context_opts.get('as_sql', False)
 
 def get_head_revision():
-    """Return the hex identifier of the 'head' revision."""
+    """Return the hex identifier of the 'head' revision.
+
+    This function does not require that the :class:`.Context` 
+    has been configured.
+    
+    """
     return _script._as_rev_number("head")
 
 def get_starting_revision_argument():
@@ -174,6 +200,9 @@ def get_starting_revision_argument():
     This is only meaningful in "offline" mode.
     Returns ``None`` if no value is available
     or was configured.
+
+    This function does not require that the :class:`.Context` 
+    has been configured.
 
     """
     if _context is not None:
@@ -185,7 +214,7 @@ def get_starting_revision_argument():
 
 def get_revision_argument():
     """Get the 'destination' revision argument.
-    
+
     This is typically the argument passed to the 
     ``upgrade`` or ``downgrade`` command, but can
     be overridden via the ``destination_rev`` argument
@@ -196,16 +225,22 @@ def get_revision_argument():
     version number is returned; if specified
     as ``base``, ``None`` is returned.
 
+    This function does not require that the :class:`.Context` 
+    has been configured.
+
     """
     return _script._as_rev_number(_context_opts['destination_rev'])
 
 def get_tag_argument():
     """Return the value passed for the ``--tag`` argument, if any.
-    
+
     The ``--tag`` argument is not used directly by Alembic,
     but is available for custom ``env.py`` configurations that 
     wish to use it; particularly for offline generation scripts
     that wish to generate tagged filenames.
+
+    This function does not require that the :class:`.Context` 
+    has been configured.
     
     """
     return _context_opts.get('tag', None)
@@ -293,7 +328,7 @@ def run_migrations(**kw):
     """Run migrations as determined by the current command line configuration
     as well as versioning information present (or not) in the current 
     database connection (if one is present).
-    
+
     The function accepts optional ``**kw`` arguments.   If these are
     passed, they are sent directly to the ``upgrade()`` and ``downgrade()``
     functions within each target revision file.   By modifying the
@@ -302,6 +337,9 @@ def run_migrations(**kw):
     contextual information, usually information to identify a particular
     database in use, can be passed from a custom ``env.py`` script
     to the migration functions.
+
+    This function requires that a :class:`.Context` has first been 
+    made available via :func:`.configure`.
     
     """
     get_context().run_migrations(**kw)
@@ -310,13 +348,47 @@ def execute(sql):
     """Execute the given SQL using the current change context.
     
     In a SQL script context, the statement is emitted directly to the 
-    output stream.
+    output stream.   There is *no* return result, however, as this
+    function is oriented towards generating a change script
+    that can run in "offline" mode.  For full interaction
+    with a connected database, use the "bind" available 
+    from the context::
+    
+        connection = get_context().bind
+    
+    Also note that any parameterized statement here *will not work*
+    in offline mode - any kind of UPDATE or DELETE needs to render
+    inline expressions.   Due to these limitations, 
+    :func:`.execute` is overall not spectacularly useful for migration 
+    scripts that wish to run in offline mode.  Consider using the Alembic 
+    directives, or if the environment is only meant to run in 
+    "online" mode, use the ``get_context().bind``.
+    
+    :param sql: Any legal SQLAlchemy expression, including:
+    
+    * a string
+    * a :func:`sqlalchemy.sql.expression.text` construct, with the caveat that
+      bound parameters won't work correctly in offline mode.
+    * a :func:`sqlalchemy.sql.expression.insert` construct.  If working 
+      in offline mode, consider using :func:`alembic.op.bulk_insert`
+      instead to support parameterization.
+    * a :func:`sqlalchemy.sql.expression.update`, :func:`sqlalchemy.sql.expression.insert`, 
+      or :func:`sqlalchemy.sql.expression.delete`  construct, with the caveat
+      that bound parameters won't work correctly in offline mode.
+    * Pretty much anything that's "executable" as described
+      in :ref:`sqlexpression_toplevel`.
+
+    This function requires that a :class:`.Context` has first been 
+    made available via :func:`.configure`.
     
     """
     get_context().execute(sql)
 
 def get_context():
     """Return the current :class:`.Context` object.
+    
+    If :func:`.configure` has not been called yet, raises
+    an exception.
     
     Generally, env.py scripts should access the module-level functions
     in :mod:`alebmic.context` to get at this object's functionality.

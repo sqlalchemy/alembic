@@ -7,9 +7,17 @@ import os
 class Config(object):
     """Represent an Alembic configuration.
 
-    You can get at one of these by specifying the name of 
-    an .ini file::
-
+    Within an ``env.py`` script, this is available
+    via the :attr:`alembic.context.config` attribute::
+    
+        from alembic import context
+        
+        some_param = context.config.get_main_option("my option")
+    
+    When invoking Alembic programatically, a new
+    :class:`.Config` can be created simply by passing
+    the name of an .ini file to the constructor::
+    
         from alembic.config import Config
         alembic_cfg = Config("/path/to/yourapp/alembic.ini")
 
