@@ -41,7 +41,11 @@ setup(name='alembic',
       zip_safe=False,
       install_requires=[
           'SQLAlchemy>=0.6.0',
-          'Mako'
+          'Mako',
+          # TODO: should this not be here if the env. is 
+          # Python 2.7/3.2 ? not sure how this is supposed 
+          # to be handled
+          'argparse'
       ],
       entry_points="""
       """,

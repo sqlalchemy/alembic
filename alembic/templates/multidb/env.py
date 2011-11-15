@@ -1,6 +1,6 @@
 USE_TWOPHASE = False
 
-from alembic import options, context
+from alembic import context
 from sqlalchemy import engine_from_config
 import re
 import sys
@@ -8,25 +8,37 @@ import sys
 import logging
 logging.fileConfig(options.config_file)
 
+# gather section names referring to different 
+# databases.
 db_names = options.get_main_option('databases')
+
+# set aside if we need engines or just URLs to do this.
+need_engine = context.requires_connection()
+
+# load up SQLAlchemy engines or URLs.
 engines = {}
 for name in re.split(r',\s*', db_names):
     engines[name] = rec = {}
-    rec['engine'] = engine = \
-                engine_from_config(options.get_section(name),
+    if need_engine:
+        rec['engine'] = engine_from_config(context.config.get_section(name),
                                 prefix='sqlalchemy.')
+    else:
+        rec['url'] = context.config.get_section_option(name, "sqlalchemy.url")
 
-
-if not context.requires_connection():
+# for the --sql use case, run migrations for each URL into
+# individual files.
+if not need_engine:
     for name, rec in engines.items():
-        # Write output to individual per-engine files.
         file_ = "%s.sql" % name
         sys.stderr.write("Writing output to %s\n" % file_)
         context.configure(
-                    dialect_name=rec['engine'].name,
+                    url=rec['url'],
                     output_buffer=file(file_, 'w')
                 )
         context.run_migrations(engine=name)
+
+# for the direct-to-DB use case, start a transaction on all
+# engines, then run all migrations, then commit all transactions.
 else:
     for name, rec in engines.items():
         engine = rec['engine']

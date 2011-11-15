@@ -19,6 +19,10 @@ class Context(object):
     
     Mediates the relationship between an ``env.py`` environment script, 
     a :class:`.ScriptDirectory` instance, and a :class:`.DDLImpl` instance.
+
+    The :class:`.Context` is available via the :func:`.get_context` function,
+    though usually one would call the various module level functions
+    described here.
     
     """
     def __init__(self, dialect, script, connection, fn, 
@@ -88,6 +92,8 @@ class Context(object):
                 if self.as_sql and not current_rev:
                     _version.create(self.connection)
             log.info("Running %s %s -> %s", change.__name__, prev_rev, rev)
+            if self.as_sql:
+                self.impl.static_output("-- Running %s %s -> %s" %(change.__name__, prev_rev, rev))
             change(**kw)
             if not self.impl.transactional_ddl:
                 self._update_current_rev(prev_rev, rev)
@@ -151,18 +157,23 @@ def requires_connection():
     """Return True if the current migrations environment should have
     an active database connection.
     
+    Currently, this is ``True`` or ``False`` depending 
+    on the the ``--sql`` flag passed.
+    
     """
     return not _context_opts.get('as_sql', False)
 
 def get_head_revision():
-    """Return the value of the 'head' revision."""
+    """Return the hex identifier of the 'head' revision."""
     return _script._as_rev_number("head")
 
 def get_starting_revision_argument():
     """Return the 'starting revision' argument,
-    if the revision was passed as start:end.
+    if the revision was passed using ``start:end``.
     
-    This is only usable in "offline" mode.
+    This is only meaningful in "offline" mode.
+    Returns ``None`` if no value is available
+    or was configured.
 
     """
     if _context is not None:
@@ -175,15 +186,28 @@ def get_starting_revision_argument():
 def get_revision_argument():
     """Get the 'destination' revision argument.
     
-    This will be the target rev number.  'head'
-    is translated into the actual version number
-    as is 'base' which is translated to None.
+    This is typically the argument passed to the 
+    ``upgrade`` or ``downgrade`` command, but can
+    be overridden via the ``destination_rev`` argument
+    passed to :func:`.configure`.
+    
+    If 
+    it was specified as ``head``, the actual 
+    version number is returned; if specified
+    as ``base``, ``None`` is returned.
 
     """
     return _script._as_rev_number(_context_opts['destination_rev'])
 
 def get_tag_argument():
-    """Return the value passed for the ``--tag`` argument, if any."""
+    """Return the value passed for the ``--tag`` argument, if any.
+    
+    The ``--tag`` argument is not used directly by Alembic,
+    but is available for custom ``env.py`` configurations that 
+    wish to use it; particularly for offline generation scripts
+    that wish to generate tagged filenames.
+    
+    """
     return _context_opts.get('tag', None)
 
 def configure(
@@ -292,9 +316,7 @@ def execute(sql):
     get_context().execute(sql)
 
 def get_context():
-    """Return the current :class:`.DefaultContext` object.
-    
-    This object is the entrypoint to dialect specific behavior.
+    """Return the current :class:`.Context` object.
     
     Generally, env.py scripts should access the module-level functions
     in :mod:`alebmic.context` to get at this object's functionality.

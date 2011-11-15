@@ -6,17 +6,17 @@ import os
 
 class Config(object):
     """Represent an Alembic configuration.
-    
+
     You can get at one of these by specifying the name of 
     an .ini file::
-    
+
         from alembic.config import Config
         alembic_cfg = Config("/path/to/yourapp/alembic.ini")
-    
+
     With a :class:`.Config` object, you can then
     run Alembic commands programmatically using the directives
     in :mod:`alembic.command`.
-    
+
     """
     def __init__(self, file_, ini_section='alembic'):
         self.config_file_name = file_
@@ -30,13 +30,13 @@ class Config(object):
     from.  Defaults to ``alembic``, that is the ``[alembic]`` section
     of the .ini file.  This value is modified using the ``-n/--name``
     option to the Alembic runnier.
-    
+
     """
 
     @util.memoized_property
     def file_config(self):
         """Return the underlying :class:`ConfigParser` object.
-        
+
         Direct access to the .ini file is available here,
         though the :meth:`.Config.get_section` and 
         :meth:`.Config.get_main_option`
@@ -51,36 +51,42 @@ class Config(object):
 
     def get_template_directory(self):
         """Return the directory where Alembic setup templates are found.
-        
+
         This method is used by the alembic ``init`` and ``list_templates``
         commands.
-        
+
         """
         return os.path.join(package_dir, 'templates')
 
     def get_section(self, name):
         """Return all the configuration options from a given .ini file section
         as a dictionary.
-        
+
         """
         return dict(self.file_config.items(name))
 
+    def get_section_option(self, section, name, default=None):
+        """Return an option from the given section of the .ini file.
+
+        """
+        if not self.file_config.has_section(section):
+            util.err("No config file %r found, or file has no "
+                                "'[%s]' section" % 
+                                (self.config_file_name, section))
+        if self.file_config.has_option(section, name):
+            return self.file_config.get(section, name)
+        else:
+            return default
+
     def get_main_option(self, name, default=None):
         """Return an option from the 'main' section of the .ini file.
-        
+
         This defaults to being a key from the ``[alembic]`` 
         section, unless the ``-n/--name`` flag were used to 
         indicate a different section.
-        
+
         """
-        if not self.file_config.has_section(self.config_ini_section):
-            util.err("No config file %r found, or file has no "
-                                "'[%s]' section" % 
-                                (self.config_file_name, self.config_ini_section))
-        if self.file_config.has_option(self.config_ini_section, name):
-            return self.file_config.get(self.config_ini_section, name)
-        else:
-            return default
+        return self.get_section_option(self.config_ini_section, name, default)
 
 def main(argv):
     """The console runner function for Alembic."""

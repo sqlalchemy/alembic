@@ -457,11 +457,11 @@ Autogenerate can *not* detect:
   yet implemented.
 
 
-Generating SQL Scripts
-======================
+Generating SQL Scripts (a.k.a. "Offline Mode")
+==============================================
 
 A major capability of Alembic is to generate migrations as SQL scripts, instead of running
-them against the database - this is also referred to as "offline" mode.   
+them against the database - this is also referred to as *offline mode*.   
 This is a critical feature when working in large organizations
 where access to DDL is restricted, and SQL scripts must be handed off to DBAs.   Alembic makes
 this easy via the ``--sql`` option passed to any ``upgrade`` or ``downgrade`` command.   We 

@@ -4,7 +4,7 @@ Place 'pylons_config_file' into alembic.ini, and the application will
 be loaded from there.
 
 """
-from alembic import config, context
+from alembic import context
 from paste.deploy import loadapp
 import logging
 
@@ -22,6 +22,7 @@ except:
 
 # customize this section for non-standard engine configurations.
 meta = __import__("%s.model.meta" % config['pylons.package']).model.meta
+
 
 if not context.requires_connection():
     context.configure(

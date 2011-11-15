@@ -8,36 +8,41 @@ a migration environment's ``env.py`` file.
 env.py Directives
 =================
 
+The :mod:`alembic.context` module contains API features that are generally used within
+``env.py`` files.
+
 .. autofunction:: sqlalchemy.engine.engine_from_config
-.. autofunction:: alembic.context.configure
-.. autofunction:: alembic.context.get_context
-.. autofunction:: alembic.context.execute
-.. autofunction:: alembic.context.requires_connection
-.. autofunction:: alembic.context.run_migrations
 
-Internals
-=========
+.. currentmodule:: alembic.context
 
-.. currentmodule:: alembic.command
+.. automodule:: alembic.context
+    :members:
 
 Commands
---------
+=========
 
 Alembic commands are all represented by functions in the :mod:`alembic.command`
 package.  They all accept the same style of usage, being sent
 the :class:`~.alembic.config.Config` object as the first argument.
 
+.. currentmodule:: alembic.command
 
 .. automodule:: alembic.command
     :members:
     :undoc-members:
 
-Misc
-----
+Configuration
+==============
+
+.. currentmodule:: alembic.config
+
 .. automodule:: alembic.config
     :members:
     :undoc-members:
 
+
+Internals
+=========
 
 .. automodule:: alembic.script
     :members:
