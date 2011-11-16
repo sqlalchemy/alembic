@@ -47,6 +47,12 @@ class Context(object):
                             transactional_ddl,
                             self.output_buffer
                             )
+        log.info("Context impl %s.", self.impl.__class__.__name__)
+        if self.as_sql:
+            log.info("Generating static SQL")
+        log.info("Will assume %s DDL.", 
+                        "transactional" if self.impl.transactional_ddl 
+                        else "non-transactional")
 
     def _current_rev(self):
         if self.as_sql:
@@ -74,15 +80,6 @@ class Context(object):
                     )
 
     def run_migrations(self, **kw):
-        log.info("Context impl %s.", self.impl.__class__.__name__)
-        if self.as_sql:
-            log.info("Generating static SQL")
-        log.info("Will assume %s DDL.", 
-                        "transactional" if self.impl.transactional_ddl 
-                        else "non-transactional")
-
-        if self.as_sql and self.impl.transactional_ddl:
-            self.impl.static_output("BEGIN;")
 
         current_rev = rev = False
         for change, prev_rev, rev in self._migrations_fn(
@@ -105,9 +102,6 @@ class Context(object):
 
             if self.as_sql and not rev:
                 _version.drop(self.connection)
-
-        if self.as_sql and self.impl.transactional_ddl:
-            self.impl.static_output("COMMIT;")
 
     def execute(self, sql):
         self.impl._exec(sql)
@@ -171,18 +165,35 @@ def _clear():
     _context = _script = None
     _context_opts = {}
 
-def requires_connection():
-    """Return True if the current migrations environment should have
-    an active database connection.
+def is_offline_mode():
+    """Return True if the current migrations environment 
+    is running in "offline mode".
     
-    Currently, this is ``True`` or ``False`` depending 
+    This is ``True`` or ``False`` depending 
     on the the ``--sql`` flag passed.
 
     This function does not require that the :class:`.Context` 
     has been configured.
     
     """
-    return not _context_opts.get('as_sql', False)
+    return _context_opts.get('as_sql', False)
+
+def is_transactional_ddl():
+    """Return True if the context is configured to expect a
+    transactional DDL capable backend.
+    
+    This defaults to the type of database in use, and 
+    can be overridden by the ``transactional_ddl`` argument
+    to :func:`.configure`
+    
+    This function requires that a :class:`.Context` has first been 
+    made available via :func:`.configure`.
+    
+    """
+    return get_context().impl.transactional_ddl
+
+def requires_connection():
+    return not is_offline_mode()
 
 def get_head_revision():
     """Return the hex identifier of the 'head' revision.
@@ -372,6 +383,19 @@ def get_context():
     if _context is None:
         raise Exception("No context has been configured yet.")
     return _context
+
+def get_bind():
+    """Return the current 'bind'.
+    
+    In "online" mode, this is the 
+    :class:`sqlalchemy.engine.Connection` currently being used
+    to emit SQL to the database.
+
+    This function requires that a :class:`.Context` has first been 
+    made available via :func:`.configure`.
+    
+    """
+    return get_context().bind
 
 def get_impl():
     return get_context().impl

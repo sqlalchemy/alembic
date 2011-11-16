@@ -55,3 +55,4 @@ def test_stamp():
     with capture_context_buffer() as buf:
         command.stamp(cfg, "head", sql=True)
     assert "UPDATE alembic_version SET version_num='%s';" % c in buf.getvalue()
+
