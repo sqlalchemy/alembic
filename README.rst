@@ -69,4 +69,3 @@ degree that SQLite supports migrations (which is very little), and should also
 have partial functionality for MySQL, Oracle and Firebird (to the degree those
 databases support standard ANSI DDL).
 
-Documentation is at `ReadTheDocs <http://readthedocs.org/docs/alembic/en/latest/index.html>`_.
