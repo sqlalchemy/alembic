@@ -25,17 +25,16 @@ class Config(object):
     run Alembic commands programmatically using the directives
     in :mod:`alembic.command`.
 
+    :param file_: name of the .ini file to open.
+    :param ini_section: name of the main Alembic section within the 
+     .ini file
+    :param output_buffer: optional file-like input buffer which
+     will be passed to the :class:`.Context` - used to redirect
+     access when using Alembic programmatically.
     """
     def __init__(self, file_, ini_section='alembic', output_buffer=None):
         """Construct a new :class:`.Config`
         
-        :param file_: name of the .ini file to open.
-        :param ini_section: name of the main Alembic section within the 
-         .ini file
-        :param output_buffer: optional file-like input buffer which
-         will be passed to the :class:`.Context` - used to redirect
-         access when using Alembic programmatically.
-
         """
         self.config_file_name = file_
         self.config_ini_section = ini_section
