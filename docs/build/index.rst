@@ -8,6 +8,7 @@ with the `SQLAlchemy <http://www.sqlalchemy.org>`_ Database Toolkit for Python.
 .. toctree::
    :maxdepth: 2
 
+   front
    tutorial
    ops
    api

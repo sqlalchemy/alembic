@@ -6,15 +6,7 @@ Tutorial
 scripts for a relational database, using `SQLAlchemy <http://www.sqlalchemy.org>`_ as the underlying engine.
 This tutorial will provide a full introduction to the theory and usage of this tool.
 
-Installation
-============
-
-Install Alembic with `pip <http://pypi.python.org/pypi/pip>`_ or a similar tool::
-
-    pip install alembic
-
-The install will add the ``alembic`` command to the environment.  All operations with Alembic
-then proceed through the usage of this command.
+To begin, make sure Alembic is installed as described at :ref:`installation`.
 
 The Migration Environment
 ==========================
