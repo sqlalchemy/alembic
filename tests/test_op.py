@@ -58,7 +58,7 @@ def test_alter_column_rename():
     context = _op_fixture()
     op.alter_column("t", "c", name="x")
     context.assert_(
-        "ALTER TABLE t ALTER COLUMN c RENAME TO x"
+        "ALTER TABLE t RENAME c TO x"
     )
 
 def test_add_foreign_key():

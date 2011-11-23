@@ -72,9 +72,9 @@ def visit_column_nullable(element, compiler, **kw):
 
 @compiles(ColumnName)
 def visit_column_name(element, compiler, **kw):
-    return "%s %s RENAME TO %s" % (
+    return "%s RENAME %s TO %s" % (
         alter_table(compiler, element.table_name, element.schema),
-        alter_column(compiler, element.column_name),
+        format_column_name(compiler, element.column_name),
         format_column_name(compiler, element.newname)
     )
 
