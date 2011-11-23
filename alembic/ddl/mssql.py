@@ -1,5 +1,5 @@
 from alembic.ddl.impl import DefaultImpl
-from alembic.ddl.base import alter_table, AddColumn
+from alembic.ddl.base import alter_table, AddColumn, ColumnName, format_table_name, format_column_name
 from sqlalchemy.ext.compiler import compiles
 
 class MSSQLImpl(DefaultImpl):
@@ -25,9 +25,17 @@ class MSSQLImpl(DefaultImpl):
 def visit_add_column(element, compiler, **kw):
     return "%s %s" % (
         alter_table(compiler, element.table_name, element.schema),
-        mysql_add_column(compiler, element.column, **kw)
+        mssql_add_column(compiler, element.column, **kw)
     )
 
-def mysql_add_column(compiler, column, **kw):
+def mssql_add_column(compiler, column, **kw):
     return "ADD %s" % compiler.get_column_specification(column, **kw)
 
+
+@compiles(ColumnName, 'mssql')
+def visit_rename_column(element, compiler, **kw):
+    return "EXEC sp_rename '%s.%s', '%s', 'COLUMN'" % (
+        format_table_name(compiler, element.table_name, element.schema),
+        format_column_name(compiler, element.column_name),
+        format_column_name(compiler, element.newname)
+    )

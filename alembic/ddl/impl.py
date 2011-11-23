@@ -81,6 +81,11 @@ class DefaultImpl(object):
             self._exec(base.ColumnType(
                                 table_name, column_name, type_, schema=schema
                             ))
+        # do the new name last ;)
+        if name is not None:
+            self._exec(base.ColumnName(
+                                table_name, column_name, name, schema=schema
+                            ))
 
     def add_column(self, table_name, column):
         self._exec(base.AddColumn(table_name, column))

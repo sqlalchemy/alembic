@@ -70,6 +70,14 @@ def visit_column_nullable(element, compiler, **kw):
         "NULL" if element.nullable else "SET NOT NULL"
     )
 
+@compiles(ColumnName)
+def visit_column_name(element, compiler, **kw):
+    return "%s %s RENAME TO %s" % (
+        alter_table(compiler, element.table_name, element.schema),
+        alter_column(compiler, element.column_name),
+        format_column_name(compiler, element.newname)
+    )
+
 def quote_dotted(name, quote):
     """quote the elements of a dotted name"""
 

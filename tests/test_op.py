@@ -54,6 +54,13 @@ def test_alter_column_not_nullable():
         "ALTER TABLE t ALTER COLUMN c SET NOT NULL"
     )
 
+def test_alter_column_rename():
+    context = _op_fixture()
+    op.alter_column("t", "c", name="x")
+    context.assert_(
+        "ALTER TABLE t ALTER COLUMN c RENAME TO x"
+    )
+
 def test_add_foreign_key():
     context = _op_fixture()
     op.create_foreign_key('fk_test', 't1', 't2', 
