@@ -96,6 +96,9 @@ class DefaultImpl(object):
     def add_constraint(self, const):
         self._exec(schema.AddConstraint(const))
 
+    def drop_constraint(self, const):
+        self._exec(schema.DropConstraint(const))
+
     def create_table(self, table):
         self._exec(schema.CreateTable(table))
         for index in table.indexes:

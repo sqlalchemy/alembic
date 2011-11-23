@@ -10,6 +10,7 @@ __all__ = sorted([
             'alter_column', 
             'add_column',
             'drop_column',
+            'drop_constraint',
             'create_foreign_key', 
             'create_table',
             'drop_table',
@@ -41,7 +42,11 @@ def _foreign_key_constraint(name, source, referent, local_cols, remote_cols):
 def _unique_constraint(name, source, local_cols, **kw):
     t = schema.Table(source, schema.MetaData(), 
                 *[schema.Column(n, NULLTYPE) for n in local_cols])
-    return schema.UniqueConstraint(*t.c, name=name, **kw)
+    uq = schema.UniqueConstraint(*t.c, name=name, **kw)
+    # TODO: need event tests to ensure the event
+    # is fired off here
+    t.append_constraint(uq)
+    return uq
 
 def _table(name, *columns, **kw):
     m = schema.MetaData()
@@ -289,6 +294,13 @@ def drop_index(name):
         
     """
     get_impl().drop_index(_index(name, 'foo', []))
+
+def drop_constraint(name, tablename):
+    """Drop a constraint of the given name"""
+    t = _table(tablename)
+    const = schema.Constraint(name=name)
+    t.append_constraint(const)
+    get_impl().drop_constraint(const)
 
 def bulk_insert(table, rows):
     """Issue a "bulk insert" operation using the current change context.

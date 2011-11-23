@@ -77,6 +77,13 @@ def test_add_unique_constraint():
         "ALTER TABLE t1 ADD CONSTRAINT uk_test UNIQUE (foo, bar)"
     )
 
+def test_drop_constraint():
+    context = _op_fixture()
+    op.drop_constraint('foo_bar_bat', 't1')
+    context.assert_(
+        "ALTER TABLE t1 DROP CONSTRAINT foo_bar_bat"
+    )
+
 def test_create_index():
     context = _op_fixture()
     op.create_index('ik_test', 't1', ['foo', 'bar'])
