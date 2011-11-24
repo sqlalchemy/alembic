@@ -137,21 +137,36 @@ def add_column(table_name, column):
         table_name,
         column
     )
-    for constraint in [f.constraint for f in t.foreign_keys]:
-        get_impl().add_constraint(constraint)
+    for constraint in t.constraints:
+        if not isinstance(constraint, schema.PrimaryKeyConstraint):
+            get_impl().add_constraint(constraint)
 
-def drop_column(table_name, column_name):
+def drop_column(table_name, column_name, **kw):
     """Issue a "drop column" instruction using the current change context.
     
     e.g.::
     
         drop_column('organization', 'account_id')
     
+    :param table_name: name of table
+    :param column_name: name of column
+    :param mssql_drop_check: Optional boolean.  When ``True``, on 
+     Microsoft SQL Server only, first 
+     drop the CHECK constraint on the column using a SQL-script-compatible
+     block that selects into a @variable from sys.check_constraints,
+     then exec's a separate DROP CONSTRAINT for that constraint.
+    :param mssql_drop_default: Optional boolean.  When ``True``, on 
+     Microsoft SQL Server only, first 
+     drop the DEFAULT constraint on the column using a SQL-script-compatible
+     block that selects into a @variable from sys.default_constraints,
+     then exec's a separate DROP CONSTRAINT for that default.
+     
     """
 
     get_impl().drop_column(
         table_name,
-        _column(column_name, NULLTYPE)
+        _column(column_name, NULLTYPE),
+        **kw
     )
 
 

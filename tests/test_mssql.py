@@ -23,6 +23,19 @@ def test_alter_column_rename_mssql():
         "EXEC sp_rename 't.c', 'x', 'COLUMN'"
     )
 
+def test_drop_column_w_default():
+    context = _op_fixture('mssql')
+    op.drop_column('t1', 'c1', mssql_drop_default=True)
+    context.assert_contains("exec('alter table t1 drop constraint ' + @const_name)")
+    context.assert_contains("ALTER TABLE t1 DROP COLUMN c1")
+
+
+def test_drop_column_w_check():
+    context = _op_fixture('mssql')
+    op.drop_column('t1', 'c1', mssql_drop_check=True)
+    context.assert_contains("exec('alter table t1 drop constraint ' + @const_name)")
+    context.assert_contains("ALTER TABLE t1 DROP COLUMN c1")
+
 # TODO: when we add schema support
 #def test_alter_column_rename_mssql_schema():
 #    context = _op_fixture('mssql')

@@ -90,11 +90,13 @@ class DefaultImpl(object):
     def add_column(self, table_name, column):
         self._exec(base.AddColumn(table_name, column))
 
-    def drop_column(self, table_name, column):
+    def drop_column(self, table_name, column, **kw):
         self._exec(base.DropColumn(table_name, column))
 
     def add_constraint(self, const):
-        self._exec(schema.AddConstraint(const))
+        if const._create_rule is None or \
+            const._create_rule(self):
+            self._exec(schema.AddConstraint(const))
 
     def drop_constraint(self, const):
         self._exec(schema.DropConstraint(const))

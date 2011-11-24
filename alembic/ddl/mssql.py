@@ -21,6 +21,34 @@ class MSSQLImpl(DefaultImpl):
             super(MSSQLImpl, self).bulk_insert(table, rows)
 
 
+    def drop_column(self, table_name, column, **kw):
+        drop_default = kw.pop('mssql_drop_default', False)
+        if drop_default:
+            self._exec(
+                _exec_drop_col_constraint(table_name, column, 'sys.default_constraints')
+            )
+        drop_check = kw.pop('mssql_drop_check', False)
+        if drop_check:
+            self._exec(
+                _exec_drop_col_constraint(table_name, column, 'sys.check_constraints')
+            )
+        super(MSSQLImpl, self).drop_column(table_name, column)
+
+
+def _exec_drop_col_constraint(tname, colname, type_):
+    # from http://www.mssqltips.com/sqlservertip/1425/working-with-default-constraints-in-sql-server/
+    # TODO: needs table formatting, etc.
+    return """declare @const_name varchar(256)
+select @const_name = [name] from %(type)s
+where parent_object_id = object_id('%(tname)s')
+and col_name(parent_object_id, parent_column_id) = '%(colname)s'
+exec('alter table %(tname)s drop constraint ' + @const_name)""" % {
+        'type':type_,
+        'tname':tname,
+        'colname':colname
+    }
+
+
 @compiles(AddColumn, 'mssql')
 def visit_add_column(element, compiler, **kw):
     return "%s %s" % (
@@ -39,3 +67,5 @@ def visit_rename_column(element, compiler, **kw):
         format_column_name(compiler, element.column_name),
         format_column_name(compiler, element.newname)
     )
+
+

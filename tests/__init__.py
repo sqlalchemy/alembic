@@ -101,6 +101,15 @@ def _op_fixture(dialect='default', as_sql=False):
             # whitespace and such
             eq_(self.impl.assertion, list(sql))
 
+        def assert_contains(self, sql):
+            for stmt in self.impl.assertion:
+                if sql in stmt:
+                    return
+            else:
+                assert False, "Could not locate fragment %r in %r" % (
+                    sql,
+                    self.impl.assertion
+                )
     return ctx(dialect, as_sql)
 
 def _sqlite_testing_config():

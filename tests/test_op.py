@@ -3,7 +3,8 @@
 from tests import _op_fixture
 from alembic import op
 from sqlalchemy import Integer, Column, ForeignKey, \
-            UniqueConstraint, Table, MetaData, String
+            UniqueConstraint, Table, MetaData, String,\
+            Boolean
 from sqlalchemy.sql import table
 
 def test_add_column():
@@ -22,6 +23,24 @@ def test_add_column_fk():
     context.assert_(
         "ALTER TABLE t1 ADD COLUMN c1 INTEGER NOT NULL",
         "ALTER TABLE t1 ADD FOREIGN KEY(c1) REFERENCES c2 (id)"
+    )
+
+def test_add_column_schema_type():
+    """Test that a schema type generates its constraints...."""
+    context = _op_fixture()
+    op.add_column('t1', Column('c1', Boolean, nullable=False))
+    context.assert_(
+        'ALTER TABLE t1 ADD COLUMN c1 BOOLEAN NOT NULL', 
+        'ALTER TABLE t1 ADD CHECK (c1 IN (0, 1))'
+    )
+
+def test_add_column_schema_type_checks_rule():
+    """Test that a schema type doesn't generate a 
+    constraint based on check rule."""
+    context = _op_fixture('postgresql')
+    op.add_column('t1', Column('c1', Boolean, nullable=False))
+    context.assert_(
+        'ALTER TABLE t1 ADD COLUMN c1 BOOLEAN NOT NULL', 
     )
 
 def test_add_column_fk_self_referential():
