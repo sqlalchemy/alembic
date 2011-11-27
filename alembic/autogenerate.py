@@ -1,7 +1,7 @@
 """Provide the 'autogenerate' feature which can produce migration operations
 automatically."""
 
-from alembic.context import _context_opts
+from alembic.context import _context_opts, get_bind
 from alembic import util
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy import types as sqltypes, schema
@@ -33,17 +33,21 @@ def _set_downgrade(template_args, text):
 
 def _produce_net_changes(connection, metadata, diffs):
     inspector = Inspector.from_engine(connection)
-    conn_table_names = set(inspector.get_table_names())
+    # TODO: not hardcode alembic_version here ?
+    conn_table_names = set(inspector.get_table_names()).\
+                            difference(['alembic_version'])
     metadata_table_names = set(metadata.tables)
 
     diffs.extend(
-        ("upgrade_table", metadata.tables[tname])
+        ("add_table", metadata.tables[tname])
         for tname in metadata_table_names.difference(conn_table_names)
     )
-    diffs.extend(
-        ("downgrade_table", tname)
-        for tname in conn_table_names.difference(metadata_table_names)
-    )
+
+    removal_metadata = schema.MetaData()
+    for tname in conn_table_names.difference(metadata_table_names):
+        t = schema.Table(tname, removal_metadata)
+        inspector.reflecttable(t, None)
+        diffs.append(("remove_table", t))
 
     existing_tables = conn_table_names.intersection(metadata_table_names)
 
@@ -77,11 +81,11 @@ def _compare_columns(tname, conn_table, metadata_table, diffs):
     metadata_col_names = set(metadata_cols_by_name)
 
     diffs.extend(
-        ("upgrade_column", tname, metadata_cols_by_name[cname])
+        ("add_column", tname, metadata_cols_by_name[cname])
         for cname in metadata_col_names.difference(conn_col_names)
     )
     diffs.extend(
-        ("downgrade_column", tname, cname)
+        ("remove_column", tname, cname)
         for cname in conn_col_names.difference(metadata_col_names)
     )
 
@@ -103,8 +107,8 @@ def _compare_nullable(tname, cname, conn_col_nullable,
                             metadata_col_nullable, diffs):
     if conn_col_nullable is not metadata_col_nullable:
         diffs.extend([
-            ("upgrade_nullable", tname, cname, metadata_col_nullable),
-            ("downgrade_nullable", tname, cname, conn_col_nullable)
+            ("modify_nullable", tname, cname, conn_col_nullable, 
+                metadata_col_nullable),
         ])
 
 def _compare_type(tname, cname, conn_type, metadata_type, diffs):
@@ -117,8 +121,7 @@ def _compare_type(tname, cname, conn_type, metadata_type, diffs):
 
     if isdiff:
         diffs.extend([
-            ("upgrade_type", tname, cname, metadata_type),
-            ("downgrade_type", tname, cname, conn_type)
+            ("modify_type", tname, cname, conn_type, metadata_type),
         ])
 
 def _string_compare(t1, t2):
@@ -145,18 +148,20 @@ _type_comparators = {
 # render python
 
 def _produce_upgrade_commands(diffs):
+    buf = []
     for diff in diffs:
-        if diff.startswith('upgrade_'):
-            cmd = _commands[diff[0]]
-            cmd(*diff[1:])
+        cmd = _commands[diff[0]]
+        buf.append(cmd(*diff[1:]))
+    return "\n".join(buf)
 
 def _produce_downgrade_commands(diffs):
+    buf = []
     for diff in diffs:
-        if diff.startswith('downgrade_'):
-            cmd = _commands[diff[0]]
-            cmd(*diff[1:])
+        cmd = _commands[diff[0]]
+        buf.append(cmd(*diff[1:]))
+    return "\n".join(buf)
 
-def _upgrade_table(table):
+def _add_table(table):
     return \
 """create_table(%(tablename)r, 
         %(args)s
@@ -164,7 +169,7 @@ def _upgrade_table(table):
 """ % {
         'tablename':table.name,
         'args':',\n'.join(
-            [_render_col(col) for col in table.c] +
+            [_render_column(col) for col in table.c] +
             sorted([rcons for rcons in 
                 [_render_constraint(cons) for cons in 
                     table.constraints]
@@ -173,43 +178,31 @@ def _upgrade_table(table):
         ),
     }
 
-def _downgrade_table(tname):
+def _drop_table(tname):
     return "drop_table(%r)" % tname
 
-def _upgrade_column(tname, column):
+def _add_column(tname, column):
     return "add_column(%r, %s)" % (
             tname, 
             _render_column(column))
 
-def _downgrade_column(tname, cname):
+def _drop_column(tname, cname):
     return "drop_column(%r, %r)" % (tname, cname)
 
-def _up_or_downgrade_type(tname, cname, type_):
+def _modify_type(tname, cname, type_):
     return "alter_column(%r, %r, type=%r)" % (
         tname, cname, type_
     )
 
-def _up_or_downgrade_nullable(tname, cname, nullable):
+def _modify_nullable(tname, cname, nullable):
     return "alter_column(%r, %r, nullable=%r)" % (
         tname, cname, nullable
     )
 
 _commands = {
-    'upgrade_table':_upgrade_table,
-    'downgrade_table':_downgrade_table,
-
-    'upgrade_column':_upgrade_column,
-    'downgrade_column':_downgrade_column,
-
-    'upgrade_type':_up_or_downgrade_type,
-    'downgrde_type':_up_or_downgrade_type,
-
-    'upgrade_nullable':_up_or_downgrade_nullable,
-    'downgrade_nullable':_up_or_downgrade_nullable,
-
 }
 
-def _render_col(column):
+def _render_column(column):
     opts = []
     if column.server_default:
         opts.append(("server_default", column.server_default))

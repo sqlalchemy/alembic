@@ -7,3 +7,4 @@ syntax:regexp
 .egg-info
 .coverage
 alembic.ini
+local_test
