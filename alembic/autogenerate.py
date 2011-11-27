@@ -223,9 +223,12 @@ def _drop_column(tname, column):
     return "drop_column(%r, %r)" % (tname, column.name)
 
 def _modify_type(tname, cname, type_):
-    return "alter_column(%r, %r, type=%r)" % (
-        tname, cname, type_
-    )
+    return "alter_column(%(tname)r, %(cname)r, type=%(prefix)s%(type)r)" % {
+        'prefix':_autogenerate_prefix(),
+        'tname':tname, 
+        'cname':cname, 
+        'type':type_
+    }
 
 def _modify_nullable(tname, cname, nullable):
     return "alter_column(%r, %r, nullable=%r)" % (
