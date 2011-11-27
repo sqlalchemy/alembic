@@ -180,7 +180,7 @@ class ScriptDirectory(object):
                     shutil.copy, 
                     src, dest)
 
-    def generate_rev(self, revid, message, **kw):
+    def generate_rev(self, revid, message, refresh=False, **kw):
         current_head = self._current_head()
         path = self._rev_path(revid)
         self.generate_template(
@@ -192,12 +192,16 @@ class ScriptDirectory(object):
             message=message if message is not None else ("empty message"),
             **kw
         )
-        script = Script.from_path(path)
-        self._revision_map[script.revision] = script
-        if script.down_revision:
-            self._revision_map[script.down_revision].\
-                    add_nextrev(script.revision)
-        return script
+        if refresh:
+            script = Script.from_path(path)
+            self._revision_map[script.revision] = script
+            if script.down_revision:
+                self._revision_map[script.down_revision].\
+                        add_nextrev(script.revision)
+            return script
+        else:
+            return revid
+
 
 class Script(object):
     """Represent a single revision file in a ``versions/`` directory."""

@@ -10,6 +10,7 @@ Create Date: ${create_date}
 down_revision = ${repr(down_revision)}
 
 from alembic.op import *
+import sqlalchemy as sa
 
 def upgrade(engine):
     eval("upgrade_%s" % engine.name)()

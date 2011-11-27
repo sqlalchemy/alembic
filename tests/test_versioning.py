@@ -10,7 +10,7 @@ def test_001_revisions():
     c = util.rev_id()
 
     script = ScriptDirectory.from_config(cfg)
-    script.generate_rev(a, None)
+    script.generate_rev(a, None, refresh=True)
     script.write(a, """
 down_revision = None
 
@@ -24,7 +24,7 @@ def downgrade():
 
 """)
 
-    script.generate_rev(b, None)
+    script.generate_rev(b, None, refresh=True)
     script.write(b, """
 down_revision = '%s'
 
@@ -38,7 +38,7 @@ def downgrade():
 
 """ % a)
 
-    script.generate_rev(c, None)
+    script.generate_rev(c, None, refresh=True)
     script.write(c, """
 down_revision = '%s'
 

@@ -6,11 +6,11 @@ def setup():
     global env
     env = staging_env()
     global a, b, c, d, e
-    a = env.generate_rev(util.rev_id(), None)
-    b = env.generate_rev(util.rev_id(), None)
-    c = env.generate_rev(util.rev_id(), None)
-    d = env.generate_rev(util.rev_id(), None)
-    e = env.generate_rev(util.rev_id(), None)
+    a = env.generate_rev(util.rev_id(), None, refresh=True)
+    b = env.generate_rev(util.rev_id(), None, refresh=True)
+    c = env.generate_rev(util.rev_id(), None, refresh=True)
+    d = env.generate_rev(util.rev_id(), None, refresh=True)
+    e = env.generate_rev(util.rev_id(), None, refresh=True)
 
 def teardown():
     clear_staging_env()

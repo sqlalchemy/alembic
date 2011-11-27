@@ -149,7 +149,7 @@ _context = None
 _script = None
 
 def _opts(cfg, script, **kw):
-    """Set up options that will be used by the :func:`.configure_connection`
+    """Set up options that will be used by the :func:`.configure`
     function.
     
     This basically sets some global variables.
@@ -263,7 +263,8 @@ def configure(
         tag=None,
         autogenerate_metadata=None,
         upgrade_token="upgrades",
-        downgrade_token="downgrades"
+        downgrade_token="downgrades",
+        autogenerate_sqlalchemy_prefix="sa.",
     ):
     """Configure the migration environment.
     
@@ -311,6 +312,10 @@ def configure(
     :param downgrade_token: when running "alembic revision" with the ``--autogenerate``
      option, the text of the candidate downgrade operations will be present in this
      template variable when script.py.mako is rendered.
+    :param autogenerate_sqlalchemy_prefix: When autogenerate refers to SQLAlchemy 
+     :class:`~sqlalchemy.schema.Column` or type classes, this prefix will be used
+     (i.e. ``sa.Column("somename", sa.Integer)``)
+     
     """
 
     if connection:
@@ -339,6 +344,7 @@ def configure(
     opts['autogenerate_metadata'] = autogenerate_metadata
     opts['upgrade_token'] = upgrade_token
     opts['downgrade_token'] = downgrade_token
+    opts['autogenerate_sqlalchemy_prefix'] = autogenerate_sqlalchemy_prefix
     _context = Context(
                         dialect, _script, connection, 
                         opts['fn'],

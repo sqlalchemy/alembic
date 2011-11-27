@@ -2,7 +2,7 @@ from sqlalchemy.engine import url, default
 import shutil
 import os
 import itertools
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, text, MetaData
 from alembic import context, util
 import re
 from alembic.script import ScriptDirectory
@@ -218,7 +218,9 @@ def staging_env(create=True, template="generic"):
     cfg = _testing_config()
     if create:
         command.init(cfg, os.path.join(staging_directory, 'scripts'))
-    return script.ScriptDirectory.from_config(cfg)
+    sc = script.ScriptDirectory.from_config(cfg)
+    context._opts(cfg,sc, fn=lambda:None)
+    return sc
 
 def clear_staging_env():
     shutil.rmtree(staging_directory, True)
@@ -230,7 +232,7 @@ def three_rev_fixture(cfg):
     c = util.rev_id()
 
     script = ScriptDirectory.from_config(cfg)
-    script.generate_rev(a, None)
+    script.generate_rev(a, None, refresh=True)
     script.write(a, """
 down_revision = None
 
@@ -244,7 +246,7 @@ def downgrade():
 
 """)
 
-    script.generate_rev(b, None)
+    script.generate_rev(b, None, refresh=True)
     script.write(b, """
 down_revision = '%s'
 
@@ -258,7 +260,7 @@ def downgrade():
 
 """ % a)
 
-    script.generate_rev(c, None)
+    script.generate_rev(c, None, refresh=True)
     script.write(c, """
 down_revision = '%s'
 
