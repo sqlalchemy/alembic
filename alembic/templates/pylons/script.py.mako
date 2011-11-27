@@ -12,7 +12,7 @@ down_revision = ${repr(down_revision)}
 from alembic.op import *
 
 def upgrade():
-    pass
+    ${upgrades if upgrades else "pass"}
 
 def downgrade():
-    pass
+    ${downgrades if downgrades else "pass"}

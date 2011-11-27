@@ -137,6 +137,12 @@ def main(argv):
                             type=str,
                             help="Arbitrary 'tag' name - can be used by "
                             "custom env.py scripts.")
+        if 'autogenerate' in kwargs:
+            parser.add_argument("--autogenerate",
+                            action="store_true",
+                            help="Populate revision script with candidate "
+                            "migration operations, based on comparison of database to model.")
+
 
         # TODO:
         # --dialect - name of dialect when --sql mode is set - *no DB connections

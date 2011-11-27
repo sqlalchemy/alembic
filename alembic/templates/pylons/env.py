@@ -23,6 +23,12 @@ except:
 # customize this section for non-standard engine configurations.
 meta = __import__("%s.model.meta" % config['pylons.package']).model.meta
 
+# add your model's MetaData object here
+# for 'autogenerate' support
+# from myapp import mymodel
+# autogenerate_metadata = mymodel.Base.metadata
+autogenerate_metadata = None
+
 def run_migrations_offline():
     """Run migrations in 'offline' mode.
 
@@ -47,7 +53,10 @@ def run_migrations_online():
     
     """
     connection = meta.engine.connect()
-    context.configure_connection(connection)
+    context.configure(
+                connection=connection,
+                autogenerate_metadata=autogenerate_metadata
+                )
     trans = connection.begin()
     try:
         context.run_migrations()

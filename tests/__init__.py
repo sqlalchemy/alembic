@@ -48,6 +48,13 @@ def capture_context_buffer():
 
     return capture()
 
+def eq_ignore_whitespace(a, b, msg=None):
+    a = re.sub(r'^\s+?|\n', "", a)
+    a = re.sub(r' {2,}', " ", a)
+    b = re.sub(r'^\s+?|\n', "", b)
+    b = re.sub(r' {2,}', " ", b)
+    assert a == b, msg or "%r != %r" % (a, b)
+
 def eq_(a, b, msg=None):
     """Assert a == b, with repr messaging on failure."""
     assert a == b, msg or "%r != %r" % (a, b)
@@ -112,10 +119,24 @@ def _op_fixture(dialect='default', as_sql=False):
                 )
     return ctx(dialect, as_sql)
 
-def _sqlite_testing_config():
-    cfg = _testing_config()
+def _env_file_fixture(txt):
     dir_ = os.path.join(staging_directory, 'scripts')
-    open(cfg.config_file_name, 'w').write("""
+    txt = """
+from alembic import context
+
+config = context.config
+""" + txt
+
+    path = os.path.join(dir_, "env.py")
+    pyc_path = util.pyc_file_from_path(path)
+    if os.access(pyc_path, os.F_OK):
+        os.unlink(pyc_path)
+
+    file(path, 'w').write(txt)
+
+def _sqlite_testing_config():
+    dir_ = os.path.join(staging_directory, 'scripts')
+    return _write_config_file("""
 [alembic]
 script_location = %s
 sqlalchemy.url = sqlite:///%s/foo.db
@@ -144,29 +165,12 @@ keys = generic
 format = %%(levelname)-5.5s [%%(name)s] %%(message)s
 datefmt = %%H:%%M:%%S
     """ % (dir_, dir_))
-    return cfg
-
-def _env_file_fixture(txt):
-    dir_ = os.path.join(staging_directory, 'scripts')
-    txt = """
-from alembic import context
-
-config = context.config
-""" + txt
-
-    path = os.path.join(dir_, "env.py")
-    pyc_path = util.pyc_file_from_path(path)
-    if os.access(pyc_path, os.F_OK):
-        os.unlink(pyc_path)
-
-    file(path, 'w').write(txt)
 
 
 def _no_sql_testing_config():
     """use a postgresql url with no host so that connections guaranteed to fail"""
-    cfg = _testing_config()
     dir_ = os.path.join(staging_directory, 'scripts')
-    open(cfg.config_file_name, 'w').write("""
+    return _write_config_file("""
 [alembic]
 script_location = %s
 sqlalchemy.url = postgresql://
@@ -196,6 +200,10 @@ format = %%(levelname)-5.5s [%%(name)s] %%(message)s
 datefmt = %%H:%%M:%%S
 
 """ % (dir_))
+
+def _write_config_file(text):
+    cfg = _testing_config()
+    open(cfg.config_file_name, 'w').write(text)
     return cfg
 
 def sqlite_db():
@@ -205,7 +213,7 @@ def sqlite_db():
     dir_ = os.path.join(staging_directory, 'scripts')
     return create_engine('sqlite:///%s/foo.db' % dir_)
 
-def staging_env(create=True):
+def staging_env(create=True, template="generic"):
     from alembic import command, script
     cfg = _testing_config()
     if create:

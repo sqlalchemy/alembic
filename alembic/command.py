@@ -1,5 +1,5 @@
 from alembic.script import ScriptDirectory
-from alembic import util, ddl, context
+from alembic import util, ddl, context, autogenerate as autogen
 import os
 import functools
 
@@ -59,11 +59,26 @@ def init(config, directory, template='generic'):
     util.msg("Please edit configuration/connection/logging "\
             "settings in %r before proceeding." % config_file)
 
-def revision(config, message=None):
+def revision(config, message=None, autogenerate=False):
     """Create a new revision file."""
 
     script = ScriptDirectory.from_config(config)
-    script.generate_rev(util.rev_id(), message)
+    template_args = {}
+    if autogenerate:
+        def retrieve_migrations(rev):
+            if script._get_rev(rev) is not script._get_rev("head"):
+                raise util.CommandError("Target database is not up to date.")
+            autogen.produce_migration_diffs(template_args)
+            return []
+
+        context._opts(
+            config,
+            script,
+            fn = retrieve_migrations
+        )
+        script.run_env()
+    script.generate_rev(util.rev_id(), message, **template_args)
+
 
 def upgrade(config, revision, sql=False, tag=None):
     """Upgrade to a later version."""

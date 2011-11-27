@@ -180,7 +180,7 @@ class ScriptDirectory(object):
                     shutil.copy, 
                     src, dest)
 
-    def generate_rev(self, revid, message):
+    def generate_rev(self, revid, message, **kw):
         current_head = self._current_head()
         path = self._rev_path(revid)
         self.generate_template(
@@ -189,7 +189,8 @@ class ScriptDirectory(object):
             up_revision=str(revid),
             down_revision=current_head,
             create_date=datetime.datetime.now(),
-            message=message if message is not None else ("empty message")
+            message=message if message is not None else ("empty message"),
+            **kw
         )
         script = Script.from_path(path)
         self._revision_map[script.revision] = script

@@ -260,7 +260,10 @@ def configure(
         transactional_ddl=None,
         output_buffer=None,
         starting_rev=None,
-        tag=None
+        tag=None,
+        autogenerate_metadata=None,
+        upgrade_token="upgrades",
+        downgrade_token="downgrades"
     ):
     """Configure the migration environment.
     
@@ -297,7 +300,17 @@ def configure(
      ``--sql`` mode.
     :param tag: a string tag for usage by custom ``env.py`` scripts.  Set via
      the ``--tag`` option, can be overridden here.
-     
+    :param autogenerate_metadata: a :class:`sqlalchemy.schema.MetaData` object that
+     will be consulted if the ``--autogenerate`` option is passed to the 
+     "alembic revision" command.  The tables present will be compared against
+     what is locally available on the target :class:`~sqlalchemy.engine.base.Connection`
+     to produce candidate upgrade/downgrade operations.
+    :param upgrade_token: when running "alembic revision" with the ``--autogenerate``
+     option, the text of the candidate upgrade operations will be present in this
+     template variable when script.py.mako is rendered.
+    :param downgrade_token: when running "alembic revision" with the ``--autogenerate``
+     option, the text of the candidate downgrade operations will be present in this
+     template variable when script.py.mako is rendered.
     """
 
     if connection:
@@ -323,6 +336,9 @@ def configure(
         opts['starting_rev'] = starting_rev
     if tag:
         opts['tag'] = tag
+    opts['autogenerate_metadata'] = autogenerate_metadata
+    opts['upgrade_token'] = upgrade_token
+    opts['downgrade_token'] = downgrade_token
     _context = Context(
                         dialect, _script, connection, 
                         opts['fn'],

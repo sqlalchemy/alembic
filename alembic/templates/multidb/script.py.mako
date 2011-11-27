@@ -19,9 +19,11 @@ def downgrade(engine):
 
 
 % for engine in ["engine1", "engine2"]:
-    def upgrade_${engine}():
-        pass
 
-    def downgrade_${engine}():
-        pass
+def upgrade_${engine}():
+    ${context.get("%s_upgrades" % engine, "pass")}
+
+def downgrade_${engine}():
+    ${context.get("%s_downgrades" % engine, "pass")}
+
 % endfor

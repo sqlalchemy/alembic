@@ -9,8 +9,22 @@ import logging
 logging.fileConfig(options.config_file)
 
 # gather section names referring to different 
-# databases.
+# databases.  These are named "engine1", "engine2"
+# in the sample .ini file.
 db_names = options.get_main_option('databases')
+
+# add your model's MetaData objects here
+# for 'autogenerate' support.  These must be set 
+# up to hold just those tables targeting a 
+# particular database. table.tometadata() may be 
+# helpful here in case a "copy" of
+# a MetaData is needed.
+# from myapp import mymodel
+# autogenerate_metadata = {
+#       'engine1':mymodel.metadata1,
+#       'engine2':mymodel.metadata2
+#}
+autogenerate_metadata = {}
 
 def run_migrations_offline():
     """Run migrations in 'offline' mode.
@@ -71,7 +85,9 @@ def run_migrations_online():
         for name, rec in engines.items():
             context.configure(
                         connection=rec['connection'],
-                        dialect_name=rec['engine'].name
+                        upgrade_token="%s_upgrades",
+                        downgrade_token="%s_downgrades",
+                        autogenerate_metadata=autogenerate_metadata.get(name)
                     )
             context.execute("--running migrations for engine %s" % name)
             context.run_migrations(engine=name)
