@@ -36,6 +36,20 @@ def test_drop_column_w_check():
     context.assert_contains("exec('alter table t1 drop constraint ' + @const_name)")
     context.assert_contains("ALTER TABLE t1 DROP COLUMN c1")
 
+def test_alter_column_nullable():
+    context = _op_fixture('mssql')
+    op.alter_column("t", "c", nullable=True)
+    context.assert_(
+        "ALTER TABLE t ALTER COLUMN c NULL"
+    )
+
+def test_alter_column_not_nullable():
+    context = _op_fixture('mssql')
+    op.alter_column("t", "c", nullable=False)
+    context.assert_(
+        "ALTER TABLE t ALTER COLUMN c SET NOT NULL"
+    )
+
 # TODO: when we add schema support
 #def test_alter_column_rename_mssql_schema():
 #    context = _op_fixture('mssql')

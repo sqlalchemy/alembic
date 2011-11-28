@@ -80,7 +80,7 @@ def visit_column_nullable(element, compiler, **kw):
     return "%s %s %s" % (
         alter_table(compiler, element.table_name, element.schema),
         alter_column(compiler, element.column_name),
-        "NULL" if element.nullable else "SET NOT NULL"
+        "DROP NOT NULL" if element.nullable else "SET NOT NULL"
     )
 
 @compiles(ColumnType)

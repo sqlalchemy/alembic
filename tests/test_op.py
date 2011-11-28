@@ -70,8 +70,9 @@ def test_alter_column_nullable():
     context = _op_fixture()
     op.alter_column("t", "c", nullable=True)
     context.assert_(
-        # TODO: not sure if this is supposed to be SET NULL
-        "ALTER TABLE t ALTER COLUMN c NULL"
+        # TODO: not sure if this is PG only or standard 
+        # SQL
+        "ALTER TABLE t ALTER COLUMN c DROP NOT NULL"
     )
 
 def test_alter_column_not_nullable():

@@ -1,5 +1,5 @@
 from alembic.ddl.impl import DefaultImpl
-from alembic.ddl.base import alter_table, AddColumn, ColumnName, format_table_name, format_column_name
+from alembic.ddl.base import alter_table, AddColumn, ColumnName, format_table_name, format_column_name, ColumnNullable, alter_column
 from sqlalchemy.ext.compiler import compiles
 
 class MSSQLImpl(DefaultImpl):
@@ -58,6 +58,14 @@ def visit_add_column(element, compiler, **kw):
 
 def mssql_add_column(compiler, column, **kw):
     return "ADD %s" % compiler.get_column_specification(column, **kw)
+
+@compiles(ColumnNullable, 'mssql')
+def visit_column_nullable(element, compiler, **kw):
+    return "%s %s %s" % (
+        alter_table(compiler, element.table_name, element.schema),
+        alter_column(compiler, element.column_name),
+        "NULL" if element.nullable else "SET NOT NULL"
+    )
 
 
 @compiles(ColumnName, 'mssql')
