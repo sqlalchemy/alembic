@@ -14,7 +14,7 @@ log = logging.getLogger(__name__)
 # top level
 
 def produce_migration_diffs(template_args, imports):
-    metadata = _context_opts['autogenerate_metadata']
+    metadata = _context_opts['target_metadata']
     if metadata is None:
         raise util.CommandError(
                 "Can't proceed with --autogenerate option; environment "
@@ -347,7 +347,7 @@ def _modify_col(tname, cname,
     return text
 
 def _autogenerate_prefix():
-    return _context_opts['autogenerate_sqlalchemy_prefix'] or ''
+    return _context_opts['sqlalchemy_module_prefix'] or ''
 
 def _render_column(column, autogen_context):
     opts = []

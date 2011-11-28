@@ -375,20 +375,20 @@ has a `declarative base <http://www.sqlalchemy.org/docs/orm/extensions/declarati
 in ``myapp.mymodel``.  This base contains a :class:`~sqlalchemy.schema.MetaData` object which
 contains :class:`~sqlalchemy.schema.Table` objects defining our database.  We make sure this
 is loaded in ``env.py`` and then passed to :func:`.context.configure` via the
-``autogenerate_metadata`` argument.   The ``env.py`` sample script already has a 
+``target_metadata`` argument.   The ``env.py`` sample script already has a 
 variable declaration near the top for our convenience, where we replace ``None``
 with our :class:`~sqlalchemy.schema.MetaData`.  Starting with::
 
     # add your model's MetaData object here
     # for 'autogenerate' support
     # from myapp import mymodel
-    # autogenerate_metadata = mymodel.Base.metadata
-    autogenerate_metadata = None
+    # target_metadata = mymodel.Base.metadata
+    target_metadata = None
 
 we change to::
 
     from myapp.mymodel import Base
-    autogenerate_metadata = Base.metadata
+    target_metadata = Base.metadata
 
 If we look later in the script, down in ``run_migrations_online()``, 
 we can see the directive passed to :func:`.context.configure`::
@@ -400,7 +400,7 @@ we can see the directive passed to :func:`.context.configure`::
         connection = engine.connect()
         context.configure(
                     connection=connection, 
-                    autogenerate_metadata=autogenerate_metadata
+                    target_metadata=target_metadata
                     )
 
         trans = connection.begin()

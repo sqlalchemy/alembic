@@ -20,11 +20,11 @@ db_names = options.get_main_option('databases')
 # helpful here in case a "copy" of
 # a MetaData is needed.
 # from myapp import mymodel
-# autogenerate_metadata = {
+# target_metadata = {
 #       'engine1':mymodel.metadata1,
 #       'engine2':mymodel.metadata2
 #}
-autogenerate_metadata = {}
+target_metadata = {}
 
 def run_migrations_offline():
     """Run migrations in 'offline' mode.
@@ -87,7 +87,7 @@ def run_migrations_online():
                         connection=rec['connection'],
                         upgrade_token="%s_upgrades",
                         downgrade_token="%s_downgrades",
-                        autogenerate_metadata=autogenerate_metadata.get(name)
+                        target_metadata=target_metadata.get(name)
                     )
             context.execute("--running migrations for engine %s" % name)
             context.run_migrations(engine=name)

@@ -1,7 +1,7 @@
 from alembic import util
 from alembic.ddl import impl
 from alembic.context import get_impl, get_context
-from sqlalchemy.types import NULLTYPE
+from sqlalchemy.types import NULLTYPE, Integer
 from sqlalchemy import schema, sql
 
 __all__ = sorted([
@@ -18,6 +18,7 @@ __all__ = sorted([
             'bulk_insert',
             'rename_table',
             'create_unique_constraint', 
+            'create_check_constraint',
             'get_context',
             'get_bind',
             'execute'])
@@ -46,6 +47,13 @@ def _unique_constraint(name, source, local_cols, **kw):
     # is fired off here
     t.append_constraint(uq)
     return uq
+
+def _check_constraint(name, source, condition, **kw):
+    t = schema.Table(source, schema.MetaData(), 
+                schema.Column('x', Integer))
+    ck = schema.CheckConstraint(condition, name=name, **kw)
+    t.append_constraint(ck)
+    return ck
 
 def _table(name, *columns, **kw):
     m = schema.MetaData()
@@ -335,6 +343,46 @@ def create_unique_constraint(name, source, local_cols, **kw):
                 _unique_constraint(name, source, local_cols, 
                     **kw)
             )
+
+def create_check_constraint(name, source, condition, **kw):
+    """Issue a "create check constraint" instruction using the current change context.
+    
+    e.g.::
+    
+        from alembic.op import create_check_constraint
+        from sqlalchemy.sql import column, func
+        
+        create_check_constraint(
+            "ck_user_name_len",
+            "user", 
+            func.len(column('name')) > 5
+        )
+    
+    CHECK constraints are usually against a SQL expression, so ad-hoc
+    table metadata is usually needed.   The function will convert the given 
+    arguments into a :class:`sqlalchemy.schema.CheckConstraint` bound 
+    to an anonymous table in order to emit the CREATE statement.
+
+    :param name: Name of the check constraint.  The name is necessary
+     so that an ALTER statement can be emitted.  For setups that
+     use an automated naming scheme such as that described at
+     `NamingConventions <http://www.sqlalchemy.org/trac/wiki/UsageRecipes/NamingConventions>`_, 
+     ``name`` here can be ``None``, as the event listener will
+     apply the name to the constraint object when it is associated
+     with the table.
+    :param source: String name of the source table.  Currently
+     there is no support for dotted schema names.
+    :param condition: SQL expression that's the condition of the constraint.  
+     Can be a string or SQLAlchemy expression language structure.
+    :param deferrable: optional bool. If set, emit DEFERRABLE or NOT DEFERRABLE when
+     issuing DDL for this constraint.
+    :param initially: optional string. If set, emit INITIALLY <value> when issuing DDL
+     for this constraint.
+    
+    """
+    get_impl().add_constraint(
+        _check_constraint(name, source, condition, **kw)
+    )
 
 def create_table(name, *columns, **kw):
     """Issue a "create table" instruction using the current change context.

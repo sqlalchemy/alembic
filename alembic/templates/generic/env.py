@@ -13,8 +13,8 @@ fileConfig(config.config_file_name)
 # add your model's MetaData object here
 # for 'autogenerate' support
 # from myapp import mymodel
-# autogenerate_metadata = mymodel.Base.metadata
-autogenerate_metadata = None
+# target_metadata = mymodel.Base.metadata
+target_metadata = None
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -55,7 +55,7 @@ def run_migrations_online():
     connection = engine.connect()
     context.configure(
                 connection=connection, 
-                autogenerate_metadata=autogenerate_metadata
+                target_metadata=target_metadata
                 )
 
     trans = connection.begin()

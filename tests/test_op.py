@@ -5,7 +5,7 @@ from alembic import op
 from sqlalchemy import Integer, Column, ForeignKey, \
             UniqueConstraint, Table, MetaData, String,\
             Boolean
-from sqlalchemy.sql import table
+from sqlalchemy.sql import table, column, func
 
 def test_rename_table():
     context = _op_fixture()
@@ -129,6 +129,18 @@ def test_add_foreign_key():
     context.assert_(
         "ALTER TABLE t1 ADD CONSTRAINT fk_test FOREIGN KEY(foo, bar) "
             "REFERENCES t2 (bat, hoho)"
+    )
+
+def test_add_check_constraint():
+    context = _op_fixture()
+    op.create_check_constraint(
+        "ck_user_name_len",
+        "user_table",
+        func.len(column('name')) > 5
+    )
+    context.assert_(
+        "ALTER TABLE user_table ADD CONSTRAINT ck_user_name_len "
+        "CHECK (len(name) > 5)"
     )
 
 def test_add_unique_constraint():

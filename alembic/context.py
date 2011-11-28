@@ -309,12 +309,12 @@ def configure(
         output_buffer=None,
         starting_rev=None,
         tag=None,
-        autogenerate_metadata=None,
+        target_metadata=None,
         compare_type=False,
         compare_server_default=False,
         upgrade_token="upgrades",
         downgrade_token="downgrades",
-        autogenerate_sqlalchemy_prefix="sa.",
+        sqlalchemy_module_prefix="sa.",
     ):
     """Configure the migration environment.
 
@@ -351,11 +351,12 @@ def configure(
      ``--sql`` mode.
     :param tag: a string tag for usage by custom ``env.py`` scripts.  Set via
      the ``--tag`` option, can be overridden here.
-    :param autogenerate_metadata: a :class:`sqlalchemy.schema.MetaData` object that
+    :param target_metadata: a :class:`sqlalchemy.schema.MetaData` object that
      will be consulted if the ``--autogenerate`` option is passed to the 
      "alembic revision" command.  The tables present will be compared against
      what is locally available on the target :class:`~sqlalchemy.engine.base.Connection`
      to produce candidate upgrade/downgrade operations.
+     
     :param compare_type: Indicates type comparison behavior during an autogenerate
      operation.  Defaults to ``False`` which disables type comparison.  Set to 
      ``True`` to turn on default type comparison, which has varied accuracy depending
@@ -371,7 +372,12 @@ def configure(
             # False if not, or None to allow the default implementation
             # to compare these types
             pass
-
+    
+     ``inspected_column`` is a dictionary structure as returned by
+     :meth:`sqlalchemy.engine.reflection.Inspector.get_columns`, whereas
+     ``metadata_column`` is a :class:`sqlalchemy.schema.Column` from
+     the local model environment.
+     
      A return value of ``None`` indicates to allow default type comparison to
      proceed.
 
@@ -392,19 +398,29 @@ def configure(
             # to compare these defaults
             pass
 
+     ``inspected_column`` is a dictionary structure as returned by
+     :meth:`sqlalchemy.engine.reflection.Inspector.get_columns`, whereas
+     ``metadata_column`` is a :class:`sqlalchemy.schema.Column` from
+     the local model environment.
+
      A return value of ``None`` indicates to allow default server default comparison 
      to proceed.  Note that some backends such as Postgresql actually execute
      the two defaults on the database side to compare for equivalence.
 
     :param upgrade_token: when running "alembic revision" with the ``--autogenerate``
      option, the text of the candidate upgrade operations will be present in this
-     template variable when script.py.mako is rendered.
+     template variable when ``script.py.mako`` is rendered.  Defaults to ``upgrades``.
     :param downgrade_token: when running "alembic revision" with the ``--autogenerate``
      option, the text of the candidate downgrade operations will be present in this
-     template variable when script.py.mako is rendered.
-    :param autogenerate_sqlalchemy_prefix: When autogenerate refers to SQLAlchemy 
+     template variable when ``script.py.mako`` is rendered.  Defaults to ``downgrades``.
+     
+    :param sqlalchemy_module_prefix: When autogenerate refers to SQLAlchemy 
      :class:`~sqlalchemy.schema.Column` or type classes, this prefix will be used
-     (i.e. ``sa.Column("somename", sa.Integer)``)
+     (i.e. ``sa.Column("somename", sa.Integer)``)  Defaults to "``sa.``".
+     Can be ``None`` to indicate no prefix.  
+     Note that when dialect-specific types are rendered, autogenerate
+     will render them using the dialect module name, i.e. ``mssql.BIT()``, 
+     ``postgresql.UUID()``.
 
     """
 
@@ -431,10 +447,10 @@ def configure(
         opts['starting_rev'] = starting_rev
     if tag:
         opts['tag'] = tag
-    opts['autogenerate_metadata'] = autogenerate_metadata
+    opts['target_metadata'] = target_metadata
     opts['upgrade_token'] = upgrade_token
     opts['downgrade_token'] = downgrade_token
-    opts['autogenerate_sqlalchemy_prefix'] = autogenerate_sqlalchemy_prefix
+    opts['sqlalchemy_module_prefix'] = sqlalchemy_module_prefix
     _context = Context(
                         dialect, _script, connection, 
                         opts['fn'],
