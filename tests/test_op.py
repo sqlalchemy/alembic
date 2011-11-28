@@ -7,6 +7,16 @@ from sqlalchemy import Integer, Column, ForeignKey, \
             Boolean
 from sqlalchemy.sql import table
 
+def test_rename_table():
+    context = _op_fixture()
+    op.rename_table('t1', 't2')
+    context.assert_("ALTER TABLE t1 RENAME TO t2")
+
+def test_rename_table_schema():
+    context = _op_fixture()
+    op.rename_table('t1', 't2', schema="foo")
+    context.assert_("ALTER TABLE foo.t1 RENAME TO foo.t2")
+
 def test_add_column():
     context = _op_fixture()
     op.add_column('t1', Column('c1', Integer, nullable=False))
@@ -78,6 +88,37 @@ def test_alter_column_rename():
     op.alter_column("t", "c", name="x")
     context.assert_(
         "ALTER TABLE t RENAME c TO x"
+    )
+
+def test_alter_column_type():
+    context = _op_fixture()
+    op.alter_column("t", "c", type_=String(50))
+    context.assert_(
+        'ALTER TABLE t ALTER COLUMN c TYPE VARCHAR(50)'
+    )
+
+def test_alter_column_schema_type_unnamed():
+    context = _op_fixture('mssql')
+    op.alter_column("t", "c", type_=Boolean())
+    context.assert_(
+        'ALTER TABLE t ALTER COLUMN c TYPE BIT',
+        'ALTER TABLE t ADD CHECK (c IN (0, 1))'
+    )
+
+def test_alter_column_schema_type_named():
+    context = _op_fixture('mssql')
+    op.alter_column("t", "c", type_=Boolean(name="xyz"))
+    context.assert_(
+        'ALTER TABLE t ALTER COLUMN c TYPE BIT',
+        'ALTER TABLE t ADD CONSTRAINT xyz CHECK (c IN (0, 1))'
+    )
+
+def test_alter_column_schema_type_old_type():
+    context = _op_fixture('mssql')
+    op.alter_column("t", "c", type_=String(10), old_type=Boolean(name="xyz"))
+    context.assert_(
+        'ALTER TABLE t DROP CONSTRAINT xyz',
+        'ALTER TABLE t ALTER COLUMN c TYPE VARCHAR(10)'
     )
 
 def test_add_foreign_key():

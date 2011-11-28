@@ -18,6 +18,7 @@ __all__ = sorted([
             'create_index',
             'inline_literal',
             'bulk_insert',
+            'rename_table',
             'create_unique_constraint', 
             'get_context',
             'get_bind',
@@ -85,14 +86,59 @@ def _ensure_table_for_fk(metadata, fk):
         if not rel_t.c.contains_column(cname):
             rel_t.append_column(schema.Column(cname, NULLTYPE))
 
+def rename_table(old_table_name, new_table_name, schema=None):
+    """Emit an ALTER TABLE to rename a table.
+    
+    :param old_table_name: old name.
+    :param new_table_name: new name.
+    :param schema: Optional, name of schema to operate within.
+    
+    """
+    get_impl().rename_table(
+        old_table_name,
+        new_table_name,
+        schema=schema
+    )
 
 def alter_column(table_name, column_name, 
                     nullable=None,
                     server_default=False,
                     name=None,
-                    type_=None
+                    type_=None,
+                    old_type=None,
 ):
-    """Issue an "alter column" instruction using the current change context."""
+    """Issue an "alter column" instruction using the 
+    current change context.
+    
+    :param table_name: string name of the target table.
+    :param column_name: string name of the target column.
+    :param nullable: Optional; specify ``True`` or ``False``
+     to alter the column's nullability.
+    :param server_default: Optional; specify a string 
+     SQL expression, :func:`~sqlalchemy.sql.expression.text`,
+     or :class:`~sqlalchemy.schema.DefaultClause` to alter
+     the column's default value.
+    :param name: Optional; new string name for the column
+     to alter the column's name.
+    :param type_: Optional; a :class:`~sqlalchemy.types.TypeEngine`
+     type object to specify a change to the column's type.  
+     For SQLAlchemy types that also indicate a constraint (i.e. 
+     :class:`~sqlalchemy.types.Boolean`, :class:`~sqlalchemy.types.Enum`), 
+     the constraint is also generated.
+    :param old_type: Optional; a :class:`~sqlalchemy.types.TypeEngine`
+     type object to specify the previous type.  Currently this is used
+     if the "old" type is a SQLAlchemy type that also specifies a 
+     constraint (i.e. 
+     :class:`~sqlalchemy.types.Boolean`, :class:`~sqlalchemy.types.Enum`), 
+     so that the constraint can be dropped.
+     
+    """
+
+    if old_type:
+        t = _table(table_name, schema.Column(column_name, old_type))
+        for constraint in t.constraints:
+            if not isinstance(constraint, schema.PrimaryKeyConstraint):
+                get_impl().drop_constraint(constraint)
 
     get_impl().alter_column(table_name, column_name, 
         nullable=nullable,
@@ -100,6 +146,12 @@ def alter_column(table_name, column_name,
         name=name,
         type_=type_
     )
+
+    if type_:
+        t = _table(table_name, schema.Column(column_name, type_))
+        for constraint in t.constraints:
+            if not isinstance(constraint, schema.PrimaryKeyConstraint):
+                get_impl().add_constraint(constraint)
 
 def add_column(table_name, column):
     """Issue an "add column" instruction using the current change context.

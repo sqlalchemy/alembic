@@ -101,6 +101,10 @@ class DefaultImpl(object):
     def drop_constraint(self, const):
         self._exec(schema.DropConstraint(const))
 
+    def rename_table(self, old_table_name, new_table_name, schema=None):
+        self._exec(base.RenameTable(old_table_name, 
+                    new_table_name, schema=schema))
+
     def create_table(self, table):
         self._exec(schema.CreateTable(table))
         for index in table.indexes:

@@ -13,6 +13,11 @@ class AlterTable(DDLElement):
         self.table_name = table_name
         self.schema = schema
 
+class RenameTable(AlterTable):
+    def __init__(self, old_table_name, new_table_name, schema=None):
+        super(RenameTable, self).__init__(old_table_name, schema=schema)
+        self.new_table_name = new_table_name
+
 class AlterColumn(AlterTable):
     def __init__(self, name, column_name, schema=None):
         super(AlterColumn, self).__init__(name, schema=schema)
@@ -48,6 +53,14 @@ class DropColumn(AlterTable):
         super(DropColumn, self).__init__(name, schema=schema)
         self.column = column
 
+
+@compiles(RenameTable)
+def visit_rename_table(element, compiler, **kw):
+    return "%s RENAME TO %s" % (
+        alter_table(compiler, element.table_name, element.schema),
+        format_table_name(compiler, element.new_table_name, element.schema)
+    )
+
 @compiles(AddColumn)
 def visit_add_column(element, compiler, **kw):
     return "%s %s" % (
@@ -68,6 +81,14 @@ def visit_column_nullable(element, compiler, **kw):
         alter_table(compiler, element.table_name, element.schema),
         alter_column(compiler, element.column_name),
         "NULL" if element.nullable else "SET NOT NULL"
+    )
+
+@compiles(ColumnType)
+def visit_column_type(element, compiler, **kw):
+    return "%s %s %s" % (
+        alter_table(compiler, element.table_name, element.schema),
+        alter_column(compiler, element.column_name),
+        "TYPE %s" % compiler.dialect.type_compiler.process(element.type_)
     )
 
 @compiles(ColumnName)

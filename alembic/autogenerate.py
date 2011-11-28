@@ -190,10 +190,10 @@ def _invoke_command(updown, args):
     else:
         if updown == "upgrade":
             return cmd_callables[0](
-                    cmd_args[0], cmd_args[1], cmd_args[3])
+                    cmd_args[0], cmd_args[1], cmd_args[3], cmd_args[2])
         else:
             return cmd_callables[0](
-                    cmd_args[0], cmd_args[1], cmd_args[2])
+                    cmd_args[0], cmd_args[1], cmd_args[2], cmd_args[3])
 
 ###################################################
 # render python
@@ -222,15 +222,17 @@ def _add_column(tname, column):
 def _drop_column(tname, column):
     return "drop_column(%r, %r)" % (tname, column.name)
 
-def _modify_type(tname, cname, type_):
-    return "alter_column(%(tname)r, %(cname)r, type=%(prefix)s%(type)r)" % {
+def _modify_type(tname, cname, type_, old_type):
+    return "alter_column(%(tname)r, %(cname)r, "\
+        "type=%(prefix)s%(type)r, old_type=%(prefix)s%(old_type)r)" % {
         'prefix':_autogenerate_prefix(),
         'tname':tname, 
         'cname':cname, 
-        'type':type_
+        'type':type_,
+        'old_type':old_type
     }
 
-def _modify_nullable(tname, cname, nullable):
+def _modify_nullable(tname, cname, nullable, previous):
     return "alter_column(%r, %r, nullable=%r)" % (
         tname, cname, nullable
     )

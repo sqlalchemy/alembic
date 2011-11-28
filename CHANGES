@@ -1,1 +1,86 @@
-0.1 initial release.
+0.1.0
+=====
+- Initial release.  Status of features:
+
+- Alembic is used in at least one production 
+  environment, but should still be considered 
+  alpha-level as of this release,
+  particularly in that many features are expected
+  to be missing / unimplemented.
+  The author asks that you *please* report all
+  issues, missing features, workarounds etc.
+  to the bugtracker, at 
+  https://bitbucket.org/zzzeek/alembic/issues/new .
+
+- Postgresql and MS SQL Server environments
+  have been tested for several weeks in a production
+  environment.  In particular, some involved workarounds
+  were implemented for automated dropping of columns
+  with SQL Server, which makes it extremely difficult
+  due to constraints, defaults being separate.
+
+  Other database environments not included among
+  those two have *not* been tested, *at all*.  This
+  includes MySQL, Firebird, Oracle, Sybase.   Adding
+  support for these backends is *very easy*, and
+  many directives may work already if they conform
+  to standard forms.   Please report all missing/
+  incorrect behaviors to the bugtracker! Patches
+  are welcome here but are optional - please just
+  indicate the exact format expected by the target
+  database.
+
+- SQLite, as a backend, has almost no support for 
+  schema alterations to existing databases.  The author
+  would strongly recommend that SQLite not be used in 
+  a migration context - just dump your SQLite database
+  into an intermediary format, then dump it back
+  into a new schema.  For dev environments, the 
+  dev installer should be building the whole DB from 
+  scratch.  Or just use Postgresql, which is a much
+  better database for non-trivial schemas.  
+  Requests for full ALTER support on SQLite should be 
+  reported to SQLite's bug tracker at 
+  http://www.sqlite.org/src/wiki?name=Bug+Reports.
+  Requests for "please have SQLite rename the table
+  to a temptable then copy the data into a new table"
+  will be closed.   Note that Alembic will at some
+  point offer an extensible API so that you can
+  implement commands like this yourself.
+
+- Well-tested directives include add/drop table, add/drop
+  column, including support for so-called "schema" 
+  types, types which generate additional CHECK 
+  constraints, i.e. Boolean, Enum.  Other directives not
+  included here have *not* been strongly tested
+  in production, i.e. rename table, etc.
+
+- Both "online" and "offline" migrations have been strongly
+  production tested against Postgresql and SQL Server.
+
+- Modify column type/boolean is not as fully covered.  
+  "Schema" types do add/drop the associated constraint
+  but this has not been widely tested, only in unit tests.
+
+- Many migrations are still outright missing, i.e.
+  create/add sequences, etc.  As a workaround, 
+  execute() can be used for those which are missing,
+  though posting of tickets for new features/missing
+  behaviors is strongly encouraged.
+
+- Autogenerate feature is implemented in a rudimentary
+  fashion.  It's covered by unit and integration tests
+  and has had some basic rudimentary testing.  The feature
+  has *not* been used in a production setting so is likely
+  missing lot of desirable behaviors.  The
+  autogenerate feature only generates "sample" commands
+  which must be hand-tailored in any case, so this only
+  impacts the usefulness of the command, not overall
+  stability.
+
+- Support for tables in remote schemas, 
+  i.e. "schemaname.tablename", is very poor.   
+  Missing "schema" behaviors should be 
+  reported as tickets, though in the author's
+  experience, migrations typically proceed only
+  within the default schema.
