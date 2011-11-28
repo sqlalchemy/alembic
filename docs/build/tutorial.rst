@@ -236,14 +236,12 @@ the ability to build the current database fully).
 
 We can then add some directives to our script, suppose adding a new table ``account``::
 
-    from sqlalchemy import Integer, String, Unicode, Column
-
     def upgrade():
         create_table(
             'account',
-            Column('id', Integer, primary_key=True),
-            Column('name', String(50), nullable=False),
-            Column('description', Unicode(200)),
+            sa.Column('id', sa.Integer, primary_key=True),
+            sa.Column('name', sa.String(50), nullable=False),
+            sa.Column('description', sa.Unicode(200)),
         )
 
     def downgrade():
@@ -307,10 +305,9 @@ Let's edit this file and add a new column to the ``account`` table::
 
     from alembic.op import *
     import sqlalchemy as sa
-    from sqlalchemy import DateTime, Column
 
     def upgrade():
-        add_column('account', Column('last_transaction_date', DateTime))
+        add_column('account', sa.Column('last_transaction_date', sa.DateTime))
 
     def downgrade():
         drop_column('account', 'last_transaction_date')
