@@ -103,7 +103,9 @@ def alter_column(table_name, column_name,
                     server_default=False,
                     name=None,
                     type_=None,
-                    old_type=None,
+                    existing_type=None,
+                    existing_server_default=False,
+                    existing_nullable=None,
 ):
     """Issue an "alter column" instruction using the 
     current change context.
@@ -123,17 +125,26 @@ def alter_column(table_name, column_name,
      For SQLAlchemy types that also indicate a constraint (i.e. 
      :class:`~sqlalchemy.types.Boolean`, :class:`~sqlalchemy.types.Enum`), 
      the constraint is also generated.
-    :param old_type: Optional; a :class:`~sqlalchemy.types.TypeEngine`
-     type object to specify the previous type.  Currently this is used
-     if the "old" type is a SQLAlchemy type that also specifies a 
+    :param existing_type: Optional; a :class:`~sqlalchemy.types.TypeEngine`
+     type object to specify the previous type.  This is required on
+     MySQL if ``type_`` is not given, as MySQL needs the type in 
+     order to alter the column.  It also is used if the "old" 
+     type is a SQLAlchemy type that also specifies a 
      constraint (i.e. 
      :class:`~sqlalchemy.types.Boolean`, :class:`~sqlalchemy.types.Enum`), 
      so that the constraint can be dropped.
-     
+    :param existing_server_default: Optional; If altering a
+     column which has a default value that shouldn't be changed,
+     specifies the existing server default.  This is only needed on 
+     MySQL, and ignored on other backends.
+    :param existing_nullable: Optional; If altering a
+     column which has a nullability that shouldn't be changed,
+     specifies the current setting.  This is only needed on 
+     MySQL, and ignored on other backends.
     """
 
-    if old_type:
-        t = _table(table_name, schema.Column(column_name, old_type))
+    if existing_type:
+        t = _table(table_name, schema.Column(column_name, existing_type))
         for constraint in t.constraints:
             if not isinstance(constraint, schema.PrimaryKeyConstraint):
                 get_impl().drop_constraint(constraint)
@@ -142,7 +153,10 @@ def alter_column(table_name, column_name,
         nullable=nullable,
         server_default=server_default,
         name=name,
-        type_=type_
+        type_=type_,
+        existing_type=existing_type,
+        existing_server_default=existing_server_default,
+        existing_nullable=existing_nullable,
     )
 
     if type_:

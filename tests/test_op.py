@@ -114,9 +114,9 @@ def test_alter_column_schema_type_named():
         'ALTER TABLE t ADD CONSTRAINT xyz CHECK (c IN (0, 1))'
     )
 
-def test_alter_column_schema_type_old_type():
+def test_alter_column_schema_type_existing_type():
     context = _op_fixture('mssql')
-    op.alter_column("t", "c", type_=String(10), old_type=Boolean(name="xyz"))
+    op.alter_column("t", "c", type_=String(10), existing_type=Boolean(name="xyz"))
     context.assert_(
         'ALTER TABLE t DROP CONSTRAINT xyz',
         'ALTER TABLE t ALTER COLUMN c TYPE VARCHAR(10)'

@@ -1,5 +1,6 @@
 from alembic.ddl.impl import DefaultImpl
-from alembic.ddl.base import alter_table, AddColumn, ColumnName, format_table_name, format_column_name, ColumnNullable, alter_column
+from alembic.ddl.base import alter_table, AddColumn, ColumnName, \
+    format_table_name, format_column_name, ColumnNullable, alter_column
 from sqlalchemy.ext.compiler import compiles
 
 class MSSQLImpl(DefaultImpl):

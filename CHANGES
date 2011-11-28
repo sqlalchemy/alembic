@@ -31,9 +31,13 @@
   of default- or constraint-holding columns with 
   SQL Server.
 
+- MySQL has been tested which also required 
+  blowing up a bunch of the API due to MySQL's
+  very silly migration syntax.
+
 - Other database environments not included among
-  those two have *not* been tested, *at all*.  This
-  includes MySQL, Firebird, Oracle, Sybase.   Adding
+  those three have *not* been tested, *at all*.  This
+  includes Firebird, Oracle, Sybase.   Adding
   support for these backends is *very easy*, and
   many directives may work already if they conform
   to standard forms.   Please report all missing/

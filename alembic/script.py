@@ -53,7 +53,20 @@ class ScriptDirectory(object):
         try:
             return self._revision_map[id_]
         except KeyError:
-            raise util.CommandError("No such revision %s" % id_)
+            # do a partial lookup
+            revs = [x for x in self._revision_map 
+                    if x is not None and x.startswith(id_)]
+            if not revs:
+                raise util.CommandError("No such revision '%s'" % id_)
+            elif len(revs) > 1:
+                raise util.CommandError(
+                            "Multiple revisions start "
+                            "with '%s', %s..." % (
+                                id_,
+                                ", ".join("'%s'" % r for r in revs[0:3])
+                            ))
+            else:
+                return self._revision_map[revs[0]]
 
     def _as_rev_number(self, id_):
         if id_ == 'head':

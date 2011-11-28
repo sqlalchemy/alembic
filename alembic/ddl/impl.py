@@ -67,24 +67,40 @@ class DefaultImpl(object):
                         name=None,
                         type_=None,
                         schema=None,
-    ):
+                        existing_type=None,
+                        existing_server_default=None,
+                        existing_nullable=None
+                    ):
 
         if nullable is not None:
             self._exec(base.ColumnNullable(table_name, column_name, 
-                                nullable, schema=schema))
+                                nullable, schema=schema,
+                                existing_type=existing_type,
+                                existing_server_default=existing_server_default,
+                                existing_nullable=existing_nullable,
+                                ))
         if server_default is not False:
             self._exec(base.ColumnDefault(
                                 table_name, column_name, server_default,
-                                schema=schema
+                                schema=schema,
+                                existing_type=existing_type,
+                                existing_server_default=existing_server_default,
+                                existing_nullable=existing_nullable,
                             ))
         if type_ is not None:
             self._exec(base.ColumnType(
-                                table_name, column_name, type_, schema=schema
+                                table_name, column_name, type_, schema=schema,
+                                existing_type=existing_type,
+                                existing_server_default=existing_server_default,
+                                existing_nullable=existing_nullable,
                             ))
         # do the new name last ;)
         if name is not None:
             self._exec(base.ColumnName(
-                                table_name, column_name, name, schema=schema
+                                table_name, column_name, name, schema=schema,
+                                existing_type=existing_type,
+                                existing_server_default=existing_server_default,
+                                existing_nullable=existing_nullable,
                             ))
 
     def add_column(self, table_name, column):
