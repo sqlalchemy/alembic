@@ -6,7 +6,10 @@
   environment, but should still be considered 
   ALPHA LEVEL SOFTWARE as of this release,
   particularly in that many features are expected
-  to be missing / unimplemented.
+  to be missing / unimplemented.   Major API
+  changes are not anticipated but for the moment
+  nothing should be assumed.
+
   The author asks that you *please* report all
   issues, missing features, workarounds etc.
   to the bugtracker, at 
@@ -15,8 +18,8 @@
 - Python 3 is supported but has not yet
   been tested.  The installer will run the 2to3
   tool as needed, but there are probably some 
-  small workarounds that will be needed to get
-  Py3K fully running.
+  workarounds that will be needed to get Py3K 
+  fully running.
 
 - The "Pylons" and "MultiDB" environment templates
   have not been directly tested - these should be 
@@ -31,16 +34,15 @@
   of default- or constraint-holding columns with 
   SQL Server.
 
-- MySQL has been tested which also required 
-  blowing up a bunch of the API due to MySQL's
-  very silly migration syntax.
+- MySQL support has also been implemented to a 
+  basic degree, including MySQL's awkward style
+  of modifying columns being accommodated.
 
 - Other database environments not included among
   those three have *not* been tested, *at all*.  This
   includes Firebird, Oracle, Sybase.   Adding
-  support for these backends is *very easy*, and
-  many directives may work already if they conform
-  to standard forms.   Please report all missing/
+  support for these backends should be 
+  straightforward.  Please report all missing/
   incorrect behaviors to the bugtracker! Patches
   are welcome here but are optional - please just
   indicate the exact format expected by the target
@@ -78,8 +80,8 @@
   Postgresql and SQL Server.
 
 - Modify column type, default status, nullable, is
-  functional and tested but not yet widely tested
-  in production usage.
+  functional and tested across PG, MSSQL, MySQL,
+  but not yet widely tested in production usage.
 
 - Many migrations are still outright missing, i.e.
   create/add sequences, etc.  As a workaround, 
@@ -87,15 +89,24 @@
   though posting of tickets for new features/missing
   behaviors is strongly encouraged.
 
-- Autogenerate feature is implemented in a rudimentary
-  fashion.  It's covered by unit and integration tests
-  and has had some basic testing.  The feature
-  has *not* been used in a production setting so is likely
-  missing lot of desirable behaviors.  The
-  autogenerate feature only generates "candidate" commands
-  which must be hand-tailored in any case, so this only
-  impacts the usefulness of the command, not overall
-  stability.   Please report missing/broken features
+- Autogenerate feature is implemented and has been 
+  tested, though only a little bit in a production setting.
+  In particular, detection of type and server 
+  default changes are optional and are off by default;
+  they can also be customized by a callable.
+  Both features work but can have surprises particularly
+  the disparity between BIT/TINYINT and boolean,
+  which hasn't yet been worked around, as well as 
+  format changes performed by the database on defaults
+  when it reports back.  When enabled, the PG dialect 
+  will execute the two defaults to be compared to 
+  see if they are equivalent.  Other backends may 
+  need to do the same thing.
+
+  The autogenerate feature only generates 
+  "candidate" commands which must be hand-tailored 
+  in any case, so is still a useful feature and 
+  is safe to use.  Please report missing/broken features
   of autogenerate!  This will be a great feature and
   will also improve SQLAlchemy's reflection services.
 
