@@ -18,14 +18,20 @@
   small workarounds that will be needed to get
   Py3K fully running.
 
+- The "Pylons" and "MultiDB" environment templates
+  have not been directly tested - these should be 
+  considered to be samples to be modified as
+  needed.   Multiple database support itself 
+  is well tested, however.
+
 - Postgresql and MS SQL Server environments
   have been tested for several weeks in a production
   environment.  In particular, some involved workarounds
-  were implemented for automated dropping of columns
-  with SQL Server, which makes it extremely difficult
-  due to constraints, defaults being separate.
+  were implemented to allow fully-automated dropping 
+  of default- or constraint-holding columns with 
+  SQL Server.
 
-  Other database environments not included among
+- Other database environments not included among
   those two have *not* been tested, *at all*.  This
   includes MySQL, Firebird, Oracle, Sybase.   Adding
   support for these backends is *very easy*, and
@@ -47,26 +53,29 @@
   better database for non-trivial schemas.  
   Requests for full ALTER support on SQLite should be 
   reported to SQLite's bug tracker at 
-  http://www.sqlite.org/src/wiki?name=Bug+Reports.
-  Requests for "please have SQLite rename the table
-  to a temptable then copy the data into a new table"
-  will be closed.   Note that Alembic will at some
-  point offer an extensible API so that you can
-  implement commands like this yourself.
+  http://www.sqlite.org/src/wiki?name=Bug+Reports,
+  as Alembic will not be implementing the
+  "rename the table to a temptable then copy the 
+  data into a new table" workaround.
+  Note that Alembic will at some point offer an 
+  extensible API so that you can implement commands 
+  like this yourself.
 
 - Well-tested directives include add/drop table, add/drop
-  column, including support for so-called "schema" 
-  types, types which generate additional CHECK 
+  column, including support for SQLAlchemy "schema" 
+  types which generate additional CHECK 
   constraints, i.e. Boolean, Enum.  Other directives not
   included here have *not* been strongly tested
   in production, i.e. rename table, etc.
 
-- Both "online" and "offline" migrations have been strongly
-  production tested against Postgresql and SQL Server.
+- Both "online" and "offline" migrations, the latter
+  being generated SQL scripts to hand off to a DBA,
+  have been strongly production tested against 
+  Postgresql and SQL Server.
 
-- Modify column type/boolean is not as fully covered.  
-  "Schema" types do add/drop the associated constraint
-  but this has not been widely tested, only in unit tests.
+- Modify column type, default status, nullable, is
+  functional and tested but not yet widely tested
+  in production usage.
 
 - Many migrations are still outright missing, i.e.
   create/add sequences, etc.  As a workaround, 
@@ -76,13 +85,15 @@
 
 - Autogenerate feature is implemented in a rudimentary
   fashion.  It's covered by unit and integration tests
-  and has had some basic rudimentary testing.  The feature
+  and has had some basic testing.  The feature
   has *not* been used in a production setting so is likely
   missing lot of desirable behaviors.  The
-  autogenerate feature only generates "sample" commands
+  autogenerate feature only generates "candidate" commands
   which must be hand-tailored in any case, so this only
   impacts the usefulness of the command, not overall
-  stability.
+  stability.   Please report missing/broken features
+  of autogenerate!  This will be a great feature and
+  will also improve SQLAlchemy's reflection services.
 
 - Support for non-ASCII table, column and constraint
   names is mostly nonexistent.   This is also a 
