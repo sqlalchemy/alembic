@@ -462,7 +462,7 @@ feature can currently detect:
 
 * Table additions, removals.
 * Column additions, removals
-* Change of column type, nullable status
+* Change of column type, nullable status, default value
 
 Autogenerate can *not* detect:
 

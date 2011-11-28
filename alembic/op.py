@@ -110,37 +110,60 @@ def alter_column(table_name, column_name,
     """Issue an "alter column" instruction using the 
     current change context.
     
+    Generally, only that aspect of the column which
+    is being changed, i.e. name, type, nullability,
+    default, needs to be specified.  Multiple changes
+    can also be specified at once and the backend should
+    "do the right thing", emitting each change either
+    separately or together as the backend allows.
+    
+    MySQL has special requirements here, since MySQL
+    cannot ALTER a column without a full specification.
+    When producing MySQL-compatible migration files,
+    it is recommended that the ``existing_type``,
+    ``existing_server_default``, and ``existing_nullable``
+    parameters be present, if not being altered.
+    
+    Type changes which are against the SQLAlchemy
+    "schema" types :class:`~sqlalchemy.types.Boolean`
+    and  :class:`~sqlalchemy.types.Enum` may also
+    add or drop constraints which accompany those
+    types on backends that don't support them natively.
+    The ``existing_server_default`` argument is 
+    used in this case as well to remove a previous
+    constraint.
+    
     :param table_name: string name of the target table.
     :param column_name: string name of the target column.
     :param nullable: Optional; specify ``True`` or ``False``
      to alter the column's nullability.
     :param server_default: Optional; specify a string 
      SQL expression, :func:`~sqlalchemy.sql.expression.text`,
-     or :class:`~sqlalchemy.schema.DefaultClause` to alter
-     the column's default value.
-    :param name: Optional; new string name for the column
-     to alter the column's name.
+     or :class:`~sqlalchemy.schema.DefaultClause` to indicate
+     an alteration to the column's default value.  
+     Set to ``None`` to have the default removed.
+    :param name: Optional; specify a string name here to
+     indicate a column rename operation.
     :param type_: Optional; a :class:`~sqlalchemy.types.TypeEngine`
      type object to specify a change to the column's type.  
      For SQLAlchemy types that also indicate a constraint (i.e. 
      :class:`~sqlalchemy.types.Boolean`, :class:`~sqlalchemy.types.Enum`), 
      the constraint is also generated.
     :param existing_type: Optional; a :class:`~sqlalchemy.types.TypeEngine`
-     type object to specify the previous type.  This is required on
-     MySQL if ``type_`` is not given, as MySQL needs the type in 
-     order to alter the column.  It also is used if the "old" 
-     type is a SQLAlchemy type that also specifies a 
-     constraint (i.e. 
+     type object to specify the previous type.   This
+     is required for all MySQL column alter operations that 
+     don't otherwise specify a new type.  It is also
+     used if the type is a so-called SQLlchemy "schema" type which
+     may define a constraint (i.e. 
      :class:`~sqlalchemy.types.Boolean`, :class:`~sqlalchemy.types.Enum`), 
      so that the constraint can be dropped.
-    :param existing_server_default: Optional; If altering a
-     column which has a default value that shouldn't be changed,
-     specifies the existing server default.  This is only needed on 
-     MySQL, and ignored on other backends.
-    :param existing_nullable: Optional; If altering a
-     column which has a nullability that shouldn't be changed,
-     specifies the current setting.  This is only needed on 
-     MySQL, and ignored on other backends.
+    :param existing_server_default: Optional; The existing
+     default value of the column.   Required on MySQL if 
+     an existing default is not being changed; else MySQL 
+     removes the default.
+    :param existing_nullable: Optional; the existing nullability
+     of the column.  Required on MySQL if the existing nullability
+     is not being changed; else MySQL sets this to NULL.
     """
 
     if existing_type:
