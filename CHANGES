@@ -4,13 +4,19 @@
 
 - Alembic is used in at least one production 
   environment, but should still be considered 
-  alpha-level as of this release,
+  ALPHA LEVEL SOFTWARE as of this release,
   particularly in that many features are expected
   to be missing / unimplemented.
   The author asks that you *please* report all
   issues, missing features, workarounds etc.
   to the bugtracker, at 
   https://bitbucket.org/zzzeek/alembic/issues/new .
+
+- Python 3 is supported but has not yet
+  been tested.  The installer will run the 2to3
+  tool as needed, but there are probably some 
+  small workarounds that will be needed to get
+  Py3K fully running.
 
 - Postgresql and MS SQL Server environments
   have been tested for several weeks in a production
