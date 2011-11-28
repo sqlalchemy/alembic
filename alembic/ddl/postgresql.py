@@ -20,7 +20,7 @@ class PostgresqlImpl(DefaultImpl):
         if metadata_column.type._type_affinity is not sqltypes.String:
             rendered_metadata_default = re.sub(r"^'|'$", "", rendered_metadata_default)
 
-        return not self.connection.execute(
+        return not self.connection.scalar(
             "SELECT %s = %s" % (
                 conn_col_default,
                 rendered_metadata_default

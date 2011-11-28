@@ -10,9 +10,42 @@ from alembic.context import Context
 from alembic import ddl
 import StringIO
 from alembic.ddl.impl import _impls
+import ConfigParser
+from nose import SkipTest
+from sqlalchemy.exc import SQLAlchemyError
 
 staging_directory = os.path.join(os.path.dirname(__file__), 'scratch')
 files_directory = os.path.join(os.path.dirname(__file__), 'files')
+
+testing_config = ConfigParser.ConfigParser()
+testing_config.read(['test.cfg'])
+
+def sqlite_db():
+    # sqlite caches table pragma info 
+    # per connection, so create a new
+    # engine for each assertion
+    dir_ = os.path.join(staging_directory, 'scripts')
+    return create_engine('sqlite:///%s/foo.db' % dir_)
+
+_engs = {}
+def db_for_dialect(name):
+    if name in _engs:
+        return _engs[name]
+    else:
+        try:
+            cfg = testing_config.get("db", name)
+        except ConfigParser.NoOptionError:
+            raise SkipTest("No dialect %r in test.cfg" % name)
+        try:
+            eng = create_engine(cfg, echo=True)
+        except ImportError, er1:
+            raise SkipTest("Can't import DBAPI: %s" % er1)
+        try:
+            conn = eng.connect()
+        except SQLAlchemyError, er2:
+            raise SkipTest("Can't connect to database: %s" % er2)
+        _engs[name] = eng
+        return eng
 
 _dialects = {}
 def _get_dialect(name):
@@ -77,7 +110,7 @@ def _testing_config():
         os.mkdir(staging_directory)
     return Config(os.path.join(staging_directory, 'test_alembic.ini'))
 
-def _op_fixture(dialect='default', as_sql=False):
+def op_fixture(dialect='default', as_sql=False):
     impl = _impls[dialect]
     class Impl(impl):
         def __init__(self, dialect, as_sql):
@@ -119,7 +152,7 @@ def _op_fixture(dialect='default', as_sql=False):
                 )
     return ctx(dialect, as_sql)
 
-def _env_file_fixture(txt):
+def env_file_fixture(txt):
     dir_ = os.path.join(staging_directory, 'scripts')
     txt = """
 from alembic import context
@@ -167,7 +200,7 @@ datefmt = %%H:%%M:%%S
     """ % (dir_, dir_))
 
 
-def _no_sql_testing_config():
+def no_sql_testing_config():
     """use a postgresql url with no host so that connections guaranteed to fail"""
     dir_ = os.path.join(staging_directory, 'scripts')
     return _write_config_file("""
@@ -206,12 +239,6 @@ def _write_config_file(text):
     open(cfg.config_file_name, 'w').write(text)
     return cfg
 
-def sqlite_db():
-    # sqlite caches table pragma info 
-    # per connection, so create a new
-    # engine for each assertion
-    dir_ = os.path.join(staging_directory, 'scripts')
-    return create_engine('sqlite:///%s/foo.db' % dir_)
 
 def staging_env(create=True, template="generic"):
     from alembic import command, script

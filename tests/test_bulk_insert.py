@@ -1,11 +1,11 @@
-from tests import _op_fixture
+from tests import op_fixture
 from alembic import op
 from sqlalchemy import Integer, \
             UniqueConstraint, String
 from sqlalchemy.sql import table, column
 
 def _test_bulk_insert(dialect, as_sql):
-    context = _op_fixture(dialect, as_sql)
+    context = op_fixture(dialect, as_sql)
     t1 = table("ins_table",
                 column('id', Integer),
                 column('v1', String()),
@@ -26,7 +26,7 @@ def test_bulk_insert():
     )
 
 def test_bulk_insert_wrong_cols():
-    context = _op_fixture('postgresql')
+    context = op_fixture('postgresql')
     t1 = table("ins_table", 
                 column('id', Integer),
                 column('v1', String()),
