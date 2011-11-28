@@ -1,5 +1,5 @@
-from tests import _op_fixture
-from alembic import op
+from tests import _op_fixture, assert_raises_message
+from alembic import op, util
 from sqlalchemy import Integer, Column, ForeignKey, \
             UniqueConstraint, Table, MetaData, String
 from sqlalchemy.sql import table
@@ -25,3 +25,18 @@ def test_col_nullable():
         'ALTER TABLE t1 CHANGE c1 c1 INTEGER NOT NULL'
     )
 
+def test_col_multi_alter():
+    context = _op_fixture('mysql')
+    op.alter_column('t1', 'c1', nullable=False, server_default="q", type_=Integer)
+    context.assert_(
+        "ALTER TABLE t1 CHANGE c1 c1 INTEGER NOT NULL DEFAULT 'q'"
+    )
+
+
+def test_col_alter_type_required():
+    context = _op_fixture('mysql')
+    assert_raises_message(
+        util.CommandError,
+        "All MySQL ALTER COLUMN operations require the existing type.",
+        op.alter_column, 't1', 'c1', nullable=False, server_default="q"
+    )

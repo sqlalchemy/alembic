@@ -11,6 +11,7 @@ down_revision = ${repr(down_revision)}
 
 from alembic.op import *
 import sqlalchemy as sa
+${imports if imports else ""}
 
 def upgrade(engine):
     eval("upgrade_%s" % engine.name)()

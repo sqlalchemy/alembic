@@ -22,9 +22,11 @@ def produce_migration_diffs(template_args):
                 "a MetaData object to the context.")
     connection = get_bind()
     diffs = []
+    imports = set()
     _produce_net_changes(connection, metadata, diffs)
-    _set_upgrade(template_args, _indent(_produce_upgrade_commands(diffs)))
-    _set_downgrade(template_args, _indent(_produce_downgrade_commands(diffs)))
+    _set_upgrade(template_args, _indent(_produce_upgrade_commands(diffs, imports)))
+    _set_downgrade(template_args, _indent(_produce_downgrade_commands(diffs, imports)))
+    template_args['imports'] = "\n".join(sorted(imports))
 
 def _set_upgrade(template_args, text):
     template_args[_context_opts['upgrade_token']] = text
@@ -110,21 +112,24 @@ def _compare_columns(tname, conn_table, metadata_table, diffs):
     for colname in metadata_col_names.intersection(conn_col_names):
         metadata_col = metadata_table.c[colname]
         conn_col = conn_table[colname]
+        col_diff = []
         _compare_type(tname, colname,
             conn_col,
             metadata_col.type,
-            diffs
+            col_diff
         )
         _compare_nullable(tname, colname,
             conn_col,
             metadata_col.nullable,
-            diffs
+            col_diff
         )
         _compare_server_default(tname, colname,
             conn_col,
             metadata_col.server_default,
-            diffs
+            col_diff
         )
+        if col_diff:
+            diffs.append(col_diff)
 
 def _compare_nullable(tname, cname, conn_col, 
                             metadata_col_nullable, diffs):
@@ -209,67 +214,84 @@ _type_comparators = {
 ###################################################
 # produce command structure
 
-def _produce_upgrade_commands(diffs):
+def _produce_upgrade_commands(diffs, imports):
     buf = []
     for diff in diffs:
-        buf.append(_invoke_command("upgrade", diff))
+        buf.append(_invoke_command("upgrade", diff, imports))
     return "\n".join(buf)
 
-def _produce_downgrade_commands(diffs):
+def _produce_downgrade_commands(diffs, imports):
     buf = []
     for diff in diffs:
-        buf.append(_invoke_command("downgrade", diff))
+        buf.append(_invoke_command("downgrade", diff, imports))
     return "\n".join(buf)
 
-def _invoke_command(updown, args):
+def _invoke_command(updown, args, imports):
+    if isinstance(args, tuple):
+        return _invoke_adddrop_command(updown, args, imports)
+    else:
+        return _invoke_modify_command(updown, args, imports)
+
+def _invoke_adddrop_command(updown, args, imports):
     cmd_type = args[0]
     adddrop, cmd_type = cmd_type.split("_")
 
-    cmd_args = args[1:]
+    cmd_args = args[1:] + (imports,)
 
-    # TODO: MySQL really blew this up
-    # so try to clean this up
     _commands = {
         "table":(_drop_table, _add_table),
         "column":(_drop_column, _add_column),
-        "type":(_modify_type,),
-        "nullable":(_modify_nullable,),
-        "default":(_modify_server_default,),
     }
 
     cmd_callables = _commands[cmd_type]
 
-    if len(cmd_callables) == 2:
-        if (
-            updown == "upgrade" and adddrop == "add"
-        ) or (
-            updown == "downgrade" and adddrop == "remove"
-        ):
-            return cmd_callables[1](*cmd_args)
-        else:
-            return cmd_callables[0](*cmd_args)
+    if (
+        updown == "upgrade" and adddrop == "add"
+    ) or (
+        updown == "downgrade" and adddrop == "remove"
+    ):
+        return cmd_callables[1](*cmd_args)
     else:
-        tname, cname = cmd_args[0:2]
-        args = []
+        return cmd_callables[0](*cmd_args)
+
+def _invoke_modify_command(updown, args, imports):
+    tname, cname = args[0][1:3]
+    kw = {}
+
+    _arg_struct = {
+        "modify_type":("existing_type", "type_"),
+        "modify_nullable":("existing_nullable", "nullable"),
+        "modify_default":("existing_server_default", "server_default"),
+    }
+    for diff in args:
+        diff_kw = diff[3]
         for arg in ("existing_type", \
                 "existing_nullable", \
                 "existing_server_default"):
-            if arg in cmd_args[2]:
-                args.append(cmd_args[2][arg])
+            if arg in diff_kw:
+                kw.setdefault(arg, diff_kw[arg])
+        old_kw, new_kw = _arg_struct[diff[0]]
         if updown == "upgrade":
-            args += (cmd_args[-1], cmd_args[-2])
+            kw[new_kw] = diff[-1]
+            kw[old_kw] = diff[-2]
         else:
-            args += cmd_args[-2:]
-        return cmd_callables[0](tname, cname, *args)
+            kw[new_kw] = diff[-2]
+            kw[old_kw] = diff[-1]
+
+    if "nullable" in kw:
+        kw.pop("existing_nullable", None)
+    if "server_default" in kw:
+        kw.pop("existing_server_default", None)
+    return _modify_col(tname, cname, imports, **kw)
 
 ###################################################
 # render python
 
-def _add_table(table):
+def _add_table(table, imports):
     return "create_table(%(tablename)r,\n%(args)s\n)" % {
         'tablename':table.name,
         'args':',\n'.join(
-            [_render_column(col) for col in table.c] +
+            [_render_column(col, imports) for col in table.c] +
             sorted([rcons for rcons in 
                 [_render_constraint(cons) for cons in 
                     table.constraints]
@@ -278,74 +300,46 @@ def _add_table(table):
         ),
     }
 
-def _drop_table(table):
+def _drop_table(table, imports):
     return "drop_table(%r)" % table.name
 
-def _add_column(tname, column):
+def _add_column(tname, column, imports):
     return "add_column(%r, %s)" % (
             tname, 
-            _render_column(column))
+            _render_column(column, imports))
 
-def _drop_column(tname, column):
+def _drop_column(tname, column, imports):
     return "drop_column(%r, %r)" % (tname, column.name)
 
-def _modify_type(tname, cname, 
-                        existing_nullable,
-                        existing_server_default, 
-                        type_, existing_type):
-    return _modify_col(tname, cname,
-        existing_server_default=existing_server_default,
-        existing_nullable=existing_nullable,
-        existing_type=existing_type,
-        type_=type_
-    )
-    return text
-
-def _modify_nullable(tname, cname, 
-                    existing_type, 
-                    existing_server_default, 
-                    nullable, previous):
-    return _modify_col(tname, cname, 
-        existing_type=existing_type,
-        existing_server_default=existing_server_default,
-        existing_nullable=previous,
-        nullable=nullable
-    )
-    return text
-
-def _modify_server_default(tname, cname, 
-                    existing_type,
-                    existing_nullable,
-                    server_default, prev_default):
-    return _modify_col(tname, cname,
-        server_default=server_default,
-        existing_nullable=existing_nullable,
-        existing_type=existing_type,
-    )
-
-def _modify_col(tname, cname, existing_type,
-                server_default=None,
+def _modify_col(tname, cname, 
+                imports,
+                server_default=False,
                 type_=None,
                 nullable=None,
+                existing_type=None,
                 existing_nullable=None,
-                existing_server_default=None):
+                existing_server_default=False):
     prefix = _autogenerate_prefix()
     indent = " " * 11
     text = "alter_column(%r, %r" % (tname, cname)
-    text += ", \n%sexisting_type=%s%r" % (indent, prefix, existing_type,)
-    if server_default:
+    text += ", \n%sexisting_type=%s" % (indent, 
+                    _repr_type(prefix, existing_type, imports))
+    if server_default is not False:
         text += ", \n%sserver_default=%s" % (indent, 
                         _render_server_default(server_default),)
     if type_ is not None:
-        text += ", \n%stype_=%s%r" % (indent, prefix, type_)
+        text += ", \n%stype_=%s" % (indent, _repr_type(prefix, type_, imports))
     if nullable is not None:
-        text += ", \n%snullable=%r" % (indent, nullable,)
+        text += ", \n%snullable=%r" % (
+                        indent, nullable,)
     if existing_nullable is not None:
-        text += ", \n%sexisting_nullable=%r" % (indent, existing_nullable)
+        text += ", \n%sexisting_nullable=%r" % (
+                        indent, existing_nullable)
     if existing_server_default:
         text += ", \n%sexisting_server_default=%s" % (
                         indent, 
-                        _render_server_default(existing_server_default),
+                        _render_server_default(
+                            existing_server_default),
                     )
     text += ")"
     return text
@@ -353,18 +347,19 @@ def _modify_col(tname, cname, existing_type,
 def _autogenerate_prefix():
     return _context_opts['autogenerate_sqlalchemy_prefix']
 
-def _render_column(column):
+def _render_column(column, imports):
     opts = []
     if column.server_default:
-        opts.append(("server_default", _render_server_default(column.server_default)))
+        opts.append(("server_default", 
+                    _render_server_default(column.server_default)))
     if column.nullable is not None:
         opts.append(("nullable", column.nullable))
 
     # TODO: for non-ascii colname, assign a "key"
-    return "%(prefix)sColumn(%(name)r, %(prefix)s%(type)r, %(kw)s)" % {
+    return "%(prefix)sColumn(%(name)r, %(type)s, %(kw)s)" % {
         'prefix':_autogenerate_prefix(),
         'name':column.name,
-        'type':column.type,
+        'type':_repr_type(_autogenerate_prefix(), column.type, imports),
         'kw':", ".join(["%s=%s" % (kwname, val) for kwname, val in opts])
     }
 
@@ -382,6 +377,15 @@ def _render_server_default(default):
         return "'%s'" % default
     else:
         return None
+
+def _repr_type(prefix, type_, imports):
+    mod = type(type_).__module__
+    if mod.startswith("sqlalchemy.dialects"):
+        dname = re.match(r"sqlalchemy\.dialects\.(\w+)", mod).group(1)
+        imports.add("from sqlalchemy.dialects import %s" % dname)
+        return "%s.%r" % (dname, type_)
+    else:
+        return "%s%r" % (prefix, type_)
 
 def _render_constraint(constraint):
     renderer = _constraint_renderers.get(type(constraint), None)
