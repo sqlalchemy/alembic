@@ -470,9 +470,17 @@ Autogenerate can *not* detect:
   tables, and should be hand-edited into a name change instead.
 * Changes of column name.  Like table name changes, these are detected as
   a column add/drop pair, which is not at all the same as a name change.
-* Constraint addition/removal.   This is potentially possible but is not
-  yet implemented.
 
+Autogenerate can't currently, but will *eventually* detect:
+
+* Free-standing constraint additions, removals, 
+  like CHECK, UNIQUE, FOREIGN KEY - these aren't yet implemented.
+  Right now you'll get constraints within new tables, PK and FK
+  constraints for the "downgrade" to a previously existing table, 
+  and the CHECK constraints generated with a SQLAlchemy "schema" types
+  :class:`~sqlalchemy.types.Boolean`, :class:`~sqlalchemy.types.Enum`.  
+* Index additions, removals - not yet implemented.
+* Sequence additions, removals - not yet implemented.
 
 Generating SQL Scripts (a.k.a. "Offline Mode")
 ==============================================
@@ -533,7 +541,7 @@ It's also possible to have the ``env.py`` script retrieve the "last" version fro
 the local environment, such as from a local file.   A scheme like this would basically
 treat a local file in the same way ``alembic_version`` works::
 
-    if not context.requires_connection():
+    if context.is_offline_mode():
         version_file = os.path.join(os.path.dirname(config.config_file_name), "version.txt")
         if os.path.exists(version_file):
             current_version = file_(version_file).read()
@@ -558,12 +566,15 @@ Customizing the Environment
 ---------------------------
 
 Users of the ``--sql`` option are encouraged to hack their ``env.py`` files to suit their
-needs.  An ``env.py`` script can detect if the ``--sql`` option is in effect by reading
-:func:`.context.requires_connection`.  
+needs.  The ``env.py`` script as provided is broken into two sections: ``run_migrations_online()``
+and ``run_migrations_offline()``.  Which function is run is determined at the bottom of the
+script by reading :func:`.context.is_offline_mode`, which basically determines if the
+``--sql`` flag was enabled.
 
 For example, a multiple database configuration may want to run through each 
 database and set the output of the migrations to different named files - the :func:`.context.configure`
-function accepts a parameter ``output_buffer`` for this purpose::
+function accepts a parameter ``output_buffer`` for this purpose.  Below we illustrate
+this within the ``run_migrations_offline()`` function::
 
     from alembic import context
     import myapp
@@ -572,7 +583,9 @@ function accepts a parameter ``output_buffer`` for this purpose::
     db_1 = myapp.db_1
     db_2 = myapp.db_2
 
-    if not context.requires_connection():
+    def run_migrations_offline():
+        """Run migrations *without* a SQL connection."""
+
         for name, engine, file_ in [
             ("db1", db_1, "db1.sql"),
             ("db2", db_2, "db2.sql"),
@@ -584,7 +597,10 @@ function accepts a parameter ``output_buffer`` for this purpose::
             context.execute("-- running migrations for '%s'" % name)
             context.run_migrations(name=name)
             sys.stderr.write("Wrote file '%s'" % file_)
-    else:
+
+    def run_migrations_online():
+        """Run migrations *with* a SQL connection."""
+
         for name, engine, file_ in [
             ("db1", db_1, "db1.sql"),
             ("db2", db_2, "db2.sql"),
@@ -597,6 +613,11 @@ function accepts a parameter ``output_buffer`` for this purpose::
             except:
                 session.rollback()
                 raise
+
+    if context.is_offline_mode():
+        run_migrations_offline()
+    else:
+        run_migrations_online()
 
 Working with Branches
 =====================
