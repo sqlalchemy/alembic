@@ -3,6 +3,7 @@ from sqlalchemy.sql.expression import _BindParamClause
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy import schema
 from alembic.ddl import base
+from sqlalchemy import types as sqltypes
 
 class ImplMeta(type):
     def __init__(cls, classname, bases, dict_):
@@ -145,6 +146,32 @@ class DefaultImpl(object):
         else:
             self._exec(table.insert(), *rows)
 
+    def compare_type(self, inspector_column, metadata_column):
+
+        conn_type = inspector_column['type']
+        metadata_type = metadata_column.type
+
+        metadata_impl = metadata_type.dialect_impl(self.dialect)
+
+        # work around SQLAlchemy bug "stale value for type affinity"
+        # fixed in 0.7.4
+        metadata_impl.__dict__.pop('_type_affinity', None)
+
+        if conn_type._compare_type_affinity(
+                            metadata_impl
+                        ):
+            comparator = _type_comparators.get(conn_type._type_affinity, None)
+
+            return comparator and comparator(metadata_type, conn_type)
+        else:
+            return True
+
+    def compare_server_default(self, inspector_column, 
+                            metadata_column, 
+                            rendered_metadata_default):
+        conn_col_default = inspector_column['default']
+        return conn_col_default != rendered_metadata_default
+
 
 class _literal_bindparam(_BindParamClause):
     pass
@@ -152,4 +179,28 @@ class _literal_bindparam(_BindParamClause):
 @compiles(_literal_bindparam)
 def _render_literal_bindparam(element, compiler, **kw):
     return compiler.render_literal_bindparam(element, **kw)
+
+
+def _string_compare(t1, t2):
+    return \
+        t1.length is not None and \
+        t1.length != t2.length
+
+def _numeric_compare(t1, t2):
+    return \
+        (
+            t1.precision is not None and \
+            t1.precision != t2.precision
+        ) or \
+        (
+            t1.scale is not None and \
+            t1.scale != t2.scale
+        )
+_type_comparators = {
+    sqltypes.String:_string_compare,
+    sqltypes.Numeric:_numeric_compare
+}
+
+
+
 

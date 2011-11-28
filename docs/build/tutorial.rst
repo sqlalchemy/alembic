@@ -457,12 +457,30 @@ is already present::
 The migration hasn't actually run yet, of course.  We do that via the usual ``upgrade``
 command.   We should also go into our migration file and alter it as needed, including 
 adjustments to the directives as well as the addition of other directives which these may
-be dependent on - specifically data changes in between creates/alters/drops.   The autogenerate
-feature can currently detect:
+be dependent on - specifically data changes in between creates/alters/drops.   
+
+Autogenerate will by default detect:
 
 * Table additions, removals.
-* Column additions, removals
-* Change of column type, nullable status, default value
+* Column additions, removals.
+* Change of nullable status on columns.
+
+Autogenerate can *optionally* detect:
+
+* Change of column type.  This will occur if you set ``compare_type=True``
+  on :func:`.context.configure`.  The feature works well in most cases,
+  but is off by default so that it can be tested on the target schema
+  first.  It can also be customized by passing a callable here; see the
+  function's documentation for details.
+* Change of server default.  This will occur if you set 
+  ``compare_server_default=True`` on :func:`.context.configure`.  
+  This feature works well for simple cases but cannot always produce 
+  accurate results.  The Postgresql backend will actually invoke 
+  the "detected" and "metadata" values against the database to 
+  determine equivalence.  The feature is off by default so that
+  it can be tested on the target schema first.  Like type comparison,
+  it can also be customized by passing a callable; see the
+  function's documentation for details.
 
 Autogenerate can *not* detect:
 
