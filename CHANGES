@@ -78,6 +78,13 @@
   impacts the usefulness of the command, not overall
   stability.
 
+- Support for non-ASCII table, column and constraint
+  names is mostly nonexistent.   This is also a 
+  straightforward feature add as SQLAlchemy itself 
+  supports unicode identifiers; Alembic itself will 
+  likely need fixes to logging, column identification 
+  by key, etc. for full support here.
+
 - Support for tables in remote schemas, 
   i.e. "schemaname.tablename", is very poor.   
   Missing "schema" behaviors should be 

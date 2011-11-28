@@ -4,8 +4,6 @@ from alembic.context import get_impl, get_context
 from sqlalchemy.types import NULLTYPE
 from sqlalchemy import schema, sql
 
-util.importlater.resolve_all()
-
 __all__ = sorted([
             'alter_column', 
             'add_column',

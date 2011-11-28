@@ -7,6 +7,9 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy import types as sqltypes, schema
 import re
 
+import logging
+log = logging.getLogger(__name__)
+
 ###################################################
 # top level
 
@@ -45,16 +48,16 @@ def _produce_net_changes(connection, metadata, diffs):
                             difference(['alembic_version'])
     metadata_table_names = set(metadata.tables)
 
-    diffs.extend(
-        ("add_table", metadata.tables[tname])
-        for tname in metadata_table_names.difference(conn_table_names)
-    )
+    for tname in metadata_table_names.difference(conn_table_names):
+        diffs.append(("add_table", metadata.tables[tname]))
+        log.info("Detected added table %r", tname)
 
     removal_metadata = schema.MetaData()
     for tname in conn_table_names.difference(metadata_table_names):
         t = schema.Table(tname, removal_metadata)
         inspector.reflecttable(t, None)
         diffs.append(("remove_table", t))
+        log.info("Detected removed table %r", tname)
 
     existing_tables = conn_table_names.intersection(metadata_table_names)
 
@@ -87,19 +90,22 @@ def _compare_columns(tname, conn_table, metadata_table, diffs):
     conn_col_names = set(conn_table)
     metadata_col_names = set(metadata_cols_by_name)
 
-    diffs.extend(
-        ("add_column", tname, metadata_cols_by_name[cname])
-        for cname in metadata_col_names.difference(conn_col_names)
-    )
-    diffs.extend(
-        ("remove_column", tname, schema.Column(
-            cname,
-            conn_table[cname]['type'],
-            nullable=conn_table[cname]['nullable'],
-            server_default=conn_table[cname]['default']
-        ))
-        for cname in conn_col_names.difference(metadata_col_names)
-    )
+    for cname in metadata_col_names.difference(conn_col_names):
+        diffs.append(
+            ("add_column", tname, metadata_cols_by_name[cname])
+        )
+        log.info("Detected added column '%s.%s'", tname, cname)
+
+    for cname in conn_col_names.difference(metadata_col_names):
+        diffs.append(
+            ("remove_column", tname, schema.Column(
+                cname,
+                conn_table[cname]['type'],
+                nullable=conn_table[cname]['nullable'],
+                server_default=conn_table[cname]['default']
+            ))
+        )
+        log.info("Detected removed column '%s.%s'", tname, cname)
 
     for colname in metadata_col_names.intersection(conn_col_names):
         metadata_col = metadata_table.c[colname]
@@ -118,10 +124,15 @@ def _compare_columns(tname, conn_table, metadata_table, diffs):
 def _compare_nullable(tname, cname, conn_col_nullable, 
                             metadata_col_nullable, diffs):
     if conn_col_nullable is not metadata_col_nullable:
-        diffs.extend([
+        diffs.append(
             ("modify_nullable", tname, cname, conn_col_nullable, 
                 metadata_col_nullable),
-        ])
+        )
+        log.info("Detected %s on column '%s.%s'", 
+            "NULL" if metadata_col_nullable else "NOT NULL",
+            tname,
+            cname
+        )
 
 def _compare_type(tname, cname, conn_type, metadata_type, diffs):
     if conn_type._compare_type_affinity(metadata_type):
@@ -132,9 +143,12 @@ def _compare_type(tname, cname, conn_type, metadata_type, diffs):
         isdiff = True
 
     if isdiff:
-        diffs.extend([
+        diffs.append(
             ("modify_type", tname, cname, conn_type, metadata_type),
-        ])
+        )
+        log.info("Detected type change from %r to %r on '%s.%s'", 
+            conn_type, metadata_type, tname, cname
+        )
 
 def _string_compare(t1, t2):
     return \
@@ -224,7 +238,7 @@ def _drop_column(tname, column):
 
 def _modify_type(tname, cname, type_, old_type):
     return "alter_column(%(tname)r, %(cname)r, "\
-        "type=%(prefix)s%(type)r, old_type=%(prefix)s%(old_type)r)" % {
+        "type_=%(prefix)s%(type)r, old_type=%(prefix)s%(old_type)r)" % {
         'prefix':_autogenerate_prefix(),
         'tname':tname, 
         'cname':cname, 

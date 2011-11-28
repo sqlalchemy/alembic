@@ -7,12 +7,24 @@ Information about the Alembic project.
 Project Homepage
 ================
 
-Alembic is hosted on `Bitbucket <http://bitbucket.org>`_ - the lead project page is at https://bitbucket.org/zzzeek/alembic.  Source
-code is tracked here using `Mercurial <http://mercurial.selenic.com/>`_.
+Alembic is hosted on `Bitbucket <http://bitbucket.org>`_ - the lead project
+page is at https://bitbucket.org/zzzeek/alembic. Source code is tracked here
+using `Mercurial <http://mercurial.selenic.com/>`_.
 
-Releases and project status are available on Pypi at http://pypi.python.org/pypi/alembic.
+Releases and project status are available on Pypi at
+http://pypi.python.org/pypi/alembic.
 
-The most recent published version of this documentation should be at http://packages.python.org/alembic/.
+The most recent published version of this documentation should be at
+http://packages.python.org/alembic/.
+
+Project Status
+==============
+
+Note that Alembic is still in alpha status.   Users should take
+care to report bugs and missing features (see :ref:`bugs`) on an as-needed
+basis.  It should be expected that the development version may be required
+for proper implementation of recently repaired issues in between releases;
+the latest tip is always available at https://bitbucket.org/zzzeek/alembic/get/tip.tar.gz.
 
 .. _installation:
 
@@ -39,6 +51,8 @@ projects.
 
 User issues, discussion of potential bugs and features should be posted
 to the Alembic Google Group at `sqlalchemy-alembic <https://groups.google.com/group/sqlalchemy-alembic>`_.
+
+.. _bugs:
 
 Bugs
 ====
