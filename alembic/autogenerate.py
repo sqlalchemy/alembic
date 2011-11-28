@@ -13,7 +13,7 @@ log = logging.getLogger(__name__)
 ###################################################
 # top level
 
-def produce_migration_diffs(template_args):
+def produce_migration_diffs(template_args, imports):
     metadata = _context_opts['autogenerate_metadata']
     if metadata is None:
         raise util.CommandError(
@@ -22,7 +22,6 @@ def produce_migration_diffs(template_args):
                 "a MetaData object to the context.")
     connection = get_bind()
     diffs = []
-    imports = set()
     _produce_net_changes(connection, metadata, diffs)
     _set_upgrade(template_args, _indent(_produce_upgrade_commands(diffs, imports)))
     _set_downgrade(template_args, _indent(_produce_downgrade_commands(diffs, imports)))

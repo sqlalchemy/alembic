@@ -64,11 +64,12 @@ def revision(config, message=None, autogenerate=False):
 
     script = ScriptDirectory.from_config(config)
     template_args = {}
+    imports = set()
     if autogenerate:
         def retrieve_migrations(rev):
             if script._get_rev(rev) is not script._get_rev("head"):
                 raise util.CommandError("Target database is not up to date.")
-            autogen.produce_migration_diffs(template_args)
+            autogen.produce_migration_diffs(template_args, imports)
             return []
 
         context._opts(
