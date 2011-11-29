@@ -42,6 +42,15 @@ Installation via source distribution is via the ``setup.py`` script::
 The install will add the ``alembic`` command to the environment.  All operations with Alembic
 then proceed through the usage of this command.
 
+Dependencies
+------------
+
+Alembic's install process will ensure that `SQLAlchemy <http://www.sqlalchemy.org>`_ 
+is installed, in addition to other dependencies.  Alembic will work with 
+SQLAlchemy as of version **0.6**, though with a limited featureset.  
+The latest version of SQLAlchemy within the **0.7** series is strongly recommended.
+
+
 Community
 =========
 
