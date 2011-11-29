@@ -48,7 +48,7 @@ class Context(object):
 
         self._start_from_rev = starting_rev
         self.impl = ddl.DefaultImpl.get_by_dialect(dialect)(
-                            dialect, connection, self.as_sql,
+                            dialect, self.connection, self.as_sql,
                             transactional_ddl,
                             self.output_buffer
                             )

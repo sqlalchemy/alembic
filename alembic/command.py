@@ -66,6 +66,7 @@ def revision(config, message=None, autogenerate=False):
     template_args = {}
     imports = set()
     if autogenerate:
+        util.requires_07("autogenerate")
         def retrieve_migrations(rev):
             if script._get_rev(rev) is not script._get_rev("head"):
                 raise util.CommandError("Target database is not up to date.")

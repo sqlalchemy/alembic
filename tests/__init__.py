@@ -13,6 +13,7 @@ from alembic.ddl.impl import _impls
 import ConfigParser
 from nose import SkipTest
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.util import decorator
 
 staging_directory = os.path.join(os.path.dirname(__file__), 'scratch')
 files_directory = os.path.join(os.path.dirname(__file__), 'files')
@@ -46,6 +47,12 @@ def db_for_dialect(name):
             raise SkipTest("Can't connect to database: %s" % er2)
         _engs[name] = eng
         return eng
+
+@decorator
+def requires_07(fn, *arg, **kw):
+    if not util.sqla_07:
+        raise SkipTest("SQLAlchemy 0.7 required")
+    return fn(*arg, **kw)
 
 _dialects = {}
 def _get_dialect(name):
@@ -117,7 +124,10 @@ def op_fixture(dialect='default', as_sql=False):
             self.assertion = []
             self.dialect = dialect
             self.as_sql = as_sql
-
+            # TODO: this might need to 
+            # be more like a real connection
+            # as tests get more involved
+            self.connection = None
         def _exec(self, construct, *args, **kw):
             if isinstance(construct, basestring):
                 construct = text(construct)

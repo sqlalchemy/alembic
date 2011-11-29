@@ -3,6 +3,7 @@ from sqlalchemy.sql.expression import _BindParamClause
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy import schema
 from alembic.ddl import base
+from alembic import util
 from sqlalchemy import types as sqltypes
 
 class ImplMeta(type):
@@ -31,11 +32,13 @@ class DefaultImpl(object):
 
     transactional_ddl = False
 
-    def __init__(self, dialect, connection, as_sql, transactional_ddl, output_buffer):
+    def __init__(self, dialect, connection, as_sql, 
+                    transactional_ddl, output_buffer):
         self.dialect = dialect
         self.connection = connection
         self.as_sql = as_sql
         self.output_buffer = output_buffer
+        self.memo = {}
         if transactional_ddl is not None:
             self.transactional_ddl = transactional_ddl
 
@@ -45,6 +48,10 @@ class DefaultImpl(object):
 
     def static_output(self, text):
         self.output_buffer.write(text + "\n\n")
+
+    @property
+    def bind(self):
+        return self.connection
 
     def _exec(self, construct, *args, **kw):
         if isinstance(construct, basestring):
@@ -123,7 +130,15 @@ class DefaultImpl(object):
                     new_table_name, schema=schema))
 
     def create_table(self, table):
+        if util.sqla_07:
+            table.dispatch.before_create(table, self.connection,
+                                        checkfirst=False,
+                                            _ddl_runner=self)
         self._exec(schema.CreateTable(table))
+        if util.sqla_07:
+            table.dispatch.after_create(table, self.connection,
+                                        checkfirst=False,
+                                            _ddl_runner=self)
         for index in table.indexes:
             self._exec(schema.CreateIndex(index))
 

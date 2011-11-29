@@ -10,10 +10,25 @@ import time
 import random
 import uuid
 
-
 class CommandError(Exception):
     pass
 
+from sqlalchemy import __version__
+_vers = tuple([int(x) for x in __version__.split(".")])
+sqla_06 = _vers > (0, 6)
+sqla_07 = _vers > (0, 7)
+if not sqla_06:
+    raise CommandError(
+            "SQLAlchemy 0.6 or greater is required. "
+            "Version 0.7 or above required for full featureset.")
+
+def requires_07(feature):
+    if not sqla_07:
+        raise CommandError(
+            "The %s feature requires "
+            "SQLAlchemy 0.7 or greater."
+            % feature
+        )
 try:
     width = int(os.environ['COLUMNS'])
 except (KeyError, ValueError):

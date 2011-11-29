@@ -1,4 +1,6 @@
-from tests import clear_staging_env, staging_env, no_sql_testing_config, sqlite_db, eq_, ne_, capture_context_buffer, three_rev_fixture
+from tests import clear_staging_env, staging_env, \
+    no_sql_testing_config, sqlite_db, eq_, ne_, capture_context_buffer, \
+    three_rev_fixture
 from alembic import command, util
 
 def setup():

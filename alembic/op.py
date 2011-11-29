@@ -401,8 +401,17 @@ def create_table(name, *columns, **kw):
             Column('description', NVARCHAR(200))
         )
 
+    :param name: Name of the table
+    :param \*columns: collection of :class:`~sqlalchemy.schema.Column` objects within
+     the table, as well as optional :class:`~sqlalchemy.schema.Constraint` objects
+     and :class:`~.sqlalchemy.schema.Index` objects.
+    :param emit_events: if ``True``, emit ``before_create`` and ``after_create``
+     events when the table is being created.  In particular, the Postgresql ENUM
+     type will emit a CREATE TYPE within these events.
+    :param \**kw: Other keyword arguments are passed to the underlying
+     :class:`.Table` object created for the command.
+     
     """
-
     get_impl().create_table(
         _table(name, *columns, **kw)
     )
