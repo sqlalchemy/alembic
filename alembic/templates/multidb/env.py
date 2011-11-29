@@ -51,7 +51,7 @@ def run_migrations_offline():
         sys.stderr.write("Writing output to %s\n" % file_)
         context.configure(
                     url=rec['url'],
-                    output_buffer=file(file_, 'w')
+                    output_buffer=open(file_, 'w')
                 )
         context.run_migrations(engine=name)
 

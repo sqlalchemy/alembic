@@ -163,7 +163,7 @@ class ScriptDirectory(object):
     def _current_head(self):
         current_heads = self._get_heads()
         if len(current_heads) > 1:
-            raise Exception("Only a single head supported so far...")
+            raise util.CommandError("Only a single head supported so far...")
         if current_heads:
             return current_heads[0]
         else:

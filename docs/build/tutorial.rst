@@ -151,18 +151,18 @@ The file generated with the "generic" configuration looks like::
     format = %(levelname)-5.5s [%(name)s] %(message)s
     datefmt = %H:%M:%S
 
-The file is read using Python's :class:`ConfigParser.ConfigParser` object, installing
-the variable ``here`` as a substitution variable.   This can be used to produce absolute
-pathnames to directories and files, as we do above with the path to the Alembic
-script location.
+The file is read using Python's :class:`ConfigParser.ConfigParser` object.  The
+``%(here)s`` variable is provided as a substitution variable, which 
+can be used to produce absolute pathnames to directories and files, as we do above 
+with the path to the Alembic script location.
 
 This file contains the following features:
 
 * ``[alembic]`` - this is the section read by Alembic to determine configuration.  Alembic
   itself does not directly read any other areas of the file.
 * ``script_location`` - this is the location of the Alembic environment, relative to 
-  the location of the .ini file [TODO: verify this].   It can also be an absolute
-  file path.  This is the only key required by Alembic in all cases.   The generation 
+  the current directory, unless the path is an absolute file path.
+  This is the only key required by Alembic in all cases.   The generation 
   of the .ini file by the command ``alembic init alembic`` automatically placed the 
   directory name ``alembic`` here.
 * ``sqlalchemy.url`` - A URL to connect to the database via SQLAlchemy.  This key is in fact
@@ -284,7 +284,7 @@ It then invokes the ``upgrade()`` method in each file to get to the target revis
 Running our Second Migration
 =============================
 
-OK let's do another one so we have some things to play with.    We again create a revision
+Let's do another one so we have some things to play with.    We again create a revision
 file::
 
     $ alembic revision -m "Add a column"
@@ -339,6 +339,13 @@ We can also view history::
 
     1975ea83b712 -> ae1027a6acf (head), Add a column
     None -> 1975ea83b712, empty message
+
+We can also identify specific migrations using just enough characters to uniquely identify them.
+If we wanted to upgrade directly to ``ae1027a6acf`` we could say::
+
+    $ alembic upgrade ae1
+
+Alembic will stop and let you know if more than one version starts with that prefix.
 
 Downgrading
 ===========
@@ -562,14 +569,14 @@ treat a local file in the same way ``alembic_version`` works::
     if context.is_offline_mode():
         version_file = os.path.join(os.path.dirname(config.config_file_name), "version.txt")
         if os.path.exists(version_file):
-            current_version = file_(version_file).read()
+            current_version = open(version_file).read()
         else:
             current_version = None
         context.configure(dialect_name=engine.name, starting_version=current_version)
         context.run_migrations()
         end_version = context.get_revision_argument()
         if end_version and end_version != current_version:
-            file_(version_file, 'w').write(end_version)
+            open(version_file, 'w').write(end_version)
 
 Writing Migration Scripts to Support Script Generation
 ------------------------------------------------------
@@ -611,7 +618,7 @@ this within the ``run_migrations_offline()`` function::
             context.configure(
                         url=engine.url, 
                         transactional_ddl=False, 
-                        output_buffer=file(file_, 'w'))
+                        output_buffer=open(file_, 'w'))
             context.execute("-- running migrations for '%s'" % name)
             context.run_migrations(name=name)
             sys.stderr.write("Wrote file '%s'" % file_)
@@ -619,9 +626,9 @@ this within the ``run_migrations_offline()`` function::
     def run_migrations_online():
         """Run migrations *with* a SQL connection."""
 
-        for name, engine, file_ in [
-            ("db1", db_1, "db1.sql"),
-            ("db2", db_2, "db2.sql"),
+        for name, engine in [
+            ("db1", db_1),
+            ("db2", db_2),
         ]:
             connection = engine.connect()
             context.configure(connection=connection)
@@ -676,8 +683,7 @@ as a ``branchpoint``::
     1975ea83b712 -> ae1027a6acf (head), add a column
     None -> 1975ea83b712 (branchpoint), add account table
 
-Alembic will also refuse to run any migrations until this is resolved [TODO: alembic dumps the
-whole stack, needs to return just a message]::
+Alembic will also refuse to run any migrations until this is resolved::
 
     $ alembic upgrade head
     INFO  [alembic.context] Context class PostgresqlContext.
