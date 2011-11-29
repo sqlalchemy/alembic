@@ -115,6 +115,10 @@ class ScriptDirectory(object):
         """
         util.load_python_file(self.dir, 'env.py')
 
+    @property
+    def env_py_location(self):
+        return os.path.abspath(os.path.join(self.dir, "env.py"))
+
     @util.memoized_property
     def _revision_map(self):
         map_ = {}

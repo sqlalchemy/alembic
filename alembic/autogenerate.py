@@ -2,6 +2,7 @@
 automatically."""
 
 from alembic.context import _context_opts, get_bind, get_context
+from alembic import context
 from alembic import util
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy import schema, types as sqltypes
@@ -18,8 +19,10 @@ def produce_migration_diffs(template_args, imports):
     if metadata is None:
         raise util.CommandError(
                 "Can't proceed with --autogenerate option; environment "
-                "script env.py does not provide "
-                "a MetaData object to the context.")
+                "script %s does not provide "
+                "a MetaData object to the context." % (
+                    context._script.env_py_location
+                ))
     connection = get_bind()
     diffs = []
     autogen_context = {
