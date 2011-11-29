@@ -30,16 +30,18 @@ The goals of Alembic are:
   structures for simple operations like these - the functions themselves
   generate minimalist schema structures behind the scenes to achieve the given
   DDL sequence.
-* "auto generation" of migrations, to the degree this is feasible.  There
-  is a strong desire for migration tools that "figure out" what needs to 
-  change automatically.  While real world migrations are far more complex than
-  what can be automatically determined (thus contributing to the author's
-  skepticism of such tools), SQLAlchemy has mature and comprehensive schema
-  reflection capabilities, which should be used here.   The tool will be 
-  able to detect table adds/drops as well as column adds/drops/mutations,
-  and generate directives into new migration scripts automatically 
-  for these operations.  The migration script can then be edited as needed before
-  being run.
+* "auto generation" of migrations. While real world migrations are far more
+  complex than what can be automatically determined, Alembic can still
+  eliminate the initial grunt work in generating new migration directives
+  from an altered schema.  The ``--autogenerate`` feature will inspect the
+  current status of a database using SQLAlchemy's schema inspection
+  capabilities, compare it to the current state of the database model as
+  specified in Python, and generate a series of "candidate" migrations,
+  rendering them into a new migration script as Python directives. The
+  developer then edits the new file, adding additional directives and data
+  migrations as needed, to produce a finished migration. Table and column
+  level changes can be detected, with constraints and indexes to follow as
+  well.
 * Full support for migrations generated as SQL scripts.   Those of us who 
   work in corporate environments know that direct access to DDL commands on a
   production database is a rare privilege, and DBAs want textual SQL scripts.
@@ -57,15 +59,12 @@ The goals of Alembic are:
 * Provide a library of ALTER constructs that can be used by any SQLAlchemy 
   application. The DDL constructs build upon SQLAlchemy's own DDLElement base
   and can be used standalone by any application or script.
-* Don't break our necks over SQLite's inability to ALTER things.   If you're 
-  using SQLite, you really should build a system of dumping your data and
-  importing it back, as this backend simply does not support the migrations
-  use case. Alembic has no issue talking to SQLite of course but most ALTER
-  statements won't work.
+* Don't break our necks over SQLite's inability to ALTER things.   SQLite
+  has almost no support for table or column alteration.   This is by
+  design by the SQLite developers, so Alembic foregoes implementing
+  awkward and poorly-functional workarounds for this platform.
+  If you're serious about schema migrations, use a database that's 
+  just as serious!
 
-Alembic is working at a rudimentary level, and has been tested so far
-against Postgresql and Microsoft SQL Server.  It works on SQLite to the
-degree that SQLite supports migrations (which is very little), and should also
-have partial functionality for MySQL, Oracle and Firebird (to the degree those
-databases support standard ANSI DDL).
+Documentation and status of Alembic is at http://packages.python.org/alembic/.
 
