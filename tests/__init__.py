@@ -175,7 +175,7 @@ config = context.config
     if os.access(pyc_path, os.F_OK):
         os.unlink(pyc_path)
 
-    file(path, 'w').write(txt)
+    open(path, 'w').write(txt)
 
 def _sqlite_testing_config():
     dir_ = os.path.join(staging_directory, 'scripts')

@@ -15,11 +15,7 @@
   to the bugtracker, at 
   https://bitbucket.org/zzzeek/alembic/issues/new .
 
-- Python 3 is supported but has not yet
-  been tested.  The installer will run the 2to3
-  tool as needed, but there are probably some 
-  workarounds that will be needed to get Py3K 
-  fully running.
+- Python 3 is supported and has been tested.
 
 - The "Pylons" and "MultiDB" environment templates
   have not been directly tested - these should be 

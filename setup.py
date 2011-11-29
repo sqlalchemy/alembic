@@ -19,7 +19,7 @@ readme = os.path.join(os.path.dirname(__file__), 'README.rst')
 setup(name='alembic',
       version=VERSION,
       description="A database migration tool for SQLAlchemy.",
-      long_description=file(readme).read(),
+      long_description=open(readme).read(),
       classifiers=[
       'Development Status :: 3 - Alpha',
       'Environment :: Console',
