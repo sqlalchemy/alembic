@@ -36,11 +36,8 @@ def run_migrations_offline():
     url = config.get_main_option("sqlalchemy.url")
     context.configure(url=url)
 
-    if context.is_transactional_ddl():
-        context.execute("BEGIN")
-    context.run_migrations()
-    if context.is_transactional_ddl():
-        context.execute("COMMIT")
+    with context.begin_transaction():
+        context.run_migrations()
 
 def run_migrations_online():
     """Run migrations in 'online' mode.
@@ -58,13 +55,8 @@ def run_migrations_online():
                 target_metadata=target_metadata
                 )
 
-    trans = connection.begin()
-    try:
+    with context.begin_transaction():
         context.run_migrations()
-        trans.commit()
-    except:
-        trans.rollback()
-        raise
 
 if context.is_offline_mode():
     run_migrations_offline()

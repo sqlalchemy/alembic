@@ -42,8 +42,9 @@ def run_migrations_offline():
     
     """
     context.configure(
-                dialect_name=meta.engine.name)
-    context.run_migrations()
+                url=meta.engine.url)
+    with context.begin_transaction():
+        context.run_migrations()
 
 def run_migrations_online():
     """Run migrations in 'online' mode.
@@ -57,13 +58,9 @@ def run_migrations_online():
                 connection=connection,
                 target_metadata=target_metadata
                 )
-    trans = connection.begin()
-    try:
+
+    with context.begin_transaction():
         context.run_migrations()
-        trans.commit()
-    except:
-        trans.rollback()
-        raise
 
 if context.is_offline_mode():
     run_migrations_offline()

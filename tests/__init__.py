@@ -14,6 +14,7 @@ import ConfigParser
 from nose import SkipTest
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.util import decorator
+import shutil
 
 staging_directory = os.path.join(os.path.dirname(__file__), 'scratch')
 files_directory = os.path.join(os.path.dirname(__file__), 'files')
@@ -74,8 +75,12 @@ def assert_compiled(element, assert_string, dialect=None):
         assert_string.replace("\n", "").replace("\t", "")
     )
 
-def capture_context_buffer():
+def capture_context_buffer(transactional_ddl=None):
     buf = StringIO.StringIO()
+
+    if transactional_ddl is not None:
+        context._context_opts['transactional_ddl'] = \
+            transactional_ddl
 
     class capture(object):
         def __enter__(self):
@@ -210,13 +215,13 @@ datefmt = %%H:%%M:%%S
     """ % (dir_, dir_))
 
 
-def no_sql_testing_config():
+def no_sql_testing_config(dialect="postgresql"):
     """use a postgresql url with no host so that connections guaranteed to fail"""
     dir_ = os.path.join(staging_directory, 'scripts')
     return _write_config_file("""
 [alembic]
 script_location = %s
-sqlalchemy.url = postgresql://
+sqlalchemy.url = %s://
 
 [loggers]
 keys = root
@@ -242,7 +247,7 @@ keys = generic
 format = %%(levelname)-5.5s [%%(name)s] %%(message)s
 datefmt = %%H:%%M:%%S
 
-""" % (dir_))
+""" % (dir_, dialect))
 
 def _write_config_file(text):
     cfg = _testing_config()
@@ -254,7 +259,10 @@ def staging_env(create=True, template="generic"):
     from alembic import command, script
     cfg = _testing_config()
     if create:
-        command.init(cfg, os.path.join(staging_directory, 'scripts'))
+        path = os.path.join(staging_directory, 'scripts')
+        if os.path.exists(path):
+            shutil.rmtree(path)
+        command.init(cfg, path)
     sc = script.ScriptDirectory.from_config(cfg)
     context._opts(cfg,sc, fn=lambda:None)
     return sc

@@ -53,7 +53,8 @@ def run_migrations_offline():
                     url=rec['url'],
                     output_buffer=open(file_, 'w')
                 )
-        context.run_migrations(engine=name)
+        with context.begin_transaction():
+            context.run_migrations(engine=name)
 
 def run_migrations_online():
     """Run migrations in 'online' mode.

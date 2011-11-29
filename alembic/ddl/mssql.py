@@ -7,6 +7,9 @@ class MSSQLImpl(DefaultImpl):
     __dialect__ = 'mssql'
     transactional_ddl = True
 
+    def emit_begin(self):
+        self._exec("BEGIN TRANSACTION")
+
     def bulk_insert(self, table, rows):
         if self.as_sql:
             self._exec(

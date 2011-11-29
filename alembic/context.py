@@ -3,8 +3,9 @@ from sqlalchemy import MetaData, Table, Column, String, literal_column, \
     text
 from sqlalchemy import create_engine
 from sqlalchemy.engine import url as sqla_url
-import sys
 from alembic import ddl
+import sys
+from contextlib import contextmanager
 
 import logging
 log = logging.getLogger(__name__)
@@ -95,7 +96,10 @@ class Context(object):
                     _version.create(self.connection)
             log.info("Running %s %s -> %s", change.__name__, prev_rev, rev)
             if self.as_sql:
-                self.impl.static_output("-- Running %s %s -> %s" %(change.__name__, prev_rev, rev))
+                self.impl.static_output(
+                        "-- Running %s %s -> %s" %
+                        (change.__name__, prev_rev, rev)
+                    )
             change(**kw)
             if not self.impl.transactional_ddl:
                 self._update_current_rev(prev_rev, rev)
@@ -499,6 +503,65 @@ def execute(sql):
 
     """
     get_context().execute(sql)
+
+def begin_transaction():
+    """Return a context manager that will 
+    enclose an operation within a "transaction",
+    as defined by the environment's offline
+    and transactional DDL settings.
+
+    e.g.::
+    
+        with context.begin_transaction():
+            context.run_migrations()
+    
+    :func:`.begin_transaction` is intended to
+    "do the right thing" regardless of 
+    calling context:
+    
+    * If :func:`.is_transactional_ddl` is ``False``,
+      returns a "do nothing" context manager
+      which otherwise produces no transactional
+      state or directives.
+    * If :func:`.is_offline_mode` is ``True``,
+      returns a context manager that will
+      invoke the :meth:`.DefaultImpl.emit_begin`
+      and :meth:`.DefaultImpl.emit_commit`
+      methods, which will produce the string
+      directives ``BEGIN`` and ``COMMIT`` on
+      the output stream, as rendered by the
+      target backend (e.g. SQL Server would
+      emit ``BEGIN TRANSACTION``).
+    * Otherwise, calls :meth:`sqlalchemy.engine.base.Connection.begin`
+      on the current online connection, which
+      returns a :class:`sqlalchemy.engine.base.Transaction`
+      object.  This object demarcates a real
+      transaction and is itself a context manager,
+      which will roll back if an exception
+      is raised.
+    
+    Note that a custom ``env.py`` script which 
+    has more specific transactional needs can of course
+    manipulate the :class:`~sqlalchemy.engine.base.Connection`
+    directly to produce transactional state in "online"
+    mode.
+
+    """
+    if not is_transactional_ddl():
+        @contextmanager
+        def do_nothing():
+            yield
+        return do_nothing()
+    elif is_offline_mode():
+        @contextmanager
+        def begin_commit():
+            get_context().impl.emit_begin()
+            yield
+            get_context().impl.emit_commit()
+        return begin_commit()
+    else:
+        return get_bind().begin()
+
 
 def get_context():
     """Return the current :class:`.Context` object.

@@ -187,6 +187,25 @@ class DefaultImpl(object):
         conn_col_default = inspector_column['default']
         return conn_col_default != rendered_metadata_default
 
+    def emit_begin(self):
+        """Emit the string ``BEGIN``, or the backend-specific
+        equivalent, on the current connection context.
+        
+        This is used in offline mode and typically
+        via :func:`.context.begin_transaction`.
+        
+        """
+        self._exec("BEGIN")
+
+    def emit_commit(self):
+        """Emit the string ``COMMIT``, or the backend-specific
+        equivalent, on the current connection context.
+        
+        This is used in offline mode and typically
+        via :func:`.context.begin_transaction`.
+        
+        """
+        self._exec("COMMIT")
 
 class _literal_bindparam(_BindParamClause):
     pass
