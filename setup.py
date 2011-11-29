@@ -35,7 +35,6 @@ setup(name='alembic',
       license='MIT',
       packages=find_packages('.', exclude=['examples*', 'test*']),
       include_package_data=True,
-      scripts=['scripts/alembic'],
       tests_require = ['nose >= 0.11'],
       test_suite = "nose.collector",
       zip_safe=False,
@@ -47,7 +46,8 @@ setup(name='alembic',
           # to be handled
           'argparse'
       ],
-      entry_points="""
-      """,
+      entry_points = {
+        'console_scripts': [ 'alembic = alembic.config:main' ],
+      },
       **extra
 )
