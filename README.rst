@@ -1,4 +1,5 @@
-Alembic is a semi-experimental database migrations tool. A migrations tool
+Alembic is a new database migrations tool, written by the author
+of `SQLAlchemy <http://www.sqlalchemy.org>`_.  A migrations tool
 offers the following functionality:
 
 * Can emit ALTER statements to a database in order to change 
