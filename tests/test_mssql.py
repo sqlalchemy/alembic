@@ -49,15 +49,24 @@ class OpTest(TestCase):
     def test_drop_column_w_default(self):
         context = op_fixture('mssql')
         op.drop_column('t1', 'c1', mssql_drop_default=True)
-        context.assert_contains("exec('alter table t1 drop constraint ' + @const_name)")
+        op.drop_column('t1', 'c2', mssql_drop_default=True)
+        context.assert_contains("exec('alter table t1 drop constraint ' + @const_name_1)")
         context.assert_contains("ALTER TABLE t1 DROP COLUMN c1")
 
+        # counter increments
+        context.assert_contains("exec('alter table t1 drop constraint ' + @const_name_2)")
+        context.assert_contains("ALTER TABLE t1 DROP COLUMN c2")
 
     def test_drop_column_w_check(self):
         context = op_fixture('mssql')
         op.drop_column('t1', 'c1', mssql_drop_check=True)
-        context.assert_contains("exec('alter table t1 drop constraint ' + @const_name)")
+        op.drop_column('t1', 'c2', mssql_drop_check=True)
+        context.assert_contains("exec('alter table t1 drop constraint ' + @const_name_1)")
         context.assert_contains("ALTER TABLE t1 DROP COLUMN c1")
+
+        # counter increments
+        context.assert_contains("exec('alter table t1 drop constraint ' + @const_name_2)")
+        context.assert_contains("ALTER TABLE t1 DROP COLUMN c2")
 
     def test_alter_column_nullable(self):
         context = op_fixture('mssql')

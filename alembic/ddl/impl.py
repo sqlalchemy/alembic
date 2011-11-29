@@ -187,6 +187,14 @@ class DefaultImpl(object):
         conn_col_default = inspector_column['default']
         return conn_col_default != rendered_metadata_default
 
+    def start_migrations(self):
+        """A hook called when :meth:`.Context.run_migrations`
+        is called.
+        
+        Implementations can set up per-migration-run state here.
+        
+        """
+
     def emit_begin(self):
         """Emit the string ``BEGIN``, or the backend-specific
         equivalent, on the current connection context.

@@ -1,11 +1,19 @@
 from alembic.ddl.impl import DefaultImpl
 from alembic.ddl.base import alter_table, AddColumn, ColumnName, \
     format_table_name, format_column_name, ColumnNullable, alter_column
+from alembic import util
 from sqlalchemy.ext.compiler import compiles
 
 class MSSQLImpl(DefaultImpl):
     __dialect__ = 'mssql'
     transactional_ddl = True
+
+    def start_migrations(self):
+        self.__dict__.pop('const_sym_counter', None)
+
+    @util.memoized_property
+    def const_sym_counter(self):
+        return 1
 
     def emit_begin(self):
         self._exec("BEGIN TRANSACTION")
@@ -29,29 +37,35 @@ class MSSQLImpl(DefaultImpl):
         drop_default = kw.pop('mssql_drop_default', False)
         if drop_default:
             self._exec(
-                _exec_drop_col_constraint(table_name, column, 'sys.default_constraints')
+                _exec_drop_col_constraint(self, 
+                        table_name, column, 
+                        'sys.default_constraints')
             )
         drop_check = kw.pop('mssql_drop_check', False)
         if drop_check:
             self._exec(
-                _exec_drop_col_constraint(table_name, column, 'sys.check_constraints')
+                _exec_drop_col_constraint(self, 
+                        table_name, column, 
+                        'sys.check_constraints')
             )
         super(MSSQLImpl, self).drop_column(table_name, column)
 
-
-def _exec_drop_col_constraint(tname, colname, type_):
+def _exec_drop_col_constraint(impl, tname, colname, type_):
     # from http://www.mssqltips.com/sqlservertip/1425/working-with-default-constraints-in-sql-server/
     # TODO: needs table formatting, etc.
-    return """declare @const_name varchar(256)
-select @const_name = [name] from %(type)s
+    counter = impl.const_sym_counter
+    impl.const_sym_counter += 1
+
+    return """declare @const_name_%(sym)s varchar(256)
+select @const_name_%(sym)s = [name] from %(type)s
 where parent_object_id = object_id('%(tname)s')
 and col_name(parent_object_id, parent_column_id) = '%(colname)s'
-exec('alter table %(tname)s drop constraint ' + @const_name)""" % {
+exec('alter table %(tname)s drop constraint ' + @const_name_%(sym)s)""" % {
         'type':type_,
         'tname':tname,
-        'colname':colname
+        'colname':colname,
+        'sym':counter
     }
-
 
 @compiles(AddColumn, 'mssql')
 def visit_add_column(element, compiler, **kw):

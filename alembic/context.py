@@ -88,6 +88,7 @@ class Context(object):
     def run_migrations(self, **kw):
 
         current_rev = rev = False
+        self.impl.start_migrations()
         for change, prev_rev, rev in self._migrations_fn(
                                         self._current_rev()):
             if current_rev is False:
