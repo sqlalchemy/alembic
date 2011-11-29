@@ -33,12 +33,14 @@ class DefaultImpl(object):
     transactional_ddl = False
 
     def __init__(self, dialect, connection, as_sql, 
-                    transactional_ddl, output_buffer):
+                    transactional_ddl, output_buffer,
+                    context_opts):
         self.dialect = dialect
         self.connection = connection
         self.as_sql = as_sql
         self.output_buffer = output_buffer
         self.memo = {}
+        self.context_opts = context_opts
         if transactional_ddl is not None:
             self.transactional_ddl = transactional_ddl
 

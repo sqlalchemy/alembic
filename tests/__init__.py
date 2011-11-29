@@ -75,21 +75,22 @@ def assert_compiled(element, assert_string, dialect=None):
         assert_string.replace("\n", "").replace("\t", "")
     )
 
-def capture_context_buffer(transactional_ddl=None):
+def capture_context_buffer(**kw):
     buf = StringIO.StringIO()
-
-    if transactional_ddl is not None:
-        context._context_opts['transactional_ddl'] = \
-            transactional_ddl
 
     class capture(object):
         def __enter__(self):
-            context._context_opts['output_buffer'] = buf
+            context.configure(
+                dialect_name="sqlite",
+                output_buffer = buf,
+                **kw
+            )
             return buf
 
-        def __exit__(self, *arg, **kw):
+        def __exit__(self, *arg, **kwarg):
             print buf.getvalue()
-            context._context_opts.pop('output_buffer', None)
+            for k in kw:
+                context._context_opts.pop(k, None)
 
     return capture()
 

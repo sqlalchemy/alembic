@@ -51,7 +51,8 @@ class Context(object):
         self.impl = ddl.DefaultImpl.get_by_dialect(dialect)(
                             dialect, self.connection, self.as_sql,
                             transactional_ddl,
-                            self.output_buffer
+                            self.output_buffer,
+                            _context_opts
                             )
         log.info("Context impl %s.", self.impl.__class__.__name__)
         if self.as_sql:
@@ -320,6 +321,7 @@ def configure(
         upgrade_token="upgrades",
         downgrade_token="downgrades",
         sqlalchemy_module_prefix="sa.",
+        **kw
     ):
     """Configure the migration environment.
 
@@ -327,7 +329,7 @@ def configure(
     what kind of "dialect" is in use.   The second is to pass
     an actual database connection, if one is required.
 
-    If the :func:`.requires_connection` function returns False,
+    If the :func:`.is_offline_mode` function returns ``True``,
     then no connection is needed here.  Otherwise, the
     ``connection`` parameter should be present as an 
     instance of :class:`sqlalchemy.engine.base.Connection`.
@@ -338,8 +340,11 @@ def configure(
     for which it was called is the one that will be operated upon
     by the next call to :func:`.run_migrations`.
 
-    :param connection: a :class:`sqlalchemy.engine.base.Connection`.  The type of dialect
-     to be used will be derived from this.
+    General parameters:
+    
+    :param connection: a :class:`~sqlalchemy.engine.base.Connection` to use
+     for SQL execution in "online" mode.  When present, is also used to 
+     determine the type of dialect in use.
     :param url: a string database url, or a :class:`sqlalchemy.engine.url.URL` object.
      The type of dialect to be used will be derived from this if ``connection`` is
      not passed.
@@ -356,9 +361,12 @@ def configure(
      ``--sql`` mode.
     :param tag: a string tag for usage by custom ``env.py`` scripts.  Set via
      the ``--tag`` option, can be overridden here.
+     
+    Parameters specific to the autogenerate feature, when ``alembic revision``
+    is run with the ``--autogenerate`` feature:
+    
     :param target_metadata: a :class:`sqlalchemy.schema.MetaData` object that
-     will be consulted if the ``--autogenerate`` option is passed to the 
-     "alembic revision" command.  The tables present will be compared against
+     will be consulted during autogeneration.  The tables present will be compared against
      what is locally available on the target :class:`~sqlalchemy.engine.base.Connection`
      to produce candidate upgrade/downgrade operations.
      
@@ -412,12 +420,13 @@ def configure(
      to proceed.  Note that some backends such as Postgresql actually execute
      the two defaults on the database side to compare for equivalence.
 
-    :param upgrade_token: when running "alembic revision" with the ``--autogenerate``
-     option, the text of the candidate upgrade operations will be present in this
-     template variable when ``script.py.mako`` is rendered.  Defaults to ``upgrades``.
-    :param downgrade_token: when running "alembic revision" with the ``--autogenerate``
-     option, the text of the candidate downgrade operations will be present in this
-     template variable when ``script.py.mako`` is rendered.  Defaults to ``downgrades``.
+    :param upgrade_token: When autogenerate completes, the text of the 
+     candidate upgrade operations will be present in this template 
+     variable when ``script.py.mako`` is rendered.  Defaults to ``upgrades``.
+    :param downgrade_token: When autogenerate completes, the text of the 
+     candidate downgrade operations will be present in this
+     template variable when ``script.py.mako`` is rendered.  Defaults to 
+     ``downgrades``.
      
     :param sqlalchemy_module_prefix: When autogenerate refers to SQLAlchemy 
      :class:`~sqlalchemy.schema.Column` or type classes, this prefix will be used
@@ -426,6 +435,16 @@ def configure(
      Note that when dialect-specific types are rendered, autogenerate
      will render them using the dialect module name, i.e. ``mssql.BIT()``, 
      ``postgresql.UUID()``.
+     
+    Parameters specific to individual backends:
+    
+    :param mssql_batch_separator: The "batch separator" which will be placed
+     between each statement when generating offline SQL Server 
+     migrations.  Defaults to ``GO``.  Note this is in addition to the customary
+     semicolon ``;`` at the end of each statement; SQL Server considers
+     the "batch separator" to denote the end of an individual statement
+     execution, and cannot group certain dependent operations in 
+     one step.
 
     """
 
@@ -456,6 +475,8 @@ def configure(
     opts['upgrade_token'] = upgrade_token
     opts['downgrade_token'] = downgrade_token
     opts['sqlalchemy_module_prefix'] = sqlalchemy_module_prefix
+    opts.update(kw)
+
     _context = Context(
                         dialect, _script, connection, 
                         opts['fn'],

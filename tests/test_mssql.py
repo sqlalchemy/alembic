@@ -1,7 +1,9 @@
 """Test op functions against MSSQL."""
 
-from tests import op_fixture, capture_context_buffer, no_sql_testing_config, staging_env, three_rev_fixture, clear_staging_env
-from alembic import op, command
+from tests import op_fixture, capture_context_buffer, \
+    no_sql_testing_config, assert_raises_message, staging_env, \
+    three_rev_fixture, clear_staging_env
+from alembic import op, command, util
 from sqlalchemy import Integer, Column, ForeignKey, \
             UniqueConstraint, Table, MetaData, String
 from sqlalchemy.sql import table
@@ -26,6 +28,16 @@ class FullEnvironmentTests(TestCase):
             command.upgrade(self.cfg, self.a, sql=True)
         assert "BEGIN TRANSACTION" in buf.getvalue()
         assert "COMMIT" in buf.getvalue()
+
+    def test_batch_separator_default(self):
+        with capture_context_buffer() as buf:
+            command.upgrade(self.cfg, self.a, sql=True)
+        assert "GO" in buf.getvalue()
+
+    def test_batch_separator_custom(self):
+        with capture_context_buffer(mssql_batch_separator="BYE") as buf:
+            command.upgrade(self.cfg, self.a, sql=True)
+        assert "BYE" in buf.getvalue()
 
 class OpTest(TestCase):
     def test_add_column(self):
@@ -68,18 +80,42 @@ class OpTest(TestCase):
         context.assert_contains("exec('alter table t1 drop constraint ' + @const_name_2)")
         context.assert_contains("ALTER TABLE t1 DROP COLUMN c2")
 
-    def test_alter_column_nullable(self):
+    def test_alter_column_nullable_w_existing_type(self):
         context = op_fixture('mssql')
-        op.alter_column("t", "c", nullable=True)
+        op.alter_column("t", "c", nullable=True, existing_type=Integer)
         context.assert_(
-            "ALTER TABLE t ALTER COLUMN c NULL"
+            "ALTER TABLE t ALTER COLUMN c INTEGER NULL"
         )
 
-    def test_alter_column_not_nullable(self):
+    def test_alter_column_not_nullable_w_existing_type(self):
         context = op_fixture('mssql')
-        op.alter_column("t", "c", nullable=False)
+        op.alter_column("t", "c", nullable=False, existing_type=Integer)
         context.assert_(
-            "ALTER TABLE t ALTER COLUMN c SET NOT NULL"
+            "ALTER TABLE t ALTER COLUMN c INTEGER NOT NULL"
+        )
+
+    def test_alter_column_nullable_w_new_type(self):
+        context = op_fixture('mssql')
+        op.alter_column("t", "c", nullable=True, type_=Integer)
+        context.assert_(
+            "ALTER TABLE t ALTER COLUMN c INTEGER NULL"
+        )
+
+    def test_alter_column_not_nullable_w_new_type(self):
+        context = op_fixture('mssql')
+        op.alter_column("t", "c", nullable=False, type_=Integer)
+        context.assert_(
+            "ALTER TABLE t ALTER COLUMN c INTEGER NOT NULL"
+        )
+
+    def test_alter_column_nullable_type_required(self):
+        context = op_fixture('mssql')
+        assert_raises_message(
+            util.CommandError,
+            "MS-SQL ALTER COLUMN operations with NULL or "
+            "NOT NULL require the existing_type or a new "
+            "type_ be passed.",
+            op.alter_column, "t", "c", nullable=False
         )
 
     # TODO: when we add schema support
