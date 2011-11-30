@@ -160,8 +160,10 @@ def alter_column(table_name, column_name,
     :param existing_type: Optional; a :class:`~sqlalchemy.types.TypeEngine`
      type object to specify the previous type.   This
      is required for all MySQL column alter operations that 
-     don't otherwise specify a new type.  It is also
-     used if the type is a so-called SQLlchemy "schema" type which
+     don't otherwise specify a new type, as well as for
+     when nullability is being changed on a SQL Server
+     column.  It is also used if the type is a so-called 
+     SQLlchemy "schema" type which
      may define a constraint (i.e. 
      :class:`~sqlalchemy.types.Boolean`, :class:`~sqlalchemy.types.Enum`), 
      so that the constraint can be dropped.
