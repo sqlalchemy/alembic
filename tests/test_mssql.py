@@ -26,8 +26,8 @@ class FullEnvironmentTests(TestCase):
     def test_begin_comit(self):
         with capture_context_buffer(transactional_ddl=True) as buf:
             command.upgrade(self.cfg, self.a, sql=True)
-        assert "BEGIN TRANSACTION" in buf.getvalue()
-        assert "COMMIT" in buf.getvalue()
+        assert "BEGIN TRANSACTION;" in buf.getvalue()
+        assert "COMMIT;" in buf.getvalue()
 
     def test_batch_separator_default(self):
         with capture_context_buffer() as buf:

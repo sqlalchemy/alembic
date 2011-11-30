@@ -99,7 +99,7 @@ def visit_column_type(element, compiler, **kw):
     return "%s %s %s" % (
         alter_table(compiler, element.table_name, element.schema),
         alter_column(compiler, element.column_name),
-        "TYPE %s" % compiler.dialect.type_compiler.process(element.type_)
+        "TYPE %s" % format_type(compiler, element.type_)
     )
 
 @compiles(ColumnName)
@@ -112,9 +112,14 @@ def visit_column_name(element, compiler, **kw):
 
 @compiles(ColumnDefault)
 def visit_column_default(element, compiler, **kw):
-    raise NotImplementedError(
-            "Default compilation not implemented "
-            "for column default change")
+    return "%s %s %s" % (
+        alter_table(compiler, element.table_name, element.schema),
+        alter_column(compiler, element.column_name),
+        "SET DEFAULT %s" % 
+            format_server_default(compiler, element.default)
+        if element.default is not None
+        else "DROP DEFAULT"
+    )
 
 def quote_dotted(name, quote):
     """quote the elements of a dotted name"""
@@ -133,9 +138,12 @@ def format_column_name(compiler, name):
     return compiler.preparer.quote(name, None)
 
 def format_server_default(compiler, default):
-#    if isinstance(default, basestring):
-#        default = DefaultClause(default)
-    return compiler.get_column_default_string(Column("x", Integer, server_default=default))
+    return compiler.get_column_default_string(
+                Column("x", Integer, server_default=default)
+            )
+
+def format_type(compiler, type_):
+    return compiler.dialect.type_compiler.process(type_)
 
 def alter_table(compiler, name, schema):
     return "ALTER TABLE %s" % format_table_name(compiler, name, schema)

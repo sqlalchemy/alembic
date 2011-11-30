@@ -526,6 +526,17 @@ def execute(sql):
     """
     get_context().execute(sql)
 
+def static_output(text):
+    """Emit text directly to the "offline" SQL stream.
+    
+    Typically this is for emitting comments that 
+    start with --.  The statement is not treated
+    as a SQL execution, no ; or batch separator
+    is added, etc.
+    
+    """
+    get_context().impl.static_output(text)
+
 def begin_transaction():
     """Return a context manager that will 
     enclose an operation within a "transaction",

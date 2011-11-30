@@ -1,7 +1,7 @@
 from alembic.ddl.impl import DefaultImpl
 from alembic.ddl.base import alter_table, AddColumn, ColumnName, \
     format_table_name, format_column_name, ColumnNullable, alter_column,\
-    format_server_default,ColumnDefault
+    format_server_default,ColumnDefault, format_type
 from alembic import util
 from sqlalchemy.ext.compiler import compiles
 
@@ -29,7 +29,7 @@ class MSSQLImpl(DefaultImpl):
             self.static_output(self.batch_separator)
 
     def emit_begin(self):
-        self.static_output("BEGIN TRANSACTION")
+        self.static_output("BEGIN TRANSACTION;")
 
     def alter_column(self, table_name, column_name, 
                         nullable=None,
@@ -147,7 +147,7 @@ def visit_column_nullable(element, compiler, **kw):
     return "%s %s %s %s" % (
         alter_table(compiler, element.table_name, element.schema),
         alter_column(compiler, element.column_name),
-        compiler.dialect.type_compiler.process(element.existing_type),
+        format_type(compiler, element.existing_type),
         "NULL" if element.nullable else "NOT NULL"
     )
 

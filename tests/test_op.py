@@ -98,6 +98,28 @@ def test_alter_column_type():
         'ALTER TABLE t ALTER COLUMN c TYPE VARCHAR(50)'
     )
 
+def test_alter_column_set_default():
+    context = op_fixture()
+    op.alter_column("t", "c", server_default="q")
+    context.assert_(
+        "ALTER TABLE t ALTER COLUMN c SET DEFAULT 'q'"
+    )
+
+def test_alter_column_set_compiled_default():
+    context = op_fixture()
+    op.alter_column("t", "c", server_default=func.utc_thing(func.current_timestamp()))
+    context.assert_(
+        "ALTER TABLE t ALTER COLUMN c SET DEFAULT utc_thing(CURRENT_TIMESTAMP)"
+    )
+
+def test_alter_column_drop_default():
+    context = op_fixture()
+    op.alter_column("t", "c", server_default=None)
+    context.assert_(
+        'ALTER TABLE t ALTER COLUMN c DROP DEFAULT'
+    )
+
+
 def test_alter_column_schema_type_unnamed():
     context = op_fixture('mssql')
     op.alter_column("t", "c", type_=Boolean())

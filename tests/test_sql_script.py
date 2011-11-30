@@ -17,13 +17,13 @@ def teardown():
 def test_begin_comit():
     with capture_context_buffer(transactional_ddl=True) as buf:
         command.upgrade(cfg, a, sql=True)
-    assert "BEGIN" in buf.getvalue()
-    assert "COMMIT" in buf.getvalue()
+    assert "BEGIN;" in buf.getvalue()
+    assert "COMMIT;" in buf.getvalue()
 
     with capture_context_buffer(transactional_ddl=False) as buf:
         command.upgrade(cfg, a, sql=True)
-    assert "BEGIN" not in buf.getvalue()
-    assert "COMMIT" not in buf.getvalue()
+    assert "BEGIN;" not in buf.getvalue()
+    assert "COMMIT;" not in buf.getvalue()
 
 def test_version_from_none_insert():
     with capture_context_buffer() as buf:
