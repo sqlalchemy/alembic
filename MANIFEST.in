@@ -1,8 +1,9 @@
-recursive-include docs *
-recursive-include test *.py *.dat
-recursive-include alembic/templates *
+include docs/ *.html *.css *.js *.txt
+recursive-include tests *.py *.dat
+recursive-include alembic/templates *.mako README *.py
 
 include README* LICENSE distribute_setup.py CHANGES*
 
-prune doc/build/output
+prune docs/build/output
+
 
