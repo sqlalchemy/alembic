@@ -237,7 +237,7 @@ the ability to build the current database fully).
 We can then add some directives to our script, suppose adding a new table ``account``::
 
     def upgrade():
-        create_table(
+        op.create_table(
             'account',
             sa.Column('id', sa.Integer, primary_key=True),
             sa.Column('name', sa.String(50), nullable=False),
@@ -245,7 +245,7 @@ We can then add some directives to our script, suppose adding a new table ``acco
         )
 
     def downgrade():
-        drop_table('account')
+        op.drop_table('account')
 
 :func:`.create_table` and :func:`.drop_table` are Alembic directives.   Alembic provides 
 all the basic database migration operations via these directives, which are designed to be as simple and 
