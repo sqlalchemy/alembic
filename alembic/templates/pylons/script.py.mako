@@ -9,7 +9,7 @@ Create Date: ${create_date}
 # downgrade revision identifier, used by Alembic.
 down_revision = ${repr(down_revision)}
 
-from alembic.op import *
+from alembic import op
 import sqlalchemy as sa
 ${imports if imports else ""}
 

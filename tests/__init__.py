@@ -282,13 +282,13 @@ def three_rev_fixture(cfg):
     script.write(a, """
 down_revision = None
 
-from alembic.op import *
+from alembic import op
 
 def upgrade():
-    execute("CREATE STEP 1")
+    op.execute("CREATE STEP 1")
 
 def downgrade():
-    execute("DROP STEP 1")
+    op.execute("DROP STEP 1")
 
 """)
 
@@ -296,13 +296,13 @@ def downgrade():
     script.write(b, """
 down_revision = '%s'
 
-from alembic.op import *
+from alembic import op
 
 def upgrade():
-    execute("CREATE STEP 2")
+    op.execute("CREATE STEP 2")
 
 def downgrade():
-    execute("DROP STEP 2")
+    op.execute("DROP STEP 2")
 
 """ % a)
 
@@ -310,13 +310,13 @@ def downgrade():
     script.write(c, """
 down_revision = '%s'
 
-from alembic.op import *
+from alembic import op
 
 def upgrade():
-    execute("CREATE STEP 3")
+    op.execute("CREATE STEP 3")
 
 def downgrade():
-    execute("DROP STEP 3")
+    op.execute("DROP STEP 3")
 
 """ % b)
     return a, b, c
