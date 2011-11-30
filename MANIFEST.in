@@ -2,7 +2,7 @@ include docs/ *.html *.css *.js *.txt
 recursive-include tests *.py *.dat
 recursive-include alembic/templates *.mako README *.py
 
-include README* LICENSE distribute_setup.py CHANGES*
+include README* LICENSE distribute_setup.py CHANGES* test.cfg
 
 prune docs/build/output
 
