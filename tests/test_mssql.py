@@ -62,23 +62,16 @@ class OpTest(TestCase):
         context = op_fixture('mssql')
         op.drop_column('t1', 'c1', mssql_drop_default=True)
         op.drop_column('t1', 'c2', mssql_drop_default=True)
-        context.assert_contains("exec('alter table t1 drop constraint ' + @const_name_1)")
+        context.assert_contains("exec('alter table t1 drop constraint ' + @const_name)")
         context.assert_contains("ALTER TABLE t1 DROP COLUMN c1")
 
-        # counter increments
-        context.assert_contains("exec('alter table t1 drop constraint ' + @const_name_2)")
-        context.assert_contains("ALTER TABLE t1 DROP COLUMN c2")
 
     def test_drop_column_w_check(self):
         context = op_fixture('mssql')
         op.drop_column('t1', 'c1', mssql_drop_check=True)
         op.drop_column('t1', 'c2', mssql_drop_check=True)
-        context.assert_contains("exec('alter table t1 drop constraint ' + @const_name_1)")
+        context.assert_contains("exec('alter table t1 drop constraint ' + @const_name)")
         context.assert_contains("ALTER TABLE t1 DROP COLUMN c1")
-
-        # counter increments
-        context.assert_contains("exec('alter table t1 drop constraint ' + @const_name_2)")
-        context.assert_contains("ALTER TABLE t1 DROP COLUMN c2")
 
     def test_alter_column_nullable_w_existing_type(self):
         context = op_fixture('mssql')
@@ -128,7 +121,7 @@ class OpTest(TestCase):
     def test_alter_replace_server_default(self):
         context = op_fixture('mssql')
         op.alter_column("t", "c", server_default="5", existing_server_default="6")
-        context.assert_contains("exec('alter table t drop constraint ' + @const_name_1)")
+        context.assert_contains("exec('alter table t drop constraint ' + @const_name)")
         context.assert_contains(
             "ALTER TABLE t ADD DEFAULT '5' FOR c"
         )
@@ -136,7 +129,7 @@ class OpTest(TestCase):
     def test_alter_remove_server_default(self):
         context = op_fixture('mssql')
         op.alter_column("t", "c", server_default=None)
-        context.assert_contains("exec('alter table t drop constraint ' + @const_name_1)")
+        context.assert_contains("exec('alter table t drop constraint ' + @const_name)")
 
     def test_alter_do_everything(self):
         context = op_fixture('mssql')

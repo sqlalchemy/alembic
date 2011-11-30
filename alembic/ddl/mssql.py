@@ -16,13 +16,6 @@ class MSSQLImpl(DefaultImpl):
                                 "mssql_batch_separator", 
                                 self.batch_separator)
 
-    def start_migrations(self):
-        self.__dict__.pop('const_sym_counter', None)
-
-    @util.memoized_property
-    def const_sym_counter(self):
-        return 1
-
     def _exec(self, construct, *args, **kw):
         super(MSSQLImpl, self)._exec(construct, *args, **kw)
         if self.as_sql and self.batch_separator:
@@ -118,18 +111,14 @@ class MSSQLImpl(DefaultImpl):
 def _exec_drop_col_constraint(impl, tname, colname, type_):
     # from http://www.mssqltips.com/sqlservertip/1425/working-with-default-constraints-in-sql-server/
     # TODO: needs table formatting, etc.
-    counter = impl.const_sym_counter
-    impl.const_sym_counter += 1
-
-    return """declare @const_name_%(sym)s varchar(256)
-select @const_name_%(sym)s = [name] from %(type)s
+    return """declare @const_name varchar(256)
+select @const_name = [name] from %(type)s
 where parent_object_id = object_id('%(tname)s')
 and col_name(parent_object_id, parent_column_id) = '%(colname)s'
-exec('alter table %(tname)s drop constraint ' + @const_name_%(sym)s)""" % {
+exec('alter table %(tname)s drop constraint ' + @const_name)""" % {
         'type':type_,
         'tname':tname,
-        'colname':colname,
-        'sym':counter
+        'colname':colname
     }
 
 @compiles(AddColumn, 'mssql')
