@@ -1,6 +1,8 @@
 import functools
 from sqlalchemy.ext.compiler import compiles
-from sqlalchemy.schema import DDLElement
+from sqlalchemy.schema import DDLElement, Column
+from sqlalchemy import Integer
+
 from sqlalchemy import types as sqltypes
 class AlterTable(DDLElement):
     """Represent an ALTER TABLE statement.
@@ -108,6 +110,12 @@ def visit_column_name(element, compiler, **kw):
         format_column_name(compiler, element.newname)
     )
 
+@compiles(ColumnDefault)
+def visit_column_default(element, compiler, **kw):
+    raise NotImplementedError(
+            "Default compilation not implemented "
+            "for column default change")
+
 def quote_dotted(name, quote):
     """quote the elements of a dotted name"""
 
@@ -123,6 +131,11 @@ def format_table_name(compiler, name, schema):
 
 def format_column_name(compiler, name):
     return compiler.preparer.quote(name, None)
+
+def format_server_default(compiler, default):
+#    if isinstance(default, basestring):
+#        default = DefaultClause(default)
+    return compiler.get_column_default_string(Column("x", Integer, server_default=default))
 
 def alter_table(compiler, name, schema):
     return "ALTER TABLE %s" % format_table_name(compiler, name, schema)

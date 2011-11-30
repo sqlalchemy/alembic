@@ -205,7 +205,7 @@ class DefaultImpl(object):
         via :func:`.context.begin_transaction`.
         
         """
-        self._exec("BEGIN")
+        self.static_output("BEGIN")
 
     def emit_commit(self):
         """Emit the string ``COMMIT``, or the backend-specific
@@ -215,7 +215,7 @@ class DefaultImpl(object):
         via :func:`.context.begin_transaction`.
         
         """
-        self._exec("COMMIT")
+        self.static_output("COMMIT")
 
 class _literal_bindparam(_BindParamClause):
     pass

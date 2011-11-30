@@ -1,6 +1,7 @@
 from alembic.ddl.impl import DefaultImpl
 from alembic.ddl.base import alter_table, AddColumn, ColumnName, \
-    format_table_name, format_column_name, ColumnNullable, alter_column
+    format_table_name, format_column_name, ColumnNullable, alter_column,\
+    format_server_default,ColumnDefault
 from alembic import util
 from sqlalchemy.ext.compiler import compiles
 
@@ -28,7 +29,7 @@ class MSSQLImpl(DefaultImpl):
             self.static_output(self.batch_separator)
 
     def emit_begin(self):
-        self._exec("BEGIN TRANSACTION")
+        self.static_output("BEGIN TRANSACTION")
 
     def alter_column(self, table_name, column_name, 
                         nullable=None,
@@ -56,14 +57,31 @@ class MSSQLImpl(DefaultImpl):
         super(MSSQLImpl, self).alter_column(
                         table_name, column_name, 
                         nullable=nullable,
-                        server_default=server_default,
-                        name=name,
                         type_=type_,
                         schema=schema,
                         existing_type=existing_type,
-                        existing_server_default=existing_server_default,
                         existing_nullable=existing_nullable
         )
+
+        if server_default is not False:
+            if existing_server_default is not False or \
+                server_default is None:
+                self._exec(
+                    _exec_drop_col_constraint(self, 
+                            table_name, column_name, 
+                            'sys.default_constraints')
+                )
+            if server_default is not None:
+                super(MSSQLImpl, self).alter_column(
+                                table_name, column_name, 
+                                schema=schema,
+                                server_default=server_default)
+
+        if name is not None:
+            super(MSSQLImpl, self).alter_column(
+                                table_name, column_name, 
+                                schema=schema,
+                                name=name)
 
     def bulk_insert(self, table, rows):
         if self.as_sql:
@@ -133,6 +151,15 @@ def visit_column_nullable(element, compiler, **kw):
         "NULL" if element.nullable else "NOT NULL"
     )
 
+@compiles(ColumnDefault, 'mssql')
+def visit_column_default(element, compiler, **kw):
+    # TODO: there can also be a named constraint
+    # with ADD CONSTRAINT here
+    return "%s ADD DEFAULT %s FOR %s" % (
+        alter_table(compiler, element.table_name, element.schema),
+        format_server_default(compiler, element.default),
+        format_column_name(compiler, element.column_name)
+    )
 
 @compiles(ColumnName, 'mssql')
 def visit_rename_column(element, compiler, **kw):

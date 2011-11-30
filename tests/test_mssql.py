@@ -118,6 +118,35 @@ class OpTest(TestCase):
             op.alter_column, "t", "c", nullable=False
         )
 
+    def test_alter_add_server_default(self):
+        context = op_fixture('mssql')
+        op.alter_column("t", "c", server_default="5")
+        context.assert_(
+            "ALTER TABLE t ADD DEFAULT '5' FOR c"
+        )
+
+    def test_alter_replace_server_default(self):
+        context = op_fixture('mssql')
+        op.alter_column("t", "c", server_default="5", existing_server_default="6")
+        context.assert_contains("exec('alter table t drop constraint ' + @const_name_1)")
+        context.assert_contains(
+            "ALTER TABLE t ADD DEFAULT '5' FOR c"
+        )
+
+    def test_alter_remove_server_default(self):
+        context = op_fixture('mssql')
+        op.alter_column("t", "c", server_default=None)
+        context.assert_contains("exec('alter table t drop constraint ' + @const_name_1)")
+
+    def test_alter_do_everything(self):
+        context = op_fixture('mssql')
+        op.alter_column("t", "c", name="c2", nullable=True, type_=Integer, server_default="5")
+        context.assert_(
+            'ALTER TABLE t ALTER COLUMN c INTEGER NULL', 
+            "ALTER TABLE t ADD DEFAULT '5' FOR c", 
+            "EXEC sp_rename 't.c', 'c2', 'COLUMN'"
+        )
+
     # TODO: when we add schema support
     #def test_alter_column_rename_mssql_schema(self):
     #    context = op_fixture('mssql')
