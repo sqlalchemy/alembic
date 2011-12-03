@@ -78,7 +78,7 @@ def _produce_net_changes(connection, metadata, diffs, autogen_context):
         for tname in existing_tables
     )
 
-    for tname in existing_tables:
+    for tname in sorted(existing_tables):
         _compare_columns(tname, 
                 conn_column_info[tname], 
                 metadata.tables[tname],

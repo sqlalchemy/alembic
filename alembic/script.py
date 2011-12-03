@@ -148,7 +148,8 @@ class ScriptDirectory(object):
 
     def write(self, rev_id, content):
         path = self._rev_path(rev_id)
-        open(path, 'w').write(content)
+        with open(path, 'w') as fp:
+            fp.write(content)
         pyc_path = util.pyc_file_from_path(path)
         if os.access(pyc_path, os.F_OK):
             os.unlink(pyc_path)

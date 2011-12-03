@@ -35,11 +35,10 @@ except (KeyError, ValueError):
     width = 80
 
 def template_to_file(template_file, dest, **kw):
-    f = open(dest, 'w')
-    f.write(
-        Template(filename=template_file).render(**kw)
-    )
-    f.close()
+    with open(dest, 'w') as f:
+        f.write(
+            Template(filename=template_file).render(**kw)
+        )
 
 
 def status(_statmsg, fn, *arg, **kw):

@@ -117,12 +117,6 @@ def assert_raises_message(except_cls, msg, callable_, *args, **kwargs):
         assert re.search(msg, str(e)), "%r !~ %s" % (msg, e)
         print str(e)
 
-def _testing_config():
-    from alembic.config import Config
-    if not os.access(staging_directory, os.F_OK):
-        os.mkdir(staging_directory)
-    return Config(os.path.join(staging_directory, 'test_alembic.ini'))
-
 def op_fixture(dialect='default', as_sql=False):
     impl = _impls[dialect]
     class Impl(impl):
@@ -181,7 +175,8 @@ config = context.config
     if os.access(pyc_path, os.F_OK):
         os.unlink(pyc_path)
 
-    open(path, 'w').write(txt)
+    with open(path, 'w') as f:
+        f.write(txt)
 
 def _sqlite_testing_config():
     dir_ = os.path.join(staging_directory, 'scripts')
@@ -216,7 +211,7 @@ datefmt = %%H:%%M:%%S
     """ % (dir_, dir_))
 
 
-def no_sql_testing_config(dialect="postgresql"):
+def _no_sql_testing_config(dialect="postgresql"):
     """use a postgresql url with no host so that connections guaranteed to fail"""
     dir_ = os.path.join(staging_directory, 'scripts')
     return _write_config_file("""
@@ -252,8 +247,15 @@ datefmt = %%H:%%M:%%S
 
 def _write_config_file(text):
     cfg = _testing_config()
-    open(cfg.config_file_name, 'w').write(text)
+    with open(cfg.config_file_name, 'w') as f:
+        f.write(text)
     return cfg
+
+def _testing_config():
+    from alembic.config import Config
+    if not os.access(staging_directory, os.F_OK):
+        os.mkdir(staging_directory)
+    return Config(os.path.join(staging_directory, 'test_alembic.ini'))
 
 
 def staging_env(create=True, template="generic"):

@@ -1,7 +1,7 @@
 """Test op functions against MSSQL."""
 
 from tests import op_fixture, capture_context_buffer, \
-    no_sql_testing_config, assert_raises_message, staging_env, \
+    _no_sql_testing_config, assert_raises_message, staging_env, \
     three_rev_fixture, clear_staging_env
 from alembic import op, command, util
 from sqlalchemy import Integer, Column, ForeignKey, \
@@ -14,7 +14,7 @@ class FullEnvironmentTests(TestCase):
     @classmethod
     def setup_class(cls):
         env = staging_env()
-        cls.cfg = cfg = no_sql_testing_config("mssql")
+        cls.cfg = cfg = _no_sql_testing_config("mssql")
 
         cls.a, cls.b, cls.c = \
             three_rev_fixture(cfg)

@@ -1,3 +1,10 @@
+0.1.1
+=====
+- Clean up file write operations so that
+  file handles are closed.
+
+- PyPy is supported.
+
 0.1.0
 =====
 - Initial release.  Status of features:

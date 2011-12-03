@@ -1,6 +1,6 @@
 
 from tests import op_fixture, db_for_dialect, eq_, staging_env, \
-            clear_staging_env, no_sql_testing_config,\
+            clear_staging_env, _no_sql_testing_config,\
             capture_context_buffer, requires_07
 from unittest import TestCase
 from sqlalchemy import DateTime, MetaData, Table, Column, text, Integer, String
@@ -12,12 +12,16 @@ class PGOfflineEnumTest(TestCase):
     @requires_07
     def setUp(self):
         env = staging_env()
-        self.cfg = cfg = no_sql_testing_config()
+        self.cfg = cfg = _no_sql_testing_config()
 
         self.rid = rid = util.rev_id()
 
         self.script = script = ScriptDirectory.from_config(cfg)
         script.generate_rev(rid, None, refresh=True)
+
+    def tearDown(self):
+        clear_staging_env()
+
 
     def _inline_enum_script(self):
         self.script.write(self.rid, """
@@ -56,9 +60,6 @@ def downgrade():
     ENUM(name="pgenum").drop(get_bind(), checkfirst=False)
     
 """)
-
-    def tearDown(self):
-        clear_staging_env()
 
     def test_offline_inline_enum_create(self):
         self._inline_enum_script()

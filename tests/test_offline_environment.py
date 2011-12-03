@@ -1,5 +1,5 @@
 from tests import clear_staging_env, staging_env, \
-    no_sql_testing_config, sqlite_db, eq_, ne_, \
+    _no_sql_testing_config, sqlite_db, eq_, ne_, \
     capture_context_buffer, three_rev_fixture, env_file_fixture,\
     assert_raises_message
 from alembic import command, util
@@ -9,7 +9,7 @@ from unittest import TestCase
 class OfflineEnvironmentTest(TestCase):
     def setUp(self):
         env = staging_env()
-        self.cfg = no_sql_testing_config()
+        self.cfg = _no_sql_testing_config()
 
         global a, b, c
         a, b, c = three_rev_fixture(self.cfg)
