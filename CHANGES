@@ -5,6 +5,9 @@
 
 - PyPy is supported.
 
+- Python 2.5 is supported, needs 
+  __future__.with_statement
+
 0.1.0
 =====
 - Initial release.  Status of features:

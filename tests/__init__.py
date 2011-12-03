@@ -1,3 +1,5 @@
+from __future__ import with_statement
+
 from sqlalchemy.engine import url, default
 import shutil
 import os

@@ -42,7 +42,8 @@ def _foreign_key_constraint(name, source, referent, local_cols, remote_cols):
 def _unique_constraint(name, source, local_cols, **kw):
     t = schema.Table(source, schema.MetaData(), 
                 *[schema.Column(n, NULLTYPE) for n in local_cols])
-    uq = schema.UniqueConstraint(*t.c, name=name, **kw)
+    kw['name'] = name
+    uq = schema.UniqueConstraint(*t.c, **kw)
     # TODO: need event tests to ensure the event
     # is fired off here
     t.append_constraint(uq)

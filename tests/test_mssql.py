@@ -1,5 +1,5 @@
 """Test op functions against MSSQL."""
-
+from __future__ import with_statement
 from tests import op_fixture, capture_context_buffer, \
     _no_sql_testing_config, assert_raises_message, staging_env, \
     three_rev_fixture, clear_staging_env
