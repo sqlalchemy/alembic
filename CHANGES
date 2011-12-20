@@ -1,12 +1,16 @@
 0.1.1
 =====
-- Clean up file write operations so that
+- [bug] Clean up file write operations so that
   file handles are closed.
 
-- PyPy is supported.
+- [feature] PyPy is supported.
 
-- Python 2.5 is supported, needs 
+- [feature] Python 2.5 is supported, needs 
   __future__.with_statement
+
+- [bug] Fix autogenerate so that "pass" is 
+  generated between the two comments
+  if no net migrations were present.
 
 0.1.0
 =====

@@ -222,12 +222,16 @@ def _produce_upgrade_commands(diffs, autogen_context):
     buf = []
     for diff in diffs:
         buf.append(_invoke_command("upgrade", diff, autogen_context))
+    if not buf:
+        buf = ["pass"]
     return "\n".join(buf)
 
 def _produce_downgrade_commands(diffs, autogen_context):
     buf = []
     for diff in diffs:
         buf.append(_invoke_command("downgrade", diff, autogen_context))
+    if not buf:
+        buf = ["pass"]
     return "\n".join(buf)
 
 def _invoke_command(updown, args, autogen_context):
