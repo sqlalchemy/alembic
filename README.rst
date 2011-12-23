@@ -67,5 +67,5 @@ The goals of Alembic are:
   If you're serious about schema migrations, use a database that's 
   just as serious!
 
-Documentation and status of Alembic is at http://packages.python.org/alembic/.
+Documentation and status of Alembic is at http://readthedocs.org/docs/alembic/.
 
