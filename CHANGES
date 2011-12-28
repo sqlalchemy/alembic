@@ -12,6 +12,11 @@
   generated between the two comments
   if no net migrations were present.
 
+- [bug] Fix autogenerate bug that prevented
+  correct reflection of a foreign-key
+  referenced table in the list of "to remove".
+  [#16]
+
 0.1.0
 =====
 - Initial release.  Status of features:

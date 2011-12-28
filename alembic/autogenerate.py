@@ -55,14 +55,20 @@ def _produce_net_changes(connection, metadata, diffs, autogen_context):
                             difference(['alembic_version'])
     metadata_table_names = set(metadata.tables)
 
+    _compare_tables(conn_table_names, metadata_table_names, inspector, metadata, diffs, autogen_context)
+
+def _compare_tables(conn_table_names, metadata_table_names, 
+                    inspector, metadata, diffs, autogen_context):
     for tname in metadata_table_names.difference(conn_table_names):
         diffs.append(("add_table", metadata.tables[tname]))
         log.info("Detected added table %r", tname)
 
     removal_metadata = schema.MetaData()
     for tname in conn_table_names.difference(metadata_table_names):
+        exists = tname in removal_metadata.tables
         t = schema.Table(tname, removal_metadata)
-        inspector.reflecttable(t, None)
+        if not exists:
+            inspector.reflecttable(t, None)
         diffs.append(("remove_table", t))
         log.info("Detected removed table %r", tname)
 
