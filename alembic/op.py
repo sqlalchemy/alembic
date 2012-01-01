@@ -90,7 +90,7 @@ def _ensure_table_for_fk(metadata, fk):
             rel_t = schema.Table(tname, metadata, schema=sname)
         else:
             rel_t = metadata.tables[table_key]
-        if not rel_t.c.contains_column(cname):
+        if cname not in rel_t.c:
             rel_t.append_column(schema.Column(cname, NULLTYPE))
 
 def rename_table(old_table_name, new_table_name, schema=None):

@@ -17,6 +17,10 @@
   referenced table in the list of "to remove".
   [#16]
 
+- [bug] Fix bug where create_table() didn't
+  handle self-referential foreign key
+  correctly [#17]
+
 0.1.0
 =====
 - Initial release.  Status of features:

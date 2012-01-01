@@ -201,6 +201,21 @@ def test_drop_table():
         "DROP TABLE tb_test"
     )
 
+def test_create_table_selfref():
+    context = op_fixture()
+    op.create_table(
+        "some_table", 
+        Column('id', Integer, primary_key=True),
+        Column('st_id', Integer, ForeignKey('some_table.id'))
+    )
+    context.assert_(
+        "CREATE TABLE some_table ("
+            "id INTEGER NOT NULL, "
+            "st_id INTEGER, "
+            "PRIMARY KEY (id), "
+            "FOREIGN KEY(st_id) REFERENCES some_table (id))"
+    )
+
 def test_create_table_fk_and_schema():
     context = op_fixture()
     op.create_table(
