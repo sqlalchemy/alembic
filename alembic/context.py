@@ -430,7 +430,7 @@ def configure(
      ``downgrades``.
 
     :param alembic_module_prefix: When autogenerate refers to Alembic 
-     :module:`alembic.op` constructs, this prefix will be used
+     :mod:`alembic.op` constructs, this prefix will be used
      (i.e. ``op.create_table``)  Defaults to "``op.``".
      Can be ``None`` to indicate no prefix.  
      
