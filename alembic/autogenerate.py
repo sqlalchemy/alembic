@@ -302,8 +302,9 @@ def _invoke_modify_command(updown, args, autogen_context):
 # render python
 
 def _add_table(table, autogen_context):
-    return "create_table(%(tablename)r,\n%(args)s\n)" % {
+    return "%(prefix)screate_table(%(tablename)r,\n%(args)s\n)" % {
         'tablename':table.name,
+        'prefix':_alembic_autogenerate_prefix(),
         'args':',\n'.join(
             [_render_column(col, autogen_context) for col in table.c] +
             sorted([rcons for rcons in 
@@ -315,15 +316,24 @@ def _add_table(table, autogen_context):
     }
 
 def _drop_table(table, autogen_context):
-    return "drop_table(%r)" % table.name
+    return "%(prefix)sdrop_table(%(tname)r)" % {
+            "prefix":_alembic_autogenerate_prefix(),
+            "tname":table.name
+        }
 
 def _add_column(tname, column, autogen_context):
-    return "add_column(%r, %s)" % (
-            tname, 
-            _render_column(column, autogen_context))
+    return "%(prefix)sadd_column(%(tname)r, %(column)s)" % {
+            "prefix":_alembic_autogenerate_prefix(),
+            "tname":tname,
+            "column":_render_column(column, autogen_context)
+            }
 
 def _drop_column(tname, column, autogen_context):
-    return "drop_column(%r, %r)" % (tname, column.name)
+    return "%(prefix)sdrop_column(%(tname)r, %(cname)r)" % {
+            "prefix":_alembic_autogenerate_prefix(),
+            "tname":tname,
+            "cname":column.name
+            }
 
 def _modify_col(tname, cname, 
                 autogen_context,
@@ -333,16 +343,19 @@ def _modify_col(tname, cname,
                 existing_type=None,
                 existing_nullable=None,
                 existing_server_default=False):
-    prefix = _autogenerate_prefix()
+    sqla_prefix = _sqlalchemy_autogenerate_prefix()
     indent = " " * 11
-    text = "alter_column(%r, %r" % (tname, cname)
+    text = "%(prefix)salter_column(%(tname)r, %(cname)r" % {
+                            'prefix':_alembic_autogenerate_prefix(), 
+                            'tname':tname, 
+                            'cname':cname}
     text += ", \n%sexisting_type=%s" % (indent, 
-                    _repr_type(prefix, existing_type, autogen_context))
+                    _repr_type(sqla_prefix, existing_type, autogen_context))
     if server_default is not False:
         text += ", \n%sserver_default=%s" % (indent, 
                         _render_server_default(server_default, autogen_context),)
     if type_ is not None:
-        text += ", \n%stype_=%s" % (indent, _repr_type(prefix, type_, autogen_context))
+        text += ", \n%stype_=%s" % (indent, _repr_type(sqla_prefix, type_, autogen_context))
     if nullable is not None:
         text += ", \n%snullable=%r" % (
                         indent, nullable,)
@@ -359,8 +372,11 @@ def _modify_col(tname, cname,
     text += ")"
     return text
 
-def _autogenerate_prefix():
+def _sqlalchemy_autogenerate_prefix():
     return _context_opts['sqlalchemy_module_prefix'] or ''
+
+def _alembic_autogenerate_prefix():
+    return _context_opts['alembic_module_prefix'] or ''
 
 def _render_column(column, autogen_context):
     opts = []
@@ -372,9 +388,9 @@ def _render_column(column, autogen_context):
 
     # TODO: for non-ascii colname, assign a "key"
     return "%(prefix)sColumn(%(name)r, %(type)s, %(kw)s)" % {
-        'prefix':_autogenerate_prefix(),
+        'prefix':_sqlalchemy_autogenerate_prefix(),
         'name':column.name,
-        'type':_repr_type(_autogenerate_prefix(), column.type, autogen_context),
+        'type':_repr_type(_sqlalchemy_autogenerate_prefix(), column.type, autogen_context),
         'kw':", ".join(["%s=%s" % (kwname, val) for kwname, val in opts])
     }
 
@@ -416,7 +432,7 @@ def _render_primary_key(constraint):
     if constraint.name:
         opts.append(("name", repr(constraint.name)))
     return "%(prefix)sPrimaryKeyConstraint(%(args)s)" % {
-        "prefix":_autogenerate_prefix(),
+        "prefix":_sqlalchemy_autogenerate_prefix(),
         "args":", ".join(
             [repr(c.key) for c in constraint.columns] +
             ["%s=%s" % (kwname, val) for kwname, val in opts]
@@ -429,7 +445,7 @@ def _render_foreign_key(constraint):
         opts.append(("name", repr(constraint.name)))
     # TODO: deferrable, initially, etc.
     return "%(prefix)sForeignKeyConstraint([%(cols)s], [%(refcols)s], %(args)s)" % {
-        "prefix":_autogenerate_prefix(),
+        "prefix":_sqlalchemy_autogenerate_prefix(),
         "cols":", ".join(f.parent.key for f in constraint.elements),
         "refcols":", ".join(repr(f._get_colspec()) for f in constraint.elements),
         "args":", ".join(
@@ -442,7 +458,7 @@ def _render_check_constraint(constraint):
     if constraint.name:
         opts.append(("name", repr(constraint.name)))
     return "%(prefix)sCheckConstraint('TODO')" % {
-            "prefix":_autogenerate_prefix()
+            "prefix":_sqlalchemy_autogenerate_prefix()
         }
 
 _constraint_renderers = {

@@ -320,6 +320,7 @@ def configure(
         compare_server_default=False,
         upgrade_token="upgrades",
         downgrade_token="downgrades",
+        alembic_module_prefix="op.",
         sqlalchemy_module_prefix="sa.",
         **kw
     ):
@@ -427,6 +428,11 @@ def configure(
      candidate downgrade operations will be present in this
      template variable when ``script.py.mako`` is rendered.  Defaults to 
      ``downgrades``.
+
+    :param alembic_module_prefix: When autogenerate refers to Alembic 
+     :module:`alembic.op` constructs, this prefix will be used
+     (i.e. ``op.create_table``)  Defaults to "``op.``".
+     Can be ``None`` to indicate no prefix.  
      
     :param sqlalchemy_module_prefix: When autogenerate refers to SQLAlchemy 
      :class:`~sqlalchemy.schema.Column` or type classes, this prefix will be used
@@ -475,6 +481,7 @@ def configure(
     opts['upgrade_token'] = upgrade_token
     opts['downgrade_token'] = downgrade_token
     opts['sqlalchemy_module_prefix'] = sqlalchemy_module_prefix
+    opts['alembic_module_prefix'] = alembic_module_prefix
     opts.update(kw)
 
     _context = Context(

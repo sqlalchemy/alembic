@@ -21,6 +21,14 @@
   handle self-referential foreign key
   correctly [#17]
 
+- [bug] Default prefix for autogenerate
+  directives is "op.", matching the 
+  mako templates. [#18]
+
+- [feature] Add alembic_module_prefix argument
+  to configure() to complement 
+  sqlalchemy_module_prefix. [#18]
+
 0.1.0
 =====
 - Initial release.  Status of features:
