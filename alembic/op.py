@@ -143,7 +143,8 @@ def alter_column(table_name, column_name,
     constraint.
     
     :param table_name: string name of the target table.
-    :param column_name: string name of the target column.
+    :param column_name: string name of the target column, 
+     as it exists before the operation begins.
     :param nullable: Optional; specify ``True`` or ``False``
      to alter the column's nullability.
     :param server_default: Optional; specify a string 
@@ -152,7 +153,7 @@ def alter_column(table_name, column_name,
      an alteration to the column's default value.  
      Set to ``None`` to have the default removed.
     :param name: Optional; specify a string name here to
-     indicate a column rename operation.
+     indicate the new name within a column rename operation.
     :param type_: Optional; a :class:`~sqlalchemy.types.TypeEngine`
      type object to specify a change to the column's type.  
      For SQLAlchemy types that also indicate a constraint (i.e. 
