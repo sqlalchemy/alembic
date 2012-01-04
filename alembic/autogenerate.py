@@ -446,7 +446,7 @@ def _render_foreign_key(constraint):
     # TODO: deferrable, initially, etc.
     return "%(prefix)sForeignKeyConstraint([%(cols)s], [%(refcols)s], %(args)s)" % {
         "prefix":_sqlalchemy_autogenerate_prefix(),
-        "cols":", ".join(f.parent.key for f in constraint.elements),
+        "cols":", ".join("'%s'" % f.parent.key for f in constraint.elements),
         "refcols":", ".join(repr(f._get_colspec()) for f in constraint.elements),
         "args":", ".join(
             ["%s=%s" % (kwname, val) for kwname, val in opts]
