@@ -29,6 +29,10 @@
   to configure() to complement 
   sqlalchemy_module_prefix. [#18]
 
+- [bug] fix quotes not being rendered in
+  ForeignKeConstraint during 
+  autogenerate [#14]
+
 0.1.0
 =====
 - Initial release.  Status of features:
