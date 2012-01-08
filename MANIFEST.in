@@ -1,4 +1,4 @@
-recursive-include docs *.html *.css *.js *.txt *.rst
+recursive-include docs *.html *.css *.txt *.js *.jpg *.png *.py Makefile *.rst *.sty
 recursive-include tests *.py *.dat
 recursive-include alembic/templates *.mako README *.py
 
