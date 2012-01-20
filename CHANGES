@@ -8,6 +8,11 @@
 - [bug] Fixed alteration of column type on 
   MSSQL to not include the keyword "TYPE".
 
+- [feature] Can create alembic.config.Config
+  with no filename, use set_main_option()
+  to add values.  Also added set_section_option()
+  which will add sections.  [#23]
+
 0.1.1
 =====
 - [bug] Clean up file write operations so that

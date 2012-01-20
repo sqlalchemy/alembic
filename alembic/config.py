@@ -15,7 +15,7 @@ class Config(object):
         some_param = context.config.get_main_option("my option")
     
     When invoking Alembic programatically, a new
-    :class:`.Config` can be created simply by passing
+    :class:`.Config` can be created by passing
     the name of an .ini file to the constructor::
     
         from alembic.config import Config
@@ -24,6 +24,15 @@ class Config(object):
     With a :class:`.Config` object, you can then
     run Alembic commands programmatically using the directives
     in :mod:`alembic.command`.
+    
+    The :class:`.Config` object can also be constructed without
+    a filename.   Values can be set programmatically, and
+    new sections will be created as needed::
+    
+        from alembic.config import Config
+        alembic_cfg = Config()
+        alembic_cfg.set_main_option("url", "postgresql://foo/bar")
+        alembic_cfg.set_section_option("mysection", "foo", "bar")
 
     :param file_: name of the .ini file to open.
     :param ini_section: name of the main Alembic section within the 
@@ -31,8 +40,9 @@ class Config(object):
     :param output_buffer: optional file-like input buffer which
      will be passed to the :class:`.Context` - used to redirect
      access when using Alembic programmatically.
+
     """
-    def __init__(self, file_, ini_section='alembic', output_buffer=None):
+    def __init__(self, file_=None, ini_section='alembic', output_buffer=None):
         """Construct a new :class:`.Config`
         
         """
@@ -59,12 +69,18 @@ class Config(object):
         though the :meth:`.Config.get_section` and 
         :meth:`.Config.get_main_option`
         methods provide a possibly simpler interface.
+
         """
 
-        file_config = ConfigParser.ConfigParser({
-                                    'here':
-                                    os.path.abspath(os.path.dirname(self.config_file_name))})
-        file_config.read([self.config_file_name])
+        if self.config_file_name:
+            here = os.path.abspath(os.path.dirname(self.config_file_name))
+        else:
+            here = ""
+        file_config = ConfigParser.ConfigParser({'here':here})
+        if self.config_file_name:
+            file_config.read([self.config_file_name])
+        else:
+            file_config.add_section(self.config_ini_section)
         return file_config
 
     def get_template_directory(self):
@@ -90,6 +106,18 @@ class Config(object):
         
         """
         self.file_config.set(self.config_ini_section, name, value)
+
+    def set_section_option(self, section, name, value):
+        """Set an option programmatically within the given section.
+        
+        The section is created if it doesn't exist already.
+        The value here will override whatever was in the .ini
+        file.
+        
+        """
+        if not self.file_config.has_section(section):
+            self.file_config.add_section(section)
+        self.file_config.set(section, name, value)
 
     def get_section_option(self, section, name, default=None):
         """Return an option from the given section of the .ini file.
