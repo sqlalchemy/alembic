@@ -1,7 +1,7 @@
 from alembic.ddl.impl import DefaultImpl
 from alembic.ddl.base import alter_table, AddColumn, ColumnName, \
     format_table_name, format_column_name, ColumnNullable, alter_column,\
-    format_server_default,ColumnDefault, format_type
+    format_server_default,ColumnDefault, format_type, ColumnType
 from alembic import util
 from sqlalchemy.ext.compiler import compiles
 
@@ -158,4 +158,11 @@ def visit_rename_column(element, compiler, **kw):
         format_column_name(compiler, element.newname)
     )
 
+@compiles(ColumnType, 'mssql')
+def visit_column_type(element, compiler, **kw):
+    return "%s %s %s" % (
+        alter_table(compiler, element.table_name, element.schema),
+        alter_column(compiler, element.column_name),
+        format_type(compiler, element.type_)
+    )
 

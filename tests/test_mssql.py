@@ -58,6 +58,13 @@ class OpTest(TestCase):
             "EXEC sp_rename 't.c', 'x', 'COLUMN'"
         )
 
+    def test_alter_column_new_type(self):
+        context = op_fixture('mssql')
+        op.alter_column("t", "c", type_=Integer)
+        context.assert_(
+            'ALTER TABLE t ALTER COLUMN c INTEGER'
+        )
+
     def test_drop_column_w_default(self):
         context = op_fixture('mssql')
         op.drop_column('t1', 'c1', mssql_drop_default=True)

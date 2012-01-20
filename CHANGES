@@ -5,6 +5,9 @@
   "scripts/alembic" as setuptools creates this
   for us.  [#22]
 
+- [bug] Fixed alteration of column type on 
+  MSSQL to not include the keyword "TYPE".
+
 0.1.1
 =====
 - [bug] Clean up file write operations so that

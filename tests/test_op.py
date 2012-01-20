@@ -124,7 +124,7 @@ def test_alter_column_schema_type_unnamed():
     context = op_fixture('mssql')
     op.alter_column("t", "c", type_=Boolean())
     context.assert_(
-        'ALTER TABLE t ALTER COLUMN c TYPE BIT',
+        'ALTER TABLE t ALTER COLUMN c BIT',
         'ALTER TABLE t ADD CHECK (c IN (0, 1))'
     )
 
@@ -132,7 +132,7 @@ def test_alter_column_schema_type_named():
     context = op_fixture('mssql')
     op.alter_column("t", "c", type_=Boolean(name="xyz"))
     context.assert_(
-        'ALTER TABLE t ALTER COLUMN c TYPE BIT',
+        'ALTER TABLE t ALTER COLUMN c BIT',
         'ALTER TABLE t ADD CONSTRAINT xyz CHECK (c IN (0, 1))'
     )
 
@@ -141,7 +141,7 @@ def test_alter_column_schema_type_existing_type():
     op.alter_column("t", "c", type_=String(10), existing_type=Boolean(name="xyz"))
     context.assert_(
         'ALTER TABLE t DROP CONSTRAINT xyz',
-        'ALTER TABLE t ALTER COLUMN c TYPE VARCHAR(10)'
+        'ALTER TABLE t ALTER COLUMN c VARCHAR(10)'
     )
 
 def test_add_foreign_key():
