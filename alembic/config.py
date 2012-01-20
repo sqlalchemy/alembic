@@ -114,6 +114,7 @@ class Config(object):
         """
         return self.get_section_option(self.config_ini_section, name, default)
 
+
 def main(argv=None, **kwargs):
     """The console runner function for Alembic."""
 
@@ -184,7 +185,7 @@ def main(argv=None, **kwargs):
             add_options(subparser, positional, kwarg)
             subparser.set_defaults(cmd=(fn, positional, kwarg))
 
-    options = parser.parse_args()
+    options = parser.parse_args(argv)
 
     fn, positional, kwarg = options.cmd
 

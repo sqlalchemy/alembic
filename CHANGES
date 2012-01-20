@@ -1,3 +1,10 @@
+0.1.2
+=====
+- [bug] fix the config.main() function to honor
+  the arguments passed, remove no longer used
+  "scripts/alembic" as setuptools creates this
+  for us.  [#22]
+
 0.1.1
 =====
 - [bug] Clean up file write operations so that
