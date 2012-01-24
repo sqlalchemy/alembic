@@ -8,7 +8,8 @@ class Config(object):
     """Represent an Alembic configuration.
 
     Within an ``env.py`` script, this is available
-    via the :attr:`alembic.context.config` attribute::
+    via the :attr:`.EnvironmentContext.config` attribute,
+    which in turn is available at ``alembic.context``::
     
         from alembic import context
         
@@ -38,7 +39,7 @@ class Config(object):
     :param ini_section: name of the main Alembic section within the 
      .ini file
     :param output_buffer: optional file-like input buffer which
-     will be passed to the :class:`.Context` - used to redirect
+     will be passed to the :class:`.MigrationContext` - used to redirect
      access when using Alembic programmatically.
 
     """

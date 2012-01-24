@@ -21,9 +21,13 @@ class MigrationContext(object):
     Mediates the relationship between an ``env.py`` environment script, 
     a :class:`.ScriptDirectory` instance, and a :class:`.DefaultImpl` instance.
 
-    The :class:`.MigrationContext` is available directly via the :func:`.get_context` function,
-    though usually it is referenced behind the scenes by the various module level functions
-    within the :mod:`alembic.context` module.
+    The :class:`.MigrationContext` that's established for a 
+    duration of a migration command is available via the 
+    :attr:`.EnvironmentContext.migration_context` datamember,
+    which is available at ``alembic.context``::
+    
+        from alembic import context
+        migration_context = context.migration_context
 
     """
     def __init__(self, dialect, connection, opts):

@@ -8,23 +8,25 @@ a migration environment's ``env.py`` file.
 env.py Directives
 =================
 
-The :mod:`alembic.context` module contains API features that are generally used within
+The :mod:`alembic.environment` module contains API features that are generally used within
 ``env.py`` files.
 
-The central object in use is the :class:`.Context` object.   This object is 
-made present when the ``env.py`` script calls upon the :func:`.configure`
+The central object in use is the :class:`.EnvironmentContext` object.   This object is 
+made present when the ``env.py`` script calls upon the :meth:`.EnvironmentContext.configure`
 method for the first time.  Before this function is called, there's not
 yet any database connection or dialect-specific state set up, and those
 functions which require this state will raise an exception when used,
-until :func:`.configure` is called successfully.
+until :meth:`.EnvironmentContext.configure` is called successfully.
 
 
 .. autofunction:: sqlalchemy.engine.engine_from_config
 
-.. currentmodule:: alembic.context
-
-.. automodule:: alembic.context
+.. automodule:: alembic.environment
     :members:
+
+.. automodule:: alembic.migration
+    :members:
+
 
 Commands
 =========

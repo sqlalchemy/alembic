@@ -40,12 +40,14 @@ source_suffix = '.rst'
 # The encoding of source files.
 #source_encoding = 'utf-8'
 
+nitpicky = True
+
 # The master toctree document.
 master_doc = 'index'
 
 # General information about the project.
 project = u'Alembic'
-copyright = u'2010-2011, Mike Bayer'
+copyright = u'2010-2012, Mike Bayer'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

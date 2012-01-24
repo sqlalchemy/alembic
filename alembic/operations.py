@@ -5,24 +5,7 @@ from sqlalchemy import schema, sql
 from contextlib import contextmanager
 import alembic
 
-__all__ = sorted([
-            'alter_column', 
-            'add_column',
-            'drop_column',
-            'drop_constraint',
-            'create_foreign_key', 
-            'create_table',
-            'drop_table',
-            'drop_index',
-            'create_index',
-            'inline_literal',
-            'bulk_insert',
-            'rename_table',
-            'create_unique_constraint', 
-            'create_check_constraint',
-            'get_context',
-            'get_bind',
-            'execute'])
+__all__ = ('Operations',)
 
 class Operations(object):
     """Define high level migration operations.
@@ -226,10 +209,10 @@ class Operations(object):
     
         e.g.::
 
-            from alembic.op import add_column
+            from alembic import op
             from sqlalchemy import Column, String
 
-            add_column('organization', 
+            op.add_column('organization', 
                 Column('name', String())
             )        
 
@@ -239,10 +222,10 @@ class Operations(object):
         "referenced" table and emit a second ALTER statement in order
         to add the constraint separately::
     
-            from alembic.op import add_column
+            from alembic import op
             from sqlalchemy import Column, INTEGER, ForeignKey
 
-            add_column('organization', 
+            op.add_column('organization', 
                 Column('account_id', INTEGER, ForeignKey('accounts.id'))
             )        
     
@@ -296,8 +279,8 @@ class Operations(object):
 
         e.g.::
     
-            from alembic.op import create_foreign_key
-            create_foreign_key("fk_user_address", "address", "user", ["user_id"], ["id"])
+            from alembic import op
+            op.create_foreign_key("fk_user_address", "address", "user", ["user_id"], ["id"])
 
         This internally generates a :class:`~sqlalchemy.schema.Table` object
         containing the necessary columns, then generates a new 
@@ -335,8 +318,8 @@ class Operations(object):
 
         e.g.::
     
-            from alembic.op import create_unique_constraint
-            create_unique_constraint("uq_user_name", "user", ["name"])
+            from alembic import op
+            op.create_unique_constraint("uq_user_name", "user", ["name"])
 
         This internally generates a :class:`~sqlalchemy.schema.Table` object
         containing the necessary columns, then generates a new 
@@ -374,10 +357,10 @@ class Operations(object):
     
         e.g.::
     
-            from alembic.op import create_check_constraint
+            from alembic import op
             from sqlalchemy.sql import column, func
         
-            create_check_constraint(
+            op.create_check_constraint(
                 "ck_user_name_len",
                 "user", 
                 func.len(column('name')) > 5
@@ -417,9 +400,9 @@ class Operations(object):
         metadata::
         
             from sqlalchemy import INTEGER, VARCHAR, NVARCHAR, Column
-            from alembic.op import create_table
+            from alembic import op
 
-            create_table(
+            op.create_table(
                 'accounts',
                 Column('id', INTEGER, primary_key=True),
                 Column('name', VARCHAR(50), nullable=False),
@@ -459,8 +442,8 @@ class Operations(object):
     
         e.g.::
         
-            from alembic.op import create_index
-            create_index('ik_test', 't1', ['foo', 'bar'])
+            from alembic import op
+            op.create_index('ik_test', 't1', ['foo', 'bar'])
 
         """
 
@@ -536,8 +519,8 @@ class Operations(object):
         advanced types like dates may not be supported directly
         by SQLAlchemy.
 
-        See :func:`.op.execute` for an example usage of
-        :func:`.inline_literal`.
+        See :meth:`.execute` for an example usage of
+        :meth:`.inline_literal`.
     
         :param value: The value to render.  Strings, integers, and simple
          numerics should be supported.   Other types like boolean,
@@ -562,30 +545,30 @@ class Operations(object):
         with a connected database, use the "bind" available 
         from the context::
     
-            from alembic.op import get_bind
-            connection = get_bind()
+            from alembic import op
+            connection = op.get_bind()
     
         Also note that any parameterized statement here *will not work*
         in offline mode - INSERT, UPDATE and DELETE statements which refer
         to literal values would need to render
-        inline expressions.   For simple use cases, the :func:`.inline_literal`
+        inline expressions.   For simple use cases, the :meth:`.inline_literal`
         function can be used for **rudimentary** quoting of string values.
-        For "bulk" inserts, consider using :func:`~alembic.op.bulk_insert`.
+        For "bulk" inserts, consider using :meth:`.bulk_insert`.
     
         For example, to emit an UPDATE statement which is equally
         compatible with both online and offline mode::
     
             from sqlalchemy.sql import table, column
             from sqlalchemy import String
-            from alembic.op import execute, inline_literal
+            from alembic import op
         
             account = table('account', 
                 column('name', String)
             )
-            execute(
+            op.execute(
                 account.update().\\
-                    where(account.c.name==inline_literal('account 1')).\\
-                    values({'name':inline_literal('account 2')})
+                    where(account.c.name==op.inline_literal('account 1')).\\
+                    values({'name':op.inline_literal('account 2')})
                     )
     
         Note above we also used the SQLAlchemy :func:`sqlalchemy.sql.expression.table`
@@ -623,4 +606,3 @@ class Operations(object):
         """
         return self.migration_context.impl.bind
 
-configure = Operations

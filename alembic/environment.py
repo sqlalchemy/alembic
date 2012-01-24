@@ -10,6 +10,18 @@ class EnvironmentContext(object):
     _migration_context = None
     _default_opts = None
 
+    config = None
+    """An instance of :class:`.Config` representing the 
+    configuration file contents as well as other variables
+    set programmatically within it."""
+
+    script = None
+    """An instance of :class:`.ScriptDirectory` which provides
+    programmatic access to version files within the ``versions/`` 
+    directory.
+    
+    """
+
     def __init__(self, config, script, **kw):
         self.config = config
         self.script = script
@@ -144,7 +156,7 @@ class EnvironmentContext(object):
         what kind of "dialect" is in use.   The second is to pass
         an actual database connection, if one is required.
 
-        If the :func:`.is_offline_mode` function returns ``True``,
+        If the :meth:`.is_offline_mode` function returns ``True``,
         then no connection is needed here.  Otherwise, the
         ``connection`` parameter should be present as an 
         instance of :class:`sqlalchemy.engine.base.Connection`.
@@ -153,7 +165,7 @@ class EnvironmentContext(object):
         script within a migration environment.  It can be called
         multiple times for an invocation.  The most recent :class:`~sqlalchemy.engine.base.Connection`
         for which it was called is the one that will be operated upon
-        by the next call to :func:`.run_migrations`.
+        by the next call to :meth:`.run_migrations`.
 
         General parameters:
     
@@ -244,7 +256,7 @@ class EnvironmentContext(object):
          ``downgrades``.
 
         :param alembic_module_prefix: When autogenerate refers to Alembic 
-         :mod:`alembic.op` constructs, this prefix will be used
+         :mod:`alembic.operations` constructs, this prefix will be used
          (i.e. ``op.create_table``)  Defaults to "``op.``".
          Can be ``None`` to indicate no prefix.  
      
@@ -312,7 +324,7 @@ class EnvironmentContext(object):
         to the migration functions.
 
         This function requires that a :class:`.MigrationContext` has first been 
-        made available via :func:`.configure`.
+        made available via :meth:`.configure`.
 
         """
         with Operations.context(self._migration_context):
@@ -321,13 +333,13 @@ class EnvironmentContext(object):
     def execute(self, sql):
         """Execute the given SQL using the current change context.
 
-        The behavior of :func:`.context.execute` is the same
-        as that of :func:`.op.execute`.  Please see that
+        The behavior of :meth:`.execute` is the same
+        as that of :meth:`.Operations.execute`.  Please see that
         function's documentation for full detail including
         caveats and limitations.
 
         This function requires that a :class:`.MigrationContext` has first been 
-        made available via :func:`.configure`.
+        made available via :meth:`.configure`.
 
         """
         self.migration_context.execute(sql)
@@ -408,8 +420,10 @@ class EnvironmentContext(object):
         If :meth:`.EnvironmentContext.configure` has not been called yet, raises
         an exception.
 
-        Generally, env.py scripts should access the module-level functions
-        in :mod:`alebmic.context` to get at this object's functionality.
+        Generally, env.py scripts should access this via
+        the ``alembic.context`` object, which is an instance of
+        :class:`.MigrationContext` placed there for the duration 
+        of the env.py script's usage.
 
         """
         if self._migration_context is None:
@@ -425,7 +439,7 @@ class EnvironmentContext(object):
         """Return the current 'bind'.
 
         In "online" mode, this is the 
-        :class:`sqlalchemy.engine.Connection` currently being used
+        :class:`sqlalchemy.engine.base.Connection` currently being used
         to emit SQL to the database.
 
         This function requires that a :class:`.MigrationContext` has first been 

@@ -153,7 +153,7 @@ def current(config):
     def display_version(rev, context):
         print "Current revision for %s: %s" % (
                             util.obfuscate_url_pw(
-                                context.get_context().connection.engine.url),
+                                context.connection.engine.url),
                             script._get_rev(rev))
         return []
 

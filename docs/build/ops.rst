@@ -28,5 +28,5 @@ the :func:`.context.run_migrations` function which ultimately
 is derived from the :class:`.Context` object.
 
 
-.. automodule:: alembic.op
+.. automodule:: alembic.operations
     :members:

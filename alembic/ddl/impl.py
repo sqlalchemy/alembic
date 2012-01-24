@@ -190,7 +190,7 @@ class DefaultImpl(object):
         return conn_col_default != rendered_metadata_default
 
     def start_migrations(self):
-        """A hook called when :meth:`.Context.run_migrations`
+        """A hook called when :meth:`.EnvironmentContext.run_migrations`
         is called.
         
         Implementations can set up per-migration-run state here.
@@ -202,7 +202,7 @@ class DefaultImpl(object):
         equivalent, on the current connection context.
         
         This is used in offline mode and typically
-        via :func:`.context.begin_transaction`.
+        via :meth:`.EnvironmentContext.begin_transaction`.
         
         """
         self.static_output("BEGIN;")
@@ -212,7 +212,7 @@ class DefaultImpl(object):
         equivalent, on the current connection context.
         
         This is used in offline mode and typically
-        via :func:`.context.begin_transaction`.
+        via :meth:`.EnvironmentContext.begin_transaction`.
         
         """
         self.static_output("COMMIT;")

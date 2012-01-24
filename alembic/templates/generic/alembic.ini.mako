@@ -1,7 +1,12 @@
 # A generic, single database configuration.
 
 [alembic]
+# path to migration scripts
 script_location = ${script_location}
+
+# template used to generate migration files
+# file_template = %%(rev)s_%%(slug)s
+
 sqlalchemy.url = driver://user:pass@localhost/dbname
 
 

@@ -117,10 +117,6 @@ class ScriptDirectory(object):
         in the migration environment.   It is called exclusively
         by the command functions in :mod:`alembic.command`.
         
-        As ``env.py`` runs :func:`.context.configure_connection`, 
-        the connection environment should be set up first.   This
-        is typically achieved using the :func:`.context.opts`.
-        
         
         """
         util.load_python_file(self.dir, 'env.py')
@@ -155,7 +151,7 @@ class ScriptDirectory(object):
         return map_
 
     def _rev_path(self, rev_id, message):
-        slug = "_".join(_slug_re.findall(message or "")[0:20])
+        slug = "_".join(_slug_re.findall(message or "")[0:20]).lower()
         filename = "%s.py" % (
             self.file_template % {'rev':rev_id, 'slug':slug}
         )

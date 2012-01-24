@@ -25,9 +25,9 @@ The structure of this environment, including some generated migration scripts, l
             README
             script.py.mako
             versions/
-                3512b954651e.py
-                2b1ae634e5cd.py
-                3adcc9a56557.py
+                3512b954651e_add_account.py
+                2b1ae634e5cd_add_order_id.py
+                3adcc9a56557_rename_username_field.py
 
 The directory includes these directories/files:
 
@@ -113,7 +113,12 @@ The file generated with the "generic" configuration looks like::
     # A generic, single database configuration.
 
     [alembic]
+    # path to migration scripts
     script_location = %(here)s/alembic
+
+    # template used to generate migration files
+    # file_template = %%(rev)s_%%(slug)s
+
     sqlalchemy.url = driver://user:pass@localhost/dbname
 
     # Logging configuration
@@ -151,7 +156,7 @@ The file generated with the "generic" configuration looks like::
     format = %(levelname)-5.5s [%(name)s] %(message)s
     datefmt = %H:%M:%S
 
-The file is read using Python's :class:`ConfigParser.ConfigParser` object.  The
+The file is read using Python's :class:`ConfigParser.SafeConfigParser` object.  The
 ``%(here)s`` variable is provided as a substitution variable, which 
 can be used to produce absolute pathnames to directories and files, as we do above 
 with the path to the Alembic script location.
@@ -165,6 +170,10 @@ This file contains the following features:
   This is the only key required by Alembic in all cases.   The generation 
   of the .ini file by the command ``alembic init alembic`` automatically placed the 
   directory name ``alembic`` here.
+* ``file_template`` - this is the naming scheme used to generate new migration files.
+  The value present is the default, so is commented out.   The two tokens available
+  are ``%%(rev)s`` and ``%%(slug)s``, where ``%%(slug)s`` is a truncated string derived
+  from the revision message.
 * ``sqlalchemy.url`` - A URL to connect to the database via SQLAlchemy.  This key is in fact
   only referenced within the ``env.py`` file that is specific to the "generic" configuration;
   a file that can be customized by the developer. A multiple
@@ -188,9 +197,10 @@ Create a Migration Script
 With the environment in place we can create a new revision, using ``alembic revision``::
 
     $ alembic revision -m "create account table"
-    Generating /path/to/yourproject/alembic/versions/1975ea83b712.py...done
+    Generating /path/to/yourproject/alembic/versions/1975ea83b712_create_accoun
+    t_table.py...done
 
-A new file ``1975ea83b712.py`` is generated.  Looking inside the file::
+A new file ``1975ea83b712_create_account_table.py`` is generated.  Looking inside the file::
 
     """create account table
 
@@ -200,7 +210,8 @@ A new file ``1975ea83b712.py`` is generated.  Looking inside the file::
 
     """
 
-    # downgrade revision identifier, used by Alembic.
+    # revision identifiers, used by Alembic.
+    revision = '1975ea83b712'
     down_revision = None
 
     from alembic import op
@@ -212,8 +223,9 @@ A new file ``1975ea83b712.py`` is generated.  Looking inside the file::
     def downgrade():
         pass
 
-The file contains some header information, a "downgrade revision identifier", an import
-of basic Alembic directives, and empty ``upgrade()`` and ``downgrade()`` functions.  Our 
+The file contains some header information, identifiers for the current revision
+and a "downgrade" revision, an import of basic Alembic directives, 
+and empty ``upgrade()`` and ``downgrade()`` functions.  Our 
 job here is to populate the ``upgrade()`` and ``downgrade()`` functions with directives that
 will apply a set of changes to our database.    Typically, ``upgrade()`` is required
 while ``downgrade()`` is only needed if down-revision capability is desired, though it's
@@ -223,7 +235,8 @@ Another thing to notice is the ``down_revision`` variable.  This is how Alembic
 knows the correct order in which to apply migrations.   When we create the next revision,
 the new file's ``down_revision`` identifier would point to this one::
 
-    # downgrade revision identifier, used by Alembic.
+    # revision identifiers, used by Alembic.
+    revision = 'ae1027a6acf'
     down_revision = '1975ea83b712'
 
 Every time Alembic runs an operation against the ``versions/`` directory, it reads all
@@ -247,7 +260,7 @@ We can then add some directives to our script, suppose adding a new table ``acco
     def downgrade():
         op.drop_table('account')
 
-:func:`.create_table` and :func:`.drop_table` are Alembic directives.   Alembic provides 
+:meth:`~.Operations.create_table` and :meth:`~.Operations.drop_table` are Alembic directives.   Alembic provides 
 all the basic database migration operations via these directives, which are designed to be as simple and 
 minimalistic as possible; 
 there's no reliance upon existing table metadata for most of these directives.  They draw upon
@@ -288,7 +301,8 @@ Let's do another one so we have some things to play with.    We again create a r
 file::
 
     $ alembic revision -m "Add a column"
-    Generating /path/to/yourapp/alembic/versions/ae1027a6acf.py...done
+    Generating /path/to/yourapp/alembic/versions/ae1027a6acf.py_add_a_column.py...
+    done
 
 Let's edit this file and add a new column to the ``account`` table::
 
@@ -300,7 +314,8 @@ Let's edit this file and add a new column to the ``account`` table::
 
     """
 
-    # downgrade revision identifier, used by Alembic.
+    # revision identifiers, used by Alembic.
+    revision = 'ae1027a6acf'
     down_revision = '1975ea83b712'
 
     from alembic import op
@@ -381,7 +396,7 @@ to a table metadata object that contains the target.  Suppose our application
 has a `declarative base <http://www.sqlalchemy.org/docs/orm/extensions/declarative.html#synopsis>`_
 in ``myapp.mymodel``.  This base contains a :class:`~sqlalchemy.schema.MetaData` object which
 contains :class:`~sqlalchemy.schema.Table` objects defining our database.  We make sure this
-is loaded in ``env.py`` and then passed to :func:`.context.configure` via the
+is loaded in ``env.py`` and then passed to :meth:`.EnvironmentContext.configure` via the
 ``target_metadata`` argument.   The ``env.py`` sample script already has a 
 variable declaration near the top for our convenience, where we replace ``None``
 with our :class:`~sqlalchemy.schema.MetaData`.  Starting with::
@@ -398,7 +413,7 @@ we change to::
     target_metadata = Base.metadata
 
 If we look later in the script, down in ``run_migrations_online()``, 
-we can see the directive passed to :func:`.context.configure`::
+we can see the directive passed to :meth:`.EnvironmentContext.configure`::
 
     def run_migrations_online():
         engine = engine_from_config(
@@ -475,12 +490,12 @@ Autogenerate will by default detect:
 Autogenerate can *optionally* detect:
 
 * Change of column type.  This will occur if you set ``compare_type=True``
-  on :func:`.context.configure`.  The feature works well in most cases,
+  on :meth:`.EnvironmentContext.configure`.  The feature works well in most cases,
   but is off by default so that it can be tested on the target schema
   first.  It can also be customized by passing a callable here; see the
   function's documentation for details.
 * Change of server default.  This will occur if you set 
-  ``compare_server_default=True`` on :func:`.context.configure`.  
+  ``compare_server_default=True`` on :meth:`.EnvironmentContext.configure`.  
   This feature works well for simple cases but cannot always produce 
   accurate results.  The Postgresql backend will actually invoke 
   the "detected" and "metadata" values against the database to 
@@ -593,11 +608,11 @@ Customizing the Environment
 Users of the ``--sql`` option are encouraged to hack their ``env.py`` files to suit their
 needs.  The ``env.py`` script as provided is broken into two sections: ``run_migrations_online()``
 and ``run_migrations_offline()``.  Which function is run is determined at the bottom of the
-script by reading :func:`.context.is_offline_mode`, which basically determines if the
+script by reading :meth:`.EnvironmentContext.is_offline_mode`, which basically determines if the
 ``--sql`` flag was enabled.
 
 For example, a multiple database configuration may want to run through each 
-database and set the output of the migrations to different named files - the :func:`.context.configure`
+database and set the output of the migrations to different named files - the :meth:`.EnvironmentContext.configure`
 function accepts a parameter ``output_buffer`` for this purpose.  Below we illustrate
 this within the ``run_migrations_offline()`` function::
 
