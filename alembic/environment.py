@@ -5,7 +5,15 @@ from alembic import util
 from contextlib import contextmanager
 
 class EnvironmentContext(object):
-    """Represent the state made available to an env.py script."""
+    """Represent the state made available to an ``env.py`` script.
+    
+    :class:`.EnvironmentContext` is normally instantiated
+    by the commands present in the :mod:`alembic.command`
+    module.  From within an ``env.py`` script, the current
+    :class:`.EnvironmentContext` is available via the 
+    ``alembic.context`` datamember.
+    
+    """
 
     _migration_context = None
     _default_opts = None
@@ -150,11 +158,20 @@ class EnvironmentContext(object):
             sqlalchemy_module_prefix="sa.",
             **kw
         ):
-        """Configure the migration environment.
-
-        The important thing needed here is first a way to figure out
-        what kind of "dialect" is in use.   The second is to pass
-        an actual database connection, if one is required.
+        """Configure a :class:`.MigrationContext` within this
+        :class:`.EnvironmentContext` which will provide database connectivity
+        and other configuration to a series of migration scripts.
+        
+        Many methods on :class:`.EnvironmentContext` require that 
+        this method has been called in order to function, as they
+        ultimately need to have database access or at least access
+        to the dialect in use.  Those which do are documented as such.
+        
+        The important thing needed by :meth:`.configure` is a
+        means to determine what kind of database dialect is in use.  
+        An actual connection to that database is needed only if
+        the :class:`.MigrationContext` is to be used in 
+        "online" mode.
 
         If the :meth:`.is_offline_mode` function returns ``True``,
         then no connection is needed here.  Otherwise, the
@@ -419,11 +436,6 @@ class EnvironmentContext(object):
 
         If :meth:`.EnvironmentContext.configure` has not been called yet, raises
         an exception.
-
-        Generally, env.py scripts should access this via
-        the ``alembic.context`` object, which is an instance of
-        :class:`.MigrationContext` placed there for the duration 
-        of the env.py script's usage.
 
         """
         if self._migration_context is None:

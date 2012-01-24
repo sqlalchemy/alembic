@@ -13,9 +13,23 @@ class Operations(object):
     Each operation corresponds to some schema migration operation,
     executed against a particular :class:`.MigrationContext`.
     
+    Normally, the :class:`.MigrationContext` is created
+    within an ``env.py`` script via the
+    :meth:`.EnvironmentContext.configure` method.  However,
+    the :class:`.Operations` object can also be used without
+    actually using the :class:`.EnvironmentContext` 
+    class - only :class:`.MigrationContext`, which represents
+    connectivity to a single database, is needed
+    to use the directives.
+    
     """
     def __init__(self, migration_context):
-        """Construct a new :class:`.Operations`"""
+        """Construct a new :class:`.Operations`
+        
+        :param migration_context: a :class:`.MigrationContext` 
+         instance.
+         
+        """
         self.migration_context = migration_context
         self.impl = migration_context.impl
 
