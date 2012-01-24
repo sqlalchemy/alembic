@@ -453,7 +453,8 @@ is already present::
 
     """
 
-    # downgrade revision identifier, used by Alembic.
+    # revision identifiers, used by Alembic.
+    revision = '27c6a30d7c24'
     down_revision = None
 
     from alembic import op
@@ -716,9 +717,11 @@ We resolve this branch by editing the files to be in a straight line.   In this 
 
     """
 
-    # downgrade revision identifier, used by Alembic.
+    # revision identifiers, used by Alembic.
+    revision = '27c6a30d7c24'
     # changed from 1975ea83b712
     down_revision = 'ae1027a6acf'
+
 
 The ``branches`` command then shows no branches::
 
