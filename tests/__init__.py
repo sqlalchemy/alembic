@@ -7,6 +7,7 @@ import itertools
 from sqlalchemy import create_engine, text, MetaData
 from alembic import util
 from alembic.migration import MigrationContext
+from alembic.environment import EnvironmentContext
 import re
 import alembic
 from alembic.operations import Operations
@@ -84,17 +85,16 @@ def capture_context_buffer(**kw):
 
     class capture(object):
         def __enter__(self):
-            context.configure(
-                dialect_name="sqlite",
-                output_buffer = buf,
-                **kw
-            )
+            EnvironmentContext._default_opts = {
+                'dialect_name':"sqlite",
+                'output_buffer':buf
+            }
+            EnvironmentContext._default_opts.update(kw)
             return buf
 
         def __exit__(self, *arg, **kwarg):
             print buf.getvalue()
-            for k in kw:
-                context._context_opts.pop(k, None)
+            EnvironmentContext._default_opts = None
 
     return capture()
 

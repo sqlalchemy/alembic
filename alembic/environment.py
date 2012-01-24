@@ -2,17 +2,20 @@ import alembic
 from alembic.operations import Operations
 from alembic.migration import MigrationContext
 from alembic import util
-from sqlalchemy.engine import url as sqla_url
+from contextlib import contextmanager
 
 class EnvironmentContext(object):
     """Represent the state made available to an env.py script."""
 
     _migration_context = None
+    _default_opts = None
 
     def __init__(self, config, script, **kw):
         self.config = config
         self.script = script
         self.context_opts = kw
+        if self._default_opts:
+            self.context_opts.update(self._default_opts)
 
     def __enter__(self):
         """Establish a context which provides a 
@@ -264,18 +267,6 @@ class EnvironmentContext(object):
          one step.
 
         """
-
-        if connection:
-            dialect = connection.dialect
-        elif url:
-            url = sqla_url.make_url(url)
-            dialect = url.get_dialect()()
-        elif dialect_name:
-            url = sqla_url.make_url("%s://" % dialect_name)
-            dialect = url.get_dialect()()
-        else:
-            raise Exception("Connection, url, or dialect_name is required.")
-
         opts = self.context_opts
         if transactional_ddl is not None:
             opts["transactional_ddl"] =  transactional_ddl
@@ -292,19 +283,19 @@ class EnvironmentContext(object):
         opts['downgrade_token'] = downgrade_token
         opts['sqlalchemy_module_prefix'] = sqlalchemy_module_prefix
         opts['alembic_module_prefix'] = alembic_module_prefix
+        if compare_type is not None:
+            opts['compare_type'] = compare_type
+        if compare_server_default is not None:
+            opts['compare_server_default'] = compare_server_default
+        opts['script'] = self.script
         opts.update(kw)
 
-        self._migration_context = MigrationContext(
-                            dialect, self.script, connection, 
-                            opts,
-                            as_sql=opts.get('as_sql', False), 
-                            output_buffer=opts.get("output_buffer"),
-                            transactional_ddl=opts.get("transactional_ddl"),
-                            starting_rev=opts.get("starting_rev"),
-                            compare_type=compare_type,
-                            compare_server_default=compare_server_default,
-                        )
-        alembic.op._proxy = Operations(self._migration_context)
+        self._migration_context = MigrationContext.configure(
+            connection=connection,
+            url=url,
+            dialect_name=dialect_name,
+            opts=opts
+        )
 
     def run_migrations(self, **kw):
         """Run migrations as determined by the current command line configuration
@@ -324,7 +315,8 @@ class EnvironmentContext(object):
         made available via :func:`.configure`.
 
         """
-        self.migration_context.run_migrations(**kw)
+        with Operations.context(self._migration_context):
+            self.migration_context.run_migrations(**kw)
 
     def execute(self, sql):
         """Execute the given SQL using the current change context.

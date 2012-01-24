@@ -67,10 +67,10 @@ def revision(config, message=None, autogenerate=False):
     imports = set()
     if autogenerate:
         util.requires_07("autogenerate")
-        def retrieve_migrations(rev):
+        def retrieve_migrations(rev, context):
             if script._get_rev(rev) is not script._get_rev("head"):
                 raise util.CommandError("Target database is not up to date.")
-            autogen.produce_migration_diffs(template_args, imports)
+            autogen.produce_migration_diffs(context, template_args, imports)
             return []
 
         with environment.configure(
@@ -150,7 +150,7 @@ def current(config):
     """Display the current revision for each database."""
 
     script = ScriptDirectory.from_config(config)
-    def display_version(rev):
+    def display_version(rev, context):
         print "Current revision for %s: %s" % (
                             util.obfuscate_url_pw(
                                 context.get_context().connection.engine.url),
@@ -169,15 +169,15 @@ def stamp(config, revision, sql=False, tag=None):
     run any migrations."""
 
     script = ScriptDirectory.from_config(config)
-    def do_stamp(rev):
+    def do_stamp(rev, context):
         if sql:
             current = False
         else:
-            current = context.get_context()._current_rev()
+            current = context._current_rev()
         dest = script._get_rev(revision)
         if dest is not None:
             dest = dest.revision
-        context.get_context()._update_current_rev(current, dest)
+        context._update_current_rev(current, dest)
         return []
     with environment.configure(
         config, 
@@ -186,7 +186,7 @@ def stamp(config, revision, sql=False, tag=None):
         as_sql = sql,
         destination_rev = revision,
         tag = tag
-    ):
+    ) as env:
         script.run_env()
 
 def splice(config, parent, child):

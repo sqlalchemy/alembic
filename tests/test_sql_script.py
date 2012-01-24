@@ -9,7 +9,8 @@ def setup():
     global cfg, env
     env = staging_env()
     cfg = _no_sql_testing_config()
-
+    cfg.set_main_option('dialect_name', 'sqlite')
+    cfg.remove_main_option('url')
     global a, b, c
     a, b, c = three_rev_fixture(cfg)
 

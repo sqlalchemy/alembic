@@ -107,6 +107,9 @@ class Config(object):
         """
         self.file_config.set(self.config_ini_section, name, value)
 
+    def remove_main_option(self, name):
+        self.file_config.remove_option(self.config_ini_section, name)
+
     def set_section_option(self, section, name, value):
         """Set an option programmatically within the given section.
         

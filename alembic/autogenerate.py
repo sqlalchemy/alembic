@@ -13,7 +13,8 @@ log = logging.getLogger(__name__)
 # top level
 
 
-def produce_migration_diffs(context, opts, template_args, imports):
+def produce_migration_diffs(context, template_args, imports):
+    opts = context.opts
     metadata = opts['target_metadata']
     if metadata is None:
         raise util.CommandError(
@@ -22,7 +23,7 @@ def produce_migration_diffs(context, opts, template_args, imports):
                 "a MetaData object to the context." % (
                     context._script.env_py_location
                 ))
-    connection = get_bind()
+    connection = context.bind
     diffs = []
     autogen_context = {
         'imports':imports,
@@ -308,7 +309,7 @@ def _add_table(table, autogen_context):
         'args':',\n'.join(
             [_render_column(col, autogen_context) for col in table.c] +
             sorted([rcons for rcons in 
-                [_render_constraint(cons) for cons in 
+                [_render_constraint(cons, autogen_context) for cons in 
                     table.constraints]
                 if rcons is not None
             ])
@@ -420,14 +421,14 @@ def _repr_type(prefix, type_, autogen_context):
     else:
         return "%s%r" % (prefix, type_)
 
-def _render_constraint(constraint):
+def _render_constraint(constraint, autogen_context):
     renderer = _constraint_renderers.get(type(constraint), None)
     if renderer:
-        return renderer(constraint)
+        return renderer(constraint, autogen_context)
     else:
         return None
 
-def _render_primary_key(constraint):
+def _render_primary_key(constraint, autogen_context):
     opts = []
     if constraint.name:
         opts.append(("name", repr(constraint.name)))
@@ -439,7 +440,7 @@ def _render_primary_key(constraint):
         ),
     }
 
-def _render_foreign_key(constraint):
+def _render_foreign_key(constraint, autogen_context):
     opts = []
     if constraint.name:
         opts.append(("name", repr(constraint.name)))

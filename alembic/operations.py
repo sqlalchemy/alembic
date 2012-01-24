@@ -2,6 +2,8 @@ from alembic import util
 from alembic.ddl import impl
 from sqlalchemy.types import NULLTYPE, Integer
 from sqlalchemy import schema, sql
+from contextlib import contextmanager
+import alembic
 
 __all__ = sorted([
             'alter_column', 
@@ -33,6 +35,14 @@ class Operations(object):
         """Construct a new :class:`.Operations`"""
         self.migration_context = migration_context
         self.impl = migration_context.impl
+
+    @classmethod
+    @contextmanager
+    def context(cls, migration_context):
+        op = Operations(migration_context)
+        alembic.op._proxy = op
+        yield op
+        del alembic.op._proxy
 
     def _foreign_key_constraint(self, name, source, referent, local_cols, remote_cols):
         m = schema.MetaData()

@@ -88,14 +88,14 @@ class ScriptDirectory(object):
             if script is None and lower is not None:
                 raise util.CommandError("Couldn't find revision %s" % downrev)
 
-    def upgrade_from(self, destination, current_rev):
+    def upgrade_from(self, destination, current_rev, context):
         revs = self._revs(destination, current_rev)
         return [
             (script.module.upgrade, script.down_revision, script.revision) for script in 
             reversed(list(revs))
             ]
 
-    def downgrade_to(self, destination, current_rev):
+    def downgrade_to(self, destination, current_rev, context):
         revs = self._revs(current_rev, destination)
         return [
             (script.module.downgrade, script.revision, script.down_revision) for script in 

@@ -5,7 +5,8 @@ from tests import op_fixture, db_for_dialect, eq_, staging_env, \
 from unittest import TestCase
 from sqlalchemy import DateTime, MetaData, Table, Column, text, Integer, String
 from sqlalchemy.engine.reflection import Inspector
-from alembic import context, command, util
+from alembic import command, util
+from alembic.migration import MigrationContext
 from alembic.script import ScriptDirectory
 
 class PGOfflineEnumTest(TestCase):
@@ -27,37 +28,37 @@ class PGOfflineEnumTest(TestCase):
         self.script.write(self.rid, """
 down_revision = None
 
-from alembic.op import *
+from alembic import op
 from sqlalchemy.dialects.postgresql import ENUM
 from sqlalchemy import Column
 
 def upgrade():
-    create_table("sometable", 
+    op.create_table("sometable", 
         Column("data", ENUM("one", "two", "three", name="pgenum"))
     )
 
 def downgrade():
-    drop_table("sometable")
+    op.drop_table("sometable")
 """)
 
     def _distinct_enum_script(self):
         self.script.write(self.rid, """
 down_revision = None
 
-from alembic.op import *
+from alembic import op
 from sqlalchemy.dialects.postgresql import ENUM
 from sqlalchemy import Column
 
 def upgrade():
     enum = ENUM("one", "two", "three", name="pgenum", create_type=False)
-    enum.create(get_bind(), checkfirst=False)
-    create_table("sometable", 
+    enum.create(op.get_bind(), checkfirst=False)
+    op.create_table("sometable", 
         Column("data", enum)
     )
 
 def downgrade():
-    drop_table("sometable")
-    ENUM(name="pgenum").drop(get_bind(), checkfirst=False)
+    op.drop_table("sometable")
+    ENUM(name="pgenum").drop(op.get_bind(), checkfirst=False)
     
 """)
 
@@ -97,17 +98,19 @@ class PostgresqlDefaultCompareTest(TestCase):
     def setup_class(cls):
         cls.bind = db_for_dialect("postgresql")
         staging_env()
-        context.configure(
+        context = MigrationContext.configure(
             connection = cls.bind.connect(),
-            compare_type = True,
-            compare_server_default = True,
+            opts = {
+                'compare_type':True,
+                'compare_server_default':True
+            }
         )
-        connection = context.get_bind()
+        connection = context.bind
         cls.autogen_context = {
             'imports':set(),
             'connection':connection,
             'dialect':connection.dialect,
-            'context':context.get_context()
+            'context':context
             }
 
     @classmethod
@@ -145,7 +148,7 @@ class PostgresqlDefaultCompareTest(TestCase):
         t1.create(self.bind)
         insp = Inspector.from_engine(self.bind)
         cols = insp.get_columns(t1.name)
-        ctx = context.get_context()
+        ctx = self.autogen_context['context']
         return ctx.impl.compare_server_default(
             cols[0],
             col, 
