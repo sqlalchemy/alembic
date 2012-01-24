@@ -133,8 +133,6 @@ class ScriptDirectory(object):
             if script is None:
                 continue
             if script.revision in map_:
-                import pdb
-                pdb.set_trace()
                 util.warn("Revision %s is present more than once" %
                                 script.revision)
             map_[script.revision] = script
