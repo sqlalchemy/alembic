@@ -76,7 +76,7 @@ class Config(object):
             here = os.path.abspath(os.path.dirname(self.config_file_name))
         else:
             here = ""
-        file_config = ConfigParser.ConfigParser({'here':here})
+        file_config = ConfigParser.SafeConfigParser({'here':here})
         if self.config_file_name:
             file_config.read([self.config_file_name])
         else:

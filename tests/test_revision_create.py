@@ -24,12 +24,14 @@ def test_004_rev():
     eq_(script.revision, abc)
     eq_(script.down_revision, None)
     assert os.access(
-        os.path.join(env.dir, 'versions', '%s.py' % abc), os.F_OK)
+        os.path.join(env.dir, 'versions', '%s_this_is_a_message.py' % abc), os.F_OK)
     assert callable(script.module.upgrade)
     eq_(env._get_heads(), [abc])
 
 def test_005_nextrev():
     script = env.generate_rev(def_, "this is the next rev", refresh=True)
+    assert os.access(
+        os.path.join(env.dir, 'versions', '%s_this_is_the_next_rev.py' % def_), os.F_OK)
     eq_(script.revision, def_)
     eq_(script.down_revision, abc)
     eq_(env._revision_map[abc].nextrev, set([def_]))

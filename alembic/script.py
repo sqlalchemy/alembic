@@ -7,16 +7,20 @@ import re
 import inspect
 import datetime
 
-_rev_file = re.compile(r'([a-z0-9]+)\.py$')
+_rev_file = re.compile(r'([a-z0-9A-Z]+)(?:_.*)?\.py$')
+_legacy_rev = re.compile(r'([a-f0-9]+)\.py$')
 _mod_def_re = re.compile(r'(upgrade|downgrade)_([a-z0-9]+)')
+_slug_re = re.compile(r'\w+')
+_default_file_template = "%(rev)s_%(slug)s"
 
 class ScriptDirectory(object):
     """Provides operations upon an Alembic script directory.
     
     """
-    def __init__(self, dir):
+    def __init__(self, dir, file_template=_default_file_template):
         self.dir = dir
         self.versions = os.path.join(self.dir, 'versions')
+        self.file_template = file_template
 
         if not os.access(dir, os.F_OK):
             raise util.CommandError("Path doesn't exist: %r.  Please use "
@@ -26,7 +30,11 @@ class ScriptDirectory(object):
     @classmethod
     def from_config(cls, config):
         return ScriptDirectory(
-                    config.get_main_option('script_location'))
+                    config.get_main_option('script_location'),
+                    file_template = config.get_main_option(
+                                        'file_template', 
+                                        _default_file_template)
+                    )
 
     def walk_revisions(self):
         """Iterate through all revisions.
@@ -129,6 +137,8 @@ class ScriptDirectory(object):
             if script is None:
                 continue
             if script.revision in map_:
+                import pdb
+                pdb.set_trace()
                 util.warn("Revision %s is present more than once" %
                                 script.revision)
             map_[script.revision] = script
@@ -144,24 +154,12 @@ class ScriptDirectory(object):
         map_[None] = None
         return map_
 
-    def _rev_path(self, rev_id):
-        filename = "%s.py" % rev_id
+    def _rev_path(self, rev_id, message):
+        slug = "_".join(_slug_re.findall(message or "")[0:20])
+        filename = "%s.py" % (
+            self.file_template % {'rev':rev_id, 'slug':slug}
+        )
         return os.path.join(self.versions, filename)
-
-    def write(self, rev_id, content):
-        path = self._rev_path(rev_id)
-        with open(path, 'w') as fp:
-            fp.write(content)
-        pyc_path = util.pyc_file_from_path(path)
-        if os.access(pyc_path, os.F_OK):
-            os.unlink(pyc_path)
-        script = Script.from_path(path)
-        old = self._revision_map[script.revision]
-        if old.down_revision != script.down_revision:
-            raise Exception("Can't change down_revision "
-                                "on a refresh operation.")
-        self._revision_map[script.revision] = script
-        script.nextrev = old.nextrev
 
     def _current_head(self):
         current_heads = self._get_heads()
@@ -202,7 +200,7 @@ class ScriptDirectory(object):
 
     def generate_rev(self, revid, message, refresh=False, **kw):
         current_head = self._current_head()
-        path = self._rev_path(revid)
+        path = self._rev_path(revid, message)
         self.generate_template(
             os.path.join(self.dir, "script.py.mako"),
             path,
@@ -227,9 +225,10 @@ class Script(object):
     """Represent a single revision file in a ``versions/`` directory."""
     nextrev = frozenset()
 
-    def __init__(self, module, rev_id):
+    def __init__(self, module, rev_id, path):
         self.module = module
         self.revision = rev_id
+        self.path = path
         self.down_revision = getattr(module, 'down_revision', None)
 
     @property
@@ -266,4 +265,17 @@ class Script(object):
         if not m:
             return None
         module = util.load_python_file(dir_, filename)
-        return Script(module, m.group(1))
+        if not hasattr(module, "revision"):
+            # attempt to get the revision id from the script name,
+            # this for legacy only
+            m = _legacy_rev.match(filename)
+            if not m:
+                raise util.CommandError(
+                        "Could not determine revision id from filename %s. "
+                        "Be sure the 'revision' variable is "
+                        "declared inside the script." % filename)
+            else:
+                revision = m.group(1)
+        else:
+            revision = module.revision
+        return Script(module, revision, os.path.join(dir_, filename))

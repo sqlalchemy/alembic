@@ -1,7 +1,7 @@
 from __future__ import with_statement
 from tests import op_fixture, db_for_dialect, eq_, staging_env, \
             clear_staging_env, _no_sql_testing_config,\
-            capture_context_buffer, requires_07
+            capture_context_buffer, requires_07, write_script
 from unittest import TestCase
 from sqlalchemy import DateTime, MetaData, Table, Column, text, Integer, String
 from sqlalchemy.engine.reflection import Inspector
@@ -25,7 +25,8 @@ class PGOfflineEnumTest(TestCase):
 
 
     def _inline_enum_script(self):
-        self.script.write(self.rid, """
+        write_script(self.script, self.rid, """
+revision = '%s'
 down_revision = None
 
 from alembic import op
@@ -39,10 +40,11 @@ def upgrade():
 
 def downgrade():
     op.drop_table("sometable")
-""")
+""" % self.rid)
 
     def _distinct_enum_script(self):
-        self.script.write(self.rid, """
+        write_script(self.script, self.rid, """
+revision = '%s'
 down_revision = None
 
 from alembic import op
@@ -60,7 +62,7 @@ def downgrade():
     op.drop_table("sometable")
     ENUM(name="pgenum").drop(op.get_bind(), checkfirst=False)
     
-""")
+""" % self.rid)
 
     def test_offline_inline_enum_create(self):
         self._inline_enum_script()

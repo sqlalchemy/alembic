@@ -15,6 +15,17 @@
   are now contextual objects, not modules.
   [#19]
 
+- [feature] The naming of revision files can
+  now be customized to be some combination
+  of "rev id" and "slug", the latter of which
+  is based on the revision message.
+  By default, the pattern "<rev>_<slug>"
+  is used for new files.   New script files
+  should include the "revision" variable
+  for this to work, which is part of 
+  the newer script.py.mako scripts.
+  [#24]
+
 0.1.2
 =====
 - [bug] fix the config.main() function to honor

@@ -11,7 +11,7 @@ from alembic.environment import EnvironmentContext
 import re
 import alembic
 from alembic.operations import Operations
-from alembic.script import ScriptDirectory
+from alembic.script import ScriptDirectory, Script
 from alembic import ddl
 import StringIO
 from alembic.ddl.impl import _impls
@@ -20,6 +20,7 @@ from nose import SkipTest
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.util import decorator
 import shutil
+import textwrap
 
 staging_directory = os.path.join(os.path.dirname(__file__), 'scratch')
 files_directory = os.path.join(os.path.dirname(__file__), 'files')
@@ -277,14 +278,33 @@ def staging_env(create=True, template="generic"):
 def clear_staging_env():
     shutil.rmtree(staging_directory, True)
 
+
+def write_script(scriptdir, rev_id, content):
+    old = scriptdir._revision_map[rev_id]
+    path = old.path
+    with open(path, 'w') as fp:
+        fp.write(textwrap.dedent(content))
+    pyc_path = util.pyc_file_from_path(path)
+    if os.access(pyc_path, os.F_OK):
+        os.unlink(pyc_path)
+    script = Script.from_path(path)
+    old = scriptdir._revision_map[script.revision]
+    if old.down_revision != script.down_revision:
+        raise Exception("Can't change down_revision "
+                            "on a refresh operation.")
+    scriptdir._revision_map[script.revision] = script
+    script.nextrev = old.nextrev
+
+
 def three_rev_fixture(cfg):
     a = util.rev_id()
     b = util.rev_id()
     c = util.rev_id()
 
     script = ScriptDirectory.from_config(cfg)
-    script.generate_rev(a, None, refresh=True)
-    script.write(a, """
+    script.generate_rev(a, "revision a", refresh=True)
+    write_script(script, a, """
+revision = '%s'
 down_revision = None
 
 from alembic import op
@@ -295,10 +315,11 @@ def upgrade():
 def downgrade():
     op.execute("DROP STEP 1")
 
-""")
+""" % a)
 
-    script.generate_rev(b, None, refresh=True)
-    script.write(b, """
+    script.generate_rev(b, "revision b", refresh=True)
+    write_script(script, b, """
+revision = '%s'
 down_revision = '%s'
 
 from alembic import op
@@ -309,10 +330,11 @@ def upgrade():
 def downgrade():
     op.execute("DROP STEP 2")
 
-""" % a)
+""" % (b, a))
 
-    script.generate_rev(c, None, refresh=True)
-    script.write(c, """
+    script.generate_rev(c, "revision c", refresh=True)
+    write_script(script, c, """
+revision = '%s'
 down_revision = '%s'
 
 from alembic import op
@@ -323,5 +345,5 @@ def upgrade():
 def downgrade():
     op.execute("DROP STEP 3")
 
-""" % b)
+""" % (c, b))
     return a, b, c

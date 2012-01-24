@@ -6,7 +6,8 @@ Create Date: ${create_date}
 
 """
 
-# downgrade revision identifier, used by Alembic.
+# revision identifiers, used by Alembic.
+revision = ${repr(up_revision)}
 down_revision = ${repr(down_revision)}
 
 from alembic import op

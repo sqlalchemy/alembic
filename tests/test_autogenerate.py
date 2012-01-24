@@ -317,14 +317,16 @@ class AutogenRenderTest(TestCase):
 
     def test_render_drop_table(self):
         eq_(
-            autogenerate._drop_table(Table("sometable", MetaData()), self.autogen_context),
+            autogenerate._drop_table(Table("sometable", MetaData()), 
+                        self.autogen_context),
             "op.drop_table('sometable')"
         )
 
     def test_render_add_column(self):
         eq_(
             autogenerate._add_column(
-                    "foo", Column("x", Integer, server_default="5"), self.autogen_context),
+                    "foo", Column("x", Integer, server_default="5"), 
+                        self.autogen_context),
             "op.add_column('foo', sa.Column('x', sa.Integer(), "
                 "server_default='5', nullable=True))"
         )
@@ -332,7 +334,8 @@ class AutogenRenderTest(TestCase):
     def test_render_drop_column(self):
         eq_(
             autogenerate._drop_column(
-                    "foo", Column("x", Integer, server_default="5"), self.autogen_context),
+                    "foo", Column("x", Integer, server_default="5"), 
+                        self.autogen_context),
 
             "op.drop_column('foo', 'x')"
         )
