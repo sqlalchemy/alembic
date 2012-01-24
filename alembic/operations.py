@@ -9,10 +9,10 @@ __all__ = ('Operations',)
 
 class Operations(object):
     """Define high level migration operations.
-    
+
     Each operation corresponds to some schema migration operation,
     executed against a particular :class:`.MigrationContext`.
-    
+
     Normally, the :class:`.MigrationContext` is created
     within an ``env.py`` script via the
     :meth:`.EnvironmentContext.configure` method.  However,
@@ -21,14 +21,14 @@ class Operations(object):
     class - only :class:`.MigrationContext`, which represents
     connectivity to a single database, is needed
     to use the directives.
-    
+
     """
     def __init__(self, migration_context):
         """Construct a new :class:`.Operations`
-        
+
         :param migration_context: a :class:`.MigrationContext` 
          instance.
-         
+
         """
         self.migration_context = migration_context
         self.impl = migration_context.impl
@@ -111,13 +111,21 @@ class Operations(object):
             if cname not in rel_t.c:
                 rel_t.append_column(schema.Column(cname, NULLTYPE))
 
+    def get_context(self):
+        """Return the :class:`.MigrationsContext` object that's
+        currently in use.
+
+        """
+
+        return self.migration_context
+
     def rename_table(self, old_table_name, new_table_name, schema=None):
         """Emit an ALTER TABLE to rename a table.
-    
+
         :param old_table_name: old name.
         :param new_table_name: new name.
         :param schema: Optional, name of schema to operate within.
-    
+
         """
         self.impl.rename_table(
             old_table_name,
@@ -136,21 +144,21 @@ class Operations(object):
     ):
         """Issue an "alter column" instruction using the 
         current migration context.
-    
+
         Generally, only that aspect of the column which
         is being changed, i.e. name, type, nullability,
         default, needs to be specified.  Multiple changes
         can also be specified at once and the backend should
         "do the right thing", emitting each change either
         separately or together as the backend allows.
-    
+
         MySQL has special requirements here, since MySQL
         cannot ALTER a column without a full specification.
         When producing MySQL-compatible migration files,
         it is recommended that the ``existing_type``,
         ``existing_server_default``, and ``existing_nullable``
         parameters be present, if not being altered.
-    
+
         Type changes which are against the SQLAlchemy
         "schema" types :class:`~sqlalchemy.types.Boolean`
         and  :class:`~sqlalchemy.types.Enum` may also
@@ -159,7 +167,7 @@ class Operations(object):
         The ``existing_server_default`` argument is 
         used in this case as well to remove a previous
         constraint.
-    
+
         :param table_name: string name of the target table.
         :param column_name: string name of the target column, 
          as it exists before the operation begins.
@@ -168,12 +176,12 @@ class Operations(object):
         :param server_default: Optional; specify a string 
          SQL expression, :func:`~sqlalchemy.sql.expression.text`,
          or :class:`~sqlalchemy.schema.DefaultClause` to indicate
-         an alteration to the column's default value.  
+         an alteration to the column's default value.
          Set to ``None`` to have the default removed.
         :param name: Optional; specify a string name here to
          indicate the new name within a column rename operation.
         :param type_: Optional; a :class:`~sqlalchemy.types.TypeEngine`
-         type object to specify a change to the column's type.  
+         type object to specify a change to the column's type.
          For SQLAlchemy types that also indicate a constraint (i.e. 
          :class:`~sqlalchemy.types.Boolean`, :class:`~sqlalchemy.types.Enum`), 
          the constraint is also generated.
@@ -220,7 +228,7 @@ class Operations(object):
 
     def add_column(self, table_name, column):
         """Issue an "add column" instruction using the current migration context.
-    
+
         e.g.::
 
             from alembic import op
@@ -228,25 +236,25 @@ class Operations(object):
 
             op.add_column('organization', 
                 Column('name', String())
-            )        
+            )
 
         The provided :class:`~sqlalchemy.schema.Column` object can also
         specify a :class:`~sqlalchemy.schema.ForeignKey`, referencing
         a remote table name.  Alembic will automatically generate a stub
         "referenced" table and emit a second ALTER statement in order
         to add the constraint separately::
-    
+
             from alembic import op
             from sqlalchemy import Column, INTEGER, ForeignKey
 
             op.add_column('organization', 
                 Column('account_id', INTEGER, ForeignKey('accounts.id'))
-            )        
-    
+            )
+
         :param table_name: String name of the parent table.
         :param column: a :class:`sqlalchemy.schema.Column` object
          representing the new column.
-     
+
         """
 
         t = self._table(table_name, column)
@@ -260,11 +268,11 @@ class Operations(object):
 
     def drop_column(self, table_name, column_name, **kw):
         """Issue a "drop column" instruction using the current migration context.
-    
+
         e.g.::
-    
+
             drop_column('organization', 'account_id')
-    
+
         :param table_name: name of table
         :param column_name: name of column
         :param mssql_drop_check: Optional boolean.  When ``True``, on 
@@ -277,7 +285,7 @@ class Operations(object):
          drop the DEFAULT constraint on the column using a SQL-script-compatible
          block that selects into a @variable from sys.default_constraints,
          then exec's a separate DROP CONSTRAINT for that default.
-     
+
         """
 
         self.impl.drop_column(
@@ -292,7 +300,7 @@ class Operations(object):
         current migration context.
 
         e.g.::
-    
+
             from alembic import op
             op.create_foreign_key("fk_user_address", "address", "user", ["user_id"], ["id"])
 
@@ -303,7 +311,7 @@ class Operations(object):
         Any event listeners associated with this action will be fired 
         off normally.   The :class:`~sqlalchemy.schema.AddConstraint`
         construct is ultimately used to generate the ALTER statement.
-    
+
         :param name: Name of the foreign key constraint.  The name is necessary
          so that an ALTER statement can be emitted.  For setups that
          use an automated naming scheme such as that described at
@@ -319,7 +327,7 @@ class Operations(object):
          source table.
         :param remote_cols: a list of string column names in the
          remote table.
-    
+
         """
 
         self.impl.add_constraint(
@@ -331,7 +339,7 @@ class Operations(object):
         """Issue a "create unique constraint" instruction using the current migration context.
 
         e.g.::
-    
+
             from alembic import op
             op.create_unique_constraint("uq_user_name", "user", ["name"])
 
@@ -342,7 +350,7 @@ class Operations(object):
         Any event listeners associated with this action will be fired 
         off normally.   The :class:`~sqlalchemy.schema.AddConstraint`
         construct is ultimately used to generate the ALTER statement.
-    
+
         :param name: Name of the unique constraint.  The name is necessary
          so that an ALTER statement can be emitted.  For setups that
          use an automated naming scheme such as that described at
@@ -358,7 +366,7 @@ class Operations(object):
          issuing DDL for this constraint.
         :param initially: optional string. If set, emit INITIALLY <value> when issuing DDL
          for this constraint.
-    
+
         """
 
         self.impl.add_constraint(
@@ -368,18 +376,18 @@ class Operations(object):
 
     def create_check_constraint(self, name, source, condition, **kw):
         """Issue a "create check constraint" instruction using the current migration context.
-    
+
         e.g.::
-    
+
             from alembic import op
             from sqlalchemy.sql import column, func
-        
+
             op.create_check_constraint(
                 "ck_user_name_len",
                 "user", 
                 func.len(column('name')) > 5
             )
-    
+
         CHECK constraints are usually against a SQL expression, so ad-hoc
         table metadata is usually needed.   The function will convert the given 
         arguments into a :class:`sqlalchemy.schema.CheckConstraint` bound 
@@ -394,13 +402,13 @@ class Operations(object):
          with the table.
         :param source: String name of the source table.  Currently
          there is no support for dotted schema names.
-        :param condition: SQL expression that's the condition of the constraint.  
+        :param condition: SQL expression that's the condition of the constraint.
          Can be a string or SQLAlchemy expression language structure.
         :param deferrable: optional bool. If set, emit DEFERRABLE or NOT DEFERRABLE when
          issuing DDL for this constraint.
         :param initially: optional string. If set, emit INITIALLY <value> when issuing DDL
          for this constraint.
-    
+
         """
         self.impl.add_constraint(
             self._check_constraint(name, source, condition, **kw)
@@ -408,11 +416,11 @@ class Operations(object):
 
     def create_table(self, name, *columns, **kw):
         """Issue a "create table" instruction using the current migration context.
-    
+
         This directive receives an argument list similar to that of the 
         traditional :class:`sqlalchemy.schema.Table` construct, but without the
         metadata::
-        
+
             from sqlalchemy import INTEGER, VARCHAR, NVARCHAR, Column
             from alembic import op
 
@@ -432,7 +440,7 @@ class Operations(object):
          type will emit a CREATE TYPE within these events.
         :param \**kw: Other keyword arguments are passed to the underlying
          :class:`.Table` object created for the command.
-     
+
         """
         self.impl.create_table(
             self._table(name, *columns, **kw)
@@ -440,12 +448,12 @@ class Operations(object):
 
     def drop_table(self, name):
         """Issue a "drop table" instruction using the current migration context.
-    
-    
+
+
         e.g.::
-    
+
             drop_table("accounts")
-        
+
         """
         self.impl.drop_table(
             self._table(name)
@@ -453,9 +461,9 @@ class Operations(object):
 
     def create_index(self, name, tablename, *columns, **kw):
         """Issue a "create index" instruction using the current migration context.
-    
+
         e.g.::
-        
+
             from alembic import op
             op.create_index('ik_test', 't1', ['foo', 'bar'])
 
@@ -467,12 +475,12 @@ class Operations(object):
 
     def drop_index(self, name):
         """Issue a "drop index" instruction using the current migration context.
-    
-    
+
+
         e.g.::
-    
+
             drop_index("accounts")
-        
+
         """
         self.impl.drop_index(self._index(name, 'foo', []))
 
@@ -485,26 +493,26 @@ class Operations(object):
 
     def bulk_insert(self, table, rows):
         """Issue a "bulk insert" operation using the current migration context.
-    
+
         This provides a means of representing an INSERT of multiple rows
         which works equally well in the context of executing on a live 
         connection as well as that of generating a SQL script.   In the 
         case of a SQL script, the values are rendered inline into the 
         statement.
-    
+
         e.g.::
-    
+
             from datetime import date
             from sqlalchemy.sql import table, column
             from sqlalchemy import String, Integer, Date
-        
+
             # Create an ad-hoc table to use for the insert statement.
             accounts_table = table('account',
                 column('id', Integer),
                 column('name', String),
                 column('create_date', Date)
             )
-        
+
             bulk_insert(accounts_table,
                 [
                     {'id':1, 'name':'John Smith', 'create_date':date(2010, 10, 5)},
@@ -518,12 +526,12 @@ class Operations(object):
     def inline_literal(self, value, type_=None):
         """Produce an 'inline literal' expression, suitable for 
         using in an INSERT, UPDATE, or DELETE statement.
-    
+
         When using Alembic in "offline" mode, CRUD operations
         aren't compatible with SQLAlchemy's default behavior surrounding
         literal values,
         which is that they are converted into bound values and passed
-        separately into the ``execute()`` method of the DBAPI cursor.   
+        separately into the ``execute()`` method of the DBAPI cursor.
         An offline SQL
         script needs to have these rendered inline.  While it should
         always be noted that inline literal values are an **enormous**
@@ -535,7 +543,7 @@ class Operations(object):
 
         See :meth:`.execute` for an example usage of
         :meth:`.inline_literal`.
-    
+
         :param value: The value to render.  Strings, integers, and simple
          numerics should be supported.   Other types like boolean,
          dates, etc. may or may not be supported yet by various 
@@ -551,31 +559,31 @@ class Operations(object):
 
     def execute(self, sql):
         """Execute the given SQL using the current migration context.
-    
+
         In a SQL script context, the statement is emitted directly to the 
         output stream.   There is *no* return result, however, as this
         function is oriented towards generating a change script
         that can run in "offline" mode.  For full interaction
         with a connected database, use the "bind" available 
         from the context::
-    
+
             from alembic import op
             connection = op.get_bind()
-    
+
         Also note that any parameterized statement here *will not work*
         in offline mode - INSERT, UPDATE and DELETE statements which refer
         to literal values would need to render
         inline expressions.   For simple use cases, the :meth:`.inline_literal`
         function can be used for **rudimentary** quoting of string values.
         For "bulk" inserts, consider using :meth:`.bulk_insert`.
-    
+
         For example, to emit an UPDATE statement which is equally
         compatible with both online and offline mode::
-    
+
             from sqlalchemy.sql import table, column
             from sqlalchemy import String
             from alembic import op
-        
+
             account = table('account', 
                 column('name', String)
             )
@@ -584,7 +592,7 @@ class Operations(object):
                     where(account.c.name==op.inline_literal('account 1')).\\
                     values({'name':op.inline_literal('account 2')})
                     )
-    
+
         Note above we also used the SQLAlchemy :func:`sqlalchemy.sql.expression.table`
         and :func:`sqlalchemy.sql.expression.column` constructs to make a brief,
         ad-hoc table construct just for our UPDATE statement.  A full
@@ -593,9 +601,9 @@ class Operations(object):
         the definition of a table is self-contained within the migration script,
         rather than imported from a module that may break compatibility with
         older migrations.
-    
+
         :param sql: Any legal SQLAlchemy expression, including:
-    
+
         * a string
         * a :func:`sqlalchemy.sql.expression.text` construct.
         * a :func:`sqlalchemy.sql.expression.insert` construct.
@@ -604,19 +612,19 @@ class Operations(object):
         * Pretty much anything that's "executable" as described
           in :ref:`sqlexpression_toplevel`.
 
-    
+
         """
         self.migration_context.impl.execute(sql)
 
     def get_bind(self):
         """Return the current 'bind'.
-    
+
         Under normal circumstances, this is the 
         :class:`sqlalchemy.engine.Connection` currently being used
         to emit SQL to the database.
-    
+
         In a SQL script context, this value is ``None``. [TODO: verify this]
-    
+
         """
         return self.migration_context.impl.bind
 

@@ -46,11 +46,11 @@ class EnvironmentContext(object):
         be made available as ``from alembic import context``.
     
         """
-        alembic.context = self
+        alembic._context = self
         return self
 
     def __exit__(self, *arg, **kw):
-        del alembic.context
+        alembic._context = None
         alembic.op._proxy = None
 
     def is_offline_mode(self):

@@ -5,8 +5,11 @@ __version__ = '0.2.0'
 package_dir = path.abspath(path.dirname(__file__))
 
 
-class _OpProxy(object):
-    _proxy = None
+from alembic import op
+
+class _ContextProxy(object):
+    """A proxy object for the current :class:`.EnvironmentContext`."""
     def __getattr__(self, key):
-        return getattr(self._proxy, key)
-op = _OpProxy()
+        return getattr(_context, key)
+context = _ContextProxy()
+

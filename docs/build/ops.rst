@@ -14,6 +14,9 @@ All directives exist as methods on a class called :class:`.Operations`.
 When migration scripts are run, this object is made available
 to the script via the ``alembic.op`` datamember, which is
 a *proxy* to an actual instance of :class:`.Operations`.
+Currently, ``alembic.op`` is a real Python module, populated
+with individual proxies for each method on :class:`.Operations`,
+so symbols can be imported safely from the ``alembic.op`` namespace.
 
 A key design philosophy to the :mod:`alembic.operations` methods is that
 to the greatest degree possible, they internally generate the 

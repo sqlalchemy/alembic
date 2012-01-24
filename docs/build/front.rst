@@ -56,18 +56,25 @@ Upgrading from Alembic 0.1 to 0.2
 Alembic 0.2 has some reorganizations and features that might impact an existing 0.1
 installation.   These include:
 
-* The ``alembic.op`` and ``alembic.context`` names are no longer Python modules,
-  and are instead objects placed at those names when migrations run.   This 
-  means an env.py script or migration script that tries to import from 
-  the object will fail, such as ``from alembic.op import create_table``.
-  The imports used should now be of the form ``from alembic import context``
-  and ``from alembic import op``.   The various methods associated with the
-  context and ops should be invoked from those names now, such as ``op.create_table()``.
-  The included files and the tutorial in 0.1 already did things this way,
-  though the examples for each ``op`` docstring did not.   Hopefully most users
-  stuck with the tutorial convention, where the usage examples will
-  still work without change.
-
+* The ``alembic.op`` module is now generated from a class called
+  :class:`.Operations`, including standalone functions that each proxy
+  to the current instance of :class:`.Operations`.   The behavior here
+  is tailored such that an existing migration script that imports
+  symbols directly from ``alembic.op``, that is, 
+  ``from alembic.op import create_table``, should still work fine; though ideally
+  it's better to use the style ``from alembic import op``, then call
+  migration methods directly from the ``op`` member.  The functions inside
+  of ``alembic.op`` are at the moment minimally tailored proxies; a future
+  release should refine these to more closely resemble the :class:`.Operations`
+  methods they represent.
+* The ``alembic.context`` module no longer exists, instead ``alembic.context``
+  is an object inside the ``alembic`` module which proxies to an underlying
+  instance of :class:`.EnvironmentContext`.  :class:`.EnvironmentContext`
+  represents the current environment in an encapsulated way.   Most ``env.py``
+  scripts that don't import from the ``alembic.context`` name directly,
+  instead importing ``context`` itself, should be fine here.   A script that attempts to
+  import from it, such as ``from alembic.context import configure``, will
+  need to be changed to read ``from alembic import context; context.configure()``.
 * The naming convention for migration files is now customizable, and defaults
   to the scheme "%(rev)s_%(slug)s", where "slug" is based on the message
   added to the script.   When Alembic reads one of these files, it looks
