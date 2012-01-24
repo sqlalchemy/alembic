@@ -15,13 +15,13 @@ def test_001_revisions():
     script.write(a, """
 down_revision = None
 
-from alembic.op import *
+from alembic import op
 
 def upgrade():
-    execute("CREATE TABLE foo(id integer)")
+    op.execute("CREATE TABLE foo(id integer)")
 
 def downgrade():
-    execute("DROP TABLE foo")
+    op.execute("DROP TABLE foo")
 
 """)
 
@@ -29,13 +29,13 @@ def downgrade():
     script.write(b, """
 down_revision = '%s'
 
-from alembic.op import *
+from alembic import op
 
 def upgrade():
-    execute("CREATE TABLE bar(id integer)")
+    op.execute("CREATE TABLE bar(id integer)")
 
 def downgrade():
-    execute("DROP TABLE bar")
+    op.execute("DROP TABLE bar")
 
 """ % a)
 
@@ -43,13 +43,13 @@ def downgrade():
     script.write(c, """
 down_revision = '%s'
 
-from alembic.op import *
+from alembic import op
 
 def upgrade():
-    execute("CREATE TABLE bat(id integer)")
+    op.execute("CREATE TABLE bat(id integer)")
 
 def downgrade():
-    execute("DROP TABLE bat")
+    op.execute("DROP TABLE bat")
 
 """ % b)
 

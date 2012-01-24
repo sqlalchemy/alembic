@@ -5,10 +5,12 @@ import shutil
 import os
 import itertools
 from sqlalchemy import create_engine, text, MetaData
-from alembic import context, util
+from alembic import util
+from alembic.migration import MigrationContext
 import re
+import alembic
+from alembic.operations import Operations
 from alembic.script import ScriptDirectory
-from alembic.context import Context
 from alembic import ddl
 import StringIO
 from alembic.ddl.impl import _impls
@@ -140,12 +142,11 @@ def op_fixture(dialect='default', as_sql=False):
             )
 
 
-    class ctx(Context):
+    class ctx(MigrationContext):
         def __init__(self, dialect='default', as_sql=False):
             self.dialect = _get_dialect(dialect)
             self.impl = Impl(self.dialect, as_sql)
 
-            context._context = self
             self.as_sql = as_sql
 
         def assert_(self, *sql):
@@ -162,7 +163,9 @@ def op_fixture(dialect='default', as_sql=False):
                     sql,
                     self.impl.assertion
                 )
-    return ctx(dialect, as_sql)
+    context = ctx(dialect, as_sql)
+    alembic.op._proxy = Operations(context)
+    return context
 
 def env_file_fixture(txt):
     dir_ = os.path.join(staging_directory, 'scripts')
@@ -269,12 +272,10 @@ def staging_env(create=True, template="generic"):
             shutil.rmtree(path)
         command.init(cfg, path)
     sc = script.ScriptDirectory.from_config(cfg)
-    context._opts(cfg,sc, fn=lambda:None)
     return sc
 
 def clear_staging_env():
     shutil.rmtree(staging_directory, True)
-    context._clear()
 
 def three_rev_fixture(cfg):
     a = util.rev_id()

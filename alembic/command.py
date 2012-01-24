@@ -1,5 +1,5 @@
 from alembic.script import ScriptDirectory
-from alembic import util, ddl, context, autogenerate as autogen
+from alembic import util, ddl, autogenerate as autogen, environment
 import os
 import functools
 
@@ -73,12 +73,12 @@ def revision(config, message=None, autogenerate=False):
             autogen.produce_migration_diffs(template_args, imports)
             return []
 
-        context._opts(
+        with environment.configure(
             config,
             script,
             fn = retrieve_migrations
-        )
-        script.run_env()
+        ):
+            script.run_env()
     script.generate_rev(util.rev_id(), message, **template_args)
 
 
@@ -92,7 +92,7 @@ def upgrade(config, revision, sql=False, tag=None):
         if not sql:
             raise util.CommandError("Range revision not allowed")
         starting_rev, revision = revision.split(':', 2)
-    context._opts(
+    with environment.configure(
         config,
         script,
         fn = functools.partial(script.upgrade_from, revision),
@@ -100,8 +100,8 @@ def upgrade(config, revision, sql=False, tag=None):
         starting_rev = starting_rev,
         destination_rev = revision,
         tag = tag
-    )
-    script.run_env()
+    ):
+        script.run_env()
 
 def downgrade(config, revision, sql=False, tag=None):
     """Revert to a previous version."""
@@ -114,7 +114,7 @@ def downgrade(config, revision, sql=False, tag=None):
             raise util.CommandError("Range revision not allowed")
         starting_rev, revision = revision.split(':', 2)
 
-    context._opts(
+    with environment.configure(
         config,
         script,
         fn = functools.partial(script.downgrade_to, revision),
@@ -122,8 +122,8 @@ def downgrade(config, revision, sql=False, tag=None):
         starting_rev = starting_rev,
         destination_rev = revision,
         tag = tag
-    )
-    script.run_env()
+    ):
+        script.run_env()
 
 def history(config):
     """List changeset scripts in chronological order."""
@@ -157,12 +157,12 @@ def current(config):
                             script._get_rev(rev))
         return []
 
-    context._opts(
+    with environment.configure(
         config,
         script,
         fn = display_version
-    )
-    script.run_env()
+    ):
+        script.run_env()
 
 def stamp(config, revision, sql=False, tag=None):
     """'stamp' the revision table with the given revision; don't
@@ -179,15 +179,15 @@ def stamp(config, revision, sql=False, tag=None):
             dest = dest.revision
         context.get_context()._update_current_rev(current, dest)
         return []
-    context._opts(
+    with environment.configure(
         config, 
         script,
         fn = do_stamp,
         as_sql = sql,
         destination_rev = revision,
         tag = tag
-    )
-    script.run_env()
+    ):
+        script.run_env()
 
 def splice(config, parent, child):
     """'splice' two branches, creating a new revision file.

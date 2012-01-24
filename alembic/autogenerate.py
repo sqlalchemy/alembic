@@ -1,8 +1,6 @@
 """Provide the 'autogenerate' feature which can produce migration operations
 automatically."""
 
-from alembic.context import _context_opts, get_bind, get_context
-from alembic import context
 from alembic import util
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy import schema, types as sqltypes
@@ -14,8 +12,9 @@ log = logging.getLogger(__name__)
 ###################################################
 # top level
 
-def produce_migration_diffs(template_args, imports):
-    metadata = _context_opts['target_metadata']
+
+def produce_migration_diffs(context, opts, template_args, imports):
+    metadata = opts['target_metadata']
     if metadata is None:
         raise util.CommandError(
                 "Can't proceed with --autogenerate option; environment "
@@ -29,12 +28,13 @@ def produce_migration_diffs(template_args, imports):
         'imports':imports,
         'connection':connection,
         'dialect':connection.dialect,
-        'context':get_context()
+        'context':context,
+        'opts':opts
     }
     _produce_net_changes(connection, metadata, diffs, autogen_context)
-    template_args[_context_opts['upgrade_token']] = \
+    template_args[opts['upgrade_token']] = \
             _indent(_produce_upgrade_commands(diffs, autogen_context))
-    template_args[_context_opts['downgrade_token']] = \
+    template_args[opts['downgrade_token']] = \
             _indent(_produce_downgrade_commands(diffs, autogen_context))
     template_args['imports'] = "\n".join(sorted(imports))
 
@@ -304,7 +304,7 @@ def _invoke_modify_command(updown, args, autogen_context):
 def _add_table(table, autogen_context):
     return "%(prefix)screate_table(%(tablename)r,\n%(args)s\n)" % {
         'tablename':table.name,
-        'prefix':_alembic_autogenerate_prefix(),
+        'prefix':_alembic_autogenerate_prefix(autogen_context),
         'args':',\n'.join(
             [_render_column(col, autogen_context) for col in table.c] +
             sorted([rcons for rcons in 
@@ -317,20 +317,20 @@ def _add_table(table, autogen_context):
 
 def _drop_table(table, autogen_context):
     return "%(prefix)sdrop_table(%(tname)r)" % {
-            "prefix":_alembic_autogenerate_prefix(),
+            "prefix":_alembic_autogenerate_prefix(autogen_context),
             "tname":table.name
         }
 
 def _add_column(tname, column, autogen_context):
     return "%(prefix)sadd_column(%(tname)r, %(column)s)" % {
-            "prefix":_alembic_autogenerate_prefix(),
+            "prefix":_alembic_autogenerate_prefix(autogen_context),
             "tname":tname,
             "column":_render_column(column, autogen_context)
             }
 
 def _drop_column(tname, column, autogen_context):
     return "%(prefix)sdrop_column(%(tname)r, %(cname)r)" % {
-            "prefix":_alembic_autogenerate_prefix(),
+            "prefix":_alembic_autogenerate_prefix(autogen_context),
             "tname":tname,
             "cname":column.name
             }
@@ -343,10 +343,10 @@ def _modify_col(tname, cname,
                 existing_type=None,
                 existing_nullable=None,
                 existing_server_default=False):
-    sqla_prefix = _sqlalchemy_autogenerate_prefix()
+    sqla_prefix = _sqlalchemy_autogenerate_prefix(autogen_context)
     indent = " " * 11
     text = "%(prefix)salter_column(%(tname)r, %(cname)r" % {
-                            'prefix':_alembic_autogenerate_prefix(), 
+                            'prefix':_alembic_autogenerate_prefix(autogen_context), 
                             'tname':tname, 
                             'cname':cname}
     text += ", \n%sexisting_type=%s" % (indent, 
@@ -372,11 +372,11 @@ def _modify_col(tname, cname,
     text += ")"
     return text
 
-def _sqlalchemy_autogenerate_prefix():
-    return _context_opts['sqlalchemy_module_prefix'] or ''
+def _sqlalchemy_autogenerate_prefix(autogen_context):
+    return autogen_context['opts']['sqlalchemy_module_prefix'] or ''
 
-def _alembic_autogenerate_prefix():
-    return _context_opts['alembic_module_prefix'] or ''
+def _alembic_autogenerate_prefix(autogen_context):
+    return autogen_context['opts']['alembic_module_prefix'] or ''
 
 def _render_column(column, autogen_context):
     opts = []
@@ -388,9 +388,9 @@ def _render_column(column, autogen_context):
 
     # TODO: for non-ascii colname, assign a "key"
     return "%(prefix)sColumn(%(name)r, %(type)s, %(kw)s)" % {
-        'prefix':_sqlalchemy_autogenerate_prefix(),
+        'prefix':_sqlalchemy_autogenerate_prefix(autogen_context),
         'name':column.name,
-        'type':_repr_type(_sqlalchemy_autogenerate_prefix(), column.type, autogen_context),
+        'type':_repr_type(_sqlalchemy_autogenerate_prefix(autogen_context), column.type, autogen_context),
         'kw':", ".join(["%s=%s" % (kwname, val) for kwname, val in opts])
     }
 
@@ -432,7 +432,7 @@ def _render_primary_key(constraint):
     if constraint.name:
         opts.append(("name", repr(constraint.name)))
     return "%(prefix)sPrimaryKeyConstraint(%(args)s)" % {
-        "prefix":_sqlalchemy_autogenerate_prefix(),
+        "prefix":_sqlalchemy_autogenerate_prefix(autogen_context),
         "args":", ".join(
             [repr(c.key) for c in constraint.columns] +
             ["%s=%s" % (kwname, val) for kwname, val in opts]
@@ -445,7 +445,7 @@ def _render_foreign_key(constraint):
         opts.append(("name", repr(constraint.name)))
     # TODO: deferrable, initially, etc.
     return "%(prefix)sForeignKeyConstraint([%(cols)s], [%(refcols)s], %(args)s)" % {
-        "prefix":_sqlalchemy_autogenerate_prefix(),
+        "prefix":_sqlalchemy_autogenerate_prefix(autogen_context),
         "cols":", ".join("'%s'" % f.parent.key for f in constraint.elements),
         "refcols":", ".join(repr(f._get_colspec()) for f in constraint.elements),
         "args":", ".join(
@@ -458,7 +458,7 @@ def _render_check_constraint(constraint):
     if constraint.name:
         opts.append(("name", repr(constraint.name)))
     return "%(prefix)sCheckConstraint('TODO')" % {
-            "prefix":_sqlalchemy_autogenerate_prefix()
+            "prefix":_sqlalchemy_autogenerate_prefix(autogen_context)
         }
 
 _constraint_renderers = {

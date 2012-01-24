@@ -1,3 +1,20 @@
+0.2.0
+=====
+- [feature] API rearrangement allows everything
+  Alembic does to be represented by contextual
+  objects, including EnvironmentContext,
+  MigrationContext, and Operations.   Other
+  libraries and applications can now use
+  things like "alembic.op" without relying
+  upon global configuration variables.
+  The rearrangement was done such that 
+  existing migrations should be OK, 
+  as long as they use the pattern 
+  of "from alembic import context" and 
+  "from alembic import op", as these
+  are now contextual objects, not modules.
+  [#19]
+
 0.1.2
 =====
 - [bug] fix the config.main() function to honor
