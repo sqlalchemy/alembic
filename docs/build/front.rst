@@ -15,7 +15,7 @@ Releases and project status are available on Pypi at
 http://pypi.python.org/pypi/alembic.
 
 The most recent published version of this documentation should be at
-http://readthedocs.org/docs/alembic/.
+http://alembic.readthedocs.org/.
 
 Project Status
 ==============
