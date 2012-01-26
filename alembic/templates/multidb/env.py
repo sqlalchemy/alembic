@@ -1,7 +1,7 @@
 USE_TWOPHASE = False
 
 from alembic import context
-from sqlalchemy import engine_from_config
+from sqlalchemy import engine_from_config, pool
 import re
 import sys
 
@@ -44,7 +44,8 @@ def run_migrations_offline():
     engines = {}
     for name in re.split(r',\s*', db_names):
         engines[name] = rec = {}
-        rec['url'] = context.config.get_section_option(name, "sqlalchemy.url")
+        rec['url'] = context.config.get_section_option(name, 
+                                            "sqlalchemy.url")
 
     for name, rec in engines.items():
         file_ = "%s.sql" % name
@@ -70,8 +71,10 @@ def run_migrations_online():
     engines = {}
     for name in re.split(r',\s*', db_names):
         engines[name] = rec = {}
-        rec['engine'] = engine_from_config(context.config.get_section(name),
-                                    prefix='sqlalchemy.')
+        rec['engine'] = engine_from_config(
+                                    context.config.get_section(name),
+                                    prefix='sqlalchemy.',
+                                    poolclass=pool.NullPool)
 
     for name, rec in engines.items():
         engine = rec['engine']
@@ -103,6 +106,10 @@ def run_migrations_online():
         for rec in engines.values():
             rec['transaction'].rollback()
         raise
+    finally:
+        for rec in engines.values():
+            rec['connection'].close()
+
 
 if context.is_offline_mode():
     run_migrations_offline()

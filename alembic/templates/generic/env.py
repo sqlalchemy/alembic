@@ -1,6 +1,6 @@
 from __future__ import with_statement
 from alembic import context
-from sqlalchemy import engine_from_config
+from sqlalchemy import engine_from_config, pool
 from logging.config import fileConfig
 
 # this is the Alembic Config object, which provides
@@ -48,7 +48,9 @@ def run_migrations_online():
     
     """
     engine = engine_from_config(
-                config.get_section(config.config_ini_section), prefix='sqlalchemy.')
+                config.get_section(config.config_ini_section), 
+                prefix='sqlalchemy.', 
+                poolclass=pool.NullPool)
 
     connection = engine.connect()
     context.configure(
@@ -56,8 +58,11 @@ def run_migrations_online():
                 target_metadata=target_metadata
                 )
 
-    with context.begin_transaction():
-        context.run_migrations()
+    try:
+        with context.begin_transaction():
+            context.run_migrations()
+    finally:
+        connection.close()
 
 if context.is_offline_mode():
     run_migrations_offline()

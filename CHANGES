@@ -26,6 +26,13 @@
   the newer script.py.mako scripts.
   [#24]
 
+- [bug] env.py templates call 
+  connection.close() to better support 
+  programmatic usage of commands; use
+  NullPool in conjunction with create_engine()
+  as well so that no connection resources
+  remain afterwards.  [#25]
+
 0.1.2
 =====
 - [bug] fix the config.main() function to honor

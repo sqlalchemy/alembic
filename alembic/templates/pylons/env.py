@@ -59,8 +59,11 @@ def run_migrations_online():
                 target_metadata=target_metadata
                 )
 
-    with context.begin_transaction():
-        context.run_migrations()
+    try:
+        with context.begin_transaction():
+            context.run_migrations()
+    finally:
+        connection.close()
 
 if context.is_offline_mode():
     run_migrations_offline()
