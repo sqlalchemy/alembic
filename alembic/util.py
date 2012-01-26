@@ -5,9 +5,11 @@ import sys
 import os
 import textwrap
 from sqlalchemy.engine import url
+from sqlalchemy import util as sqla_util
 import imp
 import warnings
 import re
+import inspect
 import time
 import random
 import uuid
@@ -42,6 +44,72 @@ def template_to_file(template_file, dest, **kw):
             Template(filename=template_file).render(**kw)
         )
 
+def create_module_class_proxy(cls, globals_, locals_):
+    """Create module level proxy functions for the
+    methods on a given class.
+    
+    The functions will have a compatible signature
+    as the methods.   A proxy is established
+    using the ``_install_proxy(obj)`` function,
+    and removed using ``_remove_proxy()``, both
+    installed by calling this function.
+
+    """
+    attr_names = set()
+
+    def _install_proxy(obj):
+        globals_['_proxy'] = obj
+        for name in attr_names:
+            globals_[name] = getattr(obj, name)
+
+    def _remove_proxy():
+        globals_['_proxy'] = None
+        for name in attr_names:
+            del globals_[name]
+
+    globals_['_install_proxy'] = _install_proxy
+    globals_['_remove_proxy'] = _remove_proxy
+
+    def _create_op_proxy(name):
+        fn = getattr(cls, name)
+        spec = inspect.getargspec(fn)
+        if spec[0] and spec[0][0] == 'self':
+            spec[0].pop(0)
+        args = inspect.formatargspec(*spec)
+        num_defaults = 0
+        if spec[3]:
+            num_defaults += len(spec[3])
+        name_args = spec[0]
+        if num_defaults:
+            defaulted_vals = name_args[0-num_defaults:]
+        else:
+            defaulted_vals = ()
+
+        apply_kw = inspect.formatargspec(
+                                name_args, spec[1], spec[2], 
+                                defaulted_vals,
+                                formatvalue=lambda x: '=' + x)
+
+        func_text = textwrap.dedent("""\
+        def %(name)s(%(args)s):
+            %(doc)r
+            return _proxy.%(name)s(%(apply_kw)s)
+        """ % {
+            'name':name,
+            'args':args[1:-1],
+            'apply_kw':apply_kw[1:-1],
+            'doc':fn.__doc__,
+        })
+        lcl = {}
+        exec func_text in globals_, lcl
+        return lcl[name]
+
+    for methname in dir(cls):
+        if not methname.startswith('_'):
+            if callable(getattr(cls, methname)):
+                locals_[methname] = _create_op_proxy(methname)
+            else:
+                attr_names.add(methname)
 
 def status(_statmsg, fn, *arg, **kw):
     msg(_statmsg + "...", False)

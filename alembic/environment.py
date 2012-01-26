@@ -46,12 +46,12 @@ class EnvironmentContext(object):
         be made available as ``from alembic import context``.
     
         """
-        alembic._context = self
+        alembic.context._install_proxy(self)
         return self
 
     def __exit__(self, *arg, **kw):
-        alembic._context = None
-        alembic.op._proxy = None
+        alembic.context._remove_proxy()
+        alembic.op._remove_proxy()
 
     def is_offline_mode(self):
         """Return True if the current migrations environment 
@@ -78,7 +78,7 @@ class EnvironmentContext(object):
         made available via :meth:`.configure`.
 
         """
-        return self.migration_context.impl.transactional_ddl
+        return self.get_context().impl.transactional_ddl
 
     def requires_connection(self):
         return not self.is_offline_mode()
@@ -105,7 +105,7 @@ class EnvironmentContext(object):
 
         """
         if self._migration_context is not None:
-            return self.script._as_rev_number(self.migration_context._start_from_rev)
+            return self.script._as_rev_number(self.get_context()._start_from_rev)
         elif 'starting_rev' in self.context_opts:
             return self.script._as_rev_number(self.context_opts['starting_rev'])
         else:
@@ -345,7 +345,7 @@ class EnvironmentContext(object):
 
         """
         with Operations.context(self._migration_context):
-            self.migration_context.run_migrations(**kw)
+            self.get_context().run_migrations(**kw)
 
     def execute(self, sql):
         """Execute the given SQL using the current change context.
@@ -359,7 +359,7 @@ class EnvironmentContext(object):
         made available via :meth:`.configure`.
 
         """
-        self.migration_context.execute(sql)
+        self.get_context().execute(sql)
 
     def static_output(self, text):
         """Emit text directly to the "offline" SQL stream.
@@ -370,7 +370,7 @@ class EnvironmentContext(object):
         is added, etc.
     
         """
-        self.migration_context.impl.static_output(text)
+        self.get_context().impl.static_output(text)
 
     def begin_transaction(self):
         """Return a context manager that will 
@@ -423,29 +423,24 @@ class EnvironmentContext(object):
         elif self.is_offline_mode():
             @contextmanager
             def begin_commit():
-                self.migration_context.impl.emit_begin()
+                self.get_context().impl.emit_begin()
                 yield
-                self.migration_context.impl.emit_commit()
+                self.get_context().impl.emit_commit()
             return begin_commit()
         else:
             return self.get_bind().begin()
 
-    @property
-    def migration_context(self):
+    def get_context(self):
         """Return the current :class:`.MigrationContext` object.
 
         If :meth:`.EnvironmentContext.configure` has not been called yet, raises
         an exception.
 
         """
+
         if self._migration_context is None:
             raise Exception("No context has been configured yet.")
         return self._migration_context
-
-    def get_context(self):
-        """A synonym for :attr:`.EnvironmentContext.migration_context`."""
-
-        return self.migration_context
 
     def get_bind(self):
         """Return the current 'bind'.
@@ -458,9 +453,9 @@ class EnvironmentContext(object):
         made available via :meth:`.configure`.
 
         """
-        return self.migration_context.bind
+        return self.get_context().bind
 
     def get_impl(self):
-        return self.migration_context.impl
+        return self.get_context().impl
 
 configure = EnvironmentContext

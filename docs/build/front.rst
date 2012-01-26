@@ -56,25 +56,6 @@ Upgrading from Alembic 0.1 to 0.2
 Alembic 0.2 has some reorganizations and features that might impact an existing 0.1
 installation.   These include:
 
-* The ``alembic.op`` module is now generated from a class called
-  :class:`.Operations`, including standalone functions that each proxy
-  to the current instance of :class:`.Operations`.   The behavior here
-  is tailored such that an existing migration script that imports
-  symbols directly from ``alembic.op``, that is, 
-  ``from alembic.op import create_table``, should still work fine; though ideally
-  it's better to use the style ``from alembic import op``, then call
-  migration methods directly from the ``op`` member.  The functions inside
-  of ``alembic.op`` are at the moment minimally tailored proxies; a future
-  release should refine these to more closely resemble the :class:`.Operations`
-  methods they represent.
-* The ``alembic.context`` module no longer exists, instead ``alembic.context``
-  is an object inside the ``alembic`` module which proxies to an underlying
-  instance of :class:`.EnvironmentContext`.  :class:`.EnvironmentContext`
-  represents the current environment in an encapsulated way.   Most ``env.py``
-  scripts that don't import from the ``alembic.context`` name directly,
-  instead importing ``context`` itself, should be fine here.   A script that attempts to
-  import from it, such as ``from alembic.context import configure``, will
-  need to be changed to read ``from alembic import context; context.configure()``.
 * The naming convention for migration files is now customizable, and defaults
   to the scheme "%(rev)s_%(slug)s", where "slug" is based on the message
   added to the script.   When Alembic reads one of these files, it looks
@@ -92,7 +73,13 @@ installation.   These include:
   unless you are renaming them.  Alembic will fall back to pulling in the version 
   identifier from the filename if ``revision`` isn't present, as long as the 
   filename uses the old naming convention.
-
+* The ``alembic.op`` and ``alembic.context`` modules are now generated
+  as a collection of proxy functions, which when used refer to an
+  object instance installed when migrations run.  ``alembic.op`` refers to 
+  an instance of the :class:`.Operations` object, and ``alembic.context`` refers to 
+  an instance of the :class:`.EnvironmentContext` object.  Most existing
+  setups should be able to run with no changes, as the functions are 
+  established at module load time and remain fully importable.
 
 Community
 =========

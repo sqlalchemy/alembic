@@ -14,7 +14,7 @@ and :class:`.Operations` classes, pictured below.
 .. image:: api_overview.png
 
 An Alembic command begins by instantiating an :class:`.EnvironmentContext` object, then
-making it available via the ``alembic.context`` datamember.  The ``env.py``
+making it available via the ``alembic.context`` proxy module.  The ``env.py``
 script, representing a user-configurable migration environment, is then 
 invoked.   The ``env.py`` script is then responsible for calling upon the
 :meth:`.EnvironmentContext.configure`, whose job it is to create 
@@ -34,7 +34,7 @@ via the :attr:`.EnvironmentContext.migration_context` datamember.
 Finally, ``env.py`` calls upon the :meth:`.EnvironmentContext.run_migrations`
 method.   Within this method, a new :class:`.Operations` object, which
 provides an API for individual database migration operations, is established
-within the ``alembic.op`` datamember.   The :class:`.Operations` object
+within the ``alembic.op`` proxy module.   The :class:`.Operations` object
 uses the :class:`.MigrationContext` object ultimately as a source of 
 database connectivity, though in such a way that it does not care if the
 :class:`.MigrationContext` is talking to a real database or just writing

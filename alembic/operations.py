@@ -37,9 +37,9 @@ class Operations(object):
     @contextmanager
     def context(cls, migration_context):
         op = Operations(migration_context)
-        alembic.op._proxy = op
+        alembic.op._install_proxy(op)
         yield op
-        del alembic.op._proxy
+        alembic.op._remove_proxy()
 
     def _foreign_key_constraint(self, name, source, referent, local_cols, remote_cols):
         m = schema.MetaData()

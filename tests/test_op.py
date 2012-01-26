@@ -7,6 +7,7 @@ from sqlalchemy import Integer, Column, ForeignKey, \
             Boolean
 from sqlalchemy.sql import table, column, func
 
+
 def test_rename_table():
     context = op_fixture()
     op.rename_table('t1', 't2')
