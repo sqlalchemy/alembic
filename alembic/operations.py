@@ -50,7 +50,8 @@ class Operations(object):
         yield op
         alembic.op._remove_proxy()
 
-    def _foreign_key_constraint(self, name, source, referent, local_cols, remote_cols):
+    def _foreign_key_constraint(self, name, source, referent, 
+                                    local_cols, remote_cols):
         m = schema.MetaData()
         t1 = schema.Table(source, m, 
                 *[schema.Column(n, NULLTYPE) for n in local_cols])
@@ -192,9 +193,11 @@ class Operations(object):
         :param type_: Optional; a :class:`~sqlalchemy.types.TypeEngine`
          type object to specify a change to the column's type.
          For SQLAlchemy types that also indicate a constraint (i.e. 
-         :class:`~sqlalchemy.types.Boolean`, :class:`~sqlalchemy.types.Enum`), 
+         :class:`~sqlalchemy.types.Boolean`, 
+         :class:`~sqlalchemy.types.Enum`), 
          the constraint is also generated.
-        :param existing_type: Optional; a :class:`~sqlalchemy.types.TypeEngine`
+        :param existing_type: Optional; a 
+         :class:`~sqlalchemy.types.TypeEngine`
          type object to specify the previous type.   This
          is required for all MySQL column alter operations that 
          don't otherwise specify a new type, as well as for
@@ -202,7 +205,8 @@ class Operations(object):
          column.  It is also used if the type is a so-called 
          SQLlchemy "schema" type which
          may define a constraint (i.e. 
-         :class:`~sqlalchemy.types.Boolean`, :class:`~sqlalchemy.types.Enum`), 
+         :class:`~sqlalchemy.types.Boolean`, 
+         :class:`~sqlalchemy.types.Enum`), 
          so that the constraint can be dropped.
         :param existing_server_default: Optional; The existing
          default value of the column.   Required on MySQL if 
@@ -214,7 +218,9 @@ class Operations(object):
         """
 
         if existing_type:
-            t = self._table(table_name, schema.Column(column_name, existing_type))
+            t = self._table(table_name, 
+                        schema.Column(column_name, existing_type)
+                    )
             for constraint in t.constraints:
                 if not isinstance(constraint, schema.PrimaryKeyConstraint):
                     self.impl.drop_constraint(constraint)
@@ -236,7 +242,8 @@ class Operations(object):
                     self.impl.add_constraint(constraint)
 
     def add_column(self, table_name, column):
-        """Issue an "add column" instruction using the current migration context.
+        """Issue an "add column" instruction using the current 
+        migration context.
 
         e.g.::
 
@@ -276,7 +283,8 @@ class Operations(object):
                 self.impl.add_constraint(constraint)
 
     def drop_column(self, table_name, column_name, **kw):
-        """Issue a "drop column" instruction using the current migration context.
+        """Issue a "drop column" instruction using the current 
+        migration context.
 
         e.g.::
 
@@ -286,12 +294,14 @@ class Operations(object):
         :param column_name: name of column
         :param mssql_drop_check: Optional boolean.  When ``True``, on 
          Microsoft SQL Server only, first 
-         drop the CHECK constraint on the column using a SQL-script-compatible
+         drop the CHECK constraint on the column using a 
+         SQL-script-compatible
          block that selects into a @variable from sys.check_constraints,
          then exec's a separate DROP CONSTRAINT for that constraint.
         :param mssql_drop_default: Optional boolean.  When ``True``, on 
          Microsoft SQL Server only, first 
-         drop the DEFAULT constraint on the column using a SQL-script-compatible
+         drop the DEFAULT constraint on the column using a 
+         SQL-script-compatible
          block that selects into a @variable from sys.default_constraints,
          then exec's a separate DROP CONSTRAINT for that default.
 
@@ -304,14 +314,17 @@ class Operations(object):
         )
 
 
-    def create_foreign_key(self, name, source, referent, local_cols, remote_cols):
+    def create_foreign_key(self, name, source, referent, local_cols, 
+                                    remote_cols):
         """Issue a "create foreign key" instruction using the 
         current migration context.
 
         e.g.::
 
             from alembic import op
-            op.create_foreign_key("fk_user_address", "address", "user", ["user_id"], ["id"])
+            op.create_foreign_key(
+                        "fk_user_address", "address", 
+                        "user", ["user_id"], ["id"])
 
         This internally generates a :class:`~sqlalchemy.schema.Table` object
         containing the necessary columns, then generates a new 
@@ -345,7 +358,8 @@ class Operations(object):
                 )
 
     def create_unique_constraint(self, name, source, local_cols, **kw):
-        """Issue a "create unique constraint" instruction using the current migration context.
+        """Issue a "create unique constraint" instruction using the 
+        current migration context.
 
         e.g.::
 
@@ -384,7 +398,8 @@ class Operations(object):
                 )
 
     def create_check_constraint(self, name, source, condition, **kw):
-        """Issue a "create check constraint" instruction using the current migration context.
+        """Issue a "create check constraint" instruction using the 
+        current migration context.
 
         e.g.::
 
@@ -441,12 +456,15 @@ class Operations(object):
             )
 
         :param name: Name of the table
-        :param \*columns: collection of :class:`~sqlalchemy.schema.Column` objects within
-         the table, as well as optional :class:`~sqlalchemy.schema.Constraint` objects
+        :param \*columns: collection of :class:`~sqlalchemy.schema.Column` 
+         objects within
+         the table, as well as optional :class:`~sqlalchemy.schema.Constraint` 
+         objects
          and :class:`~.sqlalchemy.schema.Index` objects.
-        :param emit_events: if ``True``, emit ``before_create`` and ``after_create``
-         events when the table is being created.  In particular, the Postgresql ENUM
-         type will emit a CREATE TYPE within these events.
+        :param emit_events: if ``True``, emit ``before_create`` and 
+         ``after_create`` events when the table is being created.  In 
+         particular, the Postgresql ENUM type will emit a CREATE TYPE within 
+         these events.
         :param \**kw: Other keyword arguments are passed to the underlying
          :class:`.Table` object created for the command.
 
@@ -456,7 +474,8 @@ class Operations(object):
         )
 
     def drop_table(self, name):
-        """Issue a "drop table" instruction using the current migration context.
+        """Issue a "drop table" instruction using the current 
+        migration context.
 
 
         e.g.::
@@ -469,7 +488,8 @@ class Operations(object):
         )
 
     def create_index(self, name, tablename, *columns, **kw):
-        """Issue a "create index" instruction using the current migration context.
+        """Issue a "create index" instruction using the current 
+        migration context.
 
         e.g.::
 
@@ -483,7 +503,8 @@ class Operations(object):
         )
 
     def drop_index(self, name):
-        """Issue a "drop index" instruction using the current migration context.
+        """Issue a "drop index" instruction using the current 
+        migration context.
 
 
         e.g.::
@@ -501,7 +522,8 @@ class Operations(object):
         self.impl.drop_constraint(const)
 
     def bulk_insert(self, table, rows):
-        """Issue a "bulk insert" operation using the current migration context.
+        """Issue a "bulk insert" operation using the current 
+        migration context.
 
         This provides a means of representing an INSERT of multiple rows
         which works equally well in the context of executing on a live 
@@ -524,9 +546,12 @@ class Operations(object):
 
             bulk_insert(accounts_table,
                 [
-                    {'id':1, 'name':'John Smith', 'create_date':date(2010, 10, 5)},
-                    {'id':2, 'name':'Ed Williams', 'create_date':date(2007, 5, 27)},
-                    {'id':3, 'name':'Wendy Jones', 'create_date':date(2008, 8, 15)},
+                    {'id':1, 'name':'John Smith', 
+                            'create_date':date(2010, 10, 5)},
+                    {'id':2, 'name':'Ed Williams', 
+                            'create_date':date(2007, 5, 27)},
+                    {'id':3, 'name':'Wendy Jones', 
+                            'create_date':date(2008, 8, 15)},
                 ]
             )
           """
@@ -582,9 +607,10 @@ class Operations(object):
         Also note that any parameterized statement here *will not work*
         in offline mode - INSERT, UPDATE and DELETE statements which refer
         to literal values would need to render
-        inline expressions.   For simple use cases, the :meth:`.inline_literal`
-        function can be used for **rudimentary** quoting of string values.
-        For "bulk" inserts, consider using :meth:`.bulk_insert`.
+        inline expressions.   For simple use cases, the 
+        :meth:`.inline_literal` function can be used for **rudimentary** 
+        quoting of string values.  For "bulk" inserts, consider using 
+        :meth:`.bulk_insert`.
 
         For example, to emit an UPDATE statement which is equally
         compatible with both online and offline mode::
@@ -602,7 +628,8 @@ class Operations(object):
                     values({'name':op.inline_literal('account 2')})
                     )
 
-        Note above we also used the SQLAlchemy :func:`sqlalchemy.sql.expression.table`
+        Note above we also used the SQLAlchemy 
+        :func:`sqlalchemy.sql.expression.table`
         and :func:`sqlalchemy.sql.expression.column` constructs to make a brief,
         ad-hoc table construct just for our UPDATE statement.  A full
         :class:`~sqlalchemy.schema.Table` construct of course works perfectly
@@ -616,7 +643,8 @@ class Operations(object):
         * a string
         * a :func:`sqlalchemy.sql.expression.text` construct.
         * a :func:`sqlalchemy.sql.expression.insert` construct.
-        * a :func:`sqlalchemy.sql.expression.update`, :func:`sqlalchemy.sql.expression.insert`, 
+        * a :func:`sqlalchemy.sql.expression.update`, 
+          :func:`sqlalchemy.sql.expression.insert`, 
           or :func:`sqlalchemy.sql.expression.delete`  construct.
         * Pretty much anything that's "executable" as described
           in :ref:`sqlexpression_toplevel`.

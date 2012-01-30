@@ -74,8 +74,8 @@ class EnvironmentContext(object):
         can be overridden by the ``transactional_ddl`` argument
         to :meth:`.configure`
 
-        This function requires that a :class:`.MigrationContext` has first been 
-        made available via :meth:`.configure`.
+        This function requires that a :class:`.MigrationContext` 
+        has first been made available via :meth:`.configure`.
 
         """
         return self.get_context().impl.transactional_ddl
@@ -105,11 +105,14 @@ class EnvironmentContext(object):
 
         """
         if self._migration_context is not None:
-            return self.script._as_rev_number(self.get_context()._start_from_rev)
+            return self.script._as_rev_number(
+                        self.get_context()._start_from_rev)
         elif 'starting_rev' in self.context_opts:
-            return self.script._as_rev_number(self.context_opts['starting_rev'])
+            return self.script._as_rev_number(
+                        self.context_opts['starting_rev'])
         else:
-            raise util.CommandError("No starting revision argument is available.")
+            raise util.CommandError(
+                        "No starting revision argument is available.")
 
     def get_revision_argument(self):
         """Get the 'destination' revision argument.
@@ -125,7 +128,8 @@ class EnvironmentContext(object):
         has been configured.
 
         """
-        return self.script._as_rev_number(self.context_opts['destination_rev'])
+        return self.script._as_rev_number(
+                            self.context_opts['destination_rev'])
 
     def get_tag_argument(self):
         """Return the value passed for the ``--tag`` argument, if any.
@@ -159,8 +163,9 @@ class EnvironmentContext(object):
             **kw
         ):
         """Configure a :class:`.MigrationContext` within this
-        :class:`.EnvironmentContext` which will provide database connectivity
-        and other configuration to a series of migration scripts.
+        :class:`.EnvironmentContext` which will provide database 
+        connectivity and other configuration to a series of 
+        migration scripts.
         
         Many methods on :class:`.EnvironmentContext` require that 
         this method has been called in order to function, as they
@@ -180,48 +185,64 @@ class EnvironmentContext(object):
 
         This function is typically called from the ``env.py``
         script within a migration environment.  It can be called
-        multiple times for an invocation.  The most recent :class:`~sqlalchemy.engine.base.Connection`
+        multiple times for an invocation.  The most recent 
+        :class:`~sqlalchemy.engine.base.Connection`
         for which it was called is the one that will be operated upon
         by the next call to :meth:`.run_migrations`.
 
         General parameters:
     
-        :param connection: a :class:`~sqlalchemy.engine.base.Connection` to use
-         for SQL execution in "online" mode.  When present, is also used to 
-         determine the type of dialect in use.
-        :param url: a string database url, or a :class:`sqlalchemy.engine.url.URL` object.
-         The type of dialect to be used will be derived from this if ``connection`` is
-         not passed.
-        :param dialect_name: string name of a dialect, such as "postgresql", "mssql", etc.
-         The type of dialect to be used will be derived from this if ``connection``
-         and ``url`` are not passed.
-        :param transactional_ddl: Force the usage of "transactional" DDL on or off;
-         this otherwise defaults to whether or not the dialect in use supports it.
-        :param output_buffer: a file-like object that will be used for textual output
-         when the ``--sql`` option is used to generate SQL scripts.  Defaults to
-         ``sys.stdout`` if not passed here and also not present on the :class:`.Config`
-         object.  The value here overrides that of the :class:`.Config` object.
-        :param starting_rev: Override the "starting revision" argument when using
-         ``--sql`` mode.
-        :param tag: a string tag for usage by custom ``env.py`` scripts.  Set via
-         the ``--tag`` option, can be overridden here.
+        :param connection: a :class:`~sqlalchemy.engine.base.Connection` 
+         to use
+         for SQL execution in "online" mode.  When present, is also 
+         used to determine the type of dialect in use.
+        :param url: a string database url, or a 
+         :class:`sqlalchemy.engine.url.URL` object.
+         The type of dialect to be used will be derived from this if 
+         ``connection`` is not passed.
+        :param dialect_name: string name of a dialect, such as 
+         "postgresql", "mssql", etc.
+         The type of dialect to be used will be derived from this if 
+         ``connection`` and ``url`` are not passed.
+        :param transactional_ddl: Force the usage of "transactional" 
+         DDL on or off;
+         this otherwise defaults to whether or not the dialect in 
+         use supports it.
+        :param output_buffer: a file-like object that will be used 
+         for textual output
+         when the ``--sql`` option is used to generate SQL scripts.  
+         Defaults to
+         ``sys.stdout`` if not passed here and also not present on 
+         the :class:`.Config`
+         object.  The value here overrides that of the :class:`.Config` 
+         object.
+        :param starting_rev: Override the "starting revision" argument 
+         when using ``--sql`` mode.
+        :param tag: a string tag for usage by custom ``env.py`` scripts.  
+         Set via the ``--tag`` option, can be overridden here.
      
-        Parameters specific to the autogenerate feature, when ``alembic revision``
-        is run with the ``--autogenerate`` feature:
+        Parameters specific to the autogenerate feature, when 
+        ``alembic revision`` is run with the ``--autogenerate`` feature:
     
-        :param target_metadata: a :class:`sqlalchemy.schema.MetaData` object that
-         will be consulted during autogeneration.  The tables present will be compared against
-         what is locally available on the target :class:`~sqlalchemy.engine.base.Connection`
+        :param target_metadata: a :class:`sqlalchemy.schema.MetaData` 
+         object that
+         will be consulted during autogeneration.  The tables present 
+         will be compared against
+         what is locally available on the target 
+         :class:`~sqlalchemy.engine.base.Connection`
          to produce candidate upgrade/downgrade operations.
      
-        :param compare_type: Indicates type comparison behavior during an autogenerate
-         operation.  Defaults to ``False`` which disables type comparison.  Set to 
-         ``True`` to turn on default type comparison, which has varied accuracy depending
-         on backend.
+        :param compare_type: Indicates type comparison behavior during 
+         an autogenerate
+         operation.  Defaults to ``False`` which disables type 
+         comparison.  Set to 
+         ``True`` to turn on default type comparison, which has varied 
+         accuracy depending on backend.
      
-         To customize type comparison behavior, a callable may be specified which
-         can filter type comparisons during an autogenerate operation.   The format of 
-         this callable is::
+         To customize type comparison behavior, a callable may be 
+         specified which
+         can filter type comparisons during an autogenerate operation.   
+         The format of this callable is::
      
             def my_compare_type(context, inspected_column, 
                         metadata_column, inspected_type, metadata_type):
@@ -235,17 +256,23 @@ class EnvironmentContext(object):
          ``metadata_column`` is a :class:`sqlalchemy.schema.Column` from
          the local model environment.
      
-         A return value of ``None`` indicates to allow default type comparison to
-         proceed.
+         A return value of ``None`` indicates to allow default type 
+         comparison to proceed.
 
-        :param compare_server_default: Indicates server default comparison behavior during 
-         an autogenerate operation.  Defaults to ``False`` which disables server default 
-         comparison.  Set to  ``True`` to turn on server default comparison, which has 
+        :param compare_server_default: Indicates server default comparison 
+         behavior during 
+         an autogenerate operation.  Defaults to ``False`` which disables 
+         server default 
+         comparison.  Set to  ``True`` to turn on server default comparison, 
+         which has 
          varied accuracy depending on backend.
     
-         To customize server default comparison behavior, a callable may be specified
-         which can filter server default comparisons during an autogenerate operation.
-         defaults during an autogenerate operation.   The format of this callable is::
+         To customize server default comparison behavior, a callable may 
+         be specified
+         which can filter server default comparisons during an 
+         autogenerate operation.
+         defaults during an autogenerate operation.   The format of this 
+         callable is::
      
             def my_compare_server_default(context, inspected_column, 
                         metadata_column, inspected_default, metadata_default,
@@ -260,13 +287,16 @@ class EnvironmentContext(object):
          ``metadata_column`` is a :class:`sqlalchemy.schema.Column` from
          the local model environment.
 
-         A return value of ``None`` indicates to allow default server default comparison 
-         to proceed.  Note that some backends such as Postgresql actually execute
+         A return value of ``None`` indicates to allow default server default 
+         comparison 
+         to proceed.  Note that some backends such as Postgresql actually 
+         execute
          the two defaults on the database side to compare for equivalence.
 
         :param upgrade_token: When autogenerate completes, the text of the 
          candidate upgrade operations will be present in this template 
-         variable when ``script.py.mako`` is rendered.  Defaults to ``upgrades``.
+         variable when ``script.py.mako`` is rendered.  Defaults to 
+         ``upgrades``.
         :param downgrade_token: When autogenerate completes, the text of the 
          candidate downgrade operations will be present in this
          template variable when ``script.py.mako`` is rendered.  Defaults to 
@@ -277,8 +307,10 @@ class EnvironmentContext(object):
          (i.e. ``op.create_table``)  Defaults to "``op.``".
          Can be ``None`` to indicate no prefix.  
      
-        :param sqlalchemy_module_prefix: When autogenerate refers to SQLAlchemy 
-         :class:`~sqlalchemy.schema.Column` or type classes, this prefix will be used
+        :param sqlalchemy_module_prefix: When autogenerate refers to 
+         SQLAlchemy 
+         :class:`~sqlalchemy.schema.Column` or type classes, this prefix 
+         will be used
          (i.e. ``sa.Column("somename", sa.Integer)``)  Defaults to "``sa.``".
          Can be ``None`` to indicate no prefix.  
          Note that when dialect-specific types are rendered, autogenerate
@@ -287,9 +319,11 @@ class EnvironmentContext(object):
      
         Parameters specific to individual backends:
     
-        :param mssql_batch_separator: The "batch separator" which will be placed
+        :param mssql_batch_separator: The "batch separator" which will 
+         be placed
          between each statement when generating offline SQL Server 
-         migrations.  Defaults to ``GO``.  Note this is in addition to the customary
+         migrations.  Defaults to ``GO``.  Note this is in addition to the 
+         customary
          semicolon ``;`` at the end of each statement; SQL Server considers
          the "batch separator" to denote the end of an individual statement
          execution, and cannot group certain dependent operations in 
@@ -327,12 +361,14 @@ class EnvironmentContext(object):
         )
 
     def run_migrations(self, **kw):
-        """Run migrations as determined by the current command line configuration
+        """Run migrations as determined by the current command line 
+        configuration
         as well as versioning information present (or not) in the current 
         database connection (if one is present).
 
         The function accepts optional ``**kw`` arguments.   If these are
-        passed, they are sent directly to the ``upgrade()`` and ``downgrade()``
+        passed, they are sent directly to the ``upgrade()`` and 
+        ``downgrade()``
         functions within each target revision file.   By modifying the
         ``script.py.mako`` file so that the ``upgrade()`` and ``downgrade()``
         functions accept arguments, parameters can be passed here so that
@@ -340,8 +376,8 @@ class EnvironmentContext(object):
         database in use, can be passed from a custom ``env.py`` script
         to the migration functions.
 
-        This function requires that a :class:`.MigrationContext` has first been 
-        made available via :meth:`.configure`.
+        This function requires that a :class:`.MigrationContext` has 
+        first been made available via :meth:`.configure`.
 
         """
         with Operations.context(self._migration_context):
@@ -355,8 +391,8 @@ class EnvironmentContext(object):
         function's documentation for full detail including
         caveats and limitations.
 
-        This function requires that a :class:`.MigrationContext` has first been 
-        made available via :meth:`.configure`.
+        This function requires that a :class:`.MigrationContext` has 
+        first been made available via :meth:`.configure`.
 
         """
         self.get_context().execute(sql)
@@ -433,8 +469,8 @@ class EnvironmentContext(object):
     def get_context(self):
         """Return the current :class:`.MigrationContext` object.
 
-        If :meth:`.EnvironmentContext.configure` has not been called yet, raises
-        an exception.
+        If :meth:`.EnvironmentContext.configure` has not been 
+        called yet, raises an exception.
 
         """
 
@@ -449,8 +485,8 @@ class EnvironmentContext(object):
         :class:`sqlalchemy.engine.base.Connection` currently being used
         to emit SQL to the database.
 
-        This function requires that a :class:`.MigrationContext` has first been 
-        made available via :meth:`.configure`.
+        This function requires that a :class:`.MigrationContext` 
+        has first been made available via :meth:`.configure`.
 
         """
         return self.get_context().bind

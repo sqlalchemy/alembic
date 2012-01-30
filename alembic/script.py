@@ -94,20 +94,21 @@ class ScriptDirectory(object):
             downrev = script.down_revision
             script = self._revision_map[downrev]
             if script is None and lower is not None:
-                raise util.CommandError("Couldn't find revision %s" % downrev)
+                raise util.CommandError(
+                        "Couldn't find revision %s" % downrev)
 
     def upgrade_from(self, destination, current_rev, context):
         revs = self._revs(destination, current_rev)
         return [
-            (script.module.upgrade, script.down_revision, script.revision) for script in 
-            reversed(list(revs))
+            (script.module.upgrade, script.down_revision, script.revision)
+            for script in reversed(list(revs))
             ]
 
     def downgrade_to(self, destination, current_rev, context):
         revs = self._revs(current_rev, destination)
         return [
-            (script.module.downgrade, script.revision, script.down_revision) for script in 
-            revs
+            (script.module.downgrade, script.revision, script.down_revision)
+            for script in revs
             ]
 
     def run_env(self):
@@ -268,7 +269,8 @@ class Script(object):
                         "Could not determine revision id from filename %s. "
                         "Be sure the 'revision' variable is "
                         "declared inside the script (please see 'Upgrading "
-                        "from Alembic 0.1 to 0.2' in the documentation)." % filename)
+                        "from Alembic 0.1 to 0.2' in the documentation)." 
+                        % filename)
             else:
                 revision = m.group(1)
         else:

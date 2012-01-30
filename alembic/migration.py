@@ -60,7 +60,9 @@ class MigrationContext(object):
         self.output_buffer = opts.get("output_buffer", sys.stdout)
 
         self._user_compare_type = opts.get('compare_type', False)
-        self._user_compare_server_default = opts.get('compare_server_default', False)
+        self._user_compare_server_default = opts.get(
+                                            'compare_server_default', 
+                                            False)
 
         self._start_from_rev = opts.get("starting_rev")
         self.impl = ddl.DefaultImpl.get_by_dialect(dialect)(
@@ -88,15 +90,16 @@ class MigrationContext(object):
         This is a factory method usually called
         by :meth:`.EnvironmentContext.configure`.
         
-        :param connection: a :class:`~sqlalchemy.engine.base.Connection` to use
-         for SQL execution in "online" mode.  When present, is also used to 
-         determine the type of dialect in use.
-        :param url: a string database url, or a :class:`sqlalchemy.engine.url.URL` object.
-         The type of dialect to be used will be derived from this if ``connection`` is
-         not passed.
-        :param dialect_name: string name of a dialect, such as "postgresql", "mssql", etc.
-         The type of dialect to be used will be derived from this if ``connection``
-         and ``url`` are not passed.
+        :param connection: a :class:`~sqlalchemy.engine.base.Connection` 
+         to use for SQL execution in "online" mode.  When present, 
+         is also used to determine the type of dialect in use.
+        :param url: a string database url, or a 
+         :class:`sqlalchemy.engine.url.URL` object.
+         The type of dialect to be used will be derived from this if 
+         ``connection`` is not passed.
+        :param dialect_name: string name of a dialect, such as 
+         "postgresql", "mssql", etc.  The type of dialect to be used will be 
+         derived from this if ``connection`` and ``url`` are not passed.
         :param opts: dictionary of options.  Most other options
          accepted by :meth:`.EnvironmentContext.configure` are passed via 
          this dictionary.
