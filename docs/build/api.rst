@@ -29,7 +29,7 @@ of database dialect in use, are not.   Once the
 is said to be *configured* with database connectivity, available via
 a new :class:`.MigrationContext` object.   The :class:`.MigrationContext`
 is associated with the :class:`.EnvironmentContext` object
-via the :attr:`.EnvironmentContext.migration_context` datamember.
+via the :meth:`.EnvironmentContext.get_context` method.
 
 Finally, ``env.py`` calls upon the :meth:`.EnvironmentContext.run_migrations`
 method.   Within this method, a new :class:`.Operations` object, which

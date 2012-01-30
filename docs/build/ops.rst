@@ -25,7 +25,7 @@ appropriate SQLAlchemy metadata, typically involving
 objects.  This so that migration instructions can be 
 given in terms of just the string names and/or flags involved.   
 The exceptions to this
-rule include the :meth:`~.Operations.add_column` and :func:`~.Operations.create_table`
+rule include the :meth:`~.Operations.add_column` and :meth:`~.Operations.create_table`
 directives, which require full :class:`~sqlalchemy.schema.Column`
 objects, though the table metadata is still generated here.
 

@@ -122,7 +122,7 @@ class Operations(object):
                 rel_t.append_column(schema.Column(cname, NULLTYPE))
 
     def get_context(self):
-        """Return the :class:`.MigrationsContext` object that's
+        """Return the :class:`.MigrationContext` object that's
         currently in use.
 
         """
@@ -657,7 +657,7 @@ class Operations(object):
         """Return the current 'bind'.
 
         Under normal circumstances, this is the 
-        :class:`sqlalchemy.engine.Connection` currently being used
+        :class:`~sqlalchemy.engine.base.Connection` currently being used
         to emit SQL to the database.
 
         In a SQL script context, this value is ``None``. [TODO: verify this]

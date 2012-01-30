@@ -23,11 +23,11 @@ class MigrationContext(object):
 
     The :class:`.MigrationContext` that's established for a 
     duration of a migration command is available via the 
-    :attr:`.EnvironmentContext.migration_context` datamember,
+    :meth:`.EnvironmentContext.get_context` method,
     which is available at ``alembic.context``::
     
         from alembic import context
-        migration_context = context.migration_context
+        migration_context = context.get_context()
     
     A :class:`.MigrationContext` can be created programmatically
     for usage outside of the usual Alembic migrations flow,
@@ -193,7 +193,7 @@ class MigrationContext(object):
         in :ref:`sqlexpression_toplevel` as well as 
         for usage with the :meth:`sqlalchemy.schema.Table.create`
         and :meth:`sqlalchemy.schema.MetaData.create_all` methods
-        of :class:`.Table`, :class:`.MetaData`.
+        of :class:`~sqlalchemy.schema.Table`, :class:`~sqlalchemy.schema.MetaData`.
 
         Note that when "standard output" mode is enabled, 
         this bind will be a "mock" connection handler that cannot
