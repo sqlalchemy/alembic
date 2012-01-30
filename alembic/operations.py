@@ -11,17 +11,26 @@ class Operations(object):
     """Define high level migration operations.
 
     Each operation corresponds to some schema migration operation,
-    executed against a particular :class:`.MigrationContext`.
+    executed against a particular :class:`.MigrationContext`
+    which in turn represents connectivity to a database,
+    or a file output stream.
 
-    Normally, the :class:`.MigrationContext` is created
-    within an ``env.py`` script via the
-    :meth:`.EnvironmentContext.configure` method.  However,
-    the :class:`.Operations` object can also be used without
-    actually using the :class:`.EnvironmentContext` 
-    class - only :class:`.MigrationContext`, which represents
-    connectivity to a single database, is needed
-    to use the directives.
-
+    While :class:`.Operations` is normally configured as
+    part of the :meth:`.EnvironmentContext.run_migrations`
+    method called from an ``env.py`` script, a standalone 
+    :class:`.Operations` instance can be
+    made for use cases external to regular Alembic
+    migrations by passing in a :class:`.MigrationContext`::
+    
+        from alembic.migration import MigrationContext
+        from alembic.operations import Operations
+        
+        conn = myengine.connect()
+        ctx = MigrationContext.configure(conn)
+        op = Operations(ctx)
+        
+        op.alter_column("t", "c", nullable=True)
+        
     """
     def __init__(self, migration_context):
         """Construct a new :class:`.Operations`
