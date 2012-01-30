@@ -28,6 +28,18 @@ class MigrationContext(object):
     
         from alembic import context
         migration_context = context.migration_context
+    
+    A :class:`.MigrationContext` can be created programmatically
+    for usage outside of the usual Alembic migrations flow,
+    using the :meth:`.MigrationContext.configure` method::
+    
+        conn = myengine.connect()
+        ctx = MigrationContext.configure(conn)
+    
+    The above context can then be used to produce
+    Alembic migration operations with an :class:`.Operations`
+    instance.
+    
 
     """
     def __init__(self, dialect, connection, opts):
@@ -69,7 +81,7 @@ class MigrationContext(object):
                 connection=None,
                 url=None,
                 dialect_name=None,
-                opts=None,
+                opts={},
     ):
         """Create a new :class:`.MigrationContext`.
         

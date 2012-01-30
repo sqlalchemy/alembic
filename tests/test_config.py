@@ -1,5 +1,7 @@
 from alembic import config
-from tests import eq_
+from alembic.migration import MigrationContext
+from alembic.operations import Operations
+from tests import eq_, capture_db
 
 def test_config_no_file_main_option():
     cfg = config.Config()
@@ -16,3 +18,13 @@ def test_config_no_file_section_option():
 
     cfg.set_section_option("foo", "echo", "True")
     eq_(cfg.get_section_option("foo", "echo"), "True")
+
+
+def test_standalone_op():
+    eng, buf = capture_db()
+
+    env = MigrationContext.configure(eng)
+    op = Operations(env)
+
+    op.alter_column("t", "c", nullable=True)
+    eq_(buf, ['ALTER TABLE t ALTER COLUMN c DROP NOT NULL'])

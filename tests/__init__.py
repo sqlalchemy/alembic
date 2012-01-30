@@ -35,6 +35,13 @@ def sqlite_db():
     dir_ = os.path.join(staging_directory, 'scripts')
     return create_engine('sqlite:///%s/foo.db' % dir_)
 
+def capture_db():
+    buf = []
+    def dump(sql, *multiparams, **params):
+        buf.append(str(sql.compile(dialect=engine.dialect)))
+    engine = create_engine("postgresql://", strategy="mock", executor=dump)
+    return engine, buf
+
 _engs = {}
 def db_for_dialect(name):
     if name in _engs:
