@@ -149,7 +149,7 @@ class ScriptDirectory(object):
         return map_
 
     def _rev_path(self, rev_id, message):
-        slug = "_".join(_slug_re.findall(message or "")[0:20]).lower()
+        slug = "_".join(_slug_re.findall(message or "")).lower()[0:20]
         filename = "%s.py" % (
             self.file_template % {'rev':rev_id, 'slug':slug}
         )

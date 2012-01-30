@@ -58,6 +58,15 @@ def test_007_no_refresh():
     env2 = staging_env(create=False)
     eq_(script, env2._as_rev_number("head"))
 
+def test_008_long_name():
+    rid = util.rev_id()
+    script = env.generate_rev(rid, 
+            "this is a really long name with "
+            "lots of characters and also "
+            "I'd like it to\nhave\nnewlines")
+    assert os.access(
+        os.path.join(env.dir, 'versions', '%s_this_is_a_really_lon.py' % rid), os.F_OK)
+
 
 def setup():
     global env
