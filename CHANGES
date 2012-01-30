@@ -33,8 +33,6 @@
   as well so that no connection resources
   remain afterwards.  [#25]
 
-0.1.2
-=====
 - [bug] fix the config.main() function to honor
   the arguments passed, remove no longer used
   "scripts/alembic" as setuptools creates this
