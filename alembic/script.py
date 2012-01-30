@@ -267,7 +267,8 @@ class Script(object):
                 raise util.CommandError(
                         "Could not determine revision id from filename %s. "
                         "Be sure the 'revision' variable is "
-                        "declared inside the script." % filename)
+                        "declared inside the script (please see 'Upgrading "
+                        "from Alembic 0.1 to 0.2' in the documentation)." % filename)
             else:
                 revision = m.group(1)
         else:
