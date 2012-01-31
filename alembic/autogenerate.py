@@ -454,7 +454,7 @@ def _render_foreign_key(constraint, autogen_context):
         ),
     }
 
-def _render_check_constraint(constraint):
+def _render_check_constraint(constraint, autogen_context):
     opts = []
     if constraint.name:
         opts.append(("name", repr(constraint.name)))
