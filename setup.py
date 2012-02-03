@@ -15,6 +15,15 @@ v.close()
 
 readme = os.path.join(os.path.dirname(__file__), 'README.rst')
 
+requires = [
+    'SQLAlchemy>=0.6.0',
+    'Mako',
+]
+
+try:
+    import argparse
+except ImportError:
+    requires.append('argparse')
 
 setup(name='alembic',
       version=VERSION,
@@ -40,14 +49,7 @@ setup(name='alembic',
       tests_require = ['nose >= 0.11'],
       test_suite = "nose.collector",
       zip_safe=False,
-      install_requires=[
-          'SQLAlchemy>=0.6.0',
-          'Mako',
-          # TODO: should this not be here if the env. is 
-          # Python 2.7/3.2 ? not sure how this is supposed 
-          # to be handled
-          'argparse'
-      ],
+      install_requires=requires,
       entry_points = {
         'console_scripts': [ 'alembic = alembic.config:main' ],
       },
