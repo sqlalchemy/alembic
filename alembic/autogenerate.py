@@ -21,7 +21,7 @@ def produce_migration_diffs(context, template_args, imports):
                 "Can't proceed with --autogenerate option; environment "
                 "script %s does not provide "
                 "a MetaData object to the context." % (
-                    context._script.env_py_location
+                    context.script.env_py_location
                 ))
     connection = context.bind
     diffs = []
