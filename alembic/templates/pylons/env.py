@@ -58,7 +58,13 @@ def run_migrations_online():
 
     """
 
-    connection = meta.engine.connect()
+    if hasattr(meta, 'engine'):
+        connection = meta.engine.connect()
+    elif hasattr(meta, 'Base'):
+        connection = meta.Base.metadata.bind.connect()
+    else:
+        raise Exception(('Unable to fetch connection from meta %s'
+                         'Try to define engine or Base in meta file') % meta)
     context.configure(
                 connection=connection,
                 target_metadata=target_metadata
