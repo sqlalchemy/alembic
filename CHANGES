@@ -9,6 +9,10 @@
   colons.   This scheme is the same
   one used by Pyramid.  [#29]
 
+- [feature] added missing support for 
+  onupdate/ondelete flags for 
+  ForeignKeyConstraint, courtesy Giacomo Bagnoli
+ 
 0.2.1
 =====
 - [bug] Fixed the generation of CHECK constraint,
