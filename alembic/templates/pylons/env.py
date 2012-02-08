@@ -7,6 +7,7 @@ be loaded from there.
 from alembic import context
 from paste.deploy import loadapp
 from logging.config import fileConfig
+from sqlalchemy.engine.base import Engine
 
 
 try:
@@ -57,14 +58,17 @@ def run_migrations_online():
     and associate a connection with the context.
 
     """
-
-    if hasattr(meta, 'engine'):
-        connection = meta.engine.connect()
-    elif hasattr(meta, 'Base'):
-        connection = meta.Base.metadata.bind.connect()
+    # specify here how the engine is acquired
+    # engine = meta.engine
+    raise NotImplementedError("Please specify engine connectivity here")
+    
+    if isintance(engine, Engine):
+        connection = engine.connect()
     else:
-        raise Exception(('Unable to fetch connection from meta %s'
-                         'Try to define engine or Base in meta file') % meta)
+        raise Exception(
+            'Expected engine instance got %s instead' % type(engine)
+        )
+    
     context.configure(
                 connection=connection,
                 target_metadata=target_metadata
