@@ -51,7 +51,8 @@ class Operations(object):
         alembic.op._remove_proxy()
 
     def _foreign_key_constraint(self, name, source, referent, 
-                                    local_cols, remote_cols):
+                                    local_cols, remote_cols,
+                                    onupdate=None, ondelete=None):
         m = schema.MetaData()
         t1 = schema.Table(source, m, 
                 *[schema.Column(n, NULLTYPE) for n in local_cols])
@@ -61,7 +62,9 @@ class Operations(object):
         f = schema.ForeignKeyConstraint(local_cols, 
                                             ["%s.%s" % (referent, n) 
                                             for n in remote_cols],
-                                            name=name
+                                            name=name,
+                                            onupdate=onupdate,
+                                            ondelete=ondelete
                                             )
         t1.append_constraint(f)
 
@@ -315,7 +318,7 @@ class Operations(object):
 
 
     def create_foreign_key(self, name, source, referent, local_cols, 
-                                    remote_cols):
+                           remote_cols, onupdate=None, ondelete=None):
         """Issue a "create foreign key" instruction using the 
         current migration context.
 
@@ -349,12 +352,19 @@ class Operations(object):
          source table.
         :param remote_cols: a list of string column names in the
          remote table.
+        :param onupdate: Optional string. If set, emit ON UPDATE <value> when
+         issuing DDL for this constraint. Typical values include CASCADE,
+         DELETE and RESTRICT.
+        :param ondelete: Optional string. If set, emit ON DELETE <value> when
+         issuing DDL for this constraint. Typical values include CASCADE,
+         DELETE and RESTRICT.
 
         """
 
         self.impl.add_constraint(
                     self._foreign_key_constraint(name, source, referent, 
-                            local_cols, remote_cols)
+                            local_cols, remote_cols,
+                            onupdate=onupdate, ondelete=ondelete)
                 )
 
     def create_unique_constraint(self, name, source, local_cols, **kw):
