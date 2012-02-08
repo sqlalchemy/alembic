@@ -30,7 +30,9 @@ class ScriptDirectory(object):
     @classmethod
     def from_config(cls, config):
         return ScriptDirectory(
-                    config.get_main_option('script_location'),
+                    util.coerce_resource_to_filename(
+                        config.get_main_option('script_location')
+                    ),
                     file_template = config.get_main_option(
                                         'file_template', 
                                         _default_file_template)

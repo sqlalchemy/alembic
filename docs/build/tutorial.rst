@@ -114,7 +114,7 @@ The file generated with the "generic" configuration looks like::
 
     [alembic]
     # path to migration scripts
-    script_location = %(here)s/alembic
+    script_location = alembic
 
     # template used to generate migration files
     # file_template = %%(rev)s_%%(slug)s
@@ -165,11 +165,22 @@ This file contains the following features:
 
 * ``[alembic]`` - this is the section read by Alembic to determine configuration.  Alembic
   itself does not directly read any other areas of the file.
-* ``script_location`` - this is the location of the Alembic environment, relative to 
-  the current directory, unless the path is an absolute file path.
+* ``script_location`` - this is the location of the Alembic environment.   It is normally
+  specified as a filesystem location, either relative or absolute.  If the location is 
+  a relative path, it's interpreted as relative to the current directory.
+
   This is the only key required by Alembic in all cases.   The generation 
   of the .ini file by the command ``alembic init alembic`` automatically placed the 
-  directory name ``alembic`` here.
+  directory name ``alembic`` here.   The special variable ``%(here)s`` can also be used,
+  as in ``%(here)s/alembic``.
+
+  For support of applications that package themselves into .egg files, the value can 
+  also be specified
+  as a `package resource <http://packages.python.org/distribute/pkg_resources.html>`_, in which
+  case ``resource_filename()`` is used to find the file (new in 0.2.2).  Any non-absolute
+  URI which contains colons is interpreted here as a resource name, rather than 
+  a straight filename.
+
 * ``file_template`` - this is the naming scheme used to generate new migration files.
   The value present is the default, so is commented out.   The two tokens available
   are ``%%(rev)s`` and ``%%(slug)s``, where ``%%(slug)s`` is a truncated string derived

@@ -111,6 +111,18 @@ def create_module_class_proxy(cls, globals_, locals_):
             else:
                 attr_names.add(methname)
 
+def coerce_resource_to_filename(fname):
+    """Interpret a filename as either a filesystem location or as a package resource.
+    
+    Names that are non absolute paths and contain a colon
+    are interpreted as resources and coerced to a file location.
+    
+    """
+    if not os.path.isabs(fname) and ":" in fname:
+        import pkg_resources
+        fname = pkg_resources.resource_filename(*fname.split(':'))
+    return fname
+
 def status(_statmsg, fn, *arg, **kw):
     msg(_statmsg + "...", False)
     try:

@@ -3,6 +3,12 @@
 - [bug] setup.py won't install argparse if on
   Python 2.7/3.2
 
+- [feature] script_location can be interpreted
+  by pkg_resources.resource_filename(), if
+  it is a non-absolute URI that contains 
+  colons.   This scheme is the same
+  one used by Pyramid.  [#29]
+
 0.2.1
 =====
 - [bug] Fixed the generation of CHECK constraint,

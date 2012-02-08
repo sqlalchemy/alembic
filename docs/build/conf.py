@@ -206,4 +206,6 @@ latex_documents = [
 
 #{'python': ('http://docs.python.org/3.2', None)}
 
-intersphinx_mapping = {'sqla':('http://www.sqlalchemy.org/docs/', None)}
+intersphinx_mapping = {
+    'sqla':('http://www.sqlalchemy.org/docs/', None), 
+}
