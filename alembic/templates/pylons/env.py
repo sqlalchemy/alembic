@@ -6,28 +6,31 @@ be loaded from there.
 """
 from alembic import context
 from paste.deploy import loadapp
-import logging
+from logging.config import fileConfig
+
 
 try:
     # if pylons app already in, don't create a new app
     from pylons import config as pylons_config
     pylons_config['__file__']
 except:
+    config = context.config
     # can use config['__file__'] here, i.e. the Pylons
     # ini file, instead of alembic.ini
     config_file = config.get_main_option('pylons_config_file')
-    config_file = config.config_file_name
-    logging.config.fileConfig(config_file)
+    fileConfig(config_file)
     wsgi_app = loadapp('config:%s' % config_file, relative_to='.')
 
+
 # customize this section for non-standard engine configurations.
-meta = __import__("%s.model.meta" % config['pylons.package']).model.meta
+meta = __import__("%s.model.meta" % wsgi_app.config['pylons.package']).model.meta
 
 # add your model's MetaData object here
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
 target_metadata = None
+
 
 def run_migrations_offline():
     """Run migrations in 'offline' mode.
@@ -36,23 +39,25 @@ def run_migrations_offline():
     and not an Engine, though an Engine is acceptable
     here as well.  By skipping the Engine creation
     we don't even need a DBAPI to be available.
-    
+
     Calls to context.execute() here emit the given string to the
     script output.
-    
+
     """
     context.configure(
                 url=meta.engine.url)
     with context.begin_transaction():
         context.run_migrations()
 
+
 def run_migrations_online():
     """Run migrations in 'online' mode.
 
     In this scenario we need to create an Engine
     and associate a connection with the context.
-    
+
     """
+
     connection = meta.engine.connect()
     context.configure(
                 connection=connection,
