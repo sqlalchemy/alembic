@@ -12,7 +12,14 @@
 - [feature] added missing support for 
   onupdate/ondelete flags for 
   ForeignKeyConstraint, courtesy Giacomo Bagnoli
- 
+
+- [bug] fixed a regression regarding an autogenerate
+  error message, as well as various glitches
+  in the Pylons sample template.  The Pylons sample
+  template requires that you tell it where to 
+  get the Engine from now.  courtesy 
+  Marcin Kuzminski [#30]
+
 0.2.1
 =====
 - [bug] Fixed the generation of CHECK constraint,
