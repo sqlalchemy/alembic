@@ -62,7 +62,7 @@ def run_migrations_online():
     # engine = meta.engine
     raise NotImplementedError("Please specify engine connectivity here")
     
-    if isintance(engine, Engine):
+    if isinstance(engine, Engine):
         connection = engine.connect()
     else:
         raise Exception(
