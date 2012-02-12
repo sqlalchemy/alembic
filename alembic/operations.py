@@ -522,7 +522,9 @@ class Operations(object):
             drop_index("accounts")
 
         """
-        self.impl.drop_index(self._index(name, 'foo', []))
+        # need a dummy column name here since SQLAlchemy
+        # 0.7.6 and further raises on Index with no columns
+        self.impl.drop_index(self._index(name, 'foo', ['x']))
 
     def drop_constraint(self, name, tablename):
         """Drop a constraint of the given name"""

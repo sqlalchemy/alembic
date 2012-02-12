@@ -20,6 +20,10 @@
   get the Engine from now.  courtesy 
   Marcin Kuzminski [#30]
 
+- [bug] drop_index() ensures a dummy column
+  is added when it calls "Index", as SQLAlchemy
+  0.7.6 will warn on index with no column names.
+
 0.2.1
 =====
 - [bug] Fixed the generation of CHECK constraint,
