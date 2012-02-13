@@ -1,6 +1,6 @@
 """Test against the builders in the op.* module."""
 
-from tests import op_fixture
+from tests import op_fixture, assert_raises_message
 from alembic import op
 from sqlalchemy import Integer, Column, ForeignKey, \
             UniqueConstraint, Table, MetaData, String,\
@@ -293,4 +293,16 @@ def test_inline_literal():
     context.assert_(
         "UPDATE account SET name='account 2' WHERE account.name = 'account 1'",
         "UPDATE account SET id=2 WHERE account.id = 1"
+    )
+
+def test_cant_op():
+    if hasattr(op, '_proxy'):
+        del op._proxy
+    assert_raises_message(
+        NameError,
+        "Can't invoke function 'inline_literal', as the "
+        "proxy object has not yet been established "
+        "for the Alembic 'Operations' class.  "
+        "Try placing this code inside a callable.",
+        op.inline_literal, "asdf"
     )

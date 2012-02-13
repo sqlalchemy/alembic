@@ -1,5 +1,8 @@
 0.2.2
 =====
+- [feature] Informative error message when op.XYZ
+  directives are invoked at module import time.
+  
 - [bug] setup.py won't install argparse if on
   Python 2.7/3.2
 

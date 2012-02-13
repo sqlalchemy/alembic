@@ -90,10 +90,25 @@ def create_module_class_proxy(cls, globals_, locals_):
                                 defaulted_vals,
                                 formatvalue=lambda x: '=' + x)
 
+        def _name_error(name):
+            raise NameError(
+                    "Can't invoke function '%s', as the proxy object has "\
+                    "not yet been "
+                    "established for the Alembic '%s' class.  "
+                    "Try placing this code inside a callable." % (
+                        name, cls.__name__
+                    ))
+        globals_['_name_error'] = _name_error
+
         func_text = textwrap.dedent("""\
         def %(name)s(%(args)s):
             %(doc)r
+            try:
+                p = _proxy
+            except NameError:
+                _name_error('%(name)s')
             return _proxy.%(name)s(%(apply_kw)s)
+            e
         """ % {
             'name':name,
             'args':args[1:-1],
