@@ -5,6 +5,7 @@ from sqlalchemy import schema
 from alembic.ddl import base
 from alembic import util
 from sqlalchemy import types as sqltypes
+from sqlalchemy import util as sqla_util
 
 class ImplMeta(type):
     def __init__(cls, classname, bases, dict_):
@@ -55,21 +56,26 @@ class DefaultImpl(object):
     def bind(self):
         return self.connection
 
-    def _exec(self, construct, *args, **kw):
+    def _exec(self, construct, execution_options=None, 
+                            multiparams=(), 
+                            params=sqla_util.immutabledict()):
         if isinstance(construct, basestring):
             construct = text(construct)
         if self.as_sql:
-            if args or kw:
+            if multiparams or params:
                 # TODO: coverage
                 raise Exception("Execution arguments not allowed with as_sql")
             self.static_output(unicode(
                     construct.compile(dialect=self.dialect)
                     ).replace("\t", "    ").strip() + ";")
         else:
-            self.connection.execute(construct, *args, **kw)
+            conn = self.connection
+            if execution_options:
+                conn = conn.execution_options(**execution_options)
+            conn.execute(construct, *multiparams, **params)
 
-    def execute(self, sql):
-        self._exec(sql)
+    def execute(self, sql, execution_options=None):
+        self._exec(sql, execution_options)
 
     def alter_column(self, table_name, column_name, 
                         nullable=None,

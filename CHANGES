@@ -2,7 +2,24 @@
 =====
 - [feature] Informative error message when op.XYZ
   directives are invoked at module import time.
-  
+
+- [bug] implement 'tablename' parameter on 
+  drop_index() as this is needed by some 
+  backends.
+
+- [feature] Added execution_options parameter
+  to op.execute(), will call execution_options()
+  on the Connection before executing.
+
+  The immediate use case here is to allow
+  access to the new no_parameters option
+  in SQLAlchemy 0.7.6, which allows
+  some DBAPIs (psycopg2, MySQLdb) to allow
+  percent signs straight through without
+  escaping, thus providing cross-compatible
+  operation with DBAPI execution and 
+  static script generation.
+
 - [bug] setup.py won't install argparse if on
   Python 2.7/3.2
 

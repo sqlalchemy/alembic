@@ -383,7 +383,7 @@ class EnvironmentContext(object):
         with Operations.context(self._migration_context):
             self.get_context().run_migrations(**kw)
 
-    def execute(self, sql):
+    def execute(self, sql, execution_options=None):
         """Execute the given SQL using the current change context.
 
         The behavior of :meth:`.execute` is the same
@@ -395,7 +395,8 @@ class EnvironmentContext(object):
         first been made available via :meth:`.configure`.
 
         """
-        self.get_context().execute(sql)
+        self.get_context().execute(sql, 
+                execution_options=execution_options)
 
     def static_output(self, text):
         """Emit text directly to the "offline" SQL stream.

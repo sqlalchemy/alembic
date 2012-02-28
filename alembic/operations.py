@@ -98,7 +98,7 @@ class Operations(object):
         return schema.Column(name, type_, **kw)
 
     def _index(self, name, tablename, columns, **kw):
-        t = schema.Table(tablename, schema.MetaData(),
+        t = schema.Table(tablename or 'no_table', schema.MetaData(),
             *[schema.Column(n, NULLTYPE) for n in columns]
         )
         return schema.Index(name, *list(t.c), **kw)
@@ -512,7 +512,7 @@ class Operations(object):
             self._index(name, tablename, *columns, **kw)
         )
 
-    def drop_index(self, name):
+    def drop_index(self, name, tablename=None):
         """Issue a "drop index" instruction using the current 
         migration context.
 
@@ -520,11 +520,14 @@ class Operations(object):
         e.g.::
 
             drop_index("accounts")
+            
+        :param tablename: name of the owning table.  Some
+         backends such as Microsoft SQL Server require this.
 
         """
         # need a dummy column name here since SQLAlchemy
         # 0.7.6 and further raises on Index with no columns
-        self.impl.drop_index(self._index(name, 'foo', ['x']))
+        self.impl.drop_index(self._index(name, tablename, ['x']))
 
     def drop_constraint(self, name, tablename):
         """Drop a constraint of the given name"""
@@ -603,7 +606,7 @@ class Operations(object):
         """
         return impl._literal_bindparam(None, value, type_=type_)
 
-    def execute(self, sql):
+    def execute(self, sql, execution_options=None):
         """Execute the given SQL using the current migration context.
 
         In a SQL script context, the statement is emitted directly to the 
@@ -661,9 +664,12 @@ class Operations(object):
         * Pretty much anything that's "executable" as described
           in :ref:`sqlexpression_toplevel`.
 
-
+        :param execution_options: Optional dictionary of 
+         execution options, will be passed to 
+         :meth:`sqlalchemy.engine.base.Connection.execution_options`.
         """
-        self.migration_context.impl.execute(sql)
+        self.migration_context.impl.execute(sql, 
+                    execution_options=execution_options)
 
     def get_bind(self):
         """Return the current 'bind'.

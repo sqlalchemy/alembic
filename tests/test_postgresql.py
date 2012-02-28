@@ -61,7 +61,7 @@ def upgrade():
 def downgrade():
     op.drop_table("sometable")
     ENUM(name="pgenum").drop(op.get_bind(), checkfirst=False)
-    
+
 """ % self.rid)
 
     def test_offline_inline_enum_create(self):
@@ -93,7 +93,51 @@ def downgrade():
         assert "DROP TABLE sometable" in buf.getvalue()
         assert "DROP TYPE pgenum" in buf.getvalue()
 
+from alembic.migration import MigrationContext
+from alembic.operations import Operations
+from sqlalchemy.sql import table, column
 
+class PostgresqlInlineLiteralTest(TestCase):
+    @classmethod
+    def setup_class(cls):
+        cls.bind = db_for_dialect("postgresql")
+        cls.bind.execute("""
+            create table tab (
+                col varchar(50)
+            )
+        """)
+        cls.bind.execute("""
+            insert into tab (col) values 
+                ('old data 1'),
+                ('old data 2.1'),
+                ('old data 3')
+        """)
+
+    @classmethod
+    def teardown_class(cls):
+        cls.bind.execute("drop table tab")
+
+    def setUp(self):
+        self.conn = self.bind.connect()
+        ctx = MigrationContext.configure(self.conn)
+        self.op = Operations(ctx)
+
+    def tearDown(self):
+        self.conn.close()
+
+    def test_inline_percent(self):
+        # TODO: here's the issue, you need to escape this.
+        tab = table('tab', column('col'))
+        self.op.execute(
+            tab.update().where(
+                tab.c.col.like(self.op.inline_literal('%.%'))
+            ).values(col=self.op.inline_literal('new data')),
+            execution_options={'no_parameters':True}
+        )
+        eq_(
+            self.conn.execute("select count(*) from tab where col='new data'").scalar(),
+            1,
+        )
 
 class PostgresqlDefaultCompareTest(TestCase):
     @classmethod
