@@ -3,6 +3,12 @@
 - [feature] Informative error message when op.XYZ
   directives are invoked at module import time.
 
+- [bug] Fixed inappropriate direct call to 
+  util.err() and therefore sys.exit()
+  when Config failed to locate the 
+  config file within library usage.
+  [#35]
+
 - [bug] implement 'tablename' parameter on 
   drop_index() as this is needed by some 
   backends.

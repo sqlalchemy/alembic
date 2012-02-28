@@ -128,7 +128,7 @@ class Config(object):
 
         """
         if not self.file_config.has_section(section):
-            util.err("No config file %r found, or file has no "
+            raise util.CommandError("No config file %r found, or file has no "
                                 "'[%s]' section" % 
                                 (self.config_file_name, section))
         if self.file_config.has_option(section, name):
