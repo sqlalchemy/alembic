@@ -3,6 +3,7 @@ automatically."""
 
 from alembic import util
 from sqlalchemy.engine.reflection import Inspector
+from sqlalchemy.util._collections import OrderedSet
 from sqlalchemy import schema, types as sqltypes
 import re
 
@@ -54,9 +55,10 @@ def _produce_net_changes(connection, metadata, diffs, autogen_context):
     # TODO: not hardcode alembic_version here ?
     conn_table_names = set(inspector.get_table_names()).\
                             difference(['alembic_version'])
-    metadata_table_names = set(metadata.tables)
+    metadata_table_names = OrderedSet([table.name for table in metadata.sorted_tables])
 
-    _compare_tables(conn_table_names, metadata_table_names, inspector, metadata, diffs, autogen_context)
+    _compare_tables(conn_table_names, metadata_table_names,
+                    inspector, metadata, diffs, autogen_context)
 
 def _compare_tables(conn_table_names, metadata_table_names, 
                     inspector, metadata, diffs, autogen_context):
@@ -235,7 +237,7 @@ def _produce_upgrade_commands(diffs, autogen_context):
 
 def _produce_downgrade_commands(diffs, autogen_context):
     buf = []
-    for diff in diffs:
+    for diff in reversed(diffs):
         buf.append(_invoke_command("downgrade", diff, autogen_context))
     if not buf:
         buf = ["pass"]
