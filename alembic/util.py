@@ -210,3 +210,34 @@ class memoized_property(object):
         obj.__dict__[self.__name__] = result = self.fget(obj)
         return result
 
+
+class immutabledict(dict):
+
+    def _immutable(self, *arg, **kw):
+        raise TypeError("%s object is immutable" % self.__class__.__name__)
+
+    __delitem__ = __setitem__ = __setattr__ = \
+    clear = pop = popitem = setdefault = \
+        update = _immutable
+
+    def __new__(cls, *args):
+        new = dict.__new__(cls)
+        dict.__init__(new, *args)
+        return new
+
+    def __init__(self, *args):
+        pass
+
+    def __reduce__(self):
+        return immutabledict, (dict(self), )
+
+    def union(self, d):
+        if not self:
+            return immutabledict(d)
+        else:
+            d2 = immutabledict(self)
+            dict.update(d2, d)
+            return d2
+
+    def __repr__(self):
+        return "immutabledict(%s)" % dict.__repr__(self)

@@ -5,7 +5,6 @@ from sqlalchemy import schema
 from alembic.ddl import base
 from alembic import util
 from sqlalchemy import types as sqltypes
-from sqlalchemy import util as sqla_util
 
 class ImplMeta(type):
     def __init__(cls, classname, bases, dict_):
@@ -58,7 +57,7 @@ class DefaultImpl(object):
 
     def _exec(self, construct, execution_options=None, 
                             multiparams=(), 
-                            params=sqla_util.immutabledict()):
+                            params=util.immutabledict()):
         if isinstance(construct, basestring):
             construct = text(construct)
         if self.as_sql:
