@@ -3,7 +3,7 @@ automatically."""
 
 from alembic import util
 from sqlalchemy.engine.reflection import Inspector
-from sqlalchemy.util._collections import OrderedSet
+from sqlalchemy.util import OrderedSet
 from sqlalchemy import schema, types as sqltypes
 import re
 

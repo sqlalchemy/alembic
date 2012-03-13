@@ -9,6 +9,10 @@
   config file within library usage.
   [#35]
 
+- [bug] Autogenerate will emit CREATE TABLE
+  and DROP TABLE directives according to
+  foreign key dependency order.
+
 - [bug] implement 'tablename' parameter on 
   drop_index() as this is needed by some 
   backends.
