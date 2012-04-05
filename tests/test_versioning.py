@@ -16,7 +16,7 @@ class VersioningTest(unittest.TestCase):
         c = util.rev_id()
 
         script = ScriptDirectory.from_config(self.cfg)
-        script.generate_rev(a, None, refresh=True)
+        script.generate_revision(a, None, refresh=True)
         write_script(script, a, """
     revision = '%s'
     down_revision = None
@@ -31,7 +31,7 @@ class VersioningTest(unittest.TestCase):
 
     """ % a)
 
-        script.generate_rev(b, None, refresh=True)
+        script.generate_revision(b, None, refresh=True)
         write_script(script, b, """
     revision = '%s'
     down_revision = '%s'
@@ -46,7 +46,7 @@ class VersioningTest(unittest.TestCase):
 
     """ % (b, a))
 
-        script.generate_rev(c, None, refresh=True)
+        script.generate_revision(c, None, refresh=True)
         write_script(script, c, """
     revision = '%s'
     down_revision = '%s'
@@ -117,7 +117,7 @@ class VersionNameTemplateTest(unittest.TestCase):
         self.cfg.set_main_option("file_template", "myfile_%%(slug)s")
         script = ScriptDirectory.from_config(self.cfg)
         a = util.rev_id()
-        script.generate_rev(a, "some message", refresh=True)
+        script.generate_revision(a, "some message", refresh=True)
         write_script(script, a, """
     revision = '%s'
     down_revision = None
@@ -141,7 +141,7 @@ class VersionNameTemplateTest(unittest.TestCase):
         self.cfg.set_main_option("file_template", "%%(rev)s")
         script = ScriptDirectory.from_config(self.cfg)
         a = util.rev_id()
-        script.generate_rev(a, None, refresh=True)
+        script.generate_revision(a, None, refresh=True)
         write_script(script, a, """
     down_revision = None
 
@@ -164,7 +164,7 @@ class VersionNameTemplateTest(unittest.TestCase):
         self.cfg.set_main_option("file_template", "%%(slug)s_%%(rev)s")
         script = ScriptDirectory.from_config(self.cfg)
         a = util.rev_id()
-        script.generate_rev(a, "foobar", refresh=True)
+        script.generate_revision(a, "foobar", refresh=True)
         assert_raises_message(
             util.CommandError,
             "Could not determine revision id from filename foobar_%s.py. "

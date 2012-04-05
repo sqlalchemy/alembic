@@ -13,6 +13,50 @@ class EnvironmentContext(object):
     :class:`.EnvironmentContext` is available via the 
     ``alembic.context`` datamember.
     
+    :class:`.EnvironmentContext` is also a Python context
+    manager, that is, is intended to be used using the
+    ``with:`` statement.  A typical use of :class:`.EnvironmentContext`::
+
+        from alembic.config import Config
+        from alembic.script import ScriptDirectory
+        
+        config = Config()
+        config.set_main_option("script_location", "myapp:migrations")
+        script = ScriptDirectory.from_config(config)
+        
+        def my_function(rev, context):
+            '''do something with revision "rev", which
+            will be the current database revision, 
+            and "context", which is the MigrationContext
+            that the env.py will create'''
+            
+        with EnvironmentContext(
+            config,
+            script,
+            fn = my_function,
+            as_sql = False,
+            starting_rev = 'base',
+            destination_rev = 'head',
+            tag = "sometag"
+        ):
+            script.run_env()
+    
+    The above script will invoke the ``env.py`` script
+    within the migration environment.  If and when ``env.py``
+    calls :meth:`.MigrationContext.run_migrations`, the
+    ``my_function()`` function above will be called 
+    by the :class:`.MigrationContext`, given the context
+    itself as well as the current revision in the database.
+    
+    .. note::
+
+        For most API usages other than full blown
+        invocation of migration scripts, the :class:`.MigrationContext`
+        and :class:`.ScriptDirectory` objects can be created and
+        used directly.  The :class:`.EnvironmentContext` object 
+        is *only* needed when you need to actually invoke the
+        ``env.py`` module present in the migration environment.
+    
     """
 
     _migration_context = None
@@ -31,6 +75,15 @@ class EnvironmentContext(object):
     """
 
     def __init__(self, config, script, **kw):
+        """Construct a new :class:`.EnvironmentContext`.
+        
+        :param config: a :class:`.Config` instance.
+        :param script: a :class:`.ScriptDirectory` instance.
+        :param \**kw: keyword options that will be ultimately
+         passed along to the :class:`.MigrationContext` when
+         :meth:`.EnvironmentContext.configure` is called.
+         
+        """
         self.config = config
         self.script = script
         self.context_opts = kw
@@ -495,4 +548,3 @@ class EnvironmentContext(object):
     def get_impl(self):
         return self.get_context().impl
 
-configure = EnvironmentContext

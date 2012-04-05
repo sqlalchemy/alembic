@@ -15,31 +15,48 @@ _version = Table('alembic_version', _meta,
             )
 
 class MigrationContext(object):
-    """Represent the state made available to a migration script,
-    or otherwise a series of migration operations.
+    """Represent the database state made available to a migration 
+    script.
 
-    Mediates the relationship between an ``env.py`` environment script, 
-    a :class:`.ScriptDirectory` instance, and a :class:`.DefaultImpl` instance.
-
-    The :class:`.MigrationContext` that's established for a 
-    duration of a migration command is available via the 
+    :class:`.MigrationContext` is the front end to an actual
+    database connection, or alternatively a string output
+    stream given a particular database dialect,
+    from an Alembic perspective.
+    
+    When inside the ``env.py`` script, the :class:`.MigrationContext` 
+    is available via the 
     :meth:`.EnvironmentContext.get_context` method,
     which is available at ``alembic.context``::
     
+        # from within env.py script
         from alembic import context
         migration_context = context.get_context()
     
-    A :class:`.MigrationContext` can be created programmatically
-    for usage outside of the usual Alembic migrations flow,
-    using the :meth:`.MigrationContext.configure` method::
+    For usage outside of an ``env.py`` script, such as for
+    utility routines that want to check the current version
+    in the database, the :meth:`.MigrationContext.configure` 
+    method to create new :class:`.MigrationContext` objects.
+    For example, to get at the current revision in the 
+    database using :meth:`.MigrationContext.get_current_revision`::
     
-        conn = myengine.connect()
-        ctx = MigrationContext.configure(conn)
+        # in any application, outside of an env.py script
+        from alembic.migration import MigrationContext
+        from sqlalchemy import create_engine
+        
+        engine = create_engine("postgresql://mydatabase")
+        conn = engine.connect()
+        
+        context = MigrationContext.configure(conn)
+        current_rev = context.get_current_revision()
     
-    The above context can then be used to produce
+    The above context can also be used to produce
     Alembic migration operations with an :class:`.Operations`
-    instance.
-    
+    instance::
+
+        # in any application, outside of the normal Alembic environment
+        from alembic.operations import Operations
+        op = Operations(context)
+        op.alter_column("mytable", "somecolumn", nullable=True)
 
     """
     def __init__(self, dialect, connection, opts):
@@ -119,7 +136,15 @@ class MigrationContext(object):
         return MigrationContext(dialect, connection, opts)
 
 
-    def _current_rev(self):
+    def get_current_revision(self):
+        """Return the current revision, usually that which is present
+        in the ``alembic_version`` table in the database.
+        
+        If this :class:`.MigrationContext` was configured in "offline"
+        mode, that is with ``as_sql=True``, the ``starting_rev`` 
+        parameter is returned instead, if any.
+        
+        """
         if self.as_sql:
             return self._start_from_rev
         else:
@@ -129,6 +154,9 @@ class MigrationContext(object):
                     "when using a database connection")
             _version.create(self.connection, checkfirst=True)
         return self.connection.scalar(_version.select())
+
+    _current_rev = get_current_revision
+    """The 0.2 method name, for backwards compat."""
 
     def _update_current_rev(self, old, new):
         if old == new:
@@ -145,11 +173,30 @@ class MigrationContext(object):
                     )
 
     def run_migrations(self, **kw):
-
+        """Run the migration scripts established for this :class:`.MigrationContext`, 
+        if any.
+        
+        The commands in :mod:`alembic.command` will set up a function
+        that is ultimately passed to the :class:`.MigrationContext`
+        as the ``fn`` argument.  This function represents the "work" 
+        that will be done when :meth:`.MigrationContext.run_migrations`
+        is called, typically from within the ``env.py`` script of the
+        migration environment.  The "work function" then provides an iterable
+        of version callables and other version information which 
+        in the case of the ``upgrade`` or ``downgrade`` commands are the
+        list of version scripts to invoke.  Other commands yield nothing,
+        in the case that a command wants to run some other operation
+        against the database such as the ``current`` or ``stamp`` commands.
+        
+        :param \**kw: keyword arguments here will be passed to each 
+         migration callable, that is the ``upgrade()`` or ``downgrade()``
+         method within revision scripts.
+         
+        """
         current_rev = rev = False
         self.impl.start_migrations()
         for change, prev_rev, rev in self._migrations_fn(
-                                        self._current_rev(),
+                                        self.get_current_revision(),
                                         self):
             if current_rev is False:
                 current_rev = prev_rev
@@ -174,6 +221,14 @@ class MigrationContext(object):
                 _version.drop(self.connection)
 
     def execute(self, sql):
+        """Execute a SQL construct or string statement.
+        
+        The underlying execution mechanics are used, that is
+        if this is "offline mode" the SQL is written to the 
+        output buffer, otherwise the SQL is emitted on
+        the current SQLAlchemy connection.
+
+        """
         self.impl._exec(sql)
 
     def _stdout_connection(self, connection):
@@ -203,7 +258,7 @@ class MigrationContext(object):
         """
         return self.connection
 
-    def compare_type(self, inspector_column, metadata_column):
+    def _compare_type(self, inspector_column, metadata_column):
         if self._user_compare_type is False:
             return False
 
@@ -222,7 +277,7 @@ class MigrationContext(object):
                                     inspector_column, 
                                     metadata_column)
 
-    def compare_server_default(self, inspector_column, 
+    def _compare_server_default(self, inspector_column, 
                             metadata_column, 
                             rendered_metadata_default):
 

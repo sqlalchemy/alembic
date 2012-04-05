@@ -1,3 +1,24 @@
+0.3.0
+=====
+- [general] The focus of 0.3 is to clean up 
+  and more fully document the public API of Alembic,
+  including better accessors on the MigrationContext
+  and ScriptDirectory objects.  Methods that are
+  not considered to be public on these objects have
+  been underscored, and methods which should be public
+  have been cleaned up and documented, including:
+
+    MigrationContext.get_current_revision()
+    ScriptDirectory.iterate_revisions()
+    ScriptDirectory.get_current_head()
+    ScriptDirectory.get_heads()
+    ScriptDirectory.get_base()
+    ScriptDirectory.generate_revision()
+
+- [feature] Added a bit of autogenerate to the 
+  public API in the form of the function
+  alembic.autogenerate.compare_metadata.
+
 0.2.2
 =====
 - [feature] Informative error message when op.XYZ
@@ -196,7 +217,7 @@
   into a new schema.  For dev environments, the 
   dev installer should be building the whole DB from 
   scratch.  Or just use Postgresql, which is a much
-  better database for non-trivial schemas.  
+  better database for non-trivial schemas.
   Requests for full ALTER support on SQLite should be 
   reported to SQLite's bug tracker at 
   http://www.sqlite.org/src/wiki?name=Bug+Reports,
@@ -258,7 +279,7 @@
   by key, etc. for full support here.
 
 - Support for tables in remote schemas, 
-  i.e. "schemaname.tablename", is very poor.   
+  i.e. "schemaname.tablename", is very poor.
   Missing "schema" behaviors should be 
   reported as tickets, though in the author's
   experience, migrations typically proceed only

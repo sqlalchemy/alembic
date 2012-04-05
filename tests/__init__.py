@@ -121,6 +121,10 @@ def ne_(a, b, msg=None):
     """Assert a != b, with repr messaging on failure."""
     assert a != b, msg or "%r == %r" % (a, b)
 
+def is_(a, b, msg=None):
+    """Assert a is b, with repr messaging on failure."""
+    assert a is b, msg or "%r is not %r" % (a, b)
+
 def assert_raises_message(except_cls, msg, callable_, *args, **kwargs):
     try:
         callable_(*args, **kwargs)
@@ -294,7 +298,7 @@ def write_script(scriptdir, rev_id, content):
     pyc_path = util.pyc_file_from_path(path)
     if os.access(pyc_path, os.F_OK):
         os.unlink(pyc_path)
-    script = Script.from_path(path)
+    script = Script._from_path(path)
     old = scriptdir._revision_map[script.revision]
     if old.down_revision != script.down_revision:
         raise Exception("Can't change down_revision "
@@ -309,7 +313,7 @@ def three_rev_fixture(cfg):
     c = util.rev_id()
 
     script = ScriptDirectory.from_config(cfg)
-    script.generate_rev(a, "revision a", refresh=True)
+    script.generate_revision(a, "revision a", refresh=True)
     write_script(script, a, """
 revision = '%s'
 down_revision = None
@@ -324,7 +328,7 @@ def downgrade():
 
 """ % a)
 
-    script.generate_rev(b, "revision b", refresh=True)
+    script.generate_revision(b, "revision b", refresh=True)
     write_script(script, b, """
 revision = '%s'
 down_revision = '%s'
@@ -339,7 +343,7 @@ def downgrade():
 
 """ % (b, a))
 
-    script.generate_rev(c, "revision c", refresh=True)
+    script.generate_revision(c, "revision c", refresh=True)
     write_script(script, c, """
 revision = '%s'
 down_revision = '%s'

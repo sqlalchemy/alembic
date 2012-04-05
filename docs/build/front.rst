@@ -50,6 +50,36 @@ is installed, in addition to other dependencies.  Alembic will work with
 SQLAlchemy as of version **0.6**, though with a limited featureset.  
 The latest version of SQLAlchemy within the **0.7** series is strongly recommended.
 
+Upgrading from Alembic 0.2 to 0.3
+=================================
+
+Alembic 0.3 is mostly identical to version 0.2 except for some API
+changes, allowing better programmatic access and less ambiguity 
+between public and private methods.   In particular:
+
+* :class:`.ScriptDirectory` now features these methods - the old
+  versions have been removed unless noted:
+
+  * :meth:`.ScriptDirectory.iterate_revisions()`
+  * :meth:`.ScriptDirectory.get_current_head()` (old name ``_current_head`` is available)
+  * :meth:`.ScriptDirectory.get_heads()`
+  * :meth:`.ScriptDirectory.get_base()`
+  * :meth:`.ScriptDirectory.generate_revision()`
+  * :meth:`.ScriptDirectory.get_revision()` (old name ``_get_rev`` is available)
+  * :meth:`.ScriptDirectory.as_revision_number()` (old name ``_as_rev_number`` is available)
+
+* :meth:`.MigrationContext.get_current_revision()` (old name ``_current_rev`` remains available)
+
+* Methods which have been made private include ``ScriptDirectory._copy_file()``,
+  ``ScriptDirectory._generate_template()``, ``ScriptDirectory._upgrade_revs()``,
+  ``ScriptDirectory._downgrade_revs()``.   ``autogenerate._produce_migration_diffs``.
+  It's pretty unlikely that end-user applications
+  were using these directly.
+
+See the newly cleaned up :ref:`api` documentation for what are hopefully clearly
+laid out use cases for API usage, particularly being able to get at the revision
+information in a database as well as a script directory.
+
 Upgrading from Alembic 0.1 to 0.2
 =================================
 

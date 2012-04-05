@@ -18,7 +18,7 @@ class PGOfflineEnumTest(TestCase):
         self.rid = rid = util.rev_id()
 
         self.script = script = ScriptDirectory.from_config(cfg)
-        script.generate_rev(rid, None, refresh=True)
+        script.generate_revision(rid, None, refresh=True)
 
     def tearDown(self):
         clear_staging_env()

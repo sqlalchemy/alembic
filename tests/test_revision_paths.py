@@ -6,11 +6,11 @@ def setup():
     global env
     env = staging_env()
     global a, b, c, d, e
-    a = env.generate_rev(util.rev_id(), None, refresh=True)
-    b = env.generate_rev(util.rev_id(), None, refresh=True)
-    c = env.generate_rev(util.rev_id(), None, refresh=True)
-    d = env.generate_rev(util.rev_id(), None, refresh=True)
-    e = env.generate_rev(util.rev_id(), None, refresh=True)
+    a = env.generate_revision(util.rev_id(), None, refresh=True)
+    b = env.generate_revision(util.rev_id(), None, refresh=True)
+    c = env.generate_revision(util.rev_id(), None, refresh=True)
+    d = env.generate_revision(util.rev_id(), None, refresh=True)
+    e = env.generate_revision(util.rev_id(), None, refresh=True)
 
 def teardown():
     clear_staging_env()
@@ -19,7 +19,7 @@ def teardown():
 def test_upgrade_path():
 
     eq_(
-        env.upgrade_from(e.revision, c.revision, None),
+        env._upgrade_revs(e.revision, c.revision),
         [
             (d.module.upgrade, c.revision, d.revision),
             (e.module.upgrade, d.revision, e.revision),
@@ -27,7 +27,7 @@ def test_upgrade_path():
     )
 
     eq_(
-        env.upgrade_from(c.revision, None, None),
+        env._upgrade_revs(c.revision, None),
         [
             (a.module.upgrade, None, a.revision),
             (b.module.upgrade, a.revision, b.revision),
@@ -38,7 +38,7 @@ def test_upgrade_path():
 def test_downgrade_path():
 
     eq_(
-        env.downgrade_to(c.revision, e.revision, None),
+        env._downgrade_revs(c.revision, e.revision),
         [
             (e.module.downgrade, e.revision, e.down_revision),
             (d.module.downgrade, d.revision, d.down_revision),
@@ -46,7 +46,7 @@ def test_downgrade_path():
     )
 
     eq_(
-        env.downgrade_to(None, c.revision, None),
+        env._downgrade_revs(None, c.revision),
         [
             (c.module.downgrade, c.revision, c.down_revision),
             (b.module.downgrade, b.revision, b.down_revision),
