@@ -1,3 +1,21 @@
+0.3.1
+=====
+- [bug] bulk_insert() fixes:
+
+    1. bulk_insert() operation was
+       not working most likely since the 0.2 series
+       when used with an engine. #41
+    2. Repaired bulk_insert() to complete when
+       used against a lower-case-t table and executing
+       with only one set of parameters, working
+       around SQLAlchemy bug #2461 in this regard.
+    3. bulk_insert() uses "inline=True" so that phrases
+       like RETURNING and such don't get invoked for
+       single-row bulk inserts.
+    4. bulk_insert() will check that you're passing
+       a list of dictionaries in, raises TypeError
+       if not detected.
+
 0.3.0
 =====
 - [general] The focus of 0.3 is to clean up 

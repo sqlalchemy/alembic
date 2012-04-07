@@ -159,14 +159,21 @@ class DefaultImpl(object):
         self._exec(schema.DropIndex(index))
 
     def bulk_insert(self, table, rows):
+        if not isinstance(rows, list):
+            raise TypeError("List expected")
+        elif rows and not isinstance(rows[0], dict):
+            raise TypeError("List of dictionaries expected")
         if self.as_sql:
             for row in rows:
-                self._exec(table.insert().values(**dict(
+                self._exec(table.insert(inline=True).values(**dict(
                     (k, _literal_bindparam(k, v, type_=table.c[k].type))
                     for k, v in row.items()
                 )))
         else:
-            self._exec(table.insert(), *rows)
+            # work around http://www.sqlalchemy.org/trac/ticket/2461
+            if not hasattr(table, '_autoincrement_column'):
+                table._autoincrement_column = None
+            self._exec(table.insert(inline=True), multiparams=rows)
 
     def compare_type(self, inspector_column, metadata_column):
 

@@ -78,6 +78,8 @@ def _get_dialect(name):
         except KeyError:
             dialect_mod = getattr(__import__('sqlalchemy.dialects.%s' % name).dialects, name)
             _dialects[name] = d = dialect_mod.dialect()
+            if name == 'postgresql':
+                d.implicit_returning = True
             return d
 
 def assert_compiled(element, assert_string, dialect=None):
