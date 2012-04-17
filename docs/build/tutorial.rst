@@ -522,6 +522,17 @@ Autogenerate can *not* detect:
   tables, and should be hand-edited into a name change instead.
 * Changes of column name.  Like table name changes, these are detected as
   a column add/drop pair, which is not at all the same as a name change.
+* Special SQLAlchemy types such as :class:`~sqlalchemy.types.Enum` when generated 
+  on a backend which doesn't support ENUM directly - this because the 
+  representation of such a type
+  in the non-supporting database, i.e. a CHAR+ CHECK constraint, could be
+  any kind of CHAR+CHECK.  For SQLAlchemy to determine that this is actually
+  an ENUM would only be a guess, something that's generally a bad idea.
+  To implement your own "guessing" function here, use the 
+  :meth:`sqlalchemy.events.DDLEvents.column_reflect` event
+  to alter the SQLAlchemy type passed for certain columns and possibly
+  :meth:`sqlalchemy.events.DDLEvents.after_parent_attach` to intercept
+  unwanted CHECK constraints.
 
 Autogenerate can't currently, but will *eventually* detect:
 
