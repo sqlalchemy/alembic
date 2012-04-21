@@ -553,8 +553,15 @@ def _render_check_constraint(constraint, autogen_context):
             "prefix":_sqlalchemy_autogenerate_prefix(autogen_context)
         }
 
+def _render_unique_constraint(constraint, autogen_context):
+    
+    return "%(prefix)sUniqueConstraint(%(cols)s)" % {
+        'cols': ",".join(["'%s'" % c.name for c in constraint.columns]),
+            "prefix":_sqlalchemy_autogenerate_prefix(autogen_context)
+        }
 _constraint_renderers = {
     schema.PrimaryKeyConstraint:_render_primary_key,
     schema.ForeignKeyConstraint:_render_foreign_key,
+    schema.UniqueConstraint:_render_unique_constraint,
     schema.CheckConstraint:_render_check_constraint
 }
