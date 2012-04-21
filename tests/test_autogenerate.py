@@ -1,5 +1,5 @@
 from sqlalchemy import MetaData, Column, Table, Integer, String, Text, \
-    Numeric, CHAR, ForeignKey, DATETIME, TypeDecorator, CheckConstraint
+    Numeric, CHAR, ForeignKey, DATETIME, TypeDecorator, CheckConstraint, Unicode
 from sqlalchemy.types import NULLTYPE
 from sqlalchemy.engine.reflection import Inspector
 from alembic import autogenerate
@@ -368,6 +368,7 @@ class AutogenRenderTest(TestCase):
         m = MetaData()
         t = Table('test', m,
             Column('id', Integer, primary_key=True),
+            Column('name', Unicode(255), unique=True),
             Column("address_id", Integer, ForeignKey("address.id")),
             Column("timestamp", DATETIME, server_default="NOW()"),
             Column("amount", Numeric(5, 2)),
@@ -376,13 +377,15 @@ class AutogenRenderTest(TestCase):
             autogenerate._add_table(t, self.autogen_context),
             "op.create_table('test',"
             "sa.Column('id', sa.Integer(), nullable=False),"
+            "sa.Column('name', sa.Unicode(length=255), nullable=True),"
             "sa.Column('address_id', sa.Integer(), nullable=True),"
             "sa.Column('timestamp', sa.DATETIME(), "
                 "server_default='NOW()', "
                 "nullable=True),"
             "sa.Column('amount', sa.Numeric(precision=5, scale=2), nullable=True),"
             "sa.ForeignKeyConstraint(['address_id'], ['address.id'], ),"
-            "sa.PrimaryKeyConstraint('id')"
+            "sa.PrimaryKeyConstraint('id'),"
+            "sa.UniqueConstraint('name')"
             ")"
         )
 
