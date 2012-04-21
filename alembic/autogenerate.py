@@ -554,8 +554,11 @@ def _render_check_constraint(constraint, autogen_context):
         }
 
 def _render_unique_constraint(constraint, autogen_context):
-    
-    return "%(prefix)sUniqueConstraint(%(cols)s)" % {
+    opts = []
+    if constraint.name:
+        opts.append(("name", "'%s'" % constraint.name))
+    return "%(prefix)sUniqueConstraint(%(cols)s%(opts)s)" % {
+        'opts':", " + (", ".join("%s=%s" % (k, v) for k, v in opts)) if opts else "",
         'cols': ",".join(["'%s'" % c.name for c in constraint.columns]),
             "prefix":_sqlalchemy_autogenerate_prefix(autogen_context)
         }

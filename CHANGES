@@ -1,3 +1,8 @@
+0.3.2
+=====
+- [feature] Added support for UniqueConstraint
+  in autogenerate, courtesy Atsushi Odagiri
+
 0.3.1
 =====
 - [bug] bulk_insert() fixes:
