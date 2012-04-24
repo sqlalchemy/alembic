@@ -109,9 +109,9 @@ class Operations(object):
 
         """
         if isinstance(fk._colspec, basestring):
-            table_key, cname = fk._colspec.split('.')
+            table_key, cname = fk._colspec.rsplit('.', 1)
             if '.' in table_key:
-                tokens = tname.split('.')
+                tokens = table_key.split('.')
                 sname = ".".join(tokens[0:-1])
                 tname = tokens[-1]
             else:
