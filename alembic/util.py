@@ -18,7 +18,12 @@ class CommandError(Exception):
     pass
 
 from sqlalchemy import __version__
-_vers = tuple([int(x) for x in __version__.split(".")])
+def _safe_int(value):
+    try:
+        return int(value)
+    except:
+        return 0
+_vers = tuple([_safe_int(x) for x in __version__.split(".")])
 sqla_06 = _vers > (0, 6)
 sqla_07 = _vers > (0, 7)
 if not sqla_06:

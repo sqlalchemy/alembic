@@ -3,6 +3,10 @@
 - [feature] Added support for UniqueConstraint
   in autogenerate, courtesy Atsushi Odagiri
 
+- [bug] Fixed support of schema-qualified 
+  ForeignKey target in column alter operations,
+  courtesy Alexander Kolov.
+
 0.3.1
 =====
 - [bug] bulk_insert() fixes:

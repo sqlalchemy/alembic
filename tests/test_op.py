@@ -62,6 +62,14 @@ def test_add_column_fk_self_referential():
         "ALTER TABLE t1 ADD FOREIGN KEY(c1) REFERENCES t1 (c2)"
     )
 
+def test_add_column_fk_schema():
+    context = op_fixture()
+    op.add_column('t1', Column('c1', Integer, ForeignKey('remote.t2.c2'), nullable=False))
+    context.assert_(
+    'ALTER TABLE t1 ADD COLUMN c1 INTEGER NOT NULL', 
+    'ALTER TABLE t1 ADD FOREIGN KEY(c1) REFERENCES remote.t2 (c2)'
+    )
+
 def test_drop_column():
     context = op_fixture()
     op.drop_column('t1', 'c1')
