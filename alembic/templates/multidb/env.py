@@ -1,17 +1,24 @@
-USE_TWOPHASE = False
-
+from __future__ import with_statement
 from alembic import context
 from sqlalchemy import engine_from_config, pool
+from logging.config import fileConfig
 import re
 import sys
 
-import logging
-logging.fileConfig(options.config_file)
+USE_TWOPHASE = False
+
+# this is the Alembic Config object, which provides
+# access to the values within the .ini file in use.
+config = context.config
+
+# Interpret the config file for Python logging. 
+# This line sets up loggers basically.
+fileConfig(config.config_file_name)
 
 # gather section names referring to different 
 # databases.  These are named "engine1", "engine2"
 # in the sample .ini file.
-db_names = options.get_main_option('databases')
+db_names = config.get_main_option('databases')
 
 # add your model's MetaData objects here
 # for 'autogenerate' support.  These must be set 
@@ -25,6 +32,11 @@ db_names = options.get_main_option('databases')
 #       'engine2':mymodel.metadata2
 #}
 target_metadata = {}
+
+# other values from the config, defined by the needs of env.py,
+# can be acquired:
+# my_important_option = config.get_main_option("my_important_option")
+# ... etc.
 
 def run_migrations_offline():
     """Run migrations in 'offline' mode.
@@ -93,7 +105,7 @@ def run_migrations_online():
                         downgrade_token="%s_downgrades",
                         target_metadata=target_metadata.get(name)
                     )
-            context.execute("--running migrations for engine %s" % name)
+            context.execute("-- running migrations for engine %s" % name)
             context.run_migrations(engine=name)
 
         if USE_TWOPHASE:
