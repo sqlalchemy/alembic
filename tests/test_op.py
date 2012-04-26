@@ -201,6 +201,22 @@ def test_add_unique_constraint():
         "ALTER TABLE t1 ADD CONSTRAINT uk_test UNIQUE (foo, bar)"
     )
 
+def test_add_unique_constraint_auto_cols():
+    context = op_fixture()
+    from sqlalchemy import event, DateTime
+
+    @event.listens_for(Table, "after_parent_attach")
+    def _table_standard_cols(table, metadata):
+        table.append_column(Column('created_at', DateTime))
+
+    try:
+        op.create_unique_constraint('uk_test', 't1', ['foo', 'bar'])
+        context.assert_(
+            "ALTER TABLE t1 ADD CONSTRAINT uk_test UNIQUE (foo, bar)"
+        )
+    finally:
+        Table.dispatch._clear()
+
 def test_drop_constraint():
     context = op_fixture()
     op.drop_constraint('foo_bar_bat', 't1')

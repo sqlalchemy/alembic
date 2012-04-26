@@ -7,6 +7,11 @@
   ForeignKey target in column alter operations,
   courtesy Alexander Kolov.
 
+- [bug] Fixed bug whereby create_unique_constraint()
+  would include in the constraint columns that
+  are added to all Table objects using events,
+  externally to the generation of the constraint.
+
 0.3.1
 =====
 - [bug] bulk_insert() fixes:

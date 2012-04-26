@@ -74,7 +74,7 @@ class Operations(object):
         t = schema.Table(source, schema.MetaData(), 
                     *[schema.Column(n, NULLTYPE) for n in local_cols])
         kw['name'] = name
-        uq = schema.UniqueConstraint(*t.c, **kw)
+        uq = schema.UniqueConstraint(*[t.c[n] for n in local_cols], **kw)
         # TODO: need event tests to ensure the event
         # is fired off here
         t.append_constraint(uq)
