@@ -67,7 +67,7 @@ def run_migrations_offline():
                     output_buffer=open(file_, 'w')
                 )
         with context.begin_transaction():
-            context.run_migrations(engine=name)
+            context.run_migrations(engine_name=name)
 
 def run_migrations_online():
     """Run migrations in 'online' mode.
@@ -106,7 +106,7 @@ def run_migrations_online():
                         target_metadata=target_metadata.get(name)
                     )
             context.execute("-- running migrations for engine %s" % name)
-            context.run_migrations(engine=name)
+            context.run_migrations(engine_name=name)
 
         if USE_TWOPHASE:
             for rec in engines.values():

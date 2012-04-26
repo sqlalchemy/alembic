@@ -19,7 +19,7 @@ def upgrade(engine):
 
 
 def downgrade(engine):
-    eval("upgrade_%s" % engine.name)()
+    eval("downgrade_%s" % engine.name)()
 
 
 % for engine in ["engine1", "engine2"]:
