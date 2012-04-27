@@ -2,8 +2,8 @@ from __future__ import with_statement
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 from logging.config import fileConfig
+import logging
 import re
-import sys
 
 USE_TWOPHASE = False
 
@@ -14,6 +14,7 @@ config = context.config
 # Interpret the config file for Python logging. 
 # This line sets up loggers basically.
 fileConfig(config.config_file_name)
+logger = logging.getLogger(__name__)
 
 # gather section names referring to different 
 # databases.  These are named "engine1", "engine2"
@@ -60,8 +61,9 @@ def run_migrations_offline():
                                             "sqlalchemy.url")
 
     for name, rec in engines.items():
+        logger.info("Migrating database %s" % name)
         file_ = "%s.sql" % name
-        sys.stderr.write("Writing output to %s\n" % file_)
+        logger.info("Writing output to %s" % file_)
         context.configure(
                     url=rec['url'],
                     output_buffer=open(file_, 'w')
@@ -99,13 +101,14 @@ def run_migrations_online():
 
     try:
         for name, rec in engines.items():
+            logger.info("Migrating database %s" % name)
             context.configure(
                         connection=rec['connection'],
                         upgrade_token="%s_upgrades",
                         downgrade_token="%s_downgrades",
                         target_metadata=target_metadata.get(name)
                     )
-            context.execute("-- running migrations for engine %s" % name)
+            context.execute("-- running migrations for database %s" % name)
             context.run_migrations(engine_name=name)
 
         if USE_TWOPHASE:
