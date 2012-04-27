@@ -14,12 +14,12 @@ from alembic import op
 import sqlalchemy as sa
 ${imports if imports else ""}
 
-def upgrade(engine):
-    eval("upgrade_%s" % engine.name)()
+def upgrade(engine_name):
+    eval("upgrade_%s" % engine_name)()
 
 
-def downgrade(engine):
-    eval("downgrade_%s" % engine.name)()
+def downgrade(engine_name):
+    eval("downgrade_%s" % engine_name)()
 
 
 % for engine in ["engine1", "engine2"]:
