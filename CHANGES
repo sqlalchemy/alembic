@@ -1,5 +1,8 @@
 0.3.2
 =====
+- [feature] Basic support for Oracle added, 
+  courtesy shgoh. #40
+
 - [feature] Added support for UniqueConstraint
   in autogenerate, courtesy Atsushi Odagiri
 

@@ -22,7 +22,7 @@ class MSSQLImpl(DefaultImpl):
             self.static_output(self.batch_separator)
 
     def emit_begin(self):
-        self.static_output("BEGIN TRANSACTION;")
+        self.static_output("BEGIN TRANSACTION" + self.command_terminator)
 
     def alter_column(self, table_name, column_name, 
                         nullable=None,

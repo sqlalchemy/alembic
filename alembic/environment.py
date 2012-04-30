@@ -373,14 +373,16 @@ class EnvironmentContext(object):
         Parameters specific to individual backends:
     
         :param mssql_batch_separator: The "batch separator" which will 
-         be placed
-         between each statement when generating offline SQL Server 
+         be placed between each statement when generating offline SQL Server 
          migrations.  Defaults to ``GO``.  Note this is in addition to the 
-         customary
-         semicolon ``;`` at the end of each statement; SQL Server considers
-         the "batch separator" to denote the end of an individual statement
-         execution, and cannot group certain dependent operations in 
-         one step.
+         customary semicolon ``;`` at the end of each statement; SQL Server 
+         considers the "batch separator" to denote the end of an 
+         individual statement execution, and cannot group certain 
+         dependent operations in one step.
+        :param oracle_batch_separator: The "batch separator" which will
+         be placed between each statement when generating offline 
+         Oracle migrations.  Defaults to ``/``.  Oracle doesn't add a
+         semicolon between statements like most other backends.
 
         """
         opts = self.context_opts

@@ -1,2 +1,2 @@
-import postgresql, mysql, sqlite, mssql
+import postgresql, mysql, sqlite, mssql, oracle
 from impl import DefaultImpl

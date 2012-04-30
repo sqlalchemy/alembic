@@ -31,6 +31,7 @@ class DefaultImpl(object):
     __dialect__ = 'default'
 
     transactional_ddl = False
+    command_terminator = ";"
 
     def __init__(self, dialect, connection, as_sql, 
                     transactional_ddl, output_buffer,
@@ -66,7 +67,7 @@ class DefaultImpl(object):
                 raise Exception("Execution arguments not allowed with as_sql")
             self.static_output(unicode(
                     construct.compile(dialect=self.dialect)
-                    ).replace("\t", "    ").strip() + ";")
+                    ).replace("\t", "    ").strip() + self.command_terminator)
         else:
             conn = self.connection
             if execution_options:
@@ -217,7 +218,7 @@ class DefaultImpl(object):
         via :meth:`.EnvironmentContext.begin_transaction`.
         
         """
-        self.static_output("BEGIN;")
+        self.static_output("BEGIN" + self.command_terminator)
 
     def emit_commit(self):
         """Emit the string ``COMMIT``, or the backend-specific
@@ -227,7 +228,7 @@ class DefaultImpl(object):
         via :meth:`.EnvironmentContext.begin_transaction`.
         
         """
-        self.static_output("COMMIT;")
+        self.static_output("COMMIT" + self.command_terminator)
 
 class _literal_bindparam(_BindParamClause):
     pass
