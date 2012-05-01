@@ -1,3 +1,11 @@
+0.3.3
+=====
+- [bug] Added "type" argument to op.drop_constraint(),
+  and implemented full constraint drop support for
+  MySQL.  CHECK and undefined raise an error.  
+  MySQL needs the constraint type
+  in order to emit a DROP CONSTRAINT. #44
+
 0.3.2
 =====
 - [feature] Basic support for Oracle added, 

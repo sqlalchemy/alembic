@@ -40,3 +40,42 @@ def test_col_alter_type_required():
         "All MySQL ALTER COLUMN operations require the existing type.",
         op.alter_column, 't1', 'c1', nullable=False, server_default="q"
     )
+
+def test_drop_fk():
+    context = op_fixture('mysql')
+    op.drop_constraint("f1", "t1", "foreignkey")
+    context.assert_(
+        "ALTER TABLE t1 DROP FOREIGN KEY f1"
+    )
+
+def test_drop_unique():
+    context = op_fixture('mysql')
+    op.drop_constraint("f1", "t1", "unique")
+    context.assert_(
+        "ALTER TABLE t1 DROP INDEX f1"
+    )
+
+def test_drop_check():
+    context = op_fixture('mysql')
+    assert_raises_message(
+        NotImplementedError,
+        "MySQL does not support CHECK constraints.",
+        op.drop_constraint, "f1", "t1", "check"
+    )
+
+def test_drop_unknown():
+    context = op_fixture('mysql')
+    assert_raises_message(
+        TypeError,
+        "'type' can be one of 'check', 'foreignkey', 'unique', None",
+        op.drop_constraint, "f1", "t1", "typo"
+    )
+
+def test_drop_generic_constraint():
+    context = op_fixture('mysql')
+    assert_raises_message(
+        NotImplementedError,
+        "No generic 'DROP CONSTRAINT' in MySQL - please "
+        "specify constraint type",
+        op.drop_constraint, "f1", "t1"
+    )

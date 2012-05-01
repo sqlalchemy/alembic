@@ -529,10 +529,30 @@ class Operations(object):
         # 0.7.6 and further raises on Index with no columns
         self.impl.drop_index(self._index(name, tablename, ['x']))
 
-    def drop_constraint(self, name, tablename):
-        """Drop a constraint of the given name"""
+    def drop_constraint(self, name, tablename, type=None):
+        """Drop a constraint of the given name, typically via DROP CONSTRAINT.
+        
+        :param name: name of the constraint.
+        :param tablename: tablename.
+        :param type: optional, required on MySQL.  can be 
+        'foreignkey', 'unique', or 'check'
+
+        """
         t = self._table(tablename)
-        const = schema.Constraint(name=name)
+        types = {
+            'foreignkey':lambda name:schema.ForeignKeyConstraint(
+                                [], [], name=name),
+            'unique':schema.UniqueConstraint,
+            'check':lambda name:schema.CheckConstraint("", name=name),
+            None:schema.Constraint
+        }
+        try:
+            const = types[type]
+        except KeyError:
+            raise TypeError("'type' can be one of %s" % 
+                        ", ".join(sorted(repr(x) for x in types))) 
+
+        const = const(name=name)
         t.append_constraint(const)
         self.impl.drop_constraint(const)
 

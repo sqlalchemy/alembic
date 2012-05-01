@@ -4,6 +4,7 @@ from sqlalchemy.ext.compiler import compiles
 from alembic.ddl.base import alter_table
 from alembic import util
 from sqlalchemy import types as sqltypes
+from sqlalchemy import schema
 
 class MySQLImpl(DefaultImpl):
     __dialect__ = 'mysql'
@@ -85,4 +86,22 @@ def _mysql_colspec(compiler, name, nullable, server_default, type_):
 
     return spec
 
+@compiles(schema.DropConstraint, "mysql")
+def _mysql_drop_constraint(element, compiler, **kw):
+    """Redefine SQLAlchemy's drop constraint to 
+    raise errors for invalid constraint type."""
+
+    constraint = element.element
+    if isinstance(constraint, (schema.ForeignKeyConstraint,
+                                schema.PrimaryKeyConstraint,
+                                schema.UniqueConstraint)
+                                ):
+        return compiler.visit_drop_constraint(element, **kw)
+    elif isinstance(constraint, schema.CheckConstraint):
+        raise NotImplementedError(
+                "MySQL does not support CHECK constraints.")
+    else:
+        raise NotImplementedError(
+                "No generic 'DROP CONSTRAINT' in MySQL - "
+                "please specify constraint type")
 
