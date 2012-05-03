@@ -273,7 +273,9 @@ class EnvironmentContext(object):
          when using ``--sql`` mode.
         :param tag: a string tag for usage by custom ``env.py`` scripts.  
          Set via the ``--tag`` option, can be overridden here.
-     
+        :param version_table: The name of the Alembic version table.
+         The default is ``'alembic_version'``.
+
         Parameters specific to the autogenerate feature, when 
         ``alembic revision`` is run with the ``--autogenerate`` feature:
     

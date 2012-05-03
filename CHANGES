@@ -6,6 +6,10 @@
   MySQL needs the constraint type
   in order to emit a DROP CONSTRAINT. #44
 
+- [feature] Added version_table argument to
+  EnvironmentContext.configure(), allowing for the
+  configuration of the version table name. #34
+
 0.3.2
 =====
 - [feature] Basic support for Oracle added, 

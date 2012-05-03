@@ -9,11 +9,6 @@ from sqlalchemy.engine import url as sqla_url
 import logging
 log = logging.getLogger(__name__)
 
-_meta = MetaData()
-_version = Table('alembic_version', _meta, 
-                Column('version_num', String(32), nullable=False)
-            )
-
 class MigrationContext(object):
     """Represent the database state made available to a migration 
     script.
@@ -80,6 +75,11 @@ class MigrationContext(object):
         self._user_compare_server_default = opts.get(
                                             'compare_server_default', 
                                             False)
+
+        version_table = opts.get('version_table', 'alembic_version')
+        self._version = Table(
+            version_table, MetaData(),
+            Column('version_num', String(32), nullable=False))
 
         self._start_from_rev = opts.get("starting_rev")
         self.impl = ddl.DefaultImpl.get_by_dialect(dialect)(
@@ -152,8 +152,8 @@ class MigrationContext(object):
                 raise util.CommandError(
                     "Can't specify current_rev to context "
                     "when using a database connection")
-            _version.create(self.connection, checkfirst=True)
-        return self.connection.scalar(_version.select())
+            self._version.create(self.connection, checkfirst=True)
+        return self.connection.scalar(self._version.select())
 
     _current_rev = get_current_revision
     """The 0.2 method name, for backwards compat."""
@@ -162,13 +162,13 @@ class MigrationContext(object):
         if old == new:
             return
         if new is None:
-            self.impl._exec(_version.delete())
+            self.impl._exec(self._version.delete())
         elif old is None:
-            self.impl._exec(_version.insert().
+            self.impl._exec(self._version.insert().
                         values(version_num=literal_column("'%s'" % new))
                     )
         else:
-            self.impl._exec(_version.update().
+            self.impl._exec(self._version.update().
                         values(version_num=literal_column("'%s'" % new))
                     )
 
@@ -201,7 +201,7 @@ class MigrationContext(object):
             if current_rev is False:
                 current_rev = prev_rev
                 if self.as_sql and not current_rev:
-                    _version.create(self.connection)
+                    self._version.create(self.connection)
             log.info("Running %s %s -> %s", change.__name__, prev_rev, rev)
             if self.as_sql:
                 self.impl.static_output(
@@ -218,7 +218,7 @@ class MigrationContext(object):
                 self._update_current_rev(current_rev, rev)
 
             if self.as_sql and not rev:
-                _version.drop(self.connection)
+                self._version.drop(self.connection)
 
     def execute(self, sql):
         """Execute a SQL construct or string statement.
