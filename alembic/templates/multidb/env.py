@@ -1,17 +1,25 @@
-USE_TWOPHASE = False
-
+from __future__ import with_statement
 from alembic import context
 from sqlalchemy import engine_from_config, pool
-import re
-import sys
-
+from logging.config import fileConfig
 import logging
-logging.fileConfig(options.config_file)
+import re
+
+USE_TWOPHASE = False
+
+# this is the Alembic Config object, which provides
+# access to the values within the .ini file in use.
+config = context.config
+
+# Interpret the config file for Python logging. 
+# This line sets up loggers basically.
+fileConfig(config.config_file_name)
+logger = logging.getLogger(__name__)
 
 # gather section names referring to different 
 # databases.  These are named "engine1", "engine2"
 # in the sample .ini file.
-db_names = options.get_main_option('databases')
+db_names = config.get_main_option('databases')
 
 # add your model's MetaData objects here
 # for 'autogenerate' support.  These must be set 
@@ -25,6 +33,11 @@ db_names = options.get_main_option('databases')
 #       'engine2':mymodel.metadata2
 #}
 target_metadata = {}
+
+# other values from the config, defined by the needs of env.py,
+# can be acquired:
+# my_important_option = config.get_main_option("my_important_option")
+# ... etc.
 
 def run_migrations_offline():
     """Run migrations in 'offline' mode.
@@ -48,14 +61,15 @@ def run_migrations_offline():
                                             "sqlalchemy.url")
 
     for name, rec in engines.items():
+        logger.info("Migrating database %s" % name)
         file_ = "%s.sql" % name
-        sys.stderr.write("Writing output to %s\n" % file_)
+        logger.info("Writing output to %s" % file_)
         context.configure(
                     url=rec['url'],
                     output_buffer=open(file_, 'w')
                 )
         with context.begin_transaction():
-            context.run_migrations(engine=name)
+            context.run_migrations(engine_name=name)
 
 def run_migrations_online():
     """Run migrations in 'online' mode.
@@ -87,14 +101,15 @@ def run_migrations_online():
 
     try:
         for name, rec in engines.items():
+            logger.info("Migrating database %s" % name)
             context.configure(
                         connection=rec['connection'],
                         upgrade_token="%s_upgrades",
                         downgrade_token="%s_downgrades",
                         target_metadata=target_metadata.get(name)
                     )
-            context.execute("--running migrations for engine %s" % name)
-            context.run_migrations(engine=name)
+            context.execute("-- running migrations for database %s" % name)
+            context.run_migrations(engine_name=name)
 
         if USE_TWOPHASE:
             for rec in engines.values():
