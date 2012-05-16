@@ -347,6 +347,17 @@ Running again to ``head``::
 
 We've now added the ``last_transaction_date`` column to the database.
 
+Relative Migration Identifiers
+==============================
+
+As of 0.3.3, relative upgrades/downgrades are also supported.  To move two versions from the current, a decimal value "+N" can be supplied::
+
+    $ alembic upgrade +2
+
+Negative values are accepted for downgrades::
+
+    $ alembic downgrade -1
+
 Getting Information
 ===================
 
@@ -373,6 +384,7 @@ If we wanted to upgrade directly to ``ae1027a6acf`` we could say::
 
 Alembic will stop and let you know if more than one version starts with that prefix.
 
+
 Downgrading
 ===========
 
@@ -392,6 +404,7 @@ Back to nothing - and up again::
     INFO  [alembic.context] Will assume transactional DDL.
     INFO  [alembic.context] Running upgrade None -> 1975ea83b712
     INFO  [alembic.context] Running upgrade 1975ea83b712 -> ae1027a6acf
+
 
 Auto Generating Migrations
 ===========================

@@ -12,6 +12,7 @@ _legacy_rev = re.compile(r'([a-f0-9]+)\.py$')
 _mod_def_re = re.compile(r'(upgrade|downgrade)_([a-z0-9]+)')
 _slug_re = re.compile(r'\w+')
 _default_file_template = "%(rev)s_%(slug)s"
+_relative_destination = re.compile(r'(?:\+|-)\d+')
 
 class ScriptDirectory(object):
     """Provides operations upon an Alembic script directory.
@@ -130,6 +131,26 @@ class ScriptDirectory(object):
         The iterator yields :class:`.Script` objects.
 
         """
+        if upper is not None and _relative_destination.match(upper):
+            relative = int(upper)
+            revs = list(self._iterate_revisions("head", lower))
+            revs = revs[-relative:]
+            if len(revs) != abs(relative):
+                raise util.CommandError("Relative revision %s didn't "
+                            "produce %d migrations" % (upper, abs(relative)))
+            return iter(revs)
+        elif lower is not None and _relative_destination.match(lower):
+            relative = int(lower)
+            revs = list(self._iterate_revisions(upper, "base"))
+            revs = revs[0:-relative]
+            if len(revs) != abs(relative):
+                raise util.CommandError("Relative revision %s didn't "
+                            "produce %d migrations" % (lower, abs(relative)))
+            return iter(revs)
+        else:
+            return self._iterate_revisions(upper, lower)
+
+    def _iterate_revisions(self, upper, lower):
         lower = self.get_revision(lower)
         upper = self.get_revision(upper)
         script = upper

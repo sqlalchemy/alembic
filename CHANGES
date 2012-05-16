@@ -10,6 +10,11 @@
   EnvironmentContext.configure(), allowing for the
   configuration of the version table name. #34
 
+- [feature] Added support for "relative" migration
+  identifiers, i.e. "alembic upgrade +2", 
+  "alembic downgrade -1".  Courtesy 
+  Atsushi Odagiri for this feature.
+
 0.3.2
 =====
 - [feature] Basic support for Oracle added, 
