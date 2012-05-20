@@ -15,6 +15,11 @@
   "alembic downgrade -1".  Courtesy 
   Atsushi Odagiri for this feature.
 
+- [bug] Fixed bug whereby directories inside of 
+  the template directories, such as __pycache__
+  on Pypy, would mistakenly be interpreted as 
+  files which are part of the template. #49
+
 0.3.2
 =====
 - [feature] Basic support for Oracle added, 

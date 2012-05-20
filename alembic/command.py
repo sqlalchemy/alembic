@@ -39,20 +39,21 @@ def init(config, directory, template='generic'):
     script = ScriptDirectory(directory)
 
     for file_ in os.listdir(template_dir):
+        file_path = os.path.join(template_dir, file_)
         if file_ == 'alembic.ini.mako':
             config_file = os.path.abspath(config.config_file_name)
             if os.access(config_file, os.F_OK):
                 util.msg("File %s already exists, skipping" % config_file)
             else:
                 script._generate_template(
-                    os.path.join(template_dir, file_),
+                    file_path,
                     config_file,
                     script_location=directory
                 )
-        else:
+        elif os.path.isfile(file_path):
             output_file = os.path.join(directory, file_)
             script._copy_file(
-                os.path.join(template_dir, file_), 
+                file_path,
                 output_file
             )
 
