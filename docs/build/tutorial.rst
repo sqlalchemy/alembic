@@ -119,6 +119,10 @@ The file generated with the "generic" configuration looks like::
     # template used to generate migration files
     # file_template = %%(rev)s_%%(slug)s
 
+    # set to 'true' to run the environment during
+    # the 'revision' command, regardless of autogenerate
+    # revision_environment = false
+
     sqlalchemy.url = driver://user:pass@localhost/dbname
 
     # Logging configuration
@@ -190,6 +194,9 @@ This file contains the following features:
   a file that can be customized by the developer. A multiple
   database configuration may respond to multiple keys here, or may reference other sections
   of the file.
+* ``revision_environment`` - this is a flag which when set to the value 'true', will indicate
+  that the migration environment script ``env.py`` should be run unconditionally when
+  generating new revision files (new in 0.3.3).
 * ``[loggers]``, ``[handlers]``, ``[formatters]``, ``[logger_*]``, ``[handler_*]``, 
   ``[formatter_*]`` - these sections are all part of Python's standard logging configuration,
   the mechanics of which are documented at `Configuration File Format <http://docs.python.org/library/logging.config.html#configuration-file-format>`_.

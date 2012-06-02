@@ -181,6 +181,12 @@ def op_fixture(dialect='default', as_sql=False):
     alembic.op._proxy = Operations(context)
     return context
 
+def script_file_fixture(txt):
+    dir_ = os.path.join(staging_directory, 'scripts')
+    path = os.path.join(dir_, "script.py.mako")
+    with open(path, 'w') as f:
+        f.write(txt)
+
 def env_file_fixture(txt):
     dir_ = os.path.join(staging_directory, 'scripts')
     txt = """
@@ -230,13 +236,14 @@ datefmt = %%H:%%M:%%S
     """ % (dir_, dir_))
 
 
-def _no_sql_testing_config(dialect="postgresql"):
+def _no_sql_testing_config(dialect="postgresql", directives=""):
     """use a postgresql url with no host so that connections guaranteed to fail"""
     dir_ = os.path.join(staging_directory, 'scripts')
     return _write_config_file("""
 [alembic]
 script_location = %s
 sqlalchemy.url = %s://
+%s
 
 [loggers]
 keys = root
@@ -262,7 +269,7 @@ keys = generic
 format = %%(levelname)-5.5s [%%(name)s] %%(message)s
 datefmt = %%H:%%M:%%S
 
-""" % (dir_, dialect))
+""" % (dir_, dialect, directives))
 
 def _write_config_file(text):
     cfg = _testing_config()

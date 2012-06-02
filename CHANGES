@@ -1,5 +1,17 @@
 0.3.3
 =====
+- [feature] New config argument 
+  "revision_environment=true", causes env.py to
+  be run unconditionally when the "revision" command
+  is run, to support script.py.mako templates with 
+  dependencies on custom "template_args".
+
+- [feature] Added "template_args" option to configure()
+  so that an env.py can add additional arguments
+  to the template context when running the 
+  "revision" command.  This requires either --autogenerate
+  or the configuration directive "revision_environment=true".
+
 - [bug] Added "type" argument to op.drop_constraint(),
   and implemented full constraint drop support for
   MySQL.  CHECK and undefined raise an error.  

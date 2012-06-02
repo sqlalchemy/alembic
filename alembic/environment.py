@@ -206,6 +206,7 @@ class EnvironmentContext(object):
             output_buffer=None,
             starting_rev=None,
             tag=None,
+            template_args=None,
             target_metadata=None,
             compare_type=False,
             compare_server_default=False,
@@ -273,6 +274,12 @@ class EnvironmentContext(object):
          when using ``--sql`` mode.
         :param tag: a string tag for usage by custom ``env.py`` scripts.  
          Set via the ``--tag`` option, can be overridden here.
+        :param template_args: dictionary of template arguments which
+         will be added to the template argument environment when
+         running the "revision" command.   Note that the script environment
+         is only run within the "revision" command if the --autogenerate
+         option is used, or if the option "revision_environment=true"
+         is present in the alembic.ini file.  New in 0.3.3.
         :param version_table: The name of the Alembic version table.
          The default is ``'alembic_version'``.
 
@@ -398,6 +405,8 @@ class EnvironmentContext(object):
             opts['starting_rev'] = starting_rev
         if tag:
             opts['tag'] = tag
+        if template_args and 'template_args' in opts:
+            opts['template_args'].update(template_args)
         opts['target_metadata'] = target_metadata
         opts['upgrade_token'] = upgrade_token
         opts['downgrade_token'] = downgrade_token

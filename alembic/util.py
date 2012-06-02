@@ -163,6 +163,10 @@ def obfuscate_url_pw(u):
         u.password = 'XXXXX'
     return str(u)
 
+def asbool(value):
+    return value is not None and \
+        value.lower() == 'true'
+
 def warn(msg):
     warnings.warn(msg)
 

@@ -60,24 +60,34 @@ def init(config, directory, template='generic'):
     util.msg("Please edit configuration/connection/logging "\
             "settings in %r before proceeding." % config_file)
 
-def revision(config, message=None, autogenerate=False):
+def revision(config, message=None, autogenerate=False, environment=False):
     """Create a new revision file."""
 
     script = ScriptDirectory.from_config(config)
     template_args = {}
     imports = set()
+
+    if util.asbool(config.get_main_option("revision_environment")):
+        environment = True
+
     if autogenerate:
+        environment = True
         util.requires_07("autogenerate")
         def retrieve_migrations(rev, context):
             if script.get_revision(rev) is not script.get_revision("head"):
                 raise util.CommandError("Target database is not up to date.")
             autogen._produce_migration_diffs(context, template_args, imports)
             return []
+    elif environment:
+        def retrieve_migrations(rev, context):
+            pass
 
+    if environment:
         with EnvironmentContext(
             config,
             script,
-            fn = retrieve_migrations
+            fn = retrieve_migrations,
+            template_args = template_args,
         ):
             script.run_env()
     script.generate_revision(util.rev_id(), message, **template_args)
