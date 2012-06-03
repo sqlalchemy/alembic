@@ -30,7 +30,7 @@ setup(name='alembic',
       description="A database migration tool for SQLAlchemy.",
       long_description=open(readme).read(),
       classifiers=[
-      'Development Status :: 3 - Alpha',
+      'Development Status :: 4 - Beta',
       'Environment :: Console',
       'Intended Audience :: Developers',
       'Programming Language :: Python',

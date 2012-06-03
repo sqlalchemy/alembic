@@ -1,5 +1,13 @@
+0.3.4
+=====
+- [bug] Fixed command-line bug introduced by the
+  "revision_environment" feature.
+
 0.3.3
 =====
+NOTE: 0.3.3 was released with a command line bug,
+so please skip right to 0.3.4
+
 - [feature] New config argument 
   "revision_environment=true", causes env.py to
   be run unconditionally when the "revision" command

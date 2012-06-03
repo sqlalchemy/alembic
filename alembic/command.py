@@ -60,15 +60,16 @@ def init(config, directory, template='generic'):
     util.msg("Please edit configuration/connection/logging "\
             "settings in %r before proceeding." % config_file)
 
-def revision(config, message=None, autogenerate=False, environment=False):
+def revision(config, message=None, autogenerate=False):
     """Create a new revision file."""
 
     script = ScriptDirectory.from_config(config)
     template_args = {}
     imports = set()
 
-    if util.asbool(config.get_main_option("revision_environment")):
-        environment = True
+    environment = util.asbool(
+        config.get_main_option("revision_environment")
+    )
 
     if autogenerate:
         environment = True
@@ -80,7 +81,7 @@ def revision(config, message=None, autogenerate=False, environment=False):
             return []
     elif environment:
         def retrieve_migrations(rev, context):
-            pass
+            return []
 
     if environment:
         with EnvironmentContext(
