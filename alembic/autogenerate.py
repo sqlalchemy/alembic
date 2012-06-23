@@ -497,7 +497,7 @@ def _render_server_default(default, autogen_context):
         # tests to pass until we figure out
         # WTF sqlite is doing
         default = re.sub(r"^'|'$", "", default)
-        return "'%s'" % default
+        return repr(default)
     else:
         return None
 

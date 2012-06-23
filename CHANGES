@@ -1,3 +1,9 @@
+0.3.5
+=====
+- [bug] Fixed issue whereby reflected server defaults
+  wouldn't be quoted correctly; uses repr() now.
+  #31
+
 0.3.4
 =====
 - [bug] Fixed command-line bug introduced by the

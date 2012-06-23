@@ -418,6 +418,14 @@ class AutogenRenderTest(TestCase):
             "op.drop_column('foo', 'x')"
         )
 
+    def test_render_quoted_server_default(self):
+        eq_(
+            autogenerate._render_server_default(
+                "nextval('group_to_perm_group_to_perm_id_seq'::regclass)",
+                    self.autogen_context),
+            '"nextval(\'group_to_perm_group_to_perm_id_seq\'::regclass)"'
+        )
+
     def test_render_modify_type(self):
         eq_ignore_whitespace(
             autogenerate._modify_col(
