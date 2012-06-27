@@ -270,6 +270,20 @@ class Operations(object):
                 Column('account_id', INTEGER, ForeignKey('accounts.id'))
             )
 
+        Note that this statement uses the :class:`~sqlalchemy.schema.Column`
+        construct as is from the SQLAlchemy library.  In particular,
+        default values to be created on the database side are
+        specified using the ``server_default`` parameter, and not
+        ``default`` which only specifies Python-side defaults::
+        
+            from alembic import op
+            from sqlalchemy import Column, TIMESTAMP, func
+
+            # specify "DEFAULT NOW" along with the column add
+            op.add_column('account',
+                Column('timestamp', TIMESTAMP, server_default=func.now())
+            )
+
         :param table_name: String name of the parent table.
         :param column: a :class:`sqlalchemy.schema.Column` object
          representing the new column.
@@ -459,10 +473,26 @@ class Operations(object):
             from alembic import op
 
             op.create_table(
-                'accounts',
+                'account',
                 Column('id', INTEGER, primary_key=True),
                 Column('name', VARCHAR(50), nullable=False),
                 Column('description', NVARCHAR(200))
+                Column('timestamp', TIMESTAMP, server_default=func.now())
+            )
+
+        Note that :meth:`.create_table` accepts :class:`~sqlalchemy.schema.Column`
+        constructs directly from the SQLAlchemy library.  In particular,
+        default values to be created on the database side are
+        specified using the ``server_default`` parameter, and not
+        ``default`` which only specifies Python-side defaults::
+        
+            from alembic import op
+            from sqlalchemy import Column, TIMESTAMP, func
+
+            # specify "DEFAULT NOW" along with the "timestamp" column
+            op.create_table('account',
+                Column('id', INTEGER, primary_key=True),
+                Column('timestamp', TIMESTAMP, server_default=func.now())
             )
 
         :param name: Name of the table
