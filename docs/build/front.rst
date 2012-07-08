@@ -20,8 +20,9 @@ http://alembic.readthedocs.org/.
 Project Status
 ==============
 
-Note that Alembic is still in alpha status.   Users should take
-care to report bugs and missing features (see :ref:`bugs`) on an as-needed
+Alembic is currently in beta status and is expected to be fairly
+stable.   Users should take care to report bugs and missing features
+(see :ref:`bugs`) on an as-needed
 basis.  It should be expected that the development version may be required
 for proper implementation of recently repaired issues in between releases;
 the latest tip is always available at https://bitbucket.org/zzzeek/alembic/get/tip.tar.gz.
@@ -45,16 +46,16 @@ then proceed through the usage of this command.
 Dependencies
 ------------
 
-Alembic's install process will ensure that `SQLAlchemy <http://www.sqlalchemy.org>`_ 
-is installed, in addition to other dependencies.  Alembic will work with 
-SQLAlchemy as of version **0.6**, though with a limited featureset.  
+Alembic's install process will ensure that `SQLAlchemy <http://www.sqlalchemy.org>`_
+is installed, in addition to other dependencies.  Alembic will work with
+SQLAlchemy as of version **0.6**, though with a limited featureset.
 The latest version of SQLAlchemy within the **0.7** series is strongly recommended.
 
 Upgrading from Alembic 0.2 to 0.3
 =================================
 
 Alembic 0.3 is mostly identical to version 0.2 except for some API
-changes, allowing better programmatic access and less ambiguity 
+changes, allowing better programmatic access and less ambiguity
 between public and private methods.   In particular:
 
 * :class:`.ScriptDirectory` now features these methods - the old
@@ -100,23 +101,23 @@ installation.   These include:
         down_revision = ${repr(down_revision)}
 
   Existing scripts that use the 0.1 naming convention **don't have to be changed**,
-  unless you are renaming them.  Alembic will fall back to pulling in the version 
-  identifier from the filename if ``revision`` isn't present, as long as the 
+  unless you are renaming them.  Alembic will fall back to pulling in the version
+  identifier from the filename if ``revision`` isn't present, as long as the
   filename uses the old naming convention.
 * The ``alembic.op`` and ``alembic.context`` modules are now generated
   as a collection of proxy functions, which when used refer to an
-  object instance installed when migrations run.  ``alembic.op`` refers to 
-  an instance of the :class:`.Operations` object, and ``alembic.context`` refers to 
+  object instance installed when migrations run.  ``alembic.op`` refers to
+  an instance of the :class:`.Operations` object, and ``alembic.context`` refers to
   an instance of the :class:`.EnvironmentContext` object.  Most existing
-  setups should be able to run with no changes, as the functions are 
+  setups should be able to run with no changes, as the functions are
   established at module load time and remain fully importable.
 
 Community
 =========
 
-Alembic is developed by `Mike Bayer <http://techspot.zzzeek.org>`_, and is 
+Alembic is developed by `Mike Bayer <http://techspot.zzzeek.org>`_, and is
 loosely associated with the `SQLAlchemy <http://www.sqlalchemy.org/>`_ and `Pylons <http://www.pylonsproject.org>`_
-projects. 
+projects.
 
 User issues, discussion of potential bugs and features should be posted
 to the Alembic Google Group at `sqlalchemy-alembic <https://groups.google.com/group/sqlalchemy-alembic>`_.
@@ -126,4 +127,4 @@ to the Alembic Google Group at `sqlalchemy-alembic <https://groups.google.com/gr
 Bugs
 ====
 Bugs and feature enhancements to Alembic should be reported on the `Bitbucket
-issue tracker <https://bitbucket.org/zzzeek/alembic/issues?status=new&status=open>`_.  
+issue tracker <https://bitbucket.org/zzzeek/alembic/issues?status=new&status=open>`_.
