@@ -61,14 +61,17 @@ The goals of Alembic are:
   application. The DDL constructs build upon SQLAlchemy's own DDLElement base
   and can be used standalone by any application or script.
 * Don't break our necks over SQLite's inability to ALTER things.   SQLite
-  has almost no support for table or column alteration.   Alembic's design
-  is kept simple by not contorting it's core API around these limitations.
-  Alembic's architecture can support SQLite's workarounds however, and
+  has almost no support for table or column alteration, and this is likely
+  intentional.   Alembic's design
+  is kept simple by not contorting it's core API around these limitations,
+  understanding that SQLite is simply not intended to support schema
+  changes.   While Alembic's architecture can support SQLite's workarounds, and
   we will support these features provided someone takes the initiative
-  to implement and test.  However, until the SQLite developers decide
-  to implment full support for ALTER, it's still vastly preferable
-  to use Alembic, or any migrations tool, with a database that supports
-  ALTER fully.
+  to implement and test, until the SQLite developers decide
+  to provide a fully working version of ALTER, it's still vastly preferable
+  to use Alembic, or any migrations tool, with databases that
+  are designed to work under the assumption of in-place schema migrations
+  taking place.
 
 Documentation and status of Alembic is at http://readthedocs.org/docs/alembic/.
 
