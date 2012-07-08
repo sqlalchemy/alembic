@@ -99,7 +99,7 @@ def compare_metadata(context, metadata):
 ###################################################
 # top level
 
-def _produce_migration_diffs(context, template_args, imports):
+def _produce_migration_diffs(context, template_args, imports, _include_only=()):
     opts = context.opts
     metadata = opts['target_metadata']
     if metadata is None:
@@ -112,7 +112,7 @@ def _produce_migration_diffs(context, template_args, imports):
     autogen_context, connection = _autogen_context(context, imports)
 
     diffs = []
-    _produce_net_changes(connection, metadata, diffs, autogen_context)
+    _produce_net_changes(connection, metadata, diffs, autogen_context, _include_only)
     template_args[opts['upgrade_token']] = \
             _indent(_produce_upgrade_commands(diffs, autogen_context))
     template_args[opts['downgrade_token']] = \
@@ -139,11 +139,15 @@ def _indent(text):
 ###################################################
 # walk structures
 
-def _produce_net_changes(connection, metadata, diffs, autogen_context):
+def _produce_net_changes(connection, metadata, diffs, autogen_context,
+                            include_only=None):
     inspector = Inspector.from_engine(connection)
     # TODO: not hardcode alembic_version here ?
     conn_table_names = set(inspector.get_table_names()).\
                             difference(['alembic_version'])
+    if include_only:
+        conn_table_names = conn_table_names.intersection(include_only)
+
     metadata_table_names = OrderedSet([table.name for table in metadata.sorted_tables])
 
     _compare_tables(conn_table_names, metadata_table_names,
@@ -546,11 +550,25 @@ def _render_foreign_key(constraint, autogen_context):
     }
 
 def _render_check_constraint(constraint, autogen_context):
+    # detect the constraint being part of
+    # a parent type which is probably in the Table already.
+    # ideally SQLAlchemy would give us more of a first class
+    # way to detect this.
+    if constraint._create_rule and \
+        hasattr(constraint._create_rule, 'target') and \
+        isinstance(constraint._create_rule.target,
+                sqltypes.TypeEngine):
+        return None
     opts = []
     if constraint.name:
         opts.append(("name", repr(constraint.name)))
-    return "%(prefix)sCheckConstraint('TODO')" % {
-            "prefix":_sqlalchemy_autogenerate_prefix(autogen_context)
+    return "%(prefix)sCheckConstraint(%(sqltext)r)" % {
+            "prefix": _sqlalchemy_autogenerate_prefix(autogen_context),
+            "sqltext": str(
+                constraint.sqltext.compile(
+                    dialect=autogen_context['dialect']
+                )
+            )
         }
 
 def _render_unique_constraint(constraint, autogen_context):

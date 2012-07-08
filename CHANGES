@@ -4,6 +4,16 @@
   wouldn't be quoted correctly; uses repr() now.
   #31
 
+- [bug] Fixed issue whereby when autogenerate would
+  render create_table() on the upgrade side for a
+  table that has a Boolean type, an unnecessary
+  CheckConstraint() would be generated. #58
+
+- [feature] Implemented SQL rendering for
+  CheckConstraint() within autogenerate upgrade,
+  including for literal SQL as well as SQL Expression
+  Language expressions.
+
 0.3.4
 =====
 - [bug] Fixed command-line bug introduced by the
@@ -14,21 +24,21 @@
 NOTE: 0.3.3 was released with a command line bug,
 so please skip right to 0.3.4
 
-- [feature] New config argument 
+- [feature] New config argument
   "revision_environment=true", causes env.py to
   be run unconditionally when the "revision" command
-  is run, to support script.py.mako templates with 
+  is run, to support script.py.mako templates with
   dependencies on custom "template_args".
 
 - [feature] Added "template_args" option to configure()
   so that an env.py can add additional arguments
-  to the template context when running the 
+  to the template context when running the
   "revision" command.  This requires either --autogenerate
   or the configuration directive "revision_environment=true".
 
 - [bug] Added "type" argument to op.drop_constraint(),
   and implemented full constraint drop support for
-  MySQL.  CHECK and undefined raise an error.  
+  MySQL.  CHECK and undefined raise an error.
   MySQL needs the constraint type
   in order to emit a DROP CONSTRAINT. #44
 
@@ -37,24 +47,24 @@ so please skip right to 0.3.4
   configuration of the version table name. #34
 
 - [feature] Added support for "relative" migration
-  identifiers, i.e. "alembic upgrade +2", 
-  "alembic downgrade -1".  Courtesy 
+  identifiers, i.e. "alembic upgrade +2",
+  "alembic downgrade -1".  Courtesy
   Atsushi Odagiri for this feature.
 
-- [bug] Fixed bug whereby directories inside of 
+- [bug] Fixed bug whereby directories inside of
   the template directories, such as __pycache__
-  on Pypy, would mistakenly be interpreted as 
+  on Pypy, would mistakenly be interpreted as
   files which are part of the template. #49
 
 0.3.2
 =====
-- [feature] Basic support for Oracle added, 
+- [feature] Basic support for Oracle added,
   courtesy shgoh. #40
 
 - [feature] Added support for UniqueConstraint
   in autogenerate, courtesy Atsushi Odagiri
 
-- [bug] Fixed support of schema-qualified 
+- [bug] Fixed support of schema-qualified
   ForeignKey target in column alter operations,
   courtesy Alexander Kolov.
 
@@ -83,7 +93,7 @@ so please skip right to 0.3.4
 
 0.3.0
 =====
-- [general] The focus of 0.3 is to clean up 
+- [general] The focus of 0.3 is to clean up
   and more fully document the public API of Alembic,
   including better accessors on the MigrationContext
   and ScriptDirectory objects.  Methods that are
@@ -98,7 +108,7 @@ so please skip right to 0.3.4
     ScriptDirectory.get_base()
     ScriptDirectory.generate_revision()
 
-- [feature] Added a bit of autogenerate to the 
+- [feature] Added a bit of autogenerate to the
   public API in the form of the function
   alembic.autogenerate.compare_metadata.
 
@@ -107,9 +117,9 @@ so please skip right to 0.3.4
 - [feature] Informative error message when op.XYZ
   directives are invoked at module import time.
 
-- [bug] Fixed inappropriate direct call to 
+- [bug] Fixed inappropriate direct call to
   util.err() and therefore sys.exit()
-  when Config failed to locate the 
+  when Config failed to locate the
   config file within library usage.
   [#35]
 
@@ -117,8 +127,8 @@ so please skip right to 0.3.4
   and DROP TABLE directives according to
   foreign key dependency order.
 
-- [bug] implement 'tablename' parameter on 
-  drop_index() as this is needed by some 
+- [bug] implement 'tablename' parameter on
+  drop_index() as this is needed by some
   backends.
 
 - [feature] Added execution_options parameter
@@ -131,7 +141,7 @@ so please skip right to 0.3.4
   some DBAPIs (psycopg2, MySQLdb) to allow
   percent signs straight through without
   escaping, thus providing cross-compatible
-  operation with DBAPI execution and 
+  operation with DBAPI execution and
   static script generation.
 
 - [bug] setup.py won't install argparse if on
@@ -139,19 +149,19 @@ so please skip right to 0.3.4
 
 - [feature] script_location can be interpreted
   by pkg_resources.resource_filename(), if
-  it is a non-absolute URI that contains 
+  it is a non-absolute URI that contains
   colons.   This scheme is the same
   one used by Pyramid.  [#29]
 
-- [feature] added missing support for 
-  onupdate/ondelete flags for 
+- [feature] added missing support for
+  onupdate/ondelete flags for
   ForeignKeyConstraint, courtesy Giacomo Bagnoli
 
 - [bug] fixed a regression regarding an autogenerate
   error message, as well as various glitches
   in the Pylons sample template.  The Pylons sample
-  template requires that you tell it where to 
-  get the Engine from now.  courtesy 
+  template requires that you tell it where to
+  get the Engine from now.  courtesy
   Marcin Kuzminski [#30]
 
 - [bug] drop_index() ensures a dummy column
@@ -172,10 +182,10 @@ so please skip right to 0.3.4
   libraries and applications can now use
   things like "alembic.op" without relying
   upon global configuration variables.
-  The rearrangement was done such that 
-  existing migrations should be OK, 
-  as long as they use the pattern 
-  of "from alembic import context" and 
+  The rearrangement was done such that
+  existing migrations should be OK,
+  as long as they use the pattern
+  of "from alembic import context" and
   "from alembic import op", as these
   are now contextual objects, not modules.
   [#19]
@@ -187,12 +197,12 @@ so please skip right to 0.3.4
   By default, the pattern "<rev>_<slug>"
   is used for new files.   New script files
   should include the "revision" variable
-  for this to work, which is part of 
+  for this to work, which is part of
   the newer script.py.mako scripts.
   [#24]
 
-- [bug] env.py templates call 
-  connection.close() to better support 
+- [bug] env.py templates call
+  connection.close() to better support
   programmatic usage of commands; use
   NullPool in conjunction with create_engine()
   as well so that no connection resources
@@ -203,7 +213,7 @@ so please skip right to 0.3.4
   "scripts/alembic" as setuptools creates this
   for us.  [#22]
 
-- [bug] Fixed alteration of column type on 
+- [bug] Fixed alteration of column type on
   MSSQL to not include the keyword "TYPE".
 
 - [feature] Can create alembic.config.Config
@@ -218,10 +228,10 @@ so please skip right to 0.3.4
 
 - [feature] PyPy is supported.
 
-- [feature] Python 2.5 is supported, needs 
+- [feature] Python 2.5 is supported, needs
   __future__.with_statement
 
-- [bug] Fix autogenerate so that "pass" is 
+- [bug] Fix autogenerate so that "pass" is
   generated between the two comments
   if no net migrations were present.
 
@@ -235,23 +245,23 @@ so please skip right to 0.3.4
   correctly [#17]
 
 - [bug] Default prefix for autogenerate
-  directives is "op.", matching the 
+  directives is "op.", matching the
   mako templates. [#18]
 
 - [feature] Add alembic_module_prefix argument
-  to configure() to complement 
+  to configure() to complement
   sqlalchemy_module_prefix. [#18]
 
 - [bug] fix quotes not being rendered in
-  ForeignKeConstraint during 
+  ForeignKeConstraint during
   autogenerate [#14]
 
 0.1.0
 =====
 - Initial release.  Status of features:
 
-- Alembic is used in at least one production 
-  environment, but should still be considered 
+- Alembic is used in at least one production
+  environment, but should still be considered
   ALPHA LEVEL SOFTWARE as of this release,
   particularly in that many features are expected
   to be missing / unimplemented.   Major API
@@ -260,67 +270,67 @@ so please skip right to 0.3.4
 
   The author asks that you *please* report all
   issues, missing features, workarounds etc.
-  to the bugtracker, at 
+  to the bugtracker, at
   https://bitbucket.org/zzzeek/alembic/issues/new .
 
 - Python 3 is supported and has been tested.
 
 - The "Pylons" and "MultiDB" environment templates
-  have not been directly tested - these should be 
+  have not been directly tested - these should be
   considered to be samples to be modified as
-  needed.   Multiple database support itself 
+  needed.   Multiple database support itself
   is well tested, however.
 
 - Postgresql and MS SQL Server environments
   have been tested for several weeks in a production
   environment.  In particular, some involved workarounds
-  were implemented to allow fully-automated dropping 
-  of default- or constraint-holding columns with 
+  were implemented to allow fully-automated dropping
+  of default- or constraint-holding columns with
   SQL Server.
 
-- MySQL support has also been implemented to a 
+- MySQL support has also been implemented to a
   basic degree, including MySQL's awkward style
   of modifying columns being accommodated.
 
 - Other database environments not included among
   those three have *not* been tested, *at all*.  This
   includes Firebird, Oracle, Sybase.   Adding
-  support for these backends should be 
+  support for these backends should be
   straightforward.  Please report all missing/
   incorrect behaviors to the bugtracker! Patches
   are welcome here but are optional - please just
   indicate the exact format expected by the target
   database.
 
-- SQLite, as a backend, has almost no support for 
+- SQLite, as a backend, has almost no support for
   schema alterations to existing databases.  The author
-  would strongly recommend that SQLite not be used in 
+  would strongly recommend that SQLite not be used in
   a migration context - just dump your SQLite database
   into an intermediary format, then dump it back
-  into a new schema.  For dev environments, the 
-  dev installer should be building the whole DB from 
+  into a new schema.  For dev environments, the
+  dev installer should be building the whole DB from
   scratch.  Or just use Postgresql, which is a much
   better database for non-trivial schemas.
-  Requests for full ALTER support on SQLite should be 
-  reported to SQLite's bug tracker at 
+  Requests for full ALTER support on SQLite should be
+  reported to SQLite's bug tracker at
   http://www.sqlite.org/src/wiki?name=Bug+Reports,
   as Alembic will not be implementing the
-  "rename the table to a temptable then copy the 
+  "rename the table to a temptable then copy the
   data into a new table" workaround.
-  Note that Alembic will at some point offer an 
-  extensible API so that you can implement commands 
+  Note that Alembic will at some point offer an
+  extensible API so that you can implement commands
   like this yourself.
 
 - Well-tested directives include add/drop table, add/drop
-  column, including support for SQLAlchemy "schema" 
-  types which generate additional CHECK 
+  column, including support for SQLAlchemy "schema"
+  types which generate additional CHECK
   constraints, i.e. Boolean, Enum.  Other directives not
   included here have *not* been strongly tested
   in production, i.e. rename table, etc.
 
 - Both "online" and "offline" migrations, the latter
   being generated SQL scripts to hand off to a DBA,
-  have been strongly production tested against 
+  have been strongly production tested against
   Postgresql and SQL Server.
 
 - Modify column type, default status, nullable, is
@@ -328,42 +338,42 @@ so please skip right to 0.3.4
   but not yet widely tested in production usage.
 
 - Many migrations are still outright missing, i.e.
-  create/add sequences, etc.  As a workaround, 
+  create/add sequences, etc.  As a workaround,
   execute() can be used for those which are missing,
   though posting of tickets for new features/missing
   behaviors is strongly encouraged.
 
-- Autogenerate feature is implemented and has been 
+- Autogenerate feature is implemented and has been
   tested, though only a little bit in a production setting.
-  In particular, detection of type and server 
+  In particular, detection of type and server
   default changes are optional and are off by default;
   they can also be customized by a callable.
   Both features work but can have surprises particularly
   the disparity between BIT/TINYINT and boolean,
-  which hasn't yet been worked around, as well as 
+  which hasn't yet been worked around, as well as
   format changes performed by the database on defaults
-  when it reports back.  When enabled, the PG dialect 
-  will execute the two defaults to be compared to 
-  see if they are equivalent.  Other backends may 
+  when it reports back.  When enabled, the PG dialect
+  will execute the two defaults to be compared to
+  see if they are equivalent.  Other backends may
   need to do the same thing.
 
-  The autogenerate feature only generates 
-  "candidate" commands which must be hand-tailored 
-  in any case, so is still a useful feature and 
+  The autogenerate feature only generates
+  "candidate" commands which must be hand-tailored
+  in any case, so is still a useful feature and
   is safe to use.  Please report missing/broken features
   of autogenerate!  This will be a great feature and
   will also improve SQLAlchemy's reflection services.
 
 - Support for non-ASCII table, column and constraint
-  names is mostly nonexistent.   This is also a 
-  straightforward feature add as SQLAlchemy itself 
-  supports unicode identifiers; Alembic itself will 
-  likely need fixes to logging, column identification 
+  names is mostly nonexistent.   This is also a
+  straightforward feature add as SQLAlchemy itself
+  supports unicode identifiers; Alembic itself will
+  likely need fixes to logging, column identification
   by key, etc. for full support here.
 
-- Support for tables in remote schemas, 
+- Support for tables in remote schemas,
   i.e. "schemaname.tablename", is very poor.
-  Missing "schema" behaviors should be 
+  Missing "schema" behaviors should be
   reported as tickets, though in the author's
   experience, migrations typically proceed only
   within the default schema.
