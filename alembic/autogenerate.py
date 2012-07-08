@@ -15,15 +15,15 @@ log = logging.getLogger(__name__)
 def compare_metadata(context, metadata):
     """Compare a database schema to that given in a :class:`~sqlalchemy.schema.MetaData`
     instance.
-    
+
     The database connection is presented in the context
-    of a :class:`.MigrationContext` object, which 
+    of a :class:`.MigrationContext` object, which
     provides database connectivity as well as optional
     comparison functions to use for datatypes and
     server defaults - see the "autogenerate" arguments
     at :meth:`.EnvironmentContext.configure`
     for details on these.
-    
+
     The return format is a list of "diff" directives,
     each representing individual differences::
 
@@ -31,7 +31,7 @@ def compare_metadata(context, metadata):
         from alembic.autogenerate import compare_metadata
         from sqlalchemy.schema import SchemaItem
         from sqlalchemy.types import TypeEngine
-        from sqlalchemy import (create_engine, MetaData, Column, 
+        from sqlalchemy import (create_engine, MetaData, Column,
                 Integer, String, Table)
         import pprint
 
@@ -50,12 +50,12 @@ def compare_metadata(context, metadata):
             )''')
 
         metadata = MetaData()
-        Table('foo', metadata, 
+        Table('foo', metadata,
             Column('id', Integer, primary_key=True),
             Column('data', Integer),
             Column('x', Integer, nullable=False)
         )
-        Table('bat', metadata, 
+        Table('bat', metadata,
             Column('info', String)
         )
 
@@ -63,9 +63,9 @@ def compare_metadata(context, metadata):
 
         diff = compare_metadata(mc, metadata)
         pprint.pprint(diff, indent=2, width=20)
-    
+
     Output::
-    
+
         [ ( 'add_table',
             Table('bat', MetaData(bind=None), Column('info', String(), table=<bat>), schema=None)),
           ( 'remove_table',
@@ -83,13 +83,13 @@ def compare_metadata(context, metadata):
                 'existing_type': INTEGER()},
               True,
               False)]]
-    
-    
+
+
     :param context: a :class:`.MigrationContext`
      instance.
-    :param metadata: a :class:`~sqlalchemy.schema.MetaData` 
+    :param metadata: a :class:`~sqlalchemy.schema.MetaData`
      instance.
-    
+
     """
     autogen_context, connection = _autogen_context(context, None)
     diffs = []
@@ -149,7 +149,7 @@ def _produce_net_changes(connection, metadata, diffs, autogen_context):
     _compare_tables(conn_table_names, metadata_table_names,
                     inspector, metadata, diffs, autogen_context)
 
-def _compare_tables(conn_table_names, metadata_table_names, 
+def _compare_tables(conn_table_names, metadata_table_names,
                     inspector, metadata, diffs, autogen_context):
     for tname in metadata_table_names.difference(conn_table_names):
         diffs.append(("add_table", metadata.tables[tname]))
@@ -167,7 +167,7 @@ def _compare_tables(conn_table_names, metadata_table_names,
     existing_tables = conn_table_names.intersection(metadata_table_names)
 
     conn_column_info = dict(
-        (tname, 
+        (tname,
             dict(
                 (rec["name"], rec)
                 for rec in inspector.get_columns(tname)
@@ -177,12 +177,12 @@ def _compare_tables(conn_table_names, metadata_table_names,
     )
 
     for tname in sorted(existing_tables):
-        _compare_columns(tname, 
-                conn_column_info[tname], 
+        _compare_columns(tname,
+                conn_column_info[tname],
                 metadata.tables[tname],
                 diffs, autogen_context)
 
-    # TODO: 
+    # TODO:
     # index add/drop
     # table constraints
     # sequences
@@ -234,28 +234,28 @@ def _compare_columns(tname, conn_table, metadata_table, diffs, autogen_context):
         if col_diff:
             diffs.append(col_diff)
 
-def _compare_nullable(tname, cname, conn_col, 
-                            metadata_col_nullable, diffs, 
+def _compare_nullable(tname, cname, conn_col,
+                            metadata_col_nullable, diffs,
                             autogen_context):
     conn_col_nullable = conn_col['nullable']
     if conn_col_nullable is not metadata_col_nullable:
         diffs.append(
-            ("modify_nullable", tname, cname, 
+            ("modify_nullable", tname, cname,
                 {
                     "existing_type":conn_col['type'],
                     "existing_server_default":conn_col['default'],
                 },
-                conn_col_nullable, 
+                conn_col_nullable,
                 metadata_col_nullable),
         )
-        log.info("Detected %s on column '%s.%s'", 
+        log.info("Detected %s on column '%s.%s'",
             "NULL" if metadata_col_nullable else "NOT NULL",
             tname,
             cname
         )
 
-def _compare_type(tname, cname, conn_col, 
-                            metadata_col, diffs, 
+def _compare_type(tname, cname, conn_col,
+                            metadata_col, diffs,
                             autogen_context):
 
     conn_type = conn_col['type']
@@ -272,19 +272,19 @@ def _compare_type(tname, cname, conn_col,
     if isdiff:
 
         diffs.append(
-            ("modify_type", tname, cname, 
+            ("modify_type", tname, cname,
                     {
                         "existing_nullable":conn_col['nullable'],
                         "existing_server_default":conn_col['default'],
                     },
-                    conn_type, 
+                    conn_type,
                     metadata_type),
         )
-        log.info("Detected type change from %r to %r on '%s.%s'", 
+        log.info("Detected type change from %r to %r on '%s.%s'",
             conn_type, metadata_type, tname, cname
         )
 
-def _compare_server_default(tname, cname, conn_col, metadata_col, 
+def _compare_server_default(tname, cname, conn_col, metadata_col,
                                 diffs, autogen_context):
 
     metadata_default = metadata_col.server_default
@@ -299,7 +299,7 @@ def _compare_server_default(tname, cname, conn_col, metadata_col,
     if isdiff:
         conn_col_default = conn_col['default']
         diffs.append(
-            ("modify_default", tname, cname, 
+            ("modify_default", tname, cname,
                 {
                     "existing_nullable":conn_col['nullable'],
                     "existing_type":conn_col['type'],
@@ -307,7 +307,7 @@ def _compare_server_default(tname, cname, conn_col, metadata_col,
                 conn_col_default,
                 metadata_default),
         )
-        log.info("Detected server default on column '%s.%s'", 
+        log.info("Detected server default on column '%s.%s'",
             tname,
             cname
         )
@@ -399,8 +399,8 @@ def _add_table(table, autogen_context):
         'prefix':_alembic_autogenerate_prefix(autogen_context),
         'args':',\n'.join(
             [_render_column(col, autogen_context) for col in table.c] +
-            sorted([rcons for rcons in 
-                [_render_constraint(cons, autogen_context) for cons in 
+            sorted([rcons for rcons in
+                [_render_constraint(cons, autogen_context) for cons in
                     table.constraints]
                 if rcons is not None
             ])
@@ -427,7 +427,7 @@ def _drop_column(tname, column, autogen_context):
             "cname":column.name
             }
 
-def _modify_col(tname, cname, 
+def _modify_col(tname, cname,
                 autogen_context,
                 server_default=False,
                 type_=None,
@@ -438,27 +438,27 @@ def _modify_col(tname, cname,
     sqla_prefix = _sqlalchemy_autogenerate_prefix(autogen_context)
     indent = " " * 11
     text = "%(prefix)salter_column(%(tname)r, %(cname)r" % {
-                            'prefix':_alembic_autogenerate_prefix(autogen_context), 
-                            'tname':tname, 
+                            'prefix':_alembic_autogenerate_prefix(autogen_context),
+                            'tname':tname,
                             'cname':cname}
-    text += ", \n%sexisting_type=%s" % (indent, 
+    text += ",\n%sexisting_type=%s" % (indent,
                     _repr_type(sqla_prefix, existing_type, autogen_context))
     if server_default is not False:
-        text += ", \n%sserver_default=%s" % (indent, 
+        text += ",\n%sserver_default=%s" % (indent,
                         _render_server_default(server_default, autogen_context),)
     if type_ is not None:
-        text += ", \n%stype_=%s" % (indent, _repr_type(sqla_prefix, type_, autogen_context))
+        text += ",\n%stype_=%s" % (indent, _repr_type(sqla_prefix, type_, autogen_context))
     if nullable is not None:
-        text += ", \n%snullable=%r" % (
+        text += ",\n%snullable=%r" % (
                         indent, nullable,)
     if existing_nullable is not None:
-        text += ", \n%sexisting_nullable=%r" % (
+        text += ",\n%sexisting_nullable=%r" % (
                         indent, existing_nullable)
     if existing_server_default:
-        text += ", \n%sexisting_server_default=%s" % (
-                        indent, 
+        text += ",\n%sexisting_server_default=%s" % (
+                        indent,
                         _render_server_default(
-                            existing_server_default, 
+                            existing_server_default,
                             autogen_context),
                     )
     text += ")"
@@ -473,7 +473,7 @@ def _alembic_autogenerate_prefix(autogen_context):
 def _render_column(column, autogen_context):
     opts = []
     if column.server_default:
-        opts.append(("server_default", 
+        opts.append(("server_default",
                     _render_server_default(column.server_default, autogen_context)))
     if column.nullable is not None:
         opts.append(("nullable", column.nullable))
@@ -493,7 +493,7 @@ def _render_server_default(default, autogen_context):
         else:
             default = str(default.arg.compile(dialect=autogen_context['dialect']))
     if isinstance(default, basestring):
-        # TODO: this is just a hack to get 
+        # TODO: this is just a hack to get
         # tests to pass until we figure out
         # WTF sqlite is doing
         default = re.sub(r"^'|'$", "", default)
