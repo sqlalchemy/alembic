@@ -1,11 +1,14 @@
-from tests import clear_staging_env, staging_env, eq_, ne_, is_
-from tests import _no_sql_testing_config, env_file_fixture, script_file_fixture
+from tests import clear_staging_env, staging_env, eq_, ne_, is_, staging_directory
+from tests import _no_sql_testing_config, env_file_fixture, script_file_fixture, _testing_config
 from alembic import command
 from alembic.script import ScriptDirectory
 from alembic.environment import EnvironmentContext
 from alembic import util
 import os
 import unittest
+import datetime
+
+env, abc, def_ = None, None, None
 
 class GeneralOrderedTests(unittest.TestCase):
     def test_001_environment(self):
@@ -47,7 +50,7 @@ class GeneralOrderedTests(unittest.TestCase):
         eq_(env.get_heads(), [def_])
 
     def test_006_from_clean_env(self):
-        # test the environment so far with a 
+        # test the environment so far with a
         # new ScriptDirectory instance.
 
         env = staging_env(create=False)
@@ -67,7 +70,7 @@ class GeneralOrderedTests(unittest.TestCase):
 
     def test_008_long_name(self):
         rid = util.rev_id()
-        script = env.generate_revision(rid, 
+        script = env.generate_revision(rid,
                 "this is a really long name with "
                 "lots of characters and also "
                 "I'd like it to\nhave\nnewlines")
@@ -82,6 +85,30 @@ class GeneralOrderedTests(unittest.TestCase):
     @classmethod
     def teardown_class(cls):
         clear_staging_env()
+
+class ScriptNamingTest(unittest.TestCase):
+    @classmethod
+    def setup_class(cls):
+        _testing_config()
+
+    @classmethod
+    def teardown_class(cls):
+        clear_staging_env()
+
+    def test_args(self):
+        script = ScriptDirectory(
+                        staging_directory,
+                        file_template="%(rev)s_%(slug)s_"
+                            "%(year)s_%(month)s_"
+                            "%(day)s_%(hour)s_"
+                            "%(minute)s_%(second)s"
+                    )
+        create_date = datetime.datetime(2012, 5, 25, 15, 8, 5)
+        eq_(
+            script._rev_path("12345", "this is a message", create_date),
+            "%s/versions/12345_this_is_a_"
+            "message_2012_5_25_15_5_5.py" % staging_directory
+        )
 
 class TemplateArgsTest(unittest.TestCase):
     def setUp(self):
@@ -102,7 +129,7 @@ class TemplateArgsTest(unittest.TestCase):
             script,
             template_args = template_args
         )
-        mig_env = env.configure(dialect_name="sqlite", 
+        mig_env = env.configure(dialect_name="sqlite",
                         template_args={"y":"y2", "q":"q1"})
         eq_(
             template_args,

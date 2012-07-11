@@ -45,7 +45,7 @@ class ScriptDirectory(object):
 
     @classmethod
     def from_config(cls, config):
-        """Produce a new :class:`.ScriptDirectory` given a :class:`.Config` 
+        """Produce a new :class:`.ScriptDirectory` given a :class:`.Config`
         instance.
 
         The :class:`.Config` need only have the ``script_location`` key
@@ -57,7 +57,7 @@ class ScriptDirectory(object):
                         config.get_main_option('script_location')
                     ),
                     file_template = config.get_main_option(
-                                        'file_template', 
+                                        'file_template',
                                         _default_file_template)
                     )
 
@@ -91,7 +91,7 @@ class ScriptDirectory(object):
             return self._revision_map[id_]
         except KeyError:
             # do a partial lookup
-            revs = [x for x in self._revision_map 
+            revs = [x for x in self._revision_map
                     if x is not None and x.startswith(id_)]
             if not revs:
                 raise util.CommandError("No such revision '%s'" % id_)
@@ -120,7 +120,7 @@ class ScriptDirectory(object):
     _as_rev_number = as_revision_number
 
     def iterate_revisions(self, upper, lower):
-        """Iterate through script revisions, starting at the given 
+        """Iterate through script revisions, starting at the given
         upper revision identifier and ending at the lower.
 
         The traversal uses strictly the `down_revision`
@@ -214,10 +214,19 @@ class ScriptDirectory(object):
         map_[None] = None
         return map_
 
-    def _rev_path(self, rev_id, message):
+    def _rev_path(self, rev_id, message, create_date):
         slug = "_".join(_slug_re.findall(message or "")).lower()[0:20]
         filename = "%s.py" % (
-            self.file_template % {'rev':rev_id, 'slug':slug}
+            self.file_template % {
+                'rev': rev_id,
+                'slug': slug,
+                'year': create_date.year,
+                'month': create_date.month,
+                'day': create_date.day,
+                'hour': create_date.hour,
+                'minute': create_date.month,
+                'second': create_date.second
+            }
         )
         return os.path.join(self.versions, filename)
 
@@ -279,14 +288,14 @@ class ScriptDirectory(object):
     def _generate_template(self, src, dest, **kw):
         util.status("Generating %s" % os.path.abspath(dest),
             util.template_to_file,
-            src, 
+            src,
             dest,
             **kw
         )
 
     def _copy_file(self, src, dest):
-        util.status("Generating %s" % os.path.abspath(dest), 
-                    shutil.copy, 
+        util.status("Generating %s" % os.path.abspath(dest),
+                    shutil.copy,
                     src, dest)
 
     def generate_revision(self, revid, message, refresh=False, **kw):
@@ -309,13 +318,14 @@ class ScriptDirectory(object):
 
         """
         current_head = self.get_current_head()
-        path = self._rev_path(revid, message)
+        create_date = datetime.datetime.now()
+        path = self._rev_path(revid, message, create_date)
         self._generate_template(
             os.path.join(self.dir, "script.py.mako"),
             path,
             up_revision=str(revid),
             down_revision=current_head,
-            create_date=datetime.datetime.now(),
+            create_date=create_date,
             message=message if message is not None else ("empty message"),
             **kw
         )
@@ -391,9 +401,9 @@ class Script(object):
 
     def __str__(self):
         return "%s -> %s%s%s, %s" % (
-                        self.down_revision, 
-                        self.revision, 
-                        " (head)" if self.is_head else "", 
+                        self.down_revision,
+                        self.revision,
+                        " (head)" if self.is_head else "",
                         " (branchpoint)" if self.is_branch_point else "",
                         self.doc)
 
@@ -417,7 +427,7 @@ class Script(object):
                         "Could not determine revision id from filename %s. "
                         "Be sure the 'revision' variable is "
                         "declared inside the script (please see 'Upgrading "
-                        "from Alembic 0.1 to 0.2' in the documentation)." 
+                        "from Alembic 0.1 to 0.2' in the documentation)."
                         % filename)
             else:
                 revision = m.group(1)
