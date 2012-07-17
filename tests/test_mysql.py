@@ -74,7 +74,8 @@ def test_drop_unknown():
     context = op_fixture('mysql')
     assert_raises_message(
         TypeError,
-        "'type' can be one of 'check', 'foreignkey', 'unique', None",
+        "'type' can be one of 'check', 'foreignkey', "
+        "'primary', 'unique', None",
         op.drop_constraint, "f1", "t1", "typo"
     )
 

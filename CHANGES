@@ -3,6 +3,9 @@
 - Added year, month, day, hour, minute, second
   variables to file_template.  #59
 
+- Added 'primary' to the list of constraint types
+  recognized for MySQL drop_constraint().
+
 0.3.5
 =====
 - [bug] Fixed issue whereby reflected server defaults
