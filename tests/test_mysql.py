@@ -48,6 +48,13 @@ def test_drop_fk():
         "ALTER TABLE t1 DROP FOREIGN KEY f1"
     )
 
+def test_drop_constraint_primary():
+    context = op_fixture('mysql')
+    op.drop_constraint('primary', 't1',type='primary')
+    context.assert_(
+        "ALTER TABLE t1 DROP PRIMARY KEY "
+    )
+
 def test_drop_unique():
     context = op_fixture('mysql')
     op.drop_constraint("f1", "t1", "unique")

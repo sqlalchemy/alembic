@@ -565,13 +565,14 @@ class Operations(object):
         :param name: name of the constraint.
         :param tablename: tablename.
         :param type: optional, required on MySQL.  can be 
-        'foreignkey', 'unique', or 'check'
+        'foreignkey', 'primary', 'unique', or 'check'
 
         """
         t = self._table(tablename)
         types = {
             'foreignkey':lambda name:schema.ForeignKeyConstraint(
                                 [], [], name=name),
+            'primary':schema.PrimaryKeyConstraint,        
             'unique':schema.UniqueConstraint,
             'check':lambda name:schema.CheckConstraint("", name=name),
             None:schema.Constraint
