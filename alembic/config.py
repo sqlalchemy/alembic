@@ -10,26 +10,26 @@ class Config(object):
     Within an ``env.py`` script, this is available
     via the :attr:`.EnvironmentContext.config` attribute,
     which in turn is available at ``alembic.context``::
-    
+
         from alembic import context
-        
+
         some_param = context.config.get_main_option("my option")
-    
+
     When invoking Alembic programatically, a new
     :class:`.Config` can be created by passing
     the name of an .ini file to the constructor::
-    
+
         from alembic.config import Config
         alembic_cfg = Config("/path/to/yourapp/alembic.ini")
 
     With a :class:`.Config` object, you can then
     run Alembic commands programmatically using the directives
     in :mod:`alembic.command`.
-    
+
     The :class:`.Config` object can also be constructed without
     a filename.   Values can be set programmatically, and
     new sections will be created as needed::
-    
+
         from alembic.config import Config
         alembic_cfg = Config()
         alembic_cfg.set_main_option("script_location", "myapp:migrations")
@@ -37,7 +37,7 @@ class Config(object):
         alembic_cfg.set_section_option("mysection", "foo", "bar")
 
     :param file_: name of the .ini file to open.
-    :param ini_section: name of the main Alembic section within the 
+    :param ini_section: name of the main Alembic section within the
      .ini file
     :param output_buffer: optional file-like input buffer which
      will be passed to the :class:`.MigrationContext` - used to redirect
@@ -46,7 +46,7 @@ class Config(object):
     """
     def __init__(self, file_=None, ini_section='alembic', output_buffer=None):
         """Construct a new :class:`.Config`
-        
+
         """
         self.config_file_name = file_
         self.config_ini_section = ini_section
@@ -68,7 +68,7 @@ class Config(object):
         """Return the underlying :class:`ConfigParser` object.
 
         Direct access to the .ini file is available here,
-        though the :meth:`.Config.get_section` and 
+        though the :meth:`.Config.get_section` and
         :meth:`.Config.get_main_option`
         methods provide a possibly simpler interface.
 
@@ -103,9 +103,9 @@ class Config(object):
 
     def set_main_option(self, name, value):
         """Set an option programmatically within the 'main' section.
-        
+
         This overrides whatever was in the .ini file.
-        
+
         """
         self.file_config.set(self.config_ini_section, name, value)
 
@@ -114,11 +114,11 @@ class Config(object):
 
     def set_section_option(self, section, name, value):
         """Set an option programmatically within the given section.
-        
+
         The section is created if it doesn't exist already.
         The value here will override whatever was in the .ini
         file.
-        
+
         """
         if not self.file_config.has_section(section):
             self.file_config.add_section(section)
@@ -130,7 +130,7 @@ class Config(object):
         """
         if not self.file_config.has_section(section):
             raise util.CommandError("No config file %r found, or file has no "
-                                "'[%s]' section" % 
+                                "'[%s]' section" %
                                 (self.config_file_name, section))
         if self.file_config.has_option(section, name):
             return self.file_config.get(section, name)
@@ -140,15 +140,15 @@ class Config(object):
     def get_main_option(self, name, default=None):
         """Return an option from the 'main' section of the .ini file.
 
-        This defaults to being a key from the ``[alembic]`` 
-        section, unless the ``-n/--name`` flag were used to 
+        This defaults to being a key from the ``[alembic]``
+        section, unless the ``-n/--name`` flag were used to
         indicate a different section.
 
         """
         return self.get_section_option(self.config_ini_section, name, default)
 
 
-def main(argv=None, **kwargs):
+def main(argv=None, prog=None, **kwargs):
     """The console runner function for Alembic."""
 
     def add_options(parser, positional, kwargs):
@@ -188,14 +188,14 @@ def main(argv=None, **kwargs):
         for arg in positional:
             subparser.add_argument(arg, help=positional_help.get(arg))
 
-    parser = ArgumentParser()
-    parser.add_argument("-c", "--config", 
-                        type=str, 
-                        default="alembic.ini", 
+    parser = ArgumentParser(prog=prog)
+    parser.add_argument("-c", "--config",
+                        type=str,
+                        default="alembic.ini",
                         help="Alternate config file")
-    parser.add_argument("-n", "--name", 
-                        type=str, 
-                        default="alembic", 
+    parser.add_argument("-n", "--name",
+                        type=str,
+                        default="alembic",
                         help="Name of section in .ini file to use for Alembic config")
     subparsers = parser.add_subparsers()
 
@@ -213,7 +213,7 @@ def main(argv=None, **kwargs):
                 kwarg = []
 
             subparser =  subparsers.add_parser(
-                                fn.__name__, 
+                                fn.__name__,
                                 help=fn.__doc__)
             add_options(subparser, positional, kwarg)
             subparser.set_defaults(cmd=(fn, positional, kwarg))
@@ -224,8 +224,8 @@ def main(argv=None, **kwargs):
 
     cfg = Config(options.config, options.name)
     try:
-        fn(cfg, 
-                    *[getattr(options, k) for k in positional], 
+        fn(cfg,
+                    *[getattr(options, k) for k in positional],
                     **dict((k, getattr(options, k)) for k in kwarg)
                 )
     except util.CommandError, e:
