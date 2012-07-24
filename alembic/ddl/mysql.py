@@ -75,14 +75,20 @@ def _mysql_alter_column(element, compiler, **kw):
         ),
     )
 
+def render_value(compiler, expr):
+    if isinstance(expr, basestring):
+        return "'%s'" % expr
+    else:
+        return compiler.sql_compiler.process(expr)
+
 def _mysql_colspec(compiler, name, nullable, server_default, type_):
     spec = "%s %s %s" % (
         name,
         compiler.dialect.type_compiler.process(type_),
         "NULL" if nullable else "NOT NULL"
     )
-    if server_default:
-        spec += " DEFAULT '%s'" % server_default
+    if server_default != False:
+        spec += " DEFAULT %s" % render_value(compiler, server_default)
 
     return spec
 
