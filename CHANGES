@@ -1,10 +1,15 @@
 0.3.6
 =====
-- Added year, month, day, hour, minute, second
+- [feature] Added year, month, day, hour, minute, second
   variables to file_template.  #59
 
-- Added 'primary' to the list of constraint types
+- [feature] Added 'primary' to the list of constraint types
   recognized for MySQL drop_constraint().
+
+- [feature] Added --sql argument to the "revision" command,
+  for the use case where the "revision_environment"
+  config option is being used but SQL access isn't
+  desired.
 
 0.3.5
 =====

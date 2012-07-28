@@ -9,8 +9,8 @@ def list_templates(config):
     print "Available templates:\n"
     for tempname in os.listdir(config.get_template_directory()):
         readme = os.path.join(
-                        config.get_template_directory(), 
-                        tempname, 
+                        config.get_template_directory(),
+                        tempname,
                         'README')
         synopsis = open(readme).next()
         print "%s - %s" % (tempname, synopsis)
@@ -60,7 +60,7 @@ def init(config, directory, template='generic'):
     util.msg("Please edit configuration/connection/logging "\
             "settings in %r before proceeding." % config_file)
 
-def revision(config, message=None, autogenerate=False):
+def revision(config, message=None, autogenerate=False, sql=False):
     """Create a new revision file."""
 
     script = ScriptDirectory.from_config(config)
@@ -87,8 +87,9 @@ def revision(config, message=None, autogenerate=False):
         with EnvironmentContext(
             config,
             script,
-            fn = retrieve_migrations,
-            template_args = template_args,
+            fn=retrieve_migrations,
+            as_sql=sql,
+            template_args=template_args,
         ):
             script.run_env()
     script.generate_revision(util.rev_id(), message, **template_args)
@@ -199,7 +200,7 @@ def stamp(config, revision, sql=False, tag=None):
         context._update_current_rev(current, dest)
         return []
     with EnvironmentContext(
-        config, 
+        config,
         script,
         fn = do_stamp,
         as_sql = sql,
@@ -210,9 +211,9 @@ def stamp(config, revision, sql=False, tag=None):
 
 def splice(config, parent, child):
     """'splice' two branches, creating a new revision file.
-    
+
     this command isn't implemented right now.
-    
+
     """
     raise NotImplementedError()
 
