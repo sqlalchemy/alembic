@@ -155,14 +155,14 @@ def test_alter_column_schema_type_existing_type():
 
 def test_alter_column_schema_type_existing_type_no_const():
     context = op_fixture('postgresql')
-    op.alter_column("t", "c", type_=String(10), existing_type=Boolean(name="xyz"))
+    op.alter_column("t", "c", type_=String(10), existing_type=Boolean())
     context.assert_(
         'ALTER TABLE t ALTER COLUMN c TYPE VARCHAR(10)'
     )
 
 def test_alter_column_schema_type_existing_type_no_new_type():
     context = op_fixture('postgresql')
-    op.alter_column("t", "c", nullable=False, existing_type=Boolean(name="xyz"))
+    op.alter_column("t", "c", nullable=False, existing_type=Boolean())
     context.assert_(
         'ALTER TABLE t ALTER COLUMN c SET NOT NULL'
     )
