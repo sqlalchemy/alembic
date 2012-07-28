@@ -1,7 +1,9 @@
 from alembic import config
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
-from tests import eq_, capture_db
+from alembic import util
+from alembic.script import ScriptDirectory
+from tests import eq_, capture_db, assert_raises_message
 
 def test_config_no_file_main_option():
     cfg = config.Config()
@@ -28,3 +30,11 @@ def test_standalone_op():
 
     op.alter_column("t", "c", nullable=True)
     eq_(buf, ['ALTER TABLE t ALTER COLUMN c DROP NOT NULL'])
+
+def test_no_script_error():
+    cfg = config.Config()
+    assert_raises_message(
+        util.CommandError,
+        "No 'script_location' key found in configuration.",
+        ScriptDirectory.from_config, cfg
+    )

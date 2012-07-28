@@ -52,10 +52,12 @@ class ScriptDirectory(object):
         present.
 
         """
+        script_location = config.get_main_option('script_location')
+        if script_location is None:
+            raise util.CommandError("No 'script_location' key "
+                                    "found in configuration.")
         return ScriptDirectory(
-                    util.coerce_resource_to_filename(
-                        config.get_main_option('script_location')
-                    ),
+                    util.coerce_resource_to_filename(script_location),
                     file_template = config.get_main_option(
                                         'file_template',
                                         _default_file_template)

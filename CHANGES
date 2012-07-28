@@ -11,6 +11,10 @@
   config option is being used but SQL access isn't
   desired.
 
+- [bug] 'alembic' command reports an informative
+  error message when the configuration is missing
+  the 'script_directory' key.  #63
+
 0.3.5
 =====
 - [bug] Fixed issue whereby reflected server defaults
