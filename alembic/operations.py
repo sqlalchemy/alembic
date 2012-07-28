@@ -220,12 +220,21 @@ class Operations(object):
          is not being changed; else MySQL sets this to NULL.
         """
 
-        if existing_type:
+        compiler = self.impl.dialect.statement_compiler(
+                            self.impl.dialect,
+                            None
+                        )
+        def _count_constraint(constraint):
+            return not isinstance(constraint, schema.PrimaryKeyConstraint) and \
+                (not constraint._create_rule or
+                    constraint._create_rule(compiler))
+
+        if existing_type and type_:
             t = self._table(table_name,
                         schema.Column(column_name, existing_type)
                     )
             for constraint in t.constraints:
-                if not isinstance(constraint, schema.PrimaryKeyConstraint):
+                if _count_constraint(constraint):
                     self.impl.drop_constraint(constraint)
 
         self.impl.alter_column(table_name, column_name,
@@ -241,7 +250,7 @@ class Operations(object):
         if type_:
             t = self._table(table_name, schema.Column(column_name, type_))
             for constraint in t.constraints:
-                if not isinstance(constraint, schema.PrimaryKeyConstraint):
+                if _count_constraint(constraint):
                     self.impl.add_constraint(constraint)
 
     def add_column(self, table_name, column):

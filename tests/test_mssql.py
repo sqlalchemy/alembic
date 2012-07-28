@@ -65,6 +65,14 @@ class OpTest(TestCase):
             'ALTER TABLE t ALTER COLUMN c INTEGER'
         )
 
+    def test_alter_column_dont_touch_constraints(self):
+        context = op_fixture('mssql')
+        from sqlalchemy import Boolean
+        op.alter_column('tests', 'col',
+            existing_type=Boolean(),
+            nullable=False)
+        context.assert_('ALTER TABLE tests ALTER COLUMN col BIT NOT NULL')
+
     def test_drop_index(self):
         context = op_fixture('mssql')
         op.drop_index('my_idx', 'my_table')
@@ -148,8 +156,8 @@ class OpTest(TestCase):
         context = op_fixture('mssql')
         op.alter_column("t", "c", name="c2", nullable=True, type_=Integer, server_default="5")
         context.assert_(
-            'ALTER TABLE t ALTER COLUMN c INTEGER NULL', 
-            "ALTER TABLE t ADD DEFAULT '5' FOR c", 
+            'ALTER TABLE t ALTER COLUMN c INTEGER NULL',
+            "ALTER TABLE t ADD DEFAULT '5' FOR c",
             "EXEC sp_rename 't.c', 'c2', 'COLUMN'"
         )
 

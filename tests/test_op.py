@@ -41,17 +41,17 @@ def test_add_column_schema_type():
     context = op_fixture()
     op.add_column('t1', Column('c1', Boolean, nullable=False))
     context.assert_(
-        'ALTER TABLE t1 ADD COLUMN c1 BOOLEAN NOT NULL', 
+        'ALTER TABLE t1 ADD COLUMN c1 BOOLEAN NOT NULL',
         'ALTER TABLE t1 ADD CHECK (c1 IN (0, 1))'
     )
 
 def test_add_column_schema_type_checks_rule():
-    """Test that a schema type doesn't generate a 
+    """Test that a schema type doesn't generate a
     constraint based on check rule."""
     context = op_fixture('postgresql')
     op.add_column('t1', Column('c1', Boolean, nullable=False))
     context.assert_(
-        'ALTER TABLE t1 ADD COLUMN c1 BOOLEAN NOT NULL', 
+        'ALTER TABLE t1 ADD COLUMN c1 BOOLEAN NOT NULL',
     )
 
 def test_add_column_fk_self_referential():
@@ -66,7 +66,7 @@ def test_add_column_fk_schema():
     context = op_fixture()
     op.add_column('t1', Column('c1', Integer, ForeignKey('remote.t2.c2'), nullable=False))
     context.assert_(
-    'ALTER TABLE t1 ADD COLUMN c1 INTEGER NOT NULL', 
+    'ALTER TABLE t1 ADD COLUMN c1 INTEGER NOT NULL',
     'ALTER TABLE t1 ADD FOREIGN KEY(c1) REFERENCES remote.t2 (c2)'
     )
 
@@ -79,7 +79,7 @@ def test_alter_column_nullable():
     context = op_fixture()
     op.alter_column("t", "c", nullable=True)
     context.assert_(
-        # TODO: not sure if this is PG only or standard 
+        # TODO: not sure if this is PG only or standard
         # SQL
         "ALTER TABLE t ALTER COLUMN c DROP NOT NULL"
     )
@@ -88,7 +88,7 @@ def test_alter_column_not_nullable():
     context = op_fixture()
     op.alter_column("t", "c", nullable=False)
     context.assert_(
-        # TODO: not sure if this is PG only or standard 
+        # TODO: not sure if this is PG only or standard
         # SQL
         "ALTER TABLE t ALTER COLUMN c SET NOT NULL"
     )
@@ -153,9 +153,23 @@ def test_alter_column_schema_type_existing_type():
         'ALTER TABLE t ALTER COLUMN c VARCHAR(10)'
     )
 
+def test_alter_column_schema_type_existing_type_no_const():
+    context = op_fixture('postgresql')
+    op.alter_column("t", "c", type_=String(10), existing_type=Boolean(name="xyz"))
+    context.assert_(
+        'ALTER TABLE t ALTER COLUMN c TYPE VARCHAR(10)'
+    )
+
+def test_alter_column_schema_type_existing_type_no_new_type():
+    context = op_fixture('postgresql')
+    op.alter_column("t", "c", nullable=False, existing_type=Boolean(name="xyz"))
+    context.assert_(
+        'ALTER TABLE t ALTER COLUMN c SET NOT NULL'
+    )
+
 def test_add_foreign_key():
     context = op_fixture()
-    op.create_foreign_key('fk_test', 't1', 't2', 
+    op.create_foreign_key('fk_test', 't1', 't2',
                     ['foo', 'bar'], ['bat', 'hoho'])
     context.assert_(
         "ALTER TABLE t1 ADD CONSTRAINT fk_test FOREIGN KEY(foo, bar) "
@@ -249,7 +263,7 @@ def test_drop_table():
 def test_create_table_selfref():
     context = op_fixture()
     op.create_table(
-        "some_table", 
+        "some_table",
         Column('id', Integer, primary_key=True),
         Column('st_id', Integer, ForeignKey('some_table.id'))
     )
@@ -264,7 +278,7 @@ def test_create_table_selfref():
 def test_create_table_fk_and_schema():
     context = op_fixture()
     op.create_table(
-        "some_table", 
+        "some_table",
         Column('id', Integer, primary_key=True),
         Column('foo_id', Integer, ForeignKey('foo.id')),
         schema='schema'
@@ -280,7 +294,7 @@ def test_create_table_fk_and_schema():
 def test_create_table_two_fk():
     context = op_fixture()
     op.create_table(
-        "some_table", 
+        "some_table",
         Column('id', Integer, primary_key=True),
         Column('foo_id', Integer, ForeignKey('foo.id')),
         Column('foo_bar', Integer, ForeignKey('foo.bar')),
@@ -300,7 +314,7 @@ def test_inline_literal():
     from sqlalchemy.sql import table, column
     from sqlalchemy import String, Integer
 
-    account = table('account', 
+    account = table('account',
         column('name', String),
         column('id', Integer)
     )

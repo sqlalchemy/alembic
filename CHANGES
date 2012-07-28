@@ -15,6 +15,17 @@
   error message when the configuration is missing
   the 'script_directory' key.  #63
 
+- [bug] Fixes made to the constraints created/dropped
+  alongside so-called "schema" types such as
+  Boolean and Enum.  The create/drop constraint logic
+  does not kick in when using a dialect that doesn't
+  use constraints for these types, such as postgresql,
+  even when existing_type is specified to
+  alter_column().  Additionally, the constraints
+  are not affected if existing_type is passed but
+  type_ is not, i.e. there's no net change
+  in type.  #62
+
 0.3.5
 =====
 - [bug] Fixed issue whereby reflected server defaults
