@@ -11,6 +11,10 @@
   config option is being used but SQL access isn't
   desired.
 
+- [bug] Repaired create_foreign_key() for
+  self-referential foreign keys, which weren't working
+  at all.
+
 - [bug] 'alembic' command reports an informative
   error message when the configuration is missing
   the 'script_directory' key.  #63

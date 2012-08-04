@@ -196,6 +196,14 @@ def test_add_foreign_key_ondelete():
             "REFERENCES t2 (bat, hoho) ON DELETE CASCADE"
     )
 
+def test_add_foreign_key_self_referential():
+    context = op_fixture()
+    op.create_foreign_key("fk_test", "t1", "t1", ["foo"], ["bar"])
+    context.assert_(
+        "ALTER TABLE t1 ADD CONSTRAINT fk_test "
+        "FOREIGN KEY(foo) REFERENCES t1 (bar)"
+    )
+
 def test_add_check_constraint():
     context = op_fixture()
     op.create_check_constraint(

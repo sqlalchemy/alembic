@@ -54,10 +54,15 @@ class Operations(object):
                                     local_cols, remote_cols,
                                     onupdate=None, ondelete=None):
         m = schema.MetaData()
-        t1 = schema.Table(source, m,
-                *[schema.Column(n, NULLTYPE) for n in local_cols])
-        t2 = schema.Table(referent, m,
+        if source == referent:
+            t1_cols = local_cols + remote_cols
+        else:
+            t1_cols = local_cols
+            schema.Table(referent, m,
                 *[schema.Column(n, NULLTYPE) for n in remote_cols])
+
+        t1 = schema.Table(source, m,
+                *[schema.Column(n, NULLTYPE) for n in t1_cols])
 
         f = schema.ForeignKeyConstraint(local_cols,
                                             ["%s.%s" % (referent, n)
