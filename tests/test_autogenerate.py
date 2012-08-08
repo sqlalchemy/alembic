@@ -1,6 +1,6 @@
 from sqlalchemy import MetaData, Column, Table, Integer, String, Text, \
     Numeric, CHAR, ForeignKey, DATETIME, \
-    TypeDecorator, CheckConstraint, Unicode,\
+    TypeDecorator, CheckConstraint, Unicode, Enum,\
     UniqueConstraint, Boolean
 from sqlalchemy.types import NULLTYPE
 from sqlalchemy.dialects import mysql
@@ -564,6 +564,22 @@ class AutogenRenderTest(TestCase):
             "op.alter_column('sometable', 'somecolumn', "
             "existing_type=sa.Integer(), nullable=True, "
             "existing_server_default='5')"
+        )
+
+    def test_render_enum(self):
+        eq_ignore_whitespace(
+            autogenerate._repr_type(
+                        "sa.",
+                        Enum("one", "two", "three", name="myenum"),
+                        self.autogen_context),
+            "sa.Enum('one', 'two', 'three', name='myenum')"
+        )
+        eq_ignore_whitespace(
+            autogenerate._repr_type(
+                        "sa.",
+                        Enum("one", "two", "three"),
+                        self.autogen_context),
+            "sa.Enum('one', 'two', 'three')"
         )
 
 # TODO: tests for dialect-specific type rendering + imports
