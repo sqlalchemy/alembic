@@ -2,8 +2,11 @@ from __future__ import with_statement
 
 from tests import clear_staging_env, staging_env, \
     _no_sql_testing_config, sqlite_db, eq_, ne_, capture_context_buffer, \
-    three_rev_fixture
+    three_rev_fixture, assert_raises_message
 from alembic import command, util
+
+cfg = None
+a, b, c = None, None, None
 
 def setup():
     global cfg, env
@@ -65,7 +68,6 @@ def test_version_to_middle():
     assert "DROP STEP 3" in buf.getvalue()
     assert "DROP STEP 2" in buf.getvalue()
     assert "DROP STEP 1" not in buf.getvalue()
-
 
 def test_stamp():
     with capture_context_buffer() as buf:

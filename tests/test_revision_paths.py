@@ -2,6 +2,9 @@ from tests import clear_staging_env, staging_env, eq_, ne_, \
     assert_raises_message
 from alembic import util
 
+env = None
+a, b, c, d, e = None, None, None, None, None
+cfg = None
 
 def setup():
     global env
@@ -122,3 +125,18 @@ def test_invalid_relative_downgrade_path():
         r"Relative revision \+2 didn't produce 2 migrations",
         env._downgrade_revs, "+2", b.revision
     )
+
+def test_invalid_move_rev_to_none():
+    assert_raises_message(
+        util.CommandError,
+        "Revision %s is not an ancestor of base" % b.revision,
+        env._downgrade_revs, b.revision[0:3], None
+    )
+
+def test_invalid_move_higher_to_lower():
+    assert_raises_message(
+       util.CommandError,
+        "Revision %s is not an ancestor of %s" % (c.revision, b.revision),
+        env._downgrade_revs, c.revision[0:4], b.revision
+    )
+

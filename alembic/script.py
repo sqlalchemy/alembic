@@ -155,14 +155,16 @@ class ScriptDirectory(object):
     def _iterate_revisions(self, upper, lower):
         lower = self.get_revision(lower)
         upper = self.get_revision(upper)
+        orig = lower.revision if lower else 'base', \
+                upper.revision if upper else 'base'
         script = upper
         while script != lower:
+            if script is None and lower is not None:
+                raise util.CommandError(
+                        "Revision %s is not an ancestor of %s" % orig)
             yield script
             downrev = script.down_revision
             script = self._revision_map[downrev]
-            if script is None and lower is not None:
-                raise util.CommandError(
-                        "Couldn't find revision %s" % downrev)
 
     def _upgrade_revs(self, destination, current_rev):
         revs = self.iterate_revisions(destination, current_rev)

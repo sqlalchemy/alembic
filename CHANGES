@@ -30,6 +30,11 @@
   type_ is not, i.e. there's no net change
   in type.  #62
 
+- [bug] Improved error message when specifiying
+  non-ordered revision identifiers to cover
+  the case when the "higher" rev is None,
+  improved message overall.  #66
+
 0.3.5
 =====
 - [bug] Fixed issue whereby reflected server defaults

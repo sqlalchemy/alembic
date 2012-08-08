@@ -124,7 +124,6 @@ def downgrade(config, revision, sql=False, tag=None):
     """Revert to a previous version."""
 
     script = ScriptDirectory.from_config(config)
-
     starting_rev = None
     if ":" in revision:
         if not sql:
