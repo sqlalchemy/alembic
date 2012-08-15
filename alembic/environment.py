@@ -208,6 +208,7 @@ class EnvironmentContext(object):
             tag=None,
             template_args=None,
             target_metadata=None,
+            include_symbol=None,
             compare_type=False,
             compare_server_default=False,
             upgrade_token="upgrades",
@@ -355,6 +356,21 @@ class EnvironmentContext(object):
          execute
          the two defaults on the database side to compare for equivalence.
 
+        :param include_symbol: A callable function which, given a table name
+         and optional schema name, returns ``True`` or ``False``, indicating
+         if the given table should be considered in the autogenerate sweep.
+         E.g.::
+
+            def include_symbol(tablename, schema=None):
+                return tablename not in ("skip_table_one", "skip_table_two")
+
+            context.configure(
+                # ...
+                include_symbol = include_symbol
+            )
+
+         .. versionadded:: 0.3.6
+
         :param upgrade_token: When autogenerate completes, the text of the
          candidate upgrade operations will be present in this template
          variable when ``script.py.mako`` is rendered.  Defaults to
@@ -408,6 +424,7 @@ class EnvironmentContext(object):
         if template_args and 'template_args' in opts:
             opts['template_args'].update(template_args)
         opts['target_metadata'] = target_metadata
+        opts['include_symbol'] = include_symbol
         opts['upgrade_token'] = upgrade_token
         opts['downgrade_token'] = downgrade_token
         opts['sqlalchemy_module_prefix'] = sqlalchemy_module_prefix

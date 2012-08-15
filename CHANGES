@@ -1,5 +1,11 @@
 0.3.6
 =====
+- [feature] Added include_symbol option to
+  EnvironmentContext.configure(),
+  specifies a callable which will include/exclude tables
+  in their entirety from the autogeneration process
+  based on name.  #27
+
 - [feature] Added year, month, day, hour, minute, second
   variables to file_template.  #59
 

@@ -102,9 +102,11 @@ def compare_metadata(context, metadata):
 # top level
 
 def _produce_migration_diffs(context, template_args,
-                                imports, _include_only=()):
+                                imports, include_symbol=None):
     opts = context.opts
     metadata = opts['target_metadata']
+    include_symbol = opts.get('include_symbol', include_symbol)
+
     if metadata is None:
         raise util.CommandError(
                 "Can't proceed with --autogenerate option; environment "
@@ -116,7 +118,7 @@ def _produce_migration_diffs(context, template_args,
 
     diffs = []
     _produce_net_changes(connection, metadata, diffs,
-                                autogen_context, _include_only)
+                                autogen_context, include_symbol)
     template_args[opts['upgrade_token']] = \
             _indent(_produce_upgrade_commands(diffs, autogen_context))
     template_args[opts['downgrade_token']] = \
@@ -145,16 +147,21 @@ def _indent(text):
 # walk structures
 
 def _produce_net_changes(connection, metadata, diffs, autogen_context,
-                            include_only=None):
+                            include_symbol=None):
     inspector = Inspector.from_engine(connection)
     # TODO: not hardcode alembic_version here ?
     conn_table_names = set(inspector.get_table_names()).\
                             difference(['alembic_version'])
-    if include_only:
-        conn_table_names = conn_table_names.intersection(include_only)
+
 
     metadata_table_names = OrderedSet([table.name
                                 for table in metadata.sorted_tables])
+
+    if include_symbol:
+        conn_table_names = set(name for name in conn_table_names
+                            if include_symbol(name))
+        metadata_table_names = OrderedSet(name for name in metadata_table_names
+                                if include_symbol(name))
 
     _compare_tables(conn_table_names, metadata_table_names,
                     inspector, metadata, diffs, autogen_context)
