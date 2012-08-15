@@ -7,7 +7,7 @@ from logging.config import fileConfig
 # access to the values within the .ini file in use.
 config = context.config
 
-# Interpret the config file for Python logging. 
+# Interpret the config file for Python logging.
 # This line sets up loggers basically.
 fileConfig(config.config_file_name)
 
@@ -29,10 +29,10 @@ def run_migrations_offline():
     and not an Engine, though an Engine is acceptable
     here as well.  By skipping the Engine creation
     we don't even need a DBAPI to be available.
-    
+
     Calls to context.execute() here emit the given string to the
     script output.
-    
+
     """
     url = config.get_main_option("sqlalchemy.url")
     context.configure(url=url)
@@ -45,16 +45,16 @@ def run_migrations_online():
 
     In this scenario we need to create an Engine
     and associate a connection with the context.
-    
+
     """
     engine = engine_from_config(
-                config.get_section(config.config_ini_section), 
-                prefix='sqlalchemy.', 
+                config.get_section(config.config_ini_section),
+                prefix='sqlalchemy.',
                 poolclass=pool.NullPool)
 
     connection = engine.connect()
     context.configure(
-                connection=connection, 
+                connection=connection,
                 target_metadata=target_metadata
                 )
 

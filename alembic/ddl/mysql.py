@@ -9,7 +9,7 @@ from sqlalchemy import schema
 class MySQLImpl(DefaultImpl):
     __dialect__ = 'mysql'
 
-    def alter_column(self, table_name, column_name, 
+    def alter_column(self, table_name, column_name,
                         nullable=None,
                         server_default=False,
                         name=None,
@@ -24,7 +24,7 @@ class MySQLImpl(DefaultImpl):
                 table_name, column_name,
                 schema=schema,
                 newname=name if name is not None else column_name,
-                nullable =nullable if nullable is not None else 
+                nullable =nullable if nullable is not None else
                                 existing_nullable if existing_nullable is not None
                                 else True,
                 type_=type_ if type_ is not None else existing_type,
@@ -88,7 +88,7 @@ def _mysql_colspec(compiler, name, nullable, server_default, type_):
 
 @compiles(schema.DropConstraint, "mysql")
 def _mysql_drop_constraint(element, compiler, **kw):
-    """Redefine SQLAlchemy's drop constraint to 
+    """Redefine SQLAlchemy's drop constraint to
     raise errors for invalid constraint type."""
 
     constraint = element.element

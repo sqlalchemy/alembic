@@ -52,7 +52,7 @@ def template_to_file(template_file, dest, **kw):
 def create_module_class_proxy(cls, globals_, locals_):
     """Create module level proxy functions for the
     methods on a given class.
-    
+
     The functions will have a compatible signature
     as the methods.   A proxy is established
     using the ``_install_proxy(obj)`` function,
@@ -91,7 +91,7 @@ def create_module_class_proxy(cls, globals_, locals_):
             defaulted_vals = ()
 
         apply_kw = inspect.formatargspec(
-                                name_args, spec[1], spec[2], 
+                                name_args, spec[1], spec[2],
                                 defaulted_vals,
                                 formatvalue=lambda x: '=' + x)
 
@@ -133,10 +133,10 @@ def create_module_class_proxy(cls, globals_, locals_):
 
 def coerce_resource_to_filename(fname):
     """Interpret a filename as either a filesystem location or as a package resource.
-    
+
     Names that are non absolute paths and contain a colon
     are interpreted as resources and coerced to a file location.
-    
+
     """
     if not os.path.isabs(fname) and ":" in fname:
         import pkg_resources
@@ -188,11 +188,11 @@ def load_python_file(dir_, filename):
 
 def pyc_file_from_path(path):
     """Given a python source path, locate the .pyc.
-    
+
     See http://www.python.org/dev/peps/pep-3147/
                         #detecting-pep-3147-availability
         http://www.python.org/dev/peps/pep-3147/#file-extension-checks
-    
+
     """
     import imp
     has3147 = hasattr(imp, 'get_tag')

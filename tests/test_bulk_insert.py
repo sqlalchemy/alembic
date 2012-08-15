@@ -59,7 +59,7 @@ def test_bulk_insert():
 
 def test_bulk_insert_wrong_cols():
     context = op_fixture('postgresql')
-    t1 = table("ins_table", 
+    t1 = table("ins_table",
                 column('id', Integer),
                 column('v1', String()),
                 column('v2', String()),
@@ -104,8 +104,8 @@ def test_bulk_insert_mssql():
 def test_bulk_insert_as_sql():
     context = _test_bulk_insert('default', True)
     context.assert_(
-        "INSERT INTO ins_table (id, v1, v2) VALUES (1, 'row v1', 'row v5')", 
-        "INSERT INTO ins_table (id, v1, v2) VALUES (2, 'row v2', 'row v6')", 
+        "INSERT INTO ins_table (id, v1, v2) VALUES (1, 'row v1', 'row v5')",
+        "INSERT INTO ins_table (id, v1, v2) VALUES (2, 'row v2', 'row v6')",
         "INSERT INTO ins_table (id, v1, v2) VALUES (3, 'row v3', 'row v7')",
         "INSERT INTO ins_table (id, v1, v2) VALUES (4, 'row v4', 'row v8')"
     )
@@ -113,8 +113,8 @@ def test_bulk_insert_as_sql():
 def test_bulk_insert_as_sql_pg():
     context = _test_bulk_insert('postgresql', True)
     context.assert_(
-        "INSERT INTO ins_table (id, v1, v2) VALUES (1, 'row v1', 'row v5')", 
-        "INSERT INTO ins_table (id, v1, v2) VALUES (2, 'row v2', 'row v6')", 
+        "INSERT INTO ins_table (id, v1, v2) VALUES (1, 'row v1', 'row v5')",
+        "INSERT INTO ins_table (id, v1, v2) VALUES (2, 'row v2', 'row v6')",
         "INSERT INTO ins_table (id, v1, v2) VALUES (3, 'row v3', 'row v7')",
         "INSERT INTO ins_table (id, v1, v2) VALUES (4, 'row v4', 'row v8')"
     )
@@ -122,14 +122,14 @@ def test_bulk_insert_as_sql_pg():
 def test_bulk_insert_as_sql_mssql():
     context = _test_bulk_insert('mssql', True)
     # SQL server requires IDENTITY_INSERT
-    # TODO: figure out if this is safe to enable for a table that 
+    # TODO: figure out if this is safe to enable for a table that
     # doesn't have an IDENTITY column
     context.assert_(
-        'SET IDENTITY_INSERT ins_table ON', 
-        "INSERT INTO ins_table (id, v1, v2) VALUES (1, 'row v1', 'row v5')", 
-        "INSERT INTO ins_table (id, v1, v2) VALUES (2, 'row v2', 'row v6')", 
-        "INSERT INTO ins_table (id, v1, v2) VALUES (3, 'row v3', 'row v7')", 
-        "INSERT INTO ins_table (id, v1, v2) VALUES (4, 'row v4', 'row v8')", 
+        'SET IDENTITY_INSERT ins_table ON',
+        "INSERT INTO ins_table (id, v1, v2) VALUES (1, 'row v1', 'row v5')",
+        "INSERT INTO ins_table (id, v1, v2) VALUES (2, 'row v2', 'row v6')",
+        "INSERT INTO ins_table (id, v1, v2) VALUES (3, 'row v3', 'row v7')",
+        "INSERT INTO ins_table (id, v1, v2) VALUES (4, 'row v4', 'row v8')",
         'SET IDENTITY_INSERT ins_table OFF'
     )
 
@@ -170,7 +170,7 @@ class RoundTripTest(TestCase):
         self.conn.close()
 
     def test_single_insert_round_trip(self):
-        self.op.bulk_insert(self.t1, 
+        self.op.bulk_insert(self.t1,
             [{'data':"d1", "x":"x1"}]
         )
 

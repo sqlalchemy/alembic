@@ -8,15 +8,15 @@ import sys
 import logging
 logging.fileConfig(options.config_file)
 
-# gather section names referring to different 
+# gather section names referring to different
 # databases.  These are named "engine1", "engine2"
 # in the sample .ini file.
 db_names = options.get_main_option('databases')
 
 # add your model's MetaData objects here
-# for 'autogenerate' support.  These must be set 
-# up to hold just those tables targeting a 
-# particular database. table.tometadata() may be 
+# for 'autogenerate' support.  These must be set
+# up to hold just those tables targeting a
+# particular database. table.tometadata() may be
 # helpful here in case a "copy" of
 # a MetaData is needed.
 # from myapp import mymodel
@@ -33,10 +33,10 @@ def run_migrations_offline():
     and not an Engine, though an Engine is acceptable
     here as well.  By skipping the Engine creation
     we don't even need a DBAPI to be available.
-    
+
     Calls to context.execute() here emit the given string to the
     script output.
-    
+
     """
     # for the --sql use case, run migrations for each URL into
     # individual files.
@@ -44,7 +44,7 @@ def run_migrations_offline():
     engines = {}
     for name in re.split(r',\s*', db_names):
         engines[name] = rec = {}
-        rec['url'] = context.config.get_section_option(name, 
+        rec['url'] = context.config.get_section_option(name,
                                             "sqlalchemy.url")
 
     for name, rec in engines.items():
@@ -62,7 +62,7 @@ def run_migrations_online():
 
     In this scenario we need to create an Engine
     and associate a connection with the context.
-    
+
     """
 
     # for the direct-to-DB use case, start a transaction on all

@@ -34,13 +34,13 @@ class AlterColumn(AlterTable):
 
 class ColumnNullable(AlterColumn):
     def __init__(self, name, column_name, nullable, **kw):
-        super(ColumnNullable, self).__init__(name, column_name, 
+        super(ColumnNullable, self).__init__(name, column_name,
                         **kw)
         self.nullable = nullable
 
 class ColumnType(AlterColumn):
     def __init__(self, name, column_name, type_, **kw):
-        super(ColumnType, self).__init__(name, column_name, 
+        super(ColumnType, self).__init__(name, column_name,
                         **kw)
         self.type_ = sqltypes.to_instance(type_)
 
@@ -115,7 +115,7 @@ def visit_column_default(element, compiler, **kw):
     return "%s %s %s" % (
         alter_table(compiler, element.table_name, element.schema),
         alter_column(compiler, element.column_name),
-        "SET DEFAULT %s" % 
+        "SET DEFAULT %s" %
             format_server_default(compiler, element.default)
         if element.default is not None
         else "DROP DEFAULT"

@@ -1,6 +1,6 @@
 """Pylons bootstrap environment.
 
-Place 'pylons_config_file' into alembic.ini, and the application will 
+Place 'pylons_config_file' into alembic.ini, and the application will
 be loaded from there.
 
 """
@@ -61,14 +61,14 @@ def run_migrations_online():
     # specify here how the engine is acquired
     # engine = meta.engine
     raise NotImplementedError("Please specify engine connectivity here")
-    
+
     if isinstance(engine, Engine):
         connection = engine.connect()
     else:
         raise Exception(
             'Expected engine instance got %s instead' % type(engine)
         )
-    
+
     context.configure(
                 connection=connection,
                 target_metadata=target_metadata

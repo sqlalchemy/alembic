@@ -18,12 +18,12 @@ _impls = {}
 class DefaultImpl(object):
     """Provide the entrypoint for major migration operations,
     including database-specific behavioral variances.
-    
+
     While individual SQL/DDL constructs already provide
     for database-specific implementations, variances here
     allow for entirely different sequences of operations
     to take place for a particular migration, such as
-    SQL Server's special 'IDENTITY INSERT' step for 
+    SQL Server's special 'IDENTITY INSERT' step for
     bulk inserts.
 
     """
@@ -33,7 +33,7 @@ class DefaultImpl(object):
     transactional_ddl = False
     command_terminator = ";"
 
-    def __init__(self, dialect, connection, as_sql, 
+    def __init__(self, dialect, connection, as_sql,
                     transactional_ddl, output_buffer,
                     context_opts):
         self.dialect = dialect
@@ -56,8 +56,8 @@ class DefaultImpl(object):
     def bind(self):
         return self.connection
 
-    def _exec(self, construct, execution_options=None, 
-                            multiparams=(), 
+    def _exec(self, construct, execution_options=None,
+                            multiparams=(),
                             params=util.immutabledict()):
         if isinstance(construct, basestring):
             construct = text(construct)
@@ -77,7 +77,7 @@ class DefaultImpl(object):
     def execute(self, sql, execution_options=None):
         self._exec(sql, execution_options)
 
-    def alter_column(self, table_name, column_name, 
+    def alter_column(self, table_name, column_name,
                         nullable=None,
                         server_default=False,
                         name=None,
@@ -89,7 +89,7 @@ class DefaultImpl(object):
                     ):
 
         if nullable is not None:
-            self._exec(base.ColumnNullable(table_name, column_name, 
+            self._exec(base.ColumnNullable(table_name, column_name,
                                 nullable, schema=schema,
                                 existing_type=existing_type,
                                 existing_server_default=existing_server_default,
@@ -134,7 +134,7 @@ class DefaultImpl(object):
         self._exec(schema.DropConstraint(const))
 
     def rename_table(self, old_table_name, new_table_name, schema=None):
-        self._exec(base.RenameTable(old_table_name, 
+        self._exec(base.RenameTable(old_table_name,
                     new_table_name, schema=schema))
 
     def create_table(self, table):
@@ -196,8 +196,8 @@ class DefaultImpl(object):
         else:
             return True
 
-    def compare_server_default(self, inspector_column, 
-                            metadata_column, 
+    def compare_server_default(self, inspector_column,
+                            metadata_column,
                             rendered_metadata_default):
         conn_col_default = inspector_column['default']
         return conn_col_default != rendered_metadata_default
@@ -205,28 +205,28 @@ class DefaultImpl(object):
     def start_migrations(self):
         """A hook called when :meth:`.EnvironmentContext.run_migrations`
         is called.
-        
+
         Implementations can set up per-migration-run state here.
-        
+
         """
 
     def emit_begin(self):
         """Emit the string ``BEGIN``, or the backend-specific
         equivalent, on the current connection context.
-        
+
         This is used in offline mode and typically
         via :meth:`.EnvironmentContext.begin_transaction`.
-        
+
         """
         self.static_output("BEGIN" + self.command_terminator)
 
     def emit_commit(self):
         """Emit the string ``COMMIT``, or the backend-specific
         equivalent, on the current connection context.
-        
+
         This is used in offline mode and typically
         via :meth:`.EnvironmentContext.begin_transaction`.
-        
+
         """
         self.static_output("COMMIT" + self.command_terminator)
 

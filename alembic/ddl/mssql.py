@@ -13,7 +13,7 @@ class MSSQLImpl(DefaultImpl):
     def __init__(self, *arg, **kw):
         super(MSSQLImpl, self).__init__(*arg, **kw)
         self.batch_separator = self.context_opts.get(
-                                "mssql_batch_separator", 
+                                "mssql_batch_separator",
                                 self.batch_separator)
 
     def _exec(self, construct, *args, **kw):
@@ -24,7 +24,7 @@ class MSSQLImpl(DefaultImpl):
     def emit_begin(self):
         self.static_output("BEGIN TRANSACTION" + self.command_terminator)
 
-    def alter_column(self, table_name, column_name, 
+    def alter_column(self, table_name, column_name,
                         nullable=None,
                         server_default=False,
                         name=None,
@@ -48,7 +48,7 @@ class MSSQLImpl(DefaultImpl):
                         "existing_type or a new type_ be passed.")
 
         super(MSSQLImpl, self).alter_column(
-                        table_name, column_name, 
+                        table_name, column_name,
                         nullable=nullable,
                         type_=type_,
                         schema=schema,
@@ -60,31 +60,31 @@ class MSSQLImpl(DefaultImpl):
             if existing_server_default is not False or \
                 server_default is None:
                 self._exec(
-                    _exec_drop_col_constraint(self, 
-                            table_name, column_name, 
+                    _exec_drop_col_constraint(self,
+                            table_name, column_name,
                             'sys.default_constraints')
                 )
             if server_default is not None:
                 super(MSSQLImpl, self).alter_column(
-                                table_name, column_name, 
+                                table_name, column_name,
                                 schema=schema,
                                 server_default=server_default)
 
         if name is not None:
             super(MSSQLImpl, self).alter_column(
-                                table_name, column_name, 
+                                table_name, column_name,
                                 schema=schema,
                                 name=name)
 
     def bulk_insert(self, table, rows):
         if self.as_sql:
             self._exec(
-                "SET IDENTITY_INSERT %s ON" % 
+                "SET IDENTITY_INSERT %s ON" %
                     self.dialect.identifier_preparer.format_table(table)
             )
             super(MSSQLImpl, self).bulk_insert(table, rows)
             self._exec(
-                "SET IDENTITY_INSERT %s OFF" % 
+                "SET IDENTITY_INSERT %s OFF" %
                     self.dialect.identifier_preparer.format_table(table)
             )
         else:
@@ -95,15 +95,15 @@ class MSSQLImpl(DefaultImpl):
         drop_default = kw.pop('mssql_drop_default', False)
         if drop_default:
             self._exec(
-                _exec_drop_col_constraint(self, 
-                        table_name, column, 
+                _exec_drop_col_constraint(self,
+                        table_name, column,
                         'sys.default_constraints')
             )
         drop_check = kw.pop('mssql_drop_check', False)
         if drop_check:
             self._exec(
-                _exec_drop_col_constraint(self, 
-                        table_name, column, 
+                _exec_drop_col_constraint(self,
+                        table_name, column,
                         'sys.check_constraints')
             )
         super(MSSQLImpl, self).drop_column(table_name, column)

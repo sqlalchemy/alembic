@@ -29,7 +29,7 @@ testing_config = ConfigParser.ConfigParser()
 testing_config.read(['test.cfg'])
 
 def sqlite_db():
-    # sqlite caches table pragma info 
+    # sqlite caches table pragma info
     # per connection, so create a new
     # engine for each assertion
     dir_ = os.path.join(staging_directory, 'scripts')
@@ -142,7 +142,7 @@ def op_fixture(dialect='default', as_sql=False):
             self.assertion = []
             self.dialect = dialect
             self.as_sql = as_sql
-            # TODO: this might need to 
+            # TODO: this might need to
             # be more like a real connection
             # as tests get more involved
             self.connection = None
@@ -164,7 +164,7 @@ def op_fixture(dialect='default', as_sql=False):
             self.as_sql = as_sql
 
         def assert_(self, *sql):
-            # TODO: make this more flexible about 
+            # TODO: make this more flexible about
             # whitespace and such
             eq_(self.impl.assertion, list(sql))
 

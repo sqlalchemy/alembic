@@ -14,7 +14,7 @@ class OracleImpl(DefaultImpl):
     def __init__(self, *arg, **kw):
         super(OracleImpl, self).__init__(*arg, **kw)
         self.batch_separator = self.context_opts.get(
-                                "oracle_batch_separator", 
+                                "oracle_batch_separator",
                                 self.batch_separator)
 
     def _exec(self, construct, *args, **kw):
@@ -64,7 +64,7 @@ def visit_column_default(element, compiler, **kw):
     return "%s %s %s" % (
         alter_table(compiler, element.table_name, element.schema),
         alter_column(compiler, element.column_name),
-        "DEFAULT %s" % 
+        "DEFAULT %s" %
             format_server_default(compiler, element.default)
         if element.default is not None
         else "DEFAULT NULL"

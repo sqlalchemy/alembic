@@ -34,7 +34,7 @@ from sqlalchemy.dialects.postgresql import ENUM
 from sqlalchemy import Column
 
 def upgrade():
-    op.create_table("sometable", 
+    op.create_table("sometable",
         Column("data", ENUM("one", "two", "three", name="pgenum"))
     )
 
@@ -54,7 +54,7 @@ from sqlalchemy import Column
 def upgrade():
     enum = ENUM("one", "two", "three", name="pgenum", create_type=False)
     enum.create(op.get_bind(), checkfirst=False)
-    op.create_table("sometable", 
+    op.create_table("sometable",
         Column("data", enum)
     )
 
@@ -107,7 +107,7 @@ class PostgresqlInlineLiteralTest(TestCase):
             )
         """)
         cls.bind.execute("""
-            insert into tab (col) values 
+            insert into tab (col) values
                 ('old data 1'),
                 ('old data 2.1'),
                 ('old data 3')
@@ -197,7 +197,7 @@ class PostgresqlDefaultCompareTest(TestCase):
         ctx = self.autogen_context['context']
         return ctx.impl.compare_server_default(
             cols[0],
-            col, 
+            col,
             rendered)
 
     def test_compare_current_timestamp(self):

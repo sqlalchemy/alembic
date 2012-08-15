@@ -10,40 +10,40 @@ import logging
 log = logging.getLogger(__name__)
 
 class MigrationContext(object):
-    """Represent the database state made available to a migration 
+    """Represent the database state made available to a migration
     script.
 
     :class:`.MigrationContext` is the front end to an actual
     database connection, or alternatively a string output
     stream given a particular database dialect,
     from an Alembic perspective.
-    
-    When inside the ``env.py`` script, the :class:`.MigrationContext` 
-    is available via the 
+
+    When inside the ``env.py`` script, the :class:`.MigrationContext`
+    is available via the
     :meth:`.EnvironmentContext.get_context` method,
     which is available at ``alembic.context``::
-    
+
         # from within env.py script
         from alembic import context
         migration_context = context.get_context()
-    
+
     For usage outside of an ``env.py`` script, such as for
     utility routines that want to check the current version
-    in the database, the :meth:`.MigrationContext.configure` 
+    in the database, the :meth:`.MigrationContext.configure`
     method to create new :class:`.MigrationContext` objects.
-    For example, to get at the current revision in the 
+    For example, to get at the current revision in the
     database using :meth:`.MigrationContext.get_current_revision`::
-    
+
         # in any application, outside of an env.py script
         from alembic.migration import MigrationContext
         from sqlalchemy import create_engine
-        
+
         engine = create_engine("postgresql://mydatabase")
         conn = engine.connect()
-        
+
         context = MigrationContext.configure(conn)
         current_rev = context.get_current_revision()
-    
+
     The above context can also be used to produce
     Alembic migration operations with an :class:`.Operations`
     instance::
@@ -73,7 +73,7 @@ class MigrationContext(object):
 
         self._user_compare_type = opts.get('compare_type', False)
         self._user_compare_server_default = opts.get(
-                                            'compare_server_default', 
+                                            'compare_server_default',
                                             False)
 
         version_table = opts.get('version_table', 'alembic_version')
@@ -91,8 +91,8 @@ class MigrationContext(object):
         log.info("Context impl %s.", self.impl.__class__.__name__)
         if self.as_sql:
             log.info("Generating static SQL")
-        log.info("Will assume %s DDL.", 
-                        "transactional" if self.impl.transactional_ddl 
+        log.info("Will assume %s DDL.",
+                        "transactional" if self.impl.transactional_ddl
                         else "non-transactional")
 
     @classmethod
@@ -103,22 +103,22 @@ class MigrationContext(object):
                 opts={},
     ):
         """Create a new :class:`.MigrationContext`.
-        
+
         This is a factory method usually called
         by :meth:`.EnvironmentContext.configure`.
-        
-        :param connection: a :class:`~sqlalchemy.engine.base.Connection` 
-         to use for SQL execution in "online" mode.  When present, 
+
+        :param connection: a :class:`~sqlalchemy.engine.base.Connection`
+         to use for SQL execution in "online" mode.  When present,
          is also used to determine the type of dialect in use.
-        :param url: a string database url, or a 
+        :param url: a string database url, or a
          :class:`sqlalchemy.engine.url.URL` object.
-         The type of dialect to be used will be derived from this if 
+         The type of dialect to be used will be derived from this if
          ``connection`` is not passed.
-        :param dialect_name: string name of a dialect, such as 
-         "postgresql", "mssql", etc.  The type of dialect to be used will be 
+        :param dialect_name: string name of a dialect, such as
+         "postgresql", "mssql", etc.  The type of dialect to be used will be
          derived from this if ``connection`` and ``url`` are not passed.
         :param opts: dictionary of options.  Most other options
-         accepted by :meth:`.EnvironmentContext.configure` are passed via 
+         accepted by :meth:`.EnvironmentContext.configure` are passed via
          this dictionary.
 
         """
@@ -139,11 +139,11 @@ class MigrationContext(object):
     def get_current_revision(self):
         """Return the current revision, usually that which is present
         in the ``alembic_version`` table in the database.
-        
+
         If this :class:`.MigrationContext` was configured in "offline"
-        mode, that is with ``as_sql=True``, the ``starting_rev`` 
+        mode, that is with ``as_sql=True``, the ``starting_rev``
         parameter is returned instead, if any.
-        
+
         """
         if self.as_sql:
             return self._start_from_rev
@@ -173,25 +173,25 @@ class MigrationContext(object):
                     )
 
     def run_migrations(self, **kw):
-        """Run the migration scripts established for this :class:`.MigrationContext`, 
+        """Run the migration scripts established for this :class:`.MigrationContext`,
         if any.
-        
+
         The commands in :mod:`alembic.command` will set up a function
         that is ultimately passed to the :class:`.MigrationContext`
-        as the ``fn`` argument.  This function represents the "work" 
+        as the ``fn`` argument.  This function represents the "work"
         that will be done when :meth:`.MigrationContext.run_migrations`
         is called, typically from within the ``env.py`` script of the
         migration environment.  The "work function" then provides an iterable
-        of version callables and other version information which 
+        of version callables and other version information which
         in the case of the ``upgrade`` or ``downgrade`` commands are the
         list of version scripts to invoke.  Other commands yield nothing,
         in the case that a command wants to run some other operation
         against the database such as the ``current`` or ``stamp`` commands.
-        
-        :param \**kw: keyword arguments here will be passed to each 
+
+        :param \**kw: keyword arguments here will be passed to each
          migration callable, that is the ``upgrade()`` or ``downgrade()``
          method within revision scripts.
-         
+
         """
         current_rev = rev = False
         self.impl.start_migrations()
@@ -222,9 +222,9 @@ class MigrationContext(object):
 
     def execute(self, sql):
         """Execute a SQL construct or string statement.
-        
+
         The underlying execution mechanics are used, that is
-        if this is "offline mode" the SQL is written to the 
+        if this is "offline mode" the SQL is written to the
         output buffer, otherwise the SQL is emitted on
         the current SQLAlchemy connection.
 
@@ -235,7 +235,7 @@ class MigrationContext(object):
         def dump(construct, *multiparams, **params):
             self.impl._exec(construct)
 
-        return create_engine("%s://" % self.dialect.name, 
+        return create_engine("%s://" % self.dialect.name,
                         strategy="mock", executor=dump)
 
     @property
@@ -244,13 +244,13 @@ class MigrationContext(object):
 
         In online mode, this is an instance of
         :class:`sqlalchemy.engine.base.Connection`, and is suitable
-        for ad-hoc execution of any kind of usage described 
-        in :ref:`sqlexpression_toplevel` as well as 
+        for ad-hoc execution of any kind of usage described
+        in :ref:`sqlexpression_toplevel` as well as
         for usage with the :meth:`sqlalchemy.schema.Table.create`
         and :meth:`sqlalchemy.schema.MetaData.create_all` methods
         of :class:`~sqlalchemy.schema.Table`, :class:`~sqlalchemy.schema.MetaData`.
 
-        Note that when "standard output" mode is enabled, 
+        Note that when "standard output" mode is enabled,
         this bind will be a "mock" connection handler that cannot
         return results and is only appropriate for a very limited
         subset of commands.
@@ -274,11 +274,11 @@ class MigrationContext(object):
                 return user_value
 
         return self.impl.compare_type(
-                                    inspector_column, 
+                                    inspector_column,
                                     metadata_column)
 
-    def _compare_server_default(self, inspector_column, 
-                            metadata_column, 
+    def _compare_server_default(self, inspector_column,
+                            metadata_column,
                             rendered_metadata_default):
 
         if self._user_compare_server_default is False:
@@ -297,7 +297,7 @@ class MigrationContext(object):
                 return user_value
 
         return self.impl.compare_server_default(
-                                inspector_column, 
-                                metadata_column, 
+                                inspector_column,
+                                metadata_column,
                                 rendered_metadata_default)
 

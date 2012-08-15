@@ -6,8 +6,8 @@ class PostgresqlImpl(DefaultImpl):
     __dialect__ = 'postgresql'
     transactional_ddl = True
 
-    def compare_server_default(self, inspector_column, 
-                            metadata_column, 
+    def compare_server_default(self, inspector_column,
+                            metadata_column,
                             rendered_metadata_default):
 
         # don't do defaults for SERIAL columns
