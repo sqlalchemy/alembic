@@ -1,5 +1,6 @@
 from alembic.ddl.impl import DefaultImpl
-from alembic.ddl.base import ColumnNullable, ColumnName, ColumnDefault, ColumnType, AlterColumn
+from alembic.ddl.base import ColumnNullable, ColumnName, ColumnDefault, \
+            ColumnType, AlterColumn
 from sqlalchemy.ext.compiler import compiles
 from alembic.ddl.base import alter_table
 from alembic import util
@@ -26,12 +27,15 @@ class MySQLImpl(DefaultImpl):
                 table_name, column_name,
                 schema=schema,
                 newname=name if name is not None else column_name,
-                nullable =nullable if nullable is not None else
-                                existing_nullable if existing_nullable is not None
+                nullable=nullable if nullable is not None else
+                                existing_nullable
+                                if existing_nullable is not None
                                 else True,
                 type_=type_ if type_ is not None else existing_type,
-                default=server_default if server_default is not False else existing_server_default,
-                autoincrement=autoincrement if autoincrement is not None else existing_autoincrement
+                default=server_default if server_default is not False
+                                            else existing_server_default,
+                autoincrement=autoincrement if autoincrement is not None
+                                            else existing_autoincrement
             )
         )
 
@@ -81,13 +85,14 @@ def _mysql_alter_column(element, compiler, **kw):
         ),
     )
 
-def render_value(compiler, expr):
+def _render_value(compiler, expr):
     if isinstance(expr, basestring):
         return "'%s'" % expr
     else:
         return compiler.sql_compiler.process(expr)
 
-def _mysql_colspec(compiler, name, nullable, server_default, type_, autoincrement):
+def _mysql_colspec(compiler, name, nullable, server_default, type_,
+                                        autoincrement):
     spec = "%s %s %s" % (
         name,
         compiler.dialect.type_compiler.process(type_),
@@ -96,7 +101,7 @@ def _mysql_colspec(compiler, name, nullable, server_default, type_, autoincremen
     if autoincrement is not None:
         spec += " AUTO_INCREMENT"
     if server_default != False:
-        spec += " DEFAULT %s" % render_value(compiler, server_default)
+        spec += " DEFAULT %s" % _render_value(compiler, server_default)
 
     return spec
 

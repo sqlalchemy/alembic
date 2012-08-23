@@ -203,9 +203,10 @@ class Operations(object):
         :param type_: Optional; a :class:`~sqlalchemy.types.TypeEngine`
          type object to specify a change to the column's type.
          For SQLAlchemy types that also indicate a constraint (i.e.
-         :class:`~sqlalchemy.types.Boolean`,
-         :class:`~sqlalchemy.types.Enum`),
+         :class:`~sqlalchemy.types.Boolean`, :class:`~sqlalchemy.types.Enum`),
          the constraint is also generated.
+        :param autoincrement: set the ``AUTO_INCREMENT`` flag of the column;
+         currently understood by the MySQL dialect.
         :param existing_type: Optional; a
          :class:`~sqlalchemy.types.TypeEngine`
          type object to specify the previous type.   This
@@ -213,8 +214,7 @@ class Operations(object):
          don't otherwise specify a new type, as well as for
          when nullability is being changed on a SQL Server
          column.  It is also used if the type is a so-called
-         SQLlchemy "schema" type which
-         may define a constraint (i.e.
+         SQLlchemy "schema" type which may define a constraint (i.e.
          :class:`~sqlalchemy.types.Boolean`,
          :class:`~sqlalchemy.types.Enum`),
          so that the constraint can be dropped.
@@ -225,7 +225,9 @@ class Operations(object):
         :param existing_nullable: Optional; the existing nullability
          of the column.  Required on MySQL if the existing nullability
          is not being changed; else MySQL sets this to NULL.
-        :param existing_autoincrement: Optional; the 
+        :param existing_autoincrement: Optional; the existing autoincrement
+         of the column.  Used for MySQL's system of altering a column
+         that specifies ``AUTO_INCREMENT``.
         """
 
         compiler = self.impl.dialect.statement_compiler(
