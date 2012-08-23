@@ -98,7 +98,7 @@ def _mysql_colspec(compiler, name, nullable, server_default, type_,
         compiler.dialect.type_compiler.process(type_),
         "NULL" if nullable else "NOT NULL"
     )
-    if autoincrement is not None:
+    if autoincrement:
         spec += " AUTO_INCREMENT"
     if server_default != False:
         spec += " DEFAULT %s" % _render_value(compiler, server_default)

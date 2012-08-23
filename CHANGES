@@ -4,6 +4,10 @@
   didn't work if the server_default was a generated
   SQL expression.  Courtesy Moriyoshi Koizumi.
 
+- [feature] Added support for alteration of MySQL
+  columns that have AUTO_INCREMENT, as well as enabling
+  this flag.  Courtesy Moriyoshi Koizumi.
+
 0.3.6
 =====
 - [feature] Added include_symbol option to

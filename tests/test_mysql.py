@@ -45,6 +45,15 @@ def test_col_add_autoincrement():
         'ALTER TABLE t1 CHANGE c1 c2 INTEGER NULL AUTO_INCREMENT'
     )
 
+def test_col_remove_autoincrement():
+    context = op_fixture('mysql')
+    op.alter_column('t1', 'c1', name="c2", existing_type=Integer,
+                                existing_autoincrement=True,
+                                autoincrement=False)
+    context.assert_(
+        'ALTER TABLE t1 CHANGE c1 c2 INTEGER NULL'
+    )
+
 def test_col_nullable():
     context = op_fixture('mysql')
     op.alter_column('t1', 'c1', nullable=False, existing_type=Integer)
