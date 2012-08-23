@@ -83,11 +83,14 @@ class DefaultImpl(object):
                         name=None,
                         type_=None,
                         schema=None,
+                        autoincrement=None,
                         existing_type=None,
                         existing_server_default=None,
-                        existing_nullable=None
+                        existing_nullable=None,
+                        existing_autoincrement=None
                     ):
-
+        if autoincrement is not None or existing_autoincrement is not None:
+            util.warn("nautoincrement and existing_autoincrement only make sense for MySQL")
         if nullable is not None:
             self._exec(base.ColumnNullable(table_name, column_name,
                                 nullable, schema=schema,

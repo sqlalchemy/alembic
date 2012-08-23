@@ -30,9 +30,11 @@ class MSSQLImpl(DefaultImpl):
                         name=None,
                         type_=None,
                         schema=None,
+                        autoincrement=None,
                         existing_type=None,
                         existing_server_default=None,
-                        existing_nullable=None
+                        existing_nullable=None,
+                        existing_autoincrement=None
                     ):
 
         if nullable is not None and existing_type is None:
@@ -52,8 +54,10 @@ class MSSQLImpl(DefaultImpl):
                         nullable=nullable,
                         type_=type_,
                         schema=schema,
+                        autoincrement=autoincrement,
                         existing_type=existing_type,
-                        existing_nullable=existing_nullable
+                        existing_nullable=existing_nullable,
+                        existing_autoincrement=existing_autoincrement
         )
 
         if server_default is not False:

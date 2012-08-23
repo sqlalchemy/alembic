@@ -15,9 +15,11 @@ class MySQLImpl(DefaultImpl):
                         name=None,
                         type_=None,
                         schema=None,
+                        autoincrement=None,
                         existing_type=None,
                         existing_server_default=None,
-                        existing_nullable=None
+                        existing_nullable=None,
+                        existing_autoincrement=None
                     ):
         self._exec(
             MySQLAlterColumn(
@@ -29,6 +31,7 @@ class MySQLImpl(DefaultImpl):
                                 else True,
                 type_=type_ if type_ is not None else existing_type,
                 default=server_default if server_default is not False else existing_server_default,
+                autoincrement=autoincrement if autoincrement is not None else existing_autoincrement
             )
         )
 
@@ -37,12 +40,14 @@ class MySQLAlterColumn(AlterColumn):
                         newname=None,
                         type_=None,
                         nullable=None,
-                        default=False):
+                        default=False,
+                        autoincrement=None):
         super(AlterColumn, self).__init__(name, schema=schema)
         self.column_name = column_name
         self.nullable = nullable
         self.newname = newname
         self.default = default
+        self.autoincrement = autoincrement
         if type_ is None:
             raise util.CommandError(
                 "All MySQL ALTER COLUMN operations "
@@ -71,7 +76,8 @@ def _mysql_alter_column(element, compiler, **kw):
             name=element.newname,
             nullable=element.nullable,
             server_default=element.default,
-            type_=element.type_
+            type_=element.type_,
+            autoincrement=element.autoincrement
         ),
     )
 
@@ -81,12 +87,14 @@ def render_value(compiler, expr):
     else:
         return compiler.sql_compiler.process(expr)
 
-def _mysql_colspec(compiler, name, nullable, server_default, type_):
+def _mysql_colspec(compiler, name, nullable, server_default, type_, autoincrement):
     spec = "%s %s %s" % (
         name,
         compiler.dialect.type_compiler.process(type_),
         "NULL" if nullable else "NOT NULL"
     )
+    if autoincrement is not None:
+        spec += " AUTO_INCREMENT"
     if server_default != False:
         spec += " DEFAULT %s" % render_value(compiler, server_default)
 

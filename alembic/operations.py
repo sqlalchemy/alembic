@@ -156,9 +156,11 @@ class Operations(object):
                         server_default=False,
                         name=None,
                         type_=None,
+                        autoincrement=None,
                         existing_type=None,
                         existing_server_default=False,
                         existing_nullable=None,
+                        existing_autoincrement=None
     ):
         """Issue an "alter column" instruction using the
         current migration context.
@@ -223,6 +225,7 @@ class Operations(object):
         :param existing_nullable: Optional; the existing nullability
          of the column.  Required on MySQL if the existing nullability
          is not being changed; else MySQL sets this to NULL.
+        :param existing_autoincrement: Optional; the 
         """
 
         compiler = self.impl.dialect.statement_compiler(
@@ -247,9 +250,11 @@ class Operations(object):
             server_default=server_default,
             name=name,
             type_=type_,
+            autoincrement=autoincrement,
             existing_type=existing_type,
             existing_server_default=existing_server_default,
             existing_nullable=existing_nullable,
+            existing_autoincrement=existing_autoincrement
         )
 
         if type_:
