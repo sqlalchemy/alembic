@@ -1,3 +1,9 @@
+0.3.7
+=====
+- [bug] Fixed MySQL rendering for server_default which
+  didn't work if the server_default was a generated
+  SQL expression.  Courtesy Moriyoshi Koizumi.
+
 0.3.6
 =====
 - [feature] Added include_symbol option to

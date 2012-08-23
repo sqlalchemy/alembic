@@ -1,7 +1,8 @@
 from tests import op_fixture, assert_raises_message
 from alembic import op, util
 from sqlalchemy import Integer, Column, ForeignKey, \
-            UniqueConstraint, Table, MetaData, String
+            UniqueConstraint, Table, MetaData, String,\
+            func
 from sqlalchemy.sql import table
 
 def test_rename_column():
@@ -16,6 +17,16 @@ def test_rename_column_serv_default():
     op.alter_column('t1', 'c1', name="c2", existing_type=Integer, existing_server_default="q")
     context.assert_(
         "ALTER TABLE t1 CHANGE c1 c2 INTEGER NULL DEFAULT 'q'"
+    )
+
+def test_rename_column_serv_compiled_default():
+    context = op_fixture('mysql')
+    op.alter_column('t1', 'c1', name="c2", existing_type=Integer,
+            existing_server_default=func.utc_thing(func.current_timestamp()))
+    # this is not a valid MySQL default but the point is to just
+    # test SQL expression rendering
+    context.assert_(
+        "ALTER TABLE t1 CHANGE c1 c2 INTEGER NULL DEFAULT utc_thing(CURRENT_TIMESTAMP)"
     )
 
 def test_col_nullable():
