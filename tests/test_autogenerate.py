@@ -2,7 +2,7 @@ from sqlalchemy import MetaData, Column, Table, Integer, String, Text, \
     Numeric, CHAR, ForeignKey, DATETIME, \
     TypeDecorator, CheckConstraint, Unicode, Enum,\
     UniqueConstraint, Boolean
-from sqlalchemy.types import NULLTYPE
+from sqlalchemy.types import NULLTYPE, TIMESTAMP
 from sqlalchemy.dialects import mysql
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.sql import and_, column, literal_column
@@ -533,6 +533,20 @@ class AutogenRenderTest(TestCase):
                 "nextval('group_to_perm_group_to_perm_id_seq'::regclass)",
                     self.autogen_context),
             '"nextval(\'group_to_perm_group_to_perm_id_seq\'::regclass)"'
+        )
+
+    def test_render_col_with_server_default(self):
+        c = Column('updated_at', TIMESTAMP(),
+                server_default='TIMEZONE("utc", CURRENT_TIMESTAMP)',
+                nullable=False)
+        result = autogenerate._render_column(
+                    c, self.autogen_context
+                )
+        eq_(
+            result,
+            'sa.Column(\'updated_at\', sa.TIMESTAMP(), '
+                'server_default=\'TIMEZONE("utc", CURRENT_TIMESTAMP)\', '
+                'nullable=False)'
         )
 
     def test_render_modify_type(self):
