@@ -1,7 +1,7 @@
 from alembic import util
 from alembic.ddl import impl
 from sqlalchemy.types import NULLTYPE, Integer
-from sqlalchemy import schema, sql
+from sqlalchemy import schema as sa_schema, sql
 from contextlib import contextmanager
 import alembic
 
@@ -53,18 +53,18 @@ class Operations(object):
     def _foreign_key_constraint(self, name, source, referent,
                                     local_cols, remote_cols,
                                     onupdate=None, ondelete=None):
-        m = schema.MetaData()
+        m = sa_schema.MetaData()
         if source == referent:
             t1_cols = local_cols + remote_cols
         else:
             t1_cols = local_cols
-            schema.Table(referent, m,
-                *[schema.Column(n, NULLTYPE) for n in remote_cols])
+            sa_schema.Table(referent, m,
+                *[sa_schema.Column(n, NULLTYPE) for n in remote_cols])
 
-        t1 = schema.Table(source, m,
-                *[schema.Column(n, NULLTYPE) for n in t1_cols])
+        t1 = sa_schema.Table(source, m,
+                *[sa_schema.Column(n, NULLTYPE) for n in t1_cols])
 
-        f = schema.ForeignKeyConstraint(local_cols,
+        f = sa_schema.ForeignKeyConstraint(local_cols,
                                             ["%s.%s" % (referent, n)
                                             for n in remote_cols],
                                             name=name,
@@ -76,37 +76,37 @@ class Operations(object):
         return f
 
     def _unique_constraint(self, name, source, local_cols, **kw):
-        t = schema.Table(source, schema.MetaData(),
-                    *[schema.Column(n, NULLTYPE) for n in local_cols])
+        t = sa_schema.Table(source, sa_schema.MetaData(),
+                    *[sa_schema.Column(n, NULLTYPE) for n in local_cols])
         kw['name'] = name
-        uq = schema.UniqueConstraint(*[t.c[n] for n in local_cols], **kw)
+        uq = sa_schema.UniqueConstraint(*[t.c[n] for n in local_cols], **kw)
         # TODO: need event tests to ensure the event
         # is fired off here
         t.append_constraint(uq)
         return uq
 
     def _check_constraint(self, name, source, condition, **kw):
-        t = schema.Table(source, schema.MetaData(),
-                    schema.Column('x', Integer))
-        ck = schema.CheckConstraint(condition, name=name, **kw)
+        t = sa_schema.Table(source, sa_schema.MetaData(),
+                    sa_schema.Column('x', Integer))
+        ck = sa_schema.CheckConstraint(condition, name=name, **kw)
         t.append_constraint(ck)
         return ck
 
     def _table(self, name, *columns, **kw):
-        m = schema.MetaData()
-        t = schema.Table(name, m, *columns, **kw)
+        m = sa_schema.MetaData()
+        t = sa_schema.Table(name, m, *columns, **kw)
         for f in t.foreign_keys:
             self._ensure_table_for_fk(m, f)
         return t
 
     def _column(self, name, type_, **kw):
-        return schema.Column(name, type_, **kw)
+        return sa_schema.Column(name, type_, **kw)
 
     def _index(self, name, tablename, columns, **kw):
-        t = schema.Table(tablename or 'no_table', schema.MetaData(),
-            *[schema.Column(n, NULLTYPE) for n in columns]
+        t = sa_schema.Table(tablename or 'no_table', sa_schema.MetaData(),
+            *[sa_schema.Column(n, NULLTYPE) for n in columns]
         )
-        return schema.Index(name, *list(t.c), **kw)
+        return sa_schema.Index(name, *list(t.c), **kw)
 
     def _ensure_table_for_fk(self, metadata, fk):
         """create a placeholder Table object for the referent of a
@@ -123,11 +123,11 @@ class Operations(object):
                 tname = table_key
                 sname = None
             if table_key not in metadata.tables:
-                rel_t = schema.Table(tname, metadata, schema=sname)
+                rel_t = sa_schema.Table(tname, metadata, schema=sname)
             else:
                 rel_t = metadata.tables[table_key]
             if cname not in rel_t.c:
-                rel_t.append_column(schema.Column(cname, NULLTYPE))
+                rel_t.append_column(sa_schema.Column(cname, NULLTYPE))
 
     def get_context(self):
         """Return the :class:`.MigrationContext` object that's
@@ -235,13 +235,13 @@ class Operations(object):
                             None
                         )
         def _count_constraint(constraint):
-            return not isinstance(constraint, schema.PrimaryKeyConstraint) and \
+            return not isinstance(constraint, sa_schema.PrimaryKeyConstraint) and \
                 (not constraint._create_rule or
                     constraint._create_rule(compiler))
 
         if existing_type and type_:
             t = self._table(table_name,
-                        schema.Column(column_name, existing_type)
+                        sa_schema.Column(column_name, existing_type)
                     )
             for constraint in t.constraints:
                 if _count_constraint(constraint):
@@ -260,7 +260,7 @@ class Operations(object):
         )
 
         if type_:
-            t = self._table(table_name, schema.Column(column_name, type_))
+            t = self._table(table_name, sa_schema.Column(column_name, type_))
             for constraint in t.constraints:
                 if _count_constraint(constraint):
                     self.impl.add_constraint(constraint)
@@ -317,7 +317,7 @@ class Operations(object):
             column
         )
         for constraint in t.constraints:
-            if not isinstance(constraint, schema.PrimaryKeyConstraint):
+            if not isinstance(constraint, sa_schema.PrimaryKeyConstraint):
                 self.impl.add_constraint(constraint)
 
     def drop_column(self, table_name, column_name, **kw):
@@ -594,12 +594,12 @@ class Operations(object):
         """
         t = self._table(tablename)
         types = {
-            'foreignkey':lambda name:schema.ForeignKeyConstraint(
+            'foreignkey':lambda name:sa_schema.ForeignKeyConstraint(
                                 [], [], name=name),
-            'primary':schema.PrimaryKeyConstraint,
-            'unique':schema.UniqueConstraint,
-            'check':lambda name:schema.CheckConstraint("", name=name),
-            None:schema.Constraint
+            'primary':sa_schema.PrimaryKeyConstraint,
+            'unique':sa_schema.UniqueConstraint,
+            'check':lambda name:sa_schema.CheckConstraint("", name=name),
+            None:sa_schema.Constraint
         }
         try:
             const = types[type]
