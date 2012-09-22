@@ -23,10 +23,22 @@ def test_add_column():
     op.add_column('t1', Column('c1', Integer, nullable=False))
     context.assert_("ALTER TABLE t1 ADD COLUMN c1 INTEGER NOT NULL")
 
+def test_add_column_schema():
+    context = op_fixture()
+    op.add_column('t1', Column('c1', Integer, nullable=False), schema="foo")
+    context.assert_("ALTER TABLE foo.t1 ADD COLUMN c1 INTEGER NOT NULL")
+
 def test_add_column_with_default():
     context = op_fixture()
     op.add_column('t1', Column('c1', Integer, nullable=False, server_default="12"))
     context.assert_("ALTER TABLE t1 ADD COLUMN c1 INTEGER DEFAULT '12' NOT NULL")
+
+def test_add_column_schema_with_default():
+    context = op_fixture()
+    op.add_column('t1',
+            Column('c1', Integer, nullable=False, server_default="12"),
+            schema='foo')
+    context.assert_("ALTER TABLE foo.t1 ADD COLUMN c1 INTEGER DEFAULT '12' NOT NULL")
 
 def test_add_column_fk():
     context = op_fixture()
@@ -36,6 +48,16 @@ def test_add_column_fk():
         "ALTER TABLE t1 ADD FOREIGN KEY(c1) REFERENCES c2 (id)"
     )
 
+def test_add_column_schema_fk():
+    context = op_fixture()
+    op.add_column('t1',
+            Column('c1', Integer, ForeignKey('c2.id'), nullable=False),
+            schema='foo')
+    context.assert_(
+        "ALTER TABLE foo.t1 ADD COLUMN c1 INTEGER NOT NULL",
+        "ALTER TABLE foo.t1 ADD FOREIGN KEY(c1) REFERENCES c2 (id)"
+    )
+
 def test_add_column_schema_type():
     """Test that a schema type generates its constraints...."""
     context = op_fixture()
@@ -43,6 +65,15 @@ def test_add_column_schema_type():
     context.assert_(
         'ALTER TABLE t1 ADD COLUMN c1 BOOLEAN NOT NULL',
         'ALTER TABLE t1 ADD CHECK (c1 IN (0, 1))'
+    )
+
+def test_add_column_schema_schema_type():
+    """Test that a schema type generates its constraints...."""
+    context = op_fixture()
+    op.add_column('t1', Column('c1', Boolean, nullable=False), schema='foo')
+    context.assert_(
+        'ALTER TABLE foo.t1 ADD COLUMN c1 BOOLEAN NOT NULL',
+        'ALTER TABLE foo.t1 ADD CHECK (c1 IN (0, 1))'
     )
 
 def test_add_column_schema_type_checks_rule():
@@ -62,6 +93,16 @@ def test_add_column_fk_self_referential():
         "ALTER TABLE t1 ADD FOREIGN KEY(c1) REFERENCES t1 (c2)"
     )
 
+def test_add_column_schema_fk_self_referential():
+    context = op_fixture()
+    op.add_column('t1',
+            Column('c1', Integer, ForeignKey('foo.t1.c2'), nullable=False),
+            schema='foo')
+    context.assert_(
+        "ALTER TABLE foo.t1 ADD COLUMN c1 INTEGER NOT NULL",
+        "ALTER TABLE foo.t1 ADD FOREIGN KEY(c1) REFERENCES foo.t1 (c2)"
+    )
+
 def test_add_column_fk_schema():
     context = op_fixture()
     op.add_column('t1', Column('c1', Integer, ForeignKey('remote.t2.c2'), nullable=False))
@@ -70,10 +111,25 @@ def test_add_column_fk_schema():
     'ALTER TABLE t1 ADD FOREIGN KEY(c1) REFERENCES remote.t2 (c2)'
     )
 
+def test_add_column_schema_fk_schema():
+    context = op_fixture()
+    op.add_column('t1',
+            Column('c1', Integer, ForeignKey('remote.t2.c2'), nullable=False),
+            schema='foo')
+    context.assert_(
+    'ALTER TABLE foo.t1 ADD COLUMN c1 INTEGER NOT NULL',
+    'ALTER TABLE foo.t1 ADD FOREIGN KEY(c1) REFERENCES remote.t2 (c2)'
+    )
+
 def test_drop_column():
     context = op_fixture()
     op.drop_column('t1', 'c1')
     context.assert_("ALTER TABLE t1 DROP COLUMN c1")
+
+def test_drop_column_schema():
+    context = op_fixture()
+    op.drop_column('t1', 'c1', schema='foo')
+    context.assert_("ALTER TABLE foo.t1 DROP COLUMN c1")
 
 def test_alter_column_nullable():
     context = op_fixture()
@@ -82,6 +138,15 @@ def test_alter_column_nullable():
         # TODO: not sure if this is PG only or standard
         # SQL
         "ALTER TABLE t ALTER COLUMN c DROP NOT NULL"
+    )
+
+def test_alter_column_schema_nullable():
+    context = op_fixture()
+    op.alter_column("t", "c", nullable=True, schema='foo')
+    context.assert_(
+        # TODO: not sure if this is PG only or standard
+        # SQL
+        "ALTER TABLE foo.t ALTER COLUMN c DROP NOT NULL"
     )
 
 def test_alter_column_not_nullable():
@@ -93,11 +158,27 @@ def test_alter_column_not_nullable():
         "ALTER TABLE t ALTER COLUMN c SET NOT NULL"
     )
 
+def test_alter_column_schema_not_nullable():
+    context = op_fixture()
+    op.alter_column("t", "c", nullable=False, schema='foo')
+    context.assert_(
+        # TODO: not sure if this is PG only or standard
+        # SQL
+        "ALTER TABLE foo.t ALTER COLUMN c SET NOT NULL"
+    )
+
 def test_alter_column_rename():
     context = op_fixture()
     op.alter_column("t", "c", name="x")
     context.assert_(
         "ALTER TABLE t RENAME c TO x"
+    )
+
+def test_alter_column_schema_rename():
+    context = op_fixture()
+    op.alter_column("t", "c", name="x", schema='foo')
+    context.assert_(
+        "ALTER TABLE foo.t RENAME c TO x"
     )
 
 def test_alter_column_type():
@@ -107,6 +188,13 @@ def test_alter_column_type():
         'ALTER TABLE t ALTER COLUMN c TYPE VARCHAR(50)'
     )
 
+def test_alter_column_schema_type():
+    context = op_fixture()
+    op.alter_column("t", "c", type_=String(50), schema='foo')
+    context.assert_(
+        'ALTER TABLE foo.t ALTER COLUMN c TYPE VARCHAR(50)'
+    )
+
 def test_alter_column_set_default():
     context = op_fixture()
     op.alter_column("t", "c", server_default="q")
@@ -114,11 +202,28 @@ def test_alter_column_set_default():
         "ALTER TABLE t ALTER COLUMN c SET DEFAULT 'q'"
     )
 
+def test_alter_column_schema_set_default():
+    context = op_fixture()
+    op.alter_column("t", "c", server_default="q", schema='foo')
+    context.assert_(
+        "ALTER TABLE foo.t ALTER COLUMN c SET DEFAULT 'q'"
+    )
+
 def test_alter_column_set_compiled_default():
     context = op_fixture()
-    op.alter_column("t", "c", server_default=func.utc_thing(func.current_timestamp()))
+    op.alter_column("t", "c",
+            server_default=func.utc_thing(func.current_timestamp()))
     context.assert_(
         "ALTER TABLE t ALTER COLUMN c SET DEFAULT utc_thing(CURRENT_TIMESTAMP)"
+    )
+
+def test_alter_column_schema_set_compiled_default():
+    context = op_fixture()
+    op.alter_column("t", "c",
+            server_default=func.utc_thing(func.current_timestamp()),
+            schema='foo')
+    context.assert_(
+        "ALTER TABLE foo.t ALTER COLUMN c SET DEFAULT utc_thing(CURRENT_TIMESTAMP)"
     )
 
 def test_alter_column_drop_default():
@@ -126,6 +231,13 @@ def test_alter_column_drop_default():
     op.alter_column("t", "c", server_default=None)
     context.assert_(
         'ALTER TABLE t ALTER COLUMN c DROP DEFAULT'
+    )
+
+def test_alter_column_schema_drop_default():
+    context = op_fixture()
+    op.alter_column("t", "c", server_default=None, schema='foo')
+    context.assert_(
+        'ALTER TABLE foo.t ALTER COLUMN c DROP DEFAULT'
     )
 
 
@@ -137,12 +249,28 @@ def test_alter_column_schema_type_unnamed():
         'ALTER TABLE t ADD CHECK (c IN (0, 1))'
     )
 
+def test_alter_column_schema_schema_type_unnamed():
+    context = op_fixture('mssql')
+    op.alter_column("t", "c", type_=Boolean(), schema='foo')
+    context.assert_(
+        'ALTER TABLE foo.t ALTER COLUMN c BIT',
+        'ALTER TABLE foo.t ADD CHECK (c IN (0, 1))'
+    )
+
 def test_alter_column_schema_type_named():
     context = op_fixture('mssql')
     op.alter_column("t", "c", type_=Boolean(name="xyz"))
     context.assert_(
         'ALTER TABLE t ALTER COLUMN c BIT',
         'ALTER TABLE t ADD CONSTRAINT xyz CHECK (c IN (0, 1))'
+    )
+
+def test_alter_column_schema_schema_type_named():
+    context = op_fixture('mssql')
+    op.alter_column("t", "c", type_=Boolean(name="xyz"), schema='foo')
+    context.assert_(
+        'ALTER TABLE foo.t ALTER COLUMN c BIT',
+        'ALTER TABLE foo.t ADD CONSTRAINT xyz CHECK (c IN (0, 1))'
     )
 
 def test_alter_column_schema_type_existing_type():
@@ -153,6 +281,14 @@ def test_alter_column_schema_type_existing_type():
         'ALTER TABLE t ALTER COLUMN c VARCHAR(10)'
     )
 
+def test_alter_column_schema_schema_type_existing_type():
+    context = op_fixture('mssql')
+    op.alter_column("t", "c", type_=String(10), existing_type=Boolean(name="xyz"), schema='foo')
+    context.assert_(
+        'ALTER TABLE foo.t DROP CONSTRAINT xyz',
+        'ALTER TABLE foo.t ALTER COLUMN c VARCHAR(10)'
+    )
+
 def test_alter_column_schema_type_existing_type_no_const():
     context = op_fixture('postgresql')
     op.alter_column("t", "c", type_=String(10), existing_type=Boolean())
@@ -160,11 +296,25 @@ def test_alter_column_schema_type_existing_type_no_const():
         'ALTER TABLE t ALTER COLUMN c TYPE VARCHAR(10)'
     )
 
+def test_alter_column_schema_schema_type_existing_type_no_const():
+    context = op_fixture('postgresql')
+    op.alter_column("t", "c", type_=String(10), existing_type=Boolean(), schema='foo')
+    context.assert_(
+        'ALTER TABLE foo.t ALTER COLUMN c TYPE VARCHAR(10)'
+    )
+
 def test_alter_column_schema_type_existing_type_no_new_type():
     context = op_fixture('postgresql')
     op.alter_column("t", "c", nullable=False, existing_type=Boolean())
     context.assert_(
         'ALTER TABLE t ALTER COLUMN c SET NOT NULL'
+    )
+
+def test_alter_column_schema_schema_type_existing_type_no_new_type():
+    context = op_fixture('postgresql')
+    op.alter_column("t", "c", nullable=False, existing_type=Boolean(), schema='foo')
+    context.assert_(
+        'ALTER TABLE foo.t ALTER COLUMN c SET NOT NULL'
     )
 
 def test_add_foreign_key():
@@ -266,6 +416,13 @@ def test_drop_table():
     op.drop_table('tb_test')
     context.assert_(
         "DROP TABLE tb_test"
+    )
+
+def test_drop_table_schema():
+    context = op_fixture()
+    op.drop_table('tb_test', schema='foo')
+    context.assert_(
+        "DROP TABLE foo.tb_test"
     )
 
 def test_create_table_selfref():

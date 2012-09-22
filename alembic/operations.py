@@ -160,7 +160,8 @@ class Operations(object):
                         existing_type=None,
                         existing_server_default=False,
                         existing_nullable=None,
-                        existing_autoincrement=None
+                        existing_autoincrement=None,
+                        schema=None
     ):
         """Issue an "alter column" instruction using the
         current migration context.
@@ -228,6 +229,7 @@ class Operations(object):
         :param existing_autoincrement: Optional; the existing autoincrement
          of the column.  Used for MySQL's system of altering a column
          that specifies ``AUTO_INCREMENT``.
+        :param schema: Optional, name of schema to operate within.
         """
 
         compiler = self.impl.dialect.statement_compiler(
@@ -241,7 +243,8 @@ class Operations(object):
 
         if existing_type and type_:
             t = self._table(table_name,
-                        sa_schema.Column(column_name, existing_type)
+                        sa_schema.Column(column_name, existing_type),
+                        schema=schema
                     )
             for constraint in t.constraints:
                 if _count_constraint(constraint):
@@ -252,6 +255,7 @@ class Operations(object):
             server_default=server_default,
             name=name,
             type_=type_,
+            schema=schema,
             autoincrement=autoincrement,
             existing_type=existing_type,
             existing_server_default=existing_server_default,
@@ -260,12 +264,15 @@ class Operations(object):
         )
 
         if type_:
-            t = self._table(table_name, sa_schema.Column(column_name, type_))
+            t = self._table(table_name,
+                        sa_schema.Column(column_name, type_),
+                        schema=schema
+                    )
             for constraint in t.constraints:
                 if _count_constraint(constraint):
                     self.impl.add_constraint(constraint)
 
-    def add_column(self, table_name, column):
+    def add_column(self, table_name, column, schema=None):
         """Issue an "add column" instruction using the current
         migration context.
 
@@ -308,13 +315,15 @@ class Operations(object):
         :param table_name: String name of the parent table.
         :param column: a :class:`sqlalchemy.schema.Column` object
          representing the new column.
+        :param schema: Optional, name of schema to operate within.
 
         """
 
-        t = self._table(table_name, column)
+        t = self._table(table_name, column, schema=schema)
         self.impl.add_column(
             table_name,
-            column
+            column,
+            schema=schema
         )
         for constraint in t.constraints:
             if not isinstance(constraint, sa_schema.PrimaryKeyConstraint):
@@ -534,7 +543,7 @@ class Operations(object):
             self._table(name, *columns, **kw)
         )
 
-    def drop_table(self, name):
+    def drop_table(self, name, **kw):
         """Issue a "drop table" instruction using the current
         migration context.
 
@@ -543,9 +552,13 @@ class Operations(object):
 
             drop_table("accounts")
 
+        :param name: Name of the table
+        :param \**kw: Other keyword arguments are passed to the underlying
+         :class:`.Table` object created for the command.
+
         """
         self.impl.drop_table(
-            self._table(name)
+            self._table(name, **kw)
         )
 
     def create_index(self, name, tablename, *columns, **kw):
