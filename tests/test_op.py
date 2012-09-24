@@ -283,7 +283,8 @@ def test_alter_column_schema_type_existing_type():
 
 def test_alter_column_schema_schema_type_existing_type():
     context = op_fixture('mssql')
-    op.alter_column("t", "c", type_=String(10), existing_type=Boolean(name="xyz"), schema='foo')
+    op.alter_column("t", "c", type_=String(10),
+            existing_type=Boolean(name="xyz"), schema='foo')
     context.assert_(
         'ALTER TABLE foo.t DROP CONSTRAINT xyz',
         'ALTER TABLE foo.t ALTER COLUMN c VARCHAR(10)'
@@ -298,7 +299,8 @@ def test_alter_column_schema_type_existing_type_no_const():
 
 def test_alter_column_schema_schema_type_existing_type_no_const():
     context = op_fixture('postgresql')
-    op.alter_column("t", "c", type_=String(10), existing_type=Boolean(), schema='foo')
+    op.alter_column("t", "c", type_=String(10), existing_type=Boolean(),
+            schema='foo')
     context.assert_(
         'ALTER TABLE foo.t ALTER COLUMN c TYPE VARCHAR(10)'
     )
@@ -312,7 +314,8 @@ def test_alter_column_schema_type_existing_type_no_new_type():
 
 def test_alter_column_schema_schema_type_existing_type_no_new_type():
     context = op_fixture('postgresql')
-    op.alter_column("t", "c", nullable=False, existing_type=Boolean(), schema='foo')
+    op.alter_column("t", "c", nullable=False, existing_type=Boolean(),
+            schema='foo')
     context.assert_(
         'ALTER TABLE foo.t ALTER COLUMN c SET NOT NULL'
     )
@@ -324,6 +327,15 @@ def test_add_foreign_key():
     context.assert_(
         "ALTER TABLE t1 ADD CONSTRAINT fk_test FOREIGN KEY(foo, bar) "
             "REFERENCES t2 (bat, hoho)"
+    )
+
+def test_add_foreign_key_schema():
+    context = op_fixture()
+    op.create_foreign_key('fk_test', 'foo.t1', 'bar.t2',
+                    ['foo', 'bar'], ['bat', 'hoho'])
+    context.assert_(
+        "ALTER TABLE foo.t1 ADD CONSTRAINT fk_test FOREIGN KEY(foo, bar) "
+            "REFERENCES bar.t2 (bat, hoho)"
     )
 
 def test_add_foreign_key_onupdate():
@@ -366,11 +378,30 @@ def test_add_check_constraint():
         "CHECK (len(name) > 5)"
     )
 
+def test_add_check_constraint_schema():
+    context = op_fixture()
+    op.create_check_constraint(
+        "ck_user_name_len",
+        "foo.user_table",
+        func.len(column('name')) > 5
+    )
+    context.assert_(
+        "ALTER TABLE foo.user_table ADD CONSTRAINT ck_user_name_len "
+        "CHECK (len(name) > 5)"
+    )
+
 def test_add_unique_constraint():
     context = op_fixture()
     op.create_unique_constraint('uk_test', 't1', ['foo', 'bar'])
     context.assert_(
         "ALTER TABLE t1 ADD CONSTRAINT uk_test UNIQUE (foo, bar)"
+    )
+
+def test_add_unique_constraint_schema():
+    context = op_fixture()
+    op.create_unique_constraint('uk_test', 'foo.t1', ['foo', 'bar'])
+    context.assert_(
+        "ALTER TABLE foo.t1 ADD CONSTRAINT uk_test UNIQUE (foo, bar)"
     )
 
 def test_add_unique_constraint_auto_cols():
@@ -396,6 +427,13 @@ def test_drop_constraint():
         "ALTER TABLE t1 DROP CONSTRAINT foo_bar_bat"
     )
 
+def test_drop_constraint_schema():
+    context = op_fixture()
+    op.drop_constraint('foo_bar_bat', 't1', schema='foo')
+    context.assert_(
+        "ALTER TABLE foo.t1 DROP CONSTRAINT foo_bar_bat"
+    )
+
 def test_create_index():
     context = op_fixture()
     op.create_index('ik_test', 't1', ['foo', 'bar'])
@@ -403,12 +441,25 @@ def test_create_index():
         "CREATE INDEX ik_test ON t1 (foo, bar)"
     )
 
+def test_create_index_schema():
+    context = op_fixture()
+    op.create_index('ik_test', 't1', ['foo', 'bar'], schema='foo')
+    context.assert_(
+        "CREATE INDEX ik_test ON foo.t1 (foo, bar)"
+    )
 
 def test_drop_index():
     context = op_fixture()
     op.drop_index('ik_test')
     context.assert_(
         "DROP INDEX ik_test"
+    )
+
+def test_drop_index_schema():
+    context = op_fixture()
+    op.drop_index('ik_test', schema='foo')
+    context.assert_(
+        "DROP INDEX foo.ik_test"
     )
 
 def test_drop_table():

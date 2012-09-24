@@ -58,11 +58,15 @@ class Operations(object):
             t1_cols = local_cols + remote_cols
         else:
             t1_cols = local_cols
-            sa_schema.Table(referent, m,
-                *[sa_schema.Column(n, NULLTYPE) for n in remote_cols])
+            sname, tname = self._parse_table_key(referent)
+            sa_schema.Table(tname, m,
+                    *[sa_schema.Column(n, NULLTYPE) for n in remote_cols],
+                    schema=sname)
 
-        t1 = sa_schema.Table(source, m,
-                *[sa_schema.Column(n, NULLTYPE) for n in t1_cols])
+        sname, tname = self._parse_table_key(source)
+        t1 = sa_schema.Table(tname, m,
+                *[sa_schema.Column(n, NULLTYPE) for n in t1_cols],
+                schema=sname)
 
         f = sa_schema.ForeignKeyConstraint(local_cols,
                                             ["%s.%s" % (referent, n)
@@ -76,8 +80,10 @@ class Operations(object):
         return f
 
     def _unique_constraint(self, name, source, local_cols, **kw):
-        t = sa_schema.Table(source, sa_schema.MetaData(),
-                    *[sa_schema.Column(n, NULLTYPE) for n in local_cols])
+        sname, tname = self._parse_table_key(source)
+        t = sa_schema.Table(tname, sa_schema.MetaData(),
+                    *[sa_schema.Column(n, NULLTYPE) for n in local_cols],
+                    schema=sname)
         kw['name'] = name
         uq = sa_schema.UniqueConstraint(*[t.c[n] for n in local_cols], **kw)
         # TODO: need event tests to ensure the event
@@ -86,8 +92,9 @@ class Operations(object):
         return uq
 
     def _check_constraint(self, name, source, condition, **kw):
-        t = sa_schema.Table(source, sa_schema.MetaData(),
-                    sa_schema.Column('x', Integer))
+        sname, tname = self._parse_table_key(source)
+        t = sa_schema.Table(tname, sa_schema.MetaData(),
+                    sa_schema.Column('x', Integer), schema=sname)
         ck = sa_schema.CheckConstraint(condition, name=name, **kw)
         t.append_constraint(ck)
         return ck
@@ -102,11 +109,22 @@ class Operations(object):
     def _column(self, name, type_, **kw):
         return sa_schema.Column(name, type_, **kw)
 
-    def _index(self, name, tablename, columns, **kw):
+    def _index(self, name, tablename, columns, schema=None, **kw):
         t = sa_schema.Table(tablename or 'no_table', sa_schema.MetaData(),
-            *[sa_schema.Column(n, NULLTYPE) for n in columns]
+            *[sa_schema.Column(n, NULLTYPE) for n in columns],
+            schema=schema
         )
         return sa_schema.Index(name, *list(t.c), **kw)
+
+    def _parse_table_key(self, table_key):
+        if '.' in table_key:
+            tokens = table_key.split('.')
+            sname = ".".join(tokens[0:-1])
+            tname = tokens[-1]
+        else:
+            tname = table_key
+            sname = None
+        return (sname, tname)
 
     def _ensure_table_for_fk(self, metadata, fk):
         """create a placeholder Table object for the referent of a
@@ -115,13 +133,7 @@ class Operations(object):
         """
         if isinstance(fk._colspec, basestring):
             table_key, cname = fk._colspec.rsplit('.', 1)
-            if '.' in table_key:
-                tokens = table_key.split('.')
-                sname = ".".join(tokens[0:-1])
-                tname = tokens[-1]
-            else:
-                tname = table_key
-                sname = None
+            sname, tname = self._parse_table_key(table_key)
             if table_key not in metadata.tables:
                 rel_t = sa_schema.Table(tname, metadata, schema=sname)
             else:
@@ -388,10 +400,10 @@ class Operations(object):
          ``name`` here can be ``None``, as the event listener will
          apply the name to the constraint object when it is associated
          with the table.
-        :param source: String name of the source table.  Currently
-         there is no support for dotted schema names.
-        :param referent: String name of the destination table. Currently
-         there is no support for dotted schema names.
+        :param source: String name of the source table. Dotted schema names
+         are supported.
+        :param referent: String name of the destination table. Dotted schema
+         names are supported.
         :param local_cols: a list of string column names in the
          source table.
         :param remote_cols: a list of string column names in the
@@ -435,8 +447,8 @@ class Operations(object):
          ``name`` here can be ``None``, as the event listener will
          apply the name to the constraint object when it is associated
          with the table.
-        :param source: String name of the source table.  Currently
-         there is no support for dotted schema names.
+        :param source: String name of the source table. Dotted schema names are
+         supported.
         :param local_cols: a list of string column names in the
          source table.
         :param deferrable: optional bool. If set, emit DEFERRABLE or NOT DEFERRABLE when
@@ -478,8 +490,8 @@ class Operations(object):
          ``name`` here can be ``None``, as the event listener will
          apply the name to the constraint object when it is associated
          with the table.
-        :param source: String name of the source table.  Currently
-         there is no support for dotted schema names.
+        :param source: String name of the source table. Dotted schema names
+         are supported.
         :param condition: SQL expression that's the condition of the constraint.
          Can be a string or SQLAlchemy expression language structure.
         :param deferrable: optional bool. If set, emit DEFERRABLE or NOT DEFERRABLE when
@@ -561,7 +573,7 @@ class Operations(object):
             self._table(name, **kw)
         )
 
-    def create_index(self, name, tablename, *columns, **kw):
+    def create_index(self, name, tablename, columns, schema=None, **kw):
         """Issue a "create index" instruction using the current
         migration context.
 
@@ -570,13 +582,19 @@ class Operations(object):
             from alembic import op
             op.create_index('ik_test', 't1', ['foo', 'bar'])
 
+        :param name: name of the index.
+        :param tablename: name of the owning table.
+        :param columns: a list of string column names in the
+         table.
+        :param schema: Optional, name of schema to operate within.
+
         """
 
         self.impl.create_index(
-            self._index(name, tablename, *columns, **kw)
+            self._index(name, tablename, columns, schema=schema, **kw)
         )
 
-    def drop_index(self, name, tablename=None):
+    def drop_index(self, name, tablename=None, schema=None):
         """Issue a "drop index" instruction using the current
         migration context.
 
@@ -585,15 +603,19 @@ class Operations(object):
 
             drop_index("accounts")
 
+        :param name: name of the index.
         :param tablename: name of the owning table.  Some
          backends such as Microsoft SQL Server require this.
+        :param schema: Optional, name of schema to operate within.
 
         """
         # need a dummy column name here since SQLAlchemy
         # 0.7.6 and further raises on Index with no columns
-        self.impl.drop_index(self._index(name, tablename, ['x']))
+        self.impl.drop_index(
+            self._index(name, tablename, ['x'], schema=schema)
+        )
 
-    def drop_constraint(self, name, tablename, type=None):
+    def drop_constraint(self, name, tablename, type=None, schema=None):
         """Drop a constraint of the given name, typically via DROP CONSTRAINT.
 
         :param name: name of the constraint.
@@ -604,8 +626,10 @@ class Operations(object):
         .. versionadded:: 0.3.6 'primary' qualfier to enable
            dropping of MySQL primary key constraints.
 
+        :param schema: Optional, name of schema to operate within.
+
         """
-        t = self._table(tablename)
+        t = self._table(tablename, schema=schema)
         types = {
             'foreignkey':lambda name:sa_schema.ForeignKeyConstraint(
                                 [], [], name=name),
