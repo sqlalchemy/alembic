@@ -331,11 +331,12 @@ def test_add_foreign_key():
 
 def test_add_foreign_key_schema():
     context = op_fixture()
-    op.create_foreign_key('fk_test', 'foo.t1', 'bar.t2',
-                    ['foo', 'bar'], ['bat', 'hoho'])
+    op.create_foreign_key('fk_test', 't1', 't2',
+                    ['foo', 'bar'], ['bat', 'hoho'],
+                   source_schema='foo2', referent_schema='bar2')
     context.assert_(
-        "ALTER TABLE foo.t1 ADD CONSTRAINT fk_test FOREIGN KEY(foo, bar) "
-            "REFERENCES bar.t2 (bat, hoho)"
+        "ALTER TABLE foo2.t1 ADD CONSTRAINT fk_test FOREIGN KEY(foo, bar) "
+            "REFERENCES bar2.t2 (bat, hoho)"
     )
 
 def test_add_foreign_key_onupdate():
@@ -382,8 +383,9 @@ def test_add_check_constraint_schema():
     context = op_fixture()
     op.create_check_constraint(
         "ck_user_name_len",
-        "foo.user_table",
-        func.len(column('name')) > 5
+        "user_table",
+        func.len(column('name')) > 5,
+        schema='foo'
     )
     context.assert_(
         "ALTER TABLE foo.user_table ADD CONSTRAINT ck_user_name_len "
@@ -399,7 +401,7 @@ def test_add_unique_constraint():
 
 def test_add_unique_constraint_schema():
     context = op_fixture()
-    op.create_unique_constraint('uk_test', 'foo.t1', ['foo', 'bar'])
+    op.create_unique_constraint('uk_test', 't1', ['foo', 'bar'], schema='foo')
     context.assert_(
         "ALTER TABLE foo.t1 ADD CONSTRAINT uk_test UNIQUE (foo, bar)"
     )

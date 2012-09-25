@@ -52,24 +52,25 @@ class Operations(object):
 
     def _foreign_key_constraint(self, name, source, referent,
                                     local_cols, remote_cols,
-                                    onupdate=None, ondelete=None):
+                                    onupdate=None, ondelete=None,
+                                    source_schema=None, referent_schema=None):
         m = sa_schema.MetaData()
         if source == referent:
             t1_cols = local_cols + remote_cols
         else:
             t1_cols = local_cols
-            sname, tname = self._parse_table_key(referent)
-            sa_schema.Table(tname, m,
+            sa_schema.Table(referent, m,
                     *[sa_schema.Column(n, NULLTYPE) for n in remote_cols],
-                    schema=sname)
+                    schema=referent_schema)
 
-        sname, tname = self._parse_table_key(source)
-        t1 = sa_schema.Table(tname, m,
+        t1 = sa_schema.Table(source, m,
                 *[sa_schema.Column(n, NULLTYPE) for n in t1_cols],
-                schema=sname)
+                schema=source_schema)
 
+        tname = "%s.%s" % (referent_schema, referent) if referent_schema \
+                else referent
         f = sa_schema.ForeignKeyConstraint(local_cols,
-                                            ["%s.%s" % (referent, n)
+                                            ["%s.%s" % (tname, n)
                                             for n in remote_cols],
                                             name=name,
                                             onupdate=onupdate,
@@ -79,11 +80,10 @@ class Operations(object):
 
         return f
 
-    def _unique_constraint(self, name, source, local_cols, **kw):
-        sname, tname = self._parse_table_key(source)
-        t = sa_schema.Table(tname, sa_schema.MetaData(),
+    def _unique_constraint(self, name, source, local_cols, schema=None, **kw):
+        t = sa_schema.Table(source, sa_schema.MetaData(),
                     *[sa_schema.Column(n, NULLTYPE) for n in local_cols],
-                    schema=sname)
+                    schema=schema)
         kw['name'] = name
         uq = sa_schema.UniqueConstraint(*[t.c[n] for n in local_cols], **kw)
         # TODO: need event tests to ensure the event
@@ -91,10 +91,9 @@ class Operations(object):
         t.append_constraint(uq)
         return uq
 
-    def _check_constraint(self, name, source, condition, **kw):
-        sname, tname = self._parse_table_key(source)
-        t = sa_schema.Table(tname, sa_schema.MetaData(),
-                    sa_schema.Column('x', Integer), schema=sname)
+    def _check_constraint(self, name, source, condition, schema=None, **kw):
+        t = sa_schema.Table(source, sa_schema.MetaData(),
+                    sa_schema.Column('x', Integer), schema=schema)
         ck = sa_schema.CheckConstraint(condition, name=name, **kw)
         t.append_constraint(ck)
         return ck
@@ -374,7 +373,8 @@ class Operations(object):
 
 
     def create_foreign_key(self, name, source, referent, local_cols,
-                           remote_cols, onupdate=None, ondelete=None):
+                           remote_cols, onupdate=None, ondelete=None,
+                           source_schema=None, referent_schema=None):
         """Issue a "create foreign key" instruction using the
         current migration context.
 
@@ -400,10 +400,8 @@ class Operations(object):
          ``name`` here can be ``None``, as the event listener will
          apply the name to the constraint object when it is associated
          with the table.
-        :param source: String name of the source table. Dotted schema names
-         are supported.
-        :param referent: String name of the destination table. Dotted schema
-         names are supported.
+        :param source: String name of the source table.
+        :param referent: String name of the destination table.
         :param local_cols: a list of string column names in the
          source table.
         :param remote_cols: a list of string column names in the
@@ -414,16 +412,21 @@ class Operations(object):
         :param ondelete: Optional string. If set, emit ON DELETE <value> when
          issuing DDL for this constraint. Typical values include CASCADE,
          DELETE and RESTRICT.
+        :param source_schema: Optional schema name of the source table.
+        :param referent_schema: Optional schema name of the destination table.
 
         """
 
         self.impl.add_constraint(
                     self._foreign_key_constraint(name, source, referent,
                             local_cols, remote_cols,
-                            onupdate=onupdate, ondelete=ondelete)
+                            onupdate=onupdate, ondelete=ondelete,
+                            source_schema=source_schema,
+                            referent_schema=referent_schema)
                 )
 
-    def create_unique_constraint(self, name, source, local_cols, **kw):
+    def create_unique_constraint(self, name, source, local_cols,
+                                 schema=None, **kw):
         """Issue a "create unique constraint" instruction using the
         current migration context.
 
@@ -455,15 +458,17 @@ class Operations(object):
          issuing DDL for this constraint.
         :param initially: optional string. If set, emit INITIALLY <value> when issuing DDL
          for this constraint.
+        :param schema: Optional schema name of the source table.
 
         """
 
         self.impl.add_constraint(
                     self._unique_constraint(name, source, local_cols,
-                        **kw)
+                        schema=schema, **kw)
                 )
 
-    def create_check_constraint(self, name, source, condition, **kw):
+    def create_check_constraint(self, name, source, condition,
+                                schema=None, **kw):
         """Issue a "create check constraint" instruction using the
         current migration context.
 
@@ -490,18 +495,18 @@ class Operations(object):
          ``name`` here can be ``None``, as the event listener will
          apply the name to the constraint object when it is associated
          with the table.
-        :param source: String name of the source table. Dotted schema names
-         are supported.
+        :param source: String name of the source table.
         :param condition: SQL expression that's the condition of the constraint.
          Can be a string or SQLAlchemy expression language structure.
         :param deferrable: optional bool. If set, emit DEFERRABLE or NOT DEFERRABLE when
          issuing DDL for this constraint.
         :param initially: optional string. If set, emit INITIALLY <value> when issuing DDL
          for this constraint.
+        :param schema: Optional schema name of the source table.
 
         """
         self.impl.add_constraint(
-            self._check_constraint(name, source, condition, **kw)
+            self._check_constraint(name, source, condition, schema=schema, **kw)
         )
 
     def create_table(self, name, *columns, **kw):
