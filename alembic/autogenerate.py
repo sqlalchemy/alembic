@@ -4,7 +4,7 @@ automatically."""
 from alembic import util
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.util import OrderedSet
-from sqlalchemy import schema, types as sqltypes
+from sqlalchemy import schema as sa_schema, types as sqltypes
 import re
 
 import logging
@@ -172,10 +172,10 @@ def _compare_tables(conn_table_names, metadata_table_names,
         diffs.append(("add_table", metadata.tables[tname]))
         log.info("Detected added table %r", tname)
 
-    removal_metadata = schema.MetaData()
+    removal_metadata = sa_schema.MetaData()
     for tname in conn_table_names.difference(metadata_table_names):
         exists = tname in removal_metadata.tables
-        t = schema.Table(tname, removal_metadata)
+        t = sa_schema.Table(tname, removal_metadata)
         if not exists:
             inspector.reflecttable(t, None)
         diffs.append(("remove_table", t))
@@ -221,7 +221,7 @@ def _compare_columns(tname, conn_table, metadata_table,
 
     for cname in conn_col_names.difference(metadata_col_names):
         diffs.append(
-            ("remove_column", tname, schema.Column(
+            ("remove_column", tname, sa_schema.Column(
                 cname,
                 conn_table[cname]['type'],
                 nullable=conn_table[cname]['nullable'],
@@ -514,7 +514,7 @@ def _render_column(column, autogen_context):
     }
 
 def _render_server_default(default, autogen_context):
-    if isinstance(default, schema.DefaultClause):
+    if isinstance(default, sa_schema.DefaultClause):
         if isinstance(default.arg, basestring):
             default = default.arg
         else:
@@ -608,8 +608,8 @@ def _render_unique_constraint(constraint, autogen_context):
         "prefix": _sqlalchemy_autogenerate_prefix(autogen_context)
         }
 _constraint_renderers = {
-    schema.PrimaryKeyConstraint: _render_primary_key,
-    schema.ForeignKeyConstraint: _render_foreign_key,
-    schema.UniqueConstraint: _render_unique_constraint,
-    schema.CheckConstraint: _render_check_constraint
+    sa_schema.PrimaryKeyConstraint: _render_primary_key,
+    sa_schema.ForeignKeyConstraint: _render_foreign_key,
+    sa_schema.UniqueConstraint: _render_unique_constraint,
+    sa_schema.CheckConstraint: _render_check_constraint
 }
