@@ -73,12 +73,15 @@ def compare_metadata(context, metadata):
             Table(u'bar', MetaData(bind=None),
                 Column(u'data', VARCHAR(), table=<bar>), schema=None)),
           ( 'add_column',
+            None,
             'foo',
             Column('data', Integer(), table=<foo>)),
           ( 'remove_column',
+            None,
             'foo',
             Column(u'old_data', VARCHAR(), table=None)),
           [ ( 'modify_nullable',
+              None,
               'foo',
               u'x',
               { 'existing_server_default': None,
@@ -150,53 +153,64 @@ def _produce_net_changes(connection, metadata, diffs, autogen_context,
                             include_symbol=None):
     inspector = Inspector.from_engine(connection)
     # TODO: not hardcode alembic_version here ?
-    conn_table_names = set(inspector.get_table_names()).\
-                            difference(['alembic_version'])
+    conn_table_names = set()
+    schemas = inspector.get_schema_names() or [None]
+    for s in schemas:
+        if s == 'information_schema':
+            # ignore postgres own information_schema
+            continue
+        tables = set(inspector.get_table_names(schema=s)).\
+                difference(['alembic_version'])
+        conn_table_names.update(zip([s] * len(tables), tables))
 
-
-    metadata_table_names = OrderedSet([table.name
+    metadata_table_names = OrderedSet([(table.schema, table.name)
                                 for table in metadata.sorted_tables])
 
     if include_symbol:
-        conn_table_names = set(name for name in conn_table_names
-                            if include_symbol(name))
-        metadata_table_names = OrderedSet(name for name in metadata_table_names
-                                if include_symbol(name))
+        conn_table_names = set((s, name)
+                                for s, name in conn_table_names
+                                if include_symbol(name, schema=s))
+        metadata_table_names = OrderedSet((s, name)
+                                for s, name in metadata_table_names
+                                if include_symbol(name, schema=s))
 
     _compare_tables(conn_table_names, metadata_table_names,
                     inspector, metadata, diffs, autogen_context)
 
 def _compare_tables(conn_table_names, metadata_table_names,
                     inspector, metadata, diffs, autogen_context):
-    for tname in metadata_table_names.difference(conn_table_names):
-        diffs.append(("add_table", metadata.tables[tname]))
-        log.info("Detected added table %r", tname)
+    for s, tname in metadata_table_names.difference(conn_table_names):
+        name = '%s.%s' % (s, tname) if s else tname
+        diffs.append(("add_table", metadata.tables[name]))
+        log.info("Detected added table %r", name)
 
     removal_metadata = sa_schema.MetaData()
-    for tname in conn_table_names.difference(metadata_table_names):
-        exists = tname in removal_metadata.tables
-        t = sa_schema.Table(tname, removal_metadata)
+    for s, tname in conn_table_names.difference(metadata_table_names):
+        name = '%s.%s' % (s, tname) if s else tname
+        exists = name in removal_metadata.tables
+        t = sa_schema.Table(tname, removal_metadata, schema=s)
         if not exists:
             inspector.reflecttable(t, None)
         diffs.append(("remove_table", t))
-        log.info("Detected removed table %r", tname)
+        log.info("Detected removed table %r", name)
 
     existing_tables = conn_table_names.intersection(metadata_table_names)
 
     conn_column_info = dict(
-        (tname,
+        ((s, tname),
             dict(
                 (rec["name"], rec)
-                for rec in inspector.get_columns(tname)
+                for rec in inspector.get_columns(tname, schema=s)
             )
         )
-        for tname in existing_tables
+        for s, tname in existing_tables
     )
 
-    for tname in sorted(existing_tables):
-        _compare_columns(tname,
-                conn_column_info[tname],
-                metadata.tables[tname],
+    for s, tname in sorted(existing_tables):
+        name = '%s.%s' % (s, tname) if s else tname
+        _compare_columns(s, tname,
+                conn_column_info[(s, tname)],
+                metadata.tables[name],
                 diffs, autogen_context)
 
     # TODO:
@@ -207,44 +221,45 @@ def _compare_tables(conn_table_names, metadata_table_names,
 ###################################################
 # element comparison
 
-def _compare_columns(tname, conn_table, metadata_table,
+def _compare_columns(schema, tname, conn_table, metadata_table,
                                 diffs, autogen_context):
+    name = '%s.%s' % (schema, tname) if schema else tname
     metadata_cols_by_name = dict((c.name, c) for c in metadata_table.c)
     conn_col_names = set(conn_table)
     metadata_col_names = set(metadata_cols_by_name)
 
     for cname in metadata_col_names.difference(conn_col_names):
         diffs.append(
-            ("add_column", tname, metadata_cols_by_name[cname])
+            ("add_column", schema, tname, metadata_cols_by_name[cname])
         )
-        log.info("Detected added column '%s.%s'", tname, cname)
+        log.info("Detected added column '%s.%s'", name, cname)
 
     for cname in conn_col_names.difference(metadata_col_names):
         diffs.append(
-            ("remove_column", tname, sa_schema.Column(
+            ("remove_column", schema, tname, sa_schema.Column(
                 cname,
                 conn_table[cname]['type'],
                 nullable=conn_table[cname]['nullable'],
                 server_default=conn_table[cname]['default']
             ))
         )
-        log.info("Detected removed column '%s.%s'", tname, cname)
+        log.info("Detected removed column '%s.%s'", name, cname)
 
     for colname in metadata_col_names.intersection(conn_col_names):
         metadata_col = metadata_table.c[colname]
         conn_col = conn_table[colname]
         col_diff = []
-        _compare_type(tname, colname,
+        _compare_type(schema, tname, colname,
             conn_col,
             metadata_col,
             col_diff, autogen_context
         )
-        _compare_nullable(tname, colname,
+        _compare_nullable(schema, tname, colname,
             conn_col,
             metadata_col.nullable,
             col_diff, autogen_context
         )
-        _compare_server_default(tname, colname,
+        _compare_server_default(schema, tname, colname,
             conn_col,
             metadata_col,
             col_diff, autogen_context
@@ -252,13 +267,13 @@ def _compare_columns(tname, conn_table, metadata_table,
         if col_diff:
             diffs.append(col_diff)
 
-def _compare_nullable(tname, cname, conn_col,
+def _compare_nullable(schema, tname, cname, conn_col,
                             metadata_col_nullable, diffs,
                             autogen_context):
     conn_col_nullable = conn_col['nullable']
     if conn_col_nullable is not metadata_col_nullable:
         diffs.append(
-            ("modify_nullable", tname, cname,
+            ("modify_nullable", schema, tname, cname,
                 {
                     "existing_type": conn_col['type'],
                     "existing_server_default": conn_col['default'],
@@ -272,7 +287,7 @@ def _compare_nullable(tname, cname, conn_col,
             cname
         )
 
-def _compare_type(tname, cname, conn_col,
+def _compare_type(schema, tname, cname, conn_col,
                             metadata_col, diffs,
                             autogen_context):
 
@@ -292,7 +307,7 @@ def _compare_type(tname, cname, conn_col,
     if isdiff:
 
         diffs.append(
-            ("modify_type", tname, cname,
+            ("modify_type", schema, tname, cname,
                     {
                         "existing_nullable": conn_col['nullable'],
                         "existing_server_default": conn_col['default'],
@@ -304,7 +319,7 @@ def _compare_type(tname, cname, conn_col,
             conn_type, metadata_type, tname, cname
         )
 
-def _compare_server_default(tname, cname, conn_col, metadata_col,
+def _compare_server_default(schema, tname, cname, conn_col, metadata_col,
                                 diffs, autogen_context):
 
     metadata_default = metadata_col.server_default
@@ -320,7 +335,7 @@ def _compare_server_default(tname, cname, conn_col, metadata_col,
     if isdiff:
         conn_col_default = conn_col['default']
         diffs.append(
-            ("modify_default", tname, cname,
+            ("modify_default", schema, tname, cname,
                 {
                     "existing_nullable": conn_col['nullable'],
                     "existing_type": conn_col['type'],
@@ -382,7 +397,7 @@ def _invoke_adddrop_command(updown, args, autogen_context):
         return cmd_callables[0](*cmd_args)
 
 def _invoke_modify_command(updown, args, autogen_context):
-    tname, cname = args[0][1:3]
+    sname, tname, cname = args[0][1:4]
     kw = {}
 
     _arg_struct = {
@@ -391,7 +406,7 @@ def _invoke_modify_command(updown, args, autogen_context):
         "modify_default": ("existing_server_default", "server_default"),
     }
     for diff in args:
-        diff_kw = diff[3]
+        diff_kw = diff[4]
         for arg in ("existing_type", \
                 "existing_nullable", \
                 "existing_server_default"):
@@ -409,13 +424,13 @@ def _invoke_modify_command(updown, args, autogen_context):
         kw.pop("existing_nullable", None)
     if "server_default" in kw:
         kw.pop("existing_server_default", None)
-    return _modify_col(tname, cname, autogen_context, **kw)
+    return _modify_col(tname, cname, autogen_context, schema=sname, **kw)
 
 ###################################################
 # render python
 
 def _add_table(table, autogen_context):
-    return "%(prefix)screate_table(%(tablename)r,\n%(args)s\n)" % {
+    text = "%(prefix)screate_table(%(tablename)r,\n%(args)s" % {
         'tablename': table.name,
         'prefix': _alembic_autogenerate_prefix(autogen_context),
         'args': ',\n'.join(
@@ -425,28 +440,44 @@ def _add_table(table, autogen_context):
                     table.constraints]
                 if rcons is not None
             ])
-        ),
+        )
     }
+    if table.schema:
+        text += ",\nschema=%r" % table.schema
+    text += "\n)"
+    return text
 
 def _drop_table(table, autogen_context):
-    return "%(prefix)sdrop_table(%(tname)r)" % {
+    text = "%(prefix)sdrop_table(%(tname)r" % {
             "prefix": _alembic_autogenerate_prefix(autogen_context),
             "tname": table.name
         }
+    if table.schema:
+        text += ", schema=%r" % table.schema
+    text += ")"
+    return text
 
-def _add_column(tname, column, autogen_context):
-    return "%(prefix)sadd_column(%(tname)r, %(column)s)" % {
+def _add_column(schema, tname, column, autogen_context):
+    text = "%(prefix)sadd_column(%(tname)r, %(column)s" % {
             "prefix": _alembic_autogenerate_prefix(autogen_context),
             "tname": tname,
             "column": _render_column(column, autogen_context)
             }
+    if schema:
+        text += ", schema=%r" % schema
+    text += ")"
+    return text
 
-def _drop_column(tname, column, autogen_context):
-    return "%(prefix)sdrop_column(%(tname)r, %(cname)r)" % {
+def _drop_column(schema, tname, column, autogen_context):
+    text = "%(prefix)sdrop_column(%(tname)r, %(cname)r" % {
             "prefix": _alembic_autogenerate_prefix(autogen_context),
             "tname": tname,
             "cname": column.name
             }
+    if schema:
+        text += ", schema=%r" % schema
+    text += ")"
+    return text
 
 def _modify_col(tname, cname,
                 autogen_context,
@@ -455,7 +486,8 @@ def _modify_col(tname, cname,
                 nullable=None,
                 existing_type=None,
                 existing_nullable=None,
-                existing_server_default=False):
+                existing_server_default=False,
+                schema=None):
     sqla_prefix = _sqlalchemy_autogenerate_prefix(autogen_context)
     indent = " " * 11
     text = "%(prefix)salter_column(%(tname)r, %(cname)r" % {
@@ -485,6 +517,8 @@ def _modify_col(tname, cname,
                             existing_server_default,
                             autogen_context),
                     )
+    if schema:
+        text += ",\n%sschema=%r" % (indent, schema)
     text += ")"
     return text
 
