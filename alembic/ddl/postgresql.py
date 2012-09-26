@@ -17,6 +17,9 @@ class PostgresqlImpl(DefaultImpl):
 
         conn_col_default = inspector_column['default']
 
+        if None in (conn_col_default, rendered_metadata_default):
+            return conn_col_default != rendered_metadata_default
+
         if metadata_column.type._type_affinity is not sqltypes.String:
             rendered_metadata_default = re.sub(r"^'|'$", "", rendered_metadata_default)
 
