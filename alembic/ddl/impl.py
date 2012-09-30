@@ -122,11 +122,11 @@ class DefaultImpl(object):
                                 existing_nullable=existing_nullable,
                             ))
 
-    def add_column(self, table_name, column):
-        self._exec(base.AddColumn(table_name, column))
+    def add_column(self, table_name, column, schema=None):
+        self._exec(base.AddColumn(table_name, column, schema=schema))
 
-    def drop_column(self, table_name, column, **kw):
-        self._exec(base.DropColumn(table_name, column))
+    def drop_column(self, table_name, column, schema=None, **kw):
+        self._exec(base.DropColumn(table_name, column, schema=schema))
 
     def add_constraint(self, const):
         if const._create_rule is None or \
