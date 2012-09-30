@@ -183,6 +183,7 @@ class ImplicitConstraintNoGenTest(AutogenTest, TestCase):
         template_args = {}
         autogenerate._produce_migration_diffs(self.context,
             template_args, set(),
+            include_symbol=lambda name: name in ('sometable', 'someothertable')
             )
         eq_(
             re.sub(r"u'", "'", template_args['downgrades']),
