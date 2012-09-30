@@ -65,7 +65,8 @@ def revision(config, message=None, autogenerate=False, sql=False):
 
     script = ScriptDirectory.from_config(config)
     template_args = {
-        'config': config # Let templates use config for e.g. multiple databases
+        'config': config  # Let templates use config for
+                          # e.g. multiple databases
     }
     imports = set()
 

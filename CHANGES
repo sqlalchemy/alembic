@@ -5,6 +5,13 @@
   front-ends can re-use the argument parsing built
   in.  #70
 
+- [bug] Fixed the "multidb" template which was badly out
+  of date.   It now generates revision files using
+  the configuration to determine the different
+  upgrade_<xyz>() methods needed as well, instead of
+  needing to hardcode these.  Huge thanks to
+  BryceLohr for doing the heavy lifting here.  #71
+
 - [bug] Fixed the regexp that was checking for .py files
   in the version directory to allow any .py file through.
   Previously it was doing some kind of defensive checking,
