@@ -1,5 +1,10 @@
-0.3.7
+0.4.0
 =====
+- [feature] The command line runner has been organized
+  into a reusable CommandLine object, so that other
+  front-ends can re-use the argument parsing built
+  in.  #70
+
 - [bug] Fixed MySQL rendering for server_default which
   didn't work if the server_default was a generated
   SQL expression.  Courtesy Moriyoshi Koizumi.
