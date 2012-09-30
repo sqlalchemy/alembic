@@ -6,17 +6,17 @@ import os
 def list_templates(config):
     """List available templates"""
 
-    print "Available templates:\n"
+    config.print_stdout("Available templates:\n")
     for tempname in os.listdir(config.get_template_directory()):
         readme = os.path.join(
                         config.get_template_directory(),
                         tempname,
                         'README')
         synopsis = open(readme).next()
-        print "%s - %s" % (tempname, synopsis)
+        config.print_stdout("%s - %s", tempname, synopsis)
 
-    print "\nTemplates are used via the 'init' command, e.g.:"
-    print "\n  alembic init --template pylons ./scripts"
+    config.print_stdout("\nTemplates are used via the 'init' command, e.g.:")
+    config.print_stdout("\n  alembic init --template pylons ./scripts")
 
 def init(config, directory, template='generic'):
     """Initialize a new scripts directory."""
@@ -115,11 +115,11 @@ def upgrade(config, revision, sql=False, tag=None):
     with EnvironmentContext(
         config,
         script,
-        fn = upgrade,
-        as_sql = sql,
-        starting_rev = starting_rev,
-        destination_rev = revision,
-        tag = tag
+        fn=upgrade,
+        as_sql=sql,
+        starting_rev=starting_rev,
+        destination_rev=revision,
+        tag=tag
     ):
         script.run_env()
 
@@ -139,11 +139,11 @@ def downgrade(config, revision, sql=False, tag=None):
     with EnvironmentContext(
         config,
         script,
-        fn = downgrade,
-        as_sql = sql,
-        starting_rev = starting_rev,
-        destination_rev = revision,
-        tag = tag
+        fn=downgrade,
+        as_sql=sql,
+        starting_rev=starting_rev,
+        destination_rev=revision,
+        tag=tag
     ):
         script.run_env()
 
@@ -153,17 +153,17 @@ def history(config):
     script = ScriptDirectory.from_config(config)
     for sc in script.walk_revisions():
         if sc.is_head:
-            print
-        print sc
+            config.print_stdout("")
+        config.print_stdout(sc)
 
 def branches(config):
     """Show current un-spliced branch points"""
     script = ScriptDirectory.from_config(config)
     for sc in script.walk_revisions():
         if sc.is_branch_point:
-            print sc
+            config.print_stdout(sc)
             for rev in sc.nextrev:
-                print "%s -> %s" % (
+                config.print_stdout("%s -> %s",
                     " " * len(str(sc.down_revision)),
                     script.get_revision(rev)
                 )
@@ -173,7 +173,7 @@ def current(config):
 
     script = ScriptDirectory.from_config(config)
     def display_version(rev, context):
-        print "Current revision for %s: %s" % (
+        config.print_stdout("Current revision for %s: %s",
                             util.obfuscate_url_pw(
                                 context.connection.engine.url),
                             script.get_revision(rev))
@@ -182,7 +182,7 @@ def current(config):
     with EnvironmentContext(
         config,
         script,
-        fn = display_version
+        fn=display_version
     ):
         script.run_env()
 
@@ -204,11 +204,11 @@ def stamp(config, revision, sql=False, tag=None):
     with EnvironmentContext(
         config,
         script,
-        fn = do_stamp,
-        as_sql = sql,
-        destination_rev = revision,
-        tag = tag
-    ) as env:
+        fn=do_stamp,
+        as_sql=sql,
+        destination_rev=revision,
+        tag=tag
+    ):
         script.run_env()
 
 def splice(config, parent, child):

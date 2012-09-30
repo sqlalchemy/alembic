@@ -3,6 +3,7 @@ from argparse import ArgumentParser
 import ConfigParser
 import inspect
 import os
+import sys
 
 class Config(object):
     """Represent an Alembic configuration.
@@ -41,16 +42,22 @@ class Config(object):
      .ini file
     :param output_buffer: optional file-like input buffer which
      will be passed to the :class:`.MigrationContext` - used to redirect
-     access when using Alembic programmatically.
+     the output of "offline generation" when using Alembic programmatically.
+    :param stdout: buffer where the "print" output of commands will be sent.
+     Defaults to ``sys.stdout``.
+
+     ..versionadded:: 0.4
 
     """
-    def __init__(self, file_=None, ini_section='alembic', output_buffer=None):
+    def __init__(self, file_=None, ini_section='alembic', output_buffer=None,
+                        stdout=sys.stdout):
         """Construct a new :class:`.Config`
 
         """
         self.config_file_name = file_
         self.config_ini_section = ini_section
         self.output_buffer = output_buffer
+        self.stdout = stdout
 
     config_file_name = None
     """Filesystem path to the .ini file in use."""
@@ -62,6 +69,11 @@ class Config(object):
     option to the Alembic runnier.
 
     """
+
+    def print_stdout(self, text, *arg):
+        """Render a message to standard out."""
+
+        self.stdout.write((str(text) % arg) + "\n")
 
     @util.memoized_property
     def file_config(self):
@@ -78,7 +90,7 @@ class Config(object):
             here = os.path.abspath(os.path.dirname(self.config_file_name))
         else:
             here = ""
-        file_config = ConfigParser.SafeConfigParser({'here':here})
+        file_config = ConfigParser.SafeConfigParser({'here': here})
         if self.config_file_name:
             file_config.read([self.config_file_name])
         else:
