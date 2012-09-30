@@ -4,10 +4,9 @@ import os
 from alembic import util
 import shutil
 import re
-import inspect
 import datetime
 
-_rev_file = re.compile(r'([a-z0-9A-Z]+)(?:_.*)?\.py$')
+_rev_file = re.compile(r'.*\.py$')
 _legacy_rev = re.compile(r'([a-f0-9]+)\.py$')
 _mod_def_re = re.compile(r'(upgrade|downgrade)_([a-z0-9]+)')
 _slug_re = re.compile(r'\w+')
@@ -418,8 +417,7 @@ class Script(object):
 
     @classmethod
     def _from_filename(cls, dir_, filename):
-        m = _rev_file.match(filename)
-        if not m:
+        if not _rev_file.match(filename):
             return None
         module = util.load_python_file(dir_, filename)
         if not hasattr(module, "revision"):

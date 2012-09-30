@@ -5,6 +5,13 @@
   front-ends can re-use the argument parsing built
   in.  #70
 
+- [bug] Fixed the regexp that was checking for .py files
+  in the version directory to allow any .py file through.
+  Previously it was doing some kind of defensive checking,
+  probably from some early notions of how this directory
+  works, that was prohibiting various filename patterns
+  such as those which begin with numbers.  #72
+
 - [bug] Fixed MySQL rendering for server_default which
   didn't work if the server_default was a generated
   SQL expression.  Courtesy Moriyoshi Koizumi.

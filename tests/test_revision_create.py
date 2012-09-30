@@ -70,12 +70,14 @@ class GeneralOrderedTests(unittest.TestCase):
 
     def test_008_long_name(self):
         rid = util.rev_id()
-        script = env.generate_revision(rid,
+        env.generate_revision(rid,
                 "this is a really long name with "
                 "lots of characters and also "
                 "I'd like it to\nhave\nnewlines")
         assert os.access(
-            os.path.join(env.dir, 'versions', '%s_this_is_a_really_lon.py' % rid), os.F_OK)
+            os.path.join(env.dir, 'versions',
+                        '%s_this_is_a_really_lon.py' % rid), os.F_OK)
+
 
     @classmethod
     def setup_class(cls):
@@ -110,9 +112,10 @@ class ScriptNamingTest(unittest.TestCase):
             "message_2012_5_25_15_5_5.py" % staging_directory
         )
 
+
 class TemplateArgsTest(unittest.TestCase):
     def setUp(self):
-        env = staging_env()
+        staging_env()
         self.cfg = _no_sql_testing_config(
             directives="\nrevision_environment=true\n"
         )
@@ -123,17 +126,17 @@ class TemplateArgsTest(unittest.TestCase):
     def test_args_propagate(self):
         config = _no_sql_testing_config()
         script = ScriptDirectory.from_config(config)
-        template_args = {"x":"x1", "y":"y1", "z":"z1"}
+        template_args = {"x": "x1", "y": "y1", "z": "z1"}
         env = EnvironmentContext(
             config,
             script,
-            template_args = template_args
+            template_args=template_args
         )
-        mig_env = env.configure(dialect_name="sqlite",
-                        template_args={"y":"y2", "q":"q1"})
+        env.configure(dialect_name="sqlite",
+                        template_args={"y": "y2", "q": "q1"})
         eq_(
             template_args,
-            {"x":"x1", "y":"y2", "z":"z1", "q":"q1"}
+            {"x": "x1", "y": "y2", "z": "z1", "q": "q1"}
         )
 
     def test_tmpl_args_revision(self):
