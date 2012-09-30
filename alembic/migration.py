@@ -220,7 +220,7 @@ class MigrationContext(object):
             if self.as_sql and not rev:
                 self._version.drop(self.connection)
 
-    def execute(self, sql):
+    def execute(self, sql, execution_options=None):
         """Execute a SQL construct or string statement.
 
         The underlying execution mechanics are used, that is
@@ -229,7 +229,7 @@ class MigrationContext(object):
         the current SQLAlchemy connection.
 
         """
-        self.impl._exec(sql)
+        self.impl._exec(sql, execution_options)
 
     def _stdout_connection(self, connection):
         def dump(construct, *multiparams, **params):

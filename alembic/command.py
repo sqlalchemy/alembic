@@ -64,7 +64,9 @@ def revision(config, message=None, autogenerate=False, sql=False):
     """Create a new revision file."""
 
     script = ScriptDirectory.from_config(config)
-    template_args = {}
+    template_args = {
+        'config': config # Let templates use config for e.g. multiple databases
+    }
     imports = set()
 
     environment = util.asbool(

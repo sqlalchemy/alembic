@@ -1,4 +1,7 @@
-"""${message}
+<%!
+import re
+
+%>"""${message}
 
 Revision ID: ${up_revision}
 Revises: ${down_revision}
@@ -14,21 +17,24 @@ from alembic import op
 import sqlalchemy as sa
 ${imports if imports else ""}
 
-def upgrade(engine):
-    eval("upgrade_%s" % engine.name)()
+def upgrade(engine_name):
+    eval("upgrade_%s" % engine_name)()
 
 
-def downgrade(engine):
-    eval("upgrade_%s" % engine.name)()
+def downgrade(engine_name):
+    eval("downgrade_%s" % engine_name)()
+
+<%
+    db_names = context.get("config").get_main_option("databases")
+%>
+
+% for db_name in re.split(r',\s*', db_names):
+
+def upgrade_${db_name}():
+    ${context.get("%s_upgrades" % db_name, "pass")}
 
 
-% for engine in ["engine1", "engine2"]:
-
-def upgrade_${engine}():
-    ${context.get("%s_upgrades" % engine, "pass")}
-
-
-def downgrade_${engine}():
-    ${context.get("%s_downgrades" % engine, "pass")}
+def downgrade_${db_name}():
+    ${context.get("%s_downgrades" % db_name, "pass")}
 
 % endfor
