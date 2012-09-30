@@ -209,6 +209,7 @@ class EnvironmentContext(object):
             template_args=None,
             target_metadata=None,
             include_symbol=None,
+            include_schemas=False,
             compare_type=False,
             compare_server_default=False,
             upgrade_token="upgrades",
@@ -357,11 +358,11 @@ class EnvironmentContext(object):
          the two defaults on the database side to compare for equivalence.
 
         :param include_symbol: A callable function which, given a table name
-         and optional schema name, returns ``True`` or ``False``, indicating
+         and schema name (may be ``None``), returns ``True`` or ``False``, indicating
          if the given table should be considered in the autogenerate sweep.
          E.g.::
 
-            def include_symbol(tablename, schema=None):
+            def include_symbol(tablename, schema):
                 return tablename not in ("skip_table_one", "skip_table_two")
 
             context.configure(
@@ -369,7 +370,22 @@ class EnvironmentContext(object):
                 include_symbol = include_symbol
             )
 
+         To limit autogenerate to a certain set of schemas when using the
+         ``include_schemas`` option::
+
+            def include_symbol(tablename, schema):
+                return schema in (None, "schema1", "schema2")
+
+            context.configure(
+                # ...
+                include_schemas = True,
+                include_symbol = include_symbol
+            )
+
          .. versionadded:: 0.3.6
+
+         .. versionchanged:: 0.4.0  the ``include_symbol`` callable must now
+            also accept a "schema" argument, which may be None.
 
         :param upgrade_token: When autogenerate completes, the text of the
          candidate upgrade operations will be present in this template
@@ -395,6 +411,16 @@ class EnvironmentContext(object):
          will render them using the dialect module name, i.e. ``mssql.BIT()``,
          ``postgresql.UUID()``.
 
+        :param include_schemas: If True, autogenerate will scan across
+         all schemas located by the SQLAlchemy
+         :meth:`~sqlalchemy.engine.reflection.Inspector.get_schema_names`
+         method, and include all differences in tables found across all
+         those schemas.  When using this option, you may want to also
+         use the ``include_symbol`` option to specify a callable which
+         can filter the tables/schemas that get included.
+
+         .. versionadded :: 0.4.0
+
         Parameters specific to individual backends:
 
         :param mssql_batch_separator: The "batch separator" which will
@@ -412,7 +438,7 @@ class EnvironmentContext(object):
         """
         opts = self.context_opts
         if transactional_ddl is not None:
-            opts["transactional_ddl"] =  transactional_ddl
+            opts["transactional_ddl"] = transactional_ddl
         if output_buffer is not None:
             opts["output_buffer"] = output_buffer
         elif self.config.output_buffer is not None:
@@ -425,6 +451,7 @@ class EnvironmentContext(object):
             opts['template_args'].update(template_args)
         opts['target_metadata'] = target_metadata
         opts['include_symbol'] = include_symbol
+        opts['include_schemas'] = include_schemas
         opts['upgrade_token'] = upgrade_token
         opts['downgrade_token'] = downgrade_token
         opts['sqlalchemy_module_prefix'] = sqlalchemy_module_prefix

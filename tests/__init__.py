@@ -52,7 +52,7 @@ def db_for_dialect(name):
         except ConfigParser.NoOptionError:
             raise SkipTest("No dialect %r in test.cfg" % name)
         try:
-            eng = create_engine(cfg, echo=True)
+            eng = create_engine(cfg) #, echo=True)
         except ImportError, er1:
             raise SkipTest("Can't import DBAPI: %s" % er1)
         try:

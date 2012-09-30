@@ -105,10 +105,12 @@ def compare_metadata(context, metadata):
 # top level
 
 def _produce_migration_diffs(context, template_args,
-                                imports, include_symbol=None):
+                                imports, include_symbol=None,
+                                include_schemas=False):
     opts = context.opts
     metadata = opts['target_metadata']
     include_symbol = opts.get('include_symbol', include_symbol)
+    include_schemas = opts.get('include_schemas', include_schemas)
 
     if metadata is None:
         raise util.CommandError(
@@ -121,7 +123,8 @@ def _produce_migration_diffs(context, template_args,
 
     diffs = []
     _produce_net_changes(connection, metadata, diffs,
-                                autogen_context, include_symbol)
+                                autogen_context, include_symbol,
+                                include_schemas)
     template_args[opts['upgrade_token']] = \
             _indent(_produce_upgrade_commands(diffs, autogen_context))
     template_args[opts['downgrade_token']] = \
@@ -150,15 +153,22 @@ def _indent(text):
 # walk structures
 
 def _produce_net_changes(connection, metadata, diffs, autogen_context,
-                            include_symbol=None):
+                            include_symbol=None,
+                            include_schemas=False):
     inspector = Inspector.from_engine(connection)
     # TODO: not hardcode alembic_version here ?
     conn_table_names = set()
-    schemas = inspector.get_schema_names() or [None]
+    if include_schemas:
+        schemas = set(inspector.get_schema_names())
+        # replace default schema name with None
+        schemas.discard("information_schema")
+        # replace the "default" schema with None
+        schemas.add(None)
+        schemas.discard(connection.dialect.default_schema_name)
+    else:
+        schemas = [None]
+
     for s in schemas:
-        if s == 'information_schema':
-            # ignore postgres own information_schema
-            continue
         tables = set(inspector.get_table_names(schema=s)).\
                 difference(['alembic_version'])
         conn_table_names.update(zip([s] * len(tables), tables))
@@ -169,10 +179,10 @@ def _produce_net_changes(connection, metadata, diffs, autogen_context,
     if include_symbol:
         conn_table_names = set((s, name)
                                 for s, name in conn_table_names
-                                if include_symbol(name, schema=s))
+                                if include_symbol(name, s))
         metadata_table_names = OrderedSet((s, name)
                                 for s, name in metadata_table_names
-                                if include_symbol(name, schema=s))
+                                if include_symbol(name, s))
 
     _compare_tables(conn_table_names, metadata_table_names,
                     inspector, metadata, diffs, autogen_context)

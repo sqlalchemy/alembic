@@ -1,5 +1,16 @@
 0.4.0
 =====
+- [feature] Support for tables in alternate schemas
+  has been added fully to all operations, as well as to
+  the autogenerate feature.  When using autogenerate,
+  specifying the flag include_schemas=True to
+  Environment.configure() will also cause autogenerate
+  to scan all schemas located by Inspector.get_schema_names(),
+  which is supported by *some* (but not all)
+  SQLAlchemy dialects including Postgresql.
+  *Enormous* thanks to Bruno Binet for a huge effort
+  in implementing as well as writing tests.  #33.
+
 - [feature] The command line runner has been organized
   into a reusable CommandLine object, so that other
   front-ends can re-use the argument parsing built

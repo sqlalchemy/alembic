@@ -153,7 +153,7 @@ class Operations(object):
 
         :param old_table_name: old name.
         :param new_table_name: new name.
-        :param schema: Optional, name of schema to operate within.
+        :param schema: Optional schema name to operate within.
 
         """
         self.impl.rename_table(
@@ -240,7 +240,10 @@ class Operations(object):
         :param existing_autoincrement: Optional; the existing autoincrement
          of the column.  Used for MySQL's system of altering a column
          that specifies ``AUTO_INCREMENT``.
-        :param schema: Optional, name of schema to operate within.
+        :param schema: Optional schema name to operate within.
+
+         .. versionadded:: 0.4.0
+
         """
 
         compiler = self.impl.dialect.statement_compiler(
@@ -326,7 +329,9 @@ class Operations(object):
         :param table_name: String name of the parent table.
         :param column: a :class:`sqlalchemy.schema.Column` object
          representing the new column.
-        :param schema: Optional, name of schema to operate within.
+        :param schema: Optional schema name to operate within.
+
+         .. versionadded:: 0.4.0
 
         """
 
@@ -350,6 +355,10 @@ class Operations(object):
 
         :param table_name: name of table
         :param column_name: name of column
+        :param schema: Optional schema name to operate within.
+
+         .. versionadded:: 0.4.0
+
         :param mssql_drop_check: Optional boolean.  When ``True``, on
          Microsoft SQL Server only, first
          drop the CHECK constraint on the column using a
@@ -458,7 +467,9 @@ class Operations(object):
          issuing DDL for this constraint.
         :param initially: optional string. If set, emit INITIALLY <value> when issuing DDL
          for this constraint.
-        :param schema: Optional schema name of the source table.
+        :param schema: Optional schema name to operate within.
+
+         .. versionadded:: 0.4.0
 
         """
 
@@ -502,7 +513,9 @@ class Operations(object):
          issuing DDL for this constraint.
         :param initially: optional string. If set, emit INITIALLY <value> when issuing DDL
          for this constraint.
-        :param schema: Optional schema name of the source table.
+        :param schema: Optional schema name to operate within.
+
+         ..versionadded:: 0.4.0
 
         """
         self.impl.add_constraint(
@@ -552,6 +565,7 @@ class Operations(object):
          ``after_create`` events when the table is being created.  In
          particular, the Postgresql ENUM type will emit a CREATE TYPE within
          these events.
+        :param schema: Optional schema name to operate within.
         :param \**kw: Other keyword arguments are passed to the underlying
          :class:`.Table` object created for the command.
 
@@ -570,6 +584,10 @@ class Operations(object):
             drop_table("accounts")
 
         :param name: Name of the table
+        :param schema: Optional schema name to operate within.
+
+         .. versionadded:: 0.4.0
+
         :param \**kw: Other keyword arguments are passed to the underlying
          :class:`.Table` object created for the command.
 
@@ -591,7 +609,9 @@ class Operations(object):
         :param tablename: name of the owning table.
         :param columns: a list of string column names in the
          table.
-        :param schema: Optional, name of schema to operate within.
+        :param schema: Optional schema name to operate within.
+
+         .. versionadded:: 0.4.0
 
         """
 
@@ -611,7 +631,9 @@ class Operations(object):
         :param name: name of the index.
         :param tablename: name of the owning table.  Some
          backends such as Microsoft SQL Server require this.
-        :param schema: Optional, name of schema to operate within.
+        :param schema: Optional schema name to operate within.
+
+         .. versionadded:: 0.4.0
 
         """
         # need a dummy column name here since SQLAlchemy
@@ -628,10 +650,12 @@ class Operations(object):
         :param type: optional, required on MySQL.  can be
          'foreignkey', 'primary', 'unique', or 'check'.
 
-        .. versionadded:: 0.3.6 'primary' qualfier to enable
-           dropping of MySQL primary key constraints.
+         .. versionadded:: 0.3.6 'primary' qualfier to enable
+            dropping of MySQL primary key constraints.
 
-        :param schema: Optional, name of schema to operate within.
+        :param schema: Optional schema name to operate within.
+
+         .. versionadded:: 0.4.0
 
         """
         t = self._table(tablename, schema=schema)
