@@ -603,16 +603,35 @@ def _render_primary_key(constraint, autogen_context):
         ),
     }
 
+def _fk_colspec(fk, metadata_schema):
+    """Implement a 'safe' version of ForeignKey._get_colspec() that
+    never tries to resolve the remote table.
+
+    """
+    if metadata_schema is None:
+        return fk._get_colspec()
+    else:
+        # need to render schema breaking up tokens by hand, since the
+        # ForeignKeyConstraint here may not actually have a remote
+        # Table present
+        tokens = fk._colspec.split(".")
+        # no schema in the colspec, render it
+        if len(tokens) == 2:
+            return "%s.%s" % (metadata_schema, fk._colspec)
+        else:
+            return fk._colspec
+
 def _render_foreign_key(constraint, autogen_context):
     opts = []
     if constraint.name:
         opts.append(("name", repr(constraint.name)))
+    apply_metadata_schema = constraint.parent.metadata.schema
     # TODO: deferrable, initially, etc.
     return "%(prefix)sForeignKeyConstraint([%(cols)s], "\
             "[%(refcols)s], %(args)s)" % {
         "prefix": _sqlalchemy_autogenerate_prefix(autogen_context),
         "cols": ", ".join("'%s'" % f.parent.key for f in constraint.elements),
-        "refcols": ", ".join(repr(f._get_colspec())
+        "refcols": ", ".join(repr(_fk_colspec(f, apply_metadata_schema))
                             for f in constraint.elements),
         "args": ", ".join(
             ["%s=%s" % (kwname, val) for kwname, val in opts]

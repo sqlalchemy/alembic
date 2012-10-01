@@ -36,14 +36,9 @@ def _model_one(schema=None):
                 server_default="0"),
     )
 
-    if schema is not None:
-        schema_arg = schema + "."
-    else:
-        schema_arg = ""
-
     Table('extra', m,
         Column("x", CHAR),
-        Column('uid', Integer, ForeignKey('%suser.id' % schema_arg))
+        Column('uid', Integer, ForeignKey('user.id'))
     )
 
     return m
@@ -764,12 +759,65 @@ class AutogenRenderTest(TestCase):
         m = MetaData()
         t = Table('test', m,
             Column('id', Integer, primary_key=True),
+            Column('q', Integer, ForeignKey('address.id')),
             schema='foo'
         )
         eq_ignore_whitespace(
             autogenerate._add_table(t, self.autogen_context),
             "op.create_table('test',"
             "sa.Column('id', sa.Integer(), nullable=False),"
+            "sa.Column('q', sa.Integer(), nullable=True),"
+            "sa.ForeignKeyConstraint(['q'], ['address.id'], ),"
+            "sa.PrimaryKeyConstraint('id'),"
+            "schema='foo'"
+            ")"
+        )
+
+    def test_render_table_w_fk_schema(self):
+        m = MetaData()
+        t = Table('test', m,
+            Column('id', Integer, primary_key=True),
+            Column('q', Integer, ForeignKey('foo.address.id')),
+        )
+        eq_ignore_whitespace(
+            autogenerate._add_table(t, self.autogen_context),
+            "op.create_table('test',"
+            "sa.Column('id', sa.Integer(), nullable=False),"
+            "sa.Column('q', sa.Integer(), nullable=True),"
+            "sa.ForeignKeyConstraint(['q'], ['foo.address.id'], ),"
+            "sa.PrimaryKeyConstraint('id')"
+            ")"
+        )
+
+    def test_render_table_w_metadata_schema(self):
+        m = MetaData(schema="foo")
+        t = Table('test', m,
+            Column('id', Integer, primary_key=True),
+            Column('q', Integer, ForeignKey('address.id')),
+        )
+        eq_ignore_whitespace(
+            autogenerate._add_table(t, self.autogen_context),
+            "op.create_table('test',"
+            "sa.Column('id', sa.Integer(), nullable=False),"
+            "sa.Column('q', sa.Integer(), nullable=True),"
+            "sa.ForeignKeyConstraint(['q'], ['foo.address.id'], ),"
+            "sa.PrimaryKeyConstraint('id'),"
+            "schema='foo'"
+            ")"
+        )
+
+    def test_render_table_w_metadata_schema_override(self):
+        m = MetaData(schema="foo")
+        t = Table('test', m,
+            Column('id', Integer, primary_key=True),
+            Column('q', Integer, ForeignKey('bar.address.id')),
+        )
+        eq_ignore_whitespace(
+            autogenerate._add_table(t, self.autogen_context),
+            "op.create_table('test',"
+            "sa.Column('id', sa.Integer(), nullable=False),"
+            "sa.Column('q', sa.Integer(), nullable=True),"
+            "sa.ForeignKeyConstraint(['q'], ['bar.address.id'], ),"
             "sa.PrimaryKeyConstraint('id'),"
             "schema='foo'"
             ")"
