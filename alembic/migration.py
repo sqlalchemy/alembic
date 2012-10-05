@@ -77,9 +77,11 @@ class MigrationContext(object):
                                             False)
 
         version_table = opts.get('version_table', 'alembic_version')
+        version_table_schema = opts.get('version_table_schema', None)
         self._version = Table(
             version_table, MetaData(),
-            Column('version_num', String(32), nullable=False))
+            Column('version_num', String(32), nullable=False),
+            schema=version_table_schema)
 
         self._start_from_rev = opts.get("starting_rev")
         self.impl = ddl.DefaultImpl.get_by_dialect(dialect)(
