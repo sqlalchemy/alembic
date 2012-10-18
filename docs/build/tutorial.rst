@@ -572,6 +572,38 @@ Autogenerate can't currently, but will *eventually* detect:
 * Index additions, removals - not yet implemented.
 * Sequence additions, removals - not yet implemented.
 
+Rendering Custom Types in Autogenerate
+--------------------------------------
+
+Note that the methodology Alembic uses to generate SQLAlchemy type constructs
+as Python code is plain old ``__repr__()``.   SQLAlchemy's built-in types
+for the most part have a ``__repr__()`` that faithfully renders a
+Python-compatible constructor call, but there are some exceptions, particularly
+in those cases when a constructor accepts arguments that aren't compatible
+with ``__repr__()``, such as a pickling function.
+
+When building a custom type that will be rendered into a migration script,
+it is often necessary to explicitly give the type a ``__repr__()`` that will
+faithfully reproduce the constructor for that type::
+
+  from sqlalchemy.types import UserDefinedType
+
+  class MySpecialType(UserDefinedType):
+      def __init__(self, precision = 8):
+          self.precision = precision
+
+      def get_col_spec(self):
+          return "MYTYPE(%s)" % self.precision
+
+      def __repr__(self):
+          return "MySpecialType(%d)" % self.precision
+
+The above custom type includes a ``__repr__()`` that will render ``MySpecialType``
+with the appropriate construction.   Sometimes ``__repr__()`` is needed
+with semi-custom types such as those which derive from
+:class:`~sqlalchemy.types.TypeDecorator` as well.
+
+
 Generating SQL Scripts (a.k.a. "Offline Mode")
 ==============================================
 
