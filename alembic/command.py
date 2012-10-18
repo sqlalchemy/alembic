@@ -132,6 +132,8 @@ def downgrade(config, revision, sql=False, tag=None):
         if not sql:
             raise util.CommandError("Range revision not allowed")
         starting_rev, revision = revision.split(':', 2)
+    elif sql:
+        raise util.CommandError("downgrade with --sql requires <fromrev>:<torev>")
 
     def downgrade(rev, context):
         return script._downgrade_revs(revision, rev)

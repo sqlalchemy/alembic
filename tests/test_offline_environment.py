@@ -22,7 +22,7 @@ class OfflineEnvironmentTest(TestCase):
 assert not context.requires_connection()
 """)
         command.upgrade(self.cfg, a, sql=True)
-        command.downgrade(self.cfg, a, sql=True)
+        command.downgrade(self.cfg, "%s:%s" % (b, a), sql=True)
 
     def test_requires_connection(self):
         env_file_fixture("""
@@ -38,7 +38,7 @@ context.configure(dialect_name='sqlite', starting_rev='x')
 assert context.get_starting_revision_argument() == 'x'
 """)
         command.upgrade(self.cfg, a, sql=True)
-        command.downgrade(self.cfg, a, sql=True)
+        command.downgrade(self.cfg, "%s:%s" % (b, a), sql=True)
         command.current(self.cfg)
         command.stamp(self.cfg, a)
 
@@ -73,8 +73,8 @@ assert context.get_starting_revision_argument() is None
 assert context.get_revision_argument() == '%s'
 """ % b)
         command.upgrade(self.cfg, b, sql=True)
-        command.downgrade(self.cfg, b, sql=True)
         command.stamp(self.cfg, b, sql=True)
+        command.downgrade(self.cfg, "%s:%s" % (c, b), sql=True)
 
     def test_destination_rev_post_context(self):
         env_file_fixture("""
@@ -82,7 +82,7 @@ context.configure(dialect_name='sqlite')
 assert context.get_revision_argument() == '%s'
 """ % b)
         command.upgrade(self.cfg, b, sql=True)
-        command.downgrade(self.cfg, b, sql=True)
+        command.downgrade(self.cfg, "%s:%s" % (c, b), sql=True)
         command.stamp(self.cfg, b, sql=True)
 
     def test_head_rev_pre_context(self):
@@ -90,7 +90,7 @@ assert context.get_revision_argument() == '%s'
 assert context.get_head_revision() == '%s'
 """ % c)
         command.upgrade(self.cfg, b, sql=True)
-        command.downgrade(self.cfg, b, sql=True)
+        command.downgrade(self.cfg, "%s:%s" % (b, a), sql=True)
         command.stamp(self.cfg, b, sql=True)
         command.current(self.cfg)
 
@@ -100,7 +100,7 @@ context.configure(dialect_name='sqlite')
 assert context.get_head_revision() == '%s'
 """ % c)
         command.upgrade(self.cfg, b, sql=True)
-        command.downgrade(self.cfg, b, sql=True)
+        command.downgrade(self.cfg, "%s:%s" % (b, a), sql=True)
         command.stamp(self.cfg, b, sql=True)
         command.current(self.cfg)
 
@@ -109,14 +109,14 @@ assert context.get_head_revision() == '%s'
 assert context.get_tag_argument() == 'hi'
 """)
         command.upgrade(self.cfg, b, sql=True, tag='hi')
-        command.downgrade(self.cfg, b, sql=True, tag='hi')
+        command.downgrade(self.cfg, "%s:%s" % (b, a), sql=True, tag='hi')
 
     def test_tag_pre_context_None(self):
         env_file_fixture("""
 assert context.get_tag_argument() is None
 """)
         command.upgrade(self.cfg, b, sql=True)
-        command.downgrade(self.cfg, b, sql=True)
+        command.downgrade(self.cfg, "%s:%s" % (b, a), sql=True)
 
     def test_tag_cmd_arg(self):
         env_file_fixture("""
@@ -124,7 +124,7 @@ context.configure(dialect_name='sqlite')
 assert context.get_tag_argument() == 'hi'
 """)
         command.upgrade(self.cfg, b, sql=True, tag='hi')
-        command.downgrade(self.cfg, b, sql=True, tag='hi')
+        command.downgrade(self.cfg, "%s:%s" % (b, a), sql=True, tag='hi')
 
     def test_tag_cfg_arg(self):
         env_file_fixture("""
@@ -132,7 +132,7 @@ context.configure(dialect_name='sqlite', tag='there')
 assert context.get_tag_argument() == 'there'
 """)
         command.upgrade(self.cfg, b, sql=True, tag='hi')
-        command.downgrade(self.cfg, b, sql=True, tag='hi')
+        command.downgrade(self.cfg, "%s:%s" % (b, a), sql=True, tag='hi')
 
     def test_tag_None(self):
         env_file_fixture("""
@@ -140,4 +140,15 @@ context.configure(dialect_name='sqlite')
 assert context.get_tag_argument() is None
 """)
         command.upgrade(self.cfg, b, sql=True)
-        command.downgrade(self.cfg, b, sql=True)
+        command.downgrade(self.cfg, "%s:%s" % (b, a), sql=True)
+
+    def test_downgrade_wo_colon(self):
+        env_file_fixture("""
+context.configure(dialect_name='sqlite')
+""")
+        assert_raises_message(
+            util.CommandError,
+            "downgrade with --sql requires <fromrev>:<torev>",
+            command.downgrade,
+            self.cfg, b, sql=True
+        )
