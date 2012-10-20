@@ -8,6 +8,9 @@
   from operations.create_table() documentation.
   #81
 
+- [bug] Fixed the minute component in file_template
+  which returned the month part of the create date.
+
 0.4.0
 =====
 - [feature] Support for tables in alternate schemas

@@ -227,7 +227,7 @@ class ScriptDirectory(object):
                 'month': create_date.month,
                 'day': create_date.day,
                 'hour': create_date.hour,
-                'minute': create_date.month,
+                'minute': create_date.minute,
                 'second': create_date.second
             }
         )

@@ -105,11 +105,11 @@ class ScriptNamingTest(unittest.TestCase):
                             "%(day)s_%(hour)s_"
                             "%(minute)s_%(second)s"
                     )
-        create_date = datetime.datetime(2012, 5, 25, 15, 8, 5)
+        create_date = datetime.datetime(2012, 7, 25, 15, 8, 5)
         eq_(
             script._rev_path("12345", "this is a message", create_date),
             "%s/versions/12345_this_is_a_"
-            "message_2012_5_25_15_5_5.py" % staging_directory
+            "message_2012_7_25_15_8_5.py" % staging_directory
         )
 
 
