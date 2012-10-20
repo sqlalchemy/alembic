@@ -4,6 +4,10 @@
   when downgrade --sql is used without specifying
   specific start/end versions. #66
 
+- [bug] Removed erroneous "emit_events" attribute
+  from operations.create_table() documentation.
+  #81
+
 0.4.0
 =====
 - [feature] Support for tables in alternate schemas

@@ -561,10 +561,6 @@ class Operations(object):
          the table, as well as optional :class:`~sqlalchemy.schema.Constraint`
          objects
          and :class:`~.sqlalchemy.schema.Index` objects.
-        :param emit_events: if ``True``, emit ``before_create`` and
-         ``after_create`` events when the table is being created.  In
-         particular, the Postgresql ENUM type will emit a CREATE TYPE within
-         these events.
         :param schema: Optional schema name to operate within.
         :param \**kw: Other keyword arguments are passed to the underlying
          :class:`.Table` object created for the command.
