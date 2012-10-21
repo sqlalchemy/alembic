@@ -8,3 +8,4 @@ syntax:regexp
 .coverage
 alembic.ini
 local_test
+^.venv

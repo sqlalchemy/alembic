@@ -1,0 +1,807 @@
+
+==========
+Changelog
+==========
+
+
+
+.. changelog::
+    :version: 0.4.1
+    :released:
+
+    .. change::
+        :tags: feature
+        :tickets: 66
+
+      Explicit error message describing the case
+      when downgrade --sql is used without specifying
+      specific start/end versions.
+
+    .. change::
+        :tags: bug
+        :tickets: 81
+
+      Removed erroneous "emit_events" attribute
+      from operations.create_table() documentation.
+
+    .. change::
+        :tags: bug
+        :tickets:
+
+      Fixed the minute component in file_template
+      which returned the month part of the create date.
+
+.. changelog::
+    :version: 0.4.0
+    :released: Mon Oct 01 2012
+
+    .. change::
+        :tags: feature
+        :tickets: 33
+
+      Support for tables in alternate schemas
+      has been added fully to all operations, as well as to
+      the autogenerate feature.  When using autogenerate,
+      specifying the flag include_schemas=True to
+      Environment.configure() will also cause autogenerate
+      to scan all schemas located by Inspector.get_schema_names(),
+      which is supported by *some* (but not all)
+      SQLAlchemy dialects including Postgresql.
+      *Enormous* thanks to Bruno Binet for a huge effort
+      in implementing as well as writing tests. .
+
+    .. change::
+        :tags: feature
+        :tickets: 70
+
+      The command line runner has been organized
+      into a reusable CommandLine object, so that other
+      front-ends can re-use the argument parsing built
+      in.
+
+    .. change::
+        :tags: feature
+        :tickets: 43
+
+      Added "stdout" option to Config, provides
+      control over where the "print" output of commands like
+      "history", "init", "current" etc. are sent.
+
+    .. change::
+        :tags: bug
+        :tickets: 71
+
+      Fixed the "multidb" template which was badly out
+      of date.   It now generates revision files using
+      the configuration to determine the different
+      upgrade_<xyz>() methods needed as well, instead of
+      needing to hardcode these.  Huge thanks to
+      BryceLohr for doing the heavy lifting here.
+
+    .. change::
+        :tags: bug
+        :tickets: 72
+
+      Fixed the regexp that was checking for .py files
+      in the version directory to allow any .py file through.
+      Previously it was doing some kind of defensive checking,
+      probably from some early notions of how this directory
+      works, that was prohibiting various filename patterns
+      such as those which begin with numbers.
+
+    .. change::
+        :tags: bug
+        :tickets:
+
+      Fixed MySQL rendering for server_default which
+      didn't work if the server_default was a generated
+      SQL expression.  Courtesy Moriyoshi Koizumi.
+
+    .. change::
+        :tags: feature
+        :tickets:
+
+      Added support for alteration of MySQL
+      columns that have AUTO_INCREMENT, as well as enabling
+      this flag.  Courtesy Moriyoshi Koizumi.
+
+
+
+
+.. changelog::
+    :version: 0.3.6
+    :released: Wed Aug 15 2012
+
+    .. change::
+        :tags: feature
+        :tickets: 27
+
+      Added include_symbol option to
+      EnvironmentContext.configure(),
+      specifies a callable which will include/exclude tables
+      in their entirety from the autogeneration process
+      based on name.
+
+    .. change::
+        :tags: feature
+        :tickets: 59
+
+      Added year, month, day, hour, minute, second
+      variables to file_template.
+
+    .. change::
+        :tags: feature
+        :tickets:
+
+      Added 'primary' to the list of constraint types
+      recognized for MySQL drop_constraint().
+
+    .. change::
+        :tags: feature
+        :tickets:
+
+      Added --sql argument to the "revision" command,
+      for the use case where the "revision_environment"
+      config option is being used but SQL access isn't
+      desired.
+
+    .. change::
+        :tags: bug
+        :tickets:
+
+      Repaired create_foreign_key() for
+      self-referential foreign keys, which weren't working
+      at all.
+
+    .. change::
+        :tags: bug
+        :tickets: 63
+
+      'alembic' command reports an informative
+      error message when the configuration is missing
+      the 'script_directory' key.
+
+    .. change::
+        :tags: bug
+        :tickets: 62
+
+      Fixes made to the constraints created/dropped
+      alongside so-called "schema" types such as
+      Boolean and Enum.  The create/drop constraint logic
+      does not kick in when using a dialect that doesn't
+      use constraints for these types, such as postgresql,
+      even when existing_type is specified to
+      alter_column().  Additionally, the constraints
+      are not affected if existing_type is passed but
+      type\_ is not, i.e. there's no net change
+      in type.
+
+    .. change::
+        :tags: bug
+        :tickets: 66
+
+      Improved error message when specifiying
+      non-ordered revision identifiers to cover
+      the case when the "higher" rev is None,
+      improved message overall.
+
+.. changelog::
+    :version: 0.3.5
+    :released: Sun Jul 08 2012
+
+    .. change::
+        :tags: bug
+        :tickets: 31
+
+      Fixed issue whereby reflected server defaults
+      wouldn't be quoted correctly; uses repr() now.
+
+    .. change::
+        :tags: bug
+        :tickets: 58
+
+      Fixed issue whereby when autogenerate would
+      render create_table() on the upgrade side for a
+      table that has a Boolean type, an unnecessary
+      CheckConstraint() would be generated.
+
+    .. change::
+        :tags: feature
+        :tickets:
+
+      Implemented SQL rendering for
+      CheckConstraint() within autogenerate upgrade,
+      including for literal SQL as well as SQL Expression
+      Language expressions.
+
+.. changelog::
+    :version: 0.3.4
+    :released: Sat Jun 02 2012
+
+    .. change::
+        :tags: bug
+        :tickets:
+
+      Fixed command-line bug introduced by the
+      "revision_environment" feature.
+
+.. changelog::
+    :version: 0.3.3
+    :released: Sat Jun 02 2012
+
+    .. change::
+        :tags: feature
+        :tickets:
+
+      New config argument
+      "revision_environment=true", causes env.py to
+      be run unconditionally when the "revision" command
+      is run, to support script.py.mako templates with
+      dependencies on custom "template_args".
+
+    .. change::
+        :tags: feature
+        :tickets:
+
+      Added "template_args" option to configure()
+      so that an env.py can add additional arguments
+      to the template context when running the
+      "revision" command.  This requires either --autogenerate
+      or the configuration directive "revision_environment=true".
+
+    .. change::
+        :tags: bug
+        :tickets: 44
+
+      Added "type" argument to op.drop_constraint(),
+      and implemented full constraint drop support for
+      MySQL.  CHECK and undefined raise an error.
+      MySQL needs the constraint type
+      in order to emit a DROP CONSTRAINT.
+
+    .. change::
+        :tags: feature
+        :tickets: 34
+
+      Added version_table argument to
+      EnvironmentContext.configure(), allowing for the
+      configuration of the version table name.
+
+    .. change::
+        :tags: feature
+        :tickets:
+
+      Added support for "relative" migration
+      identifiers, i.e. "alembic upgrade +2",
+      "alembic downgrade -1".  Courtesy
+      Atsushi Odagiri for this feature.
+
+    .. change::
+        :tags: bug
+        :tickets: 49
+
+      Fixed bug whereby directories inside of
+      the template directories, such as __pycache__
+      on Pypy, would mistakenly be interpreted as
+      files which are part of the template.
+
+.. changelog::
+    :version: 0.3.2
+    :released: Mon Apr 30 2012
+
+    .. change::
+        :tags: feature
+        :tickets: 40
+
+      Basic support for Oracle added,
+      courtesy shgoh.
+
+    .. change::
+        :tags: feature
+        :tickets:
+
+      Added support for UniqueConstraint
+      in autogenerate, courtesy Atsushi Odagiri
+
+    .. change::
+        :tags: bug
+        :tickets:
+
+      Fixed support of schema-qualified
+      ForeignKey target in column alter operations,
+      courtesy Alexander Kolov.
+
+    .. change::
+        :tags: bug
+        :tickets:
+
+      Fixed bug whereby create_unique_constraint()
+      would include in the constraint columns that
+      are added to all Table objects using events,
+      externally to the generation of the constraint.
+
+.. changelog::
+    :version: 0.3.1
+    :released: Sat Apr 07 2012
+
+    .. change::
+        :tags: bug
+        :tickets: 41
+
+      bulk_insert() fixes:
+
+        1. bulk_insert() operation was
+           not working most likely since the 0.2 series
+           when used with an engine.
+        2. Repaired bulk_insert() to complete when
+           used against a lower-case-t table and executing
+           with only one set of parameters, working
+           around SQLAlchemy bug #2461 in this regard.
+        3. bulk_insert() uses "inline=True" so that phrases
+           like RETURNING and such don't get invoked for
+           single-row bulk inserts.
+        4. bulk_insert() will check that you're passing
+           a list of dictionaries in, raises TypeError
+           if not detected.
+
+.. changelog::
+    :version: 0.3.0
+    :released: Thu Apr 05 2012
+
+    .. change::
+        :tags: general
+        :tickets:
+
+      The focus of 0.3 is to clean up
+      and more fully document the public API of Alembic,
+      including better accessors on the MigrationContext
+      and ScriptDirectory objects.  Methods that are
+      not considered to be public on these objects have
+      been underscored, and methods which should be public
+      have been cleaned up and documented, including:
+
+        MigrationContext.get_current_revision()
+        ScriptDirectory.iterate_revisions()
+        ScriptDirectory.get_current_head()
+        ScriptDirectory.get_heads()
+        ScriptDirectory.get_base()
+        ScriptDirectory.generate_revision()
+
+    .. change::
+        :tags: feature
+        :tickets:
+
+      Added a bit of autogenerate to the
+      public API in the form of the function
+      alembic.autogenerate.compare_metadata.
+
+
+
+
+.. changelog::
+    :version: 0.2.2
+    :released: Mon Mar 12 2012
+
+    .. change::
+        :tags: feature
+        :tickets:
+
+      Informative error message when op.XYZ
+      directives are invoked at module import time.
+
+    .. change::
+        :tags: bug
+        :tickets: 35
+
+      Fixed inappropriate direct call to
+      util.err() and therefore sys.exit()
+      when Config failed to locate the
+      config file within library usage.
+
+    .. change::
+        :tags: bug
+        :tickets:
+
+      Autogenerate will emit CREATE TABLE
+      and DROP TABLE directives according to
+      foreign key dependency order.
+
+    .. change::
+        :tags: bug
+        :tickets:
+
+      implement 'tablename' parameter on
+      drop_index() as this is needed by some
+      backends.
+
+    .. change::
+        :tags: feature
+        :tickets:
+
+      Added execution_options parameter
+      to op.execute(), will call execution_options()
+      on the Connection before executing.
+
+      The immediate use case here is to allow
+      access to the new no_parameters option
+      in SQLAlchemy 0.7.6, which allows
+      some DBAPIs (psycopg2, MySQLdb) to allow
+      percent signs straight through without
+      escaping, thus providing cross-compatible
+      operation with DBAPI execution and
+      static script generation.
+
+    .. change::
+        :tags: bug
+        :tickets:
+
+      setup.py won't install argparse if on
+      Python 2.7/3.2
+
+    .. change::
+        :tags: feature
+        :tickets: 29
+
+      script_location can be interpreted
+      by pkg_resources.resource_filename(), if
+      it is a non-absolute URI that contains
+      colons.   This scheme is the same
+      one used by Pyramid.
+
+    .. change::
+        :tags: feature
+        :tickets:
+
+      added missing support for
+      onupdate/ondelete flags for
+      ForeignKeyConstraint, courtesy Giacomo Bagnoli
+
+    .. change::
+        :tags: bug
+        :tickets: 30
+
+      fixed a regression regarding an autogenerate
+      error message, as well as various glitches
+      in the Pylons sample template.  The Pylons sample
+      template requires that you tell it where to
+      get the Engine from now.  courtesy
+      Marcin Kuzminski
+
+    .. change::
+        :tags: bug
+        :tickets:
+
+      drop_index() ensures a dummy column
+      is added when it calls "Index", as SQLAlchemy
+      0.7.6 will warn on index with no column names.
+
+.. changelog::
+    :version: 0.2.1
+    :released: Tue Jan 31 2012
+
+    .. change::
+        :tags: bug
+        :tickets: 26
+
+      Fixed the generation of CHECK constraint,
+      regression from 0.2.0
+
+.. changelog::
+    :version: 0.2.0
+    :released: Mon Jan 30 2012
+
+    .. change::
+        :tags: feature
+        :tickets: 19
+
+      API rearrangement allows everything
+      Alembic does to be represented by contextual
+      objects, including EnvironmentContext,
+      MigrationContext, and Operations.   Other
+      libraries and applications can now use
+      things like "alembic.op" without relying
+      upon global configuration variables.
+      The rearrangement was done such that
+      existing migrations should be OK,
+      as long as they use the pattern
+      of "from alembic import context" and
+      "from alembic import op", as these
+      are now contextual objects, not modules.
+
+    .. change::
+        :tags: feature
+        :tickets: 24
+
+      The naming of revision files can
+      now be customized to be some combination
+      of "rev id" and "slug", the latter of which
+      is based on the revision message.
+      By default, the pattern "<rev>_<slug>"
+      is used for new files.   New script files
+      should include the "revision" variable
+      for this to work, which is part of
+      the newer script.py.mako scripts.
+
+    .. change::
+        :tags: bug
+        :tickets: 25
+
+      env.py templates call
+      connection.close() to better support
+      programmatic usage of commands; use
+      NullPool in conjunction with create_engine()
+      as well so that no connection resources
+      remain afterwards.
+
+    .. change::
+        :tags: bug
+        :tickets: 22
+
+      fix the config.main() function to honor
+      the arguments passed, remove no longer used
+      "scripts/alembic" as setuptools creates this
+      for us.
+
+    .. change::
+        :tags: bug
+        :tickets:
+
+      Fixed alteration of column type on
+      MSSQL to not include the keyword "TYPE".
+
+    .. change::
+        :tags: feature
+        :tickets: 23
+
+      Can create alembic.config.Config
+      with no filename, use set_main_option()
+      to add values.  Also added set_section_option()
+      which will add sections.
+
+
+
+
+.. changelog::
+    :version: 0.1.1
+    :released: Wed Jan 04 2012
+
+    .. change::
+        :tags: bug
+        :tickets:
+
+      Clean up file write operations so that
+      file handles are closed.
+
+    .. change::
+        :tags: feature
+        :tickets:
+
+      PyPy is supported.
+
+    .. change::
+        :tags: feature
+        :tickets:
+
+      Python 2.5 is supported, needs
+      __future__.with_statement
+
+    .. change::
+        :tags: bug
+        :tickets:
+
+      Fix autogenerate so that "pass" is
+      generated between the two comments
+      if no net migrations were present.
+
+    .. change::
+        :tags: bug
+        :tickets: 16
+
+      Fix autogenerate bug that prevented
+      correct reflection of a foreign-key
+      referenced table in the list of "to remove".
+
+    .. change::
+        :tags: bug
+        :tickets: 17
+
+      Fix bug where create_table() didn't
+      handle self-referential foreign key
+      correctly
+
+    .. change::
+        :tags: bug
+        :tickets: 18
+
+      Default prefix for autogenerate
+      directives is "op.", matching the
+      mako templates.
+
+    .. change::
+        :tags: feature
+        :tickets: 18
+
+      Add alembic_module_prefix argument
+      to configure() to complement
+      sqlalchemy_module_prefix.
+
+    .. change::
+        :tags: bug
+        :tickets: 14
+
+      fix quotes not being rendered in
+      ForeignKeConstraint during
+      autogenerate
+
+.. changelog::
+    :version: 0.1.0
+    :released: Wed Nov 30 2011
+
+    .. change::
+        :tags:
+        :tickets:
+
+      Initial release.  Status of features:
+
+    .. change::
+        :tags:
+        :tickets:
+
+      Alembic is used in at least one production
+      environment, but should still be considered
+      ALPHA LEVEL SOFTWARE as of this release,
+      particularly in that many features are expected
+      to be missing / unimplemented.   Major API
+      changes are not anticipated but for the moment
+      nothing should be assumed.
+
+      The author asks that you *please* report all
+      issues, missing features, workarounds etc.
+      to the bugtracker, at
+      https://bitbucket.org/zzzeek/alembic/issues/new .
+
+    .. change::
+        :tags:
+        :tickets:
+
+      Python 3 is supported and has been tested.
+
+    .. change::
+        :tags:
+        :tickets:
+
+      The "Pylons" and "MultiDB" environment templates
+      have not been directly tested - these should be
+      considered to be samples to be modified as
+      needed.   Multiple database support itself
+      is well tested, however.
+
+    .. change::
+        :tags:
+        :tickets:
+
+      Postgresql and MS SQL Server environments
+      have been tested for several weeks in a production
+      environment.  In particular, some involved workarounds
+      were implemented to allow fully-automated dropping
+      of default- or constraint-holding columns with
+      SQL Server.
+
+    .. change::
+        :tags:
+        :tickets:
+
+      MySQL support has also been implemented to a
+      basic degree, including MySQL's awkward style
+      of modifying columns being accommodated.
+
+    .. change::
+        :tags:
+        :tickets:
+
+      Other database environments not included among
+      those three have *not* been tested, *at all*.  This
+      includes Firebird, Oracle, Sybase.   Adding
+      support for these backends should be
+      straightforward.  Please report all missing/
+      incorrect behaviors to the bugtracker! Patches
+      are welcome here but are optional - please just
+      indicate the exact format expected by the target
+      database.
+
+    .. change::
+        :tags:
+        :tickets:
+
+      SQLite, as a backend, has almost no support for
+      schema alterations to existing databases.  The author
+      would strongly recommend that SQLite not be used in
+      a migration context - just dump your SQLite database
+      into an intermediary format, then dump it back
+      into a new schema.  For dev environments, the
+      dev installer should be building the whole DB from
+      scratch.  Or just use Postgresql, which is a much
+      better database for non-trivial schemas.
+      Requests for full ALTER support on SQLite should be
+      reported to SQLite's bug tracker at
+      http://www.sqlite.org/src/wiki?name=Bug+Reports,
+      as Alembic will not be implementing the
+      "rename the table to a temptable then copy the
+      data into a new table" workaround.
+      Note that Alembic will at some point offer an
+      extensible API so that you can implement commands
+      like this yourself.
+
+    .. change::
+        :tags:
+        :tickets:
+
+      Well-tested directives include add/drop table, add/drop
+      column, including support for SQLAlchemy "schema"
+      types which generate additional CHECK
+      constraints, i.e. Boolean, Enum.  Other directives not
+      included here have *not* been strongly tested
+      in production, i.e. rename table, etc.
+
+    .. change::
+        :tags:
+        :tickets:
+
+      Both "online" and "offline" migrations, the latter
+      being generated SQL scripts to hand off to a DBA,
+      have been strongly production tested against
+      Postgresql and SQL Server.
+
+    .. change::
+        :tags:
+        :tickets:
+
+      Modify column type, default status, nullable, is
+      functional and tested across PG, MSSQL, MySQL,
+      but not yet widely tested in production usage.
+
+    .. change::
+        :tags:
+        :tickets:
+
+      Many migrations are still outright missing, i.e.
+      create/add sequences, etc.  As a workaround,
+      execute() can be used for those which are missing,
+      though posting of tickets for new features/missing
+      behaviors is strongly encouraged.
+
+    .. change::
+        :tags:
+        :tickets:
+
+      Autogenerate feature is implemented and has been
+      tested, though only a little bit in a production setting.
+      In particular, detection of type and server
+      default changes are optional and are off by default;
+      they can also be customized by a callable.
+      Both features work but can have surprises particularly
+      the disparity between BIT/TINYINT and boolean,
+      which hasn't yet been worked around, as well as
+      format changes performed by the database on defaults
+      when it reports back.  When enabled, the PG dialect
+      will execute the two defaults to be compared to
+      see if they are equivalent.  Other backends may
+      need to do the same thing.
+
+      The autogenerate feature only generates
+      "candidate" commands which must be hand-tailored
+      in any case, so is still a useful feature and
+      is safe to use.  Please report missing/broken features
+      of autogenerate!  This will be a great feature and
+      will also improve SQLAlchemy's reflection services.
+
+    .. change::
+        :tags:
+        :tickets:
+
+      Support for non-ASCII table, column and constraint
+      names is mostly nonexistent.   This is also a
+      straightforward feature add as SQLAlchemy itself
+      supports unicode identifiers; Alembic itself will
+      likely need fixes to logging, column identification
+      by key, etc. for full support here.

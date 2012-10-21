@@ -11,12 +11,13 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys, os
+import sys
+import os
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-#sys.path.append(os.path.abspath('.'))
+sys.path.append(os.path.abspath('.'))
 
 # If your extensions are in another directory, add it here. If the directory
 # is relative to the documentation root, use os.path.abspath to make it
@@ -29,7 +30,10 @@ import alembic
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.intersphinx']
+extensions = ['sphinx.ext.autodoc', 'sphinx.ext.intersphinx',
+                'ext.changelog']
+
+changelog_render_ticket = "https://bitbucket.org/zzzeek/alembic/issue/%s/"
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -209,5 +213,5 @@ latex_documents = [
 autoclass_content = "both"
 
 intersphinx_mapping = {
-    'sqla':('http://www.sqlalchemy.org/docs/', None), 
+    'sqla':('http://www.sqlalchemy.org/docs/', None),
 }

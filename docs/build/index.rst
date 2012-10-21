@@ -12,6 +12,7 @@ with the `SQLAlchemy <http://www.sqlalchemy.org>`_ Database Toolkit for Python.
    tutorial
    ops
    api
+   changelog
 
 Indices and tables
 ==================
