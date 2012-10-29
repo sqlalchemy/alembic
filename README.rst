@@ -63,7 +63,7 @@ The goals of Alembic are:
 * Don't break our necks over SQLite's inability to ALTER things.   SQLite
   has almost no support for table or column alteration, and this is likely
   intentional.   Alembic's design
-  is kept simple by not contorting it's core API around these limitations,
+  is kept simple by not contorting its core API around these limitations,
   understanding that SQLite is simply not intended to support schema
   changes.   While Alembic's architecture can support SQLite's workarounds, and
   we will support these features provided someone takes the initiative
