@@ -509,6 +509,18 @@ def test_create_table_fk_and_schema():
             "FOREIGN KEY(foo_id) REFERENCES foo (id))"
     )
 
+def test_create_table_no_pk():
+    context = op_fixture()
+    op.create_table(
+        "some_table",
+        Column('x', Integer),
+        Column('y', Integer),
+        Column('z', Integer),
+    )
+    context.assert_(
+        "CREATE TABLE some_table (x INTEGER, y INTEGER, z INTEGER)"
+    )
+
 def test_create_table_two_fk():
     context = op_fixture()
     op.create_table(
