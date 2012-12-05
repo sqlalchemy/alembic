@@ -545,6 +545,9 @@ def _render_column(column, autogen_context):
                     _render_server_default(
                             column.server_default, autogen_context
                     )))
+    if not column.autoincrement:
+        opts.append(("autoincrement", column.autoincrement))
+
     if column.nullable is not None:
         opts.append(("nullable", column.nullable))
 

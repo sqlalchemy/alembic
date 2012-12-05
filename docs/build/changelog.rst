@@ -10,6 +10,15 @@ Changelog
     :released:
 
     .. change::
+        :tags: bug
+        :tickets: 94
+
+      Autogenerate will include "autoincrement=False"
+      in the rendered table metadata
+      if this flag was set to false on the source
+      :class:`.Column` object.
+
+    .. change::
         :tags: feature
         :tickets: 66
 
