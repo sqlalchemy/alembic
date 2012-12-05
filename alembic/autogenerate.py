@@ -628,8 +628,16 @@ def _render_foreign_key(constraint, autogen_context):
     opts = []
     if constraint.name:
         opts.append(("name", repr(constraint.name)))
+    if constraint.onupdate:
+        opts.append(("onupdate", repr(constraint.onupdate)))
+    if constraint.ondelete:
+        opts.append(("ondelete", repr(constraint.ondelete)))
+    if constraint.initially:
+        opts.append(("initially", repr(constraint.initially)))
+    if constraint.deferrable:
+        opts.append(("deferrable", repr(constraint.deferrable)))
+
     apply_metadata_schema = constraint.parent.metadata.schema
-    # TODO: deferrable, initially, etc.
     return "%(prefix)sForeignKeyConstraint([%(cols)s], "\
             "[%(refcols)s], %(args)s)" % {
         "prefix": _sqlalchemy_autogenerate_prefix(autogen_context),

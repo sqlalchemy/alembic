@@ -1,7 +1,7 @@
 from sqlalchemy import MetaData, Column, Table, Integer, String, Text, \
     Numeric, CHAR, ForeignKey, DATETIME, \
     TypeDecorator, CheckConstraint, Unicode, Enum,\
-    UniqueConstraint, Boolean
+    UniqueConstraint, Boolean, ForeignKeyConstraint
 from sqlalchemy.types import NULLTYPE, TIMESTAMP
 from sqlalchemy.dialects import mysql
 from sqlalchemy.engine.reflection import Inspector
@@ -952,6 +952,35 @@ class AutogenRenderTest(TestCase):
                         nullable=True, schema='foo'),
             "op.alter_column('sometable', 'somecolumn', "
             "existing_type=sa.Integer(), nullable=True, schema='foo')"
+        )
+
+    def test_render_fk_constraint_kwarg(self):
+        m = MetaData()
+        t1 = Table('t', m, Column('c', Integer))
+        t2 = Table('t2', m, Column('c_rem', Integer))
+
+        fk = ForeignKeyConstraint([t1.c.c], [t2.c.c_rem], onupdate="CASCADE")
+        eq_ignore_whitespace(
+            autogenerate._render_constraint(fk, self.autogen_context),
+            "sa.ForeignKeyConstraint(['c'], ['t2.c_rem'], onupdate='CASCADE')"
+        )
+
+        fk = ForeignKeyConstraint([t1.c.c], [t2.c.c_rem], ondelete="CASCADE")
+        eq_ignore_whitespace(
+            autogenerate._render_constraint(fk, self.autogen_context),
+            "sa.ForeignKeyConstraint(['c'], ['t2.c_rem'], ondelete='CASCADE')"
+        )
+
+        fk = ForeignKeyConstraint([t1.c.c], [t2.c.c_rem], deferrable=True)
+        eq_ignore_whitespace(
+            autogenerate._render_constraint(fk, self.autogen_context),
+            "sa.ForeignKeyConstraint(['c'], ['t2.c_rem'], deferrable=True)"
+        )
+
+        fk = ForeignKeyConstraint([t1.c.c], [t2.c.c_rem], initially="XYZ")
+        eq_ignore_whitespace(
+            autogenerate._render_constraint(fk, self.autogen_context),
+            "sa.ForeignKeyConstraint(['c'], ['t2.c_rem'], initially='XYZ')"
         )
 
     def test_render_check_constraint_literal(self):

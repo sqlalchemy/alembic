@@ -11,6 +11,14 @@ Changelog
 
     .. change::
         :tags: bug
+        :tickets: 92
+
+      Added support for autogenerate render of
+      ForeignKeyConstraint options onupdate,
+      ondelete, initially, and deferred.
+
+    .. change::
+        :tags: bug
         :tickets: 94
 
       Autogenerate will include "autoincrement=False"
