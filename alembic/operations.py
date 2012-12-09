@@ -563,7 +563,7 @@ class Operations(object):
          and :class:`~.sqlalchemy.schema.Index` objects.
         :param schema: Optional schema name to operate within.
         :param \**kw: Other keyword arguments are passed to the underlying
-         :class:`.Table` object created for the command.
+         :class:`sqlalchemy.schema.Table` object created for the command.
 
         """
         self.impl.create_table(
@@ -585,7 +585,7 @@ class Operations(object):
          .. versionadded:: 0.4.0
 
         :param \**kw: Other keyword arguments are passed to the underlying
-         :class:`.Table` object created for the command.
+         :class:`sqlalchemy.schema.Table` object created for the command.
 
         """
         self.impl.drop_table(
@@ -803,7 +803,7 @@ class Operations(object):
 
         :param execution_options: Optional dictionary of
          execution options, will be passed to
-         :meth:`sqlalchemy.engine.base.Connection.execution_options`.
+         :meth:`sqlalchemy.engine.Connection.execution_options`.
         """
         self.migration_context.impl.execute(sql,
                     execution_options=execution_options)
@@ -812,7 +812,7 @@ class Operations(object):
         """Return the current 'bind'.
 
         Under normal circumstances, this is the
-        :class:`~sqlalchemy.engine.base.Connection` currently being used
+        :class:`~sqlalchemy.engine.Connection` currently being used
         to emit SQL to the database.
 
         In a SQL script context, this value is ``None``. [TODO: verify this]

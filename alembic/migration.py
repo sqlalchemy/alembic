@@ -107,7 +107,7 @@ class MigrationContext(object):
         This is a factory method usually called
         by :meth:`.EnvironmentContext.configure`.
 
-        :param connection: a :class:`~sqlalchemy.engine.base.Connection`
+        :param connection: a :class:`~sqlalchemy.engine.Connection`
          to use for SQL execution in "online" mode.  When present,
          is also used to determine the type of dialect in use.
         :param url: a string database url, or a
@@ -243,7 +243,7 @@ class MigrationContext(object):
         """Return the current "bind".
 
         In online mode, this is an instance of
-        :class:`sqlalchemy.engine.base.Connection`, and is suitable
+        :class:`sqlalchemy.engine.Connection`, and is suitable
         for ad-hoc execution of any kind of usage described
         in :ref:`sqlexpression_toplevel` as well as
         for usage with the :meth:`sqlalchemy.schema.Table.create`

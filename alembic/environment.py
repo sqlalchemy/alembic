@@ -237,18 +237,18 @@ class EnvironmentContext(object):
         If the :meth:`.is_offline_mode` function returns ``True``,
         then no connection is needed here.  Otherwise, the
         ``connection`` parameter should be present as an
-        instance of :class:`sqlalchemy.engine.base.Connection`.
+        instance of :class:`sqlalchemy.engine.Connection`.
 
         This function is typically called from the ``env.py``
         script within a migration environment.  It can be called
         multiple times for an invocation.  The most recent
-        :class:`~sqlalchemy.engine.base.Connection`
+        :class:`~sqlalchemy.engine.Connection`
         for which it was called is the one that will be operated upon
         by the next call to :meth:`.run_migrations`.
 
         General parameters:
 
-        :param connection: a :class:`~sqlalchemy.engine.base.Connection`
+        :param connection: a :class:`~sqlalchemy.engine.Connection`
          to use
          for SQL execution in "online" mode.  When present, is also
          used to determine the type of dialect in use.
@@ -293,7 +293,7 @@ class EnvironmentContext(object):
          will be consulted during autogeneration.  The tables present
          will be compared against
          what is locally available on the target
-         :class:`~sqlalchemy.engine.base.Connection`
+         :class:`~sqlalchemy.engine.Connection`
          to produce candidate upgrade/downgrade operations.
 
         :param compare_type: Indicates type comparison behavior during
@@ -547,9 +547,9 @@ class EnvironmentContext(object):
           the output stream, as rendered by the
           target backend (e.g. SQL Server would
           emit ``BEGIN TRANSACTION``).
-        * Otherwise, calls :meth:`sqlalchemy.engine.base.Connection.begin`
+        * Otherwise, calls :meth:`sqlalchemy.engine.Connection.begin`
           on the current online connection, which
-          returns a :class:`sqlalchemy.engine.base.Transaction`
+          returns a :class:`sqlalchemy.engine.Transaction`
           object.  This object demarcates a real
           transaction and is itself a context manager,
           which will roll back if an exception
@@ -557,7 +557,7 @@ class EnvironmentContext(object):
 
         Note that a custom ``env.py`` script which
         has more specific transactional needs can of course
-        manipulate the :class:`~sqlalchemy.engine.base.Connection`
+        manipulate the :class:`~sqlalchemy.engine.Connection`
         directly to produce transactional state in "online"
         mode.
 
@@ -593,7 +593,7 @@ class EnvironmentContext(object):
         """Return the current 'bind'.
 
         In "online" mode, this is the
-        :class:`sqlalchemy.engine.base.Connection` currently being used
+        :class:`sqlalchemy.engine.Connection` currently being used
         to emit SQL to the database.
 
         This function requires that a :class:`.MigrationContext`
