@@ -7,7 +7,7 @@ Changelog
 
 .. changelog::
     :version: 0.4.1
-    :released:
+    :released: Sun Dec 9 2012
 
     .. change::
         :tags: bug
