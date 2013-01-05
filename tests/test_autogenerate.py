@@ -11,6 +11,7 @@ from alembic.migration import MigrationContext
 from unittest import TestCase
 from tests import staging_env, sqlite_db, clear_staging_env, eq_, \
         eq_ignore_whitespace, requires_07, db_for_dialect
+from alembic import util
 import re
 import sys
 py3k = sys.version_info >= (3, )
@@ -960,24 +961,34 @@ class AutogenRenderTest(TestCase):
         t2 = Table('t2', m, Column('c_rem', Integer))
 
         fk = ForeignKeyConstraint([t1.c.c], [t2.c.c_rem], onupdate="CASCADE")
+        if not util.sqla_08:
+            t1.append_constraint(fk)
+
         eq_ignore_whitespace(
             autogenerate._render_constraint(fk, self.autogen_context),
             "sa.ForeignKeyConstraint(['c'], ['t2.c_rem'], onupdate='CASCADE')"
         )
 
         fk = ForeignKeyConstraint([t1.c.c], [t2.c.c_rem], ondelete="CASCADE")
+        if not util.sqla_08:
+            t1.append_constraint(fk)
+
         eq_ignore_whitespace(
             autogenerate._render_constraint(fk, self.autogen_context),
             "sa.ForeignKeyConstraint(['c'], ['t2.c_rem'], ondelete='CASCADE')"
         )
 
         fk = ForeignKeyConstraint([t1.c.c], [t2.c.c_rem], deferrable=True)
+        if not util.sqla_08:
+            t1.append_constraint(fk)
         eq_ignore_whitespace(
             autogenerate._render_constraint(fk, self.autogen_context),
             "sa.ForeignKeyConstraint(['c'], ['t2.c_rem'], deferrable=True)"
         )
 
         fk = ForeignKeyConstraint([t1.c.c], [t2.c.c_rem], initially="XYZ")
+        if not util.sqla_08:
+            t1.append_constraint(fk)
         eq_ignore_whitespace(
             autogenerate._render_constraint(fk, self.autogen_context),
             "sa.ForeignKeyConstraint(['c'], ['t2.c_rem'], initially='XYZ')"

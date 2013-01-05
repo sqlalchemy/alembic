@@ -22,10 +22,11 @@ def _safe_int(value):
     try:
         return int(value)
     except:
-        return 0
-_vers = tuple([_safe_int(x) for x in __version__.split(".")])
+        return value
+_vers = tuple([_safe_int(x) for x in re.findall(r'(\d+|[abc]\d)', __version__)])
 sqla_06 = _vers > (0, 6)
 sqla_07 = _vers > (0, 7)
+sqla_08 = _vers >= (0, 8, 0, 'b2')
 if not sqla_06:
     raise CommandError(
             "SQLAlchemy 0.6 or greater is required. "

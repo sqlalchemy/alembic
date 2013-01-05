@@ -52,7 +52,7 @@ def db_for_dialect(name):
         except ConfigParser.NoOptionError:
             raise SkipTest("No dialect %r in test.cfg" % name)
         try:
-            eng = create_engine(cfg) #, echo=True)
+            eng = create_engine(cfg, echo=True)
         except ImportError, er1:
             raise SkipTest("Can't import DBAPI: %s" % er1)
         try:
@@ -66,6 +66,12 @@ def db_for_dialect(name):
 def requires_07(fn, *arg, **kw):
     if not util.sqla_07:
         raise SkipTest("SQLAlchemy 0.7 required")
+    return fn(*arg, **kw)
+
+@decorator
+def requires_08(fn, *arg, **kw):
+    if not util.sqla_08:
+        raise SkipTest("SQLAlchemy 0.8.0b2 or greater required")
     return fn(*arg, **kw)
 
 _dialects = {}

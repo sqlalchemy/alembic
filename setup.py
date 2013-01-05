@@ -13,12 +13,22 @@ v = open(os.path.join(os.path.dirname(__file__), 'alembic', '__init__.py'))
 VERSION = re.compile(r".*__version__ = '(.*?)'", re.S).match(v.read()).group(1)
 v.close()
 
+
 readme = os.path.join(os.path.dirname(__file__), 'README.rst')
 
 requires = [
     'SQLAlchemy>=0.6.0',
     'Mako',
 ]
+
+# Hack to prevent "TypeError: 'NoneType' object is not callable" error
+# in multiprocessing/util.py _exit_function when running `python
+# setup.py test` (see
+# http://www.eby-sarna.com/pipermail/peak/2010-May/003357.html)
+try:
+    import multiprocessing
+except ImportError:
+    pass
 
 try:
     import argparse

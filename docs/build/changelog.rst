@@ -6,6 +6,33 @@ Changelog
 
 
 .. changelog::
+    :version: 0.4.2
+
+    .. change::
+        :tags: bug
+        :tickets: 96
+
+      Added a workaround to setup.py to prevent
+      "NoneType" error from occuring when
+      "setup.py test" is run.
+
+    .. change::
+        :tags: bug
+        :tickets: 96
+
+      Added an append_constraint() step to each
+      condition within
+      test_autogenerate:AutogenRenderTest.test_render_fk_constraint_kwarg
+      if the SQLAlchemy version is less than 0.8, as ForeignKeyConstraint
+      does not auto-append prior to 0.8.
+
+    .. change::
+        :tags: feature
+        :tickets: 96
+
+      Added a README.unittests with instructions for running the test
+      suite fully.
+
     :version: 0.4.1
     :released: Sun Dec 9 2012
 
