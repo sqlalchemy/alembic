@@ -33,6 +33,7 @@ Changelog
       Added a README.unittests with instructions for running the test
       suite fully.
 
+.. changelog::
     :version: 0.4.1
     :released: Sun Dec 9 2012
 
