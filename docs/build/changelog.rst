@@ -9,6 +9,13 @@ Changelog
     :version: 0.4.2
 
     .. change::
+        :tags: bug, autogenerate
+        :tickets: 99
+
+      Fixed bug where autogenerate would fail if a Column
+      to be added to a table made use of the ".key" paramter.
+
+    .. change::
         :tags: bug, sqlite
         :tickets: 98
 

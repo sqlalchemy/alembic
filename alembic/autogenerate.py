@@ -189,6 +189,7 @@ def _produce_net_changes(connection, metadata, diffs, autogen_context,
 
 def _compare_tables(conn_table_names, metadata_table_names,
                     inspector, metadata, diffs, autogen_context):
+
     for s, tname in metadata_table_names.difference(conn_table_names):
         name = '%s.%s' % (s, tname) if s else tname
         diffs.append(("add_table", metadata.tables[name]))
@@ -256,7 +257,7 @@ def _compare_columns(schema, tname, conn_table, metadata_table,
         log.info("Detected removed column '%s.%s'", name, cname)
 
     for colname in metadata_col_names.intersection(conn_col_names):
-        metadata_col = metadata_table.c[colname]
+        metadata_col = metadata_cols_by_name[colname]
         conn_col = conn_table[colname]
         col_diff = []
         _compare_type(schema, tname, colname,
