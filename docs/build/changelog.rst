@@ -7,6 +7,7 @@ Changelog
 
 .. changelog::
     :version: 0.4.2
+    :released: Fri Jan 11 2013
 
     .. change::
         :tags: bug, autogenerate
