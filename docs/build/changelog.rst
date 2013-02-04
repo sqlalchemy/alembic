@@ -10,6 +10,14 @@ Changelog
     :released: Fri Jan 11 2013
 
     .. change::
+        :tags: bug, documentation
+
+      The name of the "type" parameter on :func:`.drop_constraint`
+      is now officially named ``type_`` for consistency.
+      ``type`` will remain in at least the near future for
+      backwards compatibility.
+
+    .. change::
         :tags: bug, autogenerate
         :tickets: 99
 

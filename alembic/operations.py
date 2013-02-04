@@ -212,7 +212,7 @@ class Operations(object):
          Set to ``None`` to have the default removed.
         :param name: Optional; specify a string name here to
          indicate the new name within a column rename operation.
-        :param type_: Optional; a :class:`~sqlalchemy.types.TypeEngine`
+        :param ``type_``: Optional; a :class:`~sqlalchemy.types.TypeEngine`
          type object to specify a change to the column's type.
          For SQLAlchemy types that also indicate a constraint (i.e.
          :class:`~sqlalchemy.types.Boolean`, :class:`~sqlalchemy.types.Enum`),
@@ -638,22 +638,32 @@ class Operations(object):
             self._index(name, tablename, ['x'], schema=schema)
         )
 
-    def drop_constraint(self, name, tablename, type=None, schema=None):
+    def drop_constraint(self, name, tablename, type_=None, schema=None, type=None):
         """Drop a constraint of the given name, typically via DROP CONSTRAINT.
 
         :param name: name of the constraint.
         :param tablename: tablename.
-        :param type: optional, required on MySQL.  can be
+        :param ``type_``: optional, required on MySQL.  can be
          'foreignkey', 'primary', 'unique', or 'check'.
+
+         .. versionadded:: 0.4.2 the parameter is now named ``type_``.
+            ``type`` will remain for backwards compatibility.
 
          .. versionadded:: 0.3.6 'primary' qualfier to enable
             dropping of MySQL primary key constraints.
+
+        :param type: deprecated, use ``type_``.
+
+         .. versionchanged:: 0.4.2
 
         :param schema: Optional schema name to operate within.
 
          .. versionadded:: 0.4.0
 
         """
+        if type and type_ is None:
+            type_ = type
+
         t = self._table(tablename, schema=schema)
         types = {
             'foreignkey':lambda name:sa_schema.ForeignKeyConstraint(
@@ -664,7 +674,7 @@ class Operations(object):
             None:sa_schema.Constraint
         }
         try:
-            const = types[type]
+            const = types[type_]
         except KeyError:
             raise TypeError("'type' can be one of %s" %
                         ", ".join(sorted(repr(x) for x in types)))
@@ -734,7 +744,7 @@ class Operations(object):
          numerics should be supported.   Other types like boolean,
          dates, etc. may or may not be supported yet by various
          backends.
-        :param type_: optional - a :class:`sqlalchemy.types.TypeEngine`
+        :param ``type_``: optional - a :class:`sqlalchemy.types.TypeEngine`
          subclass stating the type of this value.  In SQLAlchemy
          expressions, this is usually derived automatically
          from the Python type of the value itself, as well as
