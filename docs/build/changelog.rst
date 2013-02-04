@@ -3,11 +3,8 @@
 Changelog
 ==========
 
-
-
 .. changelog::
-    :version: 0.4.2
-    :released: Fri Jan 11 2013
+    :version: 0.4.3
 
     .. change::
         :tags: bug, documentation
@@ -16,6 +13,10 @@ Changelog
       is now officially named ``type_`` for consistency.
       ``type`` will remain in at least the near future for
       backwards compatibility.
+
+.. changelog::
+    :version: 0.4.2
+    :released: Fri Jan 11 2013
 
     .. change::
         :tags: bug, autogenerate
