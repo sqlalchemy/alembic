@@ -7,6 +7,12 @@ Changelog
     :version: 0.5.0
 
     .. change::
+        :tags: change
+
+      SQLAlchemy 0.6 is no longer supported by Alembic - minimum version is 0.7.3,
+      full support is as of 0.7.9.
+
+    .. change::
         :tags: bug
         :tickets: 104
 

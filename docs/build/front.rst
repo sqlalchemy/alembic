@@ -48,8 +48,11 @@ Dependencies
 
 Alembic's install process will ensure that `SQLAlchemy <http://www.sqlalchemy.org>`_
 is installed, in addition to other dependencies.  Alembic will work with
-SQLAlchemy as of version **0.6**, though with a limited featureset.
-The latest version of SQLAlchemy within the **0.7** or **0.8** series is strongly recommended.
+SQLAlchemy as of version **0.7.3**.   The latest version of SQLAlchemy within
+the **0.7** or **0.8** series is strongly recommended.
+
+.. versionchanged:: 0.5.0
+	Support for SQLAlchemy 0.6 has been dropped.
 
 
 Community

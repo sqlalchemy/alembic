@@ -10,7 +10,6 @@ import warnings
 import re
 import inspect
 import uuid
-from sqlalchemy.util import format_argspec_plus, update_wrapper
 
 class CommandError(Exception):
     pass
@@ -22,21 +21,15 @@ def _safe_int(value):
     except:
         return value
 _vers = tuple([_safe_int(x) for x in re.findall(r'(\d+|[abc]\d)', __version__)])
-sqla_06 = _vers > (0, 6)
-sqla_07 = _vers > (0, 7)
+sqla_07 = _vers > (0, 7, 2)
 sqla_08 = _vers >= (0, 8, 0, 'b2')
-if not sqla_06:
+if not sqla_07:
     raise CommandError(
-            "SQLAlchemy 0.6 or greater is required. "
-            "Version 0.7 or above required for full featureset.")
+            "SQLAlchemy 0.7.3 or greater is required. ")
 
-def requires_07(feature):
-    if not sqla_07:
-        raise CommandError(
-            "The %s feature requires "
-            "SQLAlchemy 0.7 or greater."
-            % feature
-        )
+from sqlalchemy.util import format_argspec_plus, update_wrapper
+from sqlalchemy.util.compat import inspect_getfullargspec
+
 try:
     width = int(os.environ['COLUMNS'])
 except (KeyError, ValueError):
@@ -85,7 +78,7 @@ def create_module_class_proxy(cls, globals_, locals_):
             num_defaults += len(spec[3])
         name_args = spec[0]
         if num_defaults:
-            defaulted_vals = name_args[0-num_defaults:]
+            defaulted_vals = name_args[0 - num_defaults:]
         else:
             defaulted_vals = ()
 
@@ -114,10 +107,10 @@ def create_module_class_proxy(cls, globals_, locals_):
             return _proxy.%(name)s(%(apply_kw)s)
             e
         """ % {
-            'name':name,
-            'args':args[1:-1],
-            'apply_kw':apply_kw[1:-1],
-            'doc':fn.__doc__,
+            'name': name,
+            'args': args[1:-1],
+            'apply_kw': apply_kw[1:-1],
+            'doc': fn.__doc__,
         })
         lcl = {}
         exec func_text in globals_, lcl
@@ -173,7 +166,7 @@ def msg(msg, newline=True):
     lines = textwrap.wrap(msg, width)
     if len(lines) > 1:
         for line in lines[0:-1]:
-            sys.stdout.write("  " +line + "\n")
+            sys.stdout.write("  " + line + "\n")
     sys.stdout.write("  " + lines[-1] + ("\n" if newline else ""))
 
 def load_python_file(dir_, filename):
@@ -256,7 +249,8 @@ class immutabledict(dict):
 
 def _with_legacy_names(translations):
     def decorate(fn):
-        spec = inspect.getargspec(fn)
+
+        spec = inspect_getfullargspec(fn)
         metadata = dict(target='target', fn='fn')
         metadata.update(format_argspec_plus(spec, grouped=False))
 

@@ -1,6 +1,6 @@
 from alembic.script import ScriptDirectory
 from alembic.environment import EnvironmentContext
-from alembic import util, ddl, autogenerate as autogen
+from alembic import util, autogenerate as autogen
 import os
 
 def list_templates(config):
@@ -76,7 +76,6 @@ def revision(config, message=None, autogenerate=False, sql=False):
 
     if autogenerate:
         environment = True
-        util.requires_07("autogenerate")
         def retrieve_migrations(rev, context):
             if script.get_revision(rev) is not script.get_revision("head"):
                 raise util.CommandError("Target database is not up to date.")
