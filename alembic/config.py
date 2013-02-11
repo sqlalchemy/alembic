@@ -245,9 +245,11 @@ class CommandLine(object):
 
     def main(self, argv=None):
         options = self.parser.parse_args(argv)
-
-        cfg = Config(options.config, options.name)
-        self.run_cmd(cfg, options)
+        if not hasattr(options, "cmd"):
+            self.parser.print_help()
+        else:
+            cfg = Config(options.config, options.name)
+            self.run_cmd(cfg, options)
 
 def main(argv=None, prog=None, **kwargs):
     """The console runner function for Alembic."""
