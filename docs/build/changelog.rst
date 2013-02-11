@@ -7,6 +7,15 @@ Changelog
     :version: 0.5.0
 
     .. change::
+        :tags: bug
+        :pullreq: 27
+
+      Worked around a backwards-incompatible regression in Python3.3
+      regarding argparse; running "alembic" with no arguments
+      now yields an informative error in py3.3 as with all previous versions.
+      Courtesy Andrey Antukh.
+
+    .. change::
         :tags: change
 
       SQLAlchemy 0.6 is no longer supported by Alembic - minimum version is 0.7.3,

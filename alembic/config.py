@@ -246,7 +246,9 @@ class CommandLine(object):
     def main(self, argv=None):
         options = self.parser.parse_args(argv)
         if not hasattr(options, "cmd"):
-            self.parser.print_help()
+            # see http://bugs.python.org/issue9253, argparse
+            # behavior changed incompatibly in py3.3
+            self.parser.error("too few arguments")
         else:
             cfg = Config(options.config, options.name)
             self.run_cmd(cfg, options)
