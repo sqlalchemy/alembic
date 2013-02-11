@@ -4,15 +4,31 @@ Changelog
 ==========
 
 .. changelog::
-    :version: 0.4.3
+    :version: 0.5.0
 
     .. change::
-        :tags: bug, documentation
+        :tags: bug
+        :tickets: 104
 
-      The name of the "type" parameter on :func:`.drop_constraint`
-      is now officially named ``type_`` for consistency.
-      ``type`` will remain in at least the near future for
-      backwards compatibility.
+      A host of argument name changes within migration
+      operations for consistency.  Keyword arguments
+      will continue to work on the old name for backwards compatibility,
+      however required positional arguments will not:
+
+        :meth:`.Operations.alter_column` - ``name`` -> ``new_column_name`` - old
+        name will work for backwards compatibility.
+
+        :meth:`.Operations.create_index` - ``tablename`` -> ``table_name`` -
+        argument is positional.
+
+        :meth:`.Operations.drop_index` - ``tablename`` -> ``table_name`` - old
+        name will work for backwards compatibility.
+
+        :meth:`.Operations.drop_constraint` - ``tablename`` -> ``table_name`` -
+        argument is positional.
+
+        :meth:`.Operations.drop_constraint` - ``type`` -> ``type_`` - old
+        name will work for backwards compatibility
 
 .. changelog::
     :version: 0.4.2

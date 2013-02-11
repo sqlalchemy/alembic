@@ -3,9 +3,8 @@
 from tests import op_fixture, assert_raises_message
 from alembic import op
 from sqlalchemy import Integer, Column, ForeignKey, \
-            UniqueConstraint, Table, MetaData, String,\
-            Boolean
-from sqlalchemy.sql import table, column, func
+            Table, String, Boolean
+from sqlalchemy.sql import column, func
 
 
 def test_rename_table():
@@ -169,14 +168,14 @@ def test_alter_column_schema_not_nullable():
 
 def test_alter_column_rename():
     context = op_fixture()
-    op.alter_column("t", "c", name="x")
+    op.alter_column("t", "c", new_column_name="x")
     context.assert_(
         "ALTER TABLE t RENAME c TO x"
     )
 
 def test_alter_column_schema_rename():
     context = op_fixture()
-    op.alter_column("t", "c", name="x", schema='foo')
+    op.alter_column("t", "c", new_column_name="x", schema='foo')
     context.assert_(
         "ALTER TABLE foo.t RENAME c TO x"
     )
@@ -550,13 +549,13 @@ def test_inline_literal():
     )
     op.execute(
         account.update().\
-            where(account.c.name==op.inline_literal('account 1')).\
-            values({'name':op.inline_literal('account 2')})
+            where(account.c.name == op.inline_literal('account 1')).\
+            values({'name': op.inline_literal('account 2')})
             )
     op.execute(
         account.update().\
-            where(account.c.id==op.inline_literal(1)).\
-            values({'id':op.inline_literal(2)})
+            where(account.c.id == op.inline_literal(1)).\
+            values({'id': op.inline_literal(2)})
             )
     context.assert_(
         "UPDATE account SET name='account 2' WHERE account.name = 'account 1'",
@@ -574,3 +573,36 @@ def test_cant_op():
         "Try placing this code inside a callable.",
         op.inline_literal, "asdf"
     )
+
+
+def test_naming_changes():
+    context = op_fixture()
+    op.alter_column("t", "c", name="x")
+    context.assert_("ALTER TABLE t RENAME c TO x")
+
+    context = op_fixture()
+    op.alter_column("t", "c", new_column_name="x")
+    context.assert_("ALTER TABLE t RENAME c TO x")
+
+    context = op_fixture('mssql')
+    op.drop_index('ik_test', tablename='t1')
+    context.assert_("DROP INDEX [t1].ik_test")
+
+    context = op_fixture('mssql')
+    op.drop_index('ik_test', table_name='t1')
+    context.assert_("DROP INDEX [t1].ik_test")
+
+    context = op_fixture('mysql')
+    op.drop_constraint("f1", "t1", type="foreignkey")
+    context.assert_("ALTER TABLE t1 DROP FOREIGN KEY f1")
+
+    context = op_fixture('mysql')
+    op.drop_constraint("f1", "t1", type_="foreignkey")
+    context.assert_("ALTER TABLE t1 DROP FOREIGN KEY f1")
+
+    assert_raises_message(
+        TypeError,
+        "Unknown arguments: badarg2, badarg1",
+        op.alter_column, "t", "c", badarg1="x", badarg2="y"
+    )
+

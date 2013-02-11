@@ -3,25 +3,25 @@ from alembic import op, util
 from sqlalchemy import Integer, Column, ForeignKey, \
             UniqueConstraint, Table, MetaData, String,\
             func
-from sqlalchemy.sql import table
 
 def test_rename_column():
     context = op_fixture('mysql')
-    op.alter_column('t1', 'c1', name="c2", existing_type=Integer)
+    op.alter_column('t1', 'c1', new_column_name="c2", existing_type=Integer)
     context.assert_(
         'ALTER TABLE t1 CHANGE c1 c2 INTEGER NULL'
     )
 
 def test_rename_column_serv_default():
     context = op_fixture('mysql')
-    op.alter_column('t1', 'c1', name="c2", existing_type=Integer, existing_server_default="q")
+    op.alter_column('t1', 'c1', new_column_name="c2", existing_type=Integer,
+                        existing_server_default="q")
     context.assert_(
         "ALTER TABLE t1 CHANGE c1 c2 INTEGER NULL DEFAULT 'q'"
     )
 
 def test_rename_column_serv_compiled_default():
     context = op_fixture('mysql')
-    op.alter_column('t1', 'c1', name="c2", existing_type=Integer,
+    op.alter_column('t1', 'c1', new_column_name="c2", existing_type=Integer,
             existing_server_default=func.utc_thing(func.current_timestamp()))
     # this is not a valid MySQL default but the point is to just
     # test SQL expression rendering
@@ -31,7 +31,7 @@ def test_rename_column_serv_compiled_default():
 
 def test_rename_column_autoincrement():
     context = op_fixture('mysql')
-    op.alter_column('t1', 'c1', name="c2", existing_type=Integer,
+    op.alter_column('t1', 'c1', new_column_name="c2", existing_type=Integer,
                                 existing_autoincrement=True)
     context.assert_(
         'ALTER TABLE t1 CHANGE c1 c2 INTEGER NULL AUTO_INCREMENT'
@@ -39,7 +39,7 @@ def test_rename_column_autoincrement():
 
 def test_col_add_autoincrement():
     context = op_fixture('mysql')
-    op.alter_column('t1', 'c1', name="c2", existing_type=Integer,
+    op.alter_column('t1', 'c1', new_column_name="c2", existing_type=Integer,
                                 autoincrement=True)
     context.assert_(
         'ALTER TABLE t1 CHANGE c1 c2 INTEGER NULL AUTO_INCREMENT'
@@ -47,7 +47,7 @@ def test_col_add_autoincrement():
 
 def test_col_remove_autoincrement():
     context = op_fixture('mysql')
-    op.alter_column('t1', 'c1', name="c2", existing_type=Integer,
+    op.alter_column('t1', 'c1', new_column_name="c2", existing_type=Integer,
                                 existing_autoincrement=True,
                                 autoincrement=False)
     context.assert_(
@@ -86,7 +86,7 @@ def test_drop_fk():
 
 def test_drop_constraint_primary():
     context = op_fixture('mysql')
-    op.drop_constraint('primary', 't1',type='primary')
+    op.drop_constraint('primary', 't1', type_='primary')
     context.assert_(
         "ALTER TABLE t1 DROP PRIMARY KEY "
     )

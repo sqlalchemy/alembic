@@ -5,14 +5,12 @@ import sys
 import os
 import textwrap
 from sqlalchemy.engine import url
-from sqlalchemy import util as sqla_util
 import imp
 import warnings
 import re
 import inspect
-import time
-import random
 import uuid
+from sqlalchemy.util import format_argspec_plus, update_wrapper
 
 class CommandError(Exception):
     pass
@@ -251,3 +249,44 @@ class immutabledict(dict):
 
     def __repr__(self):
         return "immutabledict(%s)" % dict.__repr__(self)
+
+
+
+
+
+def _with_legacy_names(translations):
+    def decorate(fn):
+        spec = inspect.getargspec(fn)
+        metadata = dict(target='target', fn='fn')
+        metadata.update(format_argspec_plus(spec, grouped=False))
+
+        has_keywords = bool(spec[2])
+
+        if not has_keywords:
+            metadata['args'] += ", **kw"
+            metadata['apply_kw'] += ", **kw"
+
+        def go(*arg, **kw):
+            names = set(kw).difference(spec[0])
+            for oldname, newname in translations:
+                if oldname in kw:
+                    kw[newname] = kw.pop(oldname)
+                    names.discard(oldname)
+
+                    warnings.warn(
+                        "Argument '%s' is now named '%s' for function '%s'" %
+                        (oldname, newname, fn.__name__))
+            if not has_keywords and names:
+                raise TypeError("Unknown arguments: %s" % ", ".join(names))
+            return fn(*arg, **kw)
+
+        code = 'lambda %(args)s: %(target)s(%(apply_kw)s)' % (
+                metadata)
+        decorated = eval(code, {"target": go})
+        decorated.func_defaults = getattr(fn, 'im_func', fn).func_defaults
+        return update_wrapper(decorated, fn)
+
+    return decorate
+
+
+

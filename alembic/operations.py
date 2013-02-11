@@ -1,7 +1,7 @@
 from alembic import util
 from alembic.ddl import impl
 from sqlalchemy.types import NULLTYPE, Integer
-from sqlalchemy import schema as sa_schema, sql
+from sqlalchemy import schema as sa_schema
 from contextlib import contextmanager
 import alembic
 
@@ -162,10 +162,11 @@ class Operations(object):
             schema=schema
         )
 
+    @util._with_legacy_names([('name', 'new_column_name')])
     def alter_column(self, table_name, column_name,
                         nullable=None,
                         server_default=False,
-                        name=None,
+                        new_column_name=None,
                         type_=None,
                         autoincrement=None,
                         existing_type=None,
@@ -210,8 +211,14 @@ class Operations(object):
          or :class:`~sqlalchemy.schema.DefaultClause` to indicate
          an alteration to the column's default value.
          Set to ``None`` to have the default removed.
-        :param name: Optional; specify a string name here to
+        :param new_column_name: Optional; specify a string name here to
          indicate the new name within a column rename operation.
+
+         .. versionchanged:: 0.5.0
+            The ``name`` parameter is now named ``new_column_name``.
+            The old name will continue to function for backwards
+            compatibility.
+
         :param ``type_``: Optional; a :class:`~sqlalchemy.types.TypeEngine`
          type object to specify a change to the column's type.
          For SQLAlchemy types that also indicate a constraint (i.e.
@@ -267,7 +274,7 @@ class Operations(object):
         self.impl.alter_column(table_name, column_name,
             nullable=nullable,
             server_default=server_default,
-            name=name,
+            name=new_column_name,
             type_=type_,
             schema=schema,
             autoincrement=autoincrement,
@@ -592,7 +599,7 @@ class Operations(object):
             self._table(name, **kw)
         )
 
-    def create_index(self, name, tablename, columns, schema=None, **kw):
+    def create_index(self, name, table_name, columns, schema=None, **kw):
         """Issue a "create index" instruction using the current
         migration context.
 
@@ -602,7 +609,13 @@ class Operations(object):
             op.create_index('ik_test', 't1', ['foo', 'bar'])
 
         :param name: name of the index.
-        :param tablename: name of the owning table.
+        :param table_name: name of the owning table.
+
+         .. versionchanged:: 0.5.0
+            The ``tablename`` parameter is now named ``table_name``.
+            As this is a positional argument, the old name is no
+            longer present.
+
         :param columns: a list of string column names in the
          table.
         :param schema: Optional schema name to operate within.
@@ -612,21 +625,27 @@ class Operations(object):
         """
 
         self.impl.create_index(
-            self._index(name, tablename, columns, schema=schema, **kw)
+            self._index(name, table_name, columns, schema=schema, **kw)
         )
 
-    def drop_index(self, name, tablename=None, schema=None):
+    @util._with_legacy_names([('tablename', 'table_name')])
+    def drop_index(self, name, table_name=None, schema=None):
         """Issue a "drop index" instruction using the current
         migration context.
-
 
         e.g.::
 
             drop_index("accounts")
 
         :param name: name of the index.
-        :param tablename: name of the owning table.  Some
+        :param table_name: name of the owning table.  Some
          backends such as Microsoft SQL Server require this.
+
+         .. versionchanged:: 0.5.0
+            The ``tablename`` parameter is now named ``table_name``.
+            The old name will continue to function for backwards
+            compatibility.
+
         :param schema: Optional schema name to operate within.
 
          .. versionadded:: 0.4.0
@@ -635,43 +654,45 @@ class Operations(object):
         # need a dummy column name here since SQLAlchemy
         # 0.7.6 and further raises on Index with no columns
         self.impl.drop_index(
-            self._index(name, tablename, ['x'], schema=schema)
+            self._index(name, table_name, ['x'], schema=schema)
         )
 
-    def drop_constraint(self, name, tablename, type_=None, schema=None, type=None):
+    @util._with_legacy_names([("type", "type_")])
+    def drop_constraint(self, name, table_name, type_=None, schema=None):
         """Drop a constraint of the given name, typically via DROP CONSTRAINT.
 
         :param name: name of the constraint.
-        :param tablename: tablename.
+        :param table_name: table name.
+
+         .. versionchanged:: 0.5.0
+            The ``tablename`` parameter is now named ``table_name``.
+            As this is a positional argument, the old name is no
+            longer present.
+
         :param ``type_``: optional, required on MySQL.  can be
          'foreignkey', 'primary', 'unique', or 'check'.
 
-         .. versionadded:: 0.4.2 the parameter is now named ``type_``.
+         .. versionchanged:: 0.5.0
+            The ``type`` parameter is now named ``type_``.  The old name
             ``type`` will remain for backwards compatibility.
 
          .. versionadded:: 0.3.6 'primary' qualfier to enable
             dropping of MySQL primary key constraints.
-
-        :param type: deprecated, use ``type_``.
-
-         .. versionchanged:: 0.4.2
 
         :param schema: Optional schema name to operate within.
 
          .. versionadded:: 0.4.0
 
         """
-        if type and type_ is None:
-            type_ = type
 
-        t = self._table(tablename, schema=schema)
+        t = self._table(table_name, schema=schema)
         types = {
-            'foreignkey':lambda name:sa_schema.ForeignKeyConstraint(
+            'foreignkey': lambda name: sa_schema.ForeignKeyConstraint(
                                 [], [], name=name),
-            'primary':sa_schema.PrimaryKeyConstraint,
-            'unique':sa_schema.UniqueConstraint,
-            'check':lambda name:sa_schema.CheckConstraint("", name=name),
-            None:sa_schema.Constraint
+            'primary': sa_schema.PrimaryKeyConstraint,
+            'unique': sa_schema.UniqueConstraint,
+            'check': lambda name: sa_schema.CheckConstraint("", name=name),
+            None: sa_schema.Constraint
         }
         try:
             const = types[type_]
