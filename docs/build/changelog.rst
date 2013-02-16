@@ -8,6 +8,16 @@ Changelog
 
     .. change::
         :tags: bug
+
+      Fixed bug whereby create_index()
+      would include in the constraint columns that
+      are added to all Table objects using events,
+      externally to the generation of the constraint.
+      This is the same issue that was fixed for unique
+      constraints in version 0.3.2.
+
+    .. change::
+        :tags: bug
         :pullreq: 27
 
       Worked around a backwards-incompatible regression in Python3.3

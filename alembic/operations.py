@@ -113,7 +113,7 @@ class Operations(object):
             *[sa_schema.Column(n, NULLTYPE) for n in columns],
             schema=schema
         )
-        return sa_schema.Index(name, *list(t.c), **kw)
+        return sa_schema.Index(name, *[t.c[n] for n in columns], **kw)
 
     def _parse_table_key(self, table_key):
         if '.' in table_key:

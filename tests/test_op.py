@@ -6,6 +6,12 @@ from sqlalchemy import Integer, Column, ForeignKey, \
             Table, String, Boolean
 from sqlalchemy.sql import column, func
 
+from sqlalchemy import event
+@event.listens_for(Table, "after_parent_attach")
+def _add_cols(table, metadata):
+    if table.name == "tbl_with_auto_appended_column":
+        table.append_column(Column('bat', Integer))
+
 
 def test_rename_table():
     context = op_fixture()
@@ -405,21 +411,6 @@ def test_add_unique_constraint_schema():
         "ALTER TABLE foo.t1 ADD CONSTRAINT uk_test UNIQUE (foo, bar)"
     )
 
-def test_add_unique_constraint_auto_cols():
-    context = op_fixture()
-    from sqlalchemy import event, DateTime
-
-    @event.listens_for(Table, "after_parent_attach")
-    def _table_standard_cols(table, metadata):
-        table.append_column(Column('created_at', DateTime))
-
-    try:
-        op.create_unique_constraint('uk_test', 't1', ['foo', 'bar'])
-        context.assert_(
-            "ALTER TABLE t1 ADD CONSTRAINT uk_test UNIQUE (foo, bar)"
-        )
-    finally:
-        Table.dispatch._clear()
 
 def test_drop_constraint():
     context = op_fixture()
@@ -441,6 +432,25 @@ def test_create_index():
     context.assert_(
         "CREATE INDEX ik_test ON t1 (foo, bar)"
     )
+
+
+def test_create_index_table_col_event():
+    context = op_fixture()
+
+    op.create_index('ik_test', 'tbl_with_auto_appended_column', ['foo', 'bar'])
+    context.assert_(
+        "CREATE INDEX ik_test ON tbl_with_auto_appended_column (foo, bar)"
+    )
+
+def test_add_unique_constraint_col_event():
+    context = op_fixture()
+    op.create_unique_constraint('ik_test',
+            'tbl_with_auto_appended_column', ['foo', 'bar'])
+    context.assert_(
+        "ALTER TABLE tbl_with_auto_appended_column "
+        "ADD CONSTRAINT ik_test UNIQUE (foo, bar)"
+    )
+
 
 def test_create_index_schema():
     context = op_fixture()
