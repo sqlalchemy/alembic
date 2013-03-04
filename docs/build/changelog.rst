@@ -7,6 +7,16 @@ Changelog
     :version: 0.5.0
 
     .. change::
+        :tags: feature
+        :tickets: 108
+
+      The rendering of any construct during autogenerate
+      can be customized, in particular to allow special rendering
+      for user-defined column, constraint subclasses, using new
+      ``render_item`` argument to
+      :meth:`.EnvironmentContext.configure`.
+
+    .. change::
         :tags: bug
 
       Fixed bug whereby create_index()

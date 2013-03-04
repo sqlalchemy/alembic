@@ -445,7 +445,9 @@ def _add_table(table, autogen_context):
         'tablename': table.name,
         'prefix': _alembic_autogenerate_prefix(autogen_context),
         'args': ',\n'.join(
-            [_render_column(col, autogen_context) for col in table.c] +
+            [col for col in
+                [_render_column(col, autogen_context) for col in table.c]
+            if col] +
             sorted([rcons for rcons in
                 [_render_constraint(cons, autogen_context) for cons in
                     table.constraints]
@@ -509,9 +511,10 @@ def _modify_col(tname, cname,
     text += ",\n%sexisting_type=%s" % (indent,
                     _repr_type(sqla_prefix, existing_type, autogen_context))
     if server_default is not False:
-        text += ",\n%sserver_default=%s" % (indent,
-                        _render_server_default(
-                                server_default, autogen_context),)
+        rendered = _render_server_default(
+                                server_default, autogen_context)
+        text += ",\n%sserver_default=%s" % (indent, rendered)
+
     if type_ is not None:
         text += ",\n%stype_=%s" % (indent,
                         _repr_type(sqla_prefix, type_, autogen_context))
@@ -522,12 +525,11 @@ def _modify_col(tname, cname,
         text += ",\n%sexisting_nullable=%r" % (
                         indent, existing_nullable)
     if existing_server_default:
-        text += ",\n%sexisting_server_default=%s" % (
-                        indent,
-                        _render_server_default(
+        rendered = _render_server_default(
                             existing_server_default,
-                            autogen_context),
-                    )
+                            autogen_context)
+        text += ",\n%sexisting_server_default=%s" % (
+                        indent, rendered)
     if schema:
         text += ",\n%sschema=%r" % (indent, schema)
     text += ")"
@@ -539,13 +541,30 @@ def _sqlalchemy_autogenerate_prefix(autogen_context):
 def _alembic_autogenerate_prefix(autogen_context):
     return autogen_context['opts']['alembic_module_prefix'] or ''
 
+
+def _user_defined_render(type_, object_, autogen_context):
+    if 'opts' in autogen_context and \
+            'render_item' in autogen_context['opts']:
+        render = autogen_context['opts']['render_item']
+        if render:
+            rendered = render(type_, object_, autogen_context)
+            if rendered is not False:
+                return rendered
+    return False
+
 def _render_column(column, autogen_context):
+    rendered = _user_defined_render("column", column, autogen_context)
+    if rendered is not False:
+        return rendered
+
     opts = []
     if column.server_default:
-        opts.append(("server_default",
-                    _render_server_default(
+        rendered = _render_server_default(
                             column.server_default, autogen_context
-                    )))
+                    )
+        if rendered:
+            opts.append(("server_default", rendered))
+
     if not column.autoincrement:
         opts.append(("autoincrement", column.autoincrement))
 
@@ -562,6 +581,10 @@ def _render_column(column, autogen_context):
     }
 
 def _render_server_default(default, autogen_context):
+    rendered = _user_defined_render("server_default", default, autogen_context)
+    if rendered is not False:
+        return rendered
+
     if isinstance(default, sa_schema.DefaultClause):
         if isinstance(default.arg, basestring):
             default = default.arg
@@ -578,6 +601,10 @@ def _render_server_default(default, autogen_context):
         return None
 
 def _repr_type(prefix, type_, autogen_context):
+    rendered = _user_defined_render("type", type_, autogen_context)
+    if rendered is not False:
+        return rendered
+
     mod = type(type_).__module__
     imports = autogen_context.get('imports', None)
     if mod.startswith("sqlalchemy.dialects"):
@@ -596,6 +623,10 @@ def _render_constraint(constraint, autogen_context):
         return None
 
 def _render_primary_key(constraint, autogen_context):
+    rendered = _user_defined_render("primary_key", constraint, autogen_context)
+    if rendered is not False:
+        return rendered
+
     opts = []
     if constraint.name:
         opts.append(("name", repr(constraint.name)))
@@ -626,6 +657,10 @@ def _fk_colspec(fk, metadata_schema):
             return fk._colspec
 
 def _render_foreign_key(constraint, autogen_context):
+    rendered = _user_defined_render("foreign_key", constraint, autogen_context)
+    if rendered is not False:
+        return rendered
+
     opts = []
     if constraint.name:
         opts.append(("name", repr(constraint.name)))
@@ -651,6 +686,10 @@ def _render_foreign_key(constraint, autogen_context):
     }
 
 def _render_check_constraint(constraint, autogen_context):
+    rendered = _user_defined_render("check", constraint, autogen_context)
+    if rendered is not False:
+        return rendered
+
     # detect the constraint being part of
     # a parent type which is probably in the Table already.
     # ideally SQLAlchemy would give us more of a first class
@@ -673,6 +712,10 @@ def _render_check_constraint(constraint, autogen_context):
         }
 
 def _render_unique_constraint(constraint, autogen_context):
+    rendered = _user_defined_render("unique", constraint, autogen_context)
+    if rendered is not False:
+        return rendered
+
     opts = []
     if constraint.name:
         opts.append(("name", "'%s'" % constraint.name))

@@ -75,7 +75,6 @@ class MigrationContext(object):
         self._user_compare_server_default = opts.get(
                                             'compare_server_default',
                                             False)
-
         version_table = opts.get('version_table', 'alembic_version')
         self._version = Table(
             version_table, MetaData(),

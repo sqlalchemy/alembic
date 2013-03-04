@@ -1,7 +1,8 @@
 from sqlalchemy import MetaData, Column, Table, Integer, String, Text, \
     Numeric, CHAR, ForeignKey, DATETIME, \
     TypeDecorator, CheckConstraint, Unicode, Enum,\
-    UniqueConstraint, Boolean, ForeignKeyConstraint
+    UniqueConstraint, Boolean, ForeignKeyConstraint,\
+    PrimaryKeyConstraint
 from sqlalchemy.types import NULLTYPE, TIMESTAMP
 from sqlalchemy.dialects import mysql
 from sqlalchemy.engine.reflection import Inspector
@@ -952,6 +953,37 @@ class AutogenRenderTest(TestCase):
                 'nullable=False)'
         )
 
+    def test_render_custom(self):
+
+        def render(type_, obj, context):
+            if type_ == "foreign_key":
+                return None
+            if type_ == "column":
+                if obj.name == "y":
+                    return None
+                else:
+                    return "col(%s)" % obj.name
+            return "render:%s" % type_
+
+        autogen_context = {"opts": {
+            'render_item': render,
+            'alembic_module_prefix': 'sa.'
+        }}
+
+        t = Table('t', MetaData(),
+                Column('x', Integer),
+                Column('y', Integer),
+                PrimaryKeyConstraint('x'),
+                ForeignKeyConstraint(['x'], ['y'])
+            )
+        result = autogenerate._add_table(
+                    t, autogen_context
+                )
+        eq_(
+            result, """sa.create_table('t',
+col(x),
+render:primary_key\n)"""
+        )
 
     def test_render_modify_type(self):
         eq_ignore_whitespace(

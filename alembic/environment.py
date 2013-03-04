@@ -212,6 +212,7 @@ class EnvironmentContext(object):
             include_schemas=False,
             compare_type=False,
             compare_server_default=False,
+            render_item=None,
             upgrade_token="upgrades",
             downgrade_token="downgrades",
             alembic_module_prefix="op.",
@@ -387,6 +388,33 @@ class EnvironmentContext(object):
          .. versionchanged:: 0.4.0  the ``include_symbol`` callable must now
             also accept a "schema" argument, which may be None.
 
+        :param render_item: Callable that can be used to override how
+         any schema item, i.e. column, constraint, type,
+         etc., is rendered for autogenerate.  The callable receives a
+         string describing the type of object, the object, and
+         the autogen context.  If it returns False, the
+         default rendering method will be used.  If it returns None,
+         the item will not be rendered in the context of a Table
+         construct, that is, can be used to skip columns or constraints
+         within op.create_table()::
+
+            def my_render_column(type_, col, autogen_context):
+                if type_ == "column" and isinstance(col, MySpecialCol):
+                    return repr(col)
+                else:
+                    return False
+
+            context.configure(
+                # ...
+                render_item = my_render_column
+            )
+
+         Available values for the type string include: ``column``,
+         ``primary_key``, ``foreign_key``, ``unique``, ``check``,
+         ``type``, ``server_default``.
+
+         .. versionadded:: 0.5.0
+
         :param upgrade_token: When autogenerate completes, the text of the
          candidate upgrade operations will be present in this template
          variable when ``script.py.mako`` is rendered.  Defaults to
@@ -456,6 +484,8 @@ class EnvironmentContext(object):
         opts['downgrade_token'] = downgrade_token
         opts['sqlalchemy_module_prefix'] = sqlalchemy_module_prefix
         opts['alembic_module_prefix'] = alembic_module_prefix
+        if render_item is not None:
+            opts['render_item'] = render_item
         if compare_type is not None:
             opts['compare_type'] = compare_type
         if compare_server_default is not None:
