@@ -169,15 +169,21 @@ def branches(config):
                     script.get_revision(rev)
                 )
 
-def current(config):
+def current(config, head_only=False):
     """Display the current revision for each database."""
 
     script = ScriptDirectory.from_config(config)
     def display_version(rev, context):
-        config.print_stdout("Current revision for %s: %s",
-                            util.obfuscate_url_pw(
-                                context.connection.engine.url),
-                            script.get_revision(rev))
+        rev = script.get_revision(rev)
+
+        if head_only:
+            config.print_stdout(str(rev.revision))
+
+        else:
+            config.print_stdout("Current revision for %s: %s",
+                                util.obfuscate_url_pw(
+                                    context.connection.engine.url),
+                                rev)
         return []
 
     with EnvironmentContext(
@@ -219,5 +225,3 @@ def splice(config, parent, child):
 
     """
     raise NotImplementedError()
-
-
