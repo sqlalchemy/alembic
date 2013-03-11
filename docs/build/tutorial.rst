@@ -384,6 +384,8 @@ First we can view the current revision::
     INFO  [alembic.context] Will assume transactional DDL.
     Current revision for postgresql://scott:XXXXX@localhost/test: 1975ea83b712 -> ae1027a6acf (head), Add a column
 
+``head`` is deplayed if the revision identifier for this database matches the head revision.
+
 We can also view history::
 
     $ alembic history

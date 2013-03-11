@@ -196,7 +196,8 @@ class CommandLine(object):
             if 'head_only' in kwargs:
                 parser.add_argument("--head-only",
                                     action="store_true",
-                                    help="Only show head version")
+                                    help="Only show current version and "
+                                    "wheter or not this is the head revision.")
 
             positional_help = {
                 'directory': "location of scripts directory",

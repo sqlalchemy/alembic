@@ -177,7 +177,9 @@ def current(config, head_only=False):
         rev = script.get_revision(rev)
 
         if head_only:
-            config.print_stdout(str(rev.revision))
+            config.print_stdout("%s%s" % (
+                rev.revision,
+                " (head)" if rev.is_head else ""))
 
         else:
             config.print_stdout("Current revision for %s: %s",
