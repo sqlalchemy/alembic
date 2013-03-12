@@ -7,6 +7,14 @@ Changelog
     :version: 0.5.0
 
     .. change::
+        :tags: bug
+        :tickets: 110
+
+      Autogenerate will render additional table keyword
+      arguments like "mysql_engine" and others within
+      op.create_table().
+
+    .. change::
         :tags: feature
         :tickets: 108
 

@@ -457,6 +457,8 @@ def _add_table(table, autogen_context):
     }
     if table.schema:
         text += ",\nschema=%r" % table.schema
+    for k in sorted(table.kwargs):
+        text += ",\n%s=%r" % (k.replace(" ", "_"), table.kwargs[k])
     text += "\n)"
     return text
 

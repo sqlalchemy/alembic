@@ -197,7 +197,10 @@ class ImplicitConstraintNoGenTest(AutogenTest, TestCase):
                 "nullable=False),\n"
             "    sa.Column('value', mysql.TINYINT(display_width=1), "
             "autoincrement=False, nullable=True),\n"
-            "    sa.PrimaryKeyConstraint('id')\n    )\n"
+            "    sa.PrimaryKeyConstraint('id'),\n"
+            "    mysql_default_charset='utf8',\n"
+            "    mysql_engine='MyISAM'\n"
+            "    )\n"
             "    op.drop_table('sometable')\n"
             "    ### end Alembic commands ###"
         )
@@ -865,6 +868,23 @@ class AutogenRenderTest(TestCase):
             "sa.PrimaryKeyConstraint('id'),"
             "schema='foo'"
             ")"
+        )
+
+    def test_render_addtl_args(self):
+        m = MetaData()
+        t = Table('test', m,
+            Column('id', Integer, primary_key=True),
+            Column('q', Integer, ForeignKey('bar.address.id')),
+            postgresql_arg1="some_arg", mysql_engine="InnoDB"
+        )
+        eq_ignore_whitespace(
+            autogenerate._add_table(t, self.autogen_context),
+            "op.create_table('test',"
+            "sa.Column('id', sa.Integer(), nullable=False),"
+            "sa.Column('q', sa.Integer(), nullable=True),"
+            "sa.ForeignKeyConstraint(['q'], ['bar.address.id'], ),"
+            "sa.PrimaryKeyConstraint('id'),"
+            "mysql_engine='InnoDB',postgresql_arg1='some_arg')"
         )
 
     def test_render_drop_table(self):
