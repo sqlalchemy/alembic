@@ -151,6 +151,7 @@ class ImplicitConstraintNoGenTest(AutogenTest, TestCase):
         Table('someothertable', m,
             Column('id', Integer, primary_key=True),
             Column('value', Boolean()),
+            mysql_engine='InnoDB'
         )
         return m
 
@@ -199,7 +200,7 @@ class ImplicitConstraintNoGenTest(AutogenTest, TestCase):
             "autoincrement=False, nullable=True),\n"
             "    sa.PrimaryKeyConstraint('id'),\n"
             "    mysql_default_charset='utf8',\n"
-            "    mysql_engine='MyISAM'\n"
+            "    mysql_engine='InnoDB'\n"
             "    )\n"
             "    op.drop_table('sometable')\n"
             "    ### end Alembic commands ###"
