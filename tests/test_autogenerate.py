@@ -151,7 +151,8 @@ class ImplicitConstraintNoGenTest(AutogenTest, TestCase):
         Table('someothertable', m,
             Column('id', Integer, primary_key=True),
             Column('value', Boolean()),
-            mysql_engine='InnoDB'
+            mysql_engine='InnoDB',
+            mysql_default_charset='utf8'
         )
         return m
 
