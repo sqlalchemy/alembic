@@ -10,11 +10,11 @@ def setup():
     global env
     env = staging_env()
     global a, b, c, d, e
-    a = env.generate_revision(util.rev_id(), None, refresh=True)
-    b = env.generate_revision(util.rev_id(), None, refresh=True)
-    c = env.generate_revision(util.rev_id(), None, refresh=True)
-    d = env.generate_revision(util.rev_id(), None, refresh=True)
-    e = env.generate_revision(util.rev_id(), None, refresh=True)
+    a = env.generate_revision(util.rev_id(), '->a', refresh=True)
+    b = env.generate_revision(util.rev_id(), 'a->b', refresh=True)
+    c = env.generate_revision(util.rev_id(), 'b->c', refresh=True)
+    d = env.generate_revision(util.rev_id(), 'c->d', refresh=True)
+    e = env.generate_revision(util.rev_id(), 'd->e', refresh=True)
 
 def teardown():
     clear_staging_env()
@@ -25,17 +25,17 @@ def test_upgrade_path():
     eq_(
         env._upgrade_revs(e.revision, c.revision),
         [
-            (d.module.upgrade, c.revision, d.revision),
-            (e.module.upgrade, d.revision, e.revision),
+            (d.module.upgrade, c.revision, d.revision, d.doc),
+            (e.module.upgrade, d.revision, e.revision, e.doc),
         ]
     )
 
     eq_(
         env._upgrade_revs(c.revision, None),
         [
-            (a.module.upgrade, None, a.revision),
-            (b.module.upgrade, a.revision, b.revision),
-            (c.module.upgrade, b.revision, c.revision),
+            (a.module.upgrade, None, a.revision, a.doc),
+            (b.module.upgrade, a.revision, b.revision, b.doc),
+            (c.module.upgrade, b.revision, c.revision, c.doc),
         ]
     )
 
@@ -43,24 +43,24 @@ def test_relative_upgrade_path():
     eq_(
         env._upgrade_revs("+2", a.revision),
         [
-            (b.module.upgrade, a.revision, b.revision),
-            (c.module.upgrade, b.revision, c.revision),
+            (b.module.upgrade, a.revision, b.revision, b.doc),
+            (c.module.upgrade, b.revision, c.revision, c.doc),
         ]
     )
 
     eq_(
         env._upgrade_revs("+1", a.revision),
         [
-            (b.module.upgrade, a.revision, b.revision),
+            (b.module.upgrade, a.revision, b.revision, b.doc),
         ]
     )
 
     eq_(
         env._upgrade_revs("+3", b.revision),
         [
-            (c.module.upgrade, b.revision, c.revision),
-            (d.module.upgrade, c.revision, d.revision),
-            (e.module.upgrade, d.revision, e.revision),
+            (c.module.upgrade, b.revision, c.revision, c.doc),
+            (d.module.upgrade, c.revision, d.revision, d.doc),
+            (e.module.upgrade, d.revision, e.revision, e.doc),
         ]
     )
 
@@ -82,17 +82,17 @@ def test_downgrade_path():
     eq_(
         env._downgrade_revs(c.revision, e.revision),
         [
-            (e.module.downgrade, e.revision, e.down_revision),
-            (d.module.downgrade, d.revision, d.down_revision),
+            (e.module.downgrade, e.revision, e.down_revision, e.doc),
+            (d.module.downgrade, d.revision, d.down_revision, d.doc),
         ]
     )
 
     eq_(
         env._downgrade_revs(None, c.revision),
         [
-            (c.module.downgrade, c.revision, c.down_revision),
-            (b.module.downgrade, b.revision, b.down_revision),
-            (a.module.downgrade, a.revision, a.down_revision),
+            (c.module.downgrade, c.revision, c.down_revision, c.doc),
+            (b.module.downgrade, b.revision, b.down_revision, b.doc),
+            (a.module.downgrade, a.revision, a.down_revision, a.doc),
         ]
     )
 
@@ -100,16 +100,16 @@ def test_relative_downgrade_path():
     eq_(
         env._downgrade_revs("-1", c.revision),
         [
-            (c.module.downgrade, c.revision, c.down_revision),
+            (c.module.downgrade, c.revision, c.down_revision, c.doc),
         ]
     )
 
     eq_(
         env._downgrade_revs("-3", e.revision),
         [
-            (e.module.downgrade, e.revision, e.down_revision),
-            (d.module.downgrade, d.revision, d.down_revision),
-            (c.module.downgrade, c.revision, c.down_revision),
+            (e.module.downgrade, e.revision, e.down_revision, e.doc),
+            (d.module.downgrade, d.revision, d.down_revision, d.doc),
+            (c.module.downgrade, c.revision, c.down_revision, c.doc),
         ]
     )
 

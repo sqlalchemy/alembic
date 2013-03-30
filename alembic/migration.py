@@ -194,14 +194,18 @@ class MigrationContext(object):
         """
         current_rev = rev = False
         self.impl.start_migrations()
-        for change, prev_rev, rev in self._migrations_fn(
-                                        self.get_current_revision(),
-                                        self):
+        for change, prev_rev, rev, doc in self._migrations_fn(
+                                            self.get_current_revision(),
+                                            self):
             if current_rev is False:
                 current_rev = prev_rev
                 if self.as_sql and not current_rev:
                     self._version.create(self.connection)
-            log.info("Running %s %s -> %s", change.__name__, prev_rev, rev)
+            if doc:
+                log.info("Running %s %s -> %s, %s", change.__name__, prev_rev,
+                    rev, doc)
+            else:
+                log.info("Running %s %s -> %s", change.__name__, prev_rev, rev)
             if self.as_sql:
                 self.impl.static_output(
                         "-- Running %s %s -> %s" %
