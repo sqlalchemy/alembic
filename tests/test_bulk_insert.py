@@ -1,7 +1,6 @@
-from tests import op_fixture, _sqlite_testing_config, eq_, assert_raises_message
+from tests import op_fixture, eq_, assert_raises_message
 from alembic import op
-from sqlalchemy import Integer, \
-            UniqueConstraint, String
+from sqlalchemy import Integer, String
 from sqlalchemy.sql import table, column
 from unittest import TestCase
 from sqlalchemy import Table, Column, MetaData

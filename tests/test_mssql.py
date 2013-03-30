@@ -4,9 +4,7 @@ from tests import op_fixture, capture_context_buffer, \
     _no_sql_testing_config, assert_raises_message, staging_env, \
     three_rev_fixture, clear_staging_env
 from alembic import op, command, util
-from sqlalchemy import Integer, Column, ForeignKey, \
-            UniqueConstraint, Table, MetaData, String
-from sqlalchemy.sql import table
+from sqlalchemy import Integer, Column
 from unittest import TestCase
 
 

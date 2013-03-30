@@ -1,5 +1,5 @@
 from __future__ import with_statement
-from tests import op_fixture, db_for_dialect, eq_, staging_env, \
+from tests import db_for_dialect, eq_, staging_env, \
             clear_staging_env, _no_sql_testing_config,\
             capture_context_buffer, requires_07, write_script
 from unittest import TestCase
