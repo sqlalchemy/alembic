@@ -25,7 +25,7 @@ stable.   Users should take care to report bugs and missing features
 (see :ref:`bugs`) on an as-needed
 basis.  It should be expected that the development version may be required
 for proper implementation of recently repaired issues in between releases;
-the latest tip is always available at https://bitbucket.org/zzzeek/alembic/get/tip.tar.gz.
+the latest default tip is always available at https://bitbucket.org/zzzeek/alembic/get/default.tar.gz.
 
 .. _installation:
 

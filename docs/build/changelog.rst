@@ -7,6 +7,12 @@ Changelog
     :version: 0.5.0
     :released: Thu Apr 4 2013
 
+    .. note::
+
+      Alembic 0.5.0 now requires at least
+      version 0.7.3 of SQLAlchemy to run properly.
+      Support for 0.6 has been dropped.
+
     .. change::
         :tags: feature
         :tickets: 76
@@ -39,7 +45,7 @@ Changelog
         :tags: feature
         :tickets: 93
 
-      Added :func:`.operations.create_primary_key`
+      Added :meth:`.Operations.create_primary_key`
       operation, will genenerate an ADD CONSTRAINT
       for a primary key.
 

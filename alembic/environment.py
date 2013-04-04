@@ -287,7 +287,10 @@ class EnvironmentContext(object):
          running the "revision" command.   Note that the script environment
          is only run within the "revision" command if the --autogenerate
          option is used, or if the option "revision_environment=true"
-         is present in the alembic.ini file.  New in 0.3.3.
+         is present in the alembic.ini file. 
+
+         .. versionadded:: 0.3.3
+
         :param version_table: The name of the Alembic version table.
          The default is ``'alembic_version'``.
         :param version_table_schema: Optional schema to place version
