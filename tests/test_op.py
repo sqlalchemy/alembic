@@ -338,7 +338,7 @@ def test_add_foreign_key_schema():
     context = op_fixture()
     op.create_foreign_key('fk_test', 't1', 't2',
                     ['foo', 'bar'], ['bat', 'hoho'],
-                   source_schema='foo2', referent_schema='bar2')
+                    source_schema='foo2', referent_schema='bar2')
     context.assert_(
         "ALTER TABLE foo2.t1 ADD CONSTRAINT fk_test FOREIGN KEY(foo, bar) "
             "REFERENCES bar2.t2 (bat, hoho)"
@@ -370,6 +370,20 @@ def test_add_foreign_key_self_referential():
     context.assert_(
         "ALTER TABLE t1 ADD CONSTRAINT fk_test "
         "FOREIGN KEY(foo) REFERENCES t1 (bar)"
+    )
+
+def test_add_primary_key_constraint():
+    context = op_fixture()
+    op.create_primary_key("pk_test", "t1", ["foo", "bar"])
+    context.assert_(
+        "ALTER TABLE t1 ADD CONSTRAINT pk_test PRIMARY KEY (foo, bar)"
+    )
+
+def test_add_primary_key_constraint_schema():
+    context = op_fixture()
+    op.create_primary_key("pk_test", "t1", ["foo"], schema="bar")
+    context.assert_(
+        "ALTER TABLE bar.t1 ADD CONSTRAINT pk_test PRIMARY KEY (foo)"
     )
 
 def test_add_check_constraint():

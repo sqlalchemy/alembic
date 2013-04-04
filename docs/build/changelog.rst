@@ -7,6 +7,14 @@ Changelog
     :version: 0.5.0
 
     .. change::
+        :tags: feature
+        :tickets: 93
+
+      Added :func:`.operations.create_primary_key`
+      operation, will genenerate an ADD CONSTRAINT
+      for a primary key.
+
+    .. change::
         :tags: bug, mssql
         :tickets: 109
 

@@ -50,6 +50,17 @@ class Operations(object):
         yield op
         alembic.op._remove_proxy()
 
+
+    def _primary_key_constraint(self, name, table_name, cols, schema=None):
+        m = sa_schema.MetaData()
+        columns = [sa_schema.Column(n, NULLTYPE) for n in cols]
+        t1 = sa_schema.Table(table_name, m,
+                *columns,
+                schema=schema)
+        p = sa_schema.PrimaryKeyConstraint(*columns, name=name)
+        t1.append_constraint(p)
+        return p
+
     def _foreign_key_constraint(self, name, source, referent,
                                     local_cols, remote_cols,
                                     onupdate=None, ondelete=None,
@@ -387,6 +398,46 @@ class Operations(object):
             **kw
         )
 
+
+    def create_primary_key(self, name, table_name, cols, schema=None):
+        """Issue a "create primary key" instruction using the current
+        migration context.
+
+        e.g.::
+
+            from alembic import op
+            op.create_primary_key(
+                        "pk_my_table", "my_table",
+                        ["id", "version"]
+                    )
+
+        This internally generates a :class:`~sqlalchemy.schema.Table` object
+        containing the necessary columns, then generates a new
+        :class:`~sqlalchemy.schema.PrimaryKeyConstraint`
+        object which it then associates with the :class:`~sqlalchemy.schema.Table`.
+        Any event listeners associated with this action will be fired
+        off normally.   The :class:`~sqlalchemy.schema.AddConstraint`
+        construct is ultimately used to generate the ALTER statement.
+
+        .. versionadded:: 0.5.0
+
+        :param name: Name of the primary key constraint.  The name is necessary
+         so that an ALTER statement can be emitted.  For setups that
+         use an automated naming scheme such as that described at
+         `NamingConventions <http://www.sqlalchemy.org/trac/wiki/UsageRecipes/NamingConventions>`_,
+         ``name`` here can be ``None``, as the event listener will
+         apply the name to the constraint object when it is associated
+         with the table.
+        :param table_name: String name of the target table.
+        :param cols: a list of string column names to be applied to the
+         primary key constraint.
+        :param schema: Optional schema name of the table.
+
+        """
+        self.impl.add_constraint(
+                    self._primary_key_constraint(name, table_name, cols,
+                                schema)
+                )
 
     def create_foreign_key(self, name, source, referent, local_cols,
                            remote_cols, onupdate=None, ondelete=None,
