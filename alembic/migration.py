@@ -1,6 +1,5 @@
 from alembic import util
-from sqlalchemy import MetaData, Table, Column, String, literal_column, \
-    text
+from sqlalchemy import MetaData, Table, Column, String, literal_column
 from sqlalchemy import create_engine
 from alembic import ddl
 import sys

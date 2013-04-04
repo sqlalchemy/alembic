@@ -1,4 +1,4 @@
-from tests import clear_staging_env, staging_env, eq_, ne_, \
+from tests import clear_staging_env, staging_env, eq_, \
     assert_raises_message
 from alembic import util
 
