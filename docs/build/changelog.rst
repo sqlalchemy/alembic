@@ -8,6 +8,15 @@ Changelog
 
     .. change::
         :tags: feature
+        :pullreq: 30
+        :tickets: 115
+
+      upgrade and downgrade commands will list the
+      first line of the docstring out next to the
+      version number.  Courtesy Hong Minhee.
+
+    .. change::
+        :tags: feature
         :pullreq: 28
 
       Added --head-only option to "alembic current",
