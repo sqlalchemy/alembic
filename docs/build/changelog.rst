@@ -8,6 +8,15 @@ Changelog
 
     .. change::
         :tags: feature
+        :tickets: 90
+
+      Added ``output_encoding`` option to
+      :meth:`.EnvironmentContext.configure`,
+      used with ``--sql`` mode to apply an encoding
+      to the output stream.
+
+    .. change::
+        :tags: feature
         :tickets: 93
 
       Added :func:`.operations.create_primary_key`

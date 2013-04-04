@@ -106,7 +106,7 @@ def capture_context_buffer(**kw):
             return buf
 
         def __exit__(self, *arg, **kwarg):
-            print buf.getvalue()
+            #print(buf.getvalue())
             EnvironmentContext._default_opts = None
 
     return capture()

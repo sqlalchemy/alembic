@@ -4,6 +4,7 @@ from sqlalchemy import create_engine
 from alembic import ddl
 import sys
 from sqlalchemy.engine import url as sqla_url
+import codecs
 
 import logging
 log = logging.getLogger(__name__)
@@ -69,6 +70,10 @@ class MigrationContext(object):
         self._migrations_fn = opts.get('fn')
         self.as_sql = as_sql
         self.output_buffer = opts.get("output_buffer", sys.stdout)
+        if opts.get('output_encoding'):
+            self.output_buffer = codecs.getwriter(
+                                    opts['output_encoding']
+                                )(self.output_buffer)
 
         self._user_compare_type = opts.get('compare_type', False)
         self._user_compare_server_default = opts.get(

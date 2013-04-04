@@ -204,6 +204,7 @@ class EnvironmentContext(object):
             dialect_name=None,
             transactional_ddl=None,
             output_buffer=None,
+            output_encoding=None,
             starting_rev=None,
             tag=None,
             template_args=None,
@@ -273,6 +274,11 @@ class EnvironmentContext(object):
          the :class:`.Config`
          object.  The value here overrides that of the :class:`.Config`
          object.
+        :param output_encoding: when using ``--sql`` to generate SQL
+         scripts, apply this encoding to the string output.
+
+         .. versionadded:: 0.5.0
+
         :param starting_rev: Override the "starting revision" argument
          when using ``--sql`` mode.
         :param tag: a string tag for usage by custom ``env.py`` scripts.
@@ -471,6 +477,8 @@ class EnvironmentContext(object):
             opts["output_buffer"] = output_buffer
         elif self.config.output_buffer is not None:
             opts["output_buffer"] = self.config.output_buffer
+        if output_encoding is not None:
+            opts["output_encoding"] = output_encoding
         if starting_rev:
             opts['starting_rev'] = starting_rev
         if tag:
