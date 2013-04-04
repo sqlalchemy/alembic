@@ -178,8 +178,8 @@ def current(config, head_only=False):
 
         if head_only:
             config.print_stdout("%s%s" % (
-                rev.revision,
-                " (head)" if rev.is_head else ""))
+                rev.revision if rev else None,
+                " (head)" if rev and rev.is_head else ""))
 
         else:
             config.print_stdout("Current revision for %s: %s",
