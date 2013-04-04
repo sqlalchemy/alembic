@@ -7,7 +7,11 @@ from alembic import util
 
 class SQLiteImpl(DefaultImpl):
     __dialect__ = 'sqlite'
-    transactional_ddl = True
+
+    transactional_ddl = False
+    """SQLite supports transactional DDL, but pysqlite does not:
+    see: http://bugs.python.org/issue10740
+    """
 
     def add_constraint(self, const):
         # attempt to distinguish between an

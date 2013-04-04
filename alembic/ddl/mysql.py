@@ -10,6 +10,8 @@ from sqlalchemy import schema
 class MySQLImpl(DefaultImpl):
     __dialect__ = 'mysql'
 
+    transactional_ddl = False
+
     def alter_column(self, table_name, column_name,
                         nullable=None,
                         server_default=False,

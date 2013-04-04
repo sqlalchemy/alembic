@@ -7,6 +7,14 @@ Changelog
     :version: 0.5.0
 
     .. change::
+        :tags: bug
+        :tickets: 112
+
+      transactional_ddl flag for SQLite, MySQL dialects
+      set to False.  MySQL doesn't support it,
+      SQLite does but current pysqlite driver does not.
+
+    .. change::
         :tags: feature
         :pullreq: 30
         :tickets: 115
