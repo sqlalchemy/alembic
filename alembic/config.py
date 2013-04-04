@@ -192,6 +192,12 @@ class CommandLine(object):
                                 help="Populate revision script with candidate "
                                     "migration operations, based on comparison "
                                     "of database to model.")
+            # "current" command
+            if 'head_only' in kwargs:
+                parser.add_argument("--head-only",
+                                    action="store_true",
+                                    help="Only show current version and "
+                                    "wheter or not this is the head revision.")
 
             positional_help = {
                 'directory': "location of scripts directory",
@@ -257,4 +263,3 @@ def main(argv=None, prog=None, **kwargs):
     """The console runner function for Alembic."""
 
     CommandLine(prog=prog).main(argv=argv)
-
