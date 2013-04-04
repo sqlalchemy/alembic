@@ -7,6 +7,14 @@ Changelog
     :version: 0.5.0
 
     .. change::
+        :tags: bug, mssql
+        :tickets: 109
+
+      Fixed bug whereby double quoting would be applied
+      to target column name during an ``sp_rename``
+      operation.
+
+    .. change::
         :tags: bug
         :tickets: 112
 

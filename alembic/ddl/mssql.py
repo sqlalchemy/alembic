@@ -156,7 +156,7 @@ def visit_column_default(element, compiler, **kw):
 
 @compiles(ColumnName, 'mssql')
 def visit_rename_column(element, compiler, **kw):
-    return "EXEC sp_rename '%s.%s', '%s', 'COLUMN'" % (
+    return "EXEC sp_rename '%s.%s', %s, 'COLUMN'" % (
         format_table_name(compiler, element.table_name, element.schema),
         format_column_name(compiler, element.column_name),
         format_column_name(compiler, element.newname)
