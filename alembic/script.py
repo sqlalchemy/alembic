@@ -168,14 +168,16 @@ class ScriptDirectory(object):
     def _upgrade_revs(self, destination, current_rev):
         revs = self.iterate_revisions(destination, current_rev)
         return [
-            (script.module.upgrade, script.down_revision, script.revision)
+            (script.module.upgrade, script.down_revision, script.revision,
+                script.doc)
             for script in reversed(list(revs))
             ]
 
     def _downgrade_revs(self, destination, current_rev):
         revs = self.iterate_revisions(current_rev, destination)
         return [
-            (script.module.downgrade, script.revision, script.down_revision)
+            (script.module.downgrade, script.revision, script.down_revision,
+                script.doc)
             for script in revs
             ]
 
@@ -374,7 +376,8 @@ class Script(object):
     @property
     def doc(self):
         """Return the docstring given in the script."""
-        return re.split(r"\n\n", self.module.__doc__)[0]
+        if self.module.__doc__:
+            return re.split(r"\n\n", self.module.__doc__)[0]
 
     def add_nextrev(self, rev):
         self.nextrev = self.nextrev.union([rev])
