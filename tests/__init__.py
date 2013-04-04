@@ -1,10 +1,9 @@
 from __future__ import with_statement
 
-from sqlalchemy.engine import url, default
+from sqlalchemy.engine import default
 import shutil
 import os
-import itertools
-from sqlalchemy import create_engine, text, MetaData
+from sqlalchemy import create_engine, text
 from alembic import util
 from alembic.migration import MigrationContext
 from alembic.environment import EnvironmentContext
@@ -12,14 +11,12 @@ import re
 import alembic
 from alembic.operations import Operations
 from alembic.script import ScriptDirectory, Script
-from alembic import ddl
 import StringIO
 from alembic.ddl.impl import _impls
 import ConfigParser
 from nose import SkipTest
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.util import decorator
-import shutil
 import textwrap
 
 staging_directory = os.path.join(os.path.dirname(__file__), 'scratch')

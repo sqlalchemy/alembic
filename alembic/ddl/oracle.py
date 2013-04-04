@@ -1,8 +1,7 @@
 from alembic.ddl.impl import DefaultImpl
 from alembic.ddl.base import alter_table, AddColumn, ColumnName, \
-    format_table_name, format_column_name, ColumnNullable, \
+    format_column_name, ColumnNullable, \
     format_server_default,ColumnDefault, format_type, ColumnType
-from alembic import util
 from sqlalchemy.ext.compiler import compiles
 
 class OracleImpl(DefaultImpl):

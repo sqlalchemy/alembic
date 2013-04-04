@@ -1,9 +1,7 @@
 from tests import op_fixture, assert_raises_message
-from alembic import op, util
-from sqlalchemy import Integer, Column, ForeignKey, \
-            UniqueConstraint, Table, MetaData, String,\
-            func, Boolean
-from sqlalchemy.sql import table, column
+from alembic import op
+from sqlalchemy import Integer, Column,  Boolean
+from sqlalchemy.sql import column
 
 def test_add_column():
     context = op_fixture('sqlite')

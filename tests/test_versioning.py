@@ -1,10 +1,9 @@
 from __future__ import with_statement
 from tests import clear_staging_env, staging_env, \
-    _sqlite_testing_config, sqlite_db, eq_, ne_, write_script, \
+    _sqlite_testing_config, sqlite_db, eq_, write_script, \
     assert_raises_message
 from alembic import command, util
 from alembic.script import ScriptDirectory
-import time
 import unittest
 import os
 
