@@ -7,6 +7,17 @@ Changelog
     :version: 0.5.0
 
     .. change::
+        :tags: feature
+        :tickets: 76
+        :pullreq: 24
+
+      Added ``version_table_schema`` argument
+      to :meth:`.EnvironmentContext.configure`,
+      complements the ``version_table`` argument to
+      set an optional remote schema for the version
+      table.  Courtesy Christian Blume.
+
+    .. change::
         :tags: bug, postgresql
         :tickets: 32
 

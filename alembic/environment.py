@@ -204,7 +204,6 @@ class EnvironmentContext(object):
             dialect_name=None,
             transactional_ddl=None,
             output_buffer=None,
-            output_encoding=None,
             starting_rev=None,
             tag=None,
             template_args=None,
@@ -291,6 +290,10 @@ class EnvironmentContext(object):
          is present in the alembic.ini file.  New in 0.3.3.
         :param version_table: The name of the Alembic version table.
          The default is ``'alembic_version'``.
+        :param version_table_schema: Optional schema to place version
+         table within.
+
+         .. versionadded:: 0.5.0
 
         Parameters specific to the autogenerate feature, when
         ``alembic revision`` is run with the ``--autogenerate`` feature:
@@ -477,8 +480,6 @@ class EnvironmentContext(object):
             opts["output_buffer"] = output_buffer
         elif self.config.output_buffer is not None:
             opts["output_buffer"] = self.config.output_buffer
-        if output_encoding is not None:
-            opts["output_encoding"] = output_encoding
         if starting_rev:
             opts['starting_rev'] = starting_rev
         if tag:

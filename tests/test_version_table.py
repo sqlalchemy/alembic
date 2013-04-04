@@ -47,6 +47,11 @@ class TestMigrationContext(unittest.TestCase):
                                 opts={'version_table': 'explicit'})
         self.assertEqual(context._version.name, 'explicit')
 
+    def test_config_explicit_version_table_schema(self):
+        context = self.make_one(dialect_name='sqlite',
+                                opts={'version_table_schema': 'explicit'})
+        self.assertEqual(context._version.schema, 'explicit')
+
     def test_get_current_revision_creates_version_table(self):
         context = self.make_one(connection=self.connection,
                                 opts={'version_table': 'version_table'})

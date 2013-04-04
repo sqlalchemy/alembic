@@ -59,8 +59,8 @@ class MigrationContext(object):
         self.dialect = dialect
         self.script = opts.get('script')
 
-        as_sql=opts.get('as_sql', False)
-        transactional_ddl=opts.get("transactional_ddl")
+        as_sql = opts.get('as_sql', False)
+        transactional_ddl = opts.get("transactional_ddl")
 
         if as_sql:
             self.connection = self._stdout_connection(connection)
