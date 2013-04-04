@@ -7,6 +7,15 @@ Changelog
     :version: 0.5.0
 
     .. change::
+        :tags: feature
+        :pullreq: 28
+
+      Added --head-only option to "alembic current",
+      will print current version plus the symbol
+      "(head)" if this version is the head or not.
+      Courtesy Charles-Axel Dein.
+
+    .. change::
         :tags: bug
         :tickets: 110
 

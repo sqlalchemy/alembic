@@ -197,7 +197,7 @@ class CommandLine(object):
                 parser.add_argument("--head-only",
                                     action="store_true",
                                     help="Only show current version and "
-                                    "wheter or not this is the head revision.")
+                                    "whether or not this is the head revision.")
 
             positional_help = {
                 'directory': "location of scripts directory",
