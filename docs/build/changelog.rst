@@ -58,7 +58,7 @@ Changelog
       operation.
 
     .. change::
-        :tags: bug
+        :tags: bug, sqlite, mysql
         :tickets: 112
 
       transactional_ddl flag for SQLite, MySQL dialects
