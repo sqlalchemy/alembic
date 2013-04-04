@@ -5,6 +5,7 @@ Changelog
 
 .. changelog::
     :version: 0.5.0
+    :released: Thu Apr 4 2013
 
     .. change::
         :tags: feature
