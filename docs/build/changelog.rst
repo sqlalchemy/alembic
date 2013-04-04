@@ -7,6 +7,14 @@ Changelog
     :version: 0.5.0
 
     .. change::
+        :tags: bug, postgresql
+        :tickets: 32
+
+      Fixed format of RENAME for table that includes
+      schema with Postgresql; the schema name shouldn't
+      be in the "TO" field.
+
+    .. change::
         :tags: feature
         :tickets: 90
 

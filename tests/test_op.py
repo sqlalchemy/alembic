@@ -23,6 +23,16 @@ def test_rename_table_schema():
     op.rename_table('t1', 't2', schema="foo")
     context.assert_("ALTER TABLE foo.t1 RENAME TO foo.t2")
 
+def test_rename_table_postgresql():
+    context = op_fixture("postgresql")
+    op.rename_table('t1', 't2')
+    context.assert_("ALTER TABLE t1 RENAME TO t2")
+
+def test_rename_table_schema_postgresql():
+    context = op_fixture("postgresql")
+    op.rename_table('t1', 't2', schema="foo")
+    context.assert_("ALTER TABLE foo.t1 RENAME TO t2")
+
 def test_add_column():
     context = op_fixture()
     op.add_column('t1', Column('c1', Integer, nullable=False))

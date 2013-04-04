@@ -1,5 +1,6 @@
 from alembic.ddl.impl import DefaultImpl
 from sqlalchemy import types as sqltypes
+from .base import compiles, alter_table, format_table_name, RenameTable
 import re
 
 class PostgresqlImpl(DefaultImpl):
@@ -29,3 +30,11 @@ class PostgresqlImpl(DefaultImpl):
                 rendered_metadata_default
             )
         )
+
+
+@compiles(RenameTable, "postgresql")
+def visit_rename_table(element, compiler, **kw):
+    return "%s RENAME TO %s" % (
+        alter_table(compiler, element.table_name, element.schema),
+        format_table_name(compiler, element.new_table_name, None)
+    )
