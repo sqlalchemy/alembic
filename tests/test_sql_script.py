@@ -91,7 +91,7 @@ class EncodingTest(unittest.TestCase):
         a = util.rev_id()
         script = ScriptDirectory.from_config(cfg)
         script.generate_revision(a, "revision a", refresh=True)
-        write_script(script, a, """# coding: utf-8
+        write_script(script, a, ("""# coding: utf-8
 from __future__ import unicode_literals
 revision = '%s'
 down_revision = None
@@ -104,7 +104,7 @@ def upgrade():
 def downgrade():
     op.execute("drôle de petite voix m’a réveillé")
 
-""".encode('utf-8') % a)
+""" % a).encode('utf-8'))
 
     def tearDown(self):
         clear_staging_env()
