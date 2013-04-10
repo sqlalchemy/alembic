@@ -8,4 +8,5 @@ syntax:regexp
 .coverage
 alembic.ini
 local_test
+tox.ini
 ^.venv
