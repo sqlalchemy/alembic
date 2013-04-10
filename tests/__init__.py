@@ -1,23 +1,33 @@
 from __future__ import with_statement
 
-from sqlalchemy.engine import default
-import shutil
+try:
+    import builtins
+except ImportError:
+    import __builtin__ as builtins
+try:
+    import configparser
+except ImportError:
+    import ConfigParser as configparser
+import io
 import os
+import re
+import shutil
+import StringIO
+import textwrap
+
+from nose import SkipTest
+from sqlalchemy.engine import default
 from sqlalchemy import create_engine, text
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.util import decorator
+
+import alembic
 from alembic import util
 from alembic.migration import MigrationContext
 from alembic.environment import EnvironmentContext
-import re
-import alembic
 from alembic.operations import Operations
 from alembic.script import ScriptDirectory, Script
-import StringIO
 from alembic.ddl.impl import _impls
-import ConfigParser
-from nose import SkipTest
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.util import decorator
-import textwrap
 
 staging_directory = os.path.join(os.path.dirname(__file__), 'scratch')
 files_directory = os.path.join(os.path.dirname(__file__), 'files')

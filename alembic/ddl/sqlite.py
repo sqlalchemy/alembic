@@ -1,8 +1,8 @@
-from alembic.ddl.impl import DefaultImpl
-from alembic import util
+from .. import util
+from .impl import DefaultImpl
 
 #from sqlalchemy.ext.compiler import compiles
-#from alembic.ddl.base import AddColumn, alter_table
+#from .base import AddColumn, alter_table
 #from sqlalchemy.schema import AddConstraint
 
 class SQLiteImpl(DefaultImpl):

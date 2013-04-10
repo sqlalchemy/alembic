@@ -1,13 +1,14 @@
 """Provide the 'autogenerate' feature which can produce migration operations
 automatically."""
 
-from alembic import util
+import logging
+import re
+
+from . import util
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.util import OrderedSet
 from sqlalchemy import schema as sa_schema, types as sqltypes
-import re
 
-import logging
 log = logging.getLogger(__name__)
 
 ###################################################

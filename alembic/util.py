@@ -1,15 +1,16 @@
 from __future__ import with_statement
 
-from mako.template import Template
 import sys
 import os
 import textwrap
-from sqlalchemy.engine import url
 import imp
 import warnings
 import re
 import inspect
 import uuid
+
+from mako.template import Template
+from sqlalchemy.engine import url
 
 class CommandError(Exception):
     pass

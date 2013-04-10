@@ -1,13 +1,16 @@
 from __future__ import with_statement
-from tests import db_for_dialect, eq_, staging_env, \
-            clear_staging_env, _no_sql_testing_config,\
-            capture_context_buffer, requires_07, write_script
+
 from unittest import TestCase
+
 from sqlalchemy import DateTime, MetaData, Table, Column, text, Integer, String
 from sqlalchemy.engine.reflection import Inspector
+
 from alembic import command, util
 from alembic.migration import MigrationContext
 from alembic.script import ScriptDirectory
+from . import db_for_dialect, eq_, staging_env, \
+            clear_staging_env, _no_sql_testing_config,\
+            capture_context_buffer, requires_07, write_script
 
 class PGOfflineEnumTest(TestCase):
     @requires_07

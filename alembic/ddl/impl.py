@@ -1,10 +1,10 @@
-from sqlalchemy import text
 from sqlalchemy.sql.expression import _BindParamClause
 from sqlalchemy.ext.compiler import compiles
-from sqlalchemy import schema
-from alembic.ddl import base
-from alembic import util
+from sqlalchemy import schema, text
 from sqlalchemy import types as sqltypes
+
+from .. import util
+from . import base
 
 class ImplMeta(type):
     def __init__(cls, classname, bases, dict_):

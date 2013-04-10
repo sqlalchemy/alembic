@@ -2,12 +2,13 @@
 
 from __future__ import with_statement, unicode_literals
 
-from tests import clear_staging_env, staging_env, \
+import unittest
+
+from . import clear_staging_env, staging_env, \
     _no_sql_testing_config, capture_context_buffer, \
     three_rev_fixture, write_script
 from alembic import command, util
 from alembic.script import ScriptDirectory
-import unittest
 
 cfg = None
 a, b, c = None, None, None

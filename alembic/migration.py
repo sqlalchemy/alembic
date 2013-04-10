@@ -1,12 +1,13 @@
-from alembic import util
+import codecs
+import logging
+import sys
+
 from sqlalchemy import MetaData, Table, Column, String, literal_column
 from sqlalchemy import create_engine
-from alembic import ddl
-import sys
 from sqlalchemy.engine import url as sqla_url
-import codecs
 
-import logging
+from . import ddl, util
+
 log = logging.getLogger(__name__)
 
 class MigrationContext(object):

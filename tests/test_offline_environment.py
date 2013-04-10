@@ -1,9 +1,10 @@
-from tests import clear_staging_env, staging_env, \
+from unittest import TestCase
+
+from alembic import command, util
+from . import clear_staging_env, staging_env, \
     _no_sql_testing_config, \
     three_rev_fixture, env_file_fixture,\
     assert_raises_message
-from alembic import command, util
-from unittest import TestCase
 
 
 class OfflineEnvironmentTest(TestCase):

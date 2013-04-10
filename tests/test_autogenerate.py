@@ -1,3 +1,8 @@
+
+import re
+import sys
+from unittest import TestCase
+
 from sqlalchemy import MetaData, Column, Table, Integer, String, Text, \
     Numeric, CHAR, ForeignKey, DATETIME, \
     TypeDecorator, CheckConstraint, Unicode, Enum,\
@@ -7,14 +12,12 @@ from sqlalchemy.types import NULLTYPE, TIMESTAMP
 from sqlalchemy.dialects import mysql
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.sql import and_, column, literal_column
-from alembic import autogenerate
+
+from alembic import autogenerate, util
 from alembic.migration import MigrationContext
-from unittest import TestCase
-from tests import staging_env, sqlite_db, clear_staging_env, eq_, \
+from . import staging_env, sqlite_db, clear_staging_env, eq_, \
         eq_ignore_whitespace, requires_07, db_for_dialect
-from alembic import util
-import re
-import sys
+
 py3k = sys.version_info >= (3, )
 
 def _model_one(schema=None):

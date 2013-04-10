@@ -1,9 +1,10 @@
 import functools
+
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.schema import DDLElement, Column
 from sqlalchemy import Integer
-
 from sqlalchemy import types as sqltypes
+
 class AlterTable(DDLElement):
     """Represent an ALTER TABLE statement.
 

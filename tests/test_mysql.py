@@ -1,6 +1,7 @@
-from tests import op_fixture, assert_raises_message
-from alembic import op, util
 from sqlalchemy import Integer, func
+
+from alembic import op, util
+from . import op_fixture, assert_raises_message
 
 def test_rename_column():
     context = op_fixture('mysql')

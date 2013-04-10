@@ -1,11 +1,12 @@
-from alembic.ddl.impl import DefaultImpl
-from alembic.ddl.base import ColumnNullable, ColumnName, ColumnDefault, \
-            ColumnType, AlterColumn
 from sqlalchemy.ext.compiler import compiles
-from alembic.ddl.base import alter_table
-from alembic import util
 from sqlalchemy import types as sqltypes
 from sqlalchemy import schema
+
+from .impl import DefaultImpl
+from .base import ColumnNullable, ColumnName, ColumnDefault, \
+            ColumnType, AlterColumn
+from .base import alter_table
+from .. import util
 
 class MySQLImpl(DefaultImpl):
     __dialect__ = 'mysql'

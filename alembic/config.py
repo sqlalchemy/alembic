@@ -1,9 +1,10 @@
-from alembic import command, util, package_dir
 from argparse import ArgumentParser
 import ConfigParser
 import inspect
 import os
 import sys
+
+from . import command, util, package_dir
 
 class Config(object):
     """Represent an Alembic configuration.

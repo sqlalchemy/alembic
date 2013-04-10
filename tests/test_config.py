@@ -1,9 +1,9 @@
-from alembic import config
+from alembic import config, util
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
-from alembic import util
 from alembic.script import ScriptDirectory
-from tests import eq_, capture_db, assert_raises_message
+
+from . import eq_, capture_db, assert_raises_message
 
 def test_config_no_file_main_option():
     cfg = config.Config()

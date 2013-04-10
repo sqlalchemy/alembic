@@ -1,7 +1,8 @@
-from alembic.script import ScriptDirectory
-from alembic.environment import EnvironmentContext
-from alembic import util, autogenerate as autogen
 import os
+
+from .script import ScriptDirectory
+from .environment import EnvironmentContext
+from . import util, autogenerate as autogen
 
 def list_templates(config):
     """List available templates"""
