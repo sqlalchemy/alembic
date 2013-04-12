@@ -8,6 +8,7 @@ from sqlalchemy.ext.compiler import compiles
 from sqlalchemy import schema, text
 from sqlalchemy import types as sqltypes
 
+from ..compat import string_types, text_type, with_metaclass
 from .. import util
 from . import base
 
@@ -20,7 +21,7 @@ class ImplMeta(type):
 
 _impls = {}
 
-class DefaultImpl(ImplMeta('_ImplBase', (object,), {})):
+class DefaultImpl(with_metaclass(ImplMeta)):
     """Provide the entrypoint for major migration operations,
     including database-specific behavioral variances.
 
@@ -54,7 +55,7 @@ class DefaultImpl(ImplMeta('_ImplBase', (object,), {})):
         return _impls[dialect.name]
 
     def static_output(self, text):
-        text_ = getattr(builtins, 'unicode', str)(text + '\n\n')
+        text_ = text_type(text + '\n\n')
         self.output_buffer.write(text_)
         if callable(getattr(self.output_buffer, 'flush', None)):
             self.output_buffer.flush()
@@ -66,14 +67,13 @@ class DefaultImpl(ImplMeta('_ImplBase', (object,), {})):
     def _exec(self, construct, execution_options=None,
                             multiparams=(),
                             params=util.immutabledict()):
-        if isinstance(construct, getattr(builtins, 'basestring', str)):
+        if isinstance(construct, string_types):
             construct = text(construct)
         if self.as_sql:
             if multiparams or params:
                 # TODO: coverage
                 raise Exception("Execution arguments not allowed with as_sql")
-            unicode = getattr(builtins, 'unicode', str)
-            self.static_output(unicode(
+            self.static_output(text_type(
                     construct.compile(dialect=self.dialect)
                     ).replace("\t", "    ").strip() + self.command_terminator)
         else:

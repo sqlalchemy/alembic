@@ -1,17 +1,15 @@
 """Provide the 'autogenerate' feature which can produce migration operations
 automatically."""
 
-try:
-    import builtins
-except ImportError:
-    import __builtin__ as builtins
 import logging
 import re
 
-from . import util
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.util import OrderedSet
 from sqlalchemy import schema as sa_schema, types as sqltypes
+
+from . import util
+from .compat import string_types
 
 log = logging.getLogger(__name__)
 
@@ -588,18 +586,17 @@ def _render_column(column, autogen_context):
     }
 
 def _render_server_default(default, autogen_context):
-    string_type = getattr(builtins, 'basestring', str)
     rendered = _user_defined_render("server_default", default, autogen_context)
     if rendered is not False:
         return rendered
 
     if isinstance(default, sa_schema.DefaultClause):
-        if isinstance(default.arg, string_type):
+        if isinstance(default.arg, string_types):
             default = default.arg
         else:
             default = str(default.arg.compile(
                             dialect=autogen_context['dialect']))
-    if isinstance(default, string_type):
+    if isinstance(default, string_types):
         # TODO: this is just a hack to get
         # tests to pass until we figure out
         # WTF sqlite is doing

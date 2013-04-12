@@ -22,6 +22,7 @@ from sqlalchemy.util import decorator
 
 import alembic
 from alembic import util
+from alembic.compat import string_types, text_type
 from alembic.migration import MigrationContext
 from alembic.environment import EnvironmentContext
 from alembic.operations import Operations
@@ -96,9 +97,8 @@ def _get_dialect(name):
 
 def assert_compiled(element, assert_string, dialect=None):
     dialect = _get_dialect(dialect)
-    unicode = getattr(builtins, 'unicode', str)
     eq_(
-        unicode(element.compile(dialect=dialect)).\
+        text_type(element.compile(dialect=dialect)).\
                     replace("\n", "").replace("\t", ""),
         assert_string.replace("\n", "").replace("\t", "")
     )
@@ -151,7 +151,7 @@ def assert_raises_message(except_cls, msg, callable_, *args, **kwargs):
         assert False, "Callable did not raise an exception"
     except except_cls as e:
         assert re.search(msg, str(e)), "%r !~ %s" % (msg, e)
-        print(str(e))
+        print(text_type(e))
 
 def op_fixture(dialect='default', as_sql=False):
     impl = _impls[dialect]
@@ -165,11 +165,9 @@ def op_fixture(dialect='default', as_sql=False):
             # as tests get more involved
             self.connection = None
         def _exec(self, construct, *args, **kw):
-            basestring = getattr(builtins, 'basestring', str)
-            unicode = getattr(builtins, 'unicode', str)
-            if isinstance(construct, basestring):
+            if isinstance(construct, string_types):
                 construct = text(construct)
-            sql = unicode(construct.compile(dialect=self.dialect))
+            sql = text_type(construct.compile(dialect=self.dialect))
             sql = re.sub(r'[\n\t]', '', sql)
             self.assertion.append(
                 sql

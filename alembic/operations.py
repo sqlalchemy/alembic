@@ -1,13 +1,10 @@
-try:
-    import builtins
-except ImportError:
-    import __builtin__ as builtins
 from contextlib import contextmanager
 
 from sqlalchemy.types import NULLTYPE, Integer
 from sqlalchemy import schema as sa_schema
 
 from . import util
+from .compat import string_types
 from .ddl import impl
 
 __all__ = ('Operations',)
@@ -147,7 +144,7 @@ class Operations(object):
         ForeignKey.
 
         """
-        if isinstance(fk._colspec, getattr(builtins, 'basestring', str)):
+        if isinstance(fk._colspec, string_types):
             table_key, cname = fk._colspec.rsplit('.', 1)
             sname, tname = self._parse_table_key(table_key)
             if table_key not in metadata.tables:
