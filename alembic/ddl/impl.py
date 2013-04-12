@@ -1,3 +1,8 @@
+try:
+    import builtins
+except ImportError:
+    import __builtin__ as builtins
+
 from sqlalchemy.sql.expression import _BindParamClause
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy import schema, text
@@ -58,12 +63,13 @@ class DefaultImpl(ImplMeta('_ImplBase', (object,), {})):
     def _exec(self, construct, execution_options=None,
                             multiparams=(),
                             params=util.immutabledict()):
-        if isinstance(construct, basestring):
+        if isinstance(construct, getattr(builtins, 'basestring', str)):
             construct = text(construct)
         if self.as_sql:
             if multiparams or params:
                 # TODO: coverage
                 raise Exception("Execution arguments not allowed with as_sql")
+            unicode = getattr(builtins, 'unicode', str)
             self.static_output(unicode(
                     construct.compile(dialect=self.dialect)
                     ).replace("\t", "    ").strip() + self.command_terminator)

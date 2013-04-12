@@ -1,3 +1,8 @@
+try:
+    import builtins
+except ImportError:
+    import __builtin__ as builtins
+
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy import types as sqltypes
 from sqlalchemy import schema
@@ -89,7 +94,7 @@ def _mysql_alter_column(element, compiler, **kw):
     )
 
 def _render_value(compiler, expr):
-    if isinstance(expr, basestring):
+    if isinstance(expr, getattr(builtins, 'basestring', str)):
         return "'%s'" % expr
     else:
         return compiler.sql_compiler.process(expr)

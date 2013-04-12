@@ -1,3 +1,7 @@
+try:
+    import builtins
+except ImportError:
+    import __builtin__ as builtins
 from contextlib import contextmanager
 
 from sqlalchemy.types import NULLTYPE, Integer
@@ -143,7 +147,7 @@ class Operations(object):
         ForeignKey.
 
         """
-        if isinstance(fk._colspec, basestring):
+        if isinstance(fk._colspec, getattr(builtins, 'basestring', str)):
             table_key, cname = fk._colspec.rsplit('.', 1)
             sname, tname = self._parse_table_key(table_key)
             if table_key not in metadata.tables:

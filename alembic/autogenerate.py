@@ -1,6 +1,10 @@
 """Provide the 'autogenerate' feature which can produce migration operations
 automatically."""
 
+try:
+    import builtins
+except ImportError:
+    import __builtin__ as builtins
 import logging
 import re
 
@@ -584,17 +588,18 @@ def _render_column(column, autogen_context):
     }
 
 def _render_server_default(default, autogen_context):
+    string_type = getattr(builtins, 'basestring', str)
     rendered = _user_defined_render("server_default", default, autogen_context)
     if rendered is not False:
         return rendered
 
     if isinstance(default, sa_schema.DefaultClause):
-        if isinstance(default.arg, basestring):
+        if isinstance(default.arg, string_type):
             default = default.arg
         else:
             default = str(default.arg.compile(
                             dialect=autogen_context['dialect']))
-    if isinstance(default, basestring):
+    if isinstance(default, string_type):
         # TODO: this is just a hack to get
         # tests to pass until we figure out
         # WTF sqlite is doing

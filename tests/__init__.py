@@ -97,6 +97,7 @@ def _get_dialect(name):
 
 def assert_compiled(element, assert_string, dialect=None):
     dialect = _get_dialect(dialect)
+    unicode = getattr(builtins, 'unicode', str)
     eq_(
         unicode(element.compile(dialect=dialect)).\
                     replace("\n", "").replace("\t", ""),
@@ -160,6 +161,8 @@ def op_fixture(dialect='default', as_sql=False):
             # as tests get more involved
             self.connection = None
         def _exec(self, construct, *args, **kw):
+            basestring = getattr(builtins, 'basestring', str)
+            unicode = getattr(builtins, 'unicode', str)
             if isinstance(construct, basestring):
                 construct = text(construct)
             sql = unicode(construct.compile(dialect=self.dialect))
@@ -315,6 +318,8 @@ def clear_staging_env():
 def write_script(scriptdir, rev_id, content):
     old = scriptdir._revision_map[rev_id]
     path = old.path
+    if not hasattr(builtins, 'unicode') and isinstance(content, bytes):
+        content = content.decode()
     with open(path, 'w') as fp:
         fp.write(textwrap.dedent(content))
     pyc_path = util.pyc_file_from_path(path)
