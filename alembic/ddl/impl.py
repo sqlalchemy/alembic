@@ -54,7 +54,10 @@ class DefaultImpl(ImplMeta('_ImplBase', (object,), {})):
         return _impls[dialect.name]
 
     def static_output(self, text):
-        self.output_buffer.write(text + "\n\n")
+        text_ = getattr(builtins, 'unicode', str)(text + '\n\n')
+        self.output_buffer.write(text_)
+        if callable(getattr(self.output_buffer, 'flush', None)):
+            self.output_buffer.flush()
 
     @property
     def bind(self):

@@ -12,7 +12,6 @@ import io
 import os
 import re
 import shutil
-import StringIO
 import textwrap
 
 from nose import SkipTest
@@ -105,7 +104,12 @@ def assert_compiled(element, assert_string, dialect=None):
     )
 
 def capture_context_buffer(**kw):
-    buf = StringIO.StringIO()
+    if kw.pop('bytes_io', False):
+        raw = io.BytesIO()
+        encoding = kw.get('output_encoding', 'utf-8')
+        buf = io.TextIOWrapper(raw, encoding)
+    else:
+        raw = buf = io.StringIO()
 
     class capture(object):
         def __enter__(self):
@@ -114,7 +118,7 @@ def capture_context_buffer(**kw):
                 'output_buffer':buf
             }
             EnvironmentContext._default_opts.update(kw)
-            return buf
+            return raw
 
         def __exit__(self, *arg, **kwarg):
             #print(buf.getvalue())

@@ -111,6 +111,9 @@ def downgrade():
         clear_staging_env()
 
     def test_encode(self):
-        with capture_context_buffer(output_encoding='utf-8') as buf:
+        with capture_context_buffer(
+                    bytes_io=True,
+                    output_encoding='utf-8'
+                ) as buf:
             command.upgrade(cfg, a, sql=True)
         assert "« S’il vous plaît…".encode("utf-8") in buf.getvalue()

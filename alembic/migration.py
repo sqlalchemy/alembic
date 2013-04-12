@@ -1,4 +1,4 @@
-import codecs
+import io
 import logging
 import sys
 
@@ -71,10 +71,12 @@ class MigrationContext(object):
         self._migrations_fn = opts.get('fn')
         self.as_sql = as_sql
         self.output_buffer = opts.get("output_buffer", sys.stdout)
-        if opts.get('output_encoding'):
-            self.output_buffer = codecs.getwriter(
+        if (opts.get('output_encoding') and
+            not isinstance(self.output_buffer, io.TextIOBase)):
+            self.output_buffer = io.TextIOWrapper(
+                                    self.output_buffer,
                                     opts['output_encoding']
-                                )(self.output_buffer)
+                                )
 
         self._user_compare_type = opts.get('compare_type', False)
         self._user_compare_server_default = opts.get(
