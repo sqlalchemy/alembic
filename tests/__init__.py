@@ -32,7 +32,7 @@ from alembic.ddl.impl import _impls
 staging_directory = os.path.join(os.path.dirname(__file__), 'scratch')
 files_directory = os.path.join(os.path.dirname(__file__), 'files')
 
-testing_config = ConfigParser.ConfigParser()
+testing_config = configparser.ConfigParser()
 testing_config.read(['test.cfg'])
 
 def sqlite_db():
@@ -56,7 +56,7 @@ def db_for_dialect(name):
     else:
         try:
             cfg = testing_config.get("db", name)
-        except ConfigParser.NoOptionError:
+        except configparser.NoOptionError:
             raise SkipTest("No dialect %r in test.cfg" % name)
         try:
             eng = create_engine(cfg)

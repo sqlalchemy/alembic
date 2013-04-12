@@ -1,5 +1,8 @@
 from argparse import ArgumentParser
-import ConfigParser
+try:
+    import configparser
+except ImportError:
+    import ConfigParser as configparser
 import inspect
 import os
 import sys
@@ -91,7 +94,7 @@ class Config(object):
             here = os.path.abspath(os.path.dirname(self.config_file_name))
         else:
             here = ""
-        file_config = ConfigParser.SafeConfigParser({'here': here})
+        file_config = configparser.SafeConfigParser({'here': here})
         if self.config_file_name:
             file_config.read([self.config_file_name])
         else:
