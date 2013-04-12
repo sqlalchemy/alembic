@@ -2,6 +2,7 @@ try:
     import builtins
 except ImportError:
     import __builtin__ as builtins
+import collections
 
 from sqlalchemy.sql.expression import _BindParamClause
 from sqlalchemy.ext.compiler import compiles
@@ -57,7 +58,8 @@ class DefaultImpl(with_metaclass(ImplMeta)):
     def static_output(self, text):
         text_ = text_type(text + '\n\n')
         self.output_buffer.write(text_)
-        if callable(getattr(self.output_buffer, 'flush', None)):
+        if isinstance(getattr(self.output_buffer, 'flush', None),
+                collections.Callable):
             self.output_buffer.flush()
 
     @property

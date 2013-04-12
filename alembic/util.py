@@ -4,6 +4,7 @@ try:
     import builtins
 except ImportError:
     import __builtin__ as builtins
+import collections
 import sys
 import os
 import textwrap
@@ -129,7 +130,7 @@ def create_module_class_proxy(cls, globals_, locals_):
 
     for methname in dir(cls):
         if not methname.startswith('_'):
-            if callable(getattr(cls, methname)):
+            if isinstance(getattr(cls, methname), collections.Callable):
                 locals_[methname] = _create_op_proxy(methname)
             else:
                 attr_names.add(methname)

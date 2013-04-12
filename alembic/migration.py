@@ -1,3 +1,4 @@
+import collections
 import io
 import logging
 import sys
@@ -274,7 +275,7 @@ class MigrationContext(object):
         if self._user_compare_type is False:
             return False
 
-        if callable(self._user_compare_type):
+        if isinstance(self._user_compare_type, collections.Callable):
             user_value = self._user_compare_type(
                 self,
                 inspector_column,
@@ -296,7 +297,7 @@ class MigrationContext(object):
         if self._user_compare_server_default is False:
             return False
 
-        if callable(self._user_compare_server_default):
+        if isinstance(self._user_compare_server_default, collections.Callable):
             user_value = self._user_compare_server_default(
                     self,
                     inspector_column,
