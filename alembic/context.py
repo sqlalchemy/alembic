@@ -1,5 +1,5 @@
-from alembic.environment import EnvironmentContext
-from alembic import util
+from .environment import EnvironmentContext
+from . import util
 
 # create proxy functions for
 # each method on the EnvironmentContext class.

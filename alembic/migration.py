@@ -1,12 +1,14 @@
-from alembic import util
+import io
+import logging
+import sys
+
 from sqlalchemy import MetaData, Table, Column, String, literal_column
 from sqlalchemy import create_engine
-from alembic import ddl
-import sys
 from sqlalchemy.engine import url as sqla_url
-import codecs
 
-import logging
+from .compat import callable
+from . import ddl, util
+
 log = logging.getLogger(__name__)
 
 class MigrationContext(object):
@@ -70,10 +72,12 @@ class MigrationContext(object):
         self._migrations_fn = opts.get('fn')
         self.as_sql = as_sql
         self.output_buffer = opts.get("output_buffer", sys.stdout)
-        if opts.get('output_encoding'):
-            self.output_buffer = codecs.getwriter(
+        if (opts.get('output_encoding') and
+            not isinstance(self.output_buffer, io.TextIOBase)):
+            self.output_buffer = io.TextIOWrapper(
+                                    self.output_buffer,
                                     opts['output_encoding']
-                                )(self.output_buffer)
+                                )
 
         self._user_compare_type = opts.get('compare_type', False)
         self._user_compare_server_default = opts.get(

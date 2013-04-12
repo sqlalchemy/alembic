@@ -1,11 +1,13 @@
 from __future__ import with_statement
-from tests import clear_staging_env, staging_env, \
-    _sqlite_testing_config, sqlite_db, eq_, write_script, \
-    assert_raises_message
+
+import os
+import unittest
+
 from alembic import command, util
 from alembic.script import ScriptDirectory
-import unittest
-import os
+from . import clear_staging_env, staging_env, \
+    _sqlite_testing_config, sqlite_db, eq_, write_script, \
+    assert_raises_message
 
 class VersioningTest(unittest.TestCase):
     def test_001_revisions(self):

@@ -1,11 +1,14 @@
 """Test op functions against ORACLE."""
 from __future__ import with_statement
-from tests import op_fixture, capture_context_buffer, \
+
+from unittest import TestCase
+
+from sqlalchemy import Integer, Column
+
+from alembic import op, command
+from . import op_fixture, capture_context_buffer, \
     _no_sql_testing_config, staging_env, \
     three_rev_fixture, clear_staging_env
-from alembic import op, command
-from sqlalchemy import Integer, Column
-from unittest import TestCase
 
 
 class FullEnvironmentTests(TestCase):

@@ -1,13 +1,7 @@
 from setuptools import setup, find_packages
-import sys
 import os
 import re
 
-extra = {}
-if sys.version_info >= (3, 0):
-    extra.update(
-        use_2to3=True,
-    )
 
 v = open(os.path.join(os.path.dirname(__file__), 'alembic', '__init__.py'))
 VERSION = re.compile(r".*__version__ = '(.*?)'", re.S).match(v.read()).group(1)
@@ -62,6 +56,5 @@ setup(name='alembic',
       install_requires=requires,
       entry_points = {
         'console_scripts': [ 'alembic = alembic.config:main' ],
-      },
-      **extra
+      }
 )

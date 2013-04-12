@@ -1,10 +1,11 @@
 from __future__ import with_statement
 
-import os
-from alembic import util
-import shutil
-import re
 import datetime
+import os
+import re
+import shutil
+
+from . import util
 
 _rev_file = re.compile(r'.*\.py$')
 _legacy_rev = re.compile(r'([a-f0-9]+)\.py$')

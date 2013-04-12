@@ -1,11 +1,13 @@
-from alembic.ddl.impl import DefaultImpl
-from alembic.ddl.base import ColumnNullable, ColumnName, ColumnDefault, \
-            ColumnType, AlterColumn
 from sqlalchemy.ext.compiler import compiles
-from alembic.ddl.base import alter_table
-from alembic import util
 from sqlalchemy import types as sqltypes
 from sqlalchemy import schema
+
+from ..compat import string_types
+from .. import util
+from .impl import DefaultImpl
+from .base import ColumnNullable, ColumnName, ColumnDefault, \
+            ColumnType, AlterColumn
+from .base import alter_table
 
 class MySQLImpl(DefaultImpl):
     __dialect__ = 'mysql'
@@ -88,7 +90,7 @@ def _mysql_alter_column(element, compiler, **kw):
     )
 
 def _render_value(compiler, expr):
-    if isinstance(expr, basestring):
+    if isinstance(expr, string_types):
         return "'%s'" % expr
     else:
         return compiler.sql_compiler.process(expr)

@@ -2,10 +2,14 @@ syntax:regexp
 ^build/
 ^dist/
 ^docs/build/output
+^\.tox
 .pyc$
 .orig$
+\.egg$
 .egg-info
 .coverage
+\.swp
 alembic.ini
 local_test
+tox.ini
 ^.venv

@@ -1,9 +1,13 @@
-from alembic import command, util, package_dir
 from argparse import ArgumentParser
-import ConfigParser
+try:
+    import configparser
+except ImportError:
+    import ConfigParser as configparser
 import inspect
 import os
 import sys
+
+from . import command, util, package_dir
 
 class Config(object):
     """Represent an Alembic configuration.
@@ -90,7 +94,7 @@ class Config(object):
             here = os.path.abspath(os.path.dirname(self.config_file_name))
         else:
             here = ""
-        file_config = ConfigParser.SafeConfigParser({'here': here})
+        file_config = configparser.SafeConfigParser({'here': here})
         if self.config_file_name:
             file_config.read([self.config_file_name])
         else:
@@ -246,7 +250,7 @@ class CommandLine(object):
                         *[getattr(options, k) for k in positional],
                         **dict((k, getattr(options, k)) for k in kwarg)
                     )
-        except util.CommandError, e:
+        except util.CommandError as e:
             util.err(str(e))
 
     def main(self, argv=None):

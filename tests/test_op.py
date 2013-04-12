@@ -1,12 +1,13 @@
 """Test against the builders in the op.* module."""
 
-from tests import op_fixture, assert_raises_message
-from alembic import op
 from sqlalchemy import Integer, Column, ForeignKey, \
             Table, String, Boolean
 from sqlalchemy.sql import column, func
-
 from sqlalchemy import event
+
+from alembic import op
+from . import op_fixture, assert_raises_message
+
 @event.listens_for(Table, "after_parent_attach")
 def _add_cols(table, metadata):
     if table.name == "tbl_with_auto_appended_column":

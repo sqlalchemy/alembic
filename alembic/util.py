@@ -1,20 +1,27 @@
 from __future__ import with_statement
 
-from mako.template import Template
+try:
+    import builtins
+except ImportError:
+    import __builtin__ as builtins
 import sys
 import os
 import textwrap
-from sqlalchemy.engine import url
 import imp
 import warnings
 import re
 import inspect
 import uuid
 
+from mako.template import Template
+from sqlalchemy.engine import url
+from sqlalchemy import __version__
+
+from .compat import callable
+
 class CommandError(Exception):
     pass
 
-from sqlalchemy import __version__
 def _safe_int(value):
     try:
         return int(value)
@@ -113,7 +120,13 @@ def create_module_class_proxy(cls, globals_, locals_):
             'doc': fn.__doc__,
         })
         lcl = {}
-        exec func_text in globals_, lcl
+        try:
+            exec_ = getattr(builtins, 'exec')
+        except AttributeError:
+            # Python 2
+            def exec_(func_text, globals_, lcl):
+                exec('exec func_text in globals_, lcl')
+        exec_(func_text, globals_, lcl)
         return lcl[name]
 
     for methname in dir(cls):
@@ -174,7 +187,8 @@ def load_python_file(dir_, filename):
 
     module_id = re.sub(r'\W', "_", filename)
     path = os.path.join(dir_, filename)
-    module = imp.load_source(module_id, path, open(path, 'rb'))
+    with open(path, 'r') as f:
+        module = imp.load_source(module_id, path, f)
     del sys.modules[module_id]
     return module
 
@@ -277,7 +291,7 @@ def _with_legacy_names(translations):
         code = 'lambda %(args)s: %(target)s(%(apply_kw)s)' % (
                 metadata)
         decorated = eval(code, {"target": go})
-        decorated.func_defaults = getattr(fn, 'im_func', fn).func_defaults
+        decorated.__defaults__ = getattr(fn, '__func__', fn).__defaults__
         return update_wrapper(decorated, fn)
 
     return decorate

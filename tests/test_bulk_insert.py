@@ -1,9 +1,11 @@
-from tests import op_fixture, eq_, assert_raises_message
+from unittest import TestCase
+
 from alembic import op
 from sqlalchemy import Integer, String
 from sqlalchemy.sql import table, column
-from unittest import TestCase
 from sqlalchemy import Table, Column, MetaData
+
+from . import op_fixture, eq_, assert_raises_message
 
 def _table_fixture(dialect, as_sql):
     context = op_fixture(dialect, as_sql)

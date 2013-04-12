@@ -1,9 +1,11 @@
-from alembic import util
-from alembic.ddl import impl
+from contextlib import contextmanager
+
 from sqlalchemy.types import NULLTYPE, Integer
 from sqlalchemy import schema as sa_schema
-from contextlib import contextmanager
-import alembic
+
+from . import util
+from .compat import string_types
+from .ddl import impl
 
 __all__ = ('Operations',)
 
@@ -45,10 +47,11 @@ class Operations(object):
     @classmethod
     @contextmanager
     def context(cls, migration_context):
+        from .op import _install_proxy, _remove_proxy
         op = Operations(migration_context)
-        alembic.op._install_proxy(op)
+        _install_proxy(op)
         yield op
-        alembic.op._remove_proxy()
+        _remove_proxy()
 
 
     def _primary_key_constraint(self, name, table_name, cols, schema=None):
@@ -141,7 +144,7 @@ class Operations(object):
         ForeignKey.
 
         """
-        if isinstance(fk._colspec, basestring):
+        if isinstance(fk._colspec, string_types):
             table_key, cname = fk._colspec.rsplit('.', 1)
             sname, tname = self._parse_table_key(table_key)
             if table_key not in metadata.tables:

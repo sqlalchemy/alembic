@@ -1,5 +1,5 @@
-from alembic.operations import Operations
-from alembic import util
+from .operations import Operations
+from . import util
 
 # create proxy functions for
 # each method on the Operations class.

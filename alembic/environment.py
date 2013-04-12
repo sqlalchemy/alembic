@@ -1,8 +1,8 @@
-import alembic
-from alembic.operations import Operations
-from alembic.migration import MigrationContext
-from alembic import util
 from contextlib import contextmanager
+
+from .operations import Operations
+from .migration import MigrationContext
+from . import util
 
 class EnvironmentContext(object):
     """Represent the state made available to an ``env.py`` script.
@@ -99,12 +99,14 @@ class EnvironmentContext(object):
         be made available as ``from alembic import context``.
 
         """
-        alembic.context._install_proxy(self)
+        from .context import _install_proxy
+        _install_proxy(self)
         return self
 
     def __exit__(self, *arg, **kw):
-        alembic.context._remove_proxy()
-        alembic.op._remove_proxy()
+        from . import context, op
+        context._remove_proxy()
+        op._remove_proxy()
 
     def is_offline_mode(self):
         """Return True if the current migrations environment

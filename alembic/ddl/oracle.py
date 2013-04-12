@@ -1,8 +1,9 @@
-from alembic.ddl.impl import DefaultImpl
-from alembic.ddl.base import alter_table, AddColumn, ColumnName, \
+from sqlalchemy.ext.compiler import compiles
+
+from .impl import DefaultImpl
+from .base import alter_table, AddColumn, ColumnName, \
     format_column_name, ColumnNullable, \
     format_server_default,ColumnDefault, format_type, ColumnType
-from sqlalchemy.ext.compiler import compiles
 
 class OracleImpl(DefaultImpl):
     __dialect__ = 'oracle'

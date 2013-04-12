@@ -1,13 +1,16 @@
 """Provide the 'autogenerate' feature which can produce migration operations
 automatically."""
 
-from alembic import util
+import logging
+import re
+
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.util import OrderedSet
 from sqlalchemy import schema as sa_schema, types as sqltypes
-import re
 
-import logging
+from . import util
+from .compat import string_types
+
 log = logging.getLogger(__name__)
 
 ###################################################
@@ -588,12 +591,12 @@ def _render_server_default(default, autogen_context):
         return rendered
 
     if isinstance(default, sa_schema.DefaultClause):
-        if isinstance(default.arg, basestring):
+        if isinstance(default.arg, string_types):
             default = default.arg
         else:
             default = str(default.arg.compile(
                             dialect=autogen_context['dialect']))
-    if isinstance(default, basestring):
+    if isinstance(default, string_types):
         # TODO: this is just a hack to get
         # tests to pass until we figure out
         # WTF sqlite is doing

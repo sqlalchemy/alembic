@@ -1,28 +1,38 @@
 from __future__ import with_statement
 
-from sqlalchemy.engine import default
-import shutil
+try:
+    import builtins
+except ImportError:
+    import __builtin__ as builtins
+try:
+    import configparser
+except ImportError:
+    import ConfigParser as configparser
+import io
 import os
-from sqlalchemy import create_engine, text
-from alembic import util
-from alembic.migration import MigrationContext
-from alembic.environment import EnvironmentContext
 import re
-import alembic
-from alembic.operations import Operations
-from alembic.script import ScriptDirectory, Script
-import StringIO
-from alembic.ddl.impl import _impls
-import ConfigParser
+import shutil
+import textwrap
+
 from nose import SkipTest
+from sqlalchemy.engine import default
+from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.util import decorator
-import textwrap
+
+import alembic
+from alembic import util
+from alembic.compat import string_types, text_type
+from alembic.migration import MigrationContext
+from alembic.environment import EnvironmentContext
+from alembic.operations import Operations
+from alembic.script import ScriptDirectory, Script
+from alembic.ddl.impl import _impls
 
 staging_directory = os.path.join(os.path.dirname(__file__), 'scratch')
 files_directory = os.path.join(os.path.dirname(__file__), 'files')
 
-testing_config = ConfigParser.ConfigParser()
+testing_config = configparser.ConfigParser()
 testing_config.read(['test.cfg'])
 
 def sqlite_db():
@@ -46,15 +56,15 @@ def db_for_dialect(name):
     else:
         try:
             cfg = testing_config.get("db", name)
-        except ConfigParser.NoOptionError:
+        except configparser.NoOptionError:
             raise SkipTest("No dialect %r in test.cfg" % name)
         try:
             eng = create_engine(cfg)
-        except ImportError, er1:
+        except ImportError as er1:
             raise SkipTest("Can't import DBAPI: %s" % er1)
         try:
             conn = eng.connect()
-        except SQLAlchemyError, er2:
+        except SQLAlchemyError as er2:
             raise SkipTest("Can't connect to database: %s" % er2)
         _engs[name] = eng
         return eng
@@ -88,13 +98,18 @@ def _get_dialect(name):
 def assert_compiled(element, assert_string, dialect=None):
     dialect = _get_dialect(dialect)
     eq_(
-        unicode(element.compile(dialect=dialect)).\
+        text_type(element.compile(dialect=dialect)).\
                     replace("\n", "").replace("\t", ""),
         assert_string.replace("\n", "").replace("\t", "")
     )
 
 def capture_context_buffer(**kw):
-    buf = StringIO.StringIO()
+    if kw.pop('bytes_io', False):
+        raw = io.BytesIO()
+        encoding = kw.get('output_encoding', 'utf-8')
+        buf = io.TextIOWrapper(raw, encoding)
+    else:
+        raw = buf = io.StringIO()
 
     class capture(object):
         def __enter__(self):
@@ -103,7 +118,7 @@ def capture_context_buffer(**kw):
                 'output_buffer':buf
             }
             EnvironmentContext._default_opts.update(kw)
-            return buf
+            return raw
 
         def __exit__(self, *arg, **kwarg):
             #print(buf.getvalue())
@@ -134,9 +149,9 @@ def assert_raises_message(except_cls, msg, callable_, *args, **kwargs):
     try:
         callable_(*args, **kwargs)
         assert False, "Callable did not raise an exception"
-    except except_cls, e:
+    except except_cls as e:
         assert re.search(msg, str(e)), "%r !~ %s" % (msg, e)
-        print str(e)
+        print(text_type(e))
 
 def op_fixture(dialect='default', as_sql=False):
     impl = _impls[dialect]
@@ -150,9 +165,9 @@ def op_fixture(dialect='default', as_sql=False):
             # as tests get more involved
             self.connection = None
         def _exec(self, construct, *args, **kw):
-            if isinstance(construct, basestring):
+            if isinstance(construct, string_types):
                 construct = text(construct)
-            sql = unicode(construct.compile(dialect=self.dialect))
+            sql = text_type(construct.compile(dialect=self.dialect))
             sql = re.sub(r'[\n\t]', '', sql)
             self.assertion.append(
                 sql
@@ -305,6 +320,8 @@ def clear_staging_env():
 def write_script(scriptdir, rev_id, content):
     old = scriptdir._revision_map[rev_id]
     path = old.path
+    if not hasattr(builtins, 'unicode') and isinstance(content, bytes):
+        content = content.decode()
     with open(path, 'w') as fp:
         fp.write(textwrap.dedent(content))
     pyc_path = util.pyc_file_from_path(path)
