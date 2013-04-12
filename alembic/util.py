@@ -1,5 +1,9 @@
 from __future__ import with_statement
 
+try:
+    import builtins
+except ImportError:
+    import __builtin__ as builtins
 import sys
 import os
 import textwrap
@@ -114,7 +118,13 @@ def create_module_class_proxy(cls, globals_, locals_):
             'doc': fn.__doc__,
         })
         lcl = {}
-        exec func_text in globals_, lcl
+        try:
+            exec_ = getattr(builtins, 'exec')
+        except AttributeError:
+            # Python 2
+            def exec_(func_text, globals_, lcl):
+                exec('exec func_text in globals_, lcl')
+        exec_(func_text, globals_, lcl)
         return lcl[name]
 
     for methname in dir(cls):
