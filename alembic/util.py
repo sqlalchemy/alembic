@@ -4,7 +4,6 @@ try:
     import builtins
 except ImportError:
     import __builtin__ as builtins
-import collections
 import sys
 import os
 import textwrap
@@ -16,11 +15,13 @@ import uuid
 
 from mako.template import Template
 from sqlalchemy.engine import url
+from sqlalchemy import __version__
+
+from .compat import callable
 
 class CommandError(Exception):
     pass
 
-from sqlalchemy import __version__
 def _safe_int(value):
     try:
         return int(value)
@@ -130,7 +131,7 @@ def create_module_class_proxy(cls, globals_, locals_):
 
     for methname in dir(cls):
         if not methname.startswith('_'):
-            if isinstance(getattr(cls, methname), collections.Callable):
+            if callable(getattr(cls, methname)):
                 locals_[methname] = _create_op_proxy(methname)
             else:
                 attr_names.add(methname)

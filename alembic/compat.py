@@ -19,6 +19,12 @@ else:
     binary_type = str
     text_type = unicode
 
+if py3kwarning:
+    def callable(fn):
+        return hasattr(fn, '__call__')
+else:
+    callable = callable
+
 
 ################################################
 # cross-compatible metaclass implementation

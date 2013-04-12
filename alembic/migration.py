@@ -1,4 +1,3 @@
-import collections
 import io
 import logging
 import sys
@@ -7,6 +6,7 @@ from sqlalchemy import MetaData, Table, Column, String, literal_column
 from sqlalchemy import create_engine
 from sqlalchemy.engine import url as sqla_url
 
+from .compat import callable
 from . import ddl, util
 
 log = logging.getLogger(__name__)
@@ -275,7 +275,7 @@ class MigrationContext(object):
         if self._user_compare_type is False:
             return False
 
-        if isinstance(self._user_compare_type, collections.Callable):
+        if callable(self._user_compare_type):
             user_value = self._user_compare_type(
                 self,
                 inspector_column,
@@ -297,7 +297,7 @@ class MigrationContext(object):
         if self._user_compare_server_default is False:
             return False
 
-        if isinstance(self._user_compare_server_default, collections.Callable):
+        if callable(self._user_compare_server_default):
             user_value = self._user_compare_server_default(
                     self,
                     inspector_column,
