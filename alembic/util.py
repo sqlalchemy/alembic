@@ -288,7 +288,7 @@ def _with_legacy_names(translations):
         code = 'lambda %(args)s: %(target)s(%(apply_kw)s)' % (
                 metadata)
         decorated = eval(code, {"target": go})
-        decorated.func_defaults = getattr(fn, 'im_func', fn).func_defaults
+        decorated.__defaults__ = getattr(fn, '__func__', fn).__defaults__
         return update_wrapper(decorated, fn)
 
     return decorate
