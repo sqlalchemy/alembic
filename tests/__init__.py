@@ -147,7 +147,7 @@ def assert_raises_message(except_cls, msg, callable_, *args, **kwargs):
         assert False, "Callable did not raise an exception"
     except except_cls as e:
         assert re.search(msg, str(e)), "%r !~ %s" % (msg, e)
-        print str(e)
+        print(str(e))
 
 def op_fixture(dialect='default', as_sql=False):
     impl = _impls[dialect]
