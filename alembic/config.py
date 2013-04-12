@@ -247,7 +247,7 @@ class CommandLine(object):
                         *[getattr(options, k) for k in positional],
                         **dict((k, getattr(options, k)) for k in kwarg)
                     )
-        except util.CommandError, e:
+        except util.CommandError as e:
             util.err(str(e))
 
     def main(self, argv=None):

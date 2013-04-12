@@ -60,11 +60,11 @@ def db_for_dialect(name):
             raise SkipTest("No dialect %r in test.cfg" % name)
         try:
             eng = create_engine(cfg)
-        except ImportError, er1:
+        except ImportError as er1:
             raise SkipTest("Can't import DBAPI: %s" % er1)
         try:
             conn = eng.connect()
-        except SQLAlchemyError, er2:
+        except SQLAlchemyError as er2:
             raise SkipTest("Can't connect to database: %s" % er2)
         _engs[name] = eng
         return eng
@@ -144,7 +144,7 @@ def assert_raises_message(except_cls, msg, callable_, *args, **kwargs):
     try:
         callable_(*args, **kwargs)
         assert False, "Callable did not raise an exception"
-    except except_cls, e:
+    except except_cls as e:
         assert re.search(msg, str(e)), "%r !~ %s" % (msg, e)
         print str(e)
 
