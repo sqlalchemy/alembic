@@ -185,7 +185,8 @@ def load_python_file(dir_, filename):
 
     module_id = re.sub(r'\W', "_", filename)
     path = os.path.join(dir_, filename)
-    module = imp.load_source(module_id, path, open(path, 'rb'))
+    with open(path, 'r') as f:
+        module = imp.load_source(module_id, path, f)
     del sys.modules[module_id]
     return module
 
