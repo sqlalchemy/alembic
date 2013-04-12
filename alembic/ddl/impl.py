@@ -15,7 +15,7 @@ class ImplMeta(type):
 
 _impls = {}
 
-class DefaultImpl(object):
+class DefaultImpl(ImplMeta('_ImplBase', (object,), {})):
     """Provide the entrypoint for major migration operations,
     including database-specific behavioral variances.
 
@@ -27,7 +27,6 @@ class DefaultImpl(object):
     bulk inserts.
 
     """
-    __metaclass__ = ImplMeta
     __dialect__ = 'default'
 
     transactional_ddl = False
