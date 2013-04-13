@@ -4,6 +4,19 @@ Changelog
 ==========
 
 .. changelog::
+    :version: 0.6.0
+
+    .. change::
+      :tags: feature
+      :pullreq: 34
+      :tickets: 55
+
+      Source base is now in-place for Python 2.6 through
+      3.3, without the need for 2to3.   Support for Python 2.5
+      and below has been dropped.   Huge thanks to
+      Hong Minhee for all the effort on this!
+
+.. changelog::
     :version: 0.5.0
     :released: Thu Apr 4 2013
 
