@@ -637,7 +637,7 @@ def test_naming_changes():
 
     assert_raises_message(
         TypeError,
-        "Unknown arguments: badarg2, badarg1",
+        r"Unknown arguments: badarg\d, badarg\d",
         op.alter_column, "t", "c", badarg1="x", badarg2="y"
     )
 

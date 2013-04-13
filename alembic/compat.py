@@ -1,30 +1,36 @@
 import sys
 
+if sys.version_info < (2, 6):
+    raise NotImplementedError("Python 2.6 or greater is required.")
 
 py3k = sys.version_info >= (3, 0)
-py3kwarning = getattr(sys, 'py3kwarning', False) or py3k
-py26 = sys.version_info >= (2, 6)
-jython = sys.platform.startswith('java')
-win32 = sys.platform.startswith('win')
-pypy = hasattr(sys, 'pypy_version_info')
 
 if py3k:
     import builtins as compat_builtins
     string_types = str,
     binary_type = bytes
     text_type = str
+    def callable(fn):
+        return hasattr(fn, '__call__')
 else:
     import __builtin__ as compat_builtins
     string_types = basestring,
     binary_type = str
     text_type = unicode
-
-if py3kwarning:
-    def callable(fn):
-        return hasattr(fn, '__call__')
-else:
     callable = callable
 
+
+try:
+    import configparser
+except ImportError:
+    import ConfigParser as configparser
+
+try:
+    exec_ = getattr(compat_builtins, 'exec')
+except AttributeError:
+    # Python 2
+    def exec_(func_text, globals_, lcl):
+        exec('exec func_text in globals_, lcl')
 
 ################################################
 # cross-compatible metaclass implementation

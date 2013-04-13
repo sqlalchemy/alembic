@@ -72,8 +72,8 @@ class MigrationContext(object):
         self._migrations_fn = opts.get('fn')
         self.as_sql = as_sql
         self.output_buffer = opts.get("output_buffer", sys.stdout)
-        if (opts.get('output_encoding') and
-            not isinstance(self.output_buffer, io.TextIOBase)):
+
+        if opts.get('output_encoding'):
             self.output_buffer = io.TextIOWrapper(
                                     self.output_buffer,
                                     opts['output_encoding']

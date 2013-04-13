@@ -1,18 +1,10 @@
-from __future__ import with_statement
 
-try:
-    import builtins
-except ImportError:
-    import __builtin__ as builtins
-try:
-    import configparser
-except ImportError:
-    import ConfigParser as configparser
 import io
 import os
 import re
 import shutil
 import textwrap
+from alembic.compat import configparser
 
 from nose import SkipTest
 from sqlalchemy.engine import default
@@ -63,7 +55,7 @@ def db_for_dialect(name):
         except ImportError as er1:
             raise SkipTest("Can't import DBAPI: %s" % er1)
         try:
-            conn = eng.connect()
+            eng.connect()
         except SQLAlchemyError as er2:
             raise SkipTest("Can't connect to database: %s" % er2)
         _engs[name] = eng
@@ -105,23 +97,20 @@ def assert_compiled(element, assert_string, dialect=None):
 
 def capture_context_buffer(**kw):
     if kw.pop('bytes_io', False):
-        raw = io.BytesIO()
-        encoding = kw.get('output_encoding', 'utf-8')
-        buf = io.TextIOWrapper(raw, encoding)
+        buf = io.BytesIO()
     else:
-        raw = buf = io.StringIO()
+        buf = io.StringIO()
 
     class capture(object):
         def __enter__(self):
             EnvironmentContext._default_opts = {
-                'dialect_name':"sqlite",
-                'output_buffer':buf
+                'dialect_name': "sqlite",
+                'output_buffer': buf
             }
             EnvironmentContext._default_opts.update(kw)
-            return raw
+            return buf
 
         def __exit__(self, *arg, **kwarg):
-            #print(buf.getvalue())
             EnvironmentContext._default_opts = None
 
     return capture()
@@ -317,13 +306,15 @@ def clear_staging_env():
     shutil.rmtree(staging_directory, True)
 
 
-def write_script(scriptdir, rev_id, content):
+def write_script(scriptdir, rev_id, content, encoding='ascii'):
     old = scriptdir._revision_map[rev_id]
     path = old.path
-    if not hasattr(builtins, 'unicode') and isinstance(content, bytes):
-        content = content.decode()
-    with open(path, 'w') as fp:
-        fp.write(textwrap.dedent(content))
+
+    content = textwrap.dedent(content)
+    if encoding:
+        content = content.encode(encoding)
+    with open(path, 'wb') as fp:
+        fp.write(content)
     pyc_path = util.pyc_file_from_path(path)
     if os.access(pyc_path, os.F_OK):
         os.unlink(pyc_path)

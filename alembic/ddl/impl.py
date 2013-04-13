@@ -1,14 +1,9 @@
-try:
-    import builtins
-except ImportError:
-    import __builtin__ as builtins
-
 from sqlalchemy.sql.expression import _BindParamClause
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy import schema, text
 from sqlalchemy import types as sqltypes
 
-from ..compat import callable, string_types, text_type, with_metaclass
+from ..compat import string_types, text_type, with_metaclass
 from .. import util
 from . import base
 
@@ -55,10 +50,8 @@ class DefaultImpl(with_metaclass(ImplMeta)):
         return _impls[dialect.name]
 
     def static_output(self, text):
-        text_ = text_type(text + '\n\n')
-        self.output_buffer.write(text_)
-        if callable(getattr(self.output_buffer, 'flush', None)):
-            self.output_buffer.flush()
+        self.output_buffer.write(text_type(text + "\n\n"))
+        self.output_buffer.flush()
 
     @property
     def bind(self):

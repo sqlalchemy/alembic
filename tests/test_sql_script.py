@@ -105,7 +105,7 @@ def upgrade():
 def downgrade():
     op.execute("drôle de petite voix m’a réveillé")
 
-""" % a).encode('utf-8'))
+""" % a), encoding='utf-8')
 
     def tearDown(self):
         clear_staging_env()

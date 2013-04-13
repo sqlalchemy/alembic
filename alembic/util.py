@@ -1,9 +1,3 @@
-from __future__ import with_statement
-
-try:
-    import builtins
-except ImportError:
-    import __builtin__ as builtins
 import sys
 import os
 import textwrap
@@ -17,7 +11,7 @@ from mako.template import Template
 from sqlalchemy.engine import url
 from sqlalchemy import __version__
 
-from .compat import callable
+from .compat import callable, exec_
 
 class CommandError(Exception):
     pass
@@ -120,12 +114,6 @@ def create_module_class_proxy(cls, globals_, locals_):
             'doc': fn.__doc__,
         })
         lcl = {}
-        try:
-            exec_ = getattr(builtins, 'exec')
-        except AttributeError:
-            # Python 2
-            def exec_(func_text, globals_, lcl):
-                exec('exec func_text in globals_, lcl')
         exec_(func_text, globals_, lcl)
         return lcl[name]
 
@@ -187,7 +175,7 @@ def load_python_file(dir_, filename):
 
     module_id = re.sub(r'\W', "_", filename)
     path = os.path.join(dir_, filename)
-    with open(path, 'r') as f:
+    with open(path, 'rb') as f:
         module = imp.load_source(module_id, path, f)
     del sys.modules[module_id]
     return module

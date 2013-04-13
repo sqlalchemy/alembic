@@ -240,7 +240,7 @@ def _compare_columns(schema, tname, conn_table, metadata_table,
     name = '%s.%s' % (schema, tname) if schema else tname
     metadata_cols_by_name = dict((c.name, c) for c in metadata_table.c)
     conn_col_names = set(conn_table)
-    metadata_col_names = set(metadata_cols_by_name)
+    metadata_col_names = OrderedSet(sorted(metadata_cols_by_name))
 
     for cname in metadata_col_names.difference(conn_col_names):
         diffs.append(

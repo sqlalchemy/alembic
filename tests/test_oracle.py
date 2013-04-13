@@ -1,5 +1,4 @@
 """Test op functions against ORACLE."""
-from __future__ import with_statement
 
 from unittest import TestCase
 

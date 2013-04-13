@@ -1,8 +1,5 @@
 from argparse import ArgumentParser
-try:
-    import configparser
-except ImportError:
-    import ConfigParser as configparser
+from .compat import configparser
 import inspect
 import os
 import sys
