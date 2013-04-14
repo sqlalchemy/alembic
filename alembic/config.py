@@ -200,6 +200,12 @@ class CommandLine(object):
                                     help="Only show current version and "
                                     "whether or not this is the head revision.")
 
+            if 'after_current' in kwargs:
+                parser.add_argument("--after-current",
+                                    action="store_true",
+                                    help="Only show after current revisions and current revision.")
+
+
             positional_help = {
                 'directory': "location of scripts directory",
                 'revision': "revision identifier"

@@ -149,14 +149,34 @@ def downgrade(config, revision, sql=False, tag=None):
     ):
         script.run_env()
 
-def history(config):
+def history(config, after_current=False):
     """List changeset scripts in chronological order."""
 
     script = ScriptDirectory.from_config(config)
-    for sc in script.walk_revisions():
-        if sc.is_head:
-            config.print_stdout("")
-        config.print_stdout(sc)
+    def display_history(current=None):
+        for sc in script.walk_revisions():
+            if sc.is_head:
+                config.print_stdout("")
+            config.print_stdout(sc)
+            if sc == current:
+                break
+
+    def display_history_after_curreont(rev, context):
+        current = script.get_revision(rev)
+        display_history(current=current)
+        return []
+
+    if not after_current:
+        return display_history()
+
+
+    with EnvironmentContext(
+        config,
+        script,
+        fn=display_history_after_curreont
+    ):
+        script.run_env()
+
 
 def branches(config):
     """Show current un-spliced branch points"""
