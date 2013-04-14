@@ -200,10 +200,15 @@ class CommandLine(object):
                                     help="Only show current version and "
                                     "whether or not this is the head revision.")
 
-            if 'after_current' in kwargs:
-                parser.add_argument("--after-current",
-                                    action="store_true",
-                                    help="Only show after current revisions and current revision.")
+            if 'rev_range' in kwargs:
+                parser.add_argument("-r", "--rev-range",
+                                    action="store",
+                                    help="Specify the range of display revisions. "
+                                    "range is formatted in [start]:[end] "
+                                    'accepting any rev number, "head", "base", '
+                                    'or "current". '
+                                    'the left side of : defaults to "base" '
+                                    'the right side defaults to "head"')
 
 
             positional_help = {

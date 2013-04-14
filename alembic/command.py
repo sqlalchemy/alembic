@@ -149,31 +149,56 @@ def downgrade(config, revision, sql=False, tag=None):
     ):
         script.run_env()
 
-def history(config, after_current=False):
+def history(config, rev_range=""):
     """List changeset scripts in chronological order."""
 
     script = ScriptDirectory.from_config(config)
-    def display_history(current=None):
-        for sc in script.walk_revisions():
+    def display_history(start=None, end=None):
+        revs = iter(script.walk_revisions())
+        if end:
+            # skip to end
+            for sc in revs:
+                if sc == end:
+                    if sc.is_head:
+                        config.print_stdout("")
+                    config.print_stdout(sc)
+                    break
+        if (start or end) and end == start:
+            return
+
+        for sc in revs:
             if sc.is_head:
                 config.print_stdout("")
             config.print_stdout(sc)
-            if sc == current:
+            if sc == start:
                 break
 
-    def display_history_after_curreont(rev, context):
-        current = script.get_revision(rev)
-        display_history(current=current)
-        return []
-
-    if not after_current:
+    if not rev_range:
         return display_history()
 
+    if ":" not in rev_range:
+        raise ValueError("rev_range must be formatted in '[start]:[end]'")  # need a right message
+
+
+    def display_history_ragne(rev, context):
+        _start, _end = rev_range.split(":", 1)
+        _start = _start or "base"
+        _end = _end or "head"
+
+        if _start == 'current':
+            _start = rev
+        if _end == 'current':
+            _end = rev
+        
+        start = script.get_revision(_start)
+        end = script.get_revision(_end)
+        display_history(start=start, end=end)
+        return []
 
     with EnvironmentContext(
         config,
         script,
-        fn=display_history_after_curreont
+        fn=display_history_ragne
     ):
         script.run_env()
 
