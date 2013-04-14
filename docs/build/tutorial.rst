@@ -421,10 +421,8 @@ View all revisions from 1975 to the head::
 
   $ alembic history -r1975ea:
 
-.. versionadded:: 0.6.1  ``alembic revision`` now accepts the ``-r`` argument to
+.. versionadded:: 0.6.0  ``alembic revision`` now accepts the ``-r`` argument to
    specify specific ranges based on version numbers, symbols, or relative deltas.
-
-
 
 
 Downgrading

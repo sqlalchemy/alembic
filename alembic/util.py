@@ -1,7 +1,6 @@
 import sys
 import os
 import textwrap
-import imp
 import warnings
 import re
 import inspect
@@ -11,7 +10,7 @@ from mako.template import Template
 from sqlalchemy.engine import url
 from sqlalchemy import __version__
 
-from .compat import callable, exec_
+from .compat import callable, exec_, load_module
 
 class CommandError(Exception):
     pass
@@ -175,8 +174,7 @@ def load_python_file(dir_, filename):
 
     module_id = re.sub(r'\W', "_", filename)
     path = os.path.join(dir_, filename)
-    with open(path, 'rb') as f:
-        module = imp.load_source(module_id, path, f)
+    module = load_module(module_id, path)
     del sys.modules[module_id]
     return module
 
@@ -244,9 +242,6 @@ class immutabledict(dict):
 
     def __repr__(self):
         return "immutabledict(%s)" % dict.__repr__(self)
-
-
-
 
 
 def _with_legacy_names(translations):

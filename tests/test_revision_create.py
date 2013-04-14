@@ -151,6 +151,7 @@ down_revision = ${repr(down_revision)}
         command.revision(self.cfg, message="some rev")
         script = ScriptDirectory.from_config(self.cfg)
         rev = script.get_revision('head')
-        text = open(rev.path).read()
+        with open(rev.path) as f:
+            text = f.read()
         assert "somearg: somevalue" in text
 

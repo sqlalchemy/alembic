@@ -4,6 +4,7 @@ if sys.version_info < (2, 6):
     raise NotImplementedError("Python 2.6 or greater is required.")
 
 py3k = sys.version_info >= (3, 0)
+py33 = sys.version_info >= (3, 3)
 
 if py3k:
     import builtins as compat_builtins
@@ -19,11 +20,26 @@ else:
     text_type = unicode
     callable = callable
 
-
-try:
+if py3k:
+    from configparser import ConfigParser as SafeConfigParser
     import configparser
-except ImportError:
+else:
+    from ConfigParser import SafeConfigParser
     import ConfigParser as configparser
+
+if py33:
+    from importlib import machinery
+    def load_module(module_id, path):
+        return machinery.SourceFileLoader(module_id, path).load_module()
+else:
+    import imp
+    def load_module(module_id, path):
+        fp = open(path, 'rb')
+        try:
+            return imp.load_source(module_id, path, fp)
+        finally:
+            fp.close()
+
 
 try:
     exec_ = getattr(compat_builtins, 'exec')
