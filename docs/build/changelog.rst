@@ -8,6 +8,18 @@ Changelog
 
     .. change::
       :tags: feature
+      :pullreq: 35
+
+      Added ``-r`` argument to ``alembic history`` command,
+      allows specification of ``[start]:[end]`` to view
+      a slice of history.  Accepts revision numbers, symbols
+      "base", "head", a new symbol "current" representing the
+      current migration, as well as relative ranges for one
+      side at a time (i.e. ``-r-5:head``, ``-rcurrent:+3``).
+      Courtesy Atsushi Odagiri for this feature.
+
+    .. change::
+      :tags: feature
       :pullreq: 34
       :tickets: 55
 

@@ -149,58 +149,48 @@ def downgrade(config, revision, sql=False, tag=None):
     ):
         script.run_env()
 
-def history(config, rev_range=""):
+def history(config, rev_range=None):
     """List changeset scripts in chronological order."""
 
     script = ScriptDirectory.from_config(config)
-    def display_history(start=None, end=None):
-        revs = iter(script.walk_revisions())
-        if end:
-            # skip to end
-            for sc in revs:
-                if sc == end:
-                    if sc.is_head:
-                        config.print_stdout("")
-                    config.print_stdout(sc)
-                    break
-        if (start or end) and end == start:
-            return
+    if rev_range is not None:
+        if ":" not in rev_range:
+            raise util.CommandError(
+                    "History range requires [start]:[end], "
+                    "[start]:, or :[end]")
+        base, head = rev_range.strip().split(":")
+    else:
+        base = head = None
 
-        for sc in revs:
+    def _display_history(config, script, base, head):
+        for sc in script.walk_revisions(
+                                base=base or "base",
+                                head=head or "head"):
             if sc.is_head:
                 config.print_stdout("")
             config.print_stdout(sc)
-            if sc == start:
-                break
 
-    if not rev_range:
-        return display_history()
+    def _display_history_w_current(config, script, base=None, head=None):
+        def _display_current_history(rev, context):
+            if head is None:
+                _display_history(config, script, base, rev)
+            elif base is None:
+                _display_history(config, script, rev, head)
+            return []
 
-    if ":" not in rev_range:
-        raise ValueError("rev_range must be formatted in '[start]:[end]'")  # need a right message
+        with EnvironmentContext(
+            config,
+            script,
+            fn=_display_current_history
+        ):
+            script.run_env()
 
-
-    def display_history_ragne(rev, context):
-        _start, _end = rev_range.split(":", 1)
-        _start = _start or "base"
-        _end = _end or "head"
-
-        if _start == 'current':
-            _start = rev
-        if _end == 'current':
-            _end = rev
-        
-        start = script.get_revision(_start)
-        end = script.get_revision(_end)
-        display_history(start=start, end=end)
-        return []
-
-    with EnvironmentContext(
-        config,
-        script,
-        fn=display_history_ragne
-    ):
-        script.run_env()
+    if base == "current":
+        _display_history_w_current(config, script, head=head)
+    elif head == "current":
+        _display_history_w_current(config, script, base=base)
+    else:
+        _display_history(config, script, base, head)
 
 
 def branches(config):

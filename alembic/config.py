@@ -4,7 +4,7 @@ import inspect
 import os
 import sys
 
-from . import command, util, package_dir
+from . import command, util, package_dir, compat
 
 class Config(object):
     """Represent an Alembic configuration.
@@ -74,7 +74,7 @@ class Config(object):
     def print_stdout(self, text, *arg):
         """Render a message to standard out."""
 
-        self.stdout.write((str(text) % arg) + "\n")
+        self.stdout.write((compat.text_type(text) % arg) + "\n")
 
     @util.memoized_property
     def file_config(self):
@@ -203,12 +203,8 @@ class CommandLine(object):
             if 'rev_range' in kwargs:
                 parser.add_argument("-r", "--rev-range",
                                     action="store",
-                                    help="Specify the range of display revisions. "
-                                    "range is formatted in [start]:[end] "
-                                    'accepting any rev number, "head", "base", '
-                                    'or "current". '
-                                    'the left side of : defaults to "base" '
-                                    'the right side defaults to "head"')
+                                    help="Specify a revision range; "
+                                    "format is [start]:[end]")
 
 
             positional_help = {

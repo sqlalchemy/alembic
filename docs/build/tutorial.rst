@@ -400,6 +400,32 @@ If we wanted to upgrade directly to ``ae1027a6acf`` we could say::
 
 Alembic will stop and let you know if more than one version starts with that prefix.
 
+Viewing History Ranges
+----------------------
+
+Using the ``-r`` option to ``alembic history``, we can also view various slices
+of history.  The ``-r`` argument accepts an argument ``[start]:[end]``, where
+either may be a revision number, or various combinations of ``base``, ``head``,
+``currrent`` to specify the current revision, as well as negative relative
+ranges for ``[start]`` and positive relative ranges for ``[end]``::
+
+  $ alembic history -r1975ea:ae1027
+
+A relative range starting from three revs ago up to current migration,
+which will invoke the migration environment against the database
+to get the current migration::
+
+  $ alembic history -r-3:current
+
+View all revisions from 1975 to the head::
+
+  $ alembic history -r1975ea:
+
+.. versionadded:: 0.6.1  ``alembic revision`` now accepts the ``-r`` argument to
+   specify specific ranges based on version numbers, symbols, or relative deltas.
+
+
+
 
 Downgrading
 ===========

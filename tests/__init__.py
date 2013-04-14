@@ -334,7 +334,8 @@ def three_rev_fixture(cfg):
 
     script = ScriptDirectory.from_config(cfg)
     script.generate_revision(a, "revision a", refresh=True)
-    write_script(script, a, """
+    write_script(script, a, """\
+"Rev A"
 revision = '%s'
 down_revision = None
 
@@ -349,7 +350,8 @@ def downgrade():
 """ % a)
 
     script.generate_revision(b, "revision b", refresh=True)
-    write_script(script, b, """
+    write_script(script, b, """\
+"Rev B"
 revision = '%s'
 down_revision = '%s'
 
@@ -364,7 +366,8 @@ def downgrade():
 """ % (b, a))
 
     script.generate_revision(c, "revision c", refresh=True)
-    write_script(script, c, """
+    write_script(script, c, """\
+"Rev C"
 revision = '%s'
 down_revision = '%s'
 

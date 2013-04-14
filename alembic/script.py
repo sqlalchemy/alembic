@@ -56,20 +56,22 @@ class ScriptDirectory(object):
                                     "found in configuration.")
         return ScriptDirectory(
                     util.coerce_resource_to_filename(script_location),
-                    file_template = config.get_main_option(
+                    file_template=config.get_main_option(
                                         'file_template',
                                         _default_file_template)
                     )
 
-    def walk_revisions(self):
+    def walk_revisions(self, base="base", head="head"):
         """Iterate through all revisions.
 
         This is actually a breadth-first tree traversal,
         with leaf nodes being heads.
 
         """
-        heads = set(self.get_heads())
-        base = self.get_revision("base")
+        if head == "head":
+            heads = set(self.get_heads())
+        else:
+            heads = set([head])
         while heads:
             todo = set(heads)
             heads = set()
