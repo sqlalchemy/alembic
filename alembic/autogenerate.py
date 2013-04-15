@@ -677,6 +677,8 @@ def _render_foreign_key(constraint, autogen_context):
         opts.append(("initially", repr(constraint.initially)))
     if constraint.deferrable:
         opts.append(("deferrable", repr(constraint.deferrable)))
+    if constraint.use_alter:
+        opts.append(("use_alter", repr(constraint.use_alter)))
 
     apply_metadata_schema = constraint.parent.metadata.schema
     return "%(prefix)sForeignKeyConstraint([%(cols)s], "\

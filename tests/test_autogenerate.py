@@ -1092,6 +1092,19 @@ render:primary_key\n)"""
             "sa.ForeignKeyConstraint(['c'], ['t2.c_rem'], initially='XYZ')"
         )
 
+    def test_render_fk_constraint_use_alter(self):
+        m = MetaData()
+        Table('t', m, Column('c', Integer))
+        t2 = Table('t2', m, Column('c_rem', Integer,
+                                ForeignKey('t.c', name="fk1", use_alter=True)))
+        const = list(t2.foreign_keys)[0].constraint
+
+        eq_ignore_whitespace(
+            autogenerate._render_constraint(const, self.autogen_context),
+            "sa.ForeignKeyConstraint(['c_rem'], ['t.c'], "
+                    "name='fk1', use_alter=True)"
+        )
+
     def test_render_check_constraint_literal(self):
         eq_ignore_whitespace(
             autogenerate._render_check_constraint(

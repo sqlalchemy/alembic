@@ -7,6 +7,12 @@ Changelog
     :version: 0.6.0
 
     .. change::
+      :tags: bug
+
+      Repaired autogenerate rendering of ForeignKeyConstraint
+      to include use_alter argument, if present.
+
+    .. change::
       :tags: feature
       :pullreq: 35
 
