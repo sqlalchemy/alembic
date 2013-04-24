@@ -2,7 +2,7 @@
 
 from sqlalchemy import Integer, Column, ForeignKey, \
             Table, String, Boolean
-from sqlalchemy.sql import column, func
+from sqlalchemy.sql import column, func, text
 from sqlalchemy import event
 
 from alembic import op
@@ -33,6 +33,17 @@ def test_rename_table_schema_postgresql():
     context = op_fixture("postgresql")
     op.rename_table('t1', 't2', schema="foo")
     context.assert_("ALTER TABLE foo.t1 RENAME TO t2")
+
+def test_create_index_postgresql_where():
+    context = op_fixture("postgresql")
+    op.create_index(
+        'geocoded',
+        'locations',
+        ['coordinates'],
+        postgresql_where=text("locations.coordinates != Null"))
+    context.assert_(
+            "CREATE INDEX geocoded ON locations (coordinates) "
+            "WHERE locations.coordinates != Null")
 
 def test_add_column():
     context = op_fixture()
