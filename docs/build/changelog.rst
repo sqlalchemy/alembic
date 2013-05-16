@@ -7,6 +7,11 @@ Changelog
     :version: 0.6.0
 
     .. change::
+      :tags: misc
+
+      Source repository has been moved from Mercurial to Git.
+
+    .. change::
       :tags: bug
 
       Repaired autogenerate rendering of ForeignKeyConstraint
