@@ -709,8 +709,10 @@ def _render_check_constraint(constraint, autogen_context):
     opts = []
     if constraint.name:
         opts.append(("name", repr(constraint.name)))
-    return "%(prefix)sCheckConstraint(%(sqltext)r)" % {
+    return "%(prefix)sCheckConstraint(%(sqltext)r%(opts)s)" % {
             "prefix": _sqlalchemy_autogenerate_prefix(autogen_context),
+            "opts": ", " + (", ".join("%s=%s" % (k, v)
+                            for k, v in opts)) if opts else "",
             "sqltext": str(
                 constraint.sqltext.compile(
                     dialect=autogen_context['dialect']

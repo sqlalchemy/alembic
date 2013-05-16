@@ -7,6 +7,14 @@ Changelog
     :version: 0.6.0
 
     .. change::
+      :tags: bug
+      :tickets: 125
+
+      Added support for options like "name" etc. to be rendered
+      within CHECK constraints in autogenerate.  Courtesy
+      Sok Ann Yap.
+
+    .. change::
       :tags: misc
 
       Source repository has been moved from Mercurial to Git.

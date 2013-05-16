@@ -1111,10 +1111,10 @@ render:primary_key\n)"""
     def test_render_check_constraint_literal(self):
         eq_ignore_whitespace(
             autogenerate._render_check_constraint(
-                CheckConstraint("im a constraint"),
+                CheckConstraint("im a constraint", name='cc1'),
                 self.autogen_context
             ),
-            "sa.CheckConstraint('im a constraint')"
+            "sa.CheckConstraint('im a constraint', name='cc1')"
         )
 
     def test_render_check_constraint_sqlexpr(self):
