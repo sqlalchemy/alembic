@@ -19,7 +19,6 @@ Changelog
 
     .. change::
       :tags: feature
-      :pullreq: 35
 
       Added ``-r`` argument to ``alembic history`` command,
       allows specification of ``[start]:[end]`` to view
@@ -31,7 +30,6 @@ Changelog
 
     .. change::
       :tags: feature
-      :pullreq: 34
       :tickets: 55
 
       Source base is now in-place for Python 2.6 through
@@ -52,7 +50,6 @@ Changelog
     .. change::
         :tags: feature
         :tickets: 76
-        :pullreq: 24
 
       Added ``version_table_schema`` argument
       to :meth:`.EnvironmentContext.configure`,
@@ -103,7 +100,6 @@ Changelog
 
     .. change::
         :tags: feature
-        :pullreq: 30
         :tickets: 115
 
       upgrade and downgrade commands will list the
@@ -112,7 +108,6 @@ Changelog
 
     .. change::
         :tags: feature
-        :pullreq: 28
 
       Added --head-only option to "alembic current",
       will print current version plus the symbol
@@ -149,7 +144,6 @@ Changelog
 
     .. change::
         :tags: bug
-        :pullreq: 27
 
       Worked around a backwards-incompatible regression in Python3.3
       regarding argparse; running "alembic" with no arguments
