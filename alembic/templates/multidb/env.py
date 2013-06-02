@@ -104,8 +104,8 @@ def run_migrations_online():
             logger.info("Migrating database %s" % name)
             context.configure(
                         connection=rec['connection'],
-                        upgrade_token="%s_upgrades",
-                        downgrade_token="%s_downgrades",
+                        upgrade_token="%s_upgrades" % name,
+                        downgrade_token="%s_downgrades" % name,
                         target_metadata=target_metadata.get(name)
                     )
             context.run_migrations(engine_name=name)
