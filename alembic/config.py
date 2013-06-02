@@ -51,7 +51,7 @@ class Config(object):
 
     """
     def __init__(self, file_=None, ini_section='alembic', output_buffer=None,
-                        stdout=sys.stdout):
+                        stdout=sys.stdout, cmd_opts=None):
         """Construct a new :class:`.Config`
 
         """
@@ -59,6 +59,14 @@ class Config(object):
         self.config_ini_section = ini_section
         self.output_buffer = output_buffer
         self.stdout = stdout
+        self.cmd_opts = cmd_opts
+
+    cmd_opts = None
+    """The command-line options passed to the ``alembic`` script.
+
+    ..versionadded:: 0.6.0
+
+    """
 
     config_file_name = None
     """Filesystem path to the .ini file in use."""
@@ -224,6 +232,11 @@ class CommandLine(object):
                             default="alembic",
                             help="Name of section in .ini file to "
                                     "use for Alembic config")
+        parser.add_argument("-x", action="append",
+                            help="Additional arguments consumed by "
+                            "custom env.py scripts, e.g. -x "
+                            "setting1=somesetting -x setting2=somesetting")
+
         subparsers = parser.add_subparsers()
 
         for fn in [getattr(command, n) for n in dir(command)]:
@@ -264,10 +277,14 @@ class CommandLine(object):
             # behavior changed incompatibly in py3.3
             self.parser.error("too few arguments")
         else:
-            cfg = Config(options.config, options.name)
+            cfg = Config(file_=options.config,
+                            ini_section=options.name, cmd_opts=options)
             self.run_cmd(cfg, options)
 
 def main(argv=None, prog=None, **kwargs):
     """The console runner function for Alembic."""
 
     CommandLine(prog=prog).main(argv=argv)
+
+if __name__ == '__main__':
+    main()
