@@ -10,16 +10,18 @@ Changelog
       :tags: feature
 
       Added :attr:`alembic.config.Config.cmd_opts` attribute,
-      allows access to the `argparse` options passed to the
-      `alembic` runner.
+      allows access to the ``argparse`` options passed to the
+      ``alembic`` runner.
 
     .. change::
       :tags: feature
+      :tickets: 120
 
       Added new command line argument ``-x``, allows extra arguments
       to be appended to the command line which can be consumed
       within an ``env.py`` script by looking at
-      ``context.config.cmd_opts.x``.
+      ``context.config.cmd_opts.x``, or more simply a new
+      method :meth:`.EnvironmentContext.get_x_argument`.
 
     .. change::
       :tags: bug

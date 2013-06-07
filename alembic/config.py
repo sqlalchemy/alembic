@@ -64,7 +64,14 @@ class Config(object):
     cmd_opts = None
     """The command-line options passed to the ``alembic`` script.
 
-    ..versionadded:: 0.6.0
+    Within an ``env.py`` script this can be accessed via the
+    :attr:`.EnvironmentContext.config` attribute.
+
+    .. versionadded:: 0.6.0
+
+    .. seealso::
+
+        :meth:`.EnvironmentContext.get_x_argument`
 
     """
 

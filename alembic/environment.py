@@ -197,8 +197,61 @@ class EnvironmentContext(object):
         This function does not require that the :class:`.MigrationContext`
         has been configured.
 
+        .. seealso::
+
+            :meth:`.EnvironmentContext.get_x_argument` - a newer and more
+            open ended system of extending ``env.py`` scripts via the command
+            line.
+
         """
         return self.context_opts.get('tag', None)
+
+    def get_x_argument(self, as_dictionary=False):
+        """Return the value(s) passed for the ``-x`` argument, if any.
+
+        The ``-x`` argument is an open ended flag that allows any user-defined
+        value or values to be passed on the command line, then available
+        here for consumption by a custom ``env.py`` script.
+
+        The return value is a list, returned directly from the ``argparse``
+        structure.  If ``as_dictionary=True`` is passed, the ``x`` arguments
+        are parsed using ``key=value`` format into a dictionary that is
+        then returned.
+
+        For example, to support passing a database URL on the command line,
+        the standard ``env.py`` script can be modified like this::
+
+            cmd_line_url = context.get_x_argument(as_dictionary=True).get('dbname')
+            if cmd_line_url:
+                engine = create_engine(cmd_line_url)
+            else:
+                engine = engine_from_config(
+                        config.get_section(config.config_ini_section),
+                        prefix='sqlalchemy.',
+                        poolclass=pool.NullPool)
+
+        This then takes effect by running the ``alembic`` script as::
+
+            alembic -x dbname=postgresql://user:pass@host/dbname upgrade head
+
+        This function does not require that the :class:`.MigrationContext`
+        has been configured.
+
+        .. versionadded:: 0.6.0
+
+        .. seealso::
+
+            :meth:`.EnvironmentContext.get_tag_argument`
+
+            :attr:`.Config.cmd_opts`
+
+        """
+        value = self.config.cmd_opts.x or []
+        if as_dictionary:
+            value = dict(
+                        arg.split('=', 1) for arg in value
+                    )
+        return value
 
     def configure(self,
             connection=None,
@@ -289,7 +342,7 @@ class EnvironmentContext(object):
          running the "revision" command.   Note that the script environment
          is only run within the "revision" command if the --autogenerate
          option is used, or if the option "revision_environment=true"
-         is present in the alembic.ini file. 
+         is present in the alembic.ini file.
 
          .. versionadded:: 0.3.3
 
