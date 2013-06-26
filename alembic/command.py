@@ -168,7 +168,7 @@ def history(config, rev_range=None):
                                 head=head or "head"):
             if sc.is_head:
                 config.print_stdout("")
-            config.print_stdout(sc)
+            config.print_stdout(sc.log_entry)
 
     def _display_history_w_current(config, script, base=None, head=None):
         def _display_current_history(rev, context):

@@ -2,7 +2,6 @@ import datetime
 import os
 import re
 import shutil
-
 from . import util
 
 _rev_file = re.compile(r'.*\.py$')
@@ -377,8 +376,18 @@ class Script(object):
     @property
     def doc(self):
         """Return the docstring given in the script."""
-        if self.module.__doc__:
-            return re.split(r"\n\n", self.module.__doc__)[0]
+
+        return re.split("\n\n", self.longdoc)[0]
+
+    @property
+    def longdoc(self):
+        """Return the docstring given in the script."""
+
+        doc = self.module.__doc__
+        if doc:
+            return doc.strip()
+        else:
+            return ""
 
     def add_nextrev(self, rev):
         self.nextrev = self.nextrev.union([rev])
@@ -405,6 +414,24 @@ class Script(object):
 
         """
         return len(self.nextrev) > 1
+
+    @property
+    def log_entry(self):
+        return \
+            "Rev: %s%s%s\n" \
+            "Parent: %s\n" \
+            "Path: %s\n" \
+            "\n%s\n" % (
+                self.revision,
+                " (head)" if self.is_head else "",
+                " (branchpoint)" if self.is_branch_point else "",
+                self.down_revision,
+                self.path,
+                "\n".join(
+                    "    %s" % para
+                    for para in self.longdoc.splitlines()
+                )
+            )
 
     def __str__(self):
         return "%s -> %s%s%s, %s" % (

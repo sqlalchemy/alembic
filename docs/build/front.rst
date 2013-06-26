@@ -52,7 +52,7 @@ Dependencies
 Alembic's install process will ensure that `SQLAlchemy <http://www.sqlalchemy.org>`_
 is installed, in addition to other dependencies.  Alembic will work with
 SQLAlchemy as of version **0.7.3**.   The latest version of SQLAlchemy within
-the **0.7** or **0.8** series is strongly recommended.
+the **0.7**, **0.8**, or more recent series is strongly recommended.
 
 Alembic supports Python versions 2.6 and above.
 

@@ -5,6 +5,15 @@ Changelog
 
 .. changelog::
     :version: 0.6.0
+    :released:
+
+    .. change::
+      :tags: feature
+
+      The output of the ``alembic history`` command is now
+      expanded to show information about each change on multiple
+      lines, including the full top message,
+      resembling the formatting of git log.
 
     .. change::
       :tags: feature
