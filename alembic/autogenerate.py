@@ -109,11 +109,25 @@ def compare_metadata(context, metadata):
 
 def _produce_migration_diffs(context, template_args,
                                 imports, include_symbol=None,
+                                include_object=None,
                                 include_schemas=False):
     opts = context.opts
     metadata = opts['target_metadata']
+    include_object = opts.get('include_object', include_object)
     include_symbol = opts.get('include_symbol', include_symbol)
     include_schemas = opts.get('include_schemas', include_schemas)
+
+    object_filters = []
+    if include_symbol:
+        def include_symbol_filter(object, name, type_, reflected, compare_to):
+            if type_ == "table":
+                return include_symbol(name, object.schema)
+            else:
+                return True
+        object_filters.append(include_symbol_filter)
+    if include_object:
+        object_filters.append(include_object)
+
 
     if metadata is None:
         raise util.CommandError(
@@ -126,8 +140,7 @@ def _produce_migration_diffs(context, template_args,
 
     diffs = []
     _produce_net_changes(connection, metadata, diffs,
-                                autogen_context, include_symbol,
-                                include_schemas)
+                                autogen_context, object_filters, include_schemas)
     template_args[opts['upgrade_token']] = \
             _indent(_produce_upgrade_commands(diffs, autogen_context))
     template_args[opts['downgrade_token']] = \
@@ -155,8 +168,16 @@ def _indent(text):
 ###################################################
 # walk structures
 
+
+def _run_filters(object_, name, type_, reflected, compare_to, object_filters):
+    for fn in object_filters:
+        if not fn(object_, name, type_, reflected, compare_to):
+            return False
+    else:
+        return True
+
 def _produce_net_changes(connection, metadata, diffs, autogen_context,
-                            include_symbol=None,
+                            object_filters=(),
                             include_schemas=False):
     inspector = Inspector.from_engine(connection)
     # TODO: not hardcode alembic_version here ?
@@ -179,53 +200,53 @@ def _produce_net_changes(connection, metadata, diffs, autogen_context,
     metadata_table_names = OrderedSet([(table.schema, table.name)
                                 for table in metadata.sorted_tables])
 
-    if include_symbol:
-        conn_table_names = set((s, name)
-                                for s, name in conn_table_names
-                                if include_symbol(name, s))
-        metadata_table_names = OrderedSet((s, name)
-                                for s, name in metadata_table_names
-                                if include_symbol(name, s))
-
     _compare_tables(conn_table_names, metadata_table_names,
+                    object_filters,
                     inspector, metadata, diffs, autogen_context)
 
 def _compare_tables(conn_table_names, metadata_table_names,
+                    object_filters,
                     inspector, metadata, diffs, autogen_context):
 
     for s, tname in metadata_table_names.difference(conn_table_names):
         name = '%s.%s' % (s, tname) if s else tname
-        diffs.append(("add_table", metadata.tables[name]))
-        log.info("Detected added table %r", name)
+        metadata_table = metadata.tables[sa_schema._get_table_key(tname, s)]
+        if _run_filters(metadata_table, tname, "table", False, None, object_filters):
+            diffs.append(("add_table", metadata.tables[name]))
+            log.info("Detected added table %r", name)
 
     removal_metadata = sa_schema.MetaData()
     for s, tname in conn_table_names.difference(metadata_table_names):
-        name = '%s.%s' % (s, tname) if s else tname
+        name = sa_schema._get_table_key(tname, s)
         exists = name in removal_metadata.tables
         t = sa_schema.Table(tname, removal_metadata, schema=s)
         if not exists:
             inspector.reflecttable(t, None)
-        diffs.append(("remove_table", t))
-        log.info("Detected removed table %r", name)
+        if _run_filters(t, tname, "table", True, None, object_filters):
+            diffs.append(("remove_table", t))
+            log.info("Detected removed table %r", name)
 
     existing_tables = conn_table_names.intersection(metadata_table_names)
 
-    conn_column_info = dict(
-        ((s, tname),
-            dict(
-                (rec["name"], rec)
-                for rec in inspector.get_columns(tname, schema=s)
-            )
-        )
-        for s, tname in existing_tables
-    )
+    existing_metadata = sa_schema.MetaData()
+    conn_column_info = {}
+    for s, tname in existing_tables:
+        name = sa_schema._get_table_key(tname, s)
+        exists = name in existing_metadata.tables
+        t = sa_schema.Table(tname, existing_metadata, schema=s)
+        if not exists:
+            inspector.reflecttable(t, None)
+        conn_column_info[(s, tname)] = t
 
     for s, tname in sorted(existing_tables):
         name = '%s.%s' % (s, tname) if s else tname
-        _compare_columns(s, tname,
-                conn_column_info[(s, tname)],
-                metadata.tables[name],
-                diffs, autogen_context)
+        metadata_table = metadata.tables[name]
+        conn_table = existing_metadata.tables[name]
+        if _run_filters(metadata_table, tname, "table", False, conn_table, object_filters):
+            _compare_columns(s, tname, object_filters,
+                    conn_table,
+                    metadata_table,
+                    diffs, autogen_context)
 
     # TODO:
     # index add/drop
@@ -235,33 +256,42 @@ def _compare_tables(conn_table_names, metadata_table_names,
 ###################################################
 # element comparison
 
-def _compare_columns(schema, tname, conn_table, metadata_table,
+def _compare_columns(schema, tname, object_filters, conn_table, metadata_table,
                                 diffs, autogen_context):
     name = '%s.%s' % (schema, tname) if schema else tname
     metadata_cols_by_name = dict((c.name, c) for c in metadata_table.c)
-    conn_col_names = set(conn_table)
+    conn_col_names = dict((c.name, c) for c in conn_table.c)
     metadata_col_names = OrderedSet(sorted(metadata_cols_by_name))
 
-    for cname in metadata_col_names.difference(conn_col_names):
-        diffs.append(
-            ("add_column", schema, tname, metadata_cols_by_name[cname])
-        )
-        log.info("Detected added column '%s.%s'", name, cname)
 
-    for cname in conn_col_names.difference(metadata_col_names):
-        diffs.append(
-            ("remove_column", schema, tname, sa_schema.Column(
-                cname,
-                conn_table[cname]['type'],
-                nullable=conn_table[cname]['nullable'],
-                server_default=conn_table[cname]['default']
-            ))
-        )
-        log.info("Detected removed column '%s.%s'", name, cname)
+    for cname in metadata_col_names.difference(conn_col_names):
+        if _run_filters(metadata_cols_by_name[cname], cname,
+                                "column", False, None, object_filters):
+            diffs.append(
+                ("add_column", schema, tname, metadata_cols_by_name[cname])
+            )
+            log.info("Detected added column '%s.%s'", name, cname)
+
+    for cname in set(conn_col_names).difference(metadata_col_names):
+        rem_col = sa_schema.Column(
+                    cname,
+                    conn_table.c[cname].type,
+                    nullable=conn_table.c[cname].nullable,
+                    server_default=conn_table.c[cname].server_default
+                )
+        if _run_filters(rem_col, cname,
+                                "column", True, None, object_filters):
+            diffs.append(
+                ("remove_column", schema, tname, rem_col)
+            )
+            log.info("Detected removed column '%s.%s'", name, cname)
 
     for colname in metadata_col_names.intersection(conn_col_names):
         metadata_col = metadata_cols_by_name[colname]
-        conn_col = conn_table[colname]
+        conn_col = conn_table.c[colname]
+        if not _run_filters(
+                    metadata_col, colname, "column", False, conn_col, object_filters):
+            continue
         col_diff = []
         _compare_type(schema, tname, colname,
             conn_col,
@@ -284,13 +314,13 @@ def _compare_columns(schema, tname, conn_table, metadata_table,
 def _compare_nullable(schema, tname, cname, conn_col,
                             metadata_col_nullable, diffs,
                             autogen_context):
-    conn_col_nullable = conn_col['nullable']
+    conn_col_nullable = conn_col.nullable
     if conn_col_nullable is not metadata_col_nullable:
         diffs.append(
             ("modify_nullable", schema, tname, cname,
                 {
-                    "existing_type": conn_col['type'],
-                    "existing_server_default": conn_col['default'],
+                    "existing_type": conn_col.type,
+                    "existing_server_default": conn_col.server_default,
                 },
                 conn_col_nullable,
                 metadata_col_nullable),
@@ -305,7 +335,7 @@ def _compare_type(schema, tname, cname, conn_col,
                             metadata_col, diffs,
                             autogen_context):
 
-    conn_type = conn_col['type']
+    conn_type = conn_col.type
     metadata_type = metadata_col.type
     if conn_type._type_affinity is sqltypes.NullType:
         log.info("Couldn't determine database type "
@@ -323,8 +353,8 @@ def _compare_type(schema, tname, cname, conn_col,
         diffs.append(
             ("modify_type", schema, tname, cname,
                     {
-                        "existing_nullable": conn_col['nullable'],
-                        "existing_server_default": conn_col['default'],
+                        "existing_nullable": conn_col.nullable,
+                        "existing_server_default": conn_col.server_default,
                     },
                     conn_type,
                     metadata_type),
@@ -337,22 +367,25 @@ def _compare_server_default(schema, tname, cname, conn_col, metadata_col,
                                 diffs, autogen_context):
 
     metadata_default = metadata_col.server_default
-    conn_col_default = conn_col['default']
+    conn_col_default = conn_col.server_default
     if conn_col_default is None and metadata_default is None:
         return False
     rendered_metadata_default = _render_server_default(
                             metadata_default, autogen_context)
+    rendered_conn_default = conn_col.server_default.arg.text \
+                            if conn_col.server_default else None
     isdiff = autogen_context['context']._compare_server_default(
                         conn_col, metadata_col,
-                        rendered_metadata_default
+                        rendered_metadata_default,
+                        rendered_conn_default
                     )
     if isdiff:
-        conn_col_default = conn_col['default']
+        conn_col_default = rendered_conn_default
         diffs.append(
             ("modify_default", schema, tname, cname,
                 {
-                    "existing_nullable": conn_col['nullable'],
-                    "existing_type": conn_col['type'],
+                    "existing_nullable": conn_col.nullable,
+                    "existing_type": conn_col.type,
                 },
                 conn_col_default,
                 metadata_default),

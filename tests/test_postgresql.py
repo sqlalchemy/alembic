@@ -197,9 +197,10 @@ class PostgresqlDefaultCompareTest(TestCase):
         cols = insp.get_columns(t1.name)
         ctx = self.autogen_context['context']
         return ctx.impl.compare_server_default(
-            cols[0],
+            None,
             col,
-            rendered)
+            rendered,
+            cols[0]['default'])
 
     def test_compare_current_timestamp(self):
         self._compare_default_roundtrip(

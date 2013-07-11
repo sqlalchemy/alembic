@@ -11,14 +11,15 @@ class PostgresqlImpl(DefaultImpl):
 
     def compare_server_default(self, inspector_column,
                             metadata_column,
-                            rendered_metadata_default):
+                            rendered_metadata_default,
+                            rendered_inspector_default):
 
         # don't do defaults for SERIAL columns
         if metadata_column.primary_key and \
             metadata_column is metadata_column.table._autoincrement_column:
             return False
 
-        conn_col_default = inspector_column['default']
+        conn_col_default = rendered_inspector_default
 
         if None in (conn_col_default, rendered_metadata_default):
             return conn_col_default != rendered_metadata_default

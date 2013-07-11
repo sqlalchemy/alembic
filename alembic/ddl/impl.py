@@ -182,7 +182,7 @@ class DefaultImpl(with_metaclass(ImplMeta)):
 
     def compare_type(self, inspector_column, metadata_column):
 
-        conn_type = inspector_column['type']
+        conn_type = inspector_column.type
         metadata_type = metadata_column.type
 
         metadata_impl = metadata_type.dialect_impl(self.dialect)
@@ -202,9 +202,9 @@ class DefaultImpl(with_metaclass(ImplMeta)):
 
     def compare_server_default(self, inspector_column,
                             metadata_column,
-                            rendered_metadata_default):
-        conn_col_default = inspector_column['default']
-        return conn_col_default != rendered_metadata_default
+                            rendered_metadata_default,
+                            rendered_inspector_default):
+        return rendered_inspector_default != rendered_metadata_default
 
     def start_migrations(self):
         """A hook called when :meth:`.EnvironmentContext.run_migrations`

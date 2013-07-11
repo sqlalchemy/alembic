@@ -9,6 +9,19 @@ Changelog
 
     .. change::
       :tags: feature
+      :tickets: 101
+
+      Added new kw argument to :meth:`.EnvironmentContext.configure`
+      ``include_object``.  This is a more flexible version of the
+      ``include_symbol`` argument which allows filtering of columns as well as tables
+      from the autogenerate process,
+      and in the future will also work for types, constraints and
+      other constructs.  The fully constructed schema object is passed,
+      including its name and type as well as a flag indicating if the object
+      is from the local application metadata or is reflected.
+
+    .. change::
+      :tags: feature
 
       The output of the ``alembic history`` command is now
       expanded to show information about each change on multiple

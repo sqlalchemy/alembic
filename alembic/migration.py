@@ -292,7 +292,8 @@ class MigrationContext(object):
 
     def _compare_server_default(self, inspector_column,
                             metadata_column,
-                            rendered_metadata_default):
+                            rendered_metadata_default,
+                            rendered_column_default):
 
         if self._user_compare_server_default is False:
             return False
@@ -302,7 +303,7 @@ class MigrationContext(object):
                     self,
                     inspector_column,
                     metadata_column,
-                    inspector_column['default'],
+                    rendered_column_default,
                     metadata_column.server_default,
                     rendered_metadata_default
             )
@@ -312,5 +313,6 @@ class MigrationContext(object):
         return self.impl.compare_server_default(
                                 inspector_column,
                                 metadata_column,
-                                rendered_metadata_default)
+                                rendered_metadata_default,
+                                rendered_column_default)
 

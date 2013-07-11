@@ -264,6 +264,7 @@ class EnvironmentContext(object):
             template_args=None,
             target_metadata=None,
             include_symbol=None,
+            include_object=None,
             include_schemas=False,
             compare_type=False,
             compare_server_default=False,
@@ -425,9 +426,59 @@ class EnvironmentContext(object):
          execute
          the two defaults on the database side to compare for equivalence.
 
+        :param include_object: A callable function which is given
+         the chance to return ``True`` or ``False`` for any object,
+         indicating if the given object should be considered in the
+         autogenerate sweep.
+
+         The function accepts the following positional arguments:
+
+         * ``object``: a :class:`~sqlalchemy.schema.SchemaItem` object such as a
+           :class:`~sqlalchemy.schema.Table` or :class:`~sqlalchemy.schema.Column`
+           object
+         * ``name``: the name of the object. This is typically available
+           via ``object.name``.
+         * ``type``: a string describing the type of object; currently
+           ``"table"`` or ``"column"``, but will include other types in a
+           future release
+         * ``reflected``: ``True`` if the given object was produced based on
+           table reflection, ``False`` if it's from a local :class:`.MetaData`
+           object.
+         * ``compare_to``: the object being compared against, if available,
+           else ``None``.
+
+         E.g.::
+
+            def include_object(object, name, type_, reflected, compare_to):
+                if (type_ == "column" and
+                    not reflected and
+                    object.info.get("skip_autogenerate", False)):
+                    return False
+                else:
+                    return True
+
+            context.configure(
+                # ...
+                include_object = include_object
+            )
+
+         The ``include_object`` filter will be expanded in a future release
+         to also receive type, constraint, and default objects.
+
+         .. versionadded:: 0.6.0
+
+         .. seealso::
+
+            ``include_schemas``, ``include_symbol``
+
+
         :param include_symbol: A callable function which, given a table name
          and schema name (may be ``None``), returns ``True`` or ``False``, indicating
          if the given table should be considered in the autogenerate sweep.
+
+         .. deprecated:: 0.6.0 ``include_symbol`` is superceded by the
+            more generic ``include_object`` parameter.
+
          E.g.::
 
             def include_symbol(tablename, schema):
@@ -454,6 +505,24 @@ class EnvironmentContext(object):
 
          .. versionchanged:: 0.4.0  the ``include_symbol`` callable must now
             also accept a "schema" argument, which may be None.
+
+         .. seealso::
+
+            ``include_schemas``, ``include_object``
+
+        :param include_schemas: If True, autogenerate will scan across
+         all schemas located by the SQLAlchemy
+         :meth:`~sqlalchemy.engine.reflection.Inspector.get_schema_names`
+         method, and include all differences in tables found across all
+         those schemas.  When using this option, you may want to also
+         use the ``include_symbol`` option to specify a callable which
+         can filter the tables/schemas that get included.
+
+         .. versionadded :: 0.4.0
+
+         .. seealso::
+
+            ``include_symbol``, ``include_object``
 
         :param render_item: Callable that can be used to override how
          any schema item, i.e. column, constraint, type,
@@ -506,15 +575,6 @@ class EnvironmentContext(object):
          will render them using the dialect module name, i.e. ``mssql.BIT()``,
          ``postgresql.UUID()``.
 
-        :param include_schemas: If True, autogenerate will scan across
-         all schemas located by the SQLAlchemy
-         :meth:`~sqlalchemy.engine.reflection.Inspector.get_schema_names`
-         method, and include all differences in tables found across all
-         those schemas.  When using this option, you may want to also
-         use the ``include_symbol`` option to specify a callable which
-         can filter the tables/schemas that get included.
-
-         .. versionadded :: 0.4.0
 
         Parameters specific to individual backends:
 
@@ -546,6 +606,7 @@ class EnvironmentContext(object):
             opts['template_args'].update(template_args)
         opts['target_metadata'] = target_metadata
         opts['include_symbol'] = include_symbol
+        opts['include_object'] = include_object
         opts['include_schemas'] = include_schemas
         opts['upgrade_token'] = upgrade_token
         opts['downgrade_token'] = downgrade_token
