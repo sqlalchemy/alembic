@@ -64,12 +64,10 @@ def run_migrations_offline():
         logger.info("Migrating database %s" % name)
         file_ = "%s.sql" % name
         logger.info("Writing output to %s" % file_)
-        context.configure(
-                    url=rec['url'],
-                    output_buffer=open(file_, 'w')
-                )
-        with context.begin_transaction():
-            context.run_migrations(engine_name=name)
+        with open(file_, 'w') as buffer:
+            context.configure(url=rec['url'], output_buffer=buffer)
+            with context.begin_transaction():
+                context.run_migrations(engine_name=name)
 
 def run_migrations_online():
     """Run migrations in 'online' mode.

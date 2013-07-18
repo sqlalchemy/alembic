@@ -9,11 +9,11 @@ def list_templates(config):
 
     config.print_stdout("Available templates:\n")
     for tempname in os.listdir(config.get_template_directory()):
-        readme = os.path.join(
+        with open(os.path.join(
                         config.get_template_directory(),
                         tempname,
-                        'README')
-        synopsis = open(readme).next()
+                        'README')) as readme:
+            synopsis = readme.next()
         config.print_stdout("%s - %s", tempname, synopsis)
 
     config.print_stdout("\nTemplates are used via the 'init' command, e.g.:")
