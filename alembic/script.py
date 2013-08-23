@@ -385,6 +385,8 @@ class Script(object):
 
         doc = self.module.__doc__
         if doc:
+            if hasattr(self.module, "_alembic_source_encoding"):
+                doc = doc.decode(self.module._alembic_source_encoding)
             return doc.strip()
         else:
             return ""

@@ -89,7 +89,11 @@ class Config(object):
     def print_stdout(self, text, *arg):
         """Render a message to standard out."""
 
-        self.stdout.write((compat.text_type(text) % arg) + "\n")
+        util.write_outstream(
+                self.stdout,
+                (compat.text_type(text) % arg),
+                "\n"
+        )
 
     @util.memoized_property
     def file_config(self):

@@ -3,6 +3,7 @@ import sys
 if sys.version_info < (2, 6):
     raise NotImplementedError("Python 2.6 or greater is required.")
 
+py2k = sys.version_info < (3, 0)
 py3k = sys.version_info >= (3, 0)
 py33 = sys.version_info >= (3, 3)
 
@@ -13,6 +14,10 @@ if py3k:
     text_type = str
     def callable(fn):
         return hasattr(fn, '__call__')
+
+    def u(s):
+        return s
+
 else:
     import __builtin__ as compat_builtins
     string_types = basestring,
@@ -20,12 +25,18 @@ else:
     text_type = unicode
     callable = callable
 
+    def u(s):
+        return unicode(s, "utf-8")
+
 if py3k:
     from configparser import ConfigParser as SafeConfigParser
     import configparser
 else:
     from ConfigParser import SafeConfigParser
     import ConfigParser as configparser
+
+if py2k:
+    from mako.util import parse_encoding
 
 if py33:
     from importlib import machinery
@@ -36,9 +47,15 @@ else:
     def load_module(module_id, path):
         fp = open(path, 'rb')
         try:
-            return imp.load_source(module_id, path, fp)
+            mod = imp.load_source(module_id, path, fp)
+            if py2k:
+                source_encoding = parse_encoding(fp)
+                if source_encoding:
+                    mod._alembic_source_encoding = source_encoding
+            return mod
         finally:
             fp.close()
+
 
 
 try:

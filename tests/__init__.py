@@ -1,4 +1,4 @@
-
+# coding: utf-8
 import io
 import os
 import re
@@ -14,7 +14,7 @@ from sqlalchemy.util import decorator
 
 import alembic
 from alembic import util
-from alembic.compat import string_types, text_type
+from alembic.compat import string_types, text_type, u
 from alembic.migration import MigrationContext
 from alembic.environment import EnvironmentContext
 from alembic.operations import Operations
@@ -350,8 +350,8 @@ def downgrade():
 """ % a)
 
     script.generate_revision(b, "revision b", refresh=True)
-    write_script(script, b, """\
-"Rev B"
+    write_script(script, b, u("""# coding: utf-8
+"Rev B, méil"
 revision = '%s'
 down_revision = '%s'
 
@@ -363,7 +363,7 @@ def upgrade():
 def downgrade():
     op.execute("DROP STEP 2")
 
-""" % (b, a))
+""") % (b, a), encoding="utf-8")
 
     script.generate_revision(c, "revision c", refresh=True)
     write_script(script, c, """\

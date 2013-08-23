@@ -4,6 +4,19 @@ Changelog
 ==========
 
 .. changelog::
+    :version: 0.6.1
+    :released: no release date
+
+    .. change::
+      :tags: bug
+      :tickets: 137
+
+      Ensured that strings going to stdout go through an encode/decode phase,
+      so that any non-ASCII characters get to the output stream correctly
+      in both Py2k and Py3k.   Also added source encoding detection using
+      Mako's parse_encoding() routine in Py2k so that the __doc__ of a
+      non-ascii revision file can be treated as unicode in Py2k.
+
     :version: 0.6.0
     :released: Fri July 19 2013
 

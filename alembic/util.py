@@ -10,7 +10,7 @@ from mako.template import Template
 from sqlalchemy.engine import url
 from sqlalchemy import __version__
 
-from .compat import callable, exec_, load_module
+from .compat import callable, exec_, load_module, binary_type
 
 class CommandError(Exception):
     pass
@@ -123,6 +123,14 @@ def create_module_class_proxy(cls, globals_, locals_):
             else:
                 attr_names.add(methname)
 
+def write_outstream(stream, *text):
+    encoding = getattr(stream, 'encoding', 'ascii') or 'ascii'
+    for t in text:
+        if not isinstance(t, binary_type):
+            t = t.encode(encoding, errors='replace')
+        t = t.decode(encoding)
+        stream.write(t)
+
 def coerce_resource_to_filename(fname):
     """Interpret a filename as either a filesystem location or as a package resource.
 
@@ -139,10 +147,10 @@ def status(_statmsg, fn, *arg, **kw):
     msg(_statmsg + "...", False)
     try:
         ret = fn(*arg, **kw)
-        sys.stdout.write("done\n")
+        write_outstream(sys.stdout, "done\n")
         return ret
     except:
-        sys.stdout.write("FAILED\n")
+        write_outstream(sys.stdout, "FAILED\n")
         raise
 
 def err(message):
@@ -166,8 +174,8 @@ def msg(msg, newline=True):
     lines = textwrap.wrap(msg, width)
     if len(lines) > 1:
         for line in lines[0:-1]:
-            sys.stdout.write("  " + line + "\n")
-    sys.stdout.write("  " + lines[-1] + ("\n" if newline else ""))
+            write_outstream(sys.stdout, "  ", line, "\n")
+    write_outstream(sys.stdout, "  ", lines[-1], ("\n" if newline else ""))
 
 def load_python_file(dir_, filename):
     """Load a file from the given path as a Python module."""
