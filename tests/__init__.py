@@ -14,7 +14,7 @@ from sqlalchemy.util import decorator
 
 import alembic
 from alembic import util
-from alembic.compat import string_types, text_type, u
+from alembic.compat import string_types, text_type, u, py33
 from alembic.migration import MigrationContext
 from alembic.environment import EnvironmentContext
 from alembic.operations import Operations
@@ -26,6 +26,17 @@ files_directory = os.path.join(os.path.dirname(__file__), 'files')
 
 testing_config = configparser.ConfigParser()
 testing_config.read(['test.cfg'])
+
+if py33:
+    from unittest.mock import Mock, call
+else:
+    try:
+        from mock import Mock, call
+    except ImportError:
+        raise ImportError(
+                "Alembic's test suite requires the "
+                "'mock' library as of 0.6.1.")
+
 
 def sqlite_db():
     # sqlite caches table pragma info

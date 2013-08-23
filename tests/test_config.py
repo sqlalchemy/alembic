@@ -5,7 +5,7 @@ from alembic.migration import MigrationContext
 from alembic.operations import Operations
 from alembic.script import ScriptDirectory
 import unittest
-from mock import Mock, call
+from . import Mock, call
 
 from . import eq_, capture_db, assert_raises_message
 
