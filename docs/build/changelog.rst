@@ -9,6 +9,13 @@ Changelog
 
     .. change::
       :tags: bug
+
+      Added the "deferrable" keyword argument to :func:`.op.create_foreign_key`
+      so that ``DEFERRABLE`` constraint generation is supported; courtesy
+      Pedro Romano.
+
+    .. change::
+      :tags: bug
       :tickets: 137
 
       Ensured that strings going to stdout go through an encode/decode phase,
