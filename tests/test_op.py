@@ -386,6 +386,16 @@ def test_add_foreign_key_ondelete():
             "REFERENCES t2 (bat, hoho) ON DELETE CASCADE"
     )
 
+def test_add_foreign_key_deferrable():
+    context = op_fixture()
+    op.create_foreign_key('fk_test', 't1', 't2',
+                    ['foo', 'bar'], ['bat', 'hoho'],
+                    deferrable=True)
+    context.assert_(
+        "ALTER TABLE t1 ADD CONSTRAINT fk_test FOREIGN KEY(foo, bar) "
+            "REFERENCES t2 (bat, hoho) DEFERRABLE"
+    )
+
 def test_add_foreign_key_self_referential():
     context = op_fixture()
     op.create_foreign_key("fk_test", "t1", "t1", ["foo"], ["bar"])

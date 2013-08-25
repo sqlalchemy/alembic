@@ -67,7 +67,8 @@ class Operations(object):
     def _foreign_key_constraint(self, name, source, referent,
                                     local_cols, remote_cols,
                                     onupdate=None, ondelete=None,
-                                    source_schema=None, referent_schema=None):
+                                    deferrable=None, source_schema=None,
+                                    referent_schema=None):
         m = sa_schema.MetaData()
         if source == referent:
             t1_cols = local_cols + remote_cols
@@ -88,7 +89,8 @@ class Operations(object):
                                             for n in remote_cols],
                                             name=name,
                                             onupdate=onupdate,
-                                            ondelete=ondelete
+                                            ondelete=ondelete,
+                                            deferrable=deferrable
                                             )
         t1.append_constraint(f)
 
@@ -444,7 +446,8 @@ class Operations(object):
 
     def create_foreign_key(self, name, source, referent, local_cols,
                            remote_cols, onupdate=None, ondelete=None,
-                           source_schema=None, referent_schema=None):
+                           deferrable=None, source_schema=None,
+                           referent_schema=None):
         """Issue a "create foreign key" instruction using the
         current migration context.
 
@@ -482,6 +485,8 @@ class Operations(object):
         :param ondelete: Optional string. If set, emit ON DELETE <value> when
          issuing DDL for this constraint. Typical values include CASCADE,
          DELETE and RESTRICT.
+        :param deferrable: optional bool. If set, emit DEFERRABLE or NOT
+         DEFERRABLE when issuing DDL for this constraint.
         :param source_schema: Optional schema name of the source table.
         :param referent_schema: Optional schema name of the destination table.
 
@@ -491,7 +496,7 @@ class Operations(object):
                     self._foreign_key_constraint(name, source, referent,
                             local_cols, remote_cols,
                             onupdate=onupdate, ondelete=ondelete,
-                            source_schema=source_schema,
+                            deferrable=deferrable, source_schema=source_schema,
                             referent_schema=referent_schema)
                 )
 
