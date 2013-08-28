@@ -10,6 +10,14 @@ Changelog
     .. change::
       :tags: bug
 
+      Fixed bug introduced by new ``include_object`` argument where the
+      inspected column would be misinterpreted when using a user-defined
+      type comparison function, causing a KeyError or similar expression-related
+      error.  Fix courtesy Maarten van Schaik.
+
+    .. change::
+      :tags: bug
+
       Added the "deferrable" keyword argument to :func:`.op.create_foreign_key`
       so that ``DEFERRABLE`` constraint generation is supported; courtesy
       Pedro Romano.
