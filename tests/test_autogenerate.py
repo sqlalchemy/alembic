@@ -921,7 +921,7 @@ class AutogenRenderTest(TestCase):
             Column('q', Integer, ForeignKey('address.id')),
         )
         eq_ignore_whitespace(
-            autogenerate._add_table(t, self.autogen_context),
+            re.sub(r"u'", "'", autogenerate._add_table(t, self.autogen_context)),
             "op.create_table('test',"
             "sa.Column('id', sa.Integer(), nullable=False),"
             "sa.Column('q', sa.Integer(), nullable=True),"
@@ -1137,7 +1137,7 @@ render:primary_key\n)"""
             t1.append_constraint(fk)
 
         eq_ignore_whitespace(
-            autogenerate._render_constraint(fk, self.autogen_context),
+            re.sub(r"u'", "'", autogenerate._render_constraint(fk, self.autogen_context)),
             "sa.ForeignKeyConstraint(['c'], ['t2.c_rem'], onupdate='CASCADE')"
         )
 
@@ -1146,7 +1146,7 @@ render:primary_key\n)"""
             t1.append_constraint(fk)
 
         eq_ignore_whitespace(
-            autogenerate._render_constraint(fk, self.autogen_context),
+            re.sub(r"u'", "'", autogenerate._render_constraint(fk, self.autogen_context)),
             "sa.ForeignKeyConstraint(['c'], ['t2.c_rem'], ondelete='CASCADE')"
         )
 
@@ -1154,7 +1154,7 @@ render:primary_key\n)"""
         if not util.sqla_08:
             t1.append_constraint(fk)
         eq_ignore_whitespace(
-            autogenerate._render_constraint(fk, self.autogen_context),
+            re.sub(r"u'", "'", autogenerate._render_constraint(fk, self.autogen_context)),
             "sa.ForeignKeyConstraint(['c'], ['t2.c_rem'], deferrable=True)"
         )
 
@@ -1162,7 +1162,7 @@ render:primary_key\n)"""
         if not util.sqla_08:
             t1.append_constraint(fk)
         eq_ignore_whitespace(
-            autogenerate._render_constraint(fk, self.autogen_context),
+            re.sub(r"u'", "'", autogenerate._render_constraint(fk, self.autogen_context)),
             "sa.ForeignKeyConstraint(['c'], ['t2.c_rem'], initially='XYZ')"
         )
 
