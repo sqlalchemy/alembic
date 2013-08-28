@@ -384,8 +384,8 @@ class EnvironmentContext(object):
                 # to compare these types
                 pass
 
-         ``inspected_column`` is a dictionary structure as returned by
-         :meth:`sqlalchemy.engine.reflection.Inspector.get_columns`, whereas
+         ``inspected_column`` is a :class:`sqlalchemy.schema.Column` as returned by
+         :meth:`sqlalchemy.engine.reflection.Inspector.reflecttable`, whereas
          ``metadata_column`` is a :class:`sqlalchemy.schema.Column` from
          the local model environment.
 
