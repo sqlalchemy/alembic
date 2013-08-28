@@ -280,7 +280,7 @@ class MigrationContext(object):
                 self,
                 inspector_column,
                 metadata_column,
-                inspector_column['type'],
+                inspector_column.type,
                 metadata_column.type
             )
             if user_value is not None:
