@@ -26,11 +26,11 @@ class StdoutCommandTest(unittest.TestCase):
         # test default encode/decode behavior as well,
         # rev B has a non-ascii char in it + a coding header.
         eq_(
-            buf.getvalue().decode("ascii", errors='replace').strip(),
+            buf.getvalue().decode("ascii", 'replace').strip(),
             "\n".join([
                 script.get_revision(rev).log_entry
                 for rev in expected
-            ]).encode("ascii", errors="replace").decode("ascii").strip()
+            ]).encode("ascii", "replace").decode("ascii").strip()
         )
 
     def _buf_fixture(self):
