@@ -1,7 +1,7 @@
 import re
 import sys
 from unittest import TestCase
-from mock import Mock, patch
+from . import Mock
 
 from sqlalchemy import MetaData, Column, Table, Integer, String, Text, \
     Numeric, CHAR, ForeignKey, DATETIME, INTEGER, \
