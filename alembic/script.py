@@ -246,6 +246,11 @@ class ScriptDirectory(object):
         """
         current_heads = self.get_heads()
         if len(current_heads) > 1:
+            raise util.CommandError('Only a single head is supported. The '
+                'script directory has multiple heads (due to branching), which'
+                'must be resolved by manually editing the revision files to '
+                'form a linear sequence. Run `alembic branches` to see the '
+                'divergence(s).')
             raise util.CommandError("Only a single head supported so far...")
         if current_heads:
             return current_heads[0]
