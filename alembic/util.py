@@ -127,7 +127,7 @@ def write_outstream(stream, *text):
     encoding = getattr(stream, 'encoding', 'ascii') or 'ascii'
     for t in text:
         if not isinstance(t, binary_type):
-            t = t.encode(encoding, errors='replace')
+            t = t.encode(encoding, 'replace')
         t = t.decode(encoding)
         stream.write(t)
 
