@@ -8,6 +8,16 @@ Changelog
     :released: no release date
 
     .. change::
+      :tags: feature
+      :tickets: 107
+
+      Support for autogeneration detection and rendering of indexes and
+      unique constraints has been added.  The logic goes through some effort
+      in order to differentiate between true unique constraints and
+      unique indexes, where there are some quirks on backends like Postgresql.
+      The effort here in producing the feature and tests is courtesy of IJL.
+
+    .. change::
       :tags: bug
 
       Fixed bug introduced by new ``include_object`` argument where the

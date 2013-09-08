@@ -551,6 +551,9 @@ Autogenerate will by default detect:
 * Table additions, removals.
 * Column additions, removals.
 * Change of nullable status on columns.
+* Basic changes in indexes and unique constraints
+
+.. versionadded:: 0.6.1 Support for autogenerate of indexes and unique constraints.
 
 Autogenerate can *optionally* detect:
 
@@ -589,13 +592,8 @@ Autogenerate can *not* detect:
 
 Autogenerate can't currently, but will *eventually* detect:
 
-* Free-standing constraint additions, removals,
-  like CHECK, UNIQUE, FOREIGN KEY - these aren't yet implemented.
-  Right now you'll get constraints within new tables, PK and FK
-  constraints for the "downgrade" to a previously existing table,
-  and the CHECK constraints generated with a SQLAlchemy "schema" types
-  :class:`~sqlalchemy.types.Boolean`, :class:`~sqlalchemy.types.Enum`.
-* Index additions, removals - not yet implemented.
+* Some free-standing constraint additions and removals,
+  like CHECK and FOREIGN KEY - these are not fully implemented.
 * Sequence additions, removals - not yet implemented.
 
 Rendering Custom Types in Autogenerate
