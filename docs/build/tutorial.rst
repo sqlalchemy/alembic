@@ -551,7 +551,7 @@ Autogenerate will by default detect:
 * Table additions, removals.
 * Column additions, removals.
 * Change of nullable status on columns.
-* Basic changes in indexes and unique constraints
+* Basic changes in indexes and explcitly-named unique constraints
 
 .. versionadded:: 0.6.1 Support for autogenerate of indexes and unique constraints.
 
@@ -578,6 +578,8 @@ Autogenerate can *not* detect:
   tables, and should be hand-edited into a name change instead.
 * Changes of column name.  Like table name changes, these are detected as
   a column add/drop pair, which is not at all the same as a name change.
+* Anonymously named constraints.  Give your constraints a name,
+  e.g. ``UniqueConstraint('col1', 'col2', name="my_name")``
 * Special SQLAlchemy types such as :class:`~sqlalchemy.types.Enum` when generated
   on a backend which doesn't support ENUM directly - this because the
   representation of such a type

@@ -4,7 +4,6 @@ import os
 import re
 import shutil
 import textwrap
-from alembic.compat import configparser
 
 from nose import SkipTest
 from sqlalchemy.engine import default
@@ -13,6 +12,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.util import decorator
 
 import alembic
+from alembic.compat import configparser
 from alembic import util
 from alembic.compat import string_types, text_type, u, py33
 from alembic.migration import MigrationContext
