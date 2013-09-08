@@ -601,7 +601,7 @@ Autogenerate can't currently, but will *eventually* detect:
 Rendering Custom Types in Autogenerate
 --------------------------------------
 
-Note that the methodology Alembic uses to generate SQLAlchemy type constructs
+The methodology Alembic uses to generate SQLAlchemy type constructs
 as Python code is plain old ``__repr__()``.   SQLAlchemy's built-in types
 for the most part have a ``__repr__()`` that faithfully renders a
 Python-compatible constructor call, but there are some exceptions, particularly
@@ -610,24 +610,34 @@ with ``__repr__()``, such as a pickling function.
 
 When building a custom type that will be rendered into a migration script,
 it is often necessary to explicitly give the type a ``__repr__()`` that will
-faithfully reproduce the constructor for that type::
+faithfully reproduce the constructor for that type.   But beyond that, it
+also is usually necessary to change how the enclosing module or package
+is rendered as well;
+this is accomplished using the ``render_item`` configuration option::
 
-  from sqlalchemy.types import UserDefinedType
+    def render_item(type_, obj, autogen_context):
+        """Apply custom rendering for selected items."""
 
-  class MySpecialType(UserDefinedType):
-      def __init__(self, precision = 8):
-          self.precision = precision
+        if type_ == 'type' and isinstance(obj, MySpecialType):
+            return "mypackage.%r" % obj
 
-      def get_col_spec(self):
-          return "MYTYPE(%s)" % self.precision
+        # default rendering for other objects
+        return False
 
-      def __repr__(self):
-          return "MySpecialType(%d)" % self.precision
+    def run_migrations_online():
+        # ...
 
-The above custom type includes a ``__repr__()`` that will render ``MySpecialType``
-with the appropriate construction.   Sometimes ``__repr__()`` is needed
-with semi-custom types such as those which derive from
-:class:`~sqlalchemy.types.TypeDecorator` as well.
+        context.configure(
+                    connection=connection,
+                    target_metadata=target_metadata,
+                    render_item=render_item,
+                    # ...
+                    )
+
+        # ...
+
+Above, we also need to make sure our ``MySpecialType`` includes an appropriate
+``__repr__()`` method, which is invoked when we call it against ``"%r"``.
 
 
 Generating SQL Scripts (a.k.a. "Offline Mode")
