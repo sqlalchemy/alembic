@@ -187,7 +187,7 @@ def _compare_uniques(schema, tname, object_filters, conn_table,
         meta_cols = [col.name for col in meta_constraint.columns]
 
         if meta_cols != conn_cols:
-            diffs.append(("remove_constraint", conn_cosntraint))
+            diffs.append(("remove_constraint", conn_constraint))
             diffs.append(("add_constraint", meta_constraint))
             log.info("Detected changed unique constraint '%s' on '%s':%s",
                 key, tname, ' columns %r to %r' % (conn_cols, meta_cols)
