@@ -8,6 +8,13 @@ Changelog
     :released: no release date
 
     .. change::
+      :tags: bug
+      :tickets: 145
+
+      Fixed py3k bug where the wrong form of ``next()`` was being called
+      when using the list_templates command.  Courtesy Chris Wilkes.
+
+    .. change::
       :tags: feature
       :tickets: 107
 
