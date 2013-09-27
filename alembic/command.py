@@ -13,7 +13,7 @@ def list_templates(config):
                         config.get_template_directory(),
                         tempname,
                         'README')) as readme:
-            synopsis = readme.next()
+            synopsis = next(readme)
         config.print_stdout("%s - %s", tempname, synopsis)
 
     config.print_stdout("\nTemplates are used via the 'init' command, e.g.:")
