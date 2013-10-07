@@ -763,7 +763,8 @@ class AutogenerateUniqueIndexTest(AutogenTest, TestCase):
 
         Table('address', m,
             Column('id', Integer, primary_key=True),
-            Column('email_address', String(100), nullable=False)
+            Column('email_address', String(100), nullable=False),
+            Column('qpr', String(10), index=True),
         )
 
         Table('order', m,
@@ -793,6 +794,7 @@ class AutogenerateUniqueIndexTest(AutogenTest, TestCase):
         Table('address', m,
             Column('id', Integer, primary_key=True),
             Column('email_address', String(100), nullable=False),
+            Column('qpr', String(10), index=True),
             UniqueConstraint("email_address", name="uq_email_address")
         )
 

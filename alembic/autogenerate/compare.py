@@ -256,7 +256,9 @@ def _compare_indexes(schema, tname, object_filters, conn_table,
         conn_exps = [exp.name for exp in conn_index.expressions]
         meta_exps = [exp.name for exp in meta_index.expressions]
 
-        if meta_index.unique is not conn_index.unique \
+        # convert between both Nones (SQLA ticket #2825) on the metadata
+        # side and zeroes on the reflection side.
+        if bool(meta_index.unique) is not bool(conn_index.unique) \
                 or meta_exps != conn_exps:
             diffs.append(("remove_index", conn_index))
             diffs.append(("add_index", meta_index))
