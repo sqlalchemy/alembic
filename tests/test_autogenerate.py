@@ -807,6 +807,11 @@ class AutogenerateUniqueIndexTest(AutogenTest, TestCase):
             CheckConstraint('amount >= 0', name='ck_order_amount')
         )
 
+        Table('extra', m,
+                Column('foo', Integer, index=True),
+                Column('bar', Integer),
+                Index('newtable_idx', 'bar')
+            )
         return m
 
     @classmethod
@@ -856,22 +861,33 @@ class AutogenerateUniqueIndexTest(AutogenTest, TestCase):
                                           object_filters=_default_object_filters,
                                     )
 
-        eq_(diffs[0][0], "add_constraint")
-        eq_(diffs[0][1].table.name, "address")
+        eq_(diffs[0][0], "add_table")
+        eq_(diffs[0][1].name, "extra")
 
-        eq_(diffs[1][0], "remove_index")
-        eq_(diffs[1][1].name, "order_user_id_amount_idx")
-        eq_(diffs[1][1].unique, False)
+        eq_(diffs[1][0], "add_index")
+        eq_(diffs[1][1].name, "ix_extra_foo")  # sqlalchemy's naming scheme
 
         eq_(diffs[2][0], "add_index")
-        eq_(diffs[2][1].name, "order_user_id_amount_idx")
-        eq_(diffs[2][1].unique, True)
+        eq_(diffs[2][1].name, "newtable_idx")
 
         eq_(diffs[3][0], "add_constraint")
-        eq_(diffs[3][1].table.name, "user")
+        eq_(diffs[3][1].table.name, "address")
 
         eq_(diffs[4][0], "remove_index")
-        eq_(diffs[4][1].name, "ix_user_name")
+        eq_(diffs[4][1].name, "order_user_id_amount_idx")
+        eq_(diffs[4][1].unique, False)
+
+        eq_(diffs[5][0], "add_index")
+        eq_(diffs[5][1].name, "order_user_id_amount_idx")
+        eq_(diffs[5][1].unique, True)
+
+        eq_(diffs[6][0], "add_constraint")
+        eq_(diffs[6][1].table.name, "user")
+
+        eq_(diffs[7][0], "remove_index")
+        eq_(diffs[7][1].name, "ix_user_name")
+
+
 
 
 class AutogenerateCustomCompareTypeTest(AutogenTest, TestCase):

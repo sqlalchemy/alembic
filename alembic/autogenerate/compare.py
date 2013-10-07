@@ -24,6 +24,11 @@ def _compare_tables(conn_table_names, metadata_table_names,
         if _run_filters(metadata_table, tname, "table", False, None, object_filters):
             diffs.append(("add_table", metadata.tables[name]))
             log.info("Detected added table %r", name)
+            _compare_indexes(s, tname, object_filters,
+                    None,
+                    metadata_table,
+                    diffs, autogen_context, inspector,
+                    set())
 
     removal_metadata = sa_schema.MetaData()
     for s, tname in conn_table_names.difference(metadata_table_names):
