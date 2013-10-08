@@ -777,6 +777,11 @@ class AutogenerateUniqueIndexTest(AutogenTest, TestCase):
             ),
             Index('order_user_id_amount_idx', 'user_id', 'amount')
         )
+
+        Table('item', m,
+                Column('x', Integer),
+                UniqueConstraint('x', name="db_generated_name")
+            )
         return m
 
 
@@ -808,6 +813,12 @@ class AutogenerateUniqueIndexTest(AutogenTest, TestCase):
             Index('order_user_id_amount_idx', 'user_id', 'amount', unique=True),
             CheckConstraint('amount >= 0', name='ck_order_amount')
         )
+
+        # test mismatch between unique=True and
+        # named uq constraint
+        Table('item', m,
+                Column('x', Integer, unique=True)
+            )
 
         Table('extra', m,
                 Column('foo', Integer, index=True),

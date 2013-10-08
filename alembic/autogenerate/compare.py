@@ -142,14 +142,30 @@ def _compare_columns(schema, tname, object_filters, conn_table, metadata_table,
         if col_diff:
             diffs.append(col_diff)
 
+class _uq_constraint_sig(object):
+    def __init__(self, const):
+        self.const = const
+        self.name = const.name
+        self.sig = tuple(sorted([col.name for col in const.columns]))
+
+    def __eq__(self, other):
+        if self.name is not None and other.name is not None:
+            return other.name == self.name
+        else:
+            return self.sig == other.sig
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __hash__(self):
+        return hash(self.sig)
 
 def _compare_uniques(schema, tname, object_filters, conn_table,
             metadata_table, diffs, autogen_context, inspector):
 
     m_objs = dict(
-        (i.name, i) for i in metadata_table.constraints
-        if isinstance(i, sa_schema.UniqueConstraint)
-        and i.name is not None
+        (_uq_constraint_sig(uq), uq) for uq in metadata_table.constraints
+        if isinstance(uq, sa_schema.UniqueConstraint)
     )
     m_keys = set(m_objs.keys())
 
@@ -164,9 +180,9 @@ def _compare_uniques(schema, tname, object_filters, conn_table,
         return None
 
     c_objs = dict(
-        (i['name'], _make_unique_constraint(i, conn_table))
-        for i in conn_uniques
-        if i['name'] is not None
+        (_uq_constraint_sig(uq), uq)
+        for uq in
+        (_make_unique_constraint(uq_def, conn_table) for uq_def in conn_uniques)
     )
     c_keys = set(c_objs)
 
