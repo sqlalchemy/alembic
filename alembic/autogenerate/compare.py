@@ -247,6 +247,8 @@ def _compare_indexes(schema, tname, object_filters, conn_table,
             i.name for i in metadata_table.constraints \
             if isinstance(i, sa_schema.UniqueConstraint) and i.name is not None
         )
+    else:
+        c_uniques_keys = set(uq.name for uq in c_uniques_keys if uq.name is not None)
 
     c_keys = set(c_objs).difference(c_uniques_keys)
     m_keys = set(m_objs).difference(c_uniques_keys)
