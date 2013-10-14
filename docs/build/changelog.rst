@@ -49,6 +49,7 @@ Changelog
       Mako's parse_encoding() routine in Py2k so that the __doc__ of a
       non-ascii revision file can be treated as unicode in Py2k.
 
+.. changelog::
     :version: 0.6.0
     :released: Fri July 19 2013
 
