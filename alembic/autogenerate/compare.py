@@ -1,6 +1,7 @@
 from sqlalchemy.exc import NoSuchTableError
 from sqlalchemy import schema as sa_schema, types as sqltypes
 import logging
+from ..compat import get_index_column_names
 from .render import _render_server_default
 from sqlalchemy.util import OrderedSet
 
@@ -258,7 +259,7 @@ def _compare_indexes(schema, tname, object_filters, conn_table,
         diffs.append(("add_index", meta))
         log.info("Detected added index '%s' on %s",
             key, ', '.join([
-                "'%s'" % y.name for y in meta.expressions
+                "'%s'" % get_index_column_names(meta)
                 ])
         )
 
@@ -271,8 +272,8 @@ def _compare_indexes(schema, tname, object_filters, conn_table,
         conn_index = c_objs[key]
         # TODO: why don't we just render the DDL here
         # so we can compare the string output fully
-        conn_exps = [exp.name for exp in conn_index.expressions]
-        meta_exps = [exp.name for exp in meta_index.expressions]
+        conn_exps = get_index_column_names(conn_index)
+        meta_exps = get_index_column_names(meta_index)
 
         # convert between both Nones (SQLA ticket #2825) on the metadata
         # side and zeroes on the reflection side.

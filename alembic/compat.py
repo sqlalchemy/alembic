@@ -1,4 +1,5 @@
 import sys
+from sqlalchemy import __version__ as sa_version
 
 if sys.version_info < (2, 6):
     raise NotImplementedError("Python 2.6 or greater is required.")
@@ -56,14 +57,19 @@ else:
         finally:
             fp.close()
 
-
-
 try:
     exec_ = getattr(compat_builtins, 'exec')
 except AttributeError:
     # Python 2
     def exec_(func_text, globals_, lcl):
         exec('exec func_text in globals_, lcl')
+
+if sa_version >= '0.8.0':
+    def get_index_column_names(idx):
+        return [exp.name for exp in idx.expressions]
+else:
+    def get_index_column_names(idx):
+        return [col.name for col in idx.columns]
 
 ################################################
 # cross-compatible metaclass implementation
