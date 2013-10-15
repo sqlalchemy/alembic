@@ -775,6 +775,7 @@ class Operations(object):
 
         e.g.::
 
+            from alembic import op
             from datetime import date
             from sqlalchemy.sql import table, column
             from sqlalchemy import String, Integer, Date
@@ -786,7 +787,7 @@ class Operations(object):
                 column('create_date', Date)
             )
 
-            bulk_insert(accounts_table,
+            op.bulk_insert(accounts_table,
                 [
                     {'id':1, 'name':'John Smith',
                             'create_date':date(2010, 10, 5)},
