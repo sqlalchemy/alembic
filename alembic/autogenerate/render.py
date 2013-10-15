@@ -3,7 +3,7 @@ import logging
 import re
 
 
-from ..compat import string_types
+from ..compat import string_types, get_index_column_names
 
 log = logging.getLogger(__name__)
 
@@ -47,7 +47,7 @@ def _add_index(index, autogen_context):
     text = "op.create_index('%(name)s', '%(table)s', %(columns)s, unique=%(unique)r%(schema)s%(kwargs)s)" % {
         'name': index.name,
         'table': index.table,
-        'columns': [exp.name for exp in index.expressions],
+        'columns': get_index_column_names(index),
         'unique': index.unique or False,
         'schema': (", schema='%s'" % index.table.schema) if index.table.schema else '',
         'kwargs': (', '+', '.join(
