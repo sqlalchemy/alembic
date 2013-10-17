@@ -1,3 +1,4 @@
+import io
 from unittest import TestCase
 
 from alembic import command, util
@@ -11,6 +12,7 @@ class OfflineEnvironmentTest(TestCase):
     def setUp(self):
         env = staging_env()
         self.cfg = _no_sql_testing_config()
+        self.cfg.output_buffer = io.StringIO()
 
         global a, b, c
         a, b, c = three_rev_fixture(self.cfg)
@@ -41,6 +43,8 @@ assert context.get_starting_revision_argument() == 'x'
         command.upgrade(self.cfg, a, sql=True)
         command.downgrade(self.cfg, "%s:%s" % (b, a), sql=True)
         command.current(self.cfg)
+        # current seems to close the buffer (?)
+        self.cfg.output_buffer = io.StringIO()
         command.stamp(self.cfg, a)
 
     def test_starting_rev_pre_context(self):
@@ -153,3 +157,12 @@ context.configure(dialect_name='sqlite')
             command.downgrade,
             self.cfg, b, sql=True
         )
+
+    def test_upgrade_with_output_encoding(self):
+        env_file_fixture("""
+url = config.get_main_option('sqlalchemy.url')
+context.configure(url=url, output_encoding='utf-8')
+assert not context.requires_connection()
+""")
+        command.upgrade(self.cfg, a, sql=True)
+        command.downgrade(self.cfg, "%s:%s" % (b, a), sql=True)

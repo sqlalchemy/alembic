@@ -1,3 +1,4 @@
+import io
 import sys
 from sqlalchemy import __version__ as sa_version
 
@@ -78,3 +79,10 @@ def with_metaclass(meta, base=object):
     """Create a base class with a metaclass."""
     return meta("%sBase" % meta.__name__, (base,), {})
 ################################################
+
+if py2k:
+    def writable_buffer(file):
+        return io.FileIO(file.fileno(), 'w')
+else:
+    def writable_buffer(file):
+        return file
