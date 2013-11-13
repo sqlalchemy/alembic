@@ -2,9 +2,7 @@ from sqlalchemy import schema as sa_schema, types as sqltypes, sql
 import logging
 from .. import compat
 import re
-
-
-from ..compat import string_types, get_index_column_names
+from ..compat import string_types
 
 log = logging.getLogger(__name__)
 
@@ -56,10 +54,12 @@ def _add_index(index, autogen_context):
     Generate Alembic operations for the CREATE INDEX of an
     :class:`~sqlalchemy.schema.Index` instance.
     """
+    from .compare import _get_index_column_names
+
     text = "op.create_index('%(name)s', '%(table)s', %(columns)s, unique=%(unique)r%(schema)s%(kwargs)s)" % {
         'name': index.name,
         'table': index.table,
-        'columns': get_index_column_names(index),
+        'columns': _get_index_column_names(index),
         'unique': index.unique or False,
         'schema': (", schema='%s'" % index.table.schema) if index.table.schema else '',
         'kwargs': (', '+', '.join(

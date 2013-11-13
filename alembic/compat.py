@@ -67,13 +67,6 @@ except AttributeError:
     def exec_(func_text, globals_, lcl):
         exec('exec func_text in globals_, lcl')
 
-if sa_version >= '0.8.0':
-    def get_index_column_names(idx):
-        return [exp.name for exp in idx.expressions]
-else:
-    def get_index_column_names(idx):
-        return [col.name for col in idx.columns]
-
 ################################################
 # cross-compatible metaclass implementation
 # Copyright (c) 2010-2012 Benjamin Peterson

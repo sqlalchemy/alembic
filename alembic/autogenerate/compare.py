@@ -1,7 +1,7 @@
 from sqlalchemy.exc import NoSuchTableError
 from sqlalchemy import schema as sa_schema, types as sqltypes
 import logging
-from ..compat import get_index_column_names
+from .. import compat
 from .render import _render_server_default
 from sqlalchemy.util import OrderedSet
 
@@ -221,9 +221,17 @@ def _compare_uniques(schema, tname, object_filters, conn_table,
     # deduplication
     return c_keys
 
+def _get_index_column_names(idx):
+    if compat.sqla_08:
+        return [exp.name for exp in idx.expressions]
+    else:
+        return [col.name for col in idx.columns]
+
 def _compare_indexes(schema, tname, object_filters, conn_table,
             metadata_table, diffs, autogen_context, inspector,
             c_uniques_keys):
+
+
 
     try:
         reflected_indexes = inspector.get_indexes(tname)
@@ -259,7 +267,7 @@ def _compare_indexes(schema, tname, object_filters, conn_table,
         diffs.append(("add_index", meta))
         log.info("Detected added index '%s' on %s",
             key, ', '.join([
-                "'%s'" % get_index_column_names(meta)
+                "'%s'" % _get_index_column_names(meta)
                 ])
         )
 
@@ -272,8 +280,8 @@ def _compare_indexes(schema, tname, object_filters, conn_table,
         conn_index = c_objs[key]
         # TODO: why don't we just render the DDL here
         # so we can compare the string output fully
-        conn_exps = get_index_column_names(conn_index)
-        meta_exps = get_index_column_names(meta_index)
+        conn_exps = _get_index_column_names(conn_index)
+        meta_exps = _get_index_column_names(meta_index)
 
         # convert between both Nones (SQLA ticket #2825) on the metadata
         # side and zeroes on the reflection side.
