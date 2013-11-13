@@ -1138,13 +1138,13 @@ class AutogenRenderTest(TestCase):
             eq_ignore_whitespace(
                 autogenerate.render._add_index(idx, autogen_context),
                 """op.create_index('foo_idx', 't', ['x', 'y'], unique=False, """
-                    """postgresql_where="t.y = 'something'")"""
+                    """postgresql_where=text("t.y = 'something'"))"""
             )
         else:
             eq_ignore_whitespace(
                 autogenerate.render._add_index(idx, autogen_context),
                 """op.create_index('foo_idx', 't', ['x', 'y'], unique=False, """
-                    """postgresql_where='t.y = %(y_1)s')"""
+                    """postgresql_where=text("t.y = %(y_1)s"))"""
             )
 
     # def test_render_add_index_func(self):

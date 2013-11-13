@@ -9,13 +9,13 @@ log = logging.getLogger(__name__)
 def _render_potential_expr(value, autogen_context):
     if isinstance(value, sql.ClauseElement):
         if compat.sqla_08:
-            return str(
+            return "text(%r)" % str(
                 value.compile(dialect=autogen_context['dialect'],
                     compile_kwargs={'literal_binds': True}))
         else:
             return str(value.compile(dialect=autogen_context['dialect']))
     else:
-        return str(value)
+        return repr(value)
 
 def _add_table(table, autogen_context):
     text = "%(prefix)screate_table(%(tablename)r,\n%(args)s" % {
@@ -63,7 +63,7 @@ def _add_index(index, autogen_context):
         'unique': index.unique or False,
         'schema': (", schema='%s'" % index.table.schema) if index.table.schema else '',
         'kwargs': (', '+', '.join(
-            ["%s=%r" % (key, _render_potential_expr(val, autogen_context))
+            ["%s=%s" % (key, _render_potential_expr(val, autogen_context))
                 for key, val in index.kwargs.items()]))\
             if len(index.kwargs) else ''
     }
