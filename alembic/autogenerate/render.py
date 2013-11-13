@@ -1,11 +1,23 @@
-from sqlalchemy import schema as sa_schema, types as sqltypes
+from sqlalchemy import schema as sa_schema, types as sqltypes, sql
 import logging
+from .. import compat
 import re
 
 
 from ..compat import string_types, get_index_column_names
 
 log = logging.getLogger(__name__)
+
+def _render_potential_expr(value, autogen_context):
+    if isinstance(value, sql.ClauseElement):
+        if compat.sqla_08:
+            return str(
+                value.compile(dialect=autogen_context['dialect'],
+                    compile_kwargs={'literal_binds': True}))
+        else:
+            return str(value.compile(dialect=autogen_context['dialect']))
+    else:
+        return str(value)
 
 def _add_table(table, autogen_context):
     text = "%(prefix)screate_table(%(tablename)r,\n%(args)s" % {
@@ -51,7 +63,8 @@ def _add_index(index, autogen_context):
         'unique': index.unique or False,
         'schema': (", schema='%s'" % index.table.schema) if index.table.schema else '',
         'kwargs': (', '+', '.join(
-            ["%s='%s'" % (key, val) for key, val in index.kwargs.items()]))\
+            ["%s=%r" % (key, _render_potential_expr(val, autogen_context))
+                for key, val in index.kwargs.items()]))\
             if len(index.kwargs) else ''
     }
     return text

@@ -9,11 +9,11 @@ from sqlalchemy import MetaData, Column, Table, Integer, String, Text, \
     UniqueConstraint, Boolean, ForeignKeyConstraint,\
     PrimaryKeyConstraint, Index, func
 from sqlalchemy.types import NULLTYPE, TIMESTAMP
-from sqlalchemy.dialects import mysql
+from sqlalchemy.dialects import mysql, postgresql
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.sql import and_, column, literal_column
 
-from alembic import autogenerate, util
+from alembic import autogenerate, util, compat
 from alembic.migration import MigrationContext
 from . import staging_env, sqlite_db, clear_staging_env, eq_, \
         eq_ignore_whitespace, requires_07, db_for_dialect
@@ -1078,6 +1078,14 @@ class AutogenRenderTest(TestCase):
             },
             'dialect': mysql.dialect()
         }
+        cls.pg_autogen_context = {
+            'opts': {
+                'sqlalchemy_module_prefix': 'sa.',
+                'alembic_module_prefix': 'op.',
+            },
+            'dialect': postgresql.dialect()
+        }
+
 
     def test_render_add_index(self):
         """
@@ -1113,6 +1121,31 @@ class AutogenRenderTest(TestCase):
             "op.create_index('test_active_code_idx', 'CamelSchema.test', "
             "['active', 'code'], unique=False, schema='CamelSchema')"
         )
+
+    def test_render_add_index_pg_where(self):
+        autogen_context = self.pg_autogen_context
+
+        m = MetaData()
+        t = Table('t', m,
+            Column('x', String),
+            Column('y', String)
+            )
+
+        idx = Index('foo_idx', t.c.x, t.c.y,
+                            postgresql_where=(t.c.y == 'something'))
+
+        if compat.sqla_08:
+            eq_ignore_whitespace(
+                autogenerate.render._add_index(idx, autogen_context),
+                """op.create_index('foo_idx', 't', ['x', 'y'], unique=False, """
+                    """postgresql_where="t.y = 'something'")"""
+            )
+        else:
+            eq_ignore_whitespace(
+                autogenerate.render._add_index(idx, autogen_context),
+                """op.create_index('foo_idx', 't', ['x', 'y'], unique=False, """
+                    """postgresql_where='t.y = %(y_1)s')"""
+            )
 
     # def test_render_add_index_func(self):
     #     """
