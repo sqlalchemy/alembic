@@ -879,10 +879,17 @@ class AutogenerateUniqueIndexTest(AutogenTest, TestCase):
         eq_(diffs[0][1].name, "extra")
 
         eq_(diffs[1][0], "add_index")
-        eq_(diffs[1][1].name, "ix_extra_foo")  # sqlalchemy's naming scheme
-
         eq_(diffs[2][0], "add_index")
-        eq_(diffs[2][1].name, "newtable_idx")
+
+        eq_(set([
+                    diffs[1][1].name,
+                    diffs[2][1].name
+                ]),
+                set([
+                    "ix_extra_foo",  # sqlalchemy's naming scheme
+                    "newtable_idx"
+                ])
+        )
 
         eq_(diffs[3][0], "add_constraint")
         eq_(diffs[3][1].table.name, "address")
