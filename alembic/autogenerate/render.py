@@ -9,11 +9,18 @@ log = logging.getLogger(__name__)
 def _render_potential_expr(value, autogen_context):
     if isinstance(value, sql.ClauseElement):
         if compat.sqla_08:
-            return "text(%r)" % str(
-                value.compile(dialect=autogen_context['dialect'],
-                    compile_kwargs={'literal_binds': True}))
+            compile_kw = dict(compile_kwargs={'literal_binds': True})
         else:
-            return str(value.compile(dialect=autogen_context['dialect']))
+            compile_kw = {}
+
+        return "%(prefix)stext(%(sql)r)" % {
+            "prefix": _sqlalchemy_autogenerate_prefix(autogen_context),
+            "sql": str(
+                    value.compile(dialect=autogen_context['dialect'],
+                    **compile_kw)
+                )
+        }
+
     else:
         return repr(value)
 
