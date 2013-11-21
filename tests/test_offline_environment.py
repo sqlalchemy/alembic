@@ -1,3 +1,4 @@
+import io
 from unittest import TestCase
 
 from alembic import command, util
@@ -153,3 +154,12 @@ context.configure(dialect_name='sqlite')
             command.downgrade,
             self.cfg, b, sql=True
         )
+
+    def test_upgrade_with_output_encoding(self):
+        env_file_fixture("""
+url = config.get_main_option('sqlalchemy.url')
+context.configure(url=url, output_encoding='utf-8')
+assert not context.requires_connection()
+""")
+        command.upgrade(self.cfg, a, sql=True)
+        command.downgrade(self.cfg, "%s:%s" % (b, a), sql=True)

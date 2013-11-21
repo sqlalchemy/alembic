@@ -6,7 +6,7 @@ from sqlalchemy import MetaData, Table, Column, String, literal_column
 from sqlalchemy import create_engine
 from sqlalchemy.engine import url as sqla_url
 
-from .compat import callable
+from .compat import callable, EncodedIO
 from . import ddl, util
 
 log = logging.getLogger(__name__)
@@ -71,13 +71,14 @@ class MigrationContext(object):
             self.connection = connection
         self._migrations_fn = opts.get('fn')
         self.as_sql = as_sql
-        self.output_buffer = opts.get("output_buffer", sys.stdout)
 
-        if opts.get('output_encoding'):
-            self.output_buffer = io.TextIOWrapper(
-                                    self.output_buffer,
-                                    opts['output_encoding']
-                                )
+        if "output_encoding" in opts:
+            self.output_buffer = EncodedIO(
+                opts.get("output_buffer") or sys.stdout,
+                opts['output_encoding']
+            )
+        else:
+            self.output_buffer = opts.get("output_buffer", sys.stdout)
 
         self._user_compare_type = opts.get('compare_type', False)
         self._user_compare_server_default = opts.get(

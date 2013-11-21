@@ -1,3 +1,4 @@
+import io
 import sys
 from sqlalchemy import __version__ as sa_version
 
@@ -74,3 +75,49 @@ def with_metaclass(meta, base=object):
     """Create a base class with a metaclass."""
     return meta("%sBase" % meta.__name__, (base,), {})
 ################################################
+
+
+# produce a wrapper that allows encoded text to stream
+# into a given buffer, but doesn't close it.
+# not sure of a more idiomatic approach to this.
+class EncodedIO(io.TextIOWrapper):
+    def close(self):
+        pass
+
+if py2k:
+    # in Py2K, the io.* package is awkward because it does not
+    # easily wrap the file type (e.g. sys.stdout) and I can't
+    # figure out at all how to wrap StringIO.StringIO (used by nosetests)
+    # and also might be user specified too.  So create a full
+    # adapter.
+
+    class ActLikePy3kIO(object):
+        """Produce an object capable of wrapping either
+        sys.stdout (e.g. file) *or* StringIO.StringIO().
+
+        """
+        def _false(self):
+            return False
+
+        def _true(self):
+            return True
+
+        readable = seekable = _false
+        writable = _true
+        closed = False
+
+        def __init__(self, file_):
+            self.file_ = file_
+
+        def write(self, text):
+            return self.file_.write(text)
+
+        def flush(self):
+            return self.file_.flush()
+
+    class EncodedIO(EncodedIO):
+        def __init__(self, file_, encoding):
+            super(EncodedIO, self).__init__(
+                    ActLikePy3kIO(file_), encoding=encoding)
+
+
