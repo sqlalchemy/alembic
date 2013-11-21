@@ -12,7 +12,6 @@ class OfflineEnvironmentTest(TestCase):
     def setUp(self):
         env = staging_env()
         self.cfg = _no_sql_testing_config()
-        self.cfg.output_buffer = io.StringIO()
 
         global a, b, c
         a, b, c = three_rev_fixture(self.cfg)
@@ -43,8 +42,6 @@ assert context.get_starting_revision_argument() == 'x'
         command.upgrade(self.cfg, a, sql=True)
         command.downgrade(self.cfg, "%s:%s" % (b, a), sql=True)
         command.current(self.cfg)
-        # current seems to close the buffer (?)
-        self.cfg.output_buffer = io.StringIO()
         command.stamp(self.cfg, a)
 
     def test_starting_rev_pre_context(self):

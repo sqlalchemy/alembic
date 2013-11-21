@@ -9,6 +9,16 @@ Changelog
 
     .. change::
       :tags: bug
+      :pullreq: 9
+
+      Fixes to Py3k in-place compatibity regarding output encoding and related;
+      the use of the new io.* package introduced some incompatibilities on Py2k.
+      These should be resolved, due to the introduction of new adapter types
+      for translating from io.* to Py2k file types, StringIO types.
+      Thanks to Javier Santacruz for help with this.
+
+    .. change::
+      :tags: bug
       :tickets: 145
 
       Fixed py3k bug where the wrong form of ``next()`` was being called
