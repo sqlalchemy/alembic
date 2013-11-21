@@ -9,6 +9,15 @@ Changelog
 
     .. change::
       :tags: bug
+      :tickets: 135
+
+      Fixed the output wrapping for Alembic message output, so that
+      we either get the terminal width for "pretty printing" with
+      indentation, or if not we just output the text as is; in any
+      case the text won't be wrapped too short.
+
+    .. change::
+      :tags: bug
       :tickets: 145
 
       Fixed py3k bug where the wrong form of ``next()`` was being called

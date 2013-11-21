@@ -30,10 +30,17 @@ if not sqla_07:
 from sqlalchemy.util import format_argspec_plus, update_wrapper
 from sqlalchemy.util.compat import inspect_getfullargspec
 
+
 try:
-    width = int(os.environ['COLUMNS'])
-except (KeyError, ValueError):
-    width = 80
+    import fcntl
+    import termios
+    import struct
+    ioctl = fcntl.ioctl(0, termios.TIOCGWINSZ,
+                           struct.pack('HHHH', 0, 0, 0, 0))
+    _h, TERMWIDTH, _hp, _wp = struct.unpack('HHHH', ioctl)
+except (ImportError, IOError):
+    TERMWIDTH = None
+
 
 def template_to_file(template_file, dest, **kw):
     with open(dest, 'w') as f:
@@ -171,11 +178,17 @@ def warn(msg):
     warnings.warn(msg)
 
 def msg(msg, newline=True):
-    lines = textwrap.wrap(msg, width)
-    if len(lines) > 1:
-        for line in lines[0:-1]:
-            write_outstream(sys.stdout, "  ", line, "\n")
-    write_outstream(sys.stdout, "  ", lines[-1], ("\n" if newline else ""))
+    if TERMWIDTH is None:
+        write_outstream(sys.stdout, msg)
+        if newline:
+            write_outstream(sys.stdout, "\n")
+    else:
+        # left indent output lines
+        lines = textwrap.wrap(msg, TERMWIDTH)
+        if len(lines) > 1:
+            for line in lines[0:-1]:
+                write_outstream(sys.stdout, "  ", line, "\n")
+        write_outstream(sys.stdout, "  ", lines[-1], ("\n" if newline else ""))
 
 def load_python_file(dir_, filename):
     """Load a file from the given path as a Python module."""
