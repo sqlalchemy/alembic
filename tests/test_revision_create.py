@@ -76,7 +76,8 @@ class GeneralOrderedTests(unittest.TestCase):
                 "I'd like it to\nhave\nnewlines")
         assert os.access(
             os.path.join(env.dir, 'versions',
-                        '%s_this_is_a_really_lon.py' % rid), os.F_OK)
+                        '%s_this_is_a_really_long_name_with_lots_of_'
+                        'characters_and_also_.py' % rid), os.F_OK)
 
 
     @classmethod
