@@ -222,7 +222,7 @@ class ScriptDirectory(object):
     def _rev_path(self, rev_id, message, create_date):
         slug = "_".join(_slug_re.findall(message or "")).lower()
         if len(slug) > 60:
-            slug = slug[:60].rsplit('_', 1)[0]+'_'
+            slug = slug[:60].rsplit('_', 1)[0] + '_'
         filename = "%s.py" % (
             self.file_template % {
                 'rev': rev_id,
