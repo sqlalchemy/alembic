@@ -119,6 +119,10 @@ The file generated with the "generic" configuration looks like::
     # template used to generate migration files
     # file_template = %%(rev)s_%%(slug)s
 
+    # max length of characters to apply to the
+    # "slug" field
+    #truncate_slug_length = 40
+
     # set to 'true' to run the environment during
     # the 'revision' command, regardless of autogenerate
     # revision_environment = false
@@ -195,6 +199,11 @@ This file contains the following features:
       as returned by ``datetime.datetime.now()``
 
     .. versionadded:: 0.3.6 - added date parameters to ``file_template``.
+
+* ``truncate_slug_length`` - defaults to 40, the max number of characters
+  to include in the "slug" field.
+
+    .. versionadded:: 0.6.1 - added ``truncate_slug_length`` configuration
 
 * ``sqlalchemy.url`` - A URL to connect to the database via SQLAlchemy.  This key is in fact
   only referenced within the ``env.py`` file that is specific to the "generic" configuration;
