@@ -5,7 +5,7 @@ Changelog
 
 .. changelog::
     :version: 0.6.1
-    :released: no release date
+    :released: Wed Nov 27 2013
 
     .. change::
       :tags: bug, mysql
