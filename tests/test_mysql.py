@@ -15,6 +15,22 @@ class MySQLOpTest(TestCase):
             'ALTER TABLE t1 CHANGE c1 c2 INTEGER NULL'
         )
 
+    def test_rename_column_quotes_needed_one(self):
+        context = op_fixture('mysql')
+        op.alter_column('MyTable', 'ColumnOne', new_column_name="ColumnTwo",
+                                existing_type=Integer)
+        context.assert_(
+            'ALTER TABLE `MyTable` CHANGE `ColumnOne` `ColumnTwo` INTEGER NULL'
+        )
+
+    def test_rename_column_quotes_needed_two(self):
+        context = op_fixture('mysql')
+        op.alter_column('my table', 'column one', new_column_name="column two",
+                                existing_type=Integer)
+        context.assert_(
+            'ALTER TABLE `my table` CHANGE `column one` `column two` INTEGER NULL'
+        )
+
     def test_rename_column_serv_default(self):
         context = op_fixture('mysql')
         op.alter_column('t1', 'c1', new_column_name="c2", existing_type=Integer,

@@ -8,6 +8,14 @@ Changelog
     :released: no release date
 
     .. change::
+      :tags: bug, mysql
+      :tickets: 152
+
+      Fixed bug where :func:`.op.alter_column` in the MySQL dialect
+      would fail to apply quotes to column names that had mixed casing
+      or spaces.
+
+    .. change::
       :tags: feature
       :pullreq: bitbucket:12
 
