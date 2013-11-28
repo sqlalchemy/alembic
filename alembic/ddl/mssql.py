@@ -25,6 +25,11 @@ class MSSQLImpl(DefaultImpl):
     def emit_begin(self):
         self.static_output("BEGIN TRANSACTION" + self.command_terminator)
 
+    def emit_commit(self):
+        super(MSSQLImpl, self).emit_commit()
+        if self.as_sql and self.batch_separator:
+            self.static_output(self.batch_separator)
+
     def alter_column(self, table_name, column_name,
                         nullable=None,
                         server_default=False,
