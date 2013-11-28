@@ -76,7 +76,22 @@ class GeneralOrderedTests(unittest.TestCase):
                 "I'd like it to\nhave\nnewlines")
         assert os.access(
             os.path.join(env.dir, 'versions',
-                        '%s_this_is_a_really_lon.py' % rid), os.F_OK)
+                    '%s_this_is_a_really_long_name_with_lots_of_.py' % rid),
+                os.F_OK)
+
+
+    def test_009_long_name_configurable(self):
+        env.truncate_slug_length = 60
+        rid = util.rev_id()
+        env.generate_revision(rid,
+                "this is a really long name with "
+                "lots of characters and also "
+                "I'd like it to\nhave\nnewlines")
+        assert os.access(
+            os.path.join(env.dir, 'versions',
+                    '%s_this_is_a_really_long_name_with_lots_'
+                    'of_characters_and_also_.py' % rid),
+                os.F_OK)
 
 
     @classmethod

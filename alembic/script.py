@@ -30,10 +30,12 @@ class ScriptDirectory(object):
 
 
     """
-    def __init__(self, dir, file_template=_default_file_template):
+    def __init__(self, dir, file_template=_default_file_template,
+                    truncate_slug_length=40):
         self.dir = dir
         self.versions = os.path.join(self.dir, 'versions')
         self.file_template = file_template
+        self.truncate_slug_length = truncate_slug_length or 40
 
         if not os.access(dir, os.F_OK):
             raise util.CommandError("Path doesn't exist: %r.  Please use "
@@ -53,11 +55,15 @@ class ScriptDirectory(object):
         if script_location is None:
             raise util.CommandError("No 'script_location' key "
                                     "found in configuration.")
+        truncate_slug_length = config.get_main_option("truncate_slug_length")
+        if truncate_slug_length is not None:
+            truncate_slug_length = int(truncate_slug_length)
         return ScriptDirectory(
                     util.coerce_resource_to_filename(script_location),
                     file_template=config.get_main_option(
                                         'file_template',
-                                        _default_file_template)
+                                        _default_file_template),
+                    truncate_slug_length=truncate_slug_length
                     )
 
     def walk_revisions(self, base="base", head="head"):
@@ -220,7 +226,9 @@ class ScriptDirectory(object):
         return map_
 
     def _rev_path(self, rev_id, message, create_date):
-        slug = "_".join(_slug_re.findall(message or "")).lower()[0:20]
+        slug = "_".join(_slug_re.findall(message or "")).lower()
+        if len(slug) > self.truncate_slug_length:
+            slug = slug[:self.truncate_slug_length].rsplit('_', 1)[0] + '_'
         filename = "%s.py" % (
             self.file_template % {
                 'rev': rev_id,
