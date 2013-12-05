@@ -23,11 +23,13 @@ class FullEnvironmentTests(TestCase):
     def teardown_class(cls):
         clear_staging_env()
 
-    def test_begin_comit(self):
+    def test_begin_commit(self):
         with capture_context_buffer(transactional_ddl=True) as buf:
             command.upgrade(self.cfg, self.a, sql=True)
         assert "BEGIN TRANSACTION;" in buf.getvalue()
-        assert "COMMIT;" in buf.getvalue()
+
+        # ensure ends in COMMIT; GO
+        assert [x for x in buf.getvalue().splitlines() if x][-2:] == ['COMMIT;', 'GO']
 
     def test_batch_separator_default(self):
         with capture_context_buffer() as buf:
@@ -176,4 +178,3 @@ class OpTest(TestCase):
     #    context.assert_(
     #        "EXEC sp_rename 'y.t.c', 'x', 'COLUMN'"
     #    )
-
