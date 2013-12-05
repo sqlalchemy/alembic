@@ -4,6 +4,18 @@ Changelog
 ==========
 
 .. changelog::
+    :version: 0.6.2
+
+    .. change::
+      :tags: bug, mssql
+      :pullreq: bitbucket:13
+
+      The MSSQL backend will add the batch separator (e.g. ``"GO"``)
+      in ``--sql`` mode after the final ``COMMIT`` statement, to ensure
+      that statement is also processed in batch mode.  Courtesy
+      Derek Harland.
+
+.. changelog::
     :version: 0.6.1
     :released: Wed Nov 27 2013
 
