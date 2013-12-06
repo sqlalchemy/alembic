@@ -86,7 +86,7 @@ class OpTest(TestCase):
         context = op_fixture('mssql')
         op.drop_index('my_idx', 'my_table')
         # TODO: annoying that SQLA escapes unconditionally
-        context.assert_contains("DROP INDEX [my_table].my_idx")
+        context.assert_contains("DROP INDEX my_idx ON my_table")
 
     def test_drop_column_w_default(self):
         context = op_fixture('mssql')

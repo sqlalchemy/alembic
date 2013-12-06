@@ -642,11 +642,7 @@ def test_naming_changes():
 
     context = op_fixture('mssql')
     op.drop_index('ik_test', tablename='t1')
-    context.assert_("DROP INDEX [t1].ik_test")
-
-    context = op_fixture('mssql')
-    op.drop_index('ik_test', table_name='t1')
-    context.assert_("DROP INDEX [t1].ik_test")
+    context.assert_("DROP INDEX ik_test ON t1")
 
     context = op_fixture('mysql')
     op.drop_constraint("f1", "t1", type="foreignkey")
