@@ -116,6 +116,12 @@ class MSSQLImpl(DefaultImpl):
                         table_name, column,
                         'sys.check_constraints')
             )
+        drop_fks = kw.pop('mssql_drop_foreign_key', False)
+        if drop_fks:
+            self._exec(
+                _exec_drop_col_fk_constraint(self,
+                        table_name, column)
+            )
         super(MSSQLImpl, self).drop_column(table_name, column)
 
 def _exec_drop_col_constraint(impl, tname, colname, type_):
@@ -126,10 +132,24 @@ select @const_name = [name] from %(type)s
 where parent_object_id = object_id('%(tname)s')
 and col_name(parent_object_id, parent_column_id) = '%(colname)s'
 exec('alter table %(tname)s drop constraint ' + @const_name)""" % {
-        'type':type_,
-        'tname':tname,
-        'colname':colname
+        'type': type_,
+        'tname': tname,
+        'colname': colname
     }
+
+def _exec_drop_col_fk_constraint(impl, tname, colname):
+    return """declare @const_name varchar(256)
+select @const_name = [name] from
+    sys.foreign_keys fk join sys.foreign_key_columns fkc
+    on fk.object_id=fkc.constraint_object_id
+where fkc.parent_object_id = object_id('%(tname)s')
+and col_name(fkc.parent_object_id, fkc.parent_column_id) = '%(colname)s'
+exec('alter table %(tname)s drop constraint ' + @const_name)""" % {
+        'tname': tname,
+        'colname': colname
+    }
+
+
 
 @compiles(AddColumn, 'mssql')
 def visit_add_column(element, compiler, **kw):

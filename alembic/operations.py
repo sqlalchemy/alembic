@@ -394,6 +394,17 @@ class Operations(object):
          SQL-script-compatible
          block that selects into a @variable from sys.default_constraints,
          then exec's a separate DROP CONSTRAINT for that default.
+        :param mssql_drop_foreign_key: Optional boolean.  When ``True``, on
+         Microsoft SQL Server only, first
+         drop a single FOREIGN KEY constraint on the column using a
+         SQL-script-compatible
+         block that selects into a @variable from
+         sys.foreign_keys/sys.foreign_key_columns,
+         then exec's a separate DROP CONSTRAINT for that default.  Only
+         works if the column has exactly one FK constraint which refers to
+         it, at the moment.
+
+         .. versionadded:: 0.6.2
 
         """
 

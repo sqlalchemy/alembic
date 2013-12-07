@@ -7,6 +7,17 @@ Changelog
     :version: 0.6.2
 
     .. change::
+      :tags: feature, mssql
+
+      Added new argument ``mssql_drop_foreign_key`` to
+      :meth:`.Operations.drop_column`.  Like ``mssql_drop_default``
+      and ``mssql_drop_check``, will do an inline lookup for a
+      single foreign key which applies to this column, and drop it.
+      For a column with more than one FK, you'd still need to explicitly
+      use :meth:`.Operations.drop_constraint` given the name,
+      even though only MSSQL has this limitation in the first place.
+
+    .. change::
       :tags: bug, mssql
       :pullreq: bitbucket:13
 
