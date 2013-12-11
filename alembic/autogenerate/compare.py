@@ -58,6 +58,7 @@ def _compare_tables(conn_table_names, metadata_table_names,
         name = '%s.%s' % (s, tname) if s else tname
         metadata_table = metadata.tables[name]
         conn_table = existing_metadata.tables[name]
+
         if _run_filters(metadata_table, tname, "table", False, conn_table, object_filters):
             _compare_columns(s, tname, object_filters,
                     conn_table,
@@ -187,6 +188,17 @@ def _compare_uniques(schema, tname, object_filters, conn_table,
     )
     c_keys = set(c_objs)
 
+    c_obj_by_name = dict((uq.name, uq) for uq in c_objs.values())
+    m_obj_by_name = dict((uq.name, uq) for uq in m_objs.values())
+
+    # for constraints that are named the same on both sides,
+    # keep these as a single "drop"/"add" so that the ordering
+    # comes out correctly
+    names_equal = set(c_obj_by_name).intersection(m_obj_by_name)
+    for name_equal in names_equal:
+        m_keys.remove(_uq_constraint_sig(m_obj_by_name[name_equal]))
+        c_keys.remove(_uq_constraint_sig(c_obj_by_name[name_equal]))
+
     for key in m_keys.difference(c_keys):
         meta_constraint = m_objs[key]
         diffs.append(("add_constraint", meta_constraint))
@@ -202,9 +214,11 @@ def _compare_uniques(schema, tname, object_filters, conn_table,
             key, tname
         )
 
-    for key in m_keys.intersection(c_keys):
-        meta_constraint = m_objs[key]
-        conn_constraint = c_objs[key]
+    for meta_constraint, conn_constraint in [
+        (m_objs[key], c_objs[key]) for key in m_keys.intersection(c_keys)
+    ] + [
+        (m_obj_by_name[key], c_obj_by_name[key]) for key in names_equal
+    ]:
         conn_cols = [col.name for col in conn_constraint.columns]
         meta_cols = [col.name for col in meta_constraint.columns]
 

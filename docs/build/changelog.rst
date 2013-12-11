@@ -7,6 +7,14 @@ Changelog
     :version: 0.6.2
 
     .. change::
+      :tags: bug
+
+      Fixed an issue with unique constraint autogenerate detection where
+      a named ``UniqueConstraint`` on both sides with column changes would
+      render with the "add" operation before the "drop", requiring the
+      user to reverse the order manually.
+
+    .. change::
       :tags: feature, mssql
 
       Added new argument ``mssql_drop_foreign_key`` to
