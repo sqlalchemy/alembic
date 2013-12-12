@@ -226,7 +226,7 @@ def _compare_uniques(schema, tname, object_filters, conn_table,
             diffs.append(("remove_constraint", conn_constraint))
             diffs.append(("add_constraint", meta_constraint))
             log.info("Detected changed unique constraint '%s' on '%s':%s",
-                key, tname, ' columns %r to %r' % (conn_cols, meta_cols)
+                meta_constraint.name, tname, ' columns %r to %r' % (conn_cols, meta_cols)
             )
 
     # inspector.get_indexes() can conflate indexes and unique
