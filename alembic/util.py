@@ -151,13 +151,13 @@ def coerce_resource_to_filename(fname):
     return fname
 
 def status(_statmsg, fn, *arg, **kw):
-    msg(_statmsg + " ... ", False)
+    msg(_statmsg + " ...", False)
     try:
         ret = fn(*arg, **kw)
-        write_outstream(sys.stdout, "done\n")
+        write_outstream(sys.stdout, " done\n")
         return ret
     except:
-        write_outstream(sys.stdout, "FAILED\n")
+        write_outstream(sys.stdout, " FAILED\n")
         raise
 
 def err(message):
