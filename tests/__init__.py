@@ -43,7 +43,7 @@ def sqlite_db():
     # per connection, so create a new
     # engine for each assertion
     dir_ = os.path.join(staging_directory, 'scripts')
-    return create_engine('sqlite:///%s/foo.db' % dir_)
+    return create_engine('sqlite:///%s/foo.db' % dir_, echo=True)
 
 def capture_db():
     buf = []
@@ -62,7 +62,7 @@ def db_for_dialect(name):
         except configparser.NoOptionError:
             raise SkipTest("No dialect %r in test.cfg" % name)
         try:
-            eng = create_engine(cfg)
+            eng = create_engine(cfg, echo=True)
         except ImportError as er1:
             raise SkipTest("Can't import DBAPI: %s" % er1)
         try:

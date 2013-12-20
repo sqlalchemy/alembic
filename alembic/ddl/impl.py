@@ -206,6 +206,11 @@ class DefaultImpl(with_metaclass(ImplMeta)):
                             rendered_inspector_default):
         return rendered_inspector_default != rendered_metadata_default
 
+    def correct_for_autogen_constraints(self, conn_uniques, conn_indexes,
+                                        metadata_unique_constraints,
+                                        metadata_indexes):
+        pass
+
     def start_migrations(self):
         """A hook called when :meth:`.EnvironmentContext.run_migrations`
         is called.

@@ -8,11 +8,38 @@ Changelog
 
     .. change::
       :tags: bug
+      :tickets: 157
 
-      Fixed an issue with unique constraint autogenerate detection where
-      a named ``UniqueConstraint`` on both sides with column changes would
-      render with the "add" operation before the "drop", requiring the
-      user to reverse the order manually.
+      An almost-rewrite of the new unique constraint/index autogenerate
+      detection, to accommodate a variety of issues.  The emphasis is on
+      not generating false positives for those cases where no net change
+      is present, as these errors are the ones that impact all autogenerate
+      runs:
+
+        * Fixed an issue with unique constraint autogenerate detection where
+          a named ``UniqueConstraint`` on both sides with column changes would
+          render with the "add" operation before the "drop", requiring the
+          user to reverse the order manually.
+
+        * Corrected for MySQL's apparent addition of an implicit index
+          for a foreign key column, so that it doesn't show up as "removed".
+          This required that the index/constraint autogen system query the
+          dialect-specific implementation for special exceptions.
+
+        * reworked the "dedupe" logic to accommodate MySQL's bi-directional
+          duplication of unique indexes as unique constraints, and unique
+          constraints as unique indexes.  Postgresql's slightly different
+          logic of duplicating unique constraints into unique indexes
+          continues to be accommodated as well.  Note that a unique index
+          or unique constraint removal on a backend that duplicates these may
+          show up as a distinct "remove_constraint()" / "remove_index()" pair,
+          which may need to be corrected in the post-autogenerate if multiple
+          backends are being supported.
+
+        * added another dialect-specific exception to the SQLite backend
+          when dealing with unnamed unique constraints, as the backend can't
+          currently report on constraints that were made with this technique,
+          hence they'd come out as "added" on every run.
 
     .. change::
       :tags: feature, mssql
