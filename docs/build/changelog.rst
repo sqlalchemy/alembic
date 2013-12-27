@@ -8,6 +8,12 @@ Changelog
 
     .. change::
       :tags: bug
+
+      Fixed bug in the not-internally-used :meth:`.ScriptDirectory.get_base`
+      method which would fail if called on an empty versions directory.
+
+    .. change::
+      :tags: bug
       :tickets: 157
 
       An almost-rewrite of the new unique constraint/index autogenerate

@@ -297,7 +297,7 @@ class ScriptDirectory(object):
 
         """
         for script in self._revision_map.values():
-            if script.down_revision is None \
+            if script and script.down_revision is None \
                 and script.revision in self._revision_map:
                 return script.revision
         else:
