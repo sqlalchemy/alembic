@@ -10,10 +10,9 @@ from alembic.migration import MigrationContext
 from alembic.script import ScriptDirectory
 from . import db_for_dialect, eq_, staging_env, \
             clear_staging_env, _no_sql_testing_config,\
-            capture_context_buffer, requires_07, write_script
+            capture_context_buffer, requires_09, write_script
 
 class PGOfflineEnumTest(TestCase):
-    @requires_07
     def setUp(self):
         staging_env()
         self.cfg = cfg = _no_sql_testing_config()
@@ -67,6 +66,7 @@ def downgrade():
 
 """ % self.rid)
 
+    @requires_09
     def test_offline_inline_enum_create(self):
         self._inline_enum_script()
         with capture_context_buffer() as buf:
@@ -82,6 +82,7 @@ def downgrade():
         # no drop since we didn't emit events
         assert "DROP TYPE pgenum" not in buf.getvalue()
 
+    @requires_09
     def test_offline_distinct_enum_create(self):
         self._distinct_enum_script()
         with capture_context_buffer() as buf:

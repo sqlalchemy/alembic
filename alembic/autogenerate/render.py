@@ -323,6 +323,9 @@ def _render_primary_key(constraint, autogen_context):
     if rendered is not False:
         return rendered
 
+    if not constraint.columns:
+        return None
+
     opts = []
     if constraint.name:
         opts.append(("name", repr(constraint.name)))

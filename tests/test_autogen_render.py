@@ -290,6 +290,32 @@ class AutogenRenderTest(TestCase):
             "op.drop_table('sometable', schema='foo')"
         )
 
+    def test_render_table_no_implicit_check(self):
+        m = MetaData()
+        t = Table('test', m, Column('x', Boolean()))
+
+        eq_ignore_whitespace(
+            autogenerate.render._add_table(t, self.autogen_context),
+            "op.create_table('test',sa.Column('x', sa.Boolean(), nullable=True))"
+        )
+
+    def test_render_empty_pk_vs_nonempty_pk(self):
+        m = MetaData()
+        t1 = Table('t1', m, Column('x', Integer))
+        t2 = Table('t2', m, Column('x', Integer, primary_key=True))
+
+        eq_ignore_whitespace(
+            autogenerate.render._add_table(t1, self.autogen_context),
+            "op.create_table('t1',sa.Column('x', sa.Integer(), nullable=True))"
+        )
+
+        eq_ignore_whitespace(
+            autogenerate.render._add_table(t2, self.autogen_context),
+            "op.create_table('t2',"
+            "sa.Column('x', sa.Integer(), nullable=False),"
+            "sa.PrimaryKeyConstraint('x'))"
+        )
+
     def test_render_add_column(self):
         eq_(
             autogenerate.render._add_column(

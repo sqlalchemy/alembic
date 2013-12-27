@@ -9,6 +9,12 @@ Changelog
     .. change::
       :tags: bug
 
+      Autogenerate for ``op.create_table()`` will not include a
+      ``PrimaryKeyConstraint()`` that has no columns.
+
+    .. change::
+      :tags: bug
+
       Fixed bug in the not-internally-used :meth:`.ScriptDirectory.get_base`
       method which would fail if called on an empty versions directory.
 

@@ -43,7 +43,7 @@ def sqlite_db():
     # per connection, so create a new
     # engine for each assertion
     dir_ = os.path.join(staging_directory, 'scripts')
-    return create_engine('sqlite:///%s/foo.db' % dir_, echo=True)
+    return create_engine('sqlite:///%s/foo.db' % dir_)
 
 def capture_db():
     buf = []
@@ -62,7 +62,7 @@ def db_for_dialect(name):
         except configparser.NoOptionError:
             raise SkipTest("No dialect %r in test.cfg" % name)
         try:
-            eng = create_engine(cfg, echo=True)
+            eng = create_engine(cfg)
         except ImportError as er1:
             raise SkipTest("Can't import DBAPI: %s" % er1)
         try:
@@ -72,16 +72,17 @@ def db_for_dialect(name):
         _engs[name] = eng
         return eng
 
-@decorator
-def requires_07(fn, *arg, **kw):
-    if not util.sqla_07:
-        raise SkipTest("SQLAlchemy 0.7 required")
-    return fn(*arg, **kw)
 
 @decorator
 def requires_08(fn, *arg, **kw):
     if not util.sqla_08:
         raise SkipTest("SQLAlchemy 0.8.0b2 or greater required")
+    return fn(*arg, **kw)
+
+@decorator
+def requires_09(fn, *arg, **kw):
+    if not util.sqla_09:
+        raise SkipTest("SQLAlchemy 0.9 or greater required")
     return fn(*arg, **kw)
 
 _dialects = {}
