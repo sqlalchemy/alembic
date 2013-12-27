@@ -5,6 +5,7 @@ Changelog
 
 .. changelog::
     :version: 0.6.2
+    :released: Fri Dec 27 2013
 
     .. change::
       :tags: bug
