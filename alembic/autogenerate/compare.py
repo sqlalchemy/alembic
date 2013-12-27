@@ -184,6 +184,8 @@ def _get_index_column_names(idx):
 def _compare_indexes_and_uniques(schema, tname, object_filters, conn_table,
             metadata_table, diffs, autogen_context, inspector):
 
+    is_create_table = conn_table is None
+
     # 1a. get raw indexes and unique constraints from metadata ...
     metadata_unique_constraints = set(uq for uq in metadata_table.constraints
             if isinstance(uq, sa_schema.UniqueConstraint)
@@ -280,6 +282,9 @@ def _compare_indexes_and_uniques(schema, tname, object_filters, conn_table,
                     ])
             )
         else:
+            if is_create_table:
+                # unique constraints are created inline with table defs
+                return
             diffs.append(("add_constraint", obj.const))
             log.info("Detected added unique constraint '%s' on %s",
                 obj.name, ', '.join([

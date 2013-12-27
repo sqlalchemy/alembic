@@ -1001,37 +1001,71 @@ class AutogenerateUniqueIndexTest(TestCase):
         diffs = ((cmd, obj.name) for cmd, obj in diffs)
         assert ("remove_constraint", "xidx") in diffs
 
+    def test_dont_add_uq_on_table_create(self):
+        m1 = MetaData()
+        m2 = MetaData()
+        Table('no_uq', m2, Column('x', String(50), unique=True))
+        diffs = self._fixture(m1, m2)
+
+        eq_(diffs[0][0], "add_table")
+        eq_(len(diffs), 1)
+        assert UniqueConstraint in set(type(c) for c in diffs[0][1].constraints)
+
+    def test_add_uq_ix_on_table_create(self):
+        m1 = MetaData()
+        m2 = MetaData()
+        Table('add_ix', m2, Column('x', String(50), unique=True, index=True))
+        diffs = self._fixture(m1, m2)
+
+        eq_(diffs[0][0], "add_table")
+        eq_(len(diffs), 2)
+        assert UniqueConstraint not in set(type(c) for c in diffs[0][1].constraints)
+        eq_(diffs[1][0], "add_index")
+        eq_(diffs[1][1].unique, True)
+
+    def test_add_ix_on_table_create(self):
+        m1 = MetaData()
+        m2 = MetaData()
+        Table('add_ix', m2, Column('x', String(50), index=True))
+        diffs = self._fixture(m1, m2)
+
+        eq_(diffs[0][0], "add_table")
+        eq_(len(diffs), 2)
+        assert UniqueConstraint not in set(type(c) for c in diffs[0][1].constraints)
+        eq_(diffs[1][0], "add_index")
+        eq_(diffs[1][1].unique, False)
+
     def _fixture(self, m1, m2):
         self.metadata, model_metadata = m1, m2
         self.metadata.create_all(self.bind)
 
-        conn = self.bind.connect()
-        self.context = context = MigrationContext.configure(
-            connection=conn,
-            opts={
-                'compare_type': True,
-                'compare_server_default': True,
-                'target_metadata': model_metadata,
-                'upgrade_token': "upgrades",
-                'downgrade_token': "downgrades",
-                'alembic_module_prefix': 'op.',
-                'sqlalchemy_module_prefix': 'sa.',
-            }
-        )
+        with self.bind.connect() as conn:
+            self.context = context = MigrationContext.configure(
+                connection=conn,
+                opts={
+                    'compare_type': True,
+                    'compare_server_default': True,
+                    'target_metadata': model_metadata,
+                    'upgrade_token': "upgrades",
+                    'downgrade_token': "downgrades",
+                    'alembic_module_prefix': 'op.',
+                    'sqlalchemy_module_prefix': 'sa.',
+                }
+            )
 
-        connection = context.bind
-        autogen_context = {
-            'imports': set(),
-            'connection': connection,
-            'dialect': connection.dialect,
-            'context': context
-            }
-        diffs = []
-        autogenerate._produce_net_changes(connection, model_metadata, diffs,
-                                          autogen_context,
-                                          object_filters=_default_object_filters,
-                                    )
-        return diffs
+            connection = context.bind
+            autogen_context = {
+                'imports': set(),
+                'connection': connection,
+                'dialect': connection.dialect,
+                'context': context
+                }
+            diffs = []
+            autogenerate._produce_net_changes(connection, model_metadata, diffs,
+                                              autogen_context,
+                                              object_filters=_default_object_filters,
+                                        )
+            return diffs
 
     reports_unnamed_constraints = False
 
@@ -1715,6 +1749,17 @@ render:primary_key\n)"""
                 self.autogen_context
             ),
             "sa.CheckConstraint('c > 5 AND c < 10')"
+        )
+
+    def test_render_unique_constraint_opts(self):
+        m = MetaData()
+        t = Table('t', m, Column('c', Integer))
+        eq_ignore_whitespace(
+            autogenerate.render._render_unique_constraint(
+                UniqueConstraint(t.c.c, name='uq_1', deferrable='XYZ'),
+                self.autogen_context
+            ),
+            "sa.UniqueConstraint('c', deferrable='XYZ', name='uq_1')"
         )
 
     def test_render_modify_nullable_w_default(self):

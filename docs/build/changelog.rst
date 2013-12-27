@@ -41,6 +41,17 @@ Changelog
           currently report on constraints that were made with this technique,
           hence they'd come out as "added" on every run.
 
+        * the ``op.create_table()`` directive will be auto-generated with
+          the ``UniqueConstraint`` objects inline, but will not double them
+          up with a separate ``create_unique_constraint()`` call, which may
+          have been occurring.  Indexes still get rendered as distinct
+          ``op.create_index()`` calls even when the corresponding table was
+          created in the same script.
+
+        * the inline ``UniqueConstraint`` within ``op.create_table()`` includes
+          all the options like ``deferrable``, ``initially``, etc.  Previously
+          these weren't rendering.
+
     .. change::
       :tags: feature, mssql
 
