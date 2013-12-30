@@ -1,2 +1,2 @@
 changelog
-sphinx-paramlinks>=0.1.6
+sphinx-paramlinks>=0.1.7
