@@ -1,1 +1,2 @@
 changelog
+sphinx-paramlinks
