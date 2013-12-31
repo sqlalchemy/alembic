@@ -198,13 +198,28 @@ def load_python_file(dir_, filename):
     path = os.path.join(dir_, filename)
     _, ext = os.path.splitext(filename)
     if ext == ".py":
-        module = load_module_py(module_id, path)
+        if os.path.exists(path):
+            module = load_module_py(module_id, path)
+        elif os.path.exists(simple_pyc_file_from_path(path)):
+            # look for sourceless load
+            module = load_module_pyc(module_id, simple_pyc_file_from_path(path))
+        else:
+            raise ImportError("Can't find Python file %s" % path)
     elif ext in (".pyc", ".pyo"):
         module = load_module_pyc(module_id, path)
     del sys.modules[module_id]
     return module
 
 def simple_pyc_file_from_path(path):
+    """Given a python source path, return the so-called
+    "sourceless" .pyc or .pyo path.
+
+    This just a .pyc or .pyo file where the .py file would be.
+
+    Even with PEP-3147, which normally puts .pyc/.pyo files in __pycache__,
+    this use case remains supported as a so-called "sourceless module import".
+
+    """
     if sys.flags.optimize:
         return path + "o"  # e.g. .pyo
     else:

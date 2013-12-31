@@ -99,7 +99,7 @@ class VersioningTest(unittest.TestCase):
 
     @classmethod
     def setup_class(cls):
-        cls.env = staging_env()
+        cls.env = staging_env(sourceless=cls.sourceless)
         cls.cfg = _sqlite_testing_config()
 
     @classmethod
