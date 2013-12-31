@@ -2,6 +2,25 @@
 ==========
 Changelog
 ==========
+.. changelog::
+    :version: 0.6.3
+
+    .. change::
+      :tags: feature
+      :tickets: 163
+
+     The :class:`.ScriptDirectory` system that loads migration files
+     from a  ``versions/`` directory now supports so-called
+     "sourceless" operation,  where the ``.py`` files are not present
+     and instead ``.pyc`` or ``.pyo`` files are directly present where
+     the ``.py`` files should be.  Note that while Python 3.3 has a
+     new system of locating ``.pyc``/``.pyo`` files within a directory
+     called ``__pycache__`` (e.g. PEP-3147), PEP-3147 maintains
+     support for the "source-less imports" use case, where the
+     ``.pyc``/``.pyo`` are in present in the "old" location, e.g. next
+     to the ``.py`` file; this is the usage that's supported even when
+     running Python3.3.
+
 
 .. changelog::
     :version: 0.6.2

@@ -10,7 +10,7 @@ from mako.template import Template
 from sqlalchemy.engine import url
 from sqlalchemy import __version__
 
-from .compat import callable, exec_, load_module, binary_type
+from .compat import callable, exec_, load_module_py, load_module_pyc, binary_type
 
 class CommandError(Exception):
     pass
@@ -196,9 +196,19 @@ def load_python_file(dir_, filename):
 
     module_id = re.sub(r'\W', "_", filename)
     path = os.path.join(dir_, filename)
-    module = load_module(module_id, path)
+    _, ext = os.path.splitext(filename)
+    if ext == ".py":
+        module = load_module_py(module_id, path)
+    elif ext in (".pyc", ".pyo"):
+        module = load_module_pyc(module_id, path)
     del sys.modules[module_id]
     return module
+
+def simple_pyc_file_from_path(path):
+    if sys.flags.optimize:
+        return path + "o"  # e.g. .pyo
+    else:
+        return path + "c"  # e.g. .pyc
 
 def pyc_file_from_path(path):
     """Given a python source path, locate the .pyc.
@@ -213,7 +223,7 @@ def pyc_file_from_path(path):
     if has3147:
         return imp.cache_from_source(path)
     else:
-        return path + "c"
+        return simple_pyc_file_from_path(path)
 
 def rev_id():
     val = int(uuid.uuid4()) % 100000000000000

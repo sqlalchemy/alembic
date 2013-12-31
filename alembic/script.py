@@ -4,7 +4,7 @@ import re
 import shutil
 from . import util
 
-_rev_file = re.compile(r'.*\.py$')
+_rev_file = re.compile(r'(.*\.py)(c|o)?$')
 _legacy_rev = re.compile(r'([a-f0-9]+)\.py$')
 _mod_def_re = re.compile(r'(upgrade|downgrade)_([a-z0-9]+)')
 _slug_re = re.compile(r'\w+')
@@ -463,9 +463,27 @@ class Script(object):
 
     @classmethod
     def _from_filename(cls, dir_, filename):
-        if not _rev_file.match(filename):
+        py_match = _rev_file.match(filename)
+
+        if not py_match:
             return None
+
+        py_filename = py_match.group(1)
+        is_c = py_match.group(2) == 'c'
+        is_o = py_match.group(2) == 'o'
+
+        if is_o or is_c:
+            py_exists = os.path.exists(os.path.join(dir_, py_filename))
+            pyc_exists = os.path.exists(os.path.join(dir_, py_filename + "c"))
+
+            # prefer .py over .pyc because we'd like to get the
+            # source encoding; prefer .pyc over .pyo because we'd like to
+            # have the docstrings which a -OO file would not have
+            if py_exists or is_o and pyc_exists:
+                return None
+
         module = util.load_python_file(dir_, filename)
+
         if not hasattr(module, "revision"):
             # attempt to get the revision id from the script name,
             # this for legacy only

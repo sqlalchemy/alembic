@@ -45,21 +45,28 @@ if py2k:
 
 if py33:
     from importlib import machinery
-    def load_module(module_id, path):
-        return machinery.SourceFileLoader(module_id, path).load_module()
+    def load_module_py(module_id, path):
+        return machinery.SourceFileLoader(module_id, path).load_module(module_id)
+
+    def load_module_pyc(module_id, path):
+        return machinery.SourcelessFileLoader(module_id, path).load_module(module_id)
+
 else:
     import imp
-    def load_module(module_id, path):
-        fp = open(path, 'rb')
-        try:
+    def load_module_py(module_id, path):
+        with open(path, 'rb') as fp:
             mod = imp.load_source(module_id, path, fp)
             if py2k:
                 source_encoding = parse_encoding(fp)
                 if source_encoding:
                     mod._alembic_source_encoding = source_encoding
             return mod
-        finally:
-            fp.close()
+
+    def load_module_pyc(module_id, path):
+        with open(path, 'rb') as fp:
+            mod = imp.load_compiled(module_id, path, fp)
+            # no source encoding here
+            return mod
 
 try:
     exec_ = getattr(compat_builtins, 'exec')

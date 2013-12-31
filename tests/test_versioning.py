@@ -8,6 +8,8 @@ from . import clear_staging_env, staging_env, \
     assert_raises_message
 
 class VersioningTest(unittest.TestCase):
+    sourceless = False
+
     def test_001_revisions(self):
         global a, b, c
         a = util.rev_id()
@@ -28,7 +30,7 @@ class VersioningTest(unittest.TestCase):
     def downgrade():
         op.execute("DROP TABLE foo")
 
-    """ % a)
+    """ % a, sourceless=self.sourceless)
 
         script.generate_revision(b, None, refresh=True)
         write_script(script, b, """
@@ -43,7 +45,7 @@ class VersioningTest(unittest.TestCase):
     def downgrade():
         op.execute("DROP TABLE bar")
 
-    """ % (b, a))
+    """ % (b, a), sourceless=self.sourceless)
 
         script.generate_revision(c, None, refresh=True)
         write_script(script, c, """
@@ -58,7 +60,7 @@ class VersioningTest(unittest.TestCase):
     def downgrade():
         op.execute("DROP TABLE bat")
 
-    """ % (c, b))
+    """ % (c, b), sourceless=self.sourceless)
 
 
     def test_002_upgrade(self):
@@ -181,4 +183,8 @@ class VersionNameTemplateTest(unittest.TestCase):
             op.execute("DROP TABLE foo")
 
         """)
+
+
+class SourcelessVersioningTest(VersioningTest):
+    sourceless = True
 

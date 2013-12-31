@@ -318,7 +318,7 @@ def clear_staging_env():
     shutil.rmtree(staging_directory, True)
 
 
-def write_script(scriptdir, rev_id, content, encoding='ascii'):
+def write_script(scriptdir, rev_id, content, encoding='ascii', sourceless=False):
     old = scriptdir._revision_map[rev_id]
     path = old.path
 
@@ -337,6 +337,17 @@ def write_script(scriptdir, rev_id, content, encoding='ascii'):
                             "on a refresh operation.")
     scriptdir._revision_map[script.revision] = script
     script.nextrev = old.nextrev
+
+    if sourceless:
+        # note that if -O is set, you'd see pyo files here,
+        # the pyc util function looks at sys.flags.optimize to handle this
+        assert os.access(pyc_path, os.F_OK)
+        # look for a non-pep3147 path here.
+        # if not present, need to copy from __pycache__
+        simple_pyc_path = util.simple_pyc_file_from_path(path)
+        if not os.access(simple_pyc_path, os.F_OK):
+            shutil.copyfile(pyc_path, simple_pyc_path)
+        os.unlink(path)
 
 
 def three_rev_fixture(cfg):
