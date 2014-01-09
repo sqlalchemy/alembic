@@ -318,7 +318,7 @@ in most cases just to tell it "the most recent", in this case ``head``::
     INFO  [alembic.context] Will assume transactional DDL.
     INFO  [alembic.context] Running upgrade None -> 1975ea83b712
 
-Wow that rocked !   Note that the information we see on the screen is the result of the
+Wow that rocked!   Note that the information we see on the screen is the result of the
 logging configuration set up in ``alembic.ini`` - logging the ``alembic`` stream to the
 console (standard error, specifically).
 
