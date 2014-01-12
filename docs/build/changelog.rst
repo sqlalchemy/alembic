@@ -6,6 +6,14 @@ Changelog
     :version: 0.6.3
 
     .. change::
+      :tags: bug
+      :tickets: 164
+
+     More fixes to index autodetection; indexes created with expressions
+     like DESC or functional indexes will no longer cause AttributeError
+     exceptions when attempting to compare the columns.
+
+    .. change::
       :tags: feature
       :tickets: 163
 

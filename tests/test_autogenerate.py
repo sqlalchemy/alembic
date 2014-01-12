@@ -942,6 +942,28 @@ class AutogenerateUniqueIndexTest(TestCase):
         eq_(diffs[1][0], "add_index")
         eq_(diffs[1][1].unique, False)
 
+    def test_add_idx_non_col(self):
+        m1 = MetaData()
+        m2 = MetaData()
+        Table('add_ix', m1, Column('x', String(50)))
+        t2 = Table('add_ix', m2, Column('x', String(50)))
+        Index('foo_idx', t2.c.x.desc())
+        diffs = self._fixture(m1, m2)
+
+        eq_(diffs[0][0], "add_index")
+
+    def test_unchanged_idx_non_col(self):
+        m1 = MetaData()
+        m2 = MetaData()
+        t1 = Table('add_ix', m1, Column('x', String(50)))
+        Index('foo_idx', t1.c.x.desc())
+        t2 = Table('add_ix', m2, Column('x', String(50)))
+        Index('foo_idx', t2.c.x.desc())
+        diffs = self._fixture(m1, m2)
+
+        eq_(diffs, [])
+
+
     def _fixture(self, m1, m2):
         self.metadata, model_metadata = m1, m2
         self.metadata.create_all(self.bind)
