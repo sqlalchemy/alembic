@@ -1,8 +1,8 @@
 *.pyc
 *.pyo
-build/
+/build/
 dist/
-docs/build/output/
+/docs/build/output/
 *.orig
 alembic.ini
 tox.ini
