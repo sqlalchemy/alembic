@@ -192,27 +192,25 @@ def _compare_indexes_and_uniques(schema, tname, object_filters, conn_table,
     )
     metadata_indexes = set(metadata_table.indexes)
 
-    # 1b. ... and from connection
-    conn_uniques = []
-    if conn_table is not None and hasattr(inspector, "get_unique_constraints"):
-        try:
-            conn_uniques = inspector.get_unique_constraints(tname,
-                                                            schema=schema)
-        except (NotImplementedError, NoSuchTableError):
-            pass
-
-    conn_indexes = []
+    conn_uniques = conn_indexes = frozenset()
     if conn_table is not None:
+        # 1b. ... and from connection, if the table exists
+        if hasattr(inspector, "get_unique_constraints"):
+            try:
+                conn_uniques = inspector.get_unique_constraints(
+                                                tname, schema=schema)
+            except NotImplementedError:
+                pass
         try:
             conn_indexes = inspector.get_indexes(tname, schema=schema)
-        except NoSuchTableError:
+        except NotImplementedError:
             pass
 
-    # 2. convert conn-level objects from raw inspector records
-    # into schema objects
-    conn_uniques = set(_make_unique_constraint(uq_def, conn_table)
-                                    for uq_def in conn_uniques)
-    conn_indexes = set(_make_index(ix, conn_table) for ix in conn_indexes)
+        # 2. convert conn-level objects from raw inspector records
+        # into schema objects
+        conn_uniques = set(_make_unique_constraint(uq_def, conn_table)
+                                        for uq_def in conn_uniques)
+        conn_indexes = set(_make_index(ix, conn_table) for ix in conn_indexes)
 
     # 3. give the dialect a chance to omit indexes and constraints that
     # we know are either added implicitly by the DB or that the DB

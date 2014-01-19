@@ -7,6 +7,14 @@ Changelog
 
     .. change::
       :tags: bug
+      :pullreq: bitbucket:17
+
+     Enabled schema support for index and unique constraint autodetection;
+     previously these were non-functional and could in some cases lead to
+     attribute errors.  Pull request courtesy Dimitris Theodorou.
+
+    .. change::
+      :tags: bug
       :tickets: 164
 
      More fixes to index autodetection; indexes created with expressions

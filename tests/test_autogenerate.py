@@ -964,7 +964,7 @@ class AutogenerateUniqueIndexTest(TestCase):
         eq_(diffs, [])
 
 
-    def _fixture(self, m1, m2):
+    def _fixture(self, m1, m2, include_schemas=False):
         self.metadata, model_metadata = m1, m2
         self.metadata.create_all(self.bind)
 
@@ -993,6 +993,7 @@ class AutogenerateUniqueIndexTest(TestCase):
             autogenerate._produce_net_changes(connection, model_metadata, diffs,
                                               autogen_context,
                                               object_filters=_default_object_filters,
+                                              include_schemas=include_schemas
                                         )
             return diffs
 
@@ -1019,6 +1020,64 @@ class PGUniqueIndexTest(AutogenerateUniqueIndexTest):
     def _get_bind(cls):
         return db_for_dialect('postgresql')
 
+    def test_idx_added_schema(self):
+        m1 = MetaData()
+        m2 = MetaData()
+        Table('add_ix', m1, Column('x', String(50)), schema="test_schema")
+        Table('add_ix', m2, Column('x', String(50)),
+                Index('ix_1', 'x'), schema="test_schema")
+
+        diffs = self._fixture(m1, m2, include_schemas=True)
+        eq_(diffs[0][0], "add_index")
+        eq_(diffs[0][1].name, 'ix_1')
+
+    def test_idx_unchanged_schema(self):
+        m1 = MetaData()
+        m2 = MetaData()
+        Table('add_ix', m1, Column('x', String(50)), Index('ix_1', 'x'),
+                    schema="test_schema")
+        Table('add_ix', m2, Column('x', String(50)),
+                Index('ix_1', 'x'), schema="test_schema")
+
+        diffs = self._fixture(m1, m2, include_schemas=True)
+        eq_(diffs, [])
+
+    def test_uq_added_schema(self):
+        m1 = MetaData()
+        m2 = MetaData()
+        Table('add_uq', m1, Column('x', String(50)), schema="test_schema")
+        Table('add_uq', m2, Column('x', String(50)),
+                UniqueConstraint('x', name='ix_1'), schema="test_schema")
+
+        diffs = self._fixture(m1, m2, include_schemas=True)
+        eq_(diffs[0][0], "add_constraint")
+        eq_(diffs[0][1].name, 'ix_1')
+
+    def test_uq_unchanged_schema(self):
+        m1 = MetaData()
+        m2 = MetaData()
+        Table('add_uq', m1, Column('x', String(50)),
+                    UniqueConstraint('x', name='ix_1'),
+                    schema="test_schema")
+        Table('add_uq', m2, Column('x', String(50)),
+                    UniqueConstraint('x', name='ix_1'),
+                schema="test_schema")
+
+        diffs = self._fixture(m1, m2, include_schemas=True)
+        eq_(diffs, [])
+
+    def test_same_tname_two_schemas(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table('add_ix', m1, Column('x', String(50)), Index('ix_1', 'x'))
+
+        Table('add_ix', m2, Column('x', String(50)), Index('ix_1', 'x'))
+        Table('add_ix', m2, Column('x', String(50)), schema="test_schema")
+
+        diffs = self._fixture(m1, m2, include_schemas=True)
+        eq_(diffs[0][0], "add_table")
+        eq_(len(diffs), 1)
 
 class MySQLUniqueIndexTest(AutogenerateUniqueIndexTest):
     reports_unnamed_constraints = True
