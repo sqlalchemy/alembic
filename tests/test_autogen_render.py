@@ -263,7 +263,7 @@ class AutogenRenderTest(TestCase):
         t = Table('test', m,
             Column('id', Integer, primary_key=True),
             Column('q', Integer, ForeignKey('bar.address.id')),
-            postgresql_arg1="some_arg", mysql_engine="InnoDB"
+            sqlite_autoincrement=True, mysql_engine="InnoDB"
         )
         eq_ignore_whitespace(
             autogenerate.render._add_table(t, self.autogen_context),
@@ -272,7 +272,7 @@ class AutogenRenderTest(TestCase):
             "sa.Column('q', sa.Integer(), nullable=True),"
             "sa.ForeignKeyConstraint(['q'], ['bar.address.id'], ),"
             "sa.PrimaryKeyConstraint('id'),"
-            "mysql_engine='InnoDB',postgresql_arg1='some_arg')"
+            "mysql_engine='InnoDB',sqlite_autoincrement=True)"
         )
 
     def test_render_drop_table(self):
