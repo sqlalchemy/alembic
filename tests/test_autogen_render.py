@@ -68,7 +68,7 @@ class AutogenRenderTest(TestCase):
         idx = Index('test_active_code_idx', t.c.active, t.c.code)
         eq_ignore_whitespace(
             autogenerate.render._add_index(idx, self.autogen_context),
-            "op.create_index('test_active_code_idx', 'CamelSchema.test', "
+            "op.create_index('test_active_code_idx', 'test', "
             "['active', 'code'], unique=False, schema='CamelSchema')"
         )
 
@@ -127,7 +127,25 @@ class AutogenRenderTest(TestCase):
         idx = Index('test_active_code_idx', t.c.active, t.c.code)
         eq_ignore_whitespace(
             autogenerate.render._drop_index(idx, self.autogen_context),
-            "op.drop_index('test_active_code_idx', 'test')"
+            "op.drop_index('test_active_code_idx', table_name='test')"
+        )
+        
+    def test_drop_index_schema(self):
+        """
+        autogenerate.render._drop_index using schema
+        """
+        m = MetaData()
+        t = Table('test', m,
+            Column('id', Integer, primary_key=True),
+            Column('active', Boolean()),
+            Column('code', String(255)),
+            schema='CamelSchema'
+        )
+        idx = Index('test_active_code_idx', t.c.active, t.c.code)
+        eq_ignore_whitespace(
+            autogenerate.render._drop_index(idx, self.autogen_context),
+            "op.drop_index('test_active_code_idx', " +
+                          "table_name='test', schema='CamelSchema')"
         )
 
     def test_add_unique_constraint(self):
@@ -145,6 +163,23 @@ class AutogenRenderTest(TestCase):
             autogenerate.render._add_unique_constraint(uq, self.autogen_context),
             "op.create_unique_constraint('uq_test_code', 'test', ['code'])"
         )
+        
+    def test_add_unique_constraint_schema(self):
+        """
+        autogenerate.render._add_unique_constraint using schema
+        """
+        m = MetaData()
+        t = Table('test', m,
+            Column('id', Integer, primary_key=True),
+            Column('active', Boolean()),
+            Column('code', String(255)),
+            schema='CamelSchema'
+        )
+        uq = UniqueConstraint(t.c.code, name='uq_test_code')
+        eq_ignore_whitespace(
+            autogenerate.render._add_unique_constraint(uq, self.autogen_context),
+            "op.create_unique_constraint('uq_test_code', 'test', ['code'], schema='CamelSchema')"
+        )
 
     def test_drop_constraint(self):
         """
@@ -160,6 +195,23 @@ class AutogenRenderTest(TestCase):
         eq_ignore_whitespace(
             autogenerate.render._drop_constraint(uq, self.autogen_context),
             "op.drop_constraint('uq_test_code', 'test')"
+        )
+        
+    def test_drop_constraint_schema(self):
+        """
+        autogenerate.render._drop_constraint using schema
+        """
+        m = MetaData()
+        t = Table('test', m,
+            Column('id', Integer, primary_key=True),
+            Column('active', Boolean()),
+            Column('code', String(255)),
+            schema='CamelSchema'
+        )
+        uq = UniqueConstraint(t.c.code, name='uq_test_code')
+        eq_ignore_whitespace(
+            autogenerate.render._drop_constraint(uq, self.autogen_context),
+            "op.drop_constraint('uq_test_code', 'test', schema='CamelSchema')"
         )
 
     def test_render_table_upgrade(self):

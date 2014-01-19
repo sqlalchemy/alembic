@@ -67,7 +67,7 @@ def _add_index(index, autogen_context):
                     "unique=%(unique)r%(schema)s%(kwargs)s)" % {
         'prefix': _alembic_autogenerate_prefix(autogen_context),
         'name': index.name,
-        'table': index.table,
+        'table': index.table.name,
         'columns': _get_index_column_names(index),
         'unique': index.unique or False,
         'schema': (", schema='%s'" % index.table.schema) if index.table.schema else '',
@@ -83,10 +83,14 @@ def _drop_index(index, autogen_context):
     Generate Alembic operations for the DROP INDEX of an
     :class:`~sqlalchemy.schema.Index` instance.
     """
-    text = "%sdrop_index('%s', '%s')" % (
-                    _alembic_autogenerate_prefix(autogen_context),
-                    index.name,
-                    index.table)
+    text = "%(prefix)sdrop_index('%(name)s', "\
+                "table_name='%(table_name)s'%(schema)s)" % {
+            'prefix': _alembic_autogenerate_prefix(autogen_context),
+            'name': index.name,
+            'table_name': index.table.name,
+            'schema': ((", schema='%s'" % index.table.schema)
+                       if index.table.schema else '')
+        }
     return text
 
 
@@ -160,10 +164,12 @@ def _drop_constraint(constraint, autogen_context):
     Generate Alembic operations for the ALTER TABLE ... DROP CONSTRAINT
     of a  :class:`~sqlalchemy.schema.UniqueConstraint` instance.
     """
-    text = "%(prefix)sdrop_constraint(%(name)r, '%(table)s')" % {
+    text = "%(prefix)sdrop_constraint(%(name)r, '%(table_name)s'%(schema)s)" % {
             'prefix': _alembic_autogenerate_prefix(autogen_context),
             'name': constraint.name,
-            'table': constraint.table,
+            'table_name': constraint.table.name,
+            'schema': (", schema='%s'" % constraint.table.schema)
+                      if constraint.table.schema else '',
     }
     return text
 
