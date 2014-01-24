@@ -7,6 +7,14 @@ Changelog
 
     .. change::
       :tags: bug
+      :tickets: 168
+
+      Calling :func:`.bulk_insert` with an empty list will not emit any
+      commands on the current connection.  This was already the case with
+      ``--sql`` mode, so is now the case with "online" mode.
+
+    .. change::
+      :tags: bug
       :pullreq: bitbucket:17
 
      Enabled schema support for index and unique constraint autodetection;

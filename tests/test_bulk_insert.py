@@ -72,6 +72,12 @@ def test_bulk_insert_wrong_cols():
         'INSERT INTO ins_table (id, v1, v2) VALUES (%(id)s, %(v1)s, %(v2)s)'
     )
 
+def test_bulk_insert_no_rows():
+    context, t1 = _table_fixture('default', False)
+
+    op.bulk_insert(t1, [])
+    context.assert_()
+
 def test_bulk_insert_pg():
     context = _test_bulk_insert('postgresql', False)
     context.assert_(

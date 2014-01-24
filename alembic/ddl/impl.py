@@ -178,7 +178,8 @@ class DefaultImpl(with_metaclass(ImplMeta)):
             # work around http://www.sqlalchemy.org/trac/ticket/2461
             if not hasattr(table, '_autoincrement_column'):
                 table._autoincrement_column = None
-            self._exec(table.insert(inline=True), multiparams=rows)
+            if rows:
+                self._exec(table.insert(inline=True), multiparams=rows)
 
     def compare_type(self, inspector_column, metadata_column):
 
