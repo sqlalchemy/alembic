@@ -7,6 +7,18 @@ Changelog
 
     .. change::
       :tags: bug
+      :pullreq: github:9
+
+      The :func:`.compare_metadata` public API function now takes into
+      account the settings for
+      :paramref:`.EnvironmentContext.configure.include_object`,
+      :paramref:`.EnvironmentContext.configure.include_symbol`,
+      and :paramref:`.EnvironmentContext.configure.include_schemas`, in the
+      same way that the ``--autogenerate`` command does.  Pull
+      request courtesy Roman Podoliaka.
+
+    .. change::
+      :tags: bug
       :tickets: 168
 
       Calling :func:`.bulk_insert` with an empty list will not emit any
