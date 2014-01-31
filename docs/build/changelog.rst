@@ -7,6 +7,17 @@ Changelog
 
     .. change::
       :tags: bug
+      :tickets: 170
+
+      Added support for autogenerate covering the use case where :class:`.Table`
+      objects specified in the metadata have an explicit ``schema`` attribute
+      whose name matches that of the connection's default schema
+      (e.g. "public" for Postgresql).  Previously, it was assumed that "schema"
+      was ``None`` when it matched the "default" schema, now the comparison
+      adjusts for this.
+
+    .. change::
+      :tags: bug
       :pullreq: github:9
 
       The :func:`.compare_metadata` public API function now takes into

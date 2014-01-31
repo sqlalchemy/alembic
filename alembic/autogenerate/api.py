@@ -188,13 +188,15 @@ def _produce_net_changes(connection, metadata, diffs, autogen_context,
     inspector = Inspector.from_engine(connection)
     # TODO: not hardcode alembic_version here ?
     conn_table_names = set()
+
+    default_schema = connection.dialect.default_schema_name
     if include_schemas:
         schemas = set(inspector.get_schema_names())
         # replace default schema name with None
         schemas.discard("information_schema")
         # replace the "default" schema with None
         schemas.add(None)
-        schemas.discard(connection.dialect.default_schema_name)
+        schemas.discard(default_schema)
     else:
         schemas = [None]
 

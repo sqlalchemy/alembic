@@ -19,11 +19,37 @@ def _compare_tables(conn_table_names, metadata_table_names,
                     object_filters,
                     inspector, metadata, diffs, autogen_context):
 
+    default_schema = inspector.bind.dialect.default_schema_name
+
+    # tables coming from the connection will not have "schema"
+    # set if it matches default_schema_name; so we need a list
+    # of table names from local metadata that also have "None" if schema
+    # == default_schema_name.  Most setups will be like this anyway but
+    # some are not (see #170)
+    metadata_table_names_no_dflt_schema = OrderedSet([
+        (schema if schema != default_schema else None, tname)
+        for schema, tname in metadata_table_names
+    ])
+
+    # to adjust for the MetaData collection storing the tables either
+    # as "schemaname.tablename" or just "tablename", create a new lookup
+    # which will match the "non-default-schema" keys to the Table object.
+    tname_to_table = dict(
+                        (
+                            no_dflt_schema,
+                            metadata.tables[sa_schema._get_table_key(tname, schema)]
+                        )
+                        for no_dflt_schema, (schema, tname) in zip(
+                                    metadata_table_names_no_dflt_schema,
+                                    metadata_table_names)
+                        )
+    metadata_table_names = metadata_table_names_no_dflt_schema
+
     for s, tname in metadata_table_names.difference(conn_table_names):
         name = '%s.%s' % (s, tname) if s else tname
-        metadata_table = metadata.tables[sa_schema._get_table_key(tname, s)]
+        metadata_table = tname_to_table[(s, tname)]
         if _run_filters(metadata_table, tname, "table", False, None, object_filters):
-            diffs.append(("add_table", metadata.tables[name]))
+            diffs.append(("add_table", metadata_table))
             log.info("Detected added table %r", name)
             _compare_indexes_and_uniques(s, tname, object_filters,
                     None,
@@ -55,7 +81,7 @@ def _compare_tables(conn_table_names, metadata_table_names,
 
     for s, tname in sorted(existing_tables):
         name = '%s.%s' % (s, tname) if s else tname
-        metadata_table = metadata.tables[name]
+        metadata_table = tname_to_table[(s, tname)]
         conn_table = existing_metadata.tables[name]
 
         if _run_filters(metadata_table, tname, "table", False, conn_table, object_filters):
