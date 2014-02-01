@@ -383,7 +383,13 @@ class EnvironmentContext(object):
                 # return True if the types are different,
                 # False if not, or None to allow the default implementation
                 # to compare these types
-                pass
+                return None
+
+            context.configure(
+                # ...
+                compare_type = my_compare_type
+            )
+
 
          ``inspected_column`` is a :class:`sqlalchemy.schema.Column` as returned by
          :meth:`sqlalchemy.engine.reflection.Inspector.reflecttable`, whereas
@@ -392,6 +398,10 @@ class EnvironmentContext(object):
 
          A return value of ``None`` indicates to allow default type
          comparison to proceed.
+
+         .. seealso::
+
+            :paramref:`.EnvironmentContext.configure.compare_server_default`
 
         :param compare_server_default: Indicates server default comparison
          behavior during
@@ -414,7 +424,12 @@ class EnvironmentContext(object):
                 # return True if the defaults are different,
                 # False if not, or None to allow the default implementation
                 # to compare these defaults
-                pass
+                return None
+
+            context.configure(
+                # ...
+                compare_server_default = my_compare_server_default
+            )
 
          ``inspected_column`` is a dictionary structure as returned by
          :meth:`sqlalchemy.engine.reflection.Inspector.get_columns`, whereas
@@ -426,6 +441,10 @@ class EnvironmentContext(object):
          to proceed.  Note that some backends such as Postgresql actually
          execute
          the two defaults on the database side to compare for equivalence.
+
+         .. seealso::
+
+            :paramref:`.EnvironmentContext.configure.compare_type`
 
         :param include_object: A callable function which is given
          the chance to return ``True`` or ``False`` for any object,
@@ -440,8 +459,7 @@ class EnvironmentContext(object):
          * ``name``: the name of the object. This is typically available
            via ``object.name``.
          * ``type``: a string describing the type of object; currently
-           ``"table"`` or ``"column"``, but will include other types in a
-           future release
+           ``"table"`` or ``"column"``
          * ``reflected``: ``True`` if the given object was produced based on
            table reflection, ``False`` if it's from a local :class:`.MetaData`
            object.
@@ -463,8 +481,12 @@ class EnvironmentContext(object):
                 include_object = include_object
             )
 
-         The ``include_object`` filter will be expanded in a future release
-         to also receive type, constraint, and default objects.
+         :paramref:`.EnvironmentContext.configure.include_object` can also
+         be used to filter on specific schemas to include or omit, when
+         the :paramref:`.EnvironmentContext.configure.include_schemas`
+         flag is set to ``True``.   The :attr:`.Table.schema` attribute
+         on each :class:`.Table` object reflected will indicate the name of the
+         schema from which the :class:`.Table` originates.
 
          .. versionadded:: 0.6.0
 
@@ -502,7 +524,8 @@ class EnvironmentContext(object):
          :meth:`~sqlalchemy.engine.reflection.Inspector.get_schema_names`
          method, and include all differences in tables found across all
          those schemas.  When using this option, you may want to also
-         use the ``include_symbol`` option to specify a callable which
+         use the :paramref:`.EnvironmentContext.configure.include_object`
+         option to specify a callable which
          can filter the tables/schemas that get included.
 
          .. versionadded :: 0.4.0
@@ -532,9 +555,9 @@ class EnvironmentContext(object):
                 render_item = my_render_column
             )
 
-         Available values for the type string include: ``column``,
-         ``primary_key``, ``foreign_key``, ``unique``, ``check``,
-         ``type``, ``server_default``.
+         Available values for the type string include: ``"column"``,
+         ``"primary_key"``, ``"foreign_key"``, ``"unique"``, ``"check"``,
+         ``"type"``, ``"server_default"``.
 
          .. versionadded:: 0.5.0
 

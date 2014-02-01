@@ -566,13 +566,16 @@ Autogenerate will by default detect:
 
 Autogenerate can *optionally* detect:
 
-* Change of column type.  This will occur if you set ``compare_type=True``
-  on :meth:`.EnvironmentContext.configure`.  The feature works well in most cases,
+* Change of column type.  This will occur if you set
+  the :paramref:`.EnvironmentContext.configure.compare_type` parameter
+  to ``True``, or to a custom callable.
+  The feature works well in most cases,
   but is off by default so that it can be tested on the target schema
   first.  It can also be customized by passing a callable here; see the
   function's documentation for details.
 * Change of server default.  This will occur if you set
-  ``compare_server_default=True`` on :meth:`.EnvironmentContext.configure`.
+  the :paramref:`.EnvironmentContext.configure.compare_server_default`
+  paramter to ``True``, or to a custom callable.
   This feature works well for simple cases but cannot always produce
   accurate results.  The Postgresql backend will actually invoke
   the "detected" and "metadata" values against the database to
