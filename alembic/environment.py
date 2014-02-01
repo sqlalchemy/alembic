@@ -470,8 +470,6 @@ class EnvironmentContext(object):
 
          .. seealso::
 
-            :ref:`autogen_render_types`
-
             :paramref:`.EnvironmentContext.configure.include_schemas`
 
         :param include_symbol: A callable function which, given a table name
@@ -539,6 +537,10 @@ class EnvironmentContext(object):
          ``type``, ``server_default``.
 
          .. versionadded:: 0.5.0
+
+         .. seealso::
+
+            :ref:`autogen_render_types`
 
         :param upgrade_token: When autogenerate completes, the text of the
          candidate upgrade operations will be present in this template
