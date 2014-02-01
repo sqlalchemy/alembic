@@ -6,6 +6,18 @@ Changelog
     :version: 0.6.3
 
     .. change::
+      :tags: feature
+      :tickets: 171
+
+      Added new argument
+      :paramref:`.EnvironmentContext.configure.user_module_prefix`.
+      This prefix is applied when autogenerate renders a user-defined type,
+      which here is defined as any type that is from a module outside of the
+      ``sqlalchemy.`` hierarchy.   This prefix defaults to ``None``, in
+      which case the :paramref:`.EnvironmentContext.configure.sqlalchemy_module_prefix`
+      is used, thus preserving the current behavior.
+
+    .. change::
       :tags: bug
       :tickets: 170
 

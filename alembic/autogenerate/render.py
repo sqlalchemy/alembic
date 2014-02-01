@@ -204,7 +204,6 @@ def _modify_col(tname, cname,
                 existing_nullable=None,
                 existing_server_default=False,
                 schema=None):
-    sqla_prefix = _sqlalchemy_autogenerate_prefix(autogen_context)
     indent = " " * 11
     text = "%(prefix)salter_column(%(tname)r, %(cname)r" % {
                             'prefix': _alembic_autogenerate_prefix(
@@ -212,7 +211,7 @@ def _modify_col(tname, cname,
                             'tname': tname,
                             'cname': cname}
     text += ",\n%sexisting_type=%s" % (indent,
-                    _repr_type(sqla_prefix, existing_type, autogen_context))
+                    _repr_type(existing_type, autogen_context))
     if server_default is not False:
         rendered = _render_server_default(
                                 server_default, autogen_context)
@@ -220,7 +219,7 @@ def _modify_col(tname, cname,
 
     if type_ is not None:
         text += ",\n%stype_=%s" % (indent,
-                        _repr_type(sqla_prefix, type_, autogen_context))
+                        _repr_type(type_, autogen_context))
     if nullable is not None:
         text += ",\n%snullable=%r" % (
                         indent, nullable,)
@@ -237,6 +236,13 @@ def _modify_col(tname, cname,
         text += ",\n%sschema=%r" % (indent, schema)
     text += ")"
     return text
+
+def _user_autogenerate_prefix(autogen_context):
+    prefix = autogen_context['opts']['user_module_prefix']
+    if prefix is None:
+        return _sqlalchemy_autogenerate_prefix(autogen_context)
+    else:
+        return prefix
 
 def _sqlalchemy_autogenerate_prefix(autogen_context):
     return autogen_context['opts']['sqlalchemy_module_prefix'] or ''
@@ -277,8 +283,7 @@ def _render_column(column, autogen_context):
     return "%(prefix)sColumn(%(name)r, %(type)s, %(kw)s)" % {
         'prefix': _sqlalchemy_autogenerate_prefix(autogen_context),
         'name': column.name,
-        'type': _repr_type(_sqlalchemy_autogenerate_prefix(autogen_context),
-                                column.type, autogen_context),
+        'type': _repr_type(column.type, autogen_context),
         'kw': ", ".join(["%s=%s" % (kwname, val) for kwname, val in opts])
     }
 
@@ -302,7 +307,7 @@ def _render_server_default(default, autogen_context):
     else:
         return None
 
-def _repr_type(prefix, type_, autogen_context):
+def _repr_type(type_, autogen_context):
     rendered = _user_defined_render("type", type_, autogen_context)
     if rendered is not False:
         return rendered
@@ -314,7 +319,11 @@ def _repr_type(prefix, type_, autogen_context):
         if imports is not None:
             imports.add("from sqlalchemy.dialects import %s" % dname)
         return "%s.%r" % (dname, type_)
+    elif mod.startswith("sqlalchemy"):
+        prefix = _sqlalchemy_autogenerate_prefix(autogen_context)
+        return "%s%r" % (prefix, type_)
     else:
+        prefix = _user_autogenerate_prefix(autogen_context)
         return "%s%r" % (prefix, type_)
 
 def _render_constraint(constraint, autogen_context):

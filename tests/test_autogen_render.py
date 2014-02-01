@@ -129,7 +129,7 @@ class AutogenRenderTest(TestCase):
             autogenerate.render._drop_index(idx, self.autogen_context),
             "op.drop_index('test_active_code_idx', table_name='test')"
         )
-        
+
     def test_drop_index_schema(self):
         """
         autogenerate.render._drop_index using schema
@@ -163,7 +163,7 @@ class AutogenRenderTest(TestCase):
             autogenerate.render._add_unique_constraint(uq, self.autogen_context),
             "op.create_unique_constraint('uq_test_code', 'test', ['code'])"
         )
-        
+
     def test_add_unique_constraint_schema(self):
         """
         autogenerate.render._add_unique_constraint using schema
@@ -196,7 +196,7 @@ class AutogenRenderTest(TestCase):
             autogenerate.render._drop_constraint(uq, self.autogen_context),
             "op.drop_constraint('uq_test_code', 'test')"
         )
-        
+
     def test_drop_constraint_schema(self):
         """
         autogenerate.render._drop_constraint using schema
@@ -615,17 +615,91 @@ render:primary_key\n)"""
     def test_render_enum(self):
         eq_ignore_whitespace(
             autogenerate.render._repr_type(
-                        "sa.",
                         Enum("one", "two", "three", name="myenum"),
                         self.autogen_context),
             "sa.Enum('one', 'two', 'three', name='myenum')"
         )
         eq_ignore_whitespace(
             autogenerate.render._repr_type(
-                        "sa.",
                         Enum("one", "two", "three"),
                         self.autogen_context),
             "sa.Enum('one', 'two', 'three')"
         )
 
-# TODO: tests for dialect-specific type rendering + imports
+    def test_repr_plain_sqla_type(self):
+        type_ = Integer()
+        autogen_context = {
+            'opts': {
+                'sqlalchemy_module_prefix': 'sa.',
+                'alembic_module_prefix': 'op.',
+            },
+            'dialect': mysql.dialect()
+        }
+
+        eq_ignore_whitespace(
+            autogenerate.render._repr_type(type_, autogen_context),
+            "sa.Integer()"
+        )
+
+    def test_repr_user_type_user_prefix_None(self):
+        from sqlalchemy.types import UserDefinedType
+        class MyType(UserDefinedType):
+            def get_col_spec(self):
+                return "MYTYPE"
+
+        type_ = MyType()
+        autogen_context = {
+            'opts': {
+                'sqlalchemy_module_prefix': 'sa.',
+                'alembic_module_prefix': 'op.',
+                'user_module_prefix': None
+            },
+            'dialect': mysql.dialect()
+        }
+
+        eq_ignore_whitespace(
+            autogenerate.render._repr_type(type_, autogen_context),
+            "sa.MyType()"
+        )
+
+    def test_repr_user_type_user_prefix_present(self):
+        from sqlalchemy.types import UserDefinedType
+        class MyType(UserDefinedType):
+            def get_col_spec(self):
+                return "MYTYPE"
+
+        type_ = MyType()
+        autogen_context = {
+            'opts': {
+                'sqlalchemy_module_prefix': 'sa.',
+                'alembic_module_prefix': 'op.',
+                'user_module_prefix': 'user.',
+            },
+            'dialect': mysql.dialect()
+        }
+
+        eq_ignore_whitespace(
+            autogenerate.render._repr_type(type_, autogen_context),
+            "user.MyType()"
+        )
+
+    def test_repr_dialect_type(self):
+        from sqlalchemy.dialects.mysql import VARCHAR
+
+        type_ = VARCHAR(20, charset='utf8', national=True)
+        autogen_context = {
+            'opts': {
+                'sqlalchemy_module_prefix': 'sa.',
+                'alembic_module_prefix': 'op.',
+                'user_module_prefix': None,
+            },
+            'imports': set(),
+            'dialect': mysql.dialect()
+        }
+        eq_ignore_whitespace(
+            autogenerate.render._repr_type(type_, autogen_context),
+            "mysql.VARCHAR(charset='utf8', national=True, length=20)"
+        )
+        eq_(autogen_context['imports'],
+                set(['from sqlalchemy.dialects import mysql'])
+            )

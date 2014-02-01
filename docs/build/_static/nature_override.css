@@ -1,0 +1,14 @@
+@import url("nature.css");
+
+
+.versionadded, .versionchanged, .deprecated {
+    background-color: #FFFFCC;
+    border: 1px solid #FFFF66;
+    margin-bottom: 10px;
+    margin-top: 10px;
+    padding: 7px;
+}
+
+.versionadded > p > span, .versionchanged > p > span, .deprecated > p > span{
+	font-style: italic;
+}

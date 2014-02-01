@@ -607,6 +607,8 @@ Autogenerate can't currently, but will *eventually* detect:
   like CHECK and FOREIGN KEY - these are not fully implemented.
 * Sequence additions, removals - not yet implemented.
 
+.. _autogen_render_types:
+
 Rendering Custom Types in Autogenerate
 --------------------------------------
 
@@ -622,7 +624,8 @@ it is often necessary to explicitly give the type a ``__repr__()`` that will
 faithfully reproduce the constructor for that type.   But beyond that, it
 also is usually necessary to change how the enclosing module or package
 is rendered as well;
-this is accomplished using the ``render_item`` configuration option::
+this is accomplished using the :paramref:`.EnvironmentContext.configure.render_item`
+configuration option::
 
     def render_item(type_, obj, autogen_context):
         """Apply custom rendering for selected items."""
@@ -647,6 +650,75 @@ this is accomplished using the ``render_item`` configuration option::
 
 Above, we also need to make sure our ``MySpecialType`` includes an appropriate
 ``__repr__()`` method, which is invoked when we call it against ``"%r"``.
+
+The callable we use for :paramref:`.EnvironmentContext.configure.render_item`
+can also add imports to our migration script.  The ``autogen_context`` passed in
+contains an entry called ``autogen_context['imports']``, which is a Python
+``set()`` for which we can add new imports.  For example, if ``MySpecialType``
+were in a module called ``mymodel.types``, we can add the import for it
+as we encounter the type::
+
+    def render_item(type_, obj, autogen_context):
+        """Apply custom rendering for selected items."""
+
+        if type_ == 'type' and isinstance(obj, MySpecialType):
+            # add import for this type
+            autogen_context['imports'].add("from mymodel import types")
+            return "types.%r" % obj
+
+        # default rendering for other objects
+        return False
+
+The finished migration script will include our imports where the
+``${imports}`` expression is used, producing output such as::
+
+  from alembic import op
+  import sqlalchemy as sa
+  from mymodel import types
+
+  def upgrade():
+      op.add_column('sometable', Column('mycolumn', types.MySpecialType()))
+
+.. _autogen_module_prefix:
+
+Controlling the Module Prefix
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When using :paramref:`.EnvironmentContext.configure.render_item`, note that
+we deliver not just the reproduction of the type, but we can also deliver the
+"module prefix", which is a module namespace from which our type can be found
+within our migration script.  When Alembic renders SQLAlchemy types, it will
+typically use the value of :paramref:`.EnvironmentContext.configure.sqlalchemy_module_prefix`,
+which defaults to ``"sa."``, to achieve this::
+
+    Column("my_column", sa.Integer())
+
+When we use a custom type that is not within the ``sqlalchemy.`` module namespace,
+by default Alembic will still use the ``"sa."`` prefix::
+
+    Column("my_column", sa.MyCustomType())
+
+We can provide an alternate prefix here using the :paramref:`.EnvironmentContext.configure.user_module_prefix`
+option::
+
+
+    def run_migrations_online():
+        # ...
+
+        context.configure(
+                    connection=connection,
+                    target_metadata=target_metadata,
+                    user_module_prefix="mymodel.types",
+                    # ...
+                    )
+
+        # ...
+
+Where we'd get a migration like::
+
+  Column("my_column", mymodel.types.MyCustomType())
+
+.. versionadded:: 0.6.3 Added :paramref:`.EnvironmentContext.configure.user_module_prefix`.
 
 
 Generating SQL Scripts (a.k.a. "Offline Mode")

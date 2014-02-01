@@ -273,6 +273,7 @@ class EnvironmentContext(object):
             downgrade_token="downgrades",
             alembic_module_prefix="op.",
             sqlalchemy_module_prefix="sa.",
+            user_module_prefix=None,
             **kw
         ):
         """Configure a :class:`.MigrationContext` within this
@@ -469,15 +470,18 @@ class EnvironmentContext(object):
 
          .. seealso::
 
-            ``include_schemas``, ``include_symbol``
+            :ref:`autogen_render_types`
 
+            :paramref:`.EnvironmentContext.configure.include_schemas`
 
         :param include_symbol: A callable function which, given a table name
          and schema name (may be ``None``), returns ``True`` or ``False``, indicating
          if the given table should be considered in the autogenerate sweep.
 
-         .. deprecated:: 0.6.0 ``include_symbol`` is superceded by the
-            more generic ``include_object`` parameter.
+         .. deprecated:: 0.6.0 :paramref:`.EnvironmentContext.configure.include_symbol`
+            is superceded by the more generic
+            :paramref:`.EnvironmentContext.configure.include_object`
+            parameter.
 
          E.g.::
 
@@ -489,26 +493,11 @@ class EnvironmentContext(object):
                 include_symbol = include_symbol
             )
 
-         To limit autogenerate to a certain set of schemas when using the
-         ``include_schemas`` option::
-
-            def include_symbol(tablename, schema):
-                return schema in (None, "schema1", "schema2")
-
-            context.configure(
-                # ...
-                include_schemas = True,
-                include_symbol = include_symbol
-            )
-
-         .. versionadded:: 0.3.6
-
-         .. versionchanged:: 0.4.0  the ``include_symbol`` callable must now
-            also accept a "schema" argument, which may be None.
-
          .. seealso::
 
-            ``include_schemas``, ``include_object``
+            :paramref:`.EnvironmentContext.configure.include_schemas`
+
+            :paramref:`.EnvironmentContext.configure.include_object`
 
         :param include_schemas: If True, autogenerate will scan across
          all schemas located by the SQLAlchemy
@@ -522,7 +511,7 @@ class EnvironmentContext(object):
 
          .. seealso::
 
-            ``include_symbol``, ``include_object``
+            :paramref:`.EnvironmentContext.configure.include_object`
 
         :param render_item: Callable that can be used to override how
          any schema item, i.e. column, constraint, type,
@@ -575,6 +564,20 @@ class EnvironmentContext(object):
          will render them using the dialect module name, i.e. ``mssql.BIT()``,
          ``postgresql.UUID()``.
 
+        :param user_module_prefix: When autogenerate refers to a SQLAlchemy
+         type (e.g. :class:`.TypeEngine`) where the module name is not
+         under the ``sqlalchemy`` namespace, this prefix will be used
+         within autogenerate, if non-``None``; if left at its default of
+         ``None``, the
+         :paramref:`.EnvironmentContext.configure.sqlalchemy_module_prefix`
+         is used instead.
+
+         .. versionadded:: 0.6.3 added
+            :paramref:`.EnvironmentContext.configure.user_module_prefix`
+
+         .. seealso::
+
+            :ref:`autogen_module_prefix`
 
         Parameters specific to individual backends:
 
@@ -612,6 +615,7 @@ class EnvironmentContext(object):
         opts['downgrade_token'] = downgrade_token
         opts['sqlalchemy_module_prefix'] = sqlalchemy_module_prefix
         opts['alembic_module_prefix'] = alembic_module_prefix
+        opts['user_module_prefix'] = user_module_prefix
         if render_item is not None:
             opts['render_item'] = render_item
         if compare_type is not None:
