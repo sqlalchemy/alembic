@@ -12,7 +12,7 @@ from sqlalchemy.dialects import mysql, postgresql
 from sqlalchemy.sql import and_, column, literal_column
 
 from alembic import autogenerate, util, compat
-from . import eq_, eq_ignore_whitespace
+from . import eq_, eq_ignore_whitespace, requires_092, requires_09
 
 py3k = sys.version_info >= (3, )
 
@@ -612,6 +612,8 @@ render:primary_key\n)"""
             "existing_server_default='5')"
         )
 
+
+
     def test_render_enum(self):
         eq_ignore_whitespace(
             autogenerate.render._repr_type(
@@ -683,6 +685,7 @@ render:primary_key\n)"""
             "user.MyType()"
         )
 
+    @requires_09
     def test_repr_dialect_type(self):
         from sqlalchemy.dialects.mysql import VARCHAR
 
@@ -703,3 +706,86 @@ render:primary_key\n)"""
         eq_(autogen_context['imports'],
                 set(['from sqlalchemy.dialects import mysql'])
             )
+
+class RenderNamingConventionTest(TestCase):
+
+    @classmethod
+    @requires_092
+    def setup_class(cls):
+        cls.autogen_context = {
+            'opts': {
+                'sqlalchemy_module_prefix': 'sa.',
+                'alembic_module_prefix': 'op.',
+            },
+            'dialect': postgresql.dialect()
+        }
+
+
+    def setUp(self):
+
+        convention = {
+          "ix": 'ix_%(custom)s_%(column_0_label)s',
+          "uq": "uq_%(custom)s_%(table_name)s_%(column_0_name)s",
+          "ck": "ck_%(custom)s_%(table_name)s",
+          "fk": "fk_%(custom)s_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+          "pk": "pk_%(custom)s_%(table_name)s",
+          "custom": lambda const, table: "ct"
+        }
+
+        self.metadata = MetaData(
+                            naming_convention=convention
+                        )
+
+    def test_explicit_unique_constraint(self):
+        t = Table('t', self.metadata, Column('c', Integer))
+        eq_ignore_whitespace(
+            autogenerate.render._render_unique_constraint(
+                UniqueConstraint(t.c.c, deferrable='XYZ'),
+                self.autogen_context
+            ),
+            "sa.UniqueConstraint('c', deferrable='XYZ', name='uq_ct_t_c')"
+        )
+
+    def test_explicit_named_unique_constraint(self):
+        t = Table('t', self.metadata, Column('c', Integer))
+        eq_ignore_whitespace(
+            autogenerate.render._render_unique_constraint(
+                UniqueConstraint(t.c.c, name='q'),
+                self.autogen_context
+            ),
+            "sa.UniqueConstraint('c', name='q')"
+        )
+
+    def test_implicit_unique_constraint(self):
+        t = Table('t', self.metadata, Column('c', Integer, unique=True))
+        uq = [c for c in t.constraints if isinstance(c, UniqueConstraint)][0]
+        eq_ignore_whitespace(
+            autogenerate.render._render_unique_constraint(uq,
+                self.autogen_context
+            ),
+            "sa.UniqueConstraint('c', name='uq_ct_t_c')"
+        )
+
+    def test_inline_pk_constraint(self):
+        t = Table('t', self.metadata, Column('c', Integer, primary_key=True))
+        eq_ignore_whitespace(
+            autogenerate.render._add_table(t, self.autogen_context),
+            "op.create_table('t',sa.Column('c', sa.Integer(), nullable=False),"
+                "sa.PrimaryKeyConstraint('c', name='pk_ct_t'))"
+        )
+
+    def test_inline_ck_constraint(self):
+        t = Table('t', self.metadata, Column('c', Integer), CheckConstraint("c > 5"))
+        eq_ignore_whitespace(
+            autogenerate.render._add_table(t, self.autogen_context),
+            "op.create_table('t',sa.Column('c', sa.Integer(), nullable=True),"
+                "sa.CheckConstraint('c > 5', name='ck_ct_t'))"
+        )
+
+    def test_inline_fk(self):
+        t = Table('t', self.metadata, Column('c', Integer, ForeignKey('q.id')))
+        eq_ignore_whitespace(
+            autogenerate.render._add_table(t, self.autogen_context),
+            "op.create_table('t',sa.Column('c', sa.Integer(), nullable=True),"
+                "sa.ForeignKeyConstraint(['c'], ['q.id'], name='fk_ct_t_c_q'))"
+        )

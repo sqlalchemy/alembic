@@ -85,6 +85,12 @@ def requires_09(fn, *arg, **kw):
         raise SkipTest("SQLAlchemy 0.9 or greater required")
     return fn(*arg, **kw)
 
+@decorator
+def requires_092(fn, *arg, **kw):
+    if not util.sqla_092:
+        raise SkipTest("SQLAlchemy 0.9.2 or greater required")
+    return fn(*arg, **kw)
+
 _dialects = {}
 def _get_dialect(name):
     if name is None or name == 'default':
