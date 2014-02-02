@@ -40,6 +40,8 @@ try:
     ioctl = fcntl.ioctl(0, termios.TIOCGWINSZ,
                            struct.pack('HHHH', 0, 0, 0, 0))
     _h, TERMWIDTH, _hp, _wp = struct.unpack('HHHH', ioctl)
+    if TERMWIDTH <= 0:  # can occur if running in emacs pseudo-tty
+        TERMWIDTH = None
 except (ImportError, IOError):
     TERMWIDTH = None
 

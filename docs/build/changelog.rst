@@ -6,6 +6,15 @@ Changelog
     :version: 0.6.3
 
     .. change::
+      :tags: bug
+      :tickets: 172
+
+      Added a workaround for when we call ``fcntl.ioctl()`` to get at
+      ``TERMWIDTH``; if the function returns zero, as is reported to occur
+      in some pseudo-ttys, the message wrapping system is disabled in the
+      same way as if ``ioctl()`` failed.
+
+    .. change::
       :tags: feature
       :tickets: 171
 
