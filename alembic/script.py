@@ -259,7 +259,7 @@ class ScriptDirectory(object):
                 'must be resolved by manually editing the revision files to '
                 'form a linear sequence. Run `alembic branches` to see the '
                 'divergence(s).')
-            raise util.CommandError("Only a single head supported so far...")
+
         if current_heads:
             return current_heads[0]
         else:
