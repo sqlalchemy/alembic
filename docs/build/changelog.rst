@@ -3,6 +3,19 @@
 Changelog
 ==========
 .. changelog::
+    :version: 0.6.4
+
+    .. change::
+      :tags: feature
+      :pullreq: bitbucket:20
+
+      The :func:`.command.revision` command now returns the :class:`.Script`
+      object corresponding to the newly generated revision.  From this
+      structure, one can get the revision id, the module documentation,
+      and everything else, for use in scripts that call upon this command.
+      Pull request courtesy Robbie Coomber.
+
+.. changelog::
     :version: 0.6.3
     :released: February 2, 2014
 
