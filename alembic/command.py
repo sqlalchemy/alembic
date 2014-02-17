@@ -95,7 +95,8 @@ def revision(config, message=None, autogenerate=False, sql=False):
             template_args=template_args,
         ):
             script.run_env()
-    script.generate_revision(util.rev_id(), message, **template_args)
+    return script.generate_revision(util.rev_id(), message, refresh=True,
+                                    **template_args)
 
 
 def upgrade(config, revision, sql=False, tag=None):
