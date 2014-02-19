@@ -6,6 +6,15 @@ Changelog
     :version: 0.6.4
 
     .. change::
+      :tags: bug, py3k
+      :tickets: 175
+
+      Fixed a failure of the system that allows "legacy keyword arguments"
+      to be understood, which arose as of a change in Python 3.4 regarding
+      decorators.  A workaround is applied that allows the code to work
+      across Python 3 versions.
+
+    .. change::
       :tags: feature
       :pullreq: bitbucket:20
 

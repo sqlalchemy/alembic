@@ -325,7 +325,15 @@ def _with_legacy_names(translations):
                 metadata)
         decorated = eval(code, {"target": go})
         decorated.__defaults__ = getattr(fn, '__func__', fn).__defaults__
-        return update_wrapper(decorated, fn)
+        update_wrapper(decorated, fn)
+        if hasattr(decorated, '__wrapped__'):
+            # update_wrapper in py3k applies __wrapped__, which causes
+            # inspect.getargspec() to ignore the extra arguments on our
+            # wrapper as of Python 3.4.  We need this for the
+            # "module class proxy" thing though, so just del the __wrapped__
+            # for now. See #175 as well as bugs.python.org/issue17482
+            del decorated.__wrapped__
+        return decorated
 
     return decorate
 
