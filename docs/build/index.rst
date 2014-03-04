@@ -11,6 +11,7 @@ with the `SQLAlchemy <http://www.sqlalchemy.org>`_ Database Toolkit for Python.
    front
    tutorial
    ops
+   cookbook
    api
    changelog
 
