@@ -822,13 +822,13 @@ class Operations(object):
                     {'id':3, 'name':'Wendy Jones',
                             'create_date':op.inline_literal("2008-08-15")},
                 ],
-                multiparams=False
+                multiinsert=False
             )
 
         When using :meth:`.Operations.inline_literal` in conjunction with
         :meth:`.Operations.bulk_insert`, in order for the statement to work
         in "online" (e.g. non --sql) mode, the
-        :paramref:`~.Operations.inline_literal.multiparams`
+        :paramref:`~.Operations.bulk_insert.multiinsert`
         flag should be set to ``False``, which will have the effect of
         individual INSERT statements being emitted to the database, each
         with a distinct VALUES clause, so that the "inline" values can
@@ -837,7 +837,7 @@ class Operations(object):
 
         .. versionadded:: 0.6.4 :meth:`.Operations.inline_literal` can now
            be used with :meth:`.Operations.bulk_insert`, and the
-           :paramref:`~.Operations.inline_literal.multiparams` flag has
+           :paramref:`~.Operations.bulk_insert.multiinsert` flag has
            been added to assist in this usage when running in "online"
            mode.
 

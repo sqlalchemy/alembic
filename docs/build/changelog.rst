@@ -13,7 +13,7 @@ Changelog
       properly when :meth:`.Operations.inline_literal` values were used,
       either in --sql or non-sql mode.    The values will now render
       directly in --sql mode.  For compatibility with "online" mode,
-      a new flag :paramref:`~.Operations.inline_literal.multiparams`
+      a new flag :paramref:`~.Operations.bulk_insert.multiinsert`
       can be set to False which will cause each parameter set to be
       compiled and executed with individual INSERT statements.
 
