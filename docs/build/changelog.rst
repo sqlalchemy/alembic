@@ -6,6 +6,18 @@ Changelog
     :version: 0.6.4
 
     .. change::
+      :tags: bug
+      :tickets: 179
+
+      Fixed bug where :meth:`.Operations.bulk_insert` would not function
+      properly when :meth:`.Operations.inline_literal` values were used,
+      either in --sql or non-sql mode.    The values will now render
+      directly in --sql mode.  For compatibility with "online" mode,
+      a new flag :paramref:`~.Operations.inline_literal.multiparams`
+      can be set to False which will cause each parameter set to be
+      compiled and executed with individual INSERT statements.
+
+    .. change::
       :tags: bug, py3k
       :tickets: 175
 

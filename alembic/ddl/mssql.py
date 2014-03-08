@@ -86,19 +86,19 @@ class MSSQLImpl(DefaultImpl):
                                 schema=schema,
                                 name=name)
 
-    def bulk_insert(self, table, rows):
+    def bulk_insert(self, table, rows, **kw):
         if self.as_sql:
             self._exec(
                 "SET IDENTITY_INSERT %s ON" %
                     self.dialect.identifier_preparer.format_table(table)
             )
-            super(MSSQLImpl, self).bulk_insert(table, rows)
+            super(MSSQLImpl, self).bulk_insert(table, rows, **kw)
             self._exec(
                 "SET IDENTITY_INSERT %s OFF" %
                     self.dialect.identifier_preparer.format_table(table)
             )
         else:
-            super(MSSQLImpl, self).bulk_insert(table, rows)
+            super(MSSQLImpl, self).bulk_insert(table, rows, **kw)
 
 
     def drop_column(self, table_name, column, **kw):

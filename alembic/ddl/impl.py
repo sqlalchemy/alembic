@@ -163,7 +163,7 @@ class DefaultImpl(with_metaclass(ImplMeta)):
     def drop_index(self, index):
         self._exec(schema.DropIndex(index))
 
-    def bulk_insert(self, table, rows):
+    def bulk_insert(self, table, rows, multiinsert=True):
         if not isinstance(rows, list):
             raise TypeError("List expected")
         elif rows and not isinstance(rows[0], dict):
@@ -171,7 +171,9 @@ class DefaultImpl(with_metaclass(ImplMeta)):
         if self.as_sql:
             for row in rows:
                 self._exec(table.insert(inline=True).values(**dict(
-                    (k, _literal_bindparam(k, v, type_=table.c[k].type))
+                    (k,
+                        _literal_bindparam(k, v, type_=table.c[k].type)
+                        if not isinstance(v, _literal_bindparam) else v)
                     for k, v in row.items()
                 )))
         else:
@@ -179,7 +181,11 @@ class DefaultImpl(with_metaclass(ImplMeta)):
             if not hasattr(table, '_autoincrement_column'):
                 table._autoincrement_column = None
             if rows:
-                self._exec(table.insert(inline=True), multiparams=rows)
+                if multiinsert:
+                    self._exec(table.insert(inline=True), multiparams=rows)
+                else:
+                    for row in rows:
+                        self._exec(table.insert(inline=True).values(**row))
 
     def compare_type(self, inspector_column, metadata_column):
 
