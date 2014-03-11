@@ -7,6 +7,16 @@ Changelog
 
     .. change::
       :tags: bug
+      :tickets: 160
+
+      Suppressed IOErrors which can raise when program output pipe
+      is closed under a program like ``head``; however this only
+      works on Python 2.  On Python 3, there is not yet a known way to
+      suppress the BrokenPipeError warnings without prematurely terminating
+      the program via signals.
+
+    .. change::
+      :tags: bug
       :tickets: 179
 
       Fixed bug where :meth:`.Operations.bulk_insert` would not function

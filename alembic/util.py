@@ -140,7 +140,13 @@ def write_outstream(stream, *text):
         if not isinstance(t, binary_type):
             t = t.encode(encoding, 'replace')
         t = t.decode(encoding)
-        stream.write(t)
+        try:
+            stream.write(t)
+        except IOError:
+            # suppress "broken pipe" errors.
+            # no known way to handle this on Python 3 however
+            # as the exception is "ignored" (noisily) in TextIOWrapper.
+            break
 
 def coerce_resource_to_filename(fname):
     """Interpret a filename as either a filesystem location or as a package resource.
