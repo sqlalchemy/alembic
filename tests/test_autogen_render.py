@@ -12,7 +12,7 @@ from sqlalchemy.dialects import mysql, postgresql
 from sqlalchemy.sql import and_, column, literal_column
 
 from alembic import autogenerate, util, compat
-from . import eq_, eq_ignore_whitespace, requires_092, requires_09
+from . import eq_, eq_ignore_whitespace, requires_092, requires_09, requires_094
 
 py3k = sys.version_info >= (3, )
 
@@ -576,6 +576,7 @@ render:primary_key\n)"""
             "sa.CheckConstraint('im a constraint', name='cc1')"
         )
 
+
     def test_render_check_constraint_sqlexpr(self):
         c = column('c')
         five = literal_column('5')
@@ -710,7 +711,7 @@ render:primary_key\n)"""
 class RenderNamingConventionTest(TestCase):
 
     @classmethod
-    @requires_092
+    @requires_094
     def setup_class(cls):
         cls.autogen_context = {
             'opts': {
@@ -736,6 +737,16 @@ class RenderNamingConventionTest(TestCase):
                             naming_convention=convention
                         )
 
+    def test_schema_type_boolean(self):
+        t = Table('t', self.metadata, Column('c', Boolean(name='xyz')))
+        eq_ignore_whitespace(
+            autogenerate.render._add_column(
+                    None, "t", t.c.c,
+                        self.autogen_context),
+            "op.add_column('t', "
+                "sa.Column('c', sa.Boolean(name='xyz'), nullable=True))"
+        )
+
     def test_explicit_unique_constraint(self):
         t = Table('t', self.metadata, Column('c', Integer))
         eq_ignore_whitespace(
@@ -743,7 +754,7 @@ class RenderNamingConventionTest(TestCase):
                 UniqueConstraint(t.c.c, deferrable='XYZ'),
                 self.autogen_context
             ),
-            "sa.UniqueConstraint('c', deferrable='XYZ', name='uq_ct_t_c')"
+            "sa.UniqueConstraint('c', deferrable='XYZ', name=op.f('uq_ct_t_c'))"
         )
 
     def test_explicit_named_unique_constraint(self):
@@ -763,7 +774,7 @@ class RenderNamingConventionTest(TestCase):
             autogenerate.render._render_unique_constraint(uq,
                 self.autogen_context
             ),
-            "sa.UniqueConstraint('c', name='uq_ct_t_c')"
+            "sa.UniqueConstraint('c', name=op.f('uq_ct_t_c'))"
         )
 
     def test_inline_pk_constraint(self):
@@ -771,7 +782,7 @@ class RenderNamingConventionTest(TestCase):
         eq_ignore_whitespace(
             autogenerate.render._add_table(t, self.autogen_context),
             "op.create_table('t',sa.Column('c', sa.Integer(), nullable=False),"
-                "sa.PrimaryKeyConstraint('c', name='pk_ct_t'))"
+                "sa.PrimaryKeyConstraint('c', name=op.f('pk_ct_t')))"
         )
 
     def test_inline_ck_constraint(self):
@@ -779,7 +790,7 @@ class RenderNamingConventionTest(TestCase):
         eq_ignore_whitespace(
             autogenerate.render._add_table(t, self.autogen_context),
             "op.create_table('t',sa.Column('c', sa.Integer(), nullable=True),"
-                "sa.CheckConstraint('c > 5', name='ck_ct_t'))"
+                "sa.CheckConstraint('c > 5', name=op.f('ck_ct_t')))"
         )
 
     def test_inline_fk(self):
@@ -787,5 +798,28 @@ class RenderNamingConventionTest(TestCase):
         eq_ignore_whitespace(
             autogenerate.render._add_table(t, self.autogen_context),
             "op.create_table('t',sa.Column('c', sa.Integer(), nullable=True),"
-                "sa.ForeignKeyConstraint(['c'], ['q.id'], name='fk_ct_t_c_q'))"
+                "sa.ForeignKeyConstraint(['c'], ['q.id'], name=op.f('fk_ct_t_c_q')))"
+        )
+
+    def test_render_check_constraint_renamed(self):
+        """test that constraints from autogenerate render with
+        the naming convention name explicitly.  These names should
+        be frozen into the migration scripts so that they remain
+        the same if the application's naming convention changes.
+
+        However, op.create_table() and others need to be careful that
+        these don't double up when the "%(constraint_name)s" token is
+        used.
+
+        """
+        m1 = MetaData(naming_convention={"ck": "ck_%(table_name)s_%(constraint_name)s"})
+        ck = CheckConstraint("im a constraint", name="cc1")
+        Table('t', m1, Column('x'), ck)
+
+        eq_ignore_whitespace(
+            autogenerate.render._render_check_constraint(
+                ck,
+                self.autogen_context
+            ),
+            "sa.CheckConstraint('im a constraint', name=op.f('ck_t_cc1'))"
         )

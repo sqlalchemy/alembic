@@ -7,6 +7,48 @@ Changelog
 
     .. change::
       :tags: bug
+      :tickets: 183
+
+      Extensive changes have been made to more fully support SQLAlchemy's new
+      naming conventions feature.  Note that while SQLAlchemy has added this
+      feature as of 0.9.2, some additional fixes in 0.9.4 are needed to
+      resolve some of the issues:
+
+      1. The :class:`.Operations` object now takes into account the naming
+         conventions that are present on the :class:`.MetaData` object that's
+         associated using :paramref:`~.EnvironmentContext.configure.target_metadata`.
+         When :class:`.Operations` renders a constraint directive like
+         ``ADD CONSTRAINT``, it now will make use of this naming convention
+         when it produces its own temporary :class:`.MetaData` object.
+
+      2. Note however that the autogenerate feature in most cases generates
+         constraints like foreign keys and unique constraints with the
+         final names intact; the only exception are the constraints implicit
+         with a schema-type like Boolean or Enum.  In most of these cases,
+         the naming convention feature will not take effect for these constraints
+         and will instead use the given name as is, with one exception....
+
+      3. Naming conventions which use the ``"%(constraint_name)s"`` token, that
+         is, produce a new name that uses the original name as a component,
+         will still be pulled into the naming convention converter and be
+         converted.  The problem arises when autogenerate renders a constraint
+         with it's already-generated name present in the migration file's source
+         code, the name will be doubled up at render time due to the combination
+         of #1 and #2.  So to work around this, autogenerate now renders these
+         already-tokenized names using the new :meth:`.Operations.f` component.
+         This component is only generated if **SQLAlchemy 0.9.4** or greater
+         is in use.
+
+      Therefore it is highly recommended that an upgrade to Alembic 0.6.4
+      be accompanied by an upgrade of SQLAlchemy 0.9.4, if the new naming
+      conventions feature is used.
+
+      .. seealso::
+
+          :ref:`autogen_naming_conventions`
+
+    .. change::
+      :tags: bug
       :tickets: 160
 
       Suppressed IOErrors which can raise when program output pipe

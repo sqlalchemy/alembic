@@ -25,6 +25,7 @@ sqla_07 = _vers > (0, 7, 2)
 sqla_08 = _vers >= (0, 8, 0, 'b2')
 sqla_09 = _vers >= (0, 9, 0)
 sqla_092 = _vers >= (0, 9, 2)
+sqla_094 = _vers >= (0, 9, 4)
 if not sqla_07:
     raise CommandError(
             "SQLAlchemy 0.7.3 or greater is required. ")

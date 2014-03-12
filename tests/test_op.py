@@ -1,12 +1,12 @@
 """Test against the builders in the op.* module."""
 
 from sqlalchemy import Integer, Column, ForeignKey, \
-            Table, String, Boolean
+            Table, String, Boolean, MetaData, CheckConstraint
 from sqlalchemy.sql import column, func, text
 from sqlalchemy import event
 
 from alembic import op
-from . import op_fixture, assert_raises_message
+from . import op_fixture, assert_raises_message, requires_094
 
 @event.listens_for(Table, "after_parent_attach")
 def _add_cols(table, metadata):
@@ -93,6 +93,7 @@ def test_add_column_schema_type():
         'ALTER TABLE t1 ADD COLUMN c1 BOOLEAN NOT NULL',
         'ALTER TABLE t1 ADD CHECK (c1 IN (0, 1))'
     )
+
 
 def test_add_column_schema_schema_type():
     """Test that a schema type generates its constraints...."""
@@ -417,6 +418,7 @@ def test_add_primary_key_constraint_schema():
     context.assert_(
         "ALTER TABLE bar.t1 ADD CONSTRAINT pk_test PRIMARY KEY (foo)"
     )
+
 
 def test_add_check_constraint():
     context = op_fixture()

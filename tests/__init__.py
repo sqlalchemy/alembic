@@ -7,7 +7,7 @@ import textwrap
 
 from nose import SkipTest
 from sqlalchemy.engine import default
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, text, MetaData
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.util import decorator
 
@@ -91,6 +91,12 @@ def requires_092(fn, *arg, **kw):
         raise SkipTest("SQLAlchemy 0.9.2 or greater required")
     return fn(*arg, **kw)
 
+@decorator
+def requires_094(fn, *arg, **kw):
+    if not util.sqla_094:
+        raise SkipTest("SQLAlchemy 0.9.4 or greater required")
+    return fn(*arg, **kw)
+
 _dialects = {}
 def _get_dialect(name):
     if name is None or name == 'default':
@@ -160,7 +166,7 @@ def assert_raises_message(except_cls, msg, callable_, *args, **kwargs):
         assert re.search(msg, str(e)), "%r !~ %s" % (msg, e)
         print(text_type(e))
 
-def op_fixture(dialect='default', as_sql=False):
+def op_fixture(dialect='default', as_sql=False, naming_convention=None):
     impl = _impls[dialect]
     class Impl(impl):
         def __init__(self, dialect, as_sql):
@@ -180,12 +186,19 @@ def op_fixture(dialect='default', as_sql=False):
                 sql
             )
 
+    opts = {}
+    if naming_convention:
+        if not util.sqla_092:
+            raise SkipTest(
+                        "naming_convention feature requires "
+                        "sqla 0.9.2 or greater")
+        opts['target_metadata'] = MetaData(naming_convention=naming_convention)
 
     class ctx(MigrationContext):
         def __init__(self, dialect='default', as_sql=False):
             self.dialect = _get_dialect(dialect)
             self.impl = Impl(self.dialect, as_sql)
-
+            self.opts = opts
             self.as_sql = as_sql
 
         def assert_(self, *sql):

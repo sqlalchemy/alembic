@@ -9,6 +9,11 @@ from .ddl import impl
 
 __all__ = ('Operations',)
 
+try:
+    from sqlalchemy.sql.naming import conv
+except:
+    conv = None
+
 class Operations(object):
     """Define high level migration operations.
 
@@ -55,7 +60,7 @@ class Operations(object):
 
 
     def _primary_key_constraint(self, name, table_name, cols, schema=None):
-        m = sa_schema.MetaData()
+        m = self._metadata()
         columns = [sa_schema.Column(n, NULLTYPE) for n in cols]
         t1 = sa_schema.Table(table_name, m,
                 *columns,
@@ -69,7 +74,7 @@ class Operations(object):
                                     onupdate=None, ondelete=None,
                                     deferrable=None, source_schema=None,
                                     referent_schema=None):
-        m = sa_schema.MetaData()
+        m = self._metadata()
         if source == referent:
             t1_cols = local_cols + remote_cols
         else:
@@ -97,7 +102,7 @@ class Operations(object):
         return f
 
     def _unique_constraint(self, name, source, local_cols, schema=None, **kw):
-        t = sa_schema.Table(source, sa_schema.MetaData(),
+        t = sa_schema.Table(source, self._metadata(),
                     *[sa_schema.Column(n, NULLTYPE) for n in local_cols],
                     schema=schema)
         kw['name'] = name
@@ -108,14 +113,22 @@ class Operations(object):
         return uq
 
     def _check_constraint(self, name, source, condition, schema=None, **kw):
-        t = sa_schema.Table(source, sa_schema.MetaData(),
+        t = sa_schema.Table(source, self._metadata(),
                     sa_schema.Column('x', Integer), schema=schema)
         ck = sa_schema.CheckConstraint(condition, name=name, **kw)
         t.append_constraint(ck)
         return ck
 
+    def _metadata(self):
+        kw = {}
+        if 'target_metadata' in self.migration_context.opts:
+            mt = self.migration_context.opts['target_metadata']
+            if hasattr(mt, 'naming_convention'):
+                kw['naming_convention'] = mt.naming_convention
+        return sa_schema.MetaData(**kw)
+
     def _table(self, name, *columns, **kw):
-        m = sa_schema.MetaData()
+        m = self._metadata()
         t = sa_schema.Table(name, m, *columns, **kw)
         for f in t.foreign_keys:
             self._ensure_table_for_fk(m, f)
@@ -125,7 +138,7 @@ class Operations(object):
         return sa_schema.Column(name, type_, **kw)
 
     def _index(self, name, tablename, columns, schema=None, **kw):
-        t = sa_schema.Table(tablename or 'no_table', sa_schema.MetaData(),
+        t = sa_schema.Table(tablename or 'no_table', self._metadata(),
             *[sa_schema.Column(n, NULLTYPE) for n in columns],
             schema=schema
         )
@@ -308,6 +321,52 @@ class Operations(object):
             for constraint in t.constraints:
                 if _count_constraint(constraint):
                     self.impl.add_constraint(constraint)
+
+    def f(self, name):
+        """Indicate a string name that has already had a naming convention
+        applied to it.
+
+        This feature combines with the SQLAlchemy ``naming_convention`` feature
+        to disambiguate constraint names that have already had naming
+        conventions applied to them, versus those that have not.  This is
+        necessary in the case that the ``"%(constraint_name)s"`` token
+        is used within a naming convention, so that it can be identified
+        that this particular name should remain fixed.
+
+        If the :meth:`.Operations.f` is used on a constraint, the naming
+        convention will not take effect::
+
+            op.add_column('t', 'x', Boolean(name=op.f('ck_bool_t_x')))
+
+        Above, the CHECK constraint generated will have the name ``ck_bool_t_x``
+        regardless of whether or not a naming convention is in use.
+
+        Alternatively, if a naming convention is in use, and 'f' is not used,
+        names will be converted along conventions.  If the ``target_metadata``
+        contains the naming convention
+        ``{"ck": "ck_bool_%(table_name)s_%(constraint_name)s"}``, then the
+        output of the following:
+
+            op.add_column('t', 'x', Boolean(name='x'))
+
+        will be::
+
+            CONSTRAINT ck_bool_t_x CHECK (x in (1, 0)))
+
+        The function is rendered in the output of autogenerate when
+        a particular constraint name is already converted, for SQLAlchemy
+        version **0.9.4 and greater only**.   Even though ``naming_convention``
+        was introduced in 0.9.2, the string disambiguation service is new
+        as of 0.9.4.
+
+        .. versionadded:: 0.6.4
+
+        """
+        if conv:
+            return conv(name)
+        else:
+            raise NotImplementedError(
+                    "op.f() feature requires SQLAlchemy 0.9.4 or greater.")
 
     def add_column(self, table_name, column, schema=None):
         """Issue an "add column" instruction using the current
