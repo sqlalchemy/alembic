@@ -219,12 +219,16 @@ def _compare_indexes_and_uniques(schema, tname, object_filters, conn_table,
     metadata_indexes = set(metadata_table.indexes)
 
     conn_uniques = conn_indexes = frozenset()
+
+    supports_unique_constraints = False
+
     if conn_table is not None:
         # 1b. ... and from connection, if the table exists
         if hasattr(inspector, "get_unique_constraints"):
             try:
                 conn_uniques = inspector.get_unique_constraints(
                                                 tname, schema=schema)
+                supports_unique_constraints = True
             except NotImplementedError:
                 pass
         try:
@@ -307,6 +311,10 @@ def _compare_indexes_and_uniques(schema, tname, object_filters, conn_table,
                     ])
             )
         else:
+            if not supports_unique_constraints:
+                # can't report unique indexes as added if we don't
+                # detect them
+                return
             if is_create_table:
                 # unique constraints are created inline with table defs
                 return
@@ -319,6 +327,12 @@ def _compare_indexes_and_uniques(schema, tname, object_filters, conn_table,
 
     def obj_removed(obj):
         if obj.is_index:
+            if obj.is_unique and not supports_unique_constraints:
+                # many databases double up unique constraints
+                # as unique indexes.  without that list we can't
+                # be sure what we're doing here
+                return
+
             diffs.append(("remove_index", obj.const))
             log.info("Detected removed index '%s' on '%s'", obj.name, tname)
         else:
@@ -340,7 +354,6 @@ def _compare_indexes_and_uniques(schema, tname, object_filters, conn_table,
                 )
             diffs.append(("remove_constraint", old.const))
             diffs.append(("add_constraint", new.const))
-
 
     for added_name in sorted(set(metadata_names).difference(conn_names)):
         obj = metadata_names[added_name]

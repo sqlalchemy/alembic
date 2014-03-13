@@ -6,6 +6,22 @@ Changelog
     :version: 0.6.4
 
     .. change::
+      :tags: bug, mssql
+      :tickets: 185
+
+      The feature that keeps on giving, index/unique constraint autogenerate
+      detection, has even more fixes, this time to accommodate database dialects
+      that both don't yet report on unique constraints, but the backend
+      does report unique constraints as indexes.   The logic
+      Alembic uses to distinguish between "this is an index!" vs.
+      "this is a unique constraint that is also reported as an index!" has now
+      been further enhanced to not produce unwanted migrations when the dialect
+      is observed to not yet implement get_unique_constraints() (e.g. mssql).
+      Note that such a backend will no longer report index drops for unique
+      indexes, as these cannot be distinguished from an unreported unique
+      index.
+
+    .. change::
       :tags: bug
       :tickets: 183
 
