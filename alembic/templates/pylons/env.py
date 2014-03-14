@@ -46,7 +46,7 @@ def run_migrations_offline():
 
     """
     context.configure(
-                url=meta.engine.url)
+                url=meta.engine.url, target_metadata=target_metadata)
     with context.begin_transaction():
         context.run_migrations()
 

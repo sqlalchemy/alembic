@@ -65,7 +65,8 @@ def run_migrations_offline():
         file_ = "%s.sql" % name
         logger.info("Writing output to %s" % file_)
         with open(file_, 'w') as buffer:
-            context.configure(url=rec['url'], output_buffer=buffer)
+            context.configure(url=rec['url'], output_buffer=buffer,
+                                target_metadata=target_metadata.get(name))
             with context.begin_transaction():
                 context.run_migrations(engine_name=name)
 
