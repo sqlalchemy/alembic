@@ -6,6 +6,14 @@ Changelog
     :version: 0.6.4
 
     .. change::
+      :tags: feature
+      :tickets: 163
+
+      Altered the support for "sourceless" migration files (e.g. only
+      .pyc or .pyo present) so that the flag "sourceless=true" needs to
+      be in alembic.ini for this behavior to take effect.
+
+    .. change::
       :tags: bug, mssql
       :tickets: 185
 

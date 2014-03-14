@@ -4,7 +4,8 @@ import re
 import shutil
 from . import util
 
-_rev_file = re.compile(r'(.*\.py)(c|o)?$')
+_sourceless_rev_file = re.compile(r'(.*\.py)(c|o)?$')
+_only_source_rev_file = re.compile(r'(.*\.py)$')
 _legacy_rev = re.compile(r'([a-f0-9]+)\.py$')
 _mod_def_re = re.compile(r'(upgrade|downgrade)_([a-z0-9]+)')
 _slug_re = re.compile(r'\w+')
@@ -31,11 +32,13 @@ class ScriptDirectory(object):
 
     """
     def __init__(self, dir, file_template=_default_file_template,
-                    truncate_slug_length=40):
+                    truncate_slug_length=40,
+                    sourceless=False):
         self.dir = dir
         self.versions = os.path.join(self.dir, 'versions')
         self.file_template = file_template
         self.truncate_slug_length = truncate_slug_length or 40
+        self.sourceless = sourceless
 
         if not os.access(dir, os.F_OK):
             raise util.CommandError("Path doesn't exist: %r.  Please use "
@@ -63,7 +66,8 @@ class ScriptDirectory(object):
                     file_template=config.get_main_option(
                                         'file_template',
                                         _default_file_template),
-                    truncate_slug_length=truncate_slug_length
+                    truncate_slug_length=truncate_slug_length,
+                    sourceless=config.get_main_option("sourceless") == "true"
                     )
 
     def walk_revisions(self, base="base", head="head"):
@@ -206,7 +210,7 @@ class ScriptDirectory(object):
     def _revision_map(self):
         map_ = {}
         for file_ in os.listdir(self.versions):
-            script = Script._from_filename(self.versions, file_)
+            script = Script._from_filename(self, self.versions, file_)
             if script is None:
                 continue
             if script.revision in map_:
@@ -348,7 +352,7 @@ class ScriptDirectory(object):
             **kw
         )
         if refresh:
-            script = Script._from_path(path)
+            script = Script._from_path(self, path)
             self._revision_map[script.revision] = script
             if script.down_revision:
                 self._revision_map[script.down_revision].\
@@ -457,20 +461,27 @@ class Script(object):
                         self.doc)
 
     @classmethod
-    def _from_path(cls, path):
+    def _from_path(cls, scriptdir, path):
         dir_, filename = os.path.split(path)
-        return cls._from_filename(dir_, filename)
+        return cls._from_filename(scriptdir, dir_, filename)
 
     @classmethod
-    def _from_filename(cls, dir_, filename):
-        py_match = _rev_file.match(filename)
+    def _from_filename(cls, scriptdir, dir_, filename):
+        if scriptdir.sourceless:
+            py_match = _sourceless_rev_file.match(filename)
+        else:
+            py_match = _only_source_rev_file.match(filename)
 
         if not py_match:
             return None
 
         py_filename = py_match.group(1)
-        is_c = py_match.group(2) == 'c'
-        is_o = py_match.group(2) == 'o'
+
+        if scriptdir.sourceless:
+            is_c = py_match.group(2) == 'c'
+            is_o = py_match.group(2) == 'o'
+        else:
+            is_c = is_o = False
 
         if is_o or is_c:
             py_exists = os.path.exists(os.path.join(dir_, py_filename))

@@ -241,12 +241,13 @@ config = context.config
     with open(path, 'w') as f:
         f.write(txt)
 
-def _sqlite_testing_config():
+def _sqlite_testing_config(sourceless=False):
     dir_ = os.path.join(staging_directory, 'scripts')
     return _write_config_file("""
 [alembic]
 script_location = %s
 sqlalchemy.url = sqlite:///%s/foo.db
+sourceless = %s
 
 [loggers]
 keys = root
@@ -271,7 +272,7 @@ keys = generic
 [formatter_generic]
 format = %%(levelname)-5.5s [%%(name)s] %%(message)s
 datefmt = %%H:%%M:%%S
-    """ % (dir_, dir_))
+    """ % (dir_, dir_, "true" if sourceless else "false"))
 
 
 def _no_sql_testing_config(dialect="postgresql", directives=""):
@@ -362,7 +363,7 @@ def write_script(scriptdir, rev_id, content, encoding='ascii', sourceless=False)
     pyc_path = util.pyc_file_from_path(path)
     if os.access(pyc_path, os.F_OK):
         os.unlink(pyc_path)
-    script = Script._from_path(path)
+    script = Script._from_path(scriptdir, path)
     old = scriptdir._revision_map[script.revision]
     if old.down_revision != script.down_revision:
         raise Exception("Can't change down_revision "

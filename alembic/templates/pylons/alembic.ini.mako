@@ -15,6 +15,11 @@ script_location = ${script_location}
 # the 'revision' command, regardless of autogenerate
 # revision_environment = false
 
+# set to 'true' to allow .pyc and .pyo files without
+# a source .py file to be detected as revisions in the
+# versions/ directory
+# sourceless = false
+
 pylons_config_file = ./development.ini
 
 # that's it !

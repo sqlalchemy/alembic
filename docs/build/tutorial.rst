@@ -127,6 +127,11 @@ The file generated with the "generic" configuration looks like::
     # the 'revision' command, regardless of autogenerate
     # revision_environment = false
 
+    # set to 'true' to allow .pyc and .pyo files without
+    # a source .py file to be detected as revisions in the
+    # versions/ directory
+    # sourceless = false
+
     sqlalchemy.url = driver://user:pass@localhost/dbname
 
     # Logging configuration
@@ -198,12 +203,12 @@ This file contains the following features:
       ``%%(minute).2d``, ``%%(second).2d`` - components of the create date
       as returned by ``datetime.datetime.now()``
 
-    .. versionadded:: 0.3.6 - added date parameters to ``file_template``.
+  .. versionadded:: 0.3.6 - added date parameters to ``file_template``.
 
 * ``truncate_slug_length`` - defaults to 40, the max number of characters
   to include in the "slug" field.
 
-    .. versionadded:: 0.6.1 - added ``truncate_slug_length`` configuration
+  .. versionadded:: 0.6.1 - added ``truncate_slug_length`` configuration
 
 * ``sqlalchemy.url`` - A URL to connect to the database via SQLAlchemy.  This key is in fact
   only referenced within the ``env.py`` file that is specific to the "generic" configuration;
@@ -212,7 +217,17 @@ This file contains the following features:
   of the file.
 * ``revision_environment`` - this is a flag which when set to the value 'true', will indicate
   that the migration environment script ``env.py`` should be run unconditionally when
-  generating new revision files (new in 0.3.3).
+  generating new revision files
+
+  .. versionadded:: 0.3.3
+
+* ``sourceless`` - when set to 'true', revision files that only exist as .pyc
+  or .pyo files in the versions directory will be used as versions, allowing
+  "sourceless" versioning folders.  When left at the default of 'false',
+  only .py files are consumed as version files.
+
+  .. versionadded:: 0.6.4
+
 * ``[loggers]``, ``[handlers]``, ``[formatters]``, ``[logger_*]``, ``[handler_*]``,
   ``[formatter_*]`` - these sections are all part of Python's standard logging configuration,
   the mechanics of which are documented at `Configuration File Format <http://docs.python.org/library/logging.config.html#configuration-file-format>`_.
