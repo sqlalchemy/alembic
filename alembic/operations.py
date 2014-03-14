@@ -73,7 +73,8 @@ class Operations(object):
                                     local_cols, remote_cols,
                                     onupdate=None, ondelete=None,
                                     deferrable=None, source_schema=None,
-                                    referent_schema=None):
+                                    referent_schema=None, initially=None,
+                                    match=None, **dialect_kw):
         m = self._metadata()
         if source == referent:
             t1_cols = local_cols + remote_cols
@@ -95,7 +96,10 @@ class Operations(object):
                                             name=name,
                                             onupdate=onupdate,
                                             ondelete=ondelete,
-                                            deferrable=deferrable
+                                            deferrable=deferrable,
+                                            initially=initially,
+                                            match=match,
+                                            **dialect_kw
                                             )
         t1.append_constraint(f)
 
@@ -514,10 +518,12 @@ class Operations(object):
                                 schema)
                 )
 
+
     def create_foreign_key(self, name, source, referent, local_cols,
                            remote_cols, onupdate=None, ondelete=None,
-                           deferrable=None, source_schema=None,
-                           referent_schema=None):
+                           deferrable=None, initially=None, match=None,
+                           source_schema=None, referent_schema=None,
+                           **dialect_kw):
         """Issue a "create foreign key" instruction using the
         current migration context.
 
@@ -567,7 +573,8 @@ class Operations(object):
                             local_cols, remote_cols,
                             onupdate=onupdate, ondelete=ondelete,
                             deferrable=deferrable, source_schema=source_schema,
-                            referent_schema=referent_schema)
+                            referent_schema=referent_schema,
+                            initially=initially, match=match, **dialect_kw)
                 )
 
     def create_unique_constraint(self, name, source, local_cols,

@@ -6,6 +6,13 @@ Changelog
     :version: 0.6.4
 
     .. change::
+      :tags: bug
+      :tickets: 190
+
+      Added support for the ``initially``, ``match`` keyword arguments
+      as well as dialect-specific keyword arguments to
+      :meth:`.Operations.create_foreign_key`.
+
       :tags: feature
       :tickets: 163
 

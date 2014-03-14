@@ -6,7 +6,8 @@ from sqlalchemy.sql import column, func, text
 from sqlalchemy import event
 
 from alembic import op
-from . import op_fixture, assert_raises_message, requires_094
+from . import op_fixture, assert_raises_message, requires_094, eq_
+import mock
 
 @event.listens_for(Table, "after_parent_attach")
 def _add_cols(table, metadata):
@@ -396,6 +397,38 @@ def test_add_foreign_key_deferrable():
         "ALTER TABLE t1 ADD CONSTRAINT fk_test FOREIGN KEY(foo, bar) "
             "REFERENCES t2 (bat, hoho) DEFERRABLE"
     )
+
+def test_add_foreign_key_initially():
+    context = op_fixture()
+    op.create_foreign_key('fk_test', 't1', 't2',
+                    ['foo', 'bar'], ['bat', 'hoho'],
+                    initially='INITIAL')
+    context.assert_(
+        "ALTER TABLE t1 ADD CONSTRAINT fk_test FOREIGN KEY(foo, bar) "
+            "REFERENCES t2 (bat, hoho) INITIALLY INITIAL"
+    )
+
+def test_add_foreign_key_match():
+    context = op_fixture()
+    op.create_foreign_key('fk_test', 't1', 't2',
+                    ['foo', 'bar'], ['bat', 'hoho'],
+                    match='SIMPLE')
+    context.assert_(
+        "ALTER TABLE t1 ADD CONSTRAINT fk_test FOREIGN KEY(foo, bar) "
+            "REFERENCES t2 (bat, hoho) MATCH SIMPLE"
+    )
+
+def test_add_foreign_key_dialect_kw():
+    context = op_fixture()
+    with mock.patch("alembic.operations.sa_schema.ForeignKeyConstraint") as fkc:
+        op.create_foreign_key('fk_test', 't1', 't2',
+                        ['foo', 'bar'], ['bat', 'hoho'],
+                        foobar_arg='xyz')
+        eq_(fkc.mock_calls[0],
+                mock.call(['foo', 'bar'], ['t2.bat', 't2.hoho'],
+                    onupdate=None, ondelete=None, name='fk_test',
+                    foobar_arg='xyz',
+                    deferrable=None, initially=None, match=None))
 
 def test_add_foreign_key_self_referential():
     context = op_fixture()
