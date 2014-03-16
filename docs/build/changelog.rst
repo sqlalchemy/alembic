@@ -6,6 +6,16 @@ Changelog
     :version: 0.6.4
 
     .. change::
+      :tags: bug, mysql
+      :tickets: 103
+
+      Added/fixed support for MySQL "SET DEFAULT" / "DROP DEFAULT" phrases,
+      which will now be rendered if only the server default is changing
+      or being dropped (e.g. specify None to alter_column() to indicate
+      "DROP DEFAULT").  Also added support for rendering MODIFY rather than
+      CHANGE when the column name isn't changing.
+
+    .. change::
       :tags: bug
       :tickets: 190
 

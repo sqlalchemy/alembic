@@ -41,12 +41,12 @@ class MySQLOpTest(TestCase):
 
     def test_rename_column_serv_compiled_default(self):
         context = op_fixture('mysql')
-        op.alter_column('t1', 'c1', new_column_name="c2", existing_type=Integer,
-                existing_server_default=func.utc_thing(func.current_timestamp()))
+        op.alter_column('t1', 'c1', existing_type=Integer,
+                server_default=func.utc_thing(func.current_timestamp()))
         # this is not a valid MySQL default but the point is to just
         # test SQL expression rendering
         context.assert_(
-            "ALTER TABLE t1 CHANGE c1 c2 INTEGER NULL DEFAULT utc_thing(CURRENT_TIMESTAMP)"
+            "ALTER TABLE t1 ALTER COLUMN c1 SET DEFAULT utc_thing(CURRENT_TIMESTAMP)"
         )
 
     def test_rename_column_autoincrement(self):
@@ -59,41 +59,79 @@ class MySQLOpTest(TestCase):
 
     def test_col_add_autoincrement(self):
         context = op_fixture('mysql')
-        op.alter_column('t1', 'c1', new_column_name="c2", existing_type=Integer,
+        op.alter_column('t1', 'c1', existing_type=Integer,
                                     autoincrement=True)
         context.assert_(
-            'ALTER TABLE t1 CHANGE c1 c2 INTEGER NULL AUTO_INCREMENT'
+            'ALTER TABLE t1 MODIFY c1 INTEGER NULL AUTO_INCREMENT'
         )
 
     def test_col_remove_autoincrement(self):
         context = op_fixture('mysql')
-        op.alter_column('t1', 'c1', new_column_name="c2", existing_type=Integer,
+        op.alter_column('t1', 'c1', existing_type=Integer,
                                     existing_autoincrement=True,
                                     autoincrement=False)
         context.assert_(
-            'ALTER TABLE t1 CHANGE c1 c2 INTEGER NULL'
+            'ALTER TABLE t1 MODIFY c1 INTEGER NULL'
+        )
+
+
+    def test_col_dont_remove_server_default(self):
+        context = op_fixture('mysql')
+        op.alter_column('t1', 'c1', existing_type=Integer,
+                                    existing_server_default='1',
+                                    server_default=False)
+
+        context.assert_()
+
+    def test_alter_column_drop_default(self):
+        context = op_fixture('mysql')
+        op.alter_column("t", "c", existing_type=Integer, server_default=None)
+        context.assert_(
+            'ALTER TABLE t ALTER COLUMN c DROP DEFAULT'
+        )
+
+    def test_alter_column_modify_default(self):
+        context = op_fixture('mysql')
+        # notice we dont need the existing type on this one...
+        op.alter_column("t", "c", server_default='1')
+        context.assert_(
+            "ALTER TABLE t ALTER COLUMN c SET DEFAULT '1'"
+        )
+
+    def test_col_not_nullable(self):
+        context = op_fixture('mysql')
+        op.alter_column('t1', 'c1', nullable=False, existing_type=Integer)
+        context.assert_(
+            'ALTER TABLE t1 MODIFY c1 INTEGER NOT NULL'
+        )
+
+    def test_col_not_nullable_existing_serv_default(self):
+        context = op_fixture('mysql')
+        op.alter_column('t1', 'c1', nullable=False, existing_type=Integer,
+                                    existing_server_default='5')
+        context.assert_(
+            "ALTER TABLE t1 MODIFY c1 INTEGER NOT NULL DEFAULT '5'"
         )
 
     def test_col_nullable(self):
         context = op_fixture('mysql')
-        op.alter_column('t1', 'c1', nullable=False, existing_type=Integer)
+        op.alter_column('t1', 'c1', nullable=True, existing_type=Integer)
         context.assert_(
-            'ALTER TABLE t1 CHANGE c1 c1 INTEGER NOT NULL'
+            'ALTER TABLE t1 MODIFY c1 INTEGER NULL'
         )
 
     def test_col_multi_alter(self):
         context = op_fixture('mysql')
         op.alter_column('t1', 'c1', nullable=False, server_default="q", type_=Integer)
         context.assert_(
-            "ALTER TABLE t1 CHANGE c1 c1 INTEGER NOT NULL DEFAULT 'q'"
+            "ALTER TABLE t1 MODIFY c1 INTEGER NOT NULL DEFAULT 'q'"
         )
-
 
     def test_col_alter_type_required(self):
         op_fixture('mysql')
         assert_raises_message(
             util.CommandError,
-            "All MySQL ALTER COLUMN operations require the existing type.",
+            "MySQL CHANGE/MODIFY COLUMN operations require the existing type.",
             op.alter_column, 't1', 'c1', nullable=False, server_default="q"
         )
 
