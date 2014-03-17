@@ -7,7 +7,7 @@ from sqlalchemy import event
 
 from alembic import op
 from . import op_fixture, assert_raises_message, requires_094, eq_
-import mock
+from . import mock
 
 @event.listens_for(Table, "after_parent_attach")
 def _add_cols(table, metadata):

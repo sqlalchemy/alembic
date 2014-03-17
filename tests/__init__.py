@@ -29,9 +29,11 @@ testing_config.read(['test.cfg'])
 
 if py33:
     from unittest.mock import Mock, call
+    from unittest import mock
 else:
     try:
         from mock import Mock, call
+        import mock
     except ImportError:
         raise ImportError(
                 "Alembic's test suite requires the "
