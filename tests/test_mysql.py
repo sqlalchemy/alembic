@@ -90,6 +90,8 @@ class MySQLOpTest(TestCase):
             'ALTER TABLE t ALTER COLUMN c DROP DEFAULT'
         )
 
+
+
     def test_alter_column_modify_default(self):
         context = op_fixture('mysql')
         # notice we dont need the existing type on this one...
@@ -125,6 +127,13 @@ class MySQLOpTest(TestCase):
         op.alter_column('t1', 'c1', nullable=False, server_default="q", type_=Integer)
         context.assert_(
             "ALTER TABLE t1 MODIFY c1 INTEGER NOT NULL DEFAULT 'q'"
+        )
+
+    def test_alter_column_multi_alter_w_drop_default(self):
+        context = op_fixture('mysql')
+        op.alter_column('t1', 'c1', nullable=False, server_default=None, type_=Integer)
+        context.assert_(
+            "ALTER TABLE t1 MODIFY c1 INTEGER NOT NULL"
         )
 
     def test_col_alter_type_required(self):
