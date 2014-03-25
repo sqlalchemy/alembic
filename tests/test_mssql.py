@@ -113,6 +113,12 @@ class OpTest(TestCase):
         context.assert_contains("exec('alter table t1 drop constraint ' + @const_name)")
         context.assert_contains("ALTER TABLE t1 DROP COLUMN c1")
 
+    def test_drop_column_w_check_quoting(self):
+        context = op_fixture('mssql')
+        op.drop_column('table', 'column', mssql_drop_check=True)
+        context.assert_contains("exec('alter table [table] drop constraint ' + @const_name)")
+        context.assert_contains("ALTER TABLE [table] DROP COLUMN [column]")
+
     def test_alter_column_nullable_w_existing_type(self):
         context = op_fixture('mssql')
         op.alter_column("t", "c", nullable=True, existing_type=Integer)

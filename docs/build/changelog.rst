@@ -6,6 +6,16 @@ Changelog
     :version: 0.6.4
 
     .. change::
+      :tags: bug, mssql
+      :tickets: 186
+
+      Added quoting to the table name when the special EXEC is run to
+      drop any existing server defaults or constraints when the
+      :paramref:`.drop_column.mssql_drop_check` or
+      :paramref:`.drop_column.mssql_drop_default`
+      arguments are used.
+
+    .. change::
       :tags: bug, mysql
       :tickets: 103
 
