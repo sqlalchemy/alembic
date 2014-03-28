@@ -4,6 +4,7 @@ Changelog
 ==========
 .. changelog::
     :version: 0.6.4
+    :released: March 28, 2014
 
     .. change::
       :tags: bug, mssql
