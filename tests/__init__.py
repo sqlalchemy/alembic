@@ -182,6 +182,7 @@ def op_fixture(dialect='default', as_sql=False, naming_convention=None):
         def _exec(self, construct, *args, **kw):
             if isinstance(construct, string_types):
                 construct = text(construct)
+            assert construct.supports_execution
             sql = text_type(construct.compile(dialect=self.dialect))
             sql = re.sub(r'[\n\t]', '', sql)
             self.assertion.append(

@@ -124,13 +124,13 @@ class MSSQLImpl(DefaultImpl):
             )
         super(MSSQLImpl, self).drop_column(table_name, column)
 
-class _ExecDropConstraint(ClauseElement, Executable):
+class _ExecDropConstraint(Executable, ClauseElement):
     def __init__(self, tname, colname, type_):
         self.tname = tname
         self.colname = colname
         self.type_ = type_
 
-class _ExecDropFKConstraint(ClauseElement, Executable):
+class _ExecDropFKConstraint(Executable, ClauseElement):
     def __init__(self, tname, colname):
         self.tname = tname
         self.colname = colname
