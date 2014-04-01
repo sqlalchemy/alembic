@@ -767,6 +767,46 @@ class RenderNamingConventionTest(TestCase):
             "sa.UniqueConstraint('c', name='q')"
         )
 
+    def test_render_add_index(self):
+        t = Table('test', self.metadata,
+            Column('id', Integer, primary_key=True),
+            Column('active', Boolean()),
+            Column('code', String(255)),
+        )
+        idx = Index(None, t.c.active, t.c.code)
+        eq_ignore_whitespace(
+            autogenerate.render._add_index(idx, self.autogen_context),
+            "op.create_index(op.f('ix_ct_test_active'), 'test', "
+            "['active', 'code'], unique=False)"
+        )
+
+    def test_render_drop_index(self):
+        t = Table('test', self.metadata,
+            Column('id', Integer, primary_key=True),
+            Column('active', Boolean()),
+            Column('code', String(255)),
+        )
+        idx = Index(None, t.c.active, t.c.code)
+        eq_ignore_whitespace(
+            autogenerate.render._drop_index(idx, self.autogen_context),
+            "op.drop_index(op.f('ix_ct_test_active'), table_name='test')"
+        )
+
+    def test_render_add_index_schema(self):
+        t = Table('test', self.metadata,
+            Column('id', Integer, primary_key=True),
+            Column('active', Boolean()),
+            Column('code', String(255)),
+            schema='CamelSchema'
+        )
+        idx = Index(None, t.c.active, t.c.code)
+        eq_ignore_whitespace(
+            autogenerate.render._add_index(idx, self.autogen_context),
+            "op.create_index(op.f('ix_ct_CamelSchema_test_active'), 'test', "
+            "['active', 'code'], unique=False, schema='CamelSchema')"
+        )
+
+
     def test_implicit_unique_constraint(self):
         t = Table('t', self.metadata, Column('c', Integer, unique=True))
         uq = [c for c in t.constraints if isinstance(c, UniqueConstraint)][0]

@@ -3,6 +3,18 @@
 Changelog
 ==========
 .. changelog::
+    :version: 0.6.5
+
+    .. change::
+      :tags: bug, autogenerate
+      :tickets: 194
+
+      Fixed another bug regarding naming conventions, continuing
+      from :ticket:`183`, where add_index()
+      drop_index() directives would not correctly render the ``f()``
+      construct when the index contained a convention-driven name.
+
+.. changelog::
     :version: 0.6.4
     :released: March 28, 2014
 

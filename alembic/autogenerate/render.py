@@ -82,7 +82,7 @@ def _add_index(index, autogen_context):
     """
     from .compare import _get_index_column_names
 
-    text = "%(prefix)screate_index('%(name)s', '%(table)s', %(columns)s, "\
+    text = "%(prefix)screate_index(%(name)r, '%(table)s', %(columns)s, "\
                     "unique=%(unique)r%(schema)s%(kwargs)s)" % {
         'prefix': _alembic_autogenerate_prefix(autogen_context),
         'name': _render_gen_name(autogen_context, index.name),
@@ -102,7 +102,7 @@ def _drop_index(index, autogen_context):
     Generate Alembic operations for the DROP INDEX of an
     :class:`~sqlalchemy.schema.Index` instance.
     """
-    text = "%(prefix)sdrop_index('%(name)s', "\
+    text = "%(prefix)sdrop_index(%(name)r, "\
                 "table_name='%(table_name)s'%(schema)s)" % {
             'prefix': _alembic_autogenerate_prefix(autogen_context),
             'name': _render_gen_name(autogen_context, index.name),
