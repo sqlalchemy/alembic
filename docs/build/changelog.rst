@@ -6,6 +6,14 @@ Changelog
     :version: 0.6.5
 
     .. change::
+      :tags: bug, environment
+      :tickets: 195
+
+      Fixed bug where :meth:`.EnvironmentContext.get_x_argument`
+      would fail if the :class:`.Config` in use didn't actually
+      originate from a command line call.
+
+    .. change::
       :tags: bug, autogenerate
       :tickets: 194
 

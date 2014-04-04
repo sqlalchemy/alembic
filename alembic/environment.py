@@ -246,7 +246,10 @@ class EnvironmentContext(object):
             :attr:`.Config.cmd_opts`
 
         """
-        value = self.config.cmd_opts.x or []
+        if self.config.cmd_opts is not None:
+            value = self.config.cmd_opts.x or []
+        else:
+            value = []
         if as_dictionary:
             value = dict(
                         arg.split('=', 1) for arg in value
