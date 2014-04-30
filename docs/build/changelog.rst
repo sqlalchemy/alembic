@@ -6,6 +6,16 @@ Changelog
     :version: 0.6.5
 
     .. change::
+      :tags: bug, autogenerate
+      :tickets: 200
+
+      Fixed bug where the ``include_object()`` filter would not receive
+      the original :class:`.Column` object when evaluating a database-only
+      column to be dropped; the object would not include the parent
+      :class:`.Table` nor other aspects of the column that are important
+      for generating the "downgrade" case where the column is recreated.
+
+    .. change::
       :tags: bug, environment
       :tickets: 195
 

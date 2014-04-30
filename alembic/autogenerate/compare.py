@@ -127,16 +127,10 @@ def _compare_columns(schema, tname, object_filters, conn_table, metadata_table,
             log.info("Detected added column '%s.%s'", name, cname)
 
     for cname in set(conn_col_names).difference(metadata_col_names):
-        rem_col = sa_schema.Column(
-                    cname,
-                    conn_table.c[cname].type,
-                    nullable=conn_table.c[cname].nullable,
-                    server_default=conn_table.c[cname].server_default
-                )
-        if _run_filters(rem_col, cname,
+        if _run_filters(conn_table.c[cname], cname,
                                 "column", True, None, object_filters):
             diffs.append(
-                ("remove_column", schema, tname, rem_col)
+                ("remove_column", schema, tname, conn_table.c[cname])
             )
             log.info("Detected removed column '%s.%s'", name, cname)
 
