@@ -6,6 +6,20 @@ Changelog
     :version: 0.6.5
 
     .. change::
+      :tags: bug, autogenerate, mysql
+      :tickets: 202
+
+      This releases' "autogenerate index detection" bug, when a MySQL table
+      includes an Index with the same name as a column, autogenerate reported
+      it as an "add" even though its not; this is because we ignore reflected
+      indexes of this nature due to MySQL creating them implicitly.  Indexes
+      that are named the same as a column are now ignored on
+      MySQL if we see that the backend is reporting that it already exists;
+      this indicates that we can still detect additions of these indexes
+      but not drops, as we cannot distinguish a backend index same-named
+      as the column as one that is user generated or mysql-generated.
+
+    .. change::
       :tags: feature, environment
       :tickets: 201
 

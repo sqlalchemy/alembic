@@ -71,15 +71,24 @@ class MySQLImpl(DefaultImpl):
                 )
             )
 
-    def correct_for_autogen_constraints(self, conn_unique_constraints, conn_indexes,
+    def correct_for_autogen_constraints(self, conn_unique_constraints,
+                                        conn_indexes,
                                         metadata_unique_constraints,
                                         metadata_indexes):
+        removed = set()
         for idx in list(conn_indexes):
             # MySQL puts implicit indexes on FK columns, even if
             # composite and even if MyISAM, so can't check this too easily
             if idx.name == idx.columns.keys()[0]:
                 conn_indexes.remove(idx)
+                removed.add(idx.name)
 
+        # then remove indexes from the "metadata_indexes"
+        # that we've removed from reflected, otherwise they come out
+        # as adds (see #202)
+        for idx in list(metadata_indexes):
+            if idx.name in removed:
+                metadata_indexes.remove(idx)
 
 class MySQLAlterDefault(AlterColumn):
     def __init__(self, name, column_name, default, schema=None):

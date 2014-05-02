@@ -114,7 +114,8 @@ class AutogenFixtureTest(object):
         self.bind = self._get_bind()
 
     def tearDown(self):
-        self.metadata.drop_all(self.bind)
+        if hasattr(self, 'metadata'):
+            self.metadata.drop_all(self.bind)
         clear_staging_env()
 
     @classmethod

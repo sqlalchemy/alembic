@@ -7,8 +7,7 @@ from sqlalchemy import MetaData, Column, Table, Integer, String, Text, \
     UniqueConstraint, Boolean, \
     PrimaryKeyConstraint, Index, func, ForeignKeyConstraint
 
-from . import staging_env, sqlite_db, clear_staging_env, eq_, \
-        eq_ignore_whitespace, db_for_dialect
+from . import sqlite_db, eq_, db_for_dialect
 
 py3k = sys.version_info >= (3, )
 
@@ -216,6 +215,68 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestCase):
         diffs = self._fixture(m1, m2)
         eq_(diffs, [])
 
+    def test_nothing_changed_index_named_as_column(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table('nothing_changed', m1,
+            Column('id1', Integer, primary_key=True),
+            Column('id2', Integer, primary_key=True),
+            Column('x', String(20)),
+            Index('x', 'x')
+            )
+
+        Table('nothing_changed', m2,
+            Column('id1', Integer, primary_key=True),
+            Column('id2', Integer, primary_key=True),
+            Column('x', String(20)),
+            Index('x', 'x')
+            )
+
+        diffs = self._fixture(m1, m2)
+        eq_(diffs, [])
+
+    def test_new_idx_index_named_as_column(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table('new_idx', m1,
+            Column('id1', Integer, primary_key=True),
+            Column('id2', Integer, primary_key=True),
+            Column('x', String(20)),
+            )
+
+        idx = Index('x', 'x')
+        Table('new_idx', m2,
+            Column('id1', Integer, primary_key=True),
+            Column('id2', Integer, primary_key=True),
+            Column('x', String(20)),
+            idx
+            )
+
+        diffs = self._fixture(m1, m2)
+        eq_(diffs, [('add_index', idx)])
+
+    def test_removed_idx_index_named_as_column(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        idx = Index('x', 'x')
+        Table('new_idx', m1,
+            Column('id1', Integer, primary_key=True),
+            Column('id2', Integer, primary_key=True),
+            Column('x', String(20)),
+            idx
+            )
+
+        Table('new_idx', m2,
+            Column('id1', Integer, primary_key=True),
+            Column('id2', Integer, primary_key=True),
+            Column('x', String(20))
+            )
+
+        diffs = self._fixture(m1, m2)
+        eq_(diffs[0][0], 'remove_index')
 
     def test_unnamed_cols_changed(self):
         m1 = MetaData()
@@ -409,6 +470,10 @@ class PGUniqueIndexTest(AutogenerateUniqueIndexTest):
 
 class MySQLUniqueIndexTest(AutogenerateUniqueIndexTest):
     reports_unnamed_constraints = True
+
+    def test_removed_idx_index_named_as_column(self):
+        # TODO: this should be an "assert fails"
+        pass
 
     @classmethod
     def _get_bind(cls):
