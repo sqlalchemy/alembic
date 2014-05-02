@@ -1,6 +1,8 @@
 import io
 import logging
 import sys
+from contextlib import contextmanager
+
 
 from sqlalchemy import MetaData, Table, Column, String, literal_column
 from sqlalchemy import create_engine
@@ -63,6 +65,9 @@ class MigrationContext(object):
 
         as_sql = opts.get('as_sql', False)
         transactional_ddl = opts.get("transactional_ddl")
+
+        self._transaction_per_migration = opts.get(
+                                            "transaction_per_migration", False)
 
         if as_sql:
             self.connection = self._stdout_connection(connection)
@@ -146,6 +151,30 @@ class MigrationContext(object):
         return MigrationContext(dialect, connection, opts)
 
 
+    def begin_transaction(self, _per_migration=False):
+        transaction_now = _per_migration == self._transaction_per_migration
+
+        if not transaction_now:
+            @contextmanager
+            def do_nothing():
+                yield
+            return do_nothing()
+
+        elif not self.impl.transactional_ddl:
+            @contextmanager
+            def do_nothing():
+                yield
+            return do_nothing()
+        elif self.as_sql:
+            @contextmanager
+            def begin_commit():
+                self.impl.emit_begin()
+                yield
+                self.impl.emit_commit()
+            return begin_commit()
+        else:
+            return self.bind.begin()
+
     def get_current_revision(self):
         """Return the current revision, usually that which is present
         in the ``alembic_version`` table in the database.
@@ -204,31 +233,35 @@ class MigrationContext(object):
 
         """
         current_rev = rev = False
+        stamp_per_migration = not self.impl.transactional_ddl or \
+                                    self._transaction_per_migration
+
         self.impl.start_migrations()
         for change, prev_rev, rev, doc in self._migrations_fn(
                                             self.get_current_revision(),
                                             self):
-            if current_rev is False:
-                current_rev = prev_rev
-                if self.as_sql and not current_rev:
-                    self._version.create(self.connection)
-            if doc:
-                log.info("Running %s %s -> %s, %s", change.__name__, prev_rev,
-                    rev, doc)
-            else:
-                log.info("Running %s %s -> %s", change.__name__, prev_rev, rev)
-            if self.as_sql:
-                self.impl.static_output(
-                        "-- Running %s %s -> %s" %
-                        (change.__name__, prev_rev, rev)
-                    )
-            change(**kw)
-            if not self.impl.transactional_ddl:
-                self._update_current_rev(prev_rev, rev)
-            prev_rev = rev
+            with self.begin_transaction(_per_migration=True):
+                if current_rev is False:
+                    current_rev = prev_rev
+                    if self.as_sql and not current_rev:
+                        self._version.create(self.connection)
+                if doc:
+                    log.info("Running %s %s -> %s, %s", change.__name__, prev_rev,
+                        rev, doc)
+                else:
+                    log.info("Running %s %s -> %s", change.__name__, prev_rev, rev)
+                if self.as_sql:
+                    self.impl.static_output(
+                            "-- Running %s %s -> %s" %
+                            (change.__name__, prev_rev, rev)
+                        )
+                change(**kw)
+                if stamp_per_migration:
+                    self._update_current_rev(prev_rev, rev)
+                prev_rev = rev
 
         if rev is not False:
-            if self.impl.transactional_ddl:
+            if not stamp_per_migration:
                 self._update_current_rev(current_rev, rev)
 
             if self.as_sql and not rev:

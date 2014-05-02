@@ -6,6 +6,16 @@ Changelog
     :version: 0.6.5
 
     .. change::
+      :tags: feature, environment
+      :tickets: 201
+
+      Added new feature :paramref:`.EnvironmentContext.configure.transaction_per_migration`,
+      which when True causes the BEGIN/COMMIT pair to incur for each migration
+      individually, rather than for the whole series of migrations.  This is
+      to assist with some database directives that need to be within individual
+      transactions, without the need to disable transactional DDL entirely.
+
+    .. change::
       :tags: bug, autogenerate
       :tickets: 200
 

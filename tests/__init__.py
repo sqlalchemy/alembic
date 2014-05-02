@@ -20,6 +20,7 @@ from alembic.environment import EnvironmentContext
 from alembic.operations import Operations
 from alembic.script import ScriptDirectory, Script
 from alembic.ddl.impl import _impls
+from contextlib import contextmanager
 
 staging_directory = os.path.join(os.path.dirname(__file__), 'scratch')
 files_directory = os.path.join(os.path.dirname(__file__), 'files')
@@ -121,25 +122,24 @@ def assert_compiled(element, assert_string, dialect=None):
         assert_string.replace("\n", "").replace("\t", "")
     )
 
+@contextmanager
 def capture_context_buffer(**kw):
     if kw.pop('bytes_io', False):
         buf = io.BytesIO()
     else:
         buf = io.StringIO()
 
-    class capture(object):
-        def __enter__(self):
-            EnvironmentContext._default_opts = {
+    kw.update({
                 'dialect_name': "sqlite",
                 'output_buffer': buf
-            }
-            EnvironmentContext._default_opts.update(kw)
-            return buf
+    })
+    conf = EnvironmentContext.configure
+    def configure(*arg, **opt):
+        opt.update(**kw)
+        return conf(*arg, **opt)
 
-        def __exit__(self, *arg, **kwarg):
-            EnvironmentContext._default_opts = None
-
-    return capture()
+    with mock.patch.object(EnvironmentContext, "configure", configure):
+        yield buf
 
 def eq_ignore_whitespace(a, b, msg=None):
     a = re.sub(r'^\s+?|\n', "", a)

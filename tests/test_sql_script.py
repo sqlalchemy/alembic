@@ -9,6 +9,7 @@ from . import clear_staging_env, staging_env, \
     three_rev_fixture, write_script
 from alembic import command, util
 from alembic.script import ScriptDirectory
+import re
 
 cfg = None
 a, b, c = None, None, None
@@ -27,16 +28,31 @@ class ThreeRevTest(unittest.TestCase):
     def tearDown(self):
         clear_staging_env()
 
-    def test_begin_comit(self):
+    def test_begin_commit_transactional_ddl(self):
         with capture_context_buffer(transactional_ddl=True) as buf:
-            command.upgrade(cfg, a, sql=True)
-        assert "BEGIN;" in buf.getvalue()
-        assert "COMMIT;" in buf.getvalue()
+            command.upgrade(cfg, c, sql=True)
+        assert re.match(
+                    (r"^BEGIN;\s+CREATE TABLE.*?%s.*" % a) +
+                    (r".*%s" % b) +
+                    (r".*%s.*?COMMIT;.*$" % c),
 
+                buf.getvalue(), re.S)
+
+    def test_begin_commit_nontransactional_ddl(self):
         with capture_context_buffer(transactional_ddl=False) as buf:
             command.upgrade(cfg, a, sql=True)
-        assert "BEGIN;" not in buf.getvalue()
+        assert re.match(r"^CREATE TABLE.*?\n+$", buf.getvalue(), re.S)
         assert "COMMIT;" not in buf.getvalue()
+
+    def test_begin_commit_per_rev_ddl(self):
+        with capture_context_buffer(transaction_per_migration=True) as buf:
+            command.upgrade(cfg, c, sql=True)
+        assert re.match(
+                    (r"^BEGIN;\s+CREATE TABLE.*%s.*?COMMIT;.*" % a) +
+                    (r"BEGIN;.*?%s.*?COMMIT;.*" % b) +
+                    (r"BEGIN;.*?%s.*?COMMIT;.*$" % c),
+
+                buf.getvalue(), re.S)
 
     def test_version_from_none_insert(self):
         with capture_context_buffer() as buf:

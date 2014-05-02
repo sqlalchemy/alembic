@@ -1,5 +1,3 @@
-from contextlib import contextmanager
-
 from .operations import Operations
 from .migration import MigrationContext
 from . import util
@@ -60,7 +58,6 @@ class EnvironmentContext(object):
     """
 
     _migration_context = None
-    _default_opts = None
 
     config = None
     """An instance of :class:`.Config` representing the
@@ -87,8 +84,6 @@ class EnvironmentContext(object):
         self.config = config
         self.script = script
         self.context_opts = kw
-        if self._default_opts:
-            self.context_opts.update(self._default_opts)
 
     def __enter__(self):
         """Establish a context which provides a
@@ -261,6 +256,7 @@ class EnvironmentContext(object):
             url=None,
             dialect_name=None,
             transactional_ddl=None,
+            transaction_per_migration=False,
             output_buffer=None,
             starting_rev=None,
             tag=None,
@@ -325,6 +321,12 @@ class EnvironmentContext(object):
          DDL on or off;
          this otherwise defaults to whether or not the dialect in
          use supports it.
+        :param transaction_per_migration: if True, nest each migration script
+         in a transaction rather than the full series of migrations to
+         run.
+
+         .. versionadded:: 0.6.5
+
         :param output_buffer: a file-like object that will be used
          for textual output
          when the ``--sql`` option is used to generate SQL scripts.
@@ -635,6 +637,7 @@ class EnvironmentContext(object):
             opts['tag'] = tag
         if template_args and 'template_args' in opts:
             opts['template_args'].update(template_args)
+        opts["transaction_per_migration"] = transaction_per_migration
         opts['target_metadata'] = target_metadata
         opts['include_symbol'] = include_symbol
         opts['include_object'] = include_object
@@ -651,6 +654,7 @@ class EnvironmentContext(object):
         if compare_server_default is not None:
             opts['compare_server_default'] = compare_server_default
         opts['script'] = self.script
+
         opts.update(kw)
 
         self._migration_context = MigrationContext.configure(
@@ -709,6 +713,7 @@ class EnvironmentContext(object):
         """
         self.get_context().impl.static_output(text)
 
+
     def begin_transaction(self):
         """Return a context manager that will
         enclose an operation within a "transaction",
@@ -752,20 +757,9 @@ class EnvironmentContext(object):
         mode.
 
         """
-        if not self.is_transactional_ddl():
-            @contextmanager
-            def do_nothing():
-                yield
-            return do_nothing()
-        elif self.is_offline_mode():
-            @contextmanager
-            def begin_commit():
-                self.get_context().impl.emit_begin()
-                yield
-                self.get_context().impl.emit_commit()
-            return begin_commit()
-        else:
-            return self.get_bind().begin()
+
+        return self.get_context().begin_transaction()
+
 
     def get_context(self):
         """Return the current :class:`.MigrationContext` object.
