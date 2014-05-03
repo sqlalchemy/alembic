@@ -4,6 +4,7 @@ Changelog
 ==========
 .. changelog::
     :version: 0.6.5
+    :released: May 3, 2014
 
     .. change::
       :tags: bug, autogenerate, mysql
