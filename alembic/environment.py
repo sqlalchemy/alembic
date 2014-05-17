@@ -661,6 +661,7 @@ class EnvironmentContext(object):
             connection=connection,
             url=url,
             dialect_name=dialect_name,
+            environment_context=self,
             opts=opts
         )
 

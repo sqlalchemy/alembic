@@ -58,7 +58,8 @@ class MigrationContext(object):
         op.alter_column("mytable", "somecolumn", nullable=True)
 
     """
-    def __init__(self, dialect, connection, opts):
+    def __init__(self, dialect, connection, opts, environment_context=None):
+        self.environment_context = environment_context
         self.opts = opts
         self.dialect = dialect
         self.script = opts.get('script')
@@ -115,6 +116,7 @@ class MigrationContext(object):
                 connection=None,
                 url=None,
                 dialect_name=None,
+                environment_context=None,
                 opts={},
     ):
         """Create a new :class:`.MigrationContext`.
@@ -148,7 +150,7 @@ class MigrationContext(object):
         else:
             raise Exception("Connection, url, or dialect_name is required.")
 
-        return MigrationContext(dialect, connection, opts)
+        return MigrationContext(dialect, connection, opts, environment_context)
 
 
     def begin_transaction(self, _per_migration=False):
@@ -304,6 +306,14 @@ class MigrationContext(object):
 
         """
         return self.connection
+
+    @property
+    def config(self):
+        """Return the :class:`.Config` used by the current environment, if any."""
+        if self.environment_context:
+            return self.environment_context.config
+        else:
+            return None
 
     def _compare_type(self, inspector_column, metadata_column):
         if self._user_compare_type is False:
