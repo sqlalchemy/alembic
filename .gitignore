@@ -7,5 +7,5 @@ dist/
 alembic.ini
 tox.ini
 .venv
-.egg-info
+*.egg-info
 .coverage
