@@ -3,6 +3,18 @@
 Changelog
 ==========
 .. changelog::
+    :version: 0.6.6
+
+    .. change::
+      :tags: feature
+      :pullreq: github:10
+
+      Added a new accessor :attr:`.MigrationContext.config`, when used
+      in conjunction with a :class:`.EnvironmentContext` and
+      :class:`.Config`, this config will be returned.  Patch
+      courtesy Marc Abramowitz.
+
+.. changelog::
     :version: 0.6.5
     :released: May 3, 2014
 

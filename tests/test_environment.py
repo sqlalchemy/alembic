@@ -1,12 +1,12 @@
 #!coding: utf-8
 
-from alembic.config import Config
 from alembic.script import ScriptDirectory
 from alembic.environment import EnvironmentContext
+from alembic.migration import MigrationContext
 import unittest
 from . import Mock, call, _no_sql_testing_config, staging_env, clear_staging_env
 
-from . import eq_
+from . import eq_, is_
 
 class EnvironmentTest(unittest.TestCase):
     def setUp(self):
@@ -62,3 +62,11 @@ class EnvironmentTest(unittest.TestCase):
             "x"
         )
 
+    def test_migration_context_has_config(self):
+        env = self._fixture()
+        env.configure(url="sqlite://")
+        ctx = env._migration_context
+        is_(ctx.config, self.cfg)
+
+        ctx = MigrationContext(ctx.dialect, None, {})
+        is_(ctx.config, None)

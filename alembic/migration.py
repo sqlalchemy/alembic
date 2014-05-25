@@ -309,7 +309,11 @@ class MigrationContext(object):
 
     @property
     def config(self):
-        """Return the :class:`.Config` used by the current environment, if any."""
+        """Return the :class:`.Config` used by the current environment, if any.
+
+        .. versionadded:: 0.6.6
+
+        """
         if self.environment_context:
             return self.environment_context.config
         else:
