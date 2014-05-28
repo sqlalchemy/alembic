@@ -117,7 +117,7 @@ class MigrationContext(object):
                 url=None,
                 dialect_name=None,
                 environment_context=None,
-                opts={},
+                opts=None,
     ):
         """Create a new :class:`.MigrationContext`.
 
@@ -139,6 +139,9 @@ class MigrationContext(object):
          this dictionary.
 
         """
+        if opts is None:
+            opts = {}
+
         if connection:
             dialect = connection.dialect
         elif url:
