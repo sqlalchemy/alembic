@@ -383,12 +383,13 @@ def _fk_colspec(fk, metadata_schema):
         # need to render schema breaking up tokens by hand, since the
         # ForeignKeyConstraint here may not actually have a remote
         # Table present
-        tokens = fk._colspec.split(".")
+        colspec = fk._get_colspec()
+        tokens = colspec.split(".")
         # no schema in the colspec, render it
         if len(tokens) == 2:
-            return "%s.%s" % (metadata_schema, fk._colspec)
+            return "%s.%s" % (metadata_schema, colspec)
         else:
-            return fk._colspec
+            return colspec
 
 def _render_foreign_key(constraint, autogen_context):
     rendered = _user_defined_render("foreign_key", constraint, autogen_context)
