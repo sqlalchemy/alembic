@@ -5,8 +5,9 @@ from sqlalchemy import MetaData, Column, Table, Integer, String, Text, \
     Numeric, DATETIME, INTEGER, \
     TypeDecorator, Unicode, Enum,\
     UniqueConstraint, Boolean, \
-    PrimaryKeyConstraint, Index, func, ForeignKeyConstraint
-
+    PrimaryKeyConstraint, Index, func, ForeignKeyConstraint,\
+    ForeignKey
+from sqlalchemy.schema import AddConstraint
 from . import sqlite_db, eq_, db_for_dialect
 
 py3k = sys.version_info >= (3, )
@@ -190,30 +191,36 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestCase):
         Table('nothing_changed', m1,
             Column('id1', Integer, primary_key=True),
             Column('id2', Integer, primary_key=True),
-            Column('x', String(20), unique=True)
+            Column('x', String(20), unique=True),
+            mysql_engine='InnoDB'
             )
         Table('nothing_changed_related', m1,
             Column('id1', Integer),
             Column('id2', Integer),
             ForeignKeyConstraint(['id1', 'id2'],
-                    ['nothing_changed.id1', 'nothing_changed.id2'])
+                    ['nothing_changed.id1', 'nothing_changed.id2']),
+            mysql_engine='InnoDB'
             )
 
         Table('nothing_changed', m2,
             Column('id1', Integer, primary_key=True),
             Column('id2', Integer, primary_key=True),
-            Column('x', String(20), unique=True)
+            Column('x', String(20), unique=True),
+            mysql_engine='InnoDB'
             )
         Table('nothing_changed_related', m2,
             Column('id1', Integer),
             Column('id2', Integer),
             ForeignKeyConstraint(['id1', 'id2'],
-                    ['nothing_changed.id1', 'nothing_changed.id2'])
+                    ['nothing_changed.id1', 'nothing_changed.id2']),
+            mysql_engine='InnoDB'
             )
 
 
         diffs = self._fixture(m1, m2)
         eq_(diffs, [])
+
+
 
     def test_nothing_changed_index_named_as_column(self):
         m1 = MetaData()
@@ -233,6 +240,36 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestCase):
             Index('x', 'x')
             )
 
+        diffs = self._fixture(m1, m2)
+        eq_(diffs, [])
+
+    def test_nothing_changed_implicit_fk_index_named(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table("nothing_changed", m1,
+                Column('id', Integer, primary_key=True),
+                Column('other_id',
+                            ForeignKey('nc2.id',
+                                name='fk_my_table_other_table'
+                                ),
+                                nullable=False),
+                Column('foo', Integer),
+                mysql_engine='InnoDB')
+        Table('nc2', m1,
+                Column('id', Integer, primary_key=True),
+                mysql_engine='InnoDB')
+
+        Table("nothing_changed", m2,
+                Column('id', Integer, primary_key=True),
+                Column('other_id', ForeignKey('nc2.id',
+                                    name='fk_my_table_other_table'),
+                                    nullable=False),
+                Column('foo', Integer),
+                mysql_engine='InnoDB')
+        Table('nc2', m2,
+                Column('id', Integer, primary_key=True),
+                mysql_engine='InnoDB')
         diffs = self._fixture(m1, m2)
         eq_(diffs, [])
 
@@ -472,8 +509,13 @@ class MySQLUniqueIndexTest(AutogenerateUniqueIndexTest):
     reports_unnamed_constraints = True
 
     def test_removed_idx_index_named_as_column(self):
-        # TODO: this should be an "assert fails"
-        pass
+        try:
+            super(MySQLUniqueIndexTest,
+                                self).test_removed_idx_index_named_as_column()
+        except IndexError:
+            assert True
+        else:
+            assert False, "unexpected success"
 
     @classmethod
     def _get_bind(cls):

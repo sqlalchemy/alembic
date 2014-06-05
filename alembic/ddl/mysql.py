@@ -78,10 +78,19 @@ class MySQLImpl(DefaultImpl):
         removed = set()
         for idx in list(conn_indexes):
             # MySQL puts implicit indexes on FK columns, even if
-            # composite and even if MyISAM, so can't check this too easily
-            if idx.name == idx.columns.keys()[0]:
-                conn_indexes.remove(idx)
-                removed.add(idx.name)
+            # composite and even if MyISAM, so can't check this too easily.
+            # the name of the index may be the column name or it may
+            # be the name of the FK constraint.
+            for col in idx.columns:
+                if idx.name == col.name:
+                    conn_indexes.remove(idx)
+                    removed.add(idx.name)
+                    break
+                for fk in col.foreign_keys:
+                    if fk.name == idx.name:
+                        conn_indexes.remove(idx)
+                        removed.add(idx.name)
+                        break
 
         # then remove indexes from the "metadata_indexes"
         # that we've removed from reflected, otherwise they come out

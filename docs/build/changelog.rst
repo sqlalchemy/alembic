@@ -6,6 +6,16 @@ Changelog
     :version: 0.6.6
 
     .. change::
+      :tags: bug
+      :tickets: 208
+
+      Liberalized even more the check for MySQL indexes that shouldn't be
+      counted in autogenerate as "drops"; this time it's been reported
+      that an implicitly created index might be named the same as a composite
+      foreign key constraint, and not the actual columns, so we now skip those
+      when detected as well.
+
+    .. change::
       :tags: feature
       :pullreq: github:10
 
