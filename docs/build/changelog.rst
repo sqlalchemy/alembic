@@ -7,6 +7,14 @@ Changelog
 
     .. change::
       :tags: bug
+      :pullreq: github:15
+
+      Autogenerate render will render the arguments within a Table construct
+      using ``*[...]`` when the number of columns/elements is greater than
+      255.  Pull request courtesy Ryan P. Kelly.
+
+    .. change::
+      :tags: bug
       :pullreq: github:14
 
       Fixed bug where foreign key constraints would fail to render in

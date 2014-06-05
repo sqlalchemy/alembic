@@ -29,11 +29,11 @@ testing_config = configparser.ConfigParser()
 testing_config.read(['test.cfg'])
 
 if py33:
-    from unittest.mock import Mock, call
+    from unittest.mock import Mock, call, patch
     from unittest import mock
 else:
     try:
-        from mock import Mock, call
+        from mock import Mock, call, patch
         import mock
     except ImportError:
         raise ImportError(

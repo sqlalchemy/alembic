@@ -6,6 +6,8 @@ from ..compat import string_types
 
 log = logging.getLogger(__name__)
 
+MAX_PYTHON_ARGS = 255
+
 try:
     from sqlalchemy.sql.naming import conv
     def _render_gen_name(autogen_context, name):
@@ -44,19 +46,24 @@ def _render_potential_expr(value, autogen_context):
         return repr(value)
 
 def _add_table(table, autogen_context):
+    args = [col for col in
+            [_render_column(col, autogen_context) for col in table.c]
+        if col] + \
+        sorted([rcons for rcons in
+            [_render_constraint(cons, autogen_context) for cons in
+                table.constraints]
+            if rcons is not None
+        ])
+
+    if len(args) > MAX_PYTHON_ARGS:
+        args = '*[' + ',\n'.join(args) + ']'
+    else:
+        args = ',\n'.join(args)
+
     text = "%(prefix)screate_table(%(tablename)r,\n%(args)s" % {
         'tablename': table.name,
         'prefix': _alembic_autogenerate_prefix(autogen_context),
-        'args': ',\n'.join(
-            [col for col in
-                [_render_column(col, autogen_context) for col in table.c]
-            if col] +
-            sorted([rcons for rcons in
-                [_render_constraint(cons, autogen_context) for cons in
-                    table.constraints]
-                if rcons is not None
-            ])
-        )
+        'args': args,
     }
     if table.schema:
         text += ",\nschema=%r" % table.schema

@@ -11,6 +11,8 @@ from sqlalchemy.types import TIMESTAMP
 from sqlalchemy.dialects import mysql, postgresql
 from sqlalchemy.sql import and_, column, literal_column
 
+from . import patch
+
 from alembic import autogenerate, util, compat
 from . import eq_, eq_ignore_whitespace, requires_092, requires_09, requires_094
 
@@ -258,6 +260,40 @@ class AutogenRenderTest(TestCase):
             "sa.PrimaryKeyConstraint('id'),"
             "schema='foo'"
             ")"
+        )
+
+    @patch("alembic.autogenerate.render.MAX_PYTHON_ARGS", 3)
+    def test_render_table_max_cols(self):
+        m = MetaData()
+        t = Table(
+            'test', m,
+            Column('a', Integer),
+            Column('b', Integer),
+            Column('c', Integer),
+            Column('d', Integer),
+        )
+        eq_ignore_whitespace(
+            autogenerate.render._add_table(t, self.autogen_context),
+            "op.create_table('test',"
+            "*[sa.Column('a', sa.Integer(), nullable=True),"
+            "sa.Column('b', sa.Integer(), nullable=True),"
+            "sa.Column('c', sa.Integer(), nullable=True),"
+            "sa.Column('d', sa.Integer(), nullable=True)])"
+        )
+
+        t2 = Table(
+            'test2', m,
+            Column('a', Integer),
+            Column('b', Integer),
+            Column('c', Integer),
+        )
+
+        eq_ignore_whitespace(
+            autogenerate.render._add_table(t2, self.autogen_context),
+            "op.create_table('test2',"
+            "sa.Column('a', sa.Integer(), nullable=True),"
+            "sa.Column('b', sa.Integer(), nullable=True),"
+            "sa.Column('c', sa.Integer(), nullable=True))"
         )
 
     def test_render_table_w_fk_schema(self):
