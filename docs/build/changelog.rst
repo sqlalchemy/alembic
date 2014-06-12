@@ -6,6 +6,14 @@ Changelog
     :version: 0.6.6
 
     .. change::
+      :tags: enhancement
+      :tickets: 209
+
+      When a run of Alembic command line fails due to ``CommandError``,
+      the output now prefixes the string with ``"FAILED:"``, and the error
+      is also written to the log output using ``log.error()``.
+
+    .. change::
       :tags: bug
       :tickets: 208
 

@@ -33,6 +33,8 @@ if not sqla_07:
 from sqlalchemy.util import format_argspec_plus, update_wrapper
 from sqlalchemy.util.compat import inspect_getfullargspec
 
+import logging
+log = logging.getLogger(__name__)
 
 try:
     import fcntl
@@ -172,7 +174,8 @@ def status(_statmsg, fn, *arg, **kw):
         raise
 
 def err(message):
-    msg(message)
+    log.error(message)
+    msg("FAILED: %s" % message)
     sys.exit(-1)
 
 def obfuscate_url_pw(u):
