@@ -454,6 +454,12 @@ def _compare_type(schema, tname, cname, conn_col,
             conn_type, metadata_type, tname, cname
         )
 
+def _render_server_default_for_compare(metadata_default,
+                                        metadata_col, autogen_context):
+    return _render_server_default(
+                    metadata_default, autogen_context,
+                    repr_=metadata_col.type._type_affinity is sqltypes.String)
+
 def _compare_server_default(schema, tname, cname, conn_col, metadata_col,
                                 diffs, autogen_context):
 
@@ -461,8 +467,9 @@ def _compare_server_default(schema, tname, cname, conn_col, metadata_col,
     conn_col_default = conn_col.server_default
     if conn_col_default is None and metadata_default is None:
         return False
-    rendered_metadata_default = _render_server_default(
-                            metadata_default, autogen_context)
+    rendered_metadata_default = _render_server_default_for_compare(
+                    metadata_default, metadata_col, autogen_context)
+
     rendered_conn_default = conn_col.server_default.arg.text \
                             if conn_col.server_default else None
     isdiff = autogen_context['context']._compare_server_default(

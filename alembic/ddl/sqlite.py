@@ -1,5 +1,6 @@
 from .. import util
 from .impl import DefaultImpl
+import re
 
 #from sqlalchemy.ext.compiler import compiles
 #from .base import AddColumn, alter_table
@@ -28,6 +29,14 @@ class SQLiteImpl(DefaultImpl):
         if const._create_rule is None:
             raise NotImplementedError(
                     "No support for ALTER of constraints in SQLite dialect")
+
+    def compare_server_default(self, inspector_column,
+                            metadata_column,
+                            rendered_metadata_default,
+                            rendered_inspector_default):
+
+        rendered_metadata_default = re.sub(r"^'|'$", "", rendered_metadata_default)
+        return rendered_inspector_default != repr(rendered_metadata_default)
 
     def correct_for_autogen_constraints(self, conn_unique_constraints, conn_indexes,
                                         metadata_unique_constraints,

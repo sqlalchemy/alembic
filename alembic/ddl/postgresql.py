@@ -1,7 +1,7 @@
 import re
 
 from sqlalchemy import types as sqltypes
-
+from .. import compat
 from .base import compiles, alter_table, format_table_name, RenameTable
 from .impl import DefaultImpl
 
@@ -24,8 +24,11 @@ class PostgresqlImpl(DefaultImpl):
         if None in (conn_col_default, rendered_metadata_default):
             return conn_col_default != rendered_metadata_default
 
-        if metadata_column.type._type_affinity is not sqltypes.String:
-            rendered_metadata_default = re.sub(r"^'|'$", "", rendered_metadata_default)
+        if metadata_column.server_default is not None and \
+            isinstance(metadata_column.server_default.arg,
+                        compat.string_types) and \
+                not re.match(r"^'.+'$", rendered_metadata_default):
+            rendered_metadata_default = "'%s'" % rendered_metadata_default
 
         return not self.connection.scalar(
             "SELECT %s = %s" % (

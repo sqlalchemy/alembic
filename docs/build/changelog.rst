@@ -6,6 +6,17 @@ Changelog
     :version: 0.6.6
 
     .. change::
+      :tags: bug
+      :tickets: 212
+
+      Some deep-in-the-weeds fixes to try to get "server default" comparison
+      working better across platforms and expressions, in particular on
+      the Postgresql backend, mostly dealing with quoting/not quoting of various
+      expressions at the appropriate time and on a per-backend basis.
+      Repaired and tested support for such defaults as Postgresql interval
+      and array defaults.
+
+    .. change::
       :tags: enhancement
       :tickets: 209
 

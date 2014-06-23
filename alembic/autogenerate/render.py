@@ -307,7 +307,7 @@ def _render_column(column, autogen_context):
         'kw': ", ".join(["%s=%s" % (kwname, val) for kwname, val in opts])
     }
 
-def _render_server_default(default, autogen_context):
+def _render_server_default(default, autogen_context, repr_=True):
     rendered = _user_defined_render("server_default", default, autogen_context)
     if rendered is not False:
         return rendered
@@ -319,11 +319,11 @@ def _render_server_default(default, autogen_context):
             default = str(default.arg.compile(
                             dialect=autogen_context['dialect']))
     if isinstance(default, string_types):
-        # TODO: this is just a hack to get
-        # tests to pass until we figure out
-        # WTF sqlite is doing
-        default = re.sub(r"^'|'$", "", default)
-        return repr(default)
+        if repr_:
+            default = re.sub(r"^'|'$", "", default)
+            return repr(default)
+        else:
+            return default
     else:
         return None
 
