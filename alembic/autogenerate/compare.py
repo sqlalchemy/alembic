@@ -79,7 +79,8 @@ def _compare_tables(conn_table_names, metadata_table_names,
             inspector.reflecttable(t, None)
         conn_column_info[(s, tname)] = t
 
-    for s, tname in sorted(existing_tables):
+    for s, tname in sorted(existing_tables, key=lambda x: (x[0] or '', x[1])):
+        s = s or None
         name = '%s.%s' % (s, tname) if s else tname
         metadata_table = tname_to_table[(s, tname)]
         conn_table = existing_metadata.tables[name]
