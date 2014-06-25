@@ -493,6 +493,3 @@ def _compare_server_default(schema, tname, cname, conn_col, metadata_col,
             tname,
             cname
         )
-
-
-
