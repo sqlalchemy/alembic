@@ -1,7 +1,7 @@
 from tests import clear_staging_env, staging_env, eq_, ne_, is_, staging_directory
 from tests import _no_sql_testing_config, env_file_fixture, script_file_fixture, _testing_config
 from alembic import command
-from alembic.script import ScriptDirectory
+from alembic.script import ScriptDirectory, Script
 from alembic.environment import EnvironmentContext
 from alembic import util
 import os
@@ -159,6 +159,36 @@ class TemplateArgsTest(unittest.TestCase):
             {"x": "x1", "y": "y2", "z": "z1", "q": "q1"}
         )
 
+    def test_step_ignore_init_py(self):
+        """test that __init__.py is ignored."""
+
+        env_file_fixture("""
+context.configure(dialect_name='sqlite', template_args={"somearg":"somevalue"})
+""")
+        command.revision(self.cfg, message="some rev")
+        script = ScriptDirectory.from_config(self.cfg)
+        path = os.path.join(script.versions, "__init__.py")
+        with open(path, 'w') as f:
+            f.write(
+                "crap, crap -> crap"
+            )
+        command.revision(self.cfg, message="another rev")
+
+        script.get_revision('head')
+
+    def test_is_ignored_filename(self):
+        script = ScriptDirectory.from_config(self.cfg)
+        cases = [
+            '__init__.py',
+            u'__init__.py',
+            u'__init__.pyc',
+            u'__init__.pyx',
+            u'__init__.pyo',
+        ]
+        for case in cases:
+            assert Script._from_filename(
+                script, script.versions, case) is None
+
     def test_tmpl_args_revision(self):
         env_file_fixture("""
 context.configure(dialect_name='sqlite', template_args={"somearg":"somevalue"})
@@ -168,8 +198,10 @@ context.configure(dialect_name='sqlite', template_args={"somearg":"somevalue"})
 revision = ${repr(up_revision)}
 down_revision = ${repr(down_revision)}
 """)
+
         command.revision(self.cfg, message="some rev")
         script = ScriptDirectory.from_config(self.cfg)
+
         rev = script.get_revision('head')
         with open(rev.path) as f:
             text = f.read()

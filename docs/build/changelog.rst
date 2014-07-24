@@ -7,6 +7,15 @@ Changelog
 
     .. change::
       :tags: bug
+      :tickets: 95
+      :pullreq: bitbucket:24
+
+      A file named ``__init__.py`` in the ``versions/`` directory is now
+      ignored by Alembic when the collection of version files is retrieved.
+      Pull request courtesy Michael Floering.
+
+    .. change::
+      :tags: bug
       :pullreq: bitbucket:23
 
       Fixed Py3K bug where an attempt would be made to sort None against

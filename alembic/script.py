@@ -4,8 +4,8 @@ import re
 import shutil
 from . import util
 
-_sourceless_rev_file = re.compile(r'(.*\.py)(c|o)?$')
-_only_source_rev_file = re.compile(r'(.*\.py)$')
+_sourceless_rev_file = re.compile(r'(?!__init__)(.*\.py)(c|o)?$')
+_only_source_rev_file = re.compile(r'(?!__init__)(.*\.py)$')
 _legacy_rev = re.compile(r'([a-f0-9]+)\.py$')
 _mod_def_re = re.compile(r'(upgrade|downgrade)_([a-z0-9]+)')
 _slug_re = re.compile(r'\w+')
@@ -209,6 +209,7 @@ class ScriptDirectory(object):
     @util.memoized_property
     def _revision_map(self):
         map_ = {}
+
         for file_ in os.listdir(self.versions):
             script = Script._from_filename(self, self.versions, file_)
             if script is None:
