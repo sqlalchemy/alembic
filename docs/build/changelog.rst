@@ -7,6 +7,15 @@ Changelog
 
     .. change::
       :tags: bug
+      :pullreq: bitbucket:23
+
+      Fixed Py3K bug where an attempt would be made to sort None against
+      string values when autogenerate would detect tables across multiple
+      schemas, including the default schema.  Pull request courtesy
+      paradoxxxzero.
+
+    .. change::
+      :tags: bug
       :pullreq: github:15
 
       Autogenerate render will render the arguments within a Table construct
