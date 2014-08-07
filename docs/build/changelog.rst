@@ -4,6 +4,7 @@ Changelog
 ==========
 .. changelog::
     :version: 0.6.6
+    :released: August 7, 2014
 
     .. change::
       :tags: bug
