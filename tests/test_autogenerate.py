@@ -139,6 +139,14 @@ class AutogenCrossSchemaTest(AutogenTest, TestCase):
                 Column('y', Integer),
                 schema=cls.test_schema_name
             )
+        Table('t6', m,
+                Column('u', Integer)
+            )
+        Table('t7', m,
+                Column('v', Integer),
+                schema=cls.test_schema_name
+            )
+
         return m
 
     @classmethod
@@ -149,6 +157,13 @@ class AutogenCrossSchemaTest(AutogenTest, TestCase):
             )
         Table('t4', m,
                 Column('z', Integer),
+                schema=cls.test_schema_name
+            )
+        Table('t6', m,
+                Column('u', Integer)
+            )
+        Table('t7', m,
+                Column('v', Integer),
                 schema=cls.test_schema_name
             )
         return m
@@ -1060,4 +1075,3 @@ class PGCompareMetaData(ModelOne, AutogenTest, TestCase):
         eq_(diffs[4][0][0], 'modify_nullable')
         eq_(diffs[4][0][5], False)
         eq_(diffs[4][0][6], True)
-
