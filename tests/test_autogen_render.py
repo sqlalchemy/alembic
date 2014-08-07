@@ -567,6 +567,20 @@ render:primary_key\n)"""
                     "name='fk1', use_alter=True)"
         )
 
+    def test_render_fk_constraint_w_metadata_schema(self):
+        m = MetaData(schema="foo")
+        t1 = Table('t', m, Column('c', Integer))
+        t2 = Table('t2', m, Column('c_rem', Integer))
+
+        fk = ForeignKeyConstraint([t1.c.c], [t2.c.c_rem], onupdate="CASCADE")
+        if not util.sqla_08:
+            t1.append_constraint(fk)
+
+        eq_ignore_whitespace(
+            re.sub(r"u'", "'", autogenerate.render._render_constraint(fk, self.autogen_context)),
+            "sa.ForeignKeyConstraint(['c'], ['foo.t2.c_rem'], onupdate='CASCADE')"
+        )
+
     def test_render_check_constraint_literal(self):
         eq_ignore_whitespace(
             autogenerate.render._render_check_constraint(

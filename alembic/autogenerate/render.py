@@ -377,18 +377,14 @@ def _fk_colspec(fk, metadata_schema):
     never tries to resolve the remote table.
 
     """
-    if metadata_schema is None:
-        return fk._get_colspec()
-    else:
+    colspec = fk._get_colspec()
+    if metadata_schema is not None and colspec.count(".") == 1:
         # need to render schema breaking up tokens by hand, since the
         # ForeignKeyConstraint here may not actually have a remote
         # Table present
-        tokens = fk._colspec.split(".")
         # no schema in the colspec, render it
-        if len(tokens) == 2:
-            return "%s.%s" % (metadata_schema, fk._colspec)
-        else:
-            return fk._colspec
+        colspec = "%s.%s" % (metadata_schema, colspec)
+    return colspec
 
 def _render_foreign_key(constraint, autogen_context):
     rendered = _user_defined_render("foreign_key", constraint, autogen_context)
