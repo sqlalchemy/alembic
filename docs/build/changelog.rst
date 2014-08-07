@@ -7,6 +7,14 @@ Changelog
 
     .. change::
       :tags: bug
+      :pullreq: github:14
+
+      Fixed bug where foreign key constraints would fail to render in
+      autogenerate when a schema name was present.  Pull request courtesy
+      Andreas Zeidler.
+
+    .. change::
+      :tags: bug
       :tickets: 212
 
       Some deep-in-the-weeds fixes to try to get "server default" comparison
