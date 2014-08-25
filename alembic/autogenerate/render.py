@@ -297,8 +297,15 @@ def _render_column(column, autogen_context):
         rendered = _render_server_default(
                             column.server_default, autogen_context
                     )
+
         if rendered:
-            opts.append(("server_default", rendered))
+            if isinstance(column.server_default.arg, sql.elements.TextClause):
+                opts.append(("server_default", "%(prefix)stext(%(default)s)" % {
+                    'prefix': _sqlalchemy_autogenerate_prefix(autogen_context),
+                    'default': rendered
+                }))
+            else:
+                opts.append(("server_default", rendered))
 
     if not column.autoincrement:
         opts.append(("autoincrement", column.autoincrement))

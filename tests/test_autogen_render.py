@@ -6,7 +6,7 @@ from sqlalchemy import MetaData, Column, Table, Integer, String, Text, \
     Numeric, CHAR, ForeignKey, DATETIME, INTEGER, \
     TypeDecorator, CheckConstraint, Unicode, Enum,\
     UniqueConstraint, Boolean, ForeignKeyConstraint,\
-    PrimaryKeyConstraint, Index, func
+    PrimaryKeyConstraint, Index, func, text
 from sqlalchemy.types import TIMESTAMP
 from sqlalchemy.dialects import mysql, postgresql
 from sqlalchemy.sql import and_, column, literal_column
@@ -912,4 +912,18 @@ class RenderNamingConventionTest(TestCase):
                 self.autogen_context
             ),
             "sa.CheckConstraint('im a constraint', name=op.f('ck_t_cc1'))"
+        )
+
+    def test_render_col_with_text_server_default(self):
+        c = Column('updated_at', TIMESTAMP(),
+                server_default=text('now()'),
+                nullable=False)
+        result = autogenerate.render._render_column(
+                    c, self.autogen_context
+                )
+        eq_(
+            result,
+            'sa.Column(\'updated_at\', sa.TIMESTAMP(), '
+                'server_default=sa.text(\'now()\'), '
+                'nullable=False)'
         )
