@@ -299,13 +299,7 @@ def _render_column(column, autogen_context):
                     )
 
         if rendered:
-            if isinstance(column.server_default.arg, sql.elements.TextClause):
-                opts.append(("server_default", "%(prefix)stext(%(default)s)" % {
-                    'prefix': _sqlalchemy_autogenerate_prefix(autogen_context),
-                    'default': rendered
-                }))
-            else:
-                opts.append(("server_default", rendered))
+            opts.append(("server_default", rendered))
 
     if not column.autoincrement:
         opts.append(("autoincrement", column.autoincrement))
@@ -326,18 +320,27 @@ def _render_server_default(default, autogen_context, repr_=True):
     if rendered is not False:
         return rendered
 
+    add_text_wrap = False
     if isinstance(default, sa_schema.DefaultClause):
+        add_text_wrap = isinstance(default.arg, sql.elements.TextClause)
+
         if isinstance(default.arg, string_types):
             default = default.arg
         else:
             default = str(default.arg.compile(
                             dialect=autogen_context['dialect']))
+
     if isinstance(default, string_types):
         if repr_:
-            default = re.sub(r"^'|'$", "", default)
-            return repr(default)
-        else:
-            return default
+            default = repr(re.sub(r"^'|'$", "", default))
+
+        if add_text_wrap:
+            default = "%(prefix)stext(%(default)s)" % {
+                    'prefix': _sqlalchemy_autogenerate_prefix(autogen_context),
+                    'default': default
+                }
+
+        return default
     else:
         return None
 
