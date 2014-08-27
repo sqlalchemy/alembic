@@ -3,6 +3,21 @@
 Changelog
 ==========
 .. changelog::
+    :version: 0.6.7
+
+    .. change::
+      :tags: enhancement
+      :tickets: 222
+
+      Added support for functional indexes when using the
+      :meth:`.Operations.create_index` directive.   Within the list of columns,
+      the SQLAlchemy ``text()`` construct can be sent, embedding a literal
+      SQL expression; the :meth:`.Operations.create_index` will perform some hackery
+      behind the scenes to get the :class:`.Index` construct to cooperate.
+      This works around some current limitations in :class:`.Index`
+      which should be resolved on the SQLAlchemy side at some point.
+
+.. changelog::
     :version: 0.6.6
     :released: August 7, 2014
 

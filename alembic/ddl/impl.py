@@ -1,6 +1,7 @@
 from sqlalchemy.sql.expression import _BindParamClause
 from sqlalchemy.ext.compiler import compiles
-from sqlalchemy import schema, text
+from sqlalchemy import schema, text, sql
+from sqlalchemy.sql import expression
 from sqlalchemy import types as sqltypes
 
 from ..compat import string_types, text_type, with_metaclass
@@ -252,6 +253,51 @@ class _literal_bindparam(_BindParamClause):
 @compiles(_literal_bindparam)
 def _render_literal_bindparam(element, compiler, **kw):
     return compiler.render_literal_bindparam(element, **kw)
+
+
+def _textual_index_column(table, text_):
+    """a workaround for the Index construct's severe lack of flexibility"""
+    if isinstance(text_, string_types):
+        c = schema.Column(text_, sqltypes.NULLTYPE)
+        table.append_column(c)
+        return c
+    elif isinstance(text_, expression.TextClause):
+        return _textual_index_element(table, text_)
+    else:
+        raise ValueError("String or text() construct expected")
+
+
+class _textual_index_element(sql.ColumnElement):
+    """Wrap around a sqlalchemy text() construct in such a way that
+    we appear like a column-oriented SQL expression to an Index
+    construct.
+
+    The issue here is that currently the Postgresql dialect, the biggest
+    recipient of functional indexes, keys all the index expressions to
+    the corresponding column expressions when rendering CREATE INDEX,
+    so the Index we create here needs to have a .columns collection that
+    is the same length as the .expressions collection.  Ultimately
+    SQLAlchemy should support text() expressions in indexes.
+
+    See https://bitbucket.org/zzzeek/sqlalchemy/issue/3174/support-text-sent-to-indexes
+
+    """
+    __visit_name__ = '_textual_idx_element'
+
+    def __init__(self, table, text):
+        self.table = table
+        self.text = text
+        self.key = text.text
+        self.fake_column = schema.Column(self.text.text, sqltypes.NULLTYPE)
+        table.append_column(self.fake_column)
+
+    def get_children(self):
+        return [self.fake_column]
+
+
+@compiles(_textual_index_element)
+def _render_textual_index_column(element, compiler, **kw):
+    return compiler.process(element.text, **kw)
 
 
 def _string_compare(t1, t2):

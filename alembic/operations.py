@@ -142,11 +142,15 @@ class Operations(object):
         return sa_schema.Column(name, type_, **kw)
 
     def _index(self, name, tablename, columns, schema=None, **kw):
-        t = sa_schema.Table(tablename or 'no_table', self._metadata(),
-            *[sa_schema.Column(n, NULLTYPE) for n in columns],
+        t = sa_schema.Table(
+            tablename or 'no_table', self._metadata(),
             schema=schema
         )
-        return sa_schema.Index(name, *[t.c[n] for n in columns], **kw)
+        idx = sa_schema.Index(
+            name,
+            *[impl._textual_index_column(t, n) for n in columns],
+            **kw)
+        return idx
 
     def _parse_table_key(self, table_key):
         if '.' in table_key:
@@ -744,6 +748,19 @@ class Operations(object):
             from alembic import op
             op.create_index('ik_test', 't1', ['foo', 'bar'])
 
+        Functional indexes can be produced by using the
+        :func:`sqlalchemy.sql.expression.text` construct::
+
+            from alembic import op
+            from sqlalchemy import text
+            op.create_index('ik_test', 't1', [text('lower(foo)')])
+
+        .. versionadded:: 0.6.7 support for making use of the
+           :func:`~sqlalchemy.sql.expression.text` construct in
+           conjunction with
+           :meth:`.Operations.create_index` in
+           order to produce functional expressions within CREATE INDEX.
+
         :param name: name of the index.
         :param table_name: name of the owning table.
 
@@ -752,8 +769,8 @@ class Operations(object):
             As this is a positional argument, the old name is no
             longer present.
 
-        :param columns: a list of string column names in the
-         table.
+        :param columns: a list consisting of string column names and/or
+         :func:`~sqlalchemy.sql.expression.text` constructs.
         :param schema: Optional schema name to operate within.
 
          .. versionadded:: 0.4.0

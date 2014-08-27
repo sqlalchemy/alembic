@@ -35,6 +35,47 @@ def test_rename_table_schema_postgresql():
     op.rename_table('t1', 't2', schema="foo")
     context.assert_("ALTER TABLE foo.t1 RENAME TO t2")
 
+
+def test_create_index_no_expr_allowed():
+    op_fixture()
+    assert_raises_message(
+        ValueError,
+        "String or text\(\) construct expected",
+        op.create_index, 'name', 'tname', [func.foo(column('x'))]
+    )
+
+
+def test_create_index_quoting():
+    context = op_fixture("postgresql")
+    op.create_index(
+        'geocoded',
+        'locations',
+        ["IShouldBeQuoted"])
+    context.assert_(
+        'CREATE INDEX geocoded ON locations ("IShouldBeQuoted")')
+
+
+def test_create_index_expressions():
+    context = op_fixture()
+    op.create_index(
+        'geocoded',
+        'locations',
+        [text('lower(coordinates)')])
+    context.assert_(
+        "CREATE INDEX geocoded ON locations (lower(coordinates))")
+
+
+def test_create_index_postgresql_expressions():
+    context = op_fixture("postgresql")
+    op.create_index(
+        'geocoded',
+        'locations',
+        [text('lower(coordinates)')],
+        postgresql_where=text("locations.coordinates != Null"))
+    context.assert_(
+        "CREATE INDEX geocoded ON locations (lower(coordinates)) "
+        "WHERE locations.coordinates != Null")
+
 def test_create_index_postgresql_where():
     context = op_fixture("postgresql")
     op.create_index(
