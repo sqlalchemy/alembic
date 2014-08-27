@@ -9,7 +9,7 @@ from sqlalchemy import MetaData, Column, Table, Integer, String, Text, \
     PrimaryKeyConstraint, Index, func, text
 from sqlalchemy.types import TIMESTAMP
 from sqlalchemy.dialects import mysql, postgresql
-from sqlalchemy.sql import and_, column, literal_column
+from sqlalchemy.sql import and_, column, literal_column, false
 
 from . import patch
 
@@ -771,7 +771,6 @@ class RenderNamingConventionTest(TestCase):
             'dialect': postgresql.dialect()
         }
 
-
     def setUp(self):
 
         convention = {
@@ -914,7 +913,7 @@ class RenderNamingConventionTest(TestCase):
             "sa.CheckConstraint('im a constraint', name=op.f('ck_t_cc1'))"
         )
 
-    def test_render_col_with_text_server_default(self):
+    def test_render_server_default_text(self):
         c = Column('updated_at', TIMESTAMP(),
                 server_default=text('now()'),
                 nullable=False)
@@ -927,3 +926,56 @@ class RenderNamingConventionTest(TestCase):
                 'server_default=sa.text(\'now()\'), '
                 'nullable=False)'
         )
+
+    def test_render_server_default_native_boolean(self):
+        c = Column('updated_at', Boolean(),
+                server_default=false(),
+                nullable=False)
+        result = autogenerate.render._render_column(
+                    c, self.autogen_context
+                )
+        eq_(
+            result,
+            'sa.Column(\'updated_at\', sa.Boolean(), '
+                'server_default=sa.text(\'false\'), '
+                'nullable=False)'
+        )
+
+    def test_render_server_default_non_native_boolean(self):
+        c = Column('updated_at', Boolean(),
+                server_default=false(),
+                nullable=False)
+        autogen_context = {
+            'opts': {
+                'sqlalchemy_module_prefix': 'sa.',
+                'alembic_module_prefix': 'op.',
+            },
+            'dialect': mysql.dialect()
+        }
+
+        result = autogenerate.render._render_column(
+                    c, autogen_context
+                )
+        eq_(
+            result,
+            'sa.Column(\'updated_at\', sa.Boolean(), '
+                'server_default=sa.text(\'0\'), '
+                'nullable=False)'
+        )
+
+    def test_render_server_default_func(self):
+        c = Column('updated_at', TIMESTAMP(),
+                server_default=func.now(),
+                nullable=False)
+        result = autogenerate.render._render_column(
+                    c, self.autogen_context
+                )
+        eq_(
+            result,
+            'sa.Column(\'updated_at\', sa.TIMESTAMP(), '
+                'server_default=sa.text(\'now()\'), '
+                'nullable=False)'
+        )
+
+
+

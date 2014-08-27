@@ -320,29 +320,13 @@ def _render_server_default(default, autogen_context, repr_=True):
     if rendered is not False:
         return rendered
 
-    add_text_wrap = False
     if isinstance(default, sa_schema.DefaultClause):
-        add_text_wrap = isinstance(default.arg, sql.elements.TextClause)
+        default = _render_potential_expr(default.arg, autogen_context)
 
-        if isinstance(default.arg, string_types):
-            default = default.arg
-        else:
-            default = str(default.arg.compile(
-                            dialect=autogen_context['dialect']))
+    elif isinstance(default, string_types) and repr_:
+        default = repr(re.sub(r"^'|'$", "", default))
 
-    if isinstance(default, string_types):
-        if repr_:
-            default = repr(re.sub(r"^'|'$", "", default))
-
-        if add_text_wrap:
-            default = "%(prefix)stext(%(default)s)" % {
-                    'prefix': _sqlalchemy_autogenerate_prefix(autogen_context),
-                    'default': default
-                }
-
-        return default
-    else:
-        return None
+    return default
 
 def _repr_type(type_, autogen_context):
     rendered = _user_defined_render("type", type_, autogen_context)
