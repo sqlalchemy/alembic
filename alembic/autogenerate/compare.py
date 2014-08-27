@@ -1,8 +1,8 @@
 from sqlalchemy.exc import NoSuchTableError
-from sqlalchemy import schema as sa_schema, types as sqltypes
+from sqlalchemy import schema as sa_schema, types as sqltypes, sql
 import logging
 from .. import compat
-from .render import _render_server_default
+from .render import _render_server_default, _render_potential_expr
 from sqlalchemy.util import OrderedSet
 
 
@@ -196,11 +196,14 @@ class _ix_constraint_sig(_constraint_sig):
     def column_names(self):
         return _get_index_column_names(self.const)
 
-def _get_index_column_names(idx):
+def _get_index_column_names(idx, autogen_context=None):
     if compat.sqla_08:
-        return [getattr(exp, "name", None) for exp in idx.expressions]
+        return [repr(getattr(exp, "name", None))
+                if isinstance(exp, sql.schema.Column)
+                else _render_potential_expr(exp, autogen_context)
+                for exp in idx.expressions]
     else:
-        return [getattr(col, "name", None) for col in idx.columns]
+        return [repr(getattr(col, "name", None)) for col in idx.columns]
 
 def _compare_indexes_and_uniques(schema, tname, object_filters, conn_table,
             metadata_table, diffs, autogen_context, inspector):

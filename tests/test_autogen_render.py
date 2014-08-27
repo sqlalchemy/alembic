@@ -99,22 +99,32 @@ class AutogenRenderTest(TestCase):
                     """postgresql_where=sa.text('t.y = %(y_1)s'))"""
             )
 
-    # def test_render_add_index_func(self):
-    #     """
-    #     autogenerate.render._drop_index using func -- TODO: SQLA needs to
-    #     reflect expressions as well as columns
-    #     """
-    #     m = MetaData()
-    #     t = Table('test', m,
-    #         Column('id', Integer, primary_key=True),
-    #         Column('active', Boolean()),
-    #         Column('code', String(255)),
-    #     )
-    #     idx = Index('test_active_lower_code_idx', t.c.active, func.lower(t.c.code))
-    #     eq_ignore_whitespace(
-    #         autogenerate.render._add_index(idx, self.autogen_context),
-    #         ""
-    #     )
+    def test_render_add_index_func(self):
+        m = MetaData()
+        t = Table('test', m,
+            Column('id', Integer, primary_key=True),
+            Column('code', String(255))
+        )
+        idx = Index('test_lower_code_idx', func.lower(t.c.code))
+        eq_ignore_whitespace(
+            autogenerate.render._add_index(idx, self.autogen_context),
+            "op.create_index('test_lower_code_idx', 'test', "
+            "[sa.text('lower(test.code)')], unique=False)"
+        )
+
+    def test_render_add_index_desc(self):
+        m = MetaData()
+        t = Table('test', m,
+            Column('id', Integer, primary_key=True),
+            Column('code', String(255))
+        )
+        idx = Index('test_desc_code_idx', t.c.code.desc())
+        eq_ignore_whitespace(
+            autogenerate.render._add_index(idx, self.autogen_context),
+            "op.create_index('test_desc_code_idx', 'test', "
+            "[sa.text('test.code DESC')], unique=False)"
+        )
+
 
     def test_drop_index(self):
         """

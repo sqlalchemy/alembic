@@ -89,12 +89,12 @@ def _add_index(index, autogen_context):
     """
     from .compare import _get_index_column_names
 
-    text = "%(prefix)screate_index(%(name)r, '%(table)s', %(columns)s, "\
+    text = "%(prefix)screate_index(%(name)r, '%(table)s', [%(columns)s], "\
                     "unique=%(unique)r%(schema)s%(kwargs)s)" % {
         'prefix': _alembic_autogenerate_prefix(autogen_context),
         'name': _render_gen_name(autogen_context, index.name),
         'table': index.table.name,
-        'columns': _get_index_column_names(index),
+        'columns': ", ".join(_get_index_column_names(index, autogen_context)),
         'unique': index.unique or False,
         'schema': (", schema='%s'" % index.table.schema) if index.table.schema else '',
         'kwargs': (', '+', '.join(
