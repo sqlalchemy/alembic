@@ -18,11 +18,11 @@ import sqlalchemy as sa
 ${imports if imports else ""}
 
 def upgrade(engine_name):
-    eval("upgrade_%s" % engine_name)()
+    globals()["upgrade_%s" % engine_name]()
 
 
 def downgrade(engine_name):
-    eval("downgrade_%s" % engine_name)()
+    globals()["downgrade_%s" % engine_name]()
 
 <%
     db_names = config.get_main_option("databases")
