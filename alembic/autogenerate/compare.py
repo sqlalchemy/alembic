@@ -198,12 +198,9 @@ class _ix_constraint_sig(_constraint_sig):
 
 def _get_index_column_names(idx, autogen_context=None):
     if compat.sqla_08:
-        return [repr(getattr(exp, "name", None))
-                if isinstance(exp, sql.schema.Column)
-                else _render_potential_expr(exp, autogen_context)
-                for exp in idx.expressions]
+        return [getattr(exp, "name", None) for exp in idx.expressions]
     else:
-        return [repr(getattr(col, "name", None)) for col in idx.columns]
+        return [getattr(col, "name", None) for col in idx.columns]
 
 def _compare_indexes_and_uniques(schema, tname, object_filters, conn_table,
             metadata_table, diffs, autogen_context, inspector):
