@@ -196,7 +196,7 @@ class OpTest(TestCase):
     def test_rename_table(self):
         context = op_fixture('mssql')
         op.rename_table('t1', 't2')
-        context.assert_contains("EXEC sp_rename '[t1]', [t2]")
+        context.assert_contains("EXEC sp_rename 't1', t2")
 
     # TODO: when we add schema support
     #def test_alter_column_rename_mssql_schema(self):
