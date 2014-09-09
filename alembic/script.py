@@ -150,16 +150,18 @@ class ScriptDirectory(object):
             revs = list(self._iterate_revisions("head", lower))
             revs = revs[-relative:]
             if len(revs) != abs(relative):
-                raise util.CommandError("Relative revision %s didn't "
-                                        "produce %d migrations" % (upper, abs(relative)))
+                raise util.CommandError(
+                    "Relative revision %s didn't "
+                    "produce %d migrations" % (upper, abs(relative)))
             return iter(revs)
         elif lower is not None and _relative_destination.match(lower):
             relative = int(lower)
             revs = list(self._iterate_revisions(upper, "base"))
             revs = revs[0:-relative]
             if len(revs) != abs(relative):
-                raise util.CommandError("Relative revision %s didn't "
-                                        "produce %d migrations" % (lower, abs(relative)))
+                raise util.CommandError(
+                    "Relative revision %s didn't "
+                    "produce %d migrations" % (lower, abs(relative)))
             return iter(revs)
         else:
             return self._iterate_revisions(upper, lower)
@@ -262,11 +264,12 @@ class ScriptDirectory(object):
         """
         current_heads = self.get_heads()
         if len(current_heads) > 1:
-            raise util.CommandError('Only a single head is supported. The '
-                                    'script directory has multiple heads (due to branching), which '
-                                    'must be resolved by manually editing the revision files to '
-                                    'form a linear sequence. Run `alembic branches` to see the '
-                                    'divergence(s).')
+            raise util.CommandError(
+                'Only a single head is supported. The '
+                'script directory has multiple heads (due to branching), '
+                'which must be resolved by manually editing the revision '
+                'files to form a linear sequence. Run `alembic branches` to '
+                'see the divergence(s).')
 
         if current_heads:
             return current_heads[0]

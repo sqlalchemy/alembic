@@ -1,4 +1,3 @@
-from sqlalchemy.exc import NoSuchTableError
 from sqlalchemy import schema as sa_schema, types as sqltypes
 import logging
 from .. import compat
@@ -50,7 +49,8 @@ def _compare_tables(conn_table_names, metadata_table_names,
     for s, tname in metadata_table_names.difference(conn_table_names):
         name = '%s.%s' % (s, tname) if s else tname
         metadata_table = tname_to_table[(s, tname)]
-        if _run_filters(metadata_table, tname, "table", False, None, object_filters):
+        if _run_filters(
+                metadata_table, tname, "table", False, None, object_filters):
             diffs.append(("add_table", metadata_table))
             log.info("Detected added table %r", name)
             _compare_indexes_and_uniques(s, tname, object_filters,
@@ -87,7 +87,9 @@ def _compare_tables(conn_table_names, metadata_table_names,
         metadata_table = tname_to_table[(s, tname)]
         conn_table = existing_metadata.tables[name]
 
-        if _run_filters(metadata_table, tname, "table", False, conn_table, object_filters):
+        if _run_filters(
+                metadata_table, tname, "table", False,
+                conn_table, object_filters):
             _compare_columns(s, tname, object_filters,
                              conn_table,
                              metadata_table,
@@ -144,7 +146,8 @@ def _compare_columns(schema, tname, object_filters, conn_table, metadata_table,
         metadata_col = metadata_cols_by_name[colname]
         conn_col = conn_table.c[colname]
         if not _run_filters(
-                metadata_col, colname, "column", False, conn_col, object_filters):
+                metadata_col, colname, "column", False,
+                conn_col, object_filters):
             continue
         col_diff = []
         _compare_type(schema, tname, colname,
@@ -214,14 +217,16 @@ def _get_index_column_names(idx):
 
 
 def _compare_indexes_and_uniques(schema, tname, object_filters, conn_table,
-                                 metadata_table, diffs, autogen_context, inspector):
+                                 metadata_table, diffs,
+                                 autogen_context, inspector):
 
     is_create_table = conn_table is None
 
     # 1a. get raw indexes and unique constraints from metadata ...
-    metadata_unique_constraints = set(uq for uq in metadata_table.constraints
-                                      if isinstance(uq, sa_schema.UniqueConstraint)
-                                      )
+    metadata_unique_constraints = set(
+        uq for uq in metadata_table.constraints
+        if isinstance(uq, sa_schema.UniqueConstraint)
+    )
     metadata_indexes = set(metadata_table.indexes)
 
     conn_uniques = conn_indexes = frozenset()
@@ -253,10 +258,10 @@ def _compare_indexes_and_uniques(schema, tname, object_filters, conn_table,
     # can't accurately report on
     autogen_context['context'].impl.\
         correct_for_autogen_constraints(
-        conn_uniques, conn_indexes,
-        metadata_unique_constraints,
-        metadata_indexes
-    )
+            conn_uniques, conn_indexes,
+            metadata_unique_constraints,
+            metadata_indexes
+        )
 
     # 4. organize the constraints into "signature" collections, the
     # _constraint_sig() objects provide a consistent facade over both
@@ -268,7 +273,8 @@ def _compare_indexes_and_uniques(schema, tname, object_filters, conn_table,
 
     metadata_indexes = set(_ix_constraint_sig(ix) for ix in metadata_indexes)
 
-    conn_unique_constraints = set(_uq_constraint_sig(uq) for uq in conn_uniques)
+    conn_unique_constraints = set(
+        _uq_constraint_sig(uq) for uq in conn_uniques)
 
     conn_indexes = set(_ix_constraint_sig(ix) for ix in conn_indexes)
 
@@ -287,7 +293,8 @@ def _compare_indexes_and_uniques(schema, tname, object_filters, conn_table,
 
     doubled_constraints = dict(
         (name, (conn_uniques_by_name[name], conn_indexes_by_name[name]))
-        for name in set(conn_uniques_by_name).intersection(conn_indexes_by_name)
+        for name in set(
+            conn_uniques_by_name).intersection(conn_indexes_by_name)
     )
 
     # 6. index things by "column signature", to help with unnamed unique
@@ -297,8 +304,9 @@ def _compare_indexes_and_uniques(schema, tname, object_filters, conn_table,
         (uq.sig, uq) for uq in metadata_unique_constraints)
     metadata_indexes_by_sig = dict(
         (ix.sig, ix) for ix in metadata_indexes)
-    unnamed_metadata_uniques = dict((uq.sig, uq) for uq in
-                                    metadata_unique_constraints if uq.name is None)
+    unnamed_metadata_uniques = dict(
+        (uq.sig, uq) for uq in
+        metadata_unique_constraints if uq.name is None)
 
     # assumptions:
     # 1. a unique constraint or an index from the connection *always*

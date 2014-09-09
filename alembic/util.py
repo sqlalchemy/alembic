@@ -10,7 +10,8 @@ from mako.template import Template
 from sqlalchemy.engine import url
 from sqlalchemy import __version__
 
-from .compat import callable, exec_, load_module_py, load_module_pyc, binary_type
+from .compat import callable, exec_, load_module_py, load_module_pyc, \
+    binary_type
 
 
 class CommandError(Exception):
@@ -22,7 +23,8 @@ def _safe_int(value):
         return int(value)
     except:
         return value
-_vers = tuple([_safe_int(x) for x in re.findall(r'(\d+|[abc]\d)', __version__)])
+_vers = tuple(
+    [_safe_int(x) for x in re.findall(r'(\d+|[abc]\d)', __version__)])
 sqla_07 = _vers > (0, 7, 2)
 sqla_08 = _vers >= (0, 8, 0, 'b2')
 sqla_09 = _vers >= (0, 9, 0)
@@ -157,7 +159,8 @@ def write_outstream(stream, *text):
 
 
 def coerce_resource_to_filename(fname):
-    """Interpret a filename as either a filesystem location or as a package resource.
+    """Interpret a filename as either a filesystem location or as a package
+    resource.
 
     Names that are non absolute paths and contain a colon
     are interpreted as resources and coerced to a file location.
@@ -227,7 +230,8 @@ def load_python_file(dir_, filename):
             module = load_module_py(module_id, path)
         elif os.path.exists(simple_pyc_file_from_path(path)):
             # look for sourceless load
-            module = load_module_pyc(module_id, simple_pyc_file_from_path(path))
+            module = load_module_pyc(
+                module_id, simple_pyc_file_from_path(path))
         else:
             raise ImportError("Can't find Python file %s" % path)
     elif ext in (".pyc", ".pyo"):

@@ -2,10 +2,6 @@ from .. import util
 from .impl import DefaultImpl
 import re
 
-#from sqlalchemy.ext.compiler import compiles
-#from .base import AddColumn, alter_table
-#from sqlalchemy.schema import AddConstraint
-
 
 class SQLiteImpl(DefaultImpl):
     __dialect__ = 'sqlite'
@@ -35,12 +31,14 @@ class SQLiteImpl(DefaultImpl):
                                rendered_metadata_default,
                                rendered_inspector_default):
 
-        rendered_metadata_default = re.sub(r"^'|'$", "", rendered_metadata_default)
+        rendered_metadata_default = re.sub(
+            r"^'|'$", "", rendered_metadata_default)
         return rendered_inspector_default != repr(rendered_metadata_default)
 
-    def correct_for_autogen_constraints(self, conn_unique_constraints, conn_indexes,
-                                        metadata_unique_constraints,
-                                        metadata_indexes):
+    def correct_for_autogen_constraints(
+        self, conn_unique_constraints, conn_indexes,
+        metadata_unique_constraints,
+            metadata_indexes):
 
         def uq_sig(uq):
             return tuple(sorted(uq.columns.keys()))
@@ -62,9 +60,9 @@ class SQLiteImpl(DefaultImpl):
             # they will come up as removed.  if the backend supports this now,
             # add a version check here for the dialect.
             if idx.name is None:
-                conn_uniques.remove(idx)
+                conn_unique_constraints.remove(idx)
 
-#@compiles(AddColumn, 'sqlite')
+# @compiles(AddColumn, 'sqlite')
 # def visit_add_column(element, compiler, **kw):
 #    return "%s %s" % (
 #        alter_table(compiler, element.table_name, element.schema),

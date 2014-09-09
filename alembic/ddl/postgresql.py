@@ -1,6 +1,5 @@
 import re
 
-from sqlalchemy import types as sqltypes
 from .. import compat
 from .base import compiles, alter_table, format_table_name, RenameTable
 from .impl import DefaultImpl

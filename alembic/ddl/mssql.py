@@ -143,7 +143,8 @@ class _ExecDropFKConstraint(Executable, ClauseElement):
 @compiles(_ExecDropConstraint, 'mssql')
 def _exec_drop_col_constraint(element, compiler, **kw):
     tname, colname, type_ = element.tname, element.colname, element.type_
-    # from http://www.mssqltips.com/sqlservertip/1425/working-with-default-constraints-in-sql-server/
+    # from http://www.mssqltips.com/sqlservertip/1425/\
+    # working-with-default-constraints-in-sql-server/
     # TODO: needs table formatting, etc.
     return """declare @const_name varchar(256)
 select @const_name = [name] from %(type)s

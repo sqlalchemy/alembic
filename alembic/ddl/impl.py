@@ -96,14 +96,17 @@ class DefaultImpl(with_metaclass(ImplMeta)):
                      existing_autoincrement=None
                      ):
         if autoincrement is not None or existing_autoincrement is not None:
-            util.warn("nautoincrement and existing_autoincrement only make sense for MySQL")
+            util.warn(
+                "autoincrement and existing_autoincrement "
+                "only make sense for MySQL")
         if nullable is not None:
-            self._exec(base.ColumnNullable(table_name, column_name,
-                                           nullable, schema=schema,
-                                           existing_type=existing_type,
-                                           existing_server_default=existing_server_default,
-                                           existing_nullable=existing_nullable,
-                                           ))
+            self._exec(base.ColumnNullable(
+                table_name, column_name,
+                nullable, schema=schema,
+                existing_type=existing_type,
+                existing_server_default=existing_server_default,
+                existing_nullable=existing_nullable,
+            ))
         if server_default is not False:
             self._exec(base.ColumnDefault(
                 table_name, column_name, server_default,
@@ -286,7 +289,8 @@ class _textual_index_element(sql.ColumnElement):
     is the same length as the .expressions collection.  Ultimately
     SQLAlchemy should support text() expressions in indexes.
 
-    See https://bitbucket.org/zzzeek/sqlalchemy/issue/3174/support-text-sent-to-indexes
+    See https://bitbucket.org/zzzeek/sqlalchemy/issue/3174/\
+    support-text-sent-to-indexes
 
     """
     __visit_name__ = '_textual_idx_element'

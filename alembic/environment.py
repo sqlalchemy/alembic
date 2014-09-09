@@ -218,7 +218,8 @@ class EnvironmentContext(object):
         For example, to support passing a database URL on the command line,
         the standard ``env.py`` script can be modified like this::
 
-            cmd_line_url = context.get_x_argument(as_dictionary=True).get('dbname')
+            cmd_line_url = context.get_x_argument(
+                as_dictionary=True).get('dbname')
             if cmd_line_url:
                 engine = create_engine(cmd_line_url)
             else:
@@ -398,10 +399,12 @@ class EnvironmentContext(object):
             )
 
 
-         ``inspected_column`` is a :class:`sqlalchemy.schema.Column` as returned by
-         :meth:`sqlalchemy.engine.reflection.Inspector.reflecttable`, whereas
-         ``metadata_column`` is a :class:`sqlalchemy.schema.Column` from
-         the local model environment.
+         ``inspected_column`` is a :class:`sqlalchemy.schema.Column` as
+         returned by
+         :meth:`sqlalchemy.engine.reflection.Inspector.reflecttable`,
+         whereas ``metadata_column`` is a
+         :class:`sqlalchemy.schema.Column` from the local model
+         environment.
 
          A return value of ``None`` indicates to allow default type
          comparison to proceed.
@@ -460,9 +463,9 @@ class EnvironmentContext(object):
 
          The function accepts the following positional arguments:
 
-         * ``object``: a :class:`~sqlalchemy.schema.SchemaItem` object such as a
-           :class:`~sqlalchemy.schema.Table` or :class:`~sqlalchemy.schema.Column`
-           object
+         * ``object``: a :class:`~sqlalchemy.schema.SchemaItem` object such
+           as a :class:`~sqlalchemy.schema.Table` or
+           :class:`~sqlalchemy.schema.Column` object
          * ``name``: the name of the object. This is typically available
            via ``object.name``.
          * ``type``: a string describing the type of object; currently
@@ -502,10 +505,12 @@ class EnvironmentContext(object):
             :paramref:`.EnvironmentContext.configure.include_schemas`
 
         :param include_symbol: A callable function which, given a table name
-         and schema name (may be ``None``), returns ``True`` or ``False``, indicating
-         if the given table should be considered in the autogenerate sweep.
+         and schema name (may be ``None``), returns ``True`` or ``False``,
+         indicating if the given table should be considered in the
+         autogenerate sweep.
 
-         .. deprecated:: 0.6.0 :paramref:`.EnvironmentContext.configure.include_symbol`
+         .. deprecated:: 0.6.0
+            :paramref:`.EnvironmentContext.configure.include_symbol`
             is superceded by the more generic
             :paramref:`.EnvironmentContext.configure.include_object`
             parameter.

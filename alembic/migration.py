@@ -1,4 +1,3 @@
-import io
 import logging
 import sys
 from contextlib import contextmanager
@@ -219,8 +218,8 @@ class MigrationContext(object):
                             )
 
     def run_migrations(self, **kw):
-        """Run the migration scripts established for this :class:`.MigrationContext`,
-        if any.
+        """Run the migration scripts established for this
+        :class:`.MigrationContext`, if any.
 
         The commands in :mod:`alembic.command` will set up a function
         that is ultimately passed to the :class:`.MigrationContext`
@@ -253,10 +252,12 @@ class MigrationContext(object):
                     if self.as_sql and not current_rev:
                         self._version.create(self.connection)
                 if doc:
-                    log.info("Running %s %s -> %s, %s", change.__name__, prev_rev,
-                             rev, doc)
+                    log.info(
+                        "Running %s %s -> %s, %s", change.__name__, prev_rev,
+                        rev, doc)
                 else:
-                    log.info("Running %s %s -> %s", change.__name__, prev_rev, rev)
+                    log.info(
+                        "Running %s %s -> %s", change.__name__, prev_rev, rev)
                 if self.as_sql:
                     self.impl.static_output(
                         "-- Running %s %s -> %s" %
@@ -302,7 +303,8 @@ class MigrationContext(object):
         in :ref:`sqlexpression_toplevel` as well as
         for usage with the :meth:`sqlalchemy.schema.Table.create`
         and :meth:`sqlalchemy.schema.MetaData.create_all` methods
-        of :class:`~sqlalchemy.schema.Table`, :class:`~sqlalchemy.schema.MetaData`.
+        of :class:`~sqlalchemy.schema.Table`,
+        :class:`~sqlalchemy.schema.MetaData`.
 
         Note that when "standard output" mode is enabled,
         this bind will be a "mock" connection handler that cannot

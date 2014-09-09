@@ -48,10 +48,12 @@ if py33:
     from importlib import machinery
 
     def load_module_py(module_id, path):
-        return machinery.SourceFileLoader(module_id, path).load_module(module_id)
+        return machinery.SourceFileLoader(
+            module_id, path).load_module(module_id)
 
     def load_module_pyc(module_id, path):
-        return machinery.SourcelessFileLoader(module_id, path).load_module(module_id)
+        return machinery.SourcelessFileLoader(
+            module_id, path).load_module(module_id)
 
 else:
     import imp

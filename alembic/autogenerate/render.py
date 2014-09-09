@@ -103,10 +103,14 @@ def _add_index(index, autogen_context):
             'table': index.table.name,
             'columns': _get_index_column_names(index),
             'unique': index.unique or False,
-            'schema': (", schema='%s'" % index.table.schema) if index.table.schema else '',
-            'kwargs': (', ' + ', '.join(
-                            ["%s=%s" % (key, _render_potential_expr(val, autogen_context))
-                             for key, val in index.kwargs.items()]))
+            'schema': (", schema='%s'" % index.table.schema)
+            if index.table.schema else '',
+            'kwargs': (
+                ', ' +
+                ', '.join(
+                    ["%s=%s" %
+                     (key, _render_potential_expr(val, autogen_context))
+                     for key, val in index.kwargs.items()]))
             if len(index.kwargs) else ''
         }
     return text
@@ -153,7 +157,8 @@ def _uq_constraint(constraint, autogen_context, alter):
     if alter and constraint.table.schema:
         opts.append(("schema", str(constraint.table.schema)))
     if not alter and constraint.name:
-        opts.append(("name", _render_gen_name(autogen_context, constraint.name)))
+        opts.append(
+            ("name", _render_gen_name(autogen_context, constraint.name)))
 
     if alter:
         args = [repr(_render_gen_name(autogen_context, constraint.name)),
@@ -204,13 +209,14 @@ def _drop_constraint(constraint, autogen_context):
     Generate Alembic operations for the ALTER TABLE ... DROP CONSTRAINT
     of a  :class:`~sqlalchemy.schema.UniqueConstraint` instance.
     """
-    text = "%(prefix)sdrop_constraint(%(name)r, '%(table_name)s'%(schema)s)" % {
-        'prefix': _alembic_autogenerate_prefix(autogen_context),
-        'name': _render_gen_name(autogen_context, constraint.name),
-        'table_name': constraint.table.name,
-        'schema': (", schema='%s'" % constraint.table.schema)
-        if constraint.table.schema else '',
-    }
+    text = "%(prefix)sdrop_constraint"\
+        "(%(name)r, '%(table_name)s'%(schema)s)" % {
+            'prefix': _alembic_autogenerate_prefix(autogen_context),
+            'name': _render_gen_name(autogen_context, constraint.name),
+            'table_name': constraint.table.name,
+            'schema': (", schema='%s'" % constraint.table.schema)
+            if constraint.table.schema else '',
+        }
     return text
 
 
@@ -253,8 +259,9 @@ def _modify_col(tname, cname,
             autogen_context),
         'tname': tname,
         'cname': cname}
-    text += ",\n%sexisting_type=%s" % (indent,
-                                       _repr_type(existing_type, autogen_context))
+    text += ",\n%sexisting_type=%s" % (
+        indent,
+        _repr_type(existing_type, autogen_context))
     if server_default is not False:
         rendered = _render_server_default(
             server_default, autogen_context)
@@ -395,7 +402,8 @@ def _render_primary_key(constraint, autogen_context):
 
     opts = []
     if constraint.name:
-        opts.append(("name", repr(_render_gen_name(autogen_context, constraint.name))))
+        opts.append(("name", repr(
+            _render_gen_name(autogen_context, constraint.name))))
     return "%(prefix)sPrimaryKeyConstraint(%(args)s)" % {
         "prefix": _sqlalchemy_autogenerate_prefix(autogen_context),
         "args": ", ".join(
@@ -427,7 +435,8 @@ def _render_foreign_key(constraint, autogen_context):
 
     opts = []
     if constraint.name:
-        opts.append(("name", repr(_render_gen_name(autogen_context, constraint.name))))
+        opts.append(("name", repr(
+            _render_gen_name(autogen_context, constraint.name))))
     if constraint.onupdate:
         opts.append(("onupdate", repr(constraint.onupdate)))
     if constraint.ondelete:
@@ -443,7 +452,8 @@ def _render_foreign_key(constraint, autogen_context):
     return "%(prefix)sForeignKeyConstraint([%(cols)s], "\
         "[%(refcols)s], %(args)s)" % {
             "prefix": _sqlalchemy_autogenerate_prefix(autogen_context),
-            "cols": ", ".join("'%s'" % f.parent.key for f in constraint.elements),
+            "cols": ", ".join(
+                "'%s'" % f.parent.key for f in constraint.elements),
             "refcols": ", ".join(repr(_fk_colspec(f, apply_metadata_schema))
                                  for f in constraint.elements),
             "args": ", ".join(
@@ -468,7 +478,12 @@ def _render_check_constraint(constraint, autogen_context):
         return None
     opts = []
     if constraint.name:
-        opts.append(("name", repr(_render_gen_name(autogen_context, constraint.name))))
+        opts.append(
+            (
+                "name",
+                repr(_render_gen_name(autogen_context, constraint.name))
+            )
+        )
     return "%(prefix)sCheckConstraint(%(sqltext)r%(opts)s)" % {
         "prefix": _sqlalchemy_autogenerate_prefix(autogen_context),
         "opts": ", " + (", ".join("%s=%s" % (k, v)

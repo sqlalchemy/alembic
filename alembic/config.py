@@ -196,31 +196,36 @@ class CommandLine(object):
                                     type=str,
                                     help="Setup template for use with 'init'")
             if 'message' in kwargs:
-                parser.add_argument("-m", "--message",
-                                    type=str,
-                                    help="Message string to use with 'revision'")
+                parser.add_argument(
+                    "-m", "--message",
+                    type=str,
+                    help="Message string to use with 'revision'")
             if 'sql' in kwargs:
-                parser.add_argument("--sql",
-                                    action="store_true",
-                                    help="Don't emit SQL to database - dump to "
-                                    "standard output/file instead")
+                parser.add_argument(
+                    "--sql",
+                    action="store_true",
+                    help="Don't emit SQL to database - dump to "
+                    "standard output/file instead")
             if 'tag' in kwargs:
-                parser.add_argument("--tag",
-                                    type=str,
-                                    help="Arbitrary 'tag' name - can be used by "
-                                    "custom env.py scripts.")
+                parser.add_argument(
+                    "--tag",
+                    type=str,
+                    help="Arbitrary 'tag' name - can be used by "
+                    "custom env.py scripts.")
             if 'autogenerate' in kwargs:
-                parser.add_argument("--autogenerate",
-                                    action="store_true",
-                                    help="Populate revision script with candidate "
-                                    "migration operations, based on comparison "
-                                    "of database to model.")
+                parser.add_argument(
+                    "--autogenerate",
+                    action="store_true",
+                    help="Populate revision script with candidate "
+                    "migration operations, based on comparison "
+                    "of database to model.")
             # "current" command
             if 'head_only' in kwargs:
-                parser.add_argument("--head-only",
-                                    action="store_true",
-                                    help="Only show current version and "
-                                    "whether or not this is the head revision.")
+                parser.add_argument(
+                    "--head-only",
+                    action="store_true",
+                    help="Only show current version and "
+                    "whether or not this is the head revision.")
 
             if 'rev_range' in kwargs:
                 parser.add_argument("-r", "--rev-range",

@@ -145,7 +145,8 @@ def _produce_migration_diffs(context, template_args,
     template_args['imports'] = "\n".join(sorted(imports))
 
 
-def _get_object_filters(context_opts, include_symbol=None, include_object=None):
+def _get_object_filters(
+        context_opts, include_symbol=None, include_object=None):
     include_symbol = context_opts.get('include_symbol', include_symbol)
     include_object = context_opts.get('include_object', include_object)
 
@@ -216,17 +217,6 @@ def _produce_net_changes(connection, metadata, diffs, autogen_context,
                     object_filters,
                     inspector, metadata, diffs, autogen_context)
 
-
-###################################################
-# element comparison
-
-
-###################################################
-# render python
-
-
-###################################################
-# produce command structure
 
 def _produce_upgrade_commands(diffs, autogen_context):
     buf = []
