@@ -14,7 +14,8 @@ from sqlalchemy.sql import and_, column, literal_column
 from . import patch
 
 from alembic import autogenerate, util, compat
-from . import eq_, eq_ignore_whitespace, requires_092, requires_09, requires_094
+from . import eq_, eq_ignore_whitespace, requires_092, \
+    requires_09, requires_094
 
 py3k = sys.version_info >= (3, )
 
@@ -90,13 +91,15 @@ class AutogenRenderTest(TestCase):
         if compat.sqla_08:
             eq_ignore_whitespace(
                 autogenerate.render._add_index(idx, autogen_context),
-                """op.create_index('foo_idx', 't', ['x', 'y'], unique=False, """
+                """op.create_index('foo_idx', 't', \
+['x', 'y'], unique=False, """
                 """postgresql_where=sa.text("t.y = 'something'"))"""
             )
         else:
             eq_ignore_whitespace(
                 autogenerate.render._add_index(idx, autogen_context),
-                """op.create_index('foo_idx', 't', ['x', 'y'], unique=False, """
+                """op.create_index('foo_idx', 't', ['x', 'y'], \
+unique=False, """
                 """postgresql_where=sa.text('t.y = %(y_1)s'))"""
             )
 
@@ -111,7 +114,8 @@ class AutogenRenderTest(TestCase):
     #         Column('active', Boolean()),
     #         Column('code', String(255)),
     #     )
-    #     idx = Index('test_active_lower_code_idx', t.c.active, func.lower(t.c.code))
+    #     idx = Index(
+    #       'test_active_lower_code_idx', t.c.active, func.lower(t.c.code))
     #     eq_ignore_whitespace(
     #         autogenerate.render._add_index(idx, self.autogen_context),
     #         ""
@@ -163,7 +167,8 @@ class AutogenRenderTest(TestCase):
                   )
         uq = UniqueConstraint(t.c.code, name='uq_test_code')
         eq_ignore_whitespace(
-            autogenerate.render._add_unique_constraint(uq, self.autogen_context),
+            autogenerate.render._add_unique_constraint(
+                uq, self.autogen_context),
             "op.create_unique_constraint('uq_test_code', 'test', ['code'])"
         )
 
@@ -180,8 +185,10 @@ class AutogenRenderTest(TestCase):
                   )
         uq = UniqueConstraint(t.c.code, name='uq_test_code')
         eq_ignore_whitespace(
-            autogenerate.render._add_unique_constraint(uq, self.autogen_context),
-            "op.create_unique_constraint('uq_test_code', 'test', ['code'], schema='CamelSchema')"
+            autogenerate.render._add_unique_constraint(
+                uq, self.autogen_context),
+            "op.create_unique_constraint('uq_test_code', 'test', "
+            "['code'], schema='CamelSchema')"
         )
 
     def test_drop_constraint(self):
@@ -237,7 +244,8 @@ class AutogenRenderTest(TestCase):
             "sa.Column('timestamp', sa.DATETIME(), "
             "server_default='NOW()', "
             "nullable=True),"
-            "sa.Column('amount', sa.Numeric(precision=5, scale=2), nullable=True),"
+            "sa.Column('amount', sa.Numeric(precision=5, scale=2), "
+            "nullable=True),"
             "sa.ForeignKeyConstraint(['address_id'], ['address.id'], ),"
             "sa.PrimaryKeyConstraint('id'),"
             "sa.UniqueConstraint('name', name='uq_name'),"
@@ -320,7 +328,9 @@ class AutogenRenderTest(TestCase):
                   Column('q', Integer, ForeignKey('address.id')),
                   )
         eq_ignore_whitespace(
-            re.sub(r"u'", "'", autogenerate.render._add_table(t, self.autogen_context)),
+            re.sub(
+                r"u'", "'",
+                autogenerate.render._add_table(t, self.autogen_context)),
             "op.create_table('test',"
             "sa.Column('id', sa.Integer(), nullable=False),"
             "sa.Column('q', sa.Integer(), nullable=True),"
@@ -385,7 +395,8 @@ class AutogenRenderTest(TestCase):
 
         eq_ignore_whitespace(
             autogenerate.render._add_table(t, self.autogen_context),
-            "op.create_table('test',sa.Column('x', sa.Boolean(), nullable=True))"
+            "op.create_table('test',"
+            "sa.Column('x', sa.Boolean(), nullable=True))"
         )
 
     def test_render_empty_pk_vs_nonempty_pk(self):
@@ -562,7 +573,10 @@ render:primary_key\n)"""
             t1.append_constraint(fk)
 
         eq_ignore_whitespace(
-            re.sub(r"u'", "'", autogenerate.render._render_constraint(fk, self.autogen_context)),
+            re.sub(
+                r"u'", "'",
+                autogenerate.render._render_constraint(
+                    fk, self.autogen_context)),
             "sa.ForeignKeyConstraint(['c'], ['t2.c_rem'], onupdate='CASCADE')"
         )
 
@@ -571,7 +585,10 @@ render:primary_key\n)"""
             t1.append_constraint(fk)
 
         eq_ignore_whitespace(
-            re.sub(r"u'", "'", autogenerate.render._render_constraint(fk, self.autogen_context)),
+            re.sub(
+                r"u'", "'",
+                autogenerate.render._render_constraint(
+                    fk, self.autogen_context)),
             "sa.ForeignKeyConstraint(['c'], ['t2.c_rem'], ondelete='CASCADE')"
         )
 
@@ -579,7 +596,10 @@ render:primary_key\n)"""
         if not util.sqla_08:
             t1.append_constraint(fk)
         eq_ignore_whitespace(
-            re.sub(r"u'", "'", autogenerate.render._render_constraint(fk, self.autogen_context)),
+            re.sub(
+                r"u'", "'",
+                autogenerate.render._render_constraint(
+                    fk, self.autogen_context)),
             "sa.ForeignKeyConstraint(['c'], ['t2.c_rem'], deferrable=True)"
         )
 
@@ -587,19 +607,26 @@ render:primary_key\n)"""
         if not util.sqla_08:
             t1.append_constraint(fk)
         eq_ignore_whitespace(
-            re.sub(r"u'", "'", autogenerate.render._render_constraint(fk, self.autogen_context)),
+            re.sub(
+                r"u'", "'",
+                autogenerate.render._render_constraint(
+                    fk, self.autogen_context)),
             "sa.ForeignKeyConstraint(['c'], ['t2.c_rem'], initially='XYZ')"
         )
 
     def test_render_fk_constraint_use_alter(self):
         m = MetaData()
         Table('t', m, Column('c', Integer))
-        t2 = Table('t2', m, Column('c_rem', Integer,
-                                   ForeignKey('t.c', name="fk1", use_alter=True)))
+        t2 = Table(
+            't2', m,
+            Column(
+                'c_rem', Integer,
+                ForeignKey('t.c', name="fk1", use_alter=True)))
         const = list(t2.foreign_keys)[0].constraint
 
         eq_ignore_whitespace(
-            autogenerate.render._render_constraint(const, self.autogen_context),
+            autogenerate.render._render_constraint(
+                const, self.autogen_context),
             "sa.ForeignKeyConstraint(['c_rem'], ['t.c'], "
             "name='fk1', use_alter=True)"
         )
@@ -614,8 +641,12 @@ render:primary_key\n)"""
             t1.append_constraint(fk)
 
         eq_ignore_whitespace(
-            re.sub(r"u'", "'", autogenerate.render._render_constraint(fk, self.autogen_context)),
-            "sa.ForeignKeyConstraint(['c'], ['foo.t2.c_rem'], onupdate='CASCADE')"
+            re.sub(
+                r"u'", "'",
+                autogenerate.render._render_constraint(
+                    fk, self.autogen_context)),
+            "sa.ForeignKeyConstraint(['c'], ['foo.t2.c_rem'], "
+            "onupdate='CASCADE')"
         )
 
     def test_render_check_constraint_literal(self):
@@ -780,7 +811,8 @@ class RenderNamingConventionTest(TestCase):
             "ix": 'ix_%(custom)s_%(column_0_label)s',
             "uq": "uq_%(custom)s_%(table_name)s_%(column_0_name)s",
             "ck": "ck_%(custom)s_%(table_name)s",
-            "fk": "fk_%(custom)s_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+            "fk": "fk_%(custom)s_%(table_name)s_"
+            "%(column_0_name)s_%(referred_table_name)s",
             "pk": "pk_%(custom)s_%(table_name)s",
             "custom": lambda const, table: "ct"
         }
@@ -806,7 +838,8 @@ class RenderNamingConventionTest(TestCase):
                 UniqueConstraint(t.c.c, deferrable='XYZ'),
                 self.autogen_context
             ),
-            "sa.UniqueConstraint('c', deferrable='XYZ', name=op.f('uq_ct_t_c'))"
+            "sa.UniqueConstraint('c', deferrable='XYZ', "
+            "name=op.f('uq_ct_t_c'))"
         )
 
     def test_explicit_named_unique_constraint(self):
@@ -877,7 +910,8 @@ class RenderNamingConventionTest(TestCase):
         )
 
     def test_inline_ck_constraint(self):
-        t = Table('t', self.metadata, Column('c', Integer), CheckConstraint("c > 5"))
+        t = Table(
+            't', self.metadata, Column('c', Integer), CheckConstraint("c > 5"))
         eq_ignore_whitespace(
             autogenerate.render._add_table(t, self.autogen_context),
             "op.create_table('t',sa.Column('c', sa.Integer(), nullable=True),"
@@ -889,7 +923,8 @@ class RenderNamingConventionTest(TestCase):
         eq_ignore_whitespace(
             autogenerate.render._add_table(t, self.autogen_context),
             "op.create_table('t',sa.Column('c', sa.Integer(), nullable=True),"
-            "sa.ForeignKeyConstraint(['c'], ['q.id'], name=op.f('fk_ct_t_c_q')))"
+            "sa.ForeignKeyConstraint(['c'], ['q.id'], "
+            "name=op.f('fk_ct_t_c_q')))"
         )
 
     def test_render_check_constraint_renamed(self):
@@ -903,7 +938,8 @@ class RenderNamingConventionTest(TestCase):
         used.
 
         """
-        m1 = MetaData(naming_convention={"ck": "ck_%(table_name)s_%(constraint_name)s"})
+        m1 = MetaData(naming_convention={
+            "ck": "ck_%(table_name)s_%(constraint_name)s"})
         ck = CheckConstraint("im a constraint", name="cc1")
         Table('t', m1, Column('x'), ck)
 

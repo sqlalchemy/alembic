@@ -76,7 +76,8 @@ def downgrade():
         self._inline_enum_script()
         with capture_context_buffer() as buf:
             command.upgrade(self.cfg, self.rid, sql=True)
-        assert "CREATE TYPE pgenum AS ENUM ('one', 'two', 'three')" in buf.getvalue()
+        assert "CREATE TYPE pgenum AS "\
+            "ENUM ('one', 'two', 'three')" in buf.getvalue()
         assert "CREATE TABLE sometable (\n    data pgenum\n)" in buf.getvalue()
 
     def test_offline_inline_enum_drop(self):
@@ -92,7 +93,8 @@ def downgrade():
         self._distinct_enum_script()
         with capture_context_buffer() as buf:
             command.upgrade(self.cfg, self.rid, sql=True)
-        assert "CREATE TYPE pgenum AS ENUM ('one', 'two', 'three')" in buf.getvalue()
+        assert "CREATE TYPE pgenum AS ENUM "\
+            "('one', 'two', 'three')" in buf.getvalue()
         assert "CREATE TABLE sometable (\n    data pgenum\n)" in buf.getvalue()
 
     def test_offline_distinct_enum_drop(self):
@@ -142,7 +144,8 @@ class PostgresqlInlineLiteralTest(TestCase):
             execution_options={'no_parameters': True}
         )
         eq_(
-            self.conn.execute("select count(*) from tab where col='new data'").scalar(),
+            self.conn.execute(
+                "select count(*) from tab where col='new data'").scalar(),
             1,
         )
 

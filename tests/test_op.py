@@ -107,8 +107,10 @@ def test_add_column_schema():
 
 def test_add_column_with_default():
     context = op_fixture()
-    op.add_column('t1', Column('c1', Integer, nullable=False, server_default="12"))
-    context.assert_("ALTER TABLE t1 ADD COLUMN c1 INTEGER DEFAULT '12' NOT NULL")
+    op.add_column(
+        't1', Column('c1', Integer, nullable=False, server_default="12"))
+    context.assert_(
+        "ALTER TABLE t1 ADD COLUMN c1 INTEGER DEFAULT '12' NOT NULL")
 
 
 def test_add_column_schema_with_default():
@@ -116,12 +118,14 @@ def test_add_column_schema_with_default():
     op.add_column('t1',
                   Column('c1', Integer, nullable=False, server_default="12"),
                   schema='foo')
-    context.assert_("ALTER TABLE foo.t1 ADD COLUMN c1 INTEGER DEFAULT '12' NOT NULL")
+    context.assert_(
+        "ALTER TABLE foo.t1 ADD COLUMN c1 INTEGER DEFAULT '12' NOT NULL")
 
 
 def test_add_column_fk():
     context = op_fixture()
-    op.add_column('t1', Column('c1', Integer, ForeignKey('c2.id'), nullable=False))
+    op.add_column(
+        't1', Column('c1', Integer, ForeignKey('c2.id'), nullable=False))
     context.assert_(
         "ALTER TABLE t1 ADD COLUMN c1 INTEGER NOT NULL",
         "ALTER TABLE t1 ADD FOREIGN KEY(c1) REFERENCES c2 (id)"
@@ -171,7 +175,8 @@ def test_add_column_schema_type_checks_rule():
 
 def test_add_column_fk_self_referential():
     context = op_fixture()
-    op.add_column('t1', Column('c1', Integer, ForeignKey('t1.c2'), nullable=False))
+    op.add_column(
+        't1', Column('c1', Integer, ForeignKey('t1.c2'), nullable=False))
     context.assert_(
         "ALTER TABLE t1 ADD COLUMN c1 INTEGER NOT NULL",
         "ALTER TABLE t1 ADD FOREIGN KEY(c1) REFERENCES t1 (c2)"
@@ -180,9 +185,10 @@ def test_add_column_fk_self_referential():
 
 def test_add_column_schema_fk_self_referential():
     context = op_fixture()
-    op.add_column('t1',
-                  Column('c1', Integer, ForeignKey('foo.t1.c2'), nullable=False),
-                  schema='foo')
+    op.add_column(
+        't1',
+        Column('c1', Integer, ForeignKey('foo.t1.c2'), nullable=False),
+        schema='foo')
     context.assert_(
         "ALTER TABLE foo.t1 ADD COLUMN c1 INTEGER NOT NULL",
         "ALTER TABLE foo.t1 ADD FOREIGN KEY(c1) REFERENCES foo.t1 (c2)"
@@ -191,7 +197,9 @@ def test_add_column_schema_fk_self_referential():
 
 def test_add_column_fk_schema():
     context = op_fixture()
-    op.add_column('t1', Column('c1', Integer, ForeignKey('remote.t2.c2'), nullable=False))
+    op.add_column(
+        't1',
+        Column('c1', Integer, ForeignKey('remote.t2.c2'), nullable=False))
     context.assert_(
         'ALTER TABLE t1 ADD COLUMN c1 INTEGER NOT NULL',
         'ALTER TABLE t1 ADD FOREIGN KEY(c1) REFERENCES remote.t2 (c2)'
@@ -200,9 +208,10 @@ def test_add_column_fk_schema():
 
 def test_add_column_schema_fk_schema():
     context = op_fixture()
-    op.add_column('t1',
-                  Column('c1', Integer, ForeignKey('remote.t2.c2'), nullable=False),
-                  schema='foo')
+    op.add_column(
+        't1',
+        Column('c1', Integer, ForeignKey('remote.t2.c2'), nullable=False),
+        schema='foo')
     context.assert_(
         'ALTER TABLE foo.t1 ADD COLUMN c1 INTEGER NOT NULL',
         'ALTER TABLE foo.t1 ADD FOREIGN KEY(c1) REFERENCES remote.t2 (c2)'
@@ -324,7 +333,8 @@ def test_alter_column_schema_set_compiled_default():
                     server_default=func.utc_thing(func.current_timestamp()),
                     schema='foo')
     context.assert_(
-        "ALTER TABLE foo.t ALTER COLUMN c SET DEFAULT utc_thing(CURRENT_TIMESTAMP)"
+        "ALTER TABLE foo.t ALTER COLUMN c "
+        "SET DEFAULT utc_thing(CURRENT_TIMESTAMP)"
     )
 
 
@@ -382,7 +392,8 @@ def test_alter_column_schema_schema_type_named():
 
 def test_alter_column_schema_type_existing_type():
     context = op_fixture('mssql')
-    op.alter_column("t", "c", type_=String(10), existing_type=Boolean(name="xyz"))
+    op.alter_column(
+        "t", "c", type_=String(10), existing_type=Boolean(name="xyz"))
     context.assert_(
         'ALTER TABLE t DROP CONSTRAINT xyz',
         'ALTER TABLE t ALTER COLUMN c VARCHAR(10)'
@@ -511,7 +522,8 @@ def test_add_foreign_key_match():
 
 def test_add_foreign_key_dialect_kw():
     context = op_fixture()
-    with mock.patch("alembic.operations.sa_schema.ForeignKeyConstraint") as fkc:
+    with mock.patch(
+            "alembic.operations.sa_schema.ForeignKeyConstraint") as fkc:
         op.create_foreign_key('fk_test', 't1', 't2',
                               ['foo', 'bar'], ['bat', 'hoho'],
                               foobar_arg='xyz')
@@ -625,8 +637,9 @@ def test_create_index_table_col_event():
 
 def test_add_unique_constraint_col_event():
     context = op_fixture()
-    op.create_unique_constraint('ik_test',
-                                'tbl_with_auto_appended_column', ['foo', 'bar'])
+    op.create_unique_constraint(
+        'ik_test',
+        'tbl_with_auto_appended_column', ['foo', 'bar'])
     context.assert_(
         "ALTER TABLE tbl_with_auto_appended_column "
         "ADD CONSTRAINT ik_test UNIQUE (foo, bar)"

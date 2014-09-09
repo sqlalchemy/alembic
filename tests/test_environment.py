@@ -4,7 +4,8 @@ from alembic.script import ScriptDirectory
 from alembic.environment import EnvironmentContext
 from alembic.migration import MigrationContext
 import unittest
-from . import Mock, call, _no_sql_testing_config, staging_env, clear_staging_env
+from . import Mock, call, _no_sql_testing_config, staging_env, \
+    clear_staging_env
 
 from . import eq_, is_
 

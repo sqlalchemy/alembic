@@ -117,7 +117,8 @@ def _get_dialect(name):
         try:
             return _dialects[name]
         except KeyError:
-            dialect_mod = getattr(__import__('sqlalchemy.dialects.%s' % name).dialects, name)
+            dialect_mod = getattr(
+                __import__('sqlalchemy.dialects.%s' % name).dialects, name)
             _dialects[name] = d = dialect_mod.dialect()
             if name == 'postgresql':
                 d.implicit_returning = True
@@ -304,7 +305,8 @@ datefmt = %%H:%%M:%%S
 
 
 def _no_sql_testing_config(dialect="postgresql", directives=""):
-    """use a postgresql url with no host so that connections guaranteed to fail"""
+    """use a postgresql url with no host so that
+    connections guaranteed to fail"""
     dir_ = os.path.join(staging_directory, 'scripts')
     return _write_config_file("""
 [alembic]
@@ -382,7 +384,8 @@ def clear_staging_env():
     shutil.rmtree(staging_directory, True)
 
 
-def write_script(scriptdir, rev_id, content, encoding='ascii', sourceless=False):
+def write_script(
+        scriptdir, rev_id, content, encoding='ascii', sourceless=False):
     old = scriptdir._revision_map[rev_id]
     path = old.path
 

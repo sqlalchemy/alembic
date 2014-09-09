@@ -51,7 +51,8 @@ class OpTest(TestCase):
 
     def test_add_column_with_default(self):
         context = op_fixture("oracle")
-        op.add_column('t1', Column('c1', Integer, nullable=False, server_default="12"))
+        op.add_column(
+            't1', Column('c1', Integer, nullable=False, server_default="12"))
         context.assert_("ALTER TABLE t1 ADD c1 INTEGER DEFAULT '12' NOT NULL")
 
     def test_alter_column_rename_oracle(self):
@@ -126,7 +127,8 @@ class OpTest(TestCase):
 
     def test_alter_replace_server_default(self):
         context = op_fixture('oracle')
-        op.alter_column("t", "c", server_default="5", existing_server_default="6")
+        op.alter_column(
+            "t", "c", server_default="5", existing_server_default="6")
         context.assert_(
             "ALTER TABLE t MODIFY c DEFAULT '5'"
         )
@@ -140,7 +142,9 @@ class OpTest(TestCase):
 
     def test_alter_do_everything(self):
         context = op_fixture('oracle')
-        op.alter_column("t", "c", name="c2", nullable=True, type_=Integer, server_default="5")
+        op.alter_column(
+            "t", "c", name="c2", nullable=True,
+            type_=Integer, server_default="5")
         context.assert_(
             'ALTER TABLE t MODIFY c NULL',
             "ALTER TABLE t MODIFY c DEFAULT '5'",

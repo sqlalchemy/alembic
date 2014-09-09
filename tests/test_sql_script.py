@@ -96,7 +96,8 @@ class ThreeRevTest(unittest.TestCase):
     def test_stamp(self):
         with capture_context_buffer() as buf:
             command.stamp(cfg, "head", sql=True)
-        assert "UPDATE alembic_version SET version_num='%s';" % c in buf.getvalue()
+        assert "UPDATE alembic_version "\
+            "SET version_num='%s';" % c in buf.getvalue()
 
 
 class EncodingTest(unittest.TestCase):

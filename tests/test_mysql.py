@@ -12,7 +12,8 @@ class MySQLOpTest(TestCase):
 
     def test_rename_column(self):
         context = op_fixture('mysql')
-        op.alter_column('t1', 'c1', new_column_name="c2", existing_type=Integer)
+        op.alter_column(
+            't1', 'c1', new_column_name="c2", existing_type=Integer)
         context.assert_(
             'ALTER TABLE t1 CHANGE c1 c2 INTEGER NULL'
         )
@@ -30,31 +31,36 @@ class MySQLOpTest(TestCase):
         op.alter_column('my table', 'column one', new_column_name="column two",
                         existing_type=Integer)
         context.assert_(
-            'ALTER TABLE `my table` CHANGE `column one` `column two` INTEGER NULL'
+            'ALTER TABLE `my table` CHANGE `column one` '
+            '`column two` INTEGER NULL'
         )
 
     def test_rename_column_serv_default(self):
         context = op_fixture('mysql')
-        op.alter_column('t1', 'c1', new_column_name="c2", existing_type=Integer,
-                        existing_server_default="q")
+        op.alter_column(
+            't1', 'c1', new_column_name="c2", existing_type=Integer,
+            existing_server_default="q")
         context.assert_(
             "ALTER TABLE t1 CHANGE c1 c2 INTEGER NULL DEFAULT 'q'"
         )
 
     def test_rename_column_serv_compiled_default(self):
         context = op_fixture('mysql')
-        op.alter_column('t1', 'c1', existing_type=Integer,
-                        server_default=func.utc_thing(func.current_timestamp()))
+        op.alter_column(
+            't1', 'c1', existing_type=Integer,
+            server_default=func.utc_thing(func.current_timestamp()))
         # this is not a valid MySQL default but the point is to just
         # test SQL expression rendering
         context.assert_(
-            "ALTER TABLE t1 ALTER COLUMN c1 SET DEFAULT utc_thing(CURRENT_TIMESTAMP)"
+            "ALTER TABLE t1 ALTER COLUMN c1 "
+            "SET DEFAULT utc_thing(CURRENT_TIMESTAMP)"
         )
 
     def test_rename_column_autoincrement(self):
         context = op_fixture('mysql')
-        op.alter_column('t1', 'c1', new_column_name="c2", existing_type=Integer,
-                        existing_autoincrement=True)
+        op.alter_column(
+            't1', 'c1', new_column_name="c2", existing_type=Integer,
+            existing_autoincrement=True)
         context.assert_(
             'ALTER TABLE t1 CHANGE c1 c2 INTEGER NULL AUTO_INCREMENT'
         )
@@ -123,14 +129,16 @@ class MySQLOpTest(TestCase):
 
     def test_col_multi_alter(self):
         context = op_fixture('mysql')
-        op.alter_column('t1', 'c1', nullable=False, server_default="q", type_=Integer)
+        op.alter_column(
+            't1', 'c1', nullable=False, server_default="q", type_=Integer)
         context.assert_(
             "ALTER TABLE t1 MODIFY c1 INTEGER NOT NULL DEFAULT 'q'"
         )
 
     def test_alter_column_multi_alter_w_drop_default(self):
         context = op_fixture('mysql')
-        op.alter_column('t1', 'c1', nullable=False, server_default=None, type_=Integer)
+        op.alter_column(
+            't1', 'c1', nullable=False, server_default=None, type_=Integer)
         context.assert_(
             "ALTER TABLE t1 MODIFY c1 INTEGER NOT NULL"
         )
@@ -228,9 +236,13 @@ class MySQLDefaultCompareTest(TestCase):
         else:
             alternate = txt
             expected = False
-        t = Table("test", self.metadata,
-                  Column("somecol", type_, server_default=text(txt) if txt else None)
-                  )
+        t = Table(
+            "test", self.metadata,
+            Column(
+                "somecol", type_,
+                server_default=text(txt) if txt else None
+            )
+        )
         t2 = Table("test", MetaData(),
                    Column("somecol", type_, server_default=text(alternate))
                    )

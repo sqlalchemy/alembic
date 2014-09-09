@@ -7,6 +7,8 @@ from . import clear_staging_env, staging_env, \
     three_rev_fixture, env_file_fixture,\
     assert_raises_message
 
+a = b = c = None
+
 
 class OfflineEnvironmentTest(TestCase):
 

@@ -1,5 +1,7 @@
-from tests import clear_staging_env, staging_env, eq_, ne_, is_, staging_directory
-from tests import _no_sql_testing_config, env_file_fixture, script_file_fixture, _testing_config
+from tests import clear_staging_env, staging_env, eq_, ne_, is_, \
+    staging_directory
+from tests import _no_sql_testing_config, env_file_fixture, \
+    script_file_fixture, _testing_config
 from alembic import command
 from alembic.script import ScriptDirectory, Script
 from alembic.environment import EnvironmentContext
@@ -37,15 +39,19 @@ class GeneralOrderedTests(unittest.TestCase):
         eq_(script.revision, abc)
         eq_(script.down_revision, None)
         assert os.access(
-            os.path.join(env.dir, 'versions', '%s_this_is_a_message.py' % abc), os.F_OK)
+            os.path.join(env.dir, 'versions',
+                         '%s_this_is_a_message.py' % abc), os.F_OK)
         assert callable(script.module.upgrade)
         eq_(env.get_heads(), [abc])
         eq_(env.get_base(), abc)
 
     def test_005_nextrev(self):
-        script = env.generate_revision(def_, "this is the next rev", refresh=True)
+        script = env.generate_revision(
+            def_, "this is the next rev", refresh=True)
         assert os.access(
-            os.path.join(env.dir, 'versions', '%s_this_is_the_next_rev.py' % def_), os.F_OK)
+            os.path.join(
+                env.dir, 'versions',
+                '%s_this_is_the_next_rev.py' % def_), os.F_OK)
         eq_(script.revision, def_)
         eq_(script.down_revision, abc)
         eq_(env._revision_map[abc].nextrev, set([def_]))
@@ -82,8 +88,9 @@ class GeneralOrderedTests(unittest.TestCase):
                               "lots of characters and also "
                               "I'd like it to\nhave\nnewlines")
         assert os.access(
-            os.path.join(env.dir, 'versions',
-                         '%s_this_is_a_really_long_name_with_lots_of_.py' % rid),
+            os.path.join(
+                env.dir, 'versions',
+                '%s_this_is_a_really_long_name_with_lots_of_.py' % rid),
             os.F_OK)
 
     def test_009_long_name_configurable(self):

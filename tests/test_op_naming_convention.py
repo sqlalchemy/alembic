@@ -71,7 +71,8 @@ def test_add_index_name_is_none():
 
 @requires_094
 def test_add_check_constraint_already_named_from_schema():
-    m1 = MetaData(naming_convention={"ck": "ck_%(table_name)s_%(constraint_name)s"})
+    m1 = MetaData(
+        naming_convention={"ck": "ck_%(table_name)s_%(constraint_name)s"})
     ck = CheckConstraint("im a constraint", name="cc1")
     Table('t', m1, Column('x'), ck)
 
@@ -138,7 +139,9 @@ def test_add_check_constraint_inline_on_column_w_f():
         naming_convention={"ck": "ck_%(table_name)s_%(constraint_name)s"})
     op.create_table(
         "some_table",
-        Column('x', Integer, CheckConstraint("im a constraint", name=op.f("ck_q_cc1")))
+        Column(
+            'x', Integer,
+            CheckConstraint("im a constraint", name=op.f("ck_q_cc1")))
     )
     context.assert_(
         "CREATE TABLE some_table "
@@ -163,7 +166,8 @@ def test_add_column_schema_type_w_f():
     context = op_fixture(naming_convention={
         "ck": "ck_%(table_name)s_%(constraint_name)s"
     })
-    op.add_column('t1', Column('c1', Boolean(name=op.f('foo')), nullable=False))
+    op.add_column(
+        't1', Column('c1', Boolean(name=op.f('foo')), nullable=False))
     context.assert_(
         'ALTER TABLE t1 ADD COLUMN c1 BOOLEAN NOT NULL',
         'ALTER TABLE t1 ADD CONSTRAINT foo CHECK (c1 IN (0, 1))'

@@ -90,7 +90,9 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestCase):
               UniqueConstraint('order_id', 'user_id',
                                name='order_order_id_user_id_unique'
                                ),
-              Index('order_user_id_amount_idx', 'user_id', 'amount', unique=True),
+              Index(
+                  'order_user_id_amount_idx', 'user_id',
+                  'amount', unique=True),
               )
 
         diffs = self._fixture(m1, m2)
@@ -192,8 +194,9 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestCase):
         Table('nothing_changed_related', m1,
               Column('id1', Integer),
               Column('id2', Integer),
-              ForeignKeyConstraint(['id1', 'id2'],
-                                   ['nothing_changed.id1', 'nothing_changed.id2']),
+              ForeignKeyConstraint(
+                  ['id1', 'id2'],
+                  ['nothing_changed.id1', 'nothing_changed.id2']),
               mysql_engine='InnoDB'
               )
 
@@ -206,8 +209,9 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestCase):
         Table('nothing_changed_related', m2,
               Column('id1', Integer),
               Column('id2', Integer),
-              ForeignKeyConstraint(['id1', 'id2'],
-                                   ['nothing_changed.id1', 'nothing_changed.id2']),
+              ForeignKeyConstraint(
+                  ['id1', 'id2'],
+                  ['nothing_changed.id1', 'nothing_changed.id2']),
               mysql_engine='InnoDB'
               )
 
@@ -378,7 +382,8 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestCase):
 
         eq_(diffs[0][0], "add_table")
         eq_(len(diffs), 1)
-        assert UniqueConstraint in set(type(c) for c in diffs[0][1].constraints)
+        assert UniqueConstraint in set(
+            type(c) for c in diffs[0][1].constraints)
 
     def test_add_uq_ix_on_table_create(self):
         m1 = MetaData()
@@ -388,7 +393,8 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestCase):
 
         eq_(diffs[0][0], "add_table")
         eq_(len(diffs), 2)
-        assert UniqueConstraint not in set(type(c) for c in diffs[0][1].constraints)
+        assert UniqueConstraint not in set(
+            type(c) for c in diffs[0][1].constraints)
         eq_(diffs[1][0], "add_index")
         eq_(diffs[1][1].unique, True)
 
@@ -400,7 +406,8 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestCase):
 
         eq_(diffs[0][0], "add_table")
         eq_(len(diffs), 2)
-        assert UniqueConstraint not in set(type(c) for c in diffs[0][1].constraints)
+        assert UniqueConstraint not in set(
+            type(c) for c in diffs[0][1].constraints)
         eq_(diffs[1][0], "add_index")
         eq_(diffs[1][1].unique, False)
 

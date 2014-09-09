@@ -7,6 +7,8 @@ from . import clear_staging_env, staging_env, \
     _sqlite_testing_config, sqlite_db, eq_, write_script, \
     assert_raises_message
 
+a = b = c = None
+
 
 class VersioningTest(unittest.TestCase):
     sourceless = False

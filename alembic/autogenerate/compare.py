@@ -260,8 +260,7 @@ def _compare_indexes_and_uniques(schema, tname, object_filters, conn_table,
         correct_for_autogen_constraints(
             conn_uniques, conn_indexes,
             metadata_unique_constraints,
-            metadata_indexes
-        )
+            metadata_indexes)
 
     # 4. organize the constraints into "signature" collections, the
     # _constraint_sig() objects provide a consistent facade over both
