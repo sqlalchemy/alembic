@@ -4,6 +4,7 @@ Changelog
 ==========
 .. changelog::
     :version: 0.6.7
+    :released: September 9, 2014
 
     .. change::
       :tags: bug, mssql
@@ -14,7 +15,7 @@ Changelog
       Łukasz Bołdys.
 
     .. change::
-      :tags: enhancement
+      :tags: feature
       :tickets: 222
 
       Added support for functional indexes when using the
