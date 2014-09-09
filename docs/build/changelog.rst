@@ -6,6 +6,14 @@ Changelog
     :version: 0.6.7
 
     .. change::
+      :tags: bug, mssql
+      :pullreq: bitbucket:26
+
+      Fixed bug in MSSQL dialect where "rename table" wasn't using
+      ``sp_rename()`` as is required on SQL Server.  Pull request courtesy
+      Łukasz Bołdys.
+
+    .. change::
       :tags: enhancement
       :tickets: 222
 
