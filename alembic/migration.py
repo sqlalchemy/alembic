@@ -13,7 +13,9 @@ from . import ddl, util
 
 log = logging.getLogger(__name__)
 
+
 class MigrationContext(object):
+
     """Represent the database state made available to a migration
     script.
 
@@ -58,6 +60,7 @@ class MigrationContext(object):
         op.alter_column("mytable", "somecolumn", nullable=True)
 
     """
+
     def __init__(self, dialect, connection, opts, environment_context=None):
         self.environment_context = environment_context
         self.opts = opts
@@ -68,7 +71,7 @@ class MigrationContext(object):
         transactional_ddl = opts.get("transactional_ddl")
 
         self._transaction_per_migration = opts.get(
-                                            "transaction_per_migration", False)
+            "transaction_per_migration", False)
 
         if as_sql:
             self.connection = self._stdout_connection(connection)
@@ -88,8 +91,8 @@ class MigrationContext(object):
 
         self._user_compare_type = opts.get('compare_type', False)
         self._user_compare_server_default = opts.get(
-                                            'compare_server_default',
-                                            False)
+            'compare_server_default',
+            False)
         version_table = opts.get('version_table', 'alembic_version')
         version_table_schema = opts.get('version_table_schema', None)
         self._version = Table(
@@ -99,26 +102,26 @@ class MigrationContext(object):
 
         self._start_from_rev = opts.get("starting_rev")
         self.impl = ddl.DefaultImpl.get_by_dialect(dialect)(
-                            dialect, self.connection, self.as_sql,
-                            transactional_ddl,
-                            self.output_buffer,
-                            opts
-                            )
+            dialect, self.connection, self.as_sql,
+            transactional_ddl,
+            self.output_buffer,
+            opts
+        )
         log.info("Context impl %s.", self.impl.__class__.__name__)
         if self.as_sql:
             log.info("Generating static SQL")
         log.info("Will assume %s DDL.",
-                        "transactional" if self.impl.transactional_ddl
-                        else "non-transactional")
+                 "transactional" if self.impl.transactional_ddl
+                 else "non-transactional")
 
     @classmethod
     def configure(cls,
-                connection=None,
-                url=None,
-                dialect_name=None,
-                environment_context=None,
-                opts=None,
-    ):
+                  connection=None,
+                  url=None,
+                  dialect_name=None,
+                  environment_context=None,
+                  opts=None,
+                  ):
         """Create a new :class:`.MigrationContext`.
 
         This is a factory method usually called
@@ -154,7 +157,6 @@ class MigrationContext(object):
             raise Exception("Connection, url, or dialect_name is required.")
 
         return MigrationContext(dialect, connection, opts, environment_context)
-
 
     def begin_transaction(self, _per_migration=False):
         transaction_now = _per_migration == self._transaction_per_migration
@@ -209,12 +211,12 @@ class MigrationContext(object):
             self.impl._exec(self._version.delete())
         elif old is None:
             self.impl._exec(self._version.insert().
-                        values(version_num=literal_column("'%s'" % new))
-                    )
+                            values(version_num=literal_column("'%s'" % new))
+                            )
         else:
             self.impl._exec(self._version.update().
-                        values(version_num=literal_column("'%s'" % new))
-                    )
+                            values(version_num=literal_column("'%s'" % new))
+                            )
 
     def run_migrations(self, **kw):
         """Run the migration scripts established for this :class:`.MigrationContext`,
@@ -239,12 +241,12 @@ class MigrationContext(object):
         """
         current_rev = rev = False
         stamp_per_migration = not self.impl.transactional_ddl or \
-                                    self._transaction_per_migration
+            self._transaction_per_migration
 
         self.impl.start_migrations()
         for change, prev_rev, rev, doc in self._migrations_fn(
-                                            self.get_current_revision(),
-                                            self):
+                self.get_current_revision(),
+                self):
             with self.begin_transaction(_per_migration=True):
                 if current_rev is False:
                     current_rev = prev_rev
@@ -252,14 +254,14 @@ class MigrationContext(object):
                         self._version.create(self.connection)
                 if doc:
                     log.info("Running %s %s -> %s, %s", change.__name__, prev_rev,
-                        rev, doc)
+                             rev, doc)
                 else:
                     log.info("Running %s %s -> %s", change.__name__, prev_rev, rev)
                 if self.as_sql:
                     self.impl.static_output(
-                            "-- Running %s %s -> %s" %
-                            (change.__name__, prev_rev, rev)
-                        )
+                        "-- Running %s %s -> %s" %
+                        (change.__name__, prev_rev, rev)
+                    )
                 change(**kw)
                 if stamp_per_migration:
                     self._update_current_rev(prev_rev, rev)
@@ -288,7 +290,7 @@ class MigrationContext(object):
             self.impl._exec(construct)
 
         return create_engine("%s://" % self.dialect.name,
-                        strategy="mock", executor=dump)
+                             strategy="mock", executor=dump)
 
     @property
     def bind(self):
@@ -338,32 +340,31 @@ class MigrationContext(object):
                 return user_value
 
         return self.impl.compare_type(
-                                    inspector_column,
-                                    metadata_column)
+            inspector_column,
+            metadata_column)
 
     def _compare_server_default(self, inspector_column,
-                            metadata_column,
-                            rendered_metadata_default,
-                            rendered_column_default):
+                                metadata_column,
+                                rendered_metadata_default,
+                                rendered_column_default):
 
         if self._user_compare_server_default is False:
             return False
 
         if callable(self._user_compare_server_default):
             user_value = self._user_compare_server_default(
-                    self,
-                    inspector_column,
-                    metadata_column,
-                    rendered_column_default,
-                    metadata_column.server_default,
-                    rendered_metadata_default
+                self,
+                inspector_column,
+                metadata_column,
+                rendered_column_default,
+                metadata_column.server_default,
+                rendered_metadata_default
             )
             if user_value is not None:
                 return user_value
 
         return self.impl.compare_server_default(
-                                inspector_column,
-                                metadata_column,
-                                rendered_metadata_default,
-                                rendered_column_default)
-
+            inspector_column,
+            metadata_column,
+            rendered_metadata_default,
+            rendered_column_default)

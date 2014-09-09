@@ -8,7 +8,9 @@ from . import Mock, call, _no_sql_testing_config, staging_env, clear_staging_env
 
 from . import eq_, is_
 
+
 class EnvironmentTest(unittest.TestCase):
+
     def setUp(self):
         staging_env()
         self.cfg = _no_sql_testing_config()

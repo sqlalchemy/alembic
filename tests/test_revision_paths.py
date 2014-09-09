@@ -6,6 +6,7 @@ env = None
 a, b, c, d, e = None, None, None, None, None
 cfg = None
 
+
 def setup():
     global env
     env = staging_env()
@@ -15,6 +16,7 @@ def setup():
     c = env.generate_revision(util.rev_id(), 'b->c', refresh=True)
     d = env.generate_revision(util.rev_id(), 'c->d', refresh=True)
     e = env.generate_revision(util.rev_id(), 'd->e', refresh=True)
+
 
 def teardown():
     clear_staging_env()
@@ -38,6 +40,7 @@ def test_upgrade_path():
             (c.module.upgrade, b.revision, c.revision, c.doc),
         ]
     )
+
 
 def test_relative_upgrade_path():
     eq_(
@@ -64,6 +67,7 @@ def test_relative_upgrade_path():
         ]
     )
 
+
 def test_invalid_relative_upgrade_path():
     assert_raises_message(
         util.CommandError,
@@ -76,6 +80,7 @@ def test_invalid_relative_upgrade_path():
         r"Relative revision \+5 didn't produce 5 migrations",
         env._upgrade_revs, "+5", b.revision
     )
+
 
 def test_downgrade_path():
 
@@ -96,6 +101,7 @@ def test_downgrade_path():
         ]
     )
 
+
 def test_relative_downgrade_path():
     eq_(
         env._downgrade_revs("-1", c.revision),
@@ -113,6 +119,7 @@ def test_relative_downgrade_path():
         ]
     )
 
+
 def test_invalid_relative_downgrade_path():
     assert_raises_message(
         util.CommandError,
@@ -126,6 +133,7 @@ def test_invalid_relative_downgrade_path():
         env._downgrade_revs, "+2", b.revision
     )
 
+
 def test_invalid_move_rev_to_none():
     assert_raises_message(
         util.CommandError,
@@ -133,10 +141,10 @@ def test_invalid_move_rev_to_none():
         env._downgrade_revs, b.revision[0:3], None
     )
 
+
 def test_invalid_move_higher_to_lower():
     assert_raises_message(
-       util.CommandError,
+        util.CommandError,
         "Revision %s is not an ancestor of %s" % (c.revision, b.revision),
         env._downgrade_revs, c.revision[0:4], b.revision
     )
-

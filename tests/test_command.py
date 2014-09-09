@@ -7,7 +7,6 @@ from io import TextIOWrapper, BytesIO
 from alembic.script import ScriptDirectory
 
 
-
 class StdoutCommandTest(unittest.TestCase):
 
     @classmethod

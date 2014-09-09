@@ -11,6 +11,7 @@ from . import op_fixture, capture_context_buffer, \
 
 
 class FullEnvironmentTests(TestCase):
+
     @classmethod
     def setup_class(cls):
         env = staging_env()
@@ -40,12 +41,13 @@ class FullEnvironmentTests(TestCase):
             command.upgrade(self.cfg, self.a, sql=True)
         assert "BYE" in buf.getvalue()
 
+
 class OpTest(TestCase):
+
     def test_add_column(self):
         context = op_fixture('oracle')
         op.add_column('t1', Column('c1', Integer, nullable=False))
         context.assert_("ALTER TABLE t1 ADD c1 INTEGER NOT NULL")
-
 
     def test_add_column_with_default(self):
         context = op_fixture("oracle")
@@ -147,10 +149,9 @@ class OpTest(TestCase):
         )
 
     # TODO: when we add schema support
-    #def test_alter_column_rename_oracle_schema(self):
+    # def test_alter_column_rename_oracle_schema(self):
     #    context = op_fixture('oracle')
     #    op.alter_column("t", "c", name="x", schema="y")
     #    context.assert_(
     #        'ALTER TABLE y.t RENAME COLUMN c TO c2'
     #    )
-

@@ -14,7 +14,9 @@ try:
 except:
     conv = None
 
+
 class Operations(object):
+
     """Define high level migration operations.
 
     Each operation corresponds to some schema migration operation,
@@ -39,6 +41,7 @@ class Operations(object):
         op.alter_column("t", "c", nullable=True)
 
     """
+
     def __init__(self, migration_context):
         """Construct a new :class:`.Operations`
 
@@ -58,57 +61,56 @@ class Operations(object):
         yield op
         _remove_proxy()
 
-
     def _primary_key_constraint(self, name, table_name, cols, schema=None):
         m = self._metadata()
         columns = [sa_schema.Column(n, NULLTYPE) for n in cols]
         t1 = sa_schema.Table(table_name, m,
-                *columns,
-                schema=schema)
+                             *columns,
+                             schema=schema)
         p = sa_schema.PrimaryKeyConstraint(*columns, name=name)
         t1.append_constraint(p)
         return p
 
     def _foreign_key_constraint(self, name, source, referent,
-                                    local_cols, remote_cols,
-                                    onupdate=None, ondelete=None,
-                                    deferrable=None, source_schema=None,
-                                    referent_schema=None, initially=None,
-                                    match=None, **dialect_kw):
+                                local_cols, remote_cols,
+                                onupdate=None, ondelete=None,
+                                deferrable=None, source_schema=None,
+                                referent_schema=None, initially=None,
+                                match=None, **dialect_kw):
         m = self._metadata()
         if source == referent:
             t1_cols = local_cols + remote_cols
         else:
             t1_cols = local_cols
             sa_schema.Table(referent, m,
-                    *[sa_schema.Column(n, NULLTYPE) for n in remote_cols],
-                    schema=referent_schema)
+                            *[sa_schema.Column(n, NULLTYPE) for n in remote_cols],
+                            schema=referent_schema)
 
         t1 = sa_schema.Table(source, m,
-                *[sa_schema.Column(n, NULLTYPE) for n in t1_cols],
-                schema=source_schema)
+                             *[sa_schema.Column(n, NULLTYPE) for n in t1_cols],
+                             schema=source_schema)
 
         tname = "%s.%s" % (referent_schema, referent) if referent_schema \
                 else referent
         f = sa_schema.ForeignKeyConstraint(local_cols,
-                                            ["%s.%s" % (tname, n)
+                                           ["%s.%s" % (tname, n)
                                             for n in remote_cols],
-                                            name=name,
-                                            onupdate=onupdate,
-                                            ondelete=ondelete,
-                                            deferrable=deferrable,
-                                            initially=initially,
-                                            match=match,
-                                            **dialect_kw
-                                            )
+                                           name=name,
+                                           onupdate=onupdate,
+                                           ondelete=ondelete,
+                                           deferrable=deferrable,
+                                           initially=initially,
+                                           match=match,
+                                           **dialect_kw
+                                           )
         t1.append_constraint(f)
 
         return f
 
     def _unique_constraint(self, name, source, local_cols, schema=None, **kw):
         t = sa_schema.Table(source, self._metadata(),
-                    *[sa_schema.Column(n, NULLTYPE) for n in local_cols],
-                    schema=schema)
+                            *[sa_schema.Column(n, NULLTYPE) for n in local_cols],
+                            schema=schema)
         kw['name'] = name
         uq = sa_schema.UniqueConstraint(*[t.c[n] for n in local_cols], **kw)
         # TODO: need event tests to ensure the event
@@ -118,7 +120,7 @@ class Operations(object):
 
     def _check_constraint(self, name, source, condition, schema=None, **kw):
         t = sa_schema.Table(source, self._metadata(),
-                    sa_schema.Column('x', Integer), schema=schema)
+                            sa_schema.Column('x', Integer), schema=schema)
         ck = sa_schema.CheckConstraint(condition, name=name, **kw)
         t.append_constraint(ck)
         return ck
@@ -201,17 +203,17 @@ class Operations(object):
 
     @util._with_legacy_names([('name', 'new_column_name')])
     def alter_column(self, table_name, column_name,
-                        nullable=None,
-                        server_default=False,
-                        new_column_name=None,
-                        type_=None,
-                        autoincrement=None,
-                        existing_type=None,
-                        existing_server_default=False,
-                        existing_nullable=None,
-                        existing_autoincrement=None,
-                        schema=None
-    ):
+                     nullable=None,
+                     server_default=False,
+                     new_column_name=None,
+                     type_=None,
+                     autoincrement=None,
+                     existing_type=None,
+                     existing_server_default=False,
+                     existing_nullable=None,
+                     existing_autoincrement=None,
+                     schema=None
+                     ):
         """Issue an "alter column" instruction using the
         current migration context.
 
@@ -291,9 +293,10 @@ class Operations(object):
         """
 
         compiler = self.impl.dialect.statement_compiler(
-                            self.impl.dialect,
-                            None
-                        )
+            self.impl.dialect,
+            None
+        )
+
         def _count_constraint(constraint):
             return not isinstance(constraint, sa_schema.PrimaryKeyConstraint) and \
                 (not constraint._create_rule or
@@ -301,31 +304,31 @@ class Operations(object):
 
         if existing_type and type_:
             t = self._table(table_name,
-                        sa_schema.Column(column_name, existing_type),
-                        schema=schema
-                    )
+                            sa_schema.Column(column_name, existing_type),
+                            schema=schema
+                            )
             for constraint in t.constraints:
                 if _count_constraint(constraint):
                     self.impl.drop_constraint(constraint)
 
         self.impl.alter_column(table_name, column_name,
-            nullable=nullable,
-            server_default=server_default,
-            name=new_column_name,
-            type_=type_,
-            schema=schema,
-            autoincrement=autoincrement,
-            existing_type=existing_type,
-            existing_server_default=existing_server_default,
-            existing_nullable=existing_nullable,
-            existing_autoincrement=existing_autoincrement
-        )
+                               nullable=nullable,
+                               server_default=server_default,
+                               name=new_column_name,
+                               type_=type_,
+                               schema=schema,
+                               autoincrement=autoincrement,
+                               existing_type=existing_type,
+                               existing_server_default=existing_server_default,
+                               existing_nullable=existing_nullable,
+                               existing_autoincrement=existing_autoincrement
+                               )
 
         if type_:
             t = self._table(table_name,
-                        sa_schema.Column(column_name, type_),
-                        schema=schema
-                    )
+                            sa_schema.Column(column_name, type_),
+                            schema=schema
+                            )
             for constraint in t.constraints:
                 if _count_constraint(constraint):
                     self.impl.add_constraint(constraint)
@@ -374,7 +377,7 @@ class Operations(object):
             return conv(name)
         else:
             raise NotImplementedError(
-                    "op.f() feature requires SQLAlchemy 0.9.4 or greater.")
+                "op.f() feature requires SQLAlchemy 0.9.4 or greater.")
 
     def add_column(self, table_name, column, schema=None):
         """Issue an "add column" instruction using the current
@@ -481,7 +484,6 @@ class Operations(object):
             **kw
         )
 
-
     def create_primary_key(self, name, table_name, cols, schema=None):
         """Issue a "create primary key" instruction using the current
         migration context.
@@ -518,10 +520,9 @@ class Operations(object):
 
         """
         self.impl.add_constraint(
-                    self._primary_key_constraint(name, table_name, cols,
-                                schema)
-                )
-
+            self._primary_key_constraint(name, table_name, cols,
+                                         schema)
+        )
 
     def create_foreign_key(self, name, source, referent, local_cols,
                            remote_cols, onupdate=None, ondelete=None,
@@ -573,13 +574,13 @@ class Operations(object):
         """
 
         self.impl.add_constraint(
-                    self._foreign_key_constraint(name, source, referent,
-                            local_cols, remote_cols,
-                            onupdate=onupdate, ondelete=ondelete,
-                            deferrable=deferrable, source_schema=source_schema,
-                            referent_schema=referent_schema,
-                            initially=initially, match=match, **dialect_kw)
-                )
+            self._foreign_key_constraint(name, source, referent,
+                                         local_cols, remote_cols,
+                                         onupdate=onupdate, ondelete=ondelete,
+                                         deferrable=deferrable, source_schema=source_schema,
+                                         referent_schema=referent_schema,
+                                         initially=initially, match=match, **dialect_kw)
+        )
 
     def create_unique_constraint(self, name, source, local_cols,
                                  schema=None, **kw):
@@ -621,9 +622,9 @@ class Operations(object):
         """
 
         self.impl.add_constraint(
-                    self._unique_constraint(name, source, local_cols,
-                        schema=schema, **kw)
-                )
+            self._unique_constraint(name, source, local_cols,
+                                    schema=schema, **kw)
+        )
 
     def create_check_constraint(self, name, source, condition,
                                 schema=None, **kw):
@@ -841,7 +842,7 @@ class Operations(object):
         t = self._table(table_name, schema=schema)
         types = {
             'foreignkey': lambda name: sa_schema.ForeignKeyConstraint(
-                                [], [], name=name),
+                [], [], name=name),
             'primary': sa_schema.PrimaryKeyConstraint,
             'unique': sa_schema.UniqueConstraint,
             'check': lambda name: sa_schema.CheckConstraint("", name=name),
@@ -851,7 +852,7 @@ class Operations(object):
             const = types[type_]
         except KeyError:
             raise TypeError("'type' can be one of %s" %
-                        ", ".join(sorted(repr(x) for x in types)))
+                            ", ".join(sorted(repr(x) for x in types)))
 
         const = const(name=name)
         t.append_constraint(const)
@@ -1038,7 +1039,7 @@ class Operations(object):
          :meth:`sqlalchemy.engine.Connection.execution_options`.
         """
         self.migration_context.impl.execute(sql,
-                    execution_options=execution_options)
+                                            execution_options=execution_options)
 
     def get_bind(self):
         """Return the current 'bind'.
@@ -1051,4 +1052,3 @@ class Operations(object):
 
         """
         return self.migration_context.impl.bind
-

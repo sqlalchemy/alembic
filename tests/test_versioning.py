@@ -7,6 +7,7 @@ from . import clear_staging_env, staging_env, \
     _sqlite_testing_config, sqlite_db, eq_, write_script, \
     assert_raises_message
 
+
 class VersioningTest(unittest.TestCase):
     sourceless = False
 
@@ -62,7 +63,6 @@ class VersioningTest(unittest.TestCase):
 
     """ % (c, b), sourceless=self.sourceless)
 
-
     def test_002_upgrade(self):
         command.upgrade(self.cfg, c)
         db = sqlite_db()
@@ -94,7 +94,6 @@ class VersioningTest(unittest.TestCase):
     def test_006_upgrade_again(self):
         command.upgrade(self.cfg, b)
 
-
     # TODO: test some invalid movements
 
     @classmethod
@@ -106,7 +105,9 @@ class VersioningTest(unittest.TestCase):
     def teardown_class(cls):
         clear_staging_env()
 
+
 class VersionNameTemplateTest(unittest.TestCase):
+
     def setUp(self):
         self.env = staging_env()
         self.cfg = _sqlite_testing_config()
@@ -188,7 +189,9 @@ class VersionNameTemplateTest(unittest.TestCase):
 class SourcelessVersioningTest(VersioningTest):
     sourceless = True
 
+
 class SourcelessNeedsFlagTest(unittest.TestCase):
+
     def setUp(self):
         self.env = staging_env(sourceless=False)
         self.cfg = _sqlite_testing_config()

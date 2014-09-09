@@ -6,7 +6,9 @@ import sys
 
 from . import command, util, package_dir, compat
 
+
 class Config(object):
+
     """Represent an Alembic configuration.
 
     Within an ``env.py`` script, this is available
@@ -50,8 +52,9 @@ class Config(object):
      ..versionadded:: 0.4
 
     """
+
     def __init__(self, file_=None, ini_section='alembic', output_buffer=None,
-                        stdout=sys.stdout, cmd_opts=None):
+                 stdout=sys.stdout, cmd_opts=None):
         """Construct a new :class:`.Config`
 
         """
@@ -90,9 +93,9 @@ class Config(object):
         """Render a message to standard out."""
 
         util.write_outstream(
-                self.stdout,
-                (compat.text_type(text) % arg),
-                "\n"
+            self.stdout,
+            (compat.text_type(text) % arg),
+            "\n"
         )
 
     @util.memoized_property
@@ -162,8 +165,8 @@ class Config(object):
         """
         if not self.file_config.has_section(section):
             raise util.CommandError("No config file %r found, or file has no "
-                                "'[%s]' section" %
-                                (self.config_file_name, section))
+                                    "'[%s]' section" %
+                                    (self.config_file_name, section))
         if self.file_config.has_option(section, name):
             return self.file_config.get(section, name)
         else:
@@ -181,35 +184,35 @@ class Config(object):
 
 
 class CommandLine(object):
+
     def __init__(self, prog=None):
         self._generate_args(prog)
-
 
     def _generate_args(self, prog):
         def add_options(parser, positional, kwargs):
             if 'template' in kwargs:
                 parser.add_argument("-t", "--template",
-                                default='generic',
-                                type=str,
-                                help="Setup template for use with 'init'")
+                                    default='generic',
+                                    type=str,
+                                    help="Setup template for use with 'init'")
             if 'message' in kwargs:
                 parser.add_argument("-m", "--message",
-                                type=str,
-                                help="Message string to use with 'revision'")
+                                    type=str,
+                                    help="Message string to use with 'revision'")
             if 'sql' in kwargs:
                 parser.add_argument("--sql",
-                                action="store_true",
-                                help="Don't emit SQL to database - dump to "
-                                        "standard output/file instead")
+                                    action="store_true",
+                                    help="Don't emit SQL to database - dump to "
+                                    "standard output/file instead")
             if 'tag' in kwargs:
                 parser.add_argument("--tag",
-                                type=str,
-                                help="Arbitrary 'tag' name - can be used by "
-                                "custom env.py scripts.")
+                                    type=str,
+                                    help="Arbitrary 'tag' name - can be used by "
+                                    "custom env.py scripts.")
             if 'autogenerate' in kwargs:
                 parser.add_argument("--autogenerate",
-                                action="store_true",
-                                help="Populate revision script with candidate "
+                                    action="store_true",
+                                    help="Populate revision script with candidate "
                                     "migration operations, based on comparison "
                                     "of database to model.")
             # "current" command
@@ -224,7 +227,6 @@ class CommandLine(object):
                                     action="store",
                                     help="Specify a revision range; "
                                     "format is [start]:[end]")
-
 
             positional_help = {
                 'directory': "location of scripts directory",
@@ -252,8 +254,8 @@ class CommandLine(object):
 
         for fn in [getattr(command, n) for n in dir(command)]:
             if inspect.isfunction(fn) and \
-                fn.__name__[0] != '_' and \
-                fn.__module__ == 'alembic.command':
+                    fn.__name__[0] != '_' and \
+                    fn.__module__ == 'alembic.command':
 
                 spec = inspect.getargspec(fn)
                 if spec[3]:
@@ -264,8 +266,8 @@ class CommandLine(object):
                     kwarg = []
 
                 subparser = subparsers.add_parser(
-                                    fn.__name__,
-                                    help=fn.__doc__)
+                    fn.__name__,
+                    help=fn.__doc__)
                 add_options(subparser, positional, kwarg)
                 subparser.set_defaults(cmd=(fn, positional, kwarg))
         self.parser = parser
@@ -275,9 +277,9 @@ class CommandLine(object):
 
         try:
             fn(config,
-                        *[getattr(options, k) for k in positional],
-                        **dict((k, getattr(options, k)) for k in kwarg)
-                    )
+               *[getattr(options, k) for k in positional],
+               **dict((k, getattr(options, k)) for k in kwarg)
+               )
         except util.CommandError as e:
             util.err(str(e))
 
@@ -289,8 +291,9 @@ class CommandLine(object):
             self.parser.error("too few arguments")
         else:
             cfg = Config(file_=options.config,
-                            ini_section=options.name, cmd_opts=options)
+                         ini_section=options.name, cmd_opts=options)
             self.run_cmd(cfg, options)
+
 
 def main(argv=None, prog=None, **kwargs):
     """The console runner function for Alembic."""

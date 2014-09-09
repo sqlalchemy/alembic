@@ -9,6 +9,7 @@ from . import Mock, call
 
 from . import eq_, capture_db, assert_raises_message
 
+
 def test_config_no_file_main_option():
     cfg = config.Config()
     cfg.set_main_option("url", "postgresql://foo/bar")
@@ -34,6 +35,7 @@ def test_standalone_op():
 
     op.alter_column("t", "c", nullable=True)
     eq_(buf, ['ALTER TABLE t ALTER COLUMN c DROP NOT NULL'])
+
 
 def test_no_script_error():
     cfg = config.Config()
@@ -72,4 +74,3 @@ class OutputEncodingTest(unittest.TestCase):
             stdout.mock_calls,
             [call.write('m?il x y'), call.write('\n')]
         )
-

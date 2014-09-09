@@ -39,6 +39,7 @@ target_metadata = {}
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
 
+
 def run_migrations_offline():
     """Run migrations in 'offline' mode.
 
@@ -58,7 +59,7 @@ def run_migrations_offline():
     for name in re.split(r',\s*', db_names):
         engines[name] = rec = {}
         rec['url'] = context.config.get_section_option(name,
-                                            "sqlalchemy.url")
+                                                       "sqlalchemy.url")
 
     for name, rec in engines.items():
         logger.info("Migrating database %s" % name)
@@ -66,9 +67,10 @@ def run_migrations_offline():
         logger.info("Writing output to %s" % file_)
         with open(file_, 'w') as buffer:
             context.configure(url=rec['url'], output_buffer=buffer,
-                                target_metadata=target_metadata.get(name))
+                              target_metadata=target_metadata.get(name))
             with context.begin_transaction():
                 context.run_migrations(engine_name=name)
+
 
 def run_migrations_online():
     """Run migrations in 'online' mode.
@@ -85,9 +87,9 @@ def run_migrations_online():
     for name in re.split(r',\s*', db_names):
         engines[name] = rec = {}
         rec['engine'] = engine_from_config(
-                                    context.config.get_section(name),
-                                    prefix='sqlalchemy.',
-                                    poolclass=pool.NullPool)
+            context.config.get_section(name),
+            prefix='sqlalchemy.',
+            poolclass=pool.NullPool)
 
     for name, rec in engines.items():
         engine = rec['engine']
@@ -102,11 +104,11 @@ def run_migrations_online():
         for name, rec in engines.items():
             logger.info("Migrating database %s" % name)
             context.configure(
-                        connection=rec['connection'],
-                        upgrade_token="%s_upgrades" % name,
-                        downgrade_token="%s_downgrades" % name,
-                        target_metadata=target_metadata.get(name)
-                    )
+                connection=rec['connection'],
+                upgrade_token="%s_upgrades" % name,
+                downgrade_token="%s_downgrades" % name,
+                target_metadata=target_metadata.get(name)
+            )
             context.run_migrations(engine_name=name)
 
         if USE_TWOPHASE:

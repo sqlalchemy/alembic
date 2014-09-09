@@ -14,6 +14,7 @@ import re
 cfg = None
 a, b, c = None, None, None
 
+
 class ThreeRevTest(unittest.TestCase):
 
     def setUp(self):
@@ -32,11 +33,11 @@ class ThreeRevTest(unittest.TestCase):
         with capture_context_buffer(transactional_ddl=True) as buf:
             command.upgrade(cfg, c, sql=True)
         assert re.match(
-                    (r"^BEGIN;\s+CREATE TABLE.*?%s.*" % a) +
-                    (r".*%s" % b) +
-                    (r".*%s.*?COMMIT;.*$" % c),
+            (r"^BEGIN;\s+CREATE TABLE.*?%s.*" % a) +
+            (r".*%s" % b) +
+            (r".*%s.*?COMMIT;.*$" % c),
 
-                buf.getvalue(), re.S)
+            buf.getvalue(), re.S)
 
     def test_begin_commit_nontransactional_ddl(self):
         with capture_context_buffer(transactional_ddl=False) as buf:
@@ -48,11 +49,11 @@ class ThreeRevTest(unittest.TestCase):
         with capture_context_buffer(transaction_per_migration=True) as buf:
             command.upgrade(cfg, c, sql=True)
         assert re.match(
-                    (r"^BEGIN;\s+CREATE TABLE.*%s.*?COMMIT;.*" % a) +
-                    (r"BEGIN;.*?%s.*?COMMIT;.*" % b) +
-                    (r"BEGIN;.*?%s.*?COMMIT;.*$" % c),
+            (r"^BEGIN;\s+CREATE TABLE.*%s.*?COMMIT;.*" % a) +
+            (r"BEGIN;.*?%s.*?COMMIT;.*" % b) +
+            (r"BEGIN;.*?%s.*?COMMIT;.*$" % c),
 
-                buf.getvalue(), re.S)
+            buf.getvalue(), re.S)
 
     def test_version_from_none_insert(self):
         with capture_context_buffer() as buf:
@@ -99,6 +100,7 @@ class ThreeRevTest(unittest.TestCase):
 
 
 class EncodingTest(unittest.TestCase):
+
     def setUp(self):
         global cfg, env, a
         env = staging_env()
@@ -128,8 +130,8 @@ def downgrade():
 
     def test_encode(self):
         with capture_context_buffer(
-                    bytes_io=True,
-                    output_encoding='utf-8'
-                ) as buf:
+            bytes_io=True,
+            output_encoding='utf-8'
+        ) as buf:
             command.upgrade(cfg, a, sql=True)
         assert "« S’il vous plaît…".encode("utf-8") in buf.getvalue()

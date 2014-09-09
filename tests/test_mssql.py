@@ -11,6 +11,7 @@ from . import op_fixture, capture_context_buffer, \
 
 
 class FullEnvironmentTests(TestCase):
+
     @classmethod
     def setup_class(cls):
         env = staging_env()
@@ -41,12 +42,13 @@ class FullEnvironmentTests(TestCase):
             command.upgrade(self.cfg, self.a, sql=True)
         assert "BYE" in buf.getvalue()
 
+
 class OpTest(TestCase):
+
     def test_add_column(self):
         context = op_fixture('mssql')
         op.add_column('t1', Column('c1', Integer, nullable=False))
         context.assert_("ALTER TABLE t1 ADD c1 INTEGER NOT NULL")
-
 
     def test_add_column_with_default(self):
         context = op_fixture("mssql")
@@ -78,8 +80,8 @@ class OpTest(TestCase):
         context = op_fixture('mssql')
         from sqlalchemy import Boolean
         op.alter_column('tests', 'col',
-            existing_type=Boolean(),
-            nullable=False)
+                        existing_type=Boolean(),
+                        nullable=False)
         context.assert_('ALTER TABLE tests ALTER COLUMN col BIT NOT NULL')
 
     def test_drop_index(self):
@@ -94,7 +96,6 @@ class OpTest(TestCase):
         op.drop_column('t1', 'c2', mssql_drop_default=True)
         context.assert_contains("exec('alter table t1 drop constraint ' + @const_name)")
         context.assert_contains("ALTER TABLE t1 DROP COLUMN c1")
-
 
     def test_alter_column_drop_default(self):
         context = op_fixture('mssql')
@@ -186,7 +187,7 @@ class OpTest(TestCase):
     def test_alter_do_everything(self):
         context = op_fixture('mssql')
         op.alter_column("t", "c", new_column_name="c2", nullable=True,
-                            type_=Integer, server_default="5")
+                        type_=Integer, server_default="5")
         context.assert_(
             'ALTER TABLE t ALTER COLUMN c INTEGER NULL',
             "ALTER TABLE t ADD DEFAULT '5' FOR c",
@@ -199,7 +200,7 @@ class OpTest(TestCase):
         context.assert_contains("EXEC sp_rename 't1', t2")
 
     # TODO: when we add schema support
-    #def test_alter_column_rename_mssql_schema(self):
+    # def test_alter_column_rename_mssql_schema(self):
     #    context = op_fixture('mssql')
     #    op.alter_column("t", "c", name="x", schema="y")
     #    context.assert_(

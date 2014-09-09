@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from sqlalchemy import DateTime, MetaData, Table, Column, text, Integer, \
-        String, Interval
+    String, Interval
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.schema import DefaultClause
 from sqlalchemy.engine.reflection import Inspector
@@ -13,10 +13,12 @@ from alembic import command, util
 from alembic.migration import MigrationContext
 from alembic.script import ScriptDirectory
 from . import db_for_dialect, eq_, staging_env, \
-            clear_staging_env, _no_sql_testing_config,\
-            capture_context_buffer, requires_09, write_script
+    clear_staging_env, _no_sql_testing_config,\
+    capture_context_buffer, requires_09, write_script
+
 
 class PGOfflineEnumTest(TestCase):
+
     def setUp(self):
         staging_env()
         self.cfg = cfg = _no_sql_testing_config()
@@ -28,7 +30,6 @@ class PGOfflineEnumTest(TestCase):
 
     def tearDown(self):
         clear_staging_env()
-
 
     def _inline_enum_script(self):
         write_script(self.script, self.rid, """
@@ -103,6 +104,7 @@ def downgrade():
 
 
 class PostgresqlInlineLiteralTest(TestCase):
+
     @classmethod
     def setup_class(cls):
         cls.bind = db_for_dialect("postgresql")
@@ -144,7 +146,9 @@ class PostgresqlInlineLiteralTest(TestCase):
             1,
         )
 
+
 class PostgresqlDefaultCompareTest(TestCase):
+
     @classmethod
     def setup_class(cls):
         cls.bind = db_for_dialect("postgresql")
@@ -180,19 +184,19 @@ class PostgresqlDefaultCompareTest(TestCase):
             alternate = orig_default
 
         t1 = Table("test", self.metadata,
-            Column("somecol", type_, server_default=orig_default))
+                   Column("somecol", type_, server_default=orig_default))
         t2 = Table("test", MetaData(),
-            Column("somecol", type_, server_default=alternate))
+                   Column("somecol", type_, server_default=alternate))
 
         t1.create(self.bind)
 
         insp = Inspector.from_engine(self.bind)
         cols = insp.get_columns(t1.name)
         insp_col = Column("somecol", cols[0]['type'],
-                                server_default=text(cols[0]['default']))
+                          server_default=text(cols[0]['default']))
         diffs = []
         _compare_server_default(None, "test", "somecol", insp_col,
-                t2.c.somecol, diffs, self.autogen_context)
+                                t2.c.somecol, diffs, self.autogen_context)
         eq_(bool(diffs), diff_expected)
 
     def _compare_default(
@@ -284,11 +288,11 @@ class PostgresqlDefaultCompareTest(TestCase):
     def test_primary_key_skip(self):
         """Test that SERIAL cols are just skipped"""
         t1 = Table("sometable", self.metadata,
-            Column("id", Integer, primary_key=True)
-        )
+                   Column("id", Integer, primary_key=True)
+                   )
         t2 = Table("sometable", MetaData(),
-            Column("id", Integer, primary_key=True)
-        )
+                   Column("id", Integer, primary_key=True)
+                   )
         assert not self._compare_default(
             t1, t2, t2.c.id, ""
         )

@@ -37,8 +37,8 @@ else:
         import mock
     except ImportError:
         raise ImportError(
-                "Alembic's test suite requires the "
-                "'mock' library as of 0.6.1.")
+            "Alembic's test suite requires the "
+            "'mock' library as of 0.6.1.")
 
 
 def sqlite_db():
@@ -48,14 +48,18 @@ def sqlite_db():
     dir_ = os.path.join(staging_directory, 'scripts')
     return create_engine('sqlite:///%s/foo.db' % dir_)
 
+
 def capture_db():
     buf = []
+
     def dump(sql, *multiparams, **params):
         buf.append(str(sql.compile(dialect=engine.dialect)))
     engine = create_engine("postgresql://", strategy="mock", executor=dump)
     return engine, buf
 
 _engs = {}
+
+
 def db_for_dialect(name):
     if name in _engs:
         return _engs[name]
@@ -82,17 +86,20 @@ def requires_08(fn, *arg, **kw):
         raise SkipTest("SQLAlchemy 0.8.0b2 or greater required")
     return fn(*arg, **kw)
 
+
 @decorator
 def requires_09(fn, *arg, **kw):
     if not util.sqla_09:
         raise SkipTest("SQLAlchemy 0.9 or greater required")
     return fn(*arg, **kw)
 
+
 @decorator
 def requires_092(fn, *arg, **kw):
     if not util.sqla_092:
         raise SkipTest("SQLAlchemy 0.9.2 or greater required")
     return fn(*arg, **kw)
+
 
 @decorator
 def requires_094(fn, *arg, **kw):
@@ -101,6 +108,8 @@ def requires_094(fn, *arg, **kw):
     return fn(*arg, **kw)
 
 _dialects = {}
+
+
 def _get_dialect(name):
     if name is None or name == 'default':
         return default.DefaultDialect()
@@ -114,13 +123,15 @@ def _get_dialect(name):
                 d.implicit_returning = True
             return d
 
+
 def assert_compiled(element, assert_string, dialect=None):
     dialect = _get_dialect(dialect)
     eq_(
-        text_type(element.compile(dialect=dialect)).\
-                    replace("\n", "").replace("\t", ""),
+        text_type(element.compile(dialect=dialect)).
+        replace("\n", "").replace("\t", ""),
         assert_string.replace("\n", "").replace("\t", "")
     )
+
 
 @contextmanager
 def capture_context_buffer(**kw):
@@ -130,16 +141,18 @@ def capture_context_buffer(**kw):
         buf = io.StringIO()
 
     kw.update({
-                'dialect_name': "sqlite",
-                'output_buffer': buf
+        'dialect_name': "sqlite",
+        'output_buffer': buf
     })
     conf = EnvironmentContext.configure
+
     def configure(*arg, **opt):
         opt.update(**kw)
         return conf(*arg, **opt)
 
     with mock.patch.object(EnvironmentContext, "configure", configure):
         yield buf
+
 
 def eq_ignore_whitespace(a, b, msg=None):
     a = re.sub(r'^\s+?|\n', "", a)
@@ -148,17 +161,21 @@ def eq_ignore_whitespace(a, b, msg=None):
     b = re.sub(r' {2,}', " ", b)
     assert a == b, msg or "%r != %r" % (a, b)
 
+
 def eq_(a, b, msg=None):
     """Assert a == b, with repr messaging on failure."""
     assert a == b, msg or "%r != %r" % (a, b)
+
 
 def ne_(a, b, msg=None):
     """Assert a != b, with repr messaging on failure."""
     assert a != b, msg or "%r == %r" % (a, b)
 
+
 def is_(a, b, msg=None):
     """Assert a is b, with repr messaging on failure."""
     assert a is b, msg or "%r is not %r" % (a, b)
+
 
 def assert_raises_message(except_cls, msg, callable_, *args, **kwargs):
     try:
@@ -168,9 +185,12 @@ def assert_raises_message(except_cls, msg, callable_, *args, **kwargs):
         assert re.search(msg, str(e)), "%r !~ %s" % (msg, e)
         print(text_type(e))
 
+
 def op_fixture(dialect='default', as_sql=False, naming_convention=None):
     impl = _impls[dialect]
+
     class Impl(impl):
+
         def __init__(self, dialect, as_sql):
             self.assertion = []
             self.dialect = dialect
@@ -179,6 +199,7 @@ def op_fixture(dialect='default', as_sql=False, naming_convention=None):
             # be more like a real connection
             # as tests get more involved
             self.connection = None
+
         def _exec(self, construct, *args, **kw):
             if isinstance(construct, string_types):
                 construct = text(construct)
@@ -193,11 +214,12 @@ def op_fixture(dialect='default', as_sql=False, naming_convention=None):
     if naming_convention:
         if not util.sqla_092:
             raise SkipTest(
-                        "naming_convention feature requires "
-                        "sqla 0.9.2 or greater")
+                "naming_convention feature requires "
+                "sqla 0.9.2 or greater")
         opts['target_metadata'] = MetaData(naming_convention=naming_convention)
 
     class ctx(MigrationContext):
+
         def __init__(self, dialect='default', as_sql=False):
             self.dialect = _get_dialect(dialect)
             self.impl = Impl(self.dialect, as_sql)
@@ -222,11 +244,13 @@ def op_fixture(dialect='default', as_sql=False, naming_convention=None):
     alembic.op._proxy = Operations(context)
     return context
 
+
 def script_file_fixture(txt):
     dir_ = os.path.join(staging_directory, 'scripts')
     path = os.path.join(dir_, "script.py.mako")
     with open(path, 'w') as f:
         f.write(txt)
+
 
 def env_file_fixture(txt):
     dir_ = os.path.join(staging_directory, 'scripts')
@@ -243,6 +267,7 @@ config = context.config
 
     with open(path, 'w') as f:
         f.write(txt)
+
 
 def _sqlite_testing_config(sourceless=False):
     dir_ = os.path.join(staging_directory, 'scripts')
@@ -313,11 +338,13 @@ datefmt = %%H:%%M:%%S
 
 """ % (dir_, dialect, directives))
 
+
 def _write_config_file(text):
     cfg = _testing_config()
     with open(cfg.config_file_name, 'w') as f:
         f.write(text)
     return cfg
+
 
 def _testing_config():
     from alembic.config import Config
@@ -350,6 +377,7 @@ def staging_env(create=True, template="generic", sourceless=False):
     sc = script.ScriptDirectory.from_config(cfg)
     return sc
 
+
 def clear_staging_env():
     shutil.rmtree(staging_directory, True)
 
@@ -370,12 +398,13 @@ def write_script(scriptdir, rev_id, content, encoding='ascii', sourceless=False)
     old = scriptdir._revision_map[script.revision]
     if old.down_revision != script.down_revision:
         raise Exception("Can't change down_revision "
-                            "on a refresh operation.")
+                        "on a refresh operation.")
     scriptdir._revision_map[script.revision] = script
     script.nextrev = old.nextrev
 
     if sourceless:
         make_sourceless(path)
+
 
 def make_sourceless(path):
     # note that if -O is set, you'd see pyo files here,
@@ -390,6 +419,7 @@ def make_sourceless(path):
     if not os.access(simple_pyc_path, os.F_OK):
         shutil.copyfile(pyc_path, simple_pyc_path)
     os.unlink(path)
+
 
 def three_rev_fixture(cfg):
     a = util.rev_id()

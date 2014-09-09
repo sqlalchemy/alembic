@@ -2,7 +2,9 @@ from .operations import Operations
 from .migration import MigrationContext
 from . import util
 
+
 class EnvironmentContext(object):
+
     """Represent the state made available to an ``env.py`` script.
 
     :class:`.EnvironmentContext` is normally instantiated
@@ -156,13 +158,13 @@ class EnvironmentContext(object):
         """
         if self._migration_context is not None:
             return self.script._as_rev_number(
-                        self.get_context()._start_from_rev)
+                self.get_context()._start_from_rev)
         elif 'starting_rev' in self.context_opts:
             return self.script._as_rev_number(
-                        self.context_opts['starting_rev'])
+                self.context_opts['starting_rev'])
         else:
             raise util.CommandError(
-                        "No starting revision argument is available.")
+                "No starting revision argument is available.")
 
     def get_revision_argument(self):
         """Get the 'destination' revision argument.
@@ -179,7 +181,7 @@ class EnvironmentContext(object):
 
         """
         return self.script._as_rev_number(
-                            self.context_opts['destination_rev'])
+            self.context_opts['destination_rev'])
 
     def get_tag_argument(self):
         """Return the value passed for the ``--tag`` argument, if any.
@@ -247,34 +249,34 @@ class EnvironmentContext(object):
             value = []
         if as_dictionary:
             value = dict(
-                        arg.split('=', 1) for arg in value
-                    )
+                arg.split('=', 1) for arg in value
+            )
         return value
 
     def configure(self,
-            connection=None,
-            url=None,
-            dialect_name=None,
-            transactional_ddl=None,
-            transaction_per_migration=False,
-            output_buffer=None,
-            starting_rev=None,
-            tag=None,
-            template_args=None,
-            target_metadata=None,
-            include_symbol=None,
-            include_object=None,
-            include_schemas=False,
-            compare_type=False,
-            compare_server_default=False,
-            render_item=None,
-            upgrade_token="upgrades",
-            downgrade_token="downgrades",
-            alembic_module_prefix="op.",
-            sqlalchemy_module_prefix="sa.",
-            user_module_prefix=None,
-            **kw
-        ):
+                  connection=None,
+                  url=None,
+                  dialect_name=None,
+                  transactional_ddl=None,
+                  transaction_per_migration=False,
+                  output_buffer=None,
+                  starting_rev=None,
+                  tag=None,
+                  template_args=None,
+                  target_metadata=None,
+                  include_symbol=None,
+                  include_object=None,
+                  include_schemas=False,
+                  compare_type=False,
+                  compare_server_default=False,
+                  render_item=None,
+                  upgrade_token="upgrades",
+                  downgrade_token="downgrades",
+                  alembic_module_prefix="op.",
+                  sqlalchemy_module_prefix="sa.",
+                  user_module_prefix=None,
+                  **kw
+                  ):
         """Configure a :class:`.MigrationContext` within this
         :class:`.EnvironmentContext` which will provide database
         connectivity and other configuration to a series of
@@ -701,7 +703,7 @@ class EnvironmentContext(object):
 
         """
         self.get_context().execute(sql,
-                execution_options=execution_options)
+                                   execution_options=execution_options)
 
     def static_output(self, text):
         """Emit text directly to the "offline" SQL stream.
@@ -713,7 +715,6 @@ class EnvironmentContext(object):
 
         """
         self.get_context().impl.static_output(text)
-
 
     def begin_transaction(self):
         """Return a context manager that will
@@ -761,7 +762,6 @@ class EnvironmentContext(object):
 
         return self.get_context().begin_transaction()
 
-
     def get_context(self):
         """Return the current :class:`.MigrationContext` object.
 
@@ -789,4 +789,3 @@ class EnvironmentContext(object):
 
     def get_impl(self):
         return self.get_context().impl
-

@@ -9,6 +9,7 @@ from . import clear_staging_env, staging_env, \
 
 
 class OfflineEnvironmentTest(TestCase):
+
     def setUp(self):
         env = staging_env()
         self.cfg = _no_sql_testing_config()
@@ -32,7 +33,6 @@ assert context.requires_connection()
 """)
         command.upgrade(self.cfg, a)
         command.downgrade(self.cfg, a)
-
 
     def test_starting_rev_post_context(self):
         env_file_fixture("""

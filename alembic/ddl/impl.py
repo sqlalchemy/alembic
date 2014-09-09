@@ -8,7 +8,9 @@ from ..compat import string_types, text_type, with_metaclass
 from .. import util
 from . import base
 
+
 class ImplMeta(type):
+
     def __init__(cls, classname, bases, dict_):
         newtype = type.__init__(cls, classname, bases, dict_)
         if '__dialect__' in dict_:
@@ -17,7 +19,9 @@ class ImplMeta(type):
 
 _impls = {}
 
+
 class DefaultImpl(with_metaclass(ImplMeta)):
+
     """Provide the entrypoint for major migration operations,
     including database-specific behavioral variances.
 
@@ -35,8 +39,8 @@ class DefaultImpl(with_metaclass(ImplMeta)):
     command_terminator = ";"
 
     def __init__(self, dialect, connection, as_sql,
-                    transactional_ddl, output_buffer,
-                    context_opts):
+                 transactional_ddl, output_buffer,
+                 context_opts):
         self.dialect = dialect
         self.connection = connection
         self.as_sql = as_sql
@@ -59,8 +63,8 @@ class DefaultImpl(with_metaclass(ImplMeta)):
         return self.connection
 
     def _exec(self, construct, execution_options=None,
-                            multiparams=(),
-                            params=util.immutabledict()):
+              multiparams=(),
+              params=util.immutabledict()):
         if isinstance(construct, string_types):
             construct = text(construct)
         if self.as_sql:
@@ -68,8 +72,8 @@ class DefaultImpl(with_metaclass(ImplMeta)):
                 # TODO: coverage
                 raise Exception("Execution arguments not allowed with as_sql")
             self.static_output(text_type(
-                    construct.compile(dialect=self.dialect)
-                    ).replace("\t", "    ").strip() + self.command_terminator)
+                construct.compile(dialect=self.dialect)
+            ).replace("\t", "    ").strip() + self.command_terminator)
         else:
             conn = self.connection
             if execution_options:
@@ -80,49 +84,49 @@ class DefaultImpl(with_metaclass(ImplMeta)):
         self._exec(sql, execution_options)
 
     def alter_column(self, table_name, column_name,
-                        nullable=None,
-                        server_default=False,
-                        name=None,
-                        type_=None,
-                        schema=None,
-                        autoincrement=None,
-                        existing_type=None,
-                        existing_server_default=None,
-                        existing_nullable=None,
-                        existing_autoincrement=None
-                    ):
+                     nullable=None,
+                     server_default=False,
+                     name=None,
+                     type_=None,
+                     schema=None,
+                     autoincrement=None,
+                     existing_type=None,
+                     existing_server_default=None,
+                     existing_nullable=None,
+                     existing_autoincrement=None
+                     ):
         if autoincrement is not None or existing_autoincrement is not None:
             util.warn("nautoincrement and existing_autoincrement only make sense for MySQL")
         if nullable is not None:
             self._exec(base.ColumnNullable(table_name, column_name,
-                                nullable, schema=schema,
-                                existing_type=existing_type,
-                                existing_server_default=existing_server_default,
-                                existing_nullable=existing_nullable,
-                                ))
+                                           nullable, schema=schema,
+                                           existing_type=existing_type,
+                                           existing_server_default=existing_server_default,
+                                           existing_nullable=existing_nullable,
+                                           ))
         if server_default is not False:
             self._exec(base.ColumnDefault(
-                                table_name, column_name, server_default,
-                                schema=schema,
-                                existing_type=existing_type,
-                                existing_server_default=existing_server_default,
-                                existing_nullable=existing_nullable,
-                            ))
+                table_name, column_name, server_default,
+                schema=schema,
+                existing_type=existing_type,
+                existing_server_default=existing_server_default,
+                existing_nullable=existing_nullable,
+            ))
         if type_ is not None:
             self._exec(base.ColumnType(
-                                table_name, column_name, type_, schema=schema,
-                                existing_type=existing_type,
-                                existing_server_default=existing_server_default,
-                                existing_nullable=existing_nullable,
-                            ))
+                table_name, column_name, type_, schema=schema,
+                existing_type=existing_type,
+                existing_server_default=existing_server_default,
+                existing_nullable=existing_nullable,
+            ))
         # do the new name last ;)
         if name is not None:
             self._exec(base.ColumnName(
-                                table_name, column_name, name, schema=schema,
-                                existing_type=existing_type,
-                                existing_server_default=existing_server_default,
-                                existing_nullable=existing_nullable,
-                            ))
+                table_name, column_name, name, schema=schema,
+                existing_type=existing_type,
+                existing_server_default=existing_server_default,
+                existing_nullable=existing_nullable,
+            ))
 
     def add_column(self, table_name, column, schema=None):
         self._exec(base.AddColumn(table_name, column, schema=schema))
@@ -132,7 +136,7 @@ class DefaultImpl(with_metaclass(ImplMeta)):
 
     def add_constraint(self, const):
         if const._create_rule is None or \
-            const._create_rule(self):
+                const._create_rule(self):
             self._exec(schema.AddConstraint(const))
 
     def drop_constraint(self, const):
@@ -140,18 +144,18 @@ class DefaultImpl(with_metaclass(ImplMeta)):
 
     def rename_table(self, old_table_name, new_table_name, schema=None):
         self._exec(base.RenameTable(old_table_name,
-                    new_table_name, schema=schema))
+                                    new_table_name, schema=schema))
 
     def create_table(self, table):
         if util.sqla_07:
             table.dispatch.before_create(table, self.connection,
-                                        checkfirst=False,
-                                            _ddl_runner=self)
+                                         checkfirst=False,
+                                         _ddl_runner=self)
         self._exec(schema.CreateTable(table))
         if util.sqla_07:
             table.dispatch.after_create(table, self.connection,
                                         checkfirst=False,
-                                            _ddl_runner=self)
+                                        _ddl_runner=self)
         for index in table.indexes:
             self._exec(schema.CreateIndex(index))
 
@@ -200,8 +204,8 @@ class DefaultImpl(with_metaclass(ImplMeta)):
         metadata_impl.__dict__.pop('_type_affinity', None)
 
         if conn_type._compare_type_affinity(
-                            metadata_impl
-                        ):
+            metadata_impl
+        ):
             comparator = _type_comparators.get(conn_type._type_affinity, None)
 
             return comparator and comparator(metadata_type, conn_type)
@@ -209,9 +213,9 @@ class DefaultImpl(with_metaclass(ImplMeta)):
             return True
 
     def compare_server_default(self, inspector_column,
-                            metadata_column,
-                            rendered_metadata_default,
-                            rendered_inspector_default):
+                               metadata_column,
+                               rendered_metadata_default,
+                               rendered_inspector_default):
         return rendered_inspector_default != rendered_metadata_default
 
     def correct_for_autogen_constraints(self, conn_uniques, conn_indexes,
@@ -247,8 +251,10 @@ class DefaultImpl(with_metaclass(ImplMeta)):
         """
         self.static_output("COMMIT" + self.command_terminator)
 
+
 class _literal_bindparam(_BindParamClause):
     pass
+
 
 @compiles(_literal_bindparam)
 def _render_literal_bindparam(element, compiler, **kw):
@@ -268,6 +274,7 @@ def _textual_index_column(table, text_):
 
 
 class _textual_index_element(sql.ColumnElement):
+
     """Wrap around a sqlalchemy text() construct in such a way that
     we appear like a column-oriented SQL expression to an Index
     construct.
@@ -305,21 +312,18 @@ def _string_compare(t1, t2):
         t1.length is not None and \
         t1.length != t2.length
 
+
 def _numeric_compare(t1, t2):
     return \
         (
-            t1.precision is not None and \
+            t1.precision is not None and
             t1.precision != t2.precision
         ) or \
         (
-            t1.scale is not None and \
+            t1.scale is not None and
             t1.scale != t2.scale
         )
 _type_comparators = {
-    sqltypes.String:_string_compare,
-    sqltypes.Numeric:_numeric_compare
+    sqltypes.String: _string_compare,
+    sqltypes.Numeric: _numeric_compare
 }
-
-
-
-

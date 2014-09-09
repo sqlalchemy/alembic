@@ -8,6 +8,7 @@ from alembic.util import CommandError
 version_table = Table('version_table', MetaData(),
                       Column('version_num', String(32), nullable=False))
 
+
 class TestMigrationContext(unittest.TestCase):
     _bind = []
 

@@ -17,6 +17,7 @@ if py3k:
     string_types = str,
     binary_type = bytes
     text_type = str
+
     def callable(fn):
         return hasattr(fn, '__call__')
 
@@ -45,6 +46,7 @@ if py2k:
 
 if py33:
     from importlib import machinery
+
     def load_module_py(module_id, path):
         return machinery.SourceFileLoader(module_id, path).load_module(module_id)
 
@@ -53,6 +55,7 @@ if py33:
 
 else:
     import imp
+
     def load_module_py(module_id, path):
         with open(path, 'rb') as fp:
             mod = imp.load_source(module_id, path, fp)
@@ -78,6 +81,8 @@ except AttributeError:
 ################################################
 # cross-compatible metaclass implementation
 # Copyright (c) 2010-2012 Benjamin Peterson
+
+
 def with_metaclass(meta, base=object):
     """Create a base class with a metaclass."""
     return meta("%sBase" % meta.__name__, (base,), {})
@@ -88,6 +93,7 @@ def with_metaclass(meta, base=object):
 # into a given buffer, but doesn't close it.
 # not sure of a more idiomatic approach to this.
 class EncodedIO(io.TextIOWrapper):
+
     def close(self):
         pass
 
@@ -99,10 +105,12 @@ if py2k:
     # adapter.
 
     class ActLikePy3kIO(object):
+
         """Produce an object capable of wrapping either
         sys.stdout (e.g. file) *or* StringIO.StringIO().
 
         """
+
         def _false(self):
             return False
 
@@ -123,8 +131,7 @@ if py2k:
             return self.file_.flush()
 
     class EncodedIO(EncodedIO):
+
         def __init__(self, file_, encoding):
             super(EncodedIO, self).__init__(
-                    ActLikePy3kIO(file_), encoding=encoding)
-
-
+                ActLikePy3kIO(file_), encoding=encoding)

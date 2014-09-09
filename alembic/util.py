@@ -12,8 +12,10 @@ from sqlalchemy import __version__
 
 from .compat import callable, exec_, load_module_py, load_module_pyc, binary_type
 
+
 class CommandError(Exception):
     pass
+
 
 def _safe_int(value):
     try:
@@ -28,7 +30,7 @@ sqla_092 = _vers >= (0, 9, 2)
 sqla_094 = _vers >= (0, 9, 4)
 if not sqla_07:
     raise CommandError(
-            "SQLAlchemy 0.7.3 or greater is required. ")
+        "SQLAlchemy 0.7.3 or greater is required. ")
 
 from sqlalchemy.util import format_argspec_plus, update_wrapper
 from sqlalchemy.util.compat import inspect_getfullargspec
@@ -41,7 +43,7 @@ try:
     import termios
     import struct
     ioctl = fcntl.ioctl(0, termios.TIOCGWINSZ,
-                           struct.pack('HHHH', 0, 0, 0, 0))
+                        struct.pack('HHHH', 0, 0, 0, 0))
     _h, TERMWIDTH, _hp, _wp = struct.unpack('HHHH', ioctl)
     if TERMWIDTH <= 0:  # can occur if running in emacs pseudo-tty
         TERMWIDTH = None
@@ -54,6 +56,7 @@ def template_to_file(template_file, dest, **kw):
         f.write(
             Template(filename=template_file).render(**kw)
         )
+
 
 def create_module_class_proxy(cls, globals_, locals_):
     """Create module level proxy functions for the
@@ -97,18 +100,18 @@ def create_module_class_proxy(cls, globals_, locals_):
             defaulted_vals = ()
 
         apply_kw = inspect.formatargspec(
-                                name_args, spec[1], spec[2],
-                                defaulted_vals,
-                                formatvalue=lambda x: '=' + x)
+            name_args, spec[1], spec[2],
+            defaulted_vals,
+            formatvalue=lambda x: '=' + x)
 
         def _name_error(name):
             raise NameError(
-                    "Can't invoke function '%s', as the proxy object has "\
-                    "not yet been "
-                    "established for the Alembic '%s' class.  "
-                    "Try placing this code inside a callable." % (
-                        name, cls.__name__
-                    ))
+                "Can't invoke function '%s', as the proxy object has "
+                "not yet been "
+                "established for the Alembic '%s' class.  "
+                "Try placing this code inside a callable." % (
+                    name, cls.__name__
+                ))
         globals_['_name_error'] = _name_error
 
         func_text = textwrap.dedent("""\
@@ -137,6 +140,7 @@ def create_module_class_proxy(cls, globals_, locals_):
             else:
                 attr_names.add(methname)
 
+
 def write_outstream(stream, *text):
     encoding = getattr(stream, 'encoding', 'ascii') or 'ascii'
     for t in text:
@@ -151,6 +155,7 @@ def write_outstream(stream, *text):
             # as the exception is "ignored" (noisily) in TextIOWrapper.
             break
 
+
 def coerce_resource_to_filename(fname):
     """Interpret a filename as either a filesystem location or as a package resource.
 
@@ -163,6 +168,7 @@ def coerce_resource_to_filename(fname):
         fname = pkg_resources.resource_filename(*fname.split(':'))
     return fname
 
+
 def status(_statmsg, fn, *arg, **kw):
     msg(_statmsg + " ...", False)
     try:
@@ -173,10 +179,12 @@ def status(_statmsg, fn, *arg, **kw):
         write_outstream(sys.stdout, " FAILED\n")
         raise
 
+
 def err(message):
     log.error(message)
     msg("FAILED: %s" % message)
     sys.exit(-1)
+
 
 def obfuscate_url_pw(u):
     u = url.make_url(u)
@@ -184,12 +192,15 @@ def obfuscate_url_pw(u):
         u.password = 'XXXXX'
     return str(u)
 
+
 def asbool(value):
     return value is not None and \
         value.lower() == 'true'
 
+
 def warn(msg):
     warnings.warn(msg)
+
 
 def msg(msg, newline=True):
     if TERMWIDTH is None:
@@ -203,6 +214,7 @@ def msg(msg, newline=True):
             for line in lines[0:-1]:
                 write_outstream(sys.stdout, "  ", line, "\n")
         write_outstream(sys.stdout, "  ", lines[-1], ("\n" if newline else ""))
+
 
 def load_python_file(dir_, filename):
     """Load a file from the given path as a Python module."""
@@ -223,6 +235,7 @@ def load_python_file(dir_, filename):
     del sys.modules[module_id]
     return module
 
+
 def simple_pyc_file_from_path(path):
     """Given a python source path, return the so-called
     "sourceless" .pyc or .pyo path.
@@ -237,6 +250,7 @@ def simple_pyc_file_from_path(path):
         return path + "o"  # e.g. .pyo
     else:
         return path + "c"  # e.g. .pyc
+
 
 def pyc_file_from_path(path):
     """Given a python source path, locate the .pyc.
@@ -253,11 +267,14 @@ def pyc_file_from_path(path):
     else:
         return simple_pyc_file_from_path(path)
 
+
 def rev_id():
     val = int(uuid.uuid4()) % 100000000000000
     return hex(val)[2:-1]
 
+
 class memoized_property(object):
+
     """A read-only @property that is only evaluated once."""
 
     def __init__(self, fget, doc=None):
@@ -278,7 +295,7 @@ class immutabledict(dict):
         raise TypeError("%s object is immutable" % self.__class__.__name__)
 
     __delitem__ = __setitem__ = __setattr__ = \
-    clear = pop = popitem = setdefault = \
+        clear = pop = popitem = setdefault = \
         update = _immutable
 
     def __new__(cls, *args):
@@ -332,7 +349,7 @@ def _with_legacy_names(translations):
             return fn(*arg, **kw)
 
         code = 'lambda %(args)s: %(target)s(%(apply_kw)s)' % (
-                metadata)
+            metadata)
         decorated = eval(code, {"target": go})
         decorated.__defaults__ = getattr(fn, '__func__', fn).__defaults__
         update_wrapper(decorated, fn)
@@ -346,6 +363,3 @@ def _with_legacy_names(translations):
         return decorated
 
     return decorate
-
-
-
