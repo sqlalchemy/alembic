@@ -516,8 +516,7 @@ class Operations(object):
         :param name: Name of the primary key constraint.  The name is necessary
          so that an ALTER statement can be emitted.  For setups that
          use an automated naming scheme such as that described at
-         `NamingConventions <http://www.sqlalchemy.org/trac/wiki/UsageRecipes/\
-         NamingConventions>`_,
+         :ref:`sqla:constraint_naming_conventions`
          ``name`` here can be ``None``, as the event listener will
          apply the name to the constraint object when it is associated
          with the table.
@@ -559,8 +558,7 @@ class Operations(object):
         :param name: Name of the foreign key constraint.  The name is necessary
          so that an ALTER statement can be emitted.  For setups that
          use an automated naming scheme such as that described at
-         `NamingConventions <http://www.sqlalchemy.org/trac/wiki/UsageRecipes/\
-         NamingConventions>`_,
+         :ref:`sqla:constraint_naming_conventions`,
          ``name`` here can be ``None``, as the event listener will
          apply the name to the constraint object when it is associated
          with the table.
@@ -616,8 +614,7 @@ class Operations(object):
         :param name: Name of the unique constraint.  The name is necessary
          so that an ALTER statement can be emitted.  For setups that
          use an automated naming scheme such as that described at
-         `NamingConventions <http://www.sqlalchemy.org/trac/wiki/UsageRecipes/\
-         NamingConventions>`_,
+         :ref:`sqla:constraint_naming_conventions`,
          ``name`` here can be ``None``, as the event listener will
          apply the name to the constraint object when it is associated
          with the table.
@@ -664,8 +661,7 @@ class Operations(object):
         :param name: Name of the check constraint.  The name is necessary
          so that an ALTER statement can be emitted.  For setups that
          use an automated naming scheme such as that described at
-         `NamingConventions <http://www.sqlalchemy.org/trac/wiki/UsageRecipes/\
-         NamingConventions>`_,
+         :ref:`sqla:constraint_naming_conventions`,
          ``name`` here can be ``None``, as the event listener will
          apply the name to the constraint object when it is associated
          with the table.
