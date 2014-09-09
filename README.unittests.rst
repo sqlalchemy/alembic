@@ -1,14 +1,17 @@
 Running Unit Tests
 ==================
 
-Tests can be run using the nosetests runner:
+Tests can be run be run using via py.test, nose, or the Python setup.py script::
+
+	py.test
 
 	nosetests -v
 
-Or via the setup.py script:
-
 	python setup.py test
 
+There's also a tox.ini file with several configurations::
+
+	tox
 
 Setting up Optional Databases
 ------------------------------

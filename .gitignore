@@ -5,7 +5,7 @@ dist/
 /docs/build/output/
 *.orig
 alembic.ini
-tox.ini
 .venv
 *.egg-info
 .coverage
+.tox
