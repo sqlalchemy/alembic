@@ -3,6 +3,14 @@
 Changelog
 ==========
 .. changelog::
+    :version: 0.7.0
+
+    .. change::
+      :tags: change
+
+      Minimum SQLAlchemy version is now 0.8.4.
+
+.. changelog::
     :version: 0.6.7
     :released: September 9, 2014
 

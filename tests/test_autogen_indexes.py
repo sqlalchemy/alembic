@@ -1,5 +1,6 @@
 import sys
-from unittest import TestCase
+from alembic.testing import TestBase
+from alembic.testing import config
 
 from sqlalchemy import MetaData, Column, Table, Integer, String, Text, \
     Numeric, DATETIME, INTEGER, \
@@ -8,14 +9,26 @@ from sqlalchemy import MetaData, Column, Table, Integer, String, Text, \
     PrimaryKeyConstraint, Index, func, ForeignKeyConstraint,\
     ForeignKey
 from sqlalchemy.schema import AddConstraint
-from . import sqlite_db, eq_, db_for_dialect
+from sqlalchemy.testing import engines
+from alembic.testing import eq_
+from alembic.testing.env import staging_env
 
 py3k = sys.version_info >= (3, )
 
 from .test_autogenerate import AutogenFixtureTest
 
 
-class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestCase):
+class NoUqReflection(object):
+    def setUp(self):
+        staging_env()
+        self.bind = eng = engines.testing_engine()
+
+        def unimpl(*arg, **kw):
+            raise NotImplementedError()
+        eng.dialect.get_unique_constraints = unimpl
+
+
+class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestBase):
     reports_unique_constraints = True
 
     def test_index_flag_becomes_named_unique_constraint(self):
@@ -435,10 +448,7 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestCase):
 
 class PGUniqueIndexTest(AutogenerateUniqueIndexTest):
     reports_unnamed_constraints = True
-
-    @classmethod
-    def _get_bind(cls):
-        return db_for_dialect('postgresql')
+    __only_on__ = "postgresql"
 
     def test_idx_added_schema(self):
         m1 = MetaData()
@@ -502,6 +512,7 @@ class PGUniqueIndexTest(AutogenerateUniqueIndexTest):
 
 class MySQLUniqueIndexTest(AutogenerateUniqueIndexTest):
     reports_unnamed_constraints = True
+    __only_on__ = 'mysql'
 
     def test_removed_idx_index_named_as_column(self):
         try:
@@ -512,22 +523,10 @@ class MySQLUniqueIndexTest(AutogenerateUniqueIndexTest):
         else:
             assert False, "unexpected success"
 
-    @classmethod
-    def _get_bind(cls):
-        return db_for_dialect('mysql')
 
-
-class NoUqReflectionIndexTest(AutogenerateUniqueIndexTest):
+class NoUqReflectionIndexTest(NoUqReflection, AutogenerateUniqueIndexTest):
     reports_unique_constraints = False
-
-    @classmethod
-    def _get_bind(cls):
-        eng = sqlite_db()
-
-        def unimpl(*arg, **kw):
-            raise NotImplementedError()
-        eng.dialect.get_unique_constraints = unimpl
-        return eng
+    __only_on__ = 'sqlite'
 
     def test_unique_not_reported(self):
         m1 = MetaData()
@@ -596,9 +595,11 @@ class NoUqReportsIndAsUqTest(NoUqReflectionIndexTest):
 
     """
 
+    __only_on__ = 'sqlite'
+
     @classmethod
     def _get_bind(cls):
-        eng = sqlite_db()
+        eng = config.db
 
         _get_unique_constraints = eng.dialect.get_unique_constraints
         _get_indexes = eng.dialect.get_indexes
