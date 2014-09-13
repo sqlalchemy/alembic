@@ -1,9 +1,7 @@
-from unittest import TestCase
 
 from sqlalchemy import DateTime, MetaData, Table, Column, text, Integer, \
     String, Interval
 from sqlalchemy.dialects.postgresql import ARRAY
-from sqlalchemy.schema import DefaultClause
 from sqlalchemy.engine.reflection import Inspector
 from alembic.operations import Operations
 from sqlalchemy.sql import table, column
@@ -12,12 +10,17 @@ from alembic.autogenerate.compare import _compare_server_default
 from alembic import command, util
 from alembic.migration import MigrationContext
 from alembic.script import ScriptDirectory
-from . import db_for_dialect, eq_, staging_env, \
-    clear_staging_env, _no_sql_testing_config,\
-    capture_context_buffer, requires_09, write_script
+
+from alembic.testing import eq_
+from alembic.testing.env import staging_env, clear_staging_env, \
+    _no_sql_testing_config, write_script
+from alembic.testing.fixtures import capture_context_buffer
+from alembic.testing.fixtures import TestBase
+
+from alembic.testing import config
 
 
-class PGOfflineEnumTest(TestCase):
+class PGOfflineEnumTest(TestBase):
 
     def setUp(self):
         staging_env()
@@ -71,7 +74,7 @@ def downgrade():
 
 """ % self.rid)
 
-    @requires_09
+    @config.requirements.sqlalchemy_09
     def test_offline_inline_enum_create(self):
         self._inline_enum_script()
         with capture_context_buffer() as buf:
@@ -88,7 +91,7 @@ def downgrade():
         # no drop since we didn't emit events
         assert "DROP TYPE pgenum" not in buf.getvalue()
 
-    @requires_09
+    @config.requirements.sqlalchemy_09
     def test_offline_distinct_enum_create(self):
         self._distinct_enum_script()
         with capture_context_buffer() as buf:
@@ -105,11 +108,12 @@ def downgrade():
         assert "DROP TYPE pgenum" in buf.getvalue()
 
 
-class PostgresqlInlineLiteralTest(TestCase):
+class PostgresqlInlineLiteralTest(TestBase):
+    __only_on__ = 'postgresql'
 
     @classmethod
     def setup_class(cls):
-        cls.bind = db_for_dialect("postgresql")
+        cls.bind = config.db
         cls.bind.execute("""
             create table tab (
                 col varchar(50)
@@ -150,11 +154,12 @@ class PostgresqlInlineLiteralTest(TestCase):
         )
 
 
-class PostgresqlDefaultCompareTest(TestCase):
+class PostgresqlDefaultCompareTest(TestBase):
+    __only_on__ = 'postgresql'
 
     @classmethod
     def setup_class(cls):
-        cls.bind = db_for_dialect("postgresql")
+        cls.bind = config.db
         staging_env()
         context = MigrationContext.configure(
             connection=cls.bind.connect(),
