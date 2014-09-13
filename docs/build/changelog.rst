@@ -6,6 +6,14 @@ Changelog
     :version: 0.7.0
 
     .. change::
+      :tags: feature
+
+      SQLAlchemy's testing infrastructure is now used to run tests.
+      This system supports both nose and pytest and opens the way
+      for Alembic testing to support any number of backends, parallel
+      testing, and 3rd party dialect testing.
+
+    .. change::
       :tags: change
 
       Minimum SQLAlchemy version is now 0.8.4.
