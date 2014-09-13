@@ -1,20 +1,19 @@
-"""Test op functions against ORACLE."""
-
-from unittest import TestCase
 
 from sqlalchemy import Integer, Column
 
 from alembic import op, command
-from . import op_fixture, capture_context_buffer, \
-    _no_sql_testing_config, staging_env, \
+from alembic.testing.fixtures import TestBase
+
+from alembic.testing.fixtures import op_fixture, capture_context_buffer
+from alembic.testing.env import _no_sql_testing_config, staging_env, \
     three_rev_fixture, clear_staging_env
 
 
-class FullEnvironmentTests(TestCase):
+class FullEnvironmentTests(TestBase):
 
     @classmethod
     def setup_class(cls):
-        env = staging_env()
+        staging_env()
         cls.cfg = cfg = _no_sql_testing_config("oracle")
 
         cls.a, cls.b, cls.c = \
@@ -42,7 +41,7 @@ class FullEnvironmentTests(TestCase):
         assert "BYE" in buf.getvalue()
 
 
-class OpTest(TestCase):
+class OpTest(TestBase):
 
     def test_add_column(self):
         context = op_fixture('oracle')

@@ -1,19 +1,37 @@
 import os
-import unittest
 
 from alembic import command, util
 from alembic.script import ScriptDirectory
-from . import clear_staging_env, staging_env, \
-    _sqlite_testing_config, sqlite_db, eq_, write_script, \
-    assert_raises_message
+from alembic.testing.env import clear_staging_env, staging_env, \
+    _sqlite_testing_config, write_script, _sqlite_file_db
+from alembic.testing import eq_, assert_raises_message
+from alembic.testing.fixtures import TestBase
 
 a = b = c = None
 
 
-class VersioningTest(unittest.TestCase):
+class VersioningTest(TestBase):
+    __only_on__ = 'sqlite'
+
     sourceless = False
 
-    def test_001_revisions(self):
+    def setUp(self):
+        self.bind = _sqlite_file_db()
+        self.env = staging_env(sourceless=self.sourceless)
+        self.cfg = _sqlite_testing_config(sourceless=self.sourceless)
+
+    def tearDown(self):
+        clear_staging_env()
+
+    def test_steps(self):
+        self._test_001_revisions()
+        self._test_002_upgrade()
+        self._test_003_downgrade()
+        self._test_004_downgrade()
+        self._test_005_upgrade()
+        self._test_006_upgrade_again()
+
+    def _test_001_revisions(self):
         global a, b, c
         a = util.rev_id()
         b = util.rev_id()
@@ -65,50 +83,39 @@ class VersioningTest(unittest.TestCase):
 
     """ % (c, b), sourceless=self.sourceless)
 
-    def test_002_upgrade(self):
+    def _test_002_upgrade(self):
         command.upgrade(self.cfg, c)
-        db = sqlite_db()
+        db = self.bind
         assert db.dialect.has_table(db.connect(), 'foo')
         assert db.dialect.has_table(db.connect(), 'bar')
         assert db.dialect.has_table(db.connect(), 'bat')
 
-    def test_003_downgrade(self):
+    def _test_003_downgrade(self):
         command.downgrade(self.cfg, a)
-        db = sqlite_db()
+        db = self.bind
         assert db.dialect.has_table(db.connect(), 'foo')
         assert not db.dialect.has_table(db.connect(), 'bar')
         assert not db.dialect.has_table(db.connect(), 'bat')
 
-    def test_004_downgrade(self):
+    def _test_004_downgrade(self):
         command.downgrade(self.cfg, 'base')
-        db = sqlite_db()
+        db = self.bind
         assert not db.dialect.has_table(db.connect(), 'foo')
         assert not db.dialect.has_table(db.connect(), 'bar')
         assert not db.dialect.has_table(db.connect(), 'bat')
 
-    def test_005_upgrade(self):
+    def _test_005_upgrade(self):
         command.upgrade(self.cfg, b)
-        db = sqlite_db()
+        db = self.bind
         assert db.dialect.has_table(db.connect(), 'foo')
         assert db.dialect.has_table(db.connect(), 'bar')
         assert not db.dialect.has_table(db.connect(), 'bat')
 
-    def test_006_upgrade_again(self):
+    def _test_006_upgrade_again(self):
         command.upgrade(self.cfg, b)
 
-    # TODO: test some invalid movements
 
-    @classmethod
-    def setup_class(cls):
-        cls.env = staging_env(sourceless=cls.sourceless)
-        cls.cfg = _sqlite_testing_config(sourceless=cls.sourceless)
-
-    @classmethod
-    def teardown_class(cls):
-        clear_staging_env()
-
-
-class VersionNameTemplateTest(unittest.TestCase):
+class VersionNameTemplateTest(TestBase):
 
     def setUp(self):
         self.env = staging_env()
@@ -192,7 +199,7 @@ class SourcelessVersioningTest(VersioningTest):
     sourceless = True
 
 
-class SourcelessNeedsFlagTest(unittest.TestCase):
+class SourcelessNeedsFlagTest(TestBase):
 
     def setUp(self):
         self.env = staging_env(sourceless=False)

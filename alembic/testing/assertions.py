@@ -1,6 +1,7 @@
 import re
 from sqlalchemy.engine import default
-from sqlalchemy.testing.assertions import eq_, ne_, is_, assert_raises_message
+from sqlalchemy.testing.assertions import eq_, ne_, is_, \
+    assert_raises_message, assert_raises
 from alembic.compat import text_type
 
 

@@ -2,12 +2,13 @@
 
 from __future__ import unicode_literals
 
-import unittest
+from alembic.testing.fixtures import TestBase
+from alembic import util
 
-from . import clear_staging_env, staging_env, \
-    _no_sql_testing_config, capture_context_buffer, \
-    three_rev_fixture, write_script
-from alembic import command, util
+from alembic.testing.env import staging_env, _no_sql_testing_config, \
+    three_rev_fixture, clear_staging_env, write_script
+from alembic.testing.fixtures import capture_context_buffer
+from alembic import command
 from alembic.script import ScriptDirectory
 import re
 
@@ -15,7 +16,7 @@ cfg = None
 a, b, c = None, None, None
 
 
-class ThreeRevTest(unittest.TestCase):
+class ThreeRevTest(TestBase):
 
     def setUp(self):
         global cfg, env
@@ -100,7 +101,7 @@ class ThreeRevTest(unittest.TestCase):
             "SET version_num='%s';" % c in buf.getvalue()
 
 
-class EncodingTest(unittest.TestCase):
+class EncodingTest(TestBase):
 
     def setUp(self):
         global cfg, env, a

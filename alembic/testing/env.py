@@ -67,12 +67,21 @@ config = context.config
         f.write(txt)
 
 
+def _sqlite_file_db():
+    from sqlalchemy.testing import engines
+    dir_ = os.path.join(staging_directory, 'scripts')
+    url = "sqlite:///%s/foo.db" % dir_
+    return engines.testing_engine(url=url)
+
+
 def _sqlite_testing_config(sourceless=False):
     dir_ = os.path.join(staging_directory, 'scripts')
+    url = "sqlite:///%s/foo.db" % dir_
+
     return _write_config_file("""
 [alembic]
 script_location = %s
-sqlalchemy.url = sqlite:///%s/foo.db
+sqlalchemy.url = %s
 sourceless = %s
 
 [loggers]
@@ -98,7 +107,7 @@ keys = generic
 [formatter_generic]
 format = %%(levelname)-5.5s [%%(name)s] %%(message)s
 datefmt = %%H:%%M:%%S
-    """ % (dir_, dir_, "true" if sourceless else "false"))
+    """ % (dir_, url, "true" if sourceless else "false"))
 
 
 def _no_sql_testing_config(dialect="postgresql", directives=""):

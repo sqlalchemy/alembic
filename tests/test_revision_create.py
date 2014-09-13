@@ -1,39 +1,57 @@
-from tests import clear_staging_env, staging_env, eq_, ne_, is_, \
-    staging_directory
-from tests import _no_sql_testing_config, env_file_fixture, \
+from alembic.testing.fixtures import TestBase
+from alembic.testing import eq_, ne_, is_
+from alembic.testing.env import clear_staging_env, staging_env, \
+    staging_directory, _no_sql_testing_config, env_file_fixture, \
     script_file_fixture, _testing_config
 from alembic import command
 from alembic.script import ScriptDirectory, Script
 from alembic.environment import EnvironmentContext
 from alembic import util
 import os
-import unittest
 import datetime
 
 env, abc, def_ = None, None, None
 
 
-class GeneralOrderedTests(unittest.TestCase):
+class GeneralOrderedTests(TestBase):
 
-    def test_001_environment(self):
+    def setUp(self):
+        global env
+        env = staging_env()
+
+    def tearDown(self):
+        clear_staging_env()
+
+    def test_steps(self):
+        self._test_001_environment()
+        self._test_002_rev_ids()
+        self._test_003_api_methods_clean()
+        self._test_004_rev()
+        self._test_005_nextrev()
+        self._test_006_from_clean_env()
+        self._test_007_no_refresh()
+        self._test_008_long_name()
+        self._test_009_long_name_configurable()
+
+    def _test_001_environment(self):
         assert_set = set(['env.py', 'script.py.mako', 'README'])
         eq_(
             assert_set.intersection(os.listdir(env.dir)),
             assert_set
         )
 
-    def test_002_rev_ids(self):
+    def _test_002_rev_ids(self):
         global abc, def_
         abc = util.rev_id()
         def_ = util.rev_id()
         ne_(abc, def_)
 
-    def test_003_api_methods_clean(self):
+    def _test_003_api_methods_clean(self):
         eq_(env.get_heads(), [])
 
         eq_(env.get_base(), None)
 
-    def test_004_rev(self):
+    def _test_004_rev(self):
         script = env.generate_revision(abc, "this is a message", refresh=True)
         eq_(script.doc, "this is a message")
         eq_(script.revision, abc)
@@ -45,7 +63,7 @@ class GeneralOrderedTests(unittest.TestCase):
         eq_(env.get_heads(), [abc])
         eq_(env.get_base(), abc)
 
-    def test_005_nextrev(self):
+    def _test_005_nextrev(self):
         script = env.generate_revision(
             def_, "this is the next rev", refresh=True)
         assert os.access(
@@ -61,7 +79,7 @@ class GeneralOrderedTests(unittest.TestCase):
         eq_(env.get_heads(), [def_])
         eq_(env.get_base(), abc)
 
-    def test_006_from_clean_env(self):
+    def _test_006_from_clean_env(self):
         # test the environment so far with a
         # new ScriptDirectory instance.
 
@@ -74,14 +92,14 @@ class GeneralOrderedTests(unittest.TestCase):
         eq_(env.get_heads(), [def_])
         eq_(env.get_base(), abc)
 
-    def test_007_no_refresh(self):
+    def _test_007_no_refresh(self):
         rid = util.rev_id()
         script = env.generate_revision(rid, "dont' refresh")
         is_(script, None)
         env2 = staging_env(create=False)
         eq_(env2._as_rev_number("head"), rid)
 
-    def test_008_long_name(self):
+    def _test_008_long_name(self):
         rid = util.rev_id()
         env.generate_revision(rid,
                               "this is a really long name with "
@@ -93,7 +111,7 @@ class GeneralOrderedTests(unittest.TestCase):
                 '%s_this_is_a_really_long_name_with_lots_of_.py' % rid),
             os.F_OK)
 
-    def test_009_long_name_configurable(self):
+    def _test_009_long_name_configurable(self):
         env.truncate_slug_length = 60
         rid = util.rev_id()
         env.generate_revision(rid,
@@ -106,17 +124,8 @@ class GeneralOrderedTests(unittest.TestCase):
                          'of_characters_and_also_.py' % rid),
             os.F_OK)
 
-    @classmethod
-    def setup_class(cls):
-        global env
-        env = staging_env()
 
-    @classmethod
-    def teardown_class(cls):
-        clear_staging_env()
-
-
-class ScriptNamingTest(unittest.TestCase):
+class ScriptNamingTest(TestBase):
 
     @classmethod
     def setup_class(cls):
@@ -142,7 +151,7 @@ class ScriptNamingTest(unittest.TestCase):
         )
 
 
-class TemplateArgsTest(unittest.TestCase):
+class TemplateArgsTest(TestBase):
 
     def setUp(self):
         staging_env()

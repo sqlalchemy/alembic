@@ -2,13 +2,9 @@ import sys
 from alembic.testing import TestBase
 from alembic.testing import config
 
-from sqlalchemy import MetaData, Column, Table, Integer, String, Text, \
-    Numeric, DATETIME, INTEGER, \
-    TypeDecorator, Unicode, Enum,\
-    UniqueConstraint, Boolean, \
-    PrimaryKeyConstraint, Index, func, ForeignKeyConstraint,\
+from sqlalchemy import MetaData, Column, Table, Integer, String, \
+    Numeric, UniqueConstraint, Index, ForeignKeyConstraint,\
     ForeignKey
-from sqlalchemy.schema import AddConstraint
 from sqlalchemy.testing import engines
 from alembic.testing import eq_
 from alembic.testing.env import staging_env
@@ -30,6 +26,7 @@ class NoUqReflection(object):
 
 class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestBase):
     reports_unique_constraints = True
+    __only_on__ = 'sqlite'
 
     def test_index_flag_becomes_named_unique_constraint(self):
         m1 = MetaData()

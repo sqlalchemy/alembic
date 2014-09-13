@@ -1,23 +1,16 @@
 # coding: utf-8
 import io
-import os
 import re
-import shutil
-import textwrap
 
-from sqlalchemy.engine import default
 from sqlalchemy import create_engine, text, MetaData
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.util import decorator
 
 import alembic
 from alembic.compat import configparser
 from alembic import util
-from alembic.compat import string_types, text_type, u, py33
+from alembic.compat import string_types, text_type
 from alembic.migration import MigrationContext
 from alembic.environment import EnvironmentContext
 from alembic.operations import Operations
-from alembic.script import ScriptDirectory, Script
 from alembic.ddl.impl import _impls
 from contextlib import contextmanager
 
@@ -38,8 +31,6 @@ def capture_db():
     return engine, buf
 
 _engs = {}
-
-
 
 
 @contextmanager
