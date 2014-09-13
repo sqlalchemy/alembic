@@ -24,6 +24,7 @@ from contextlib import contextmanager
 
 from sqlalchemy.testing.fixtures import TestBase
 from .assertions import _get_dialect, eq_
+from . import mock
 
 testing_config = configparser.ConfigParser()
 testing_config.read(['test.cfg'])
