@@ -1,13 +1,13 @@
-import unittest
-from . import clear_staging_env, staging_env, \
-    _sqlite_testing_config, \
-    three_rev_fixture, eq_
 from alembic import command
 from io import TextIOWrapper, BytesIO
 from alembic.script import ScriptDirectory
+from alembic.testing.fixtures import TestBase
+from alembic.testing.env import staging_env, _sqlite_testing_config, \
+    three_rev_fixture, clear_staging_env
+from alembic.testing import eq_
 
 
-class StdoutCommandTest(unittest.TestCase):
+class StdoutCommandTest(TestBase):
 
     @classmethod
     def setup_class(cls):
