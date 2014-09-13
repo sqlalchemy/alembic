@@ -51,7 +51,7 @@ setup(name='alembic',
       packages=find_packages('.', exclude=['examples*', 'test*']),
       include_package_data=True,
       tests_require=['nose >= 0.11', 'mock'],
-      test_suite="nose.collector",
+      test_suite="sqlalchemy.testing.runner.setup_py_test",
       zip_safe=False,
       install_requires=requires,
       entry_points={
