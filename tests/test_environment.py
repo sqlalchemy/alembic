@@ -3,14 +3,15 @@
 from alembic.script import ScriptDirectory
 from alembic.environment import EnvironmentContext
 from alembic.migration import MigrationContext
-import unittest
-from . import Mock, call, _no_sql_testing_config, staging_env, \
-    clear_staging_env
+from alembic.testing.fixtures import TestBase
+from alembic.testing.mock import Mock, call
+from alembic.testing.env import _no_sql_testing_config, \
+    staging_env, clear_staging_env
 
-from . import eq_, is_
+from alembic.testing import eq_, is_
 
 
-class EnvironmentTest(unittest.TestCase):
+class EnvironmentTest(TestBase):
 
     def setUp(self):
         staging_env()

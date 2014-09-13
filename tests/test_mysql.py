@@ -1,14 +1,19 @@
 from sqlalchemy import Integer, func
-from unittest import TestCase
+from alembic.testing.fixtures import TestBase
+from alembic.testing import config
 from sqlalchemy import TIMESTAMP, MetaData, Table, Column, text
 from sqlalchemy.engine.reflection import Inspector
 from alembic import op, util
-from . import op_fixture, assert_raises_message, db_for_dialect, \
-    staging_env, clear_staging_env
+
+from alembic.testing import eq_, assert_raises_message
+from alembic.testing.fixtures import capture_context_buffer, op_fixture
+from alembic.testing.env import staging_env, _no_sql_testing_config, \
+    three_rev_fixture, clear_staging_env
+
 from alembic.migration import MigrationContext
 
 
-class MySQLOpTest(TestCase):
+class MySQLOpTest(TestBase):
 
     def test_rename_column(self):
         context = op_fixture('mysql')
@@ -199,11 +204,12 @@ class MySQLOpTest(TestCase):
         )
 
 
-class MySQLDefaultCompareTest(TestCase):
+class MySQLDefaultCompareTest(TestBase):
+    __only_on__ = 'mysql'
 
     @classmethod
     def setup_class(cls):
-        cls.bind = db_for_dialect("mysql")
+        cls.bind = config.db
         staging_env()
         context = MigrationContext.configure(
             connection=cls.bind.connect(),

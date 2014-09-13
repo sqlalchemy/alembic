@@ -1,26 +1,26 @@
 import re
 import sys
-from unittest import TestCase
+from alembic.testing import TestBase
 
-from sqlalchemy import MetaData, Column, Table, Integer, String, Text, \
-    Numeric, CHAR, ForeignKey, DATETIME, INTEGER, \
-    TypeDecorator, CheckConstraint, Unicode, Enum,\
+from sqlalchemy import MetaData, Column, Table, String, \
+    Numeric, CHAR, ForeignKey, DATETIME, Integer, \
+    CheckConstraint, Unicode, Enum,\
     UniqueConstraint, Boolean, ForeignKeyConstraint,\
-    PrimaryKeyConstraint, Index, func
+    PrimaryKeyConstraint, Index
 from sqlalchemy.types import TIMESTAMP
 from sqlalchemy.dialects import mysql, postgresql
 from sqlalchemy.sql import and_, column, literal_column
 
-from . import patch
+from alembic.testing.mock import patch
 
 from alembic import autogenerate, util, compat
-from . import eq_, eq_ignore_whitespace, requires_092, \
-    requires_09, requires_094
+from alembic.testing import eq_, eq_ignore_whitespace, config
+
 
 py3k = sys.version_info >= (3, )
 
 
-class AutogenRenderTest(TestCase):
+class AutogenRenderTest(TestBase):
 
     """test individual directives"""
 
@@ -769,7 +769,7 @@ render:primary_key\n)"""
             "user.MyType()"
         )
 
-    @requires_09
+    @config.requirements.sqlalchemy_09
     def test_repr_dialect_type(self):
         from sqlalchemy.dialects.mysql import VARCHAR
 
@@ -792,10 +792,10 @@ render:primary_key\n)"""
             )
 
 
-class RenderNamingConventionTest(TestCase):
+class RenderNamingConventionTest(TestBase):
+    __requires__ = ('sqlalchemy_094',)
 
     @classmethod
-    @requires_094
     def setup_class(cls):
         cls.autogen_context = {
             'opts': {

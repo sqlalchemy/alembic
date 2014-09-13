@@ -5,7 +5,6 @@ import re
 import shutil
 import textwrap
 
-from nose import SkipTest
 from sqlalchemy.engine import default
 from sqlalchemy import create_engine, text, MetaData
 from sqlalchemy.exc import SQLAlchemyError
@@ -41,32 +40,6 @@ def capture_db():
 _engs = {}
 
 
-@decorator
-def requires_08(fn, *arg, **kw):
-    if not util.sqla_08:
-        raise SkipTest("SQLAlchemy 0.8.0b2 or greater required")
-    return fn(*arg, **kw)
-
-
-@decorator
-def requires_09(fn, *arg, **kw):
-    if not util.sqla_09:
-        raise SkipTest("SQLAlchemy 0.9 or greater required")
-    return fn(*arg, **kw)
-
-
-@decorator
-def requires_092(fn, *arg, **kw):
-    if not util.sqla_092:
-        raise SkipTest("SQLAlchemy 0.9.2 or greater required")
-    return fn(*arg, **kw)
-
-
-@decorator
-def requires_094(fn, *arg, **kw):
-    if not util.sqla_094:
-        raise SkipTest("SQLAlchemy 0.9.4 or greater required")
-    return fn(*arg, **kw)
 
 
 @contextmanager

@@ -1,16 +1,18 @@
 """Test op functions against MSSQL."""
 
-from unittest import TestCase
+from alembic.testing.fixtures import TestBase
 
 from sqlalchemy import Integer, Column
 
 from alembic import op, command, util
-from . import op_fixture, capture_context_buffer, \
-    _no_sql_testing_config, assert_raises_message, staging_env, \
-    three_rev_fixture, clear_staging_env, eq_
+
+from alembic.testing import eq_, assert_raises_message
+from alembic.testing.fixtures import capture_context_buffer, op_fixture
+from alembic.testing.env import staging_env, _no_sql_testing_config, \
+    three_rev_fixture, clear_staging_env
 
 
-class FullEnvironmentTests(TestCase):
+class FullEnvironmentTests(TestBase):
 
     @classmethod
     def setup_class(cls):
@@ -46,7 +48,7 @@ class FullEnvironmentTests(TestCase):
         assert "BYE" in buf.getvalue()
 
 
-class OpTest(TestCase):
+class OpTest(TestBase):
 
     def test_add_column(self):
         context = op_fixture('mssql')

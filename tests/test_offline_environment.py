@@ -1,19 +1,19 @@
-import io
-from unittest import TestCase
+from alembic.testing.fixtures import TestBase
 
 from alembic import command, util
-from . import clear_staging_env, staging_env, \
-    _no_sql_testing_config, \
-    three_rev_fixture, env_file_fixture,\
-    assert_raises_message
+
+from alembic.testing import assert_raises_message
+from alembic.testing.env import staging_env, _no_sql_testing_config, \
+    three_rev_fixture, clear_staging_env, env_file_fixture
+
 
 a = b = c = None
 
 
-class OfflineEnvironmentTest(TestCase):
+class OfflineEnvironmentTest(TestBase):
 
     def setUp(self):
-        env = staging_env()
+        staging_env()
         self.cfg = _no_sql_testing_config()
 
         global a, b, c
