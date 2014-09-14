@@ -1,24 +1,28 @@
 #!coding: utf-8
 
-import io
 import os
-import re
 import shutil
 import textwrap
 
 from alembic.compat import u
 from alembic.script import Script, ScriptDirectory
 from alembic import util
+from . import engines
+from alembic.testing.plugin import plugin_base
 
-staging_directory = 'scratch'
-files_directory = 'files'
+
+def _get_staging_directory():
+    if plugin_base.FOLLOWER_IDENT:
+        return "scratch_%s" % plugin_base.FOLLOWER_IDENT
+    else:
+        return 'scratch'
 
 
 def staging_env(create=True, template="generic", sourceless=False):
     from alembic import command, script
     cfg = _testing_config()
     if create:
-        path = os.path.join(staging_directory, 'scripts')
+        path = os.path.join(_get_staging_directory(), 'scripts')
         if os.path.exists(path):
             shutil.rmtree(path)
         command.init(cfg, path)
@@ -40,18 +44,18 @@ def staging_env(create=True, template="generic", sourceless=False):
 
 
 def clear_staging_env():
-    shutil.rmtree(staging_directory, True)
+    shutil.rmtree(_get_staging_directory(), True)
 
 
 def script_file_fixture(txt):
-    dir_ = os.path.join(staging_directory, 'scripts')
+    dir_ = os.path.join(_get_staging_directory(), 'scripts')
     path = os.path.join(dir_, "script.py.mako")
     with open(path, 'w') as f:
         f.write(txt)
 
 
 def env_file_fixture(txt):
-    dir_ = os.path.join(staging_directory, 'scripts')
+    dir_ = os.path.join(_get_staging_directory(), 'scripts')
     txt = """
 from alembic import context
 
@@ -68,14 +72,13 @@ config = context.config
 
 
 def _sqlite_file_db():
-    from sqlalchemy.testing import engines
-    dir_ = os.path.join(staging_directory, 'scripts')
+    dir_ = os.path.join(_get_staging_directory(), 'scripts')
     url = "sqlite:///%s/foo.db" % dir_
     return engines.testing_engine(url=url)
 
 
 def _sqlite_testing_config(sourceless=False):
-    dir_ = os.path.join(staging_directory, 'scripts')
+    dir_ = os.path.join(_get_staging_directory(), 'scripts')
     url = "sqlite:///%s/foo.db" % dir_
 
     return _write_config_file("""
@@ -113,7 +116,7 @@ datefmt = %%H:%%M:%%S
 def _no_sql_testing_config(dialect="postgresql", directives=""):
     """use a postgresql url with no host so that
     connections guaranteed to fail"""
-    dir_ = os.path.join(staging_directory, 'scripts')
+    dir_ = os.path.join(_get_staging_directory(), 'scripts')
     return _write_config_file("""
 [alembic]
 script_location = %s
@@ -156,9 +159,9 @@ def _write_config_file(text):
 
 def _testing_config():
     from alembic.config import Config
-    if not os.access(staging_directory, os.F_OK):
-        os.mkdir(staging_directory)
-    return Config(os.path.join(staging_directory, 'test_alembic.ini'))
+    if not os.access(_get_staging_directory(), os.F_OK):
+        os.mkdir(_get_staging_directory())
+    return Config(os.path.join(_get_staging_directory(), 'test_alembic.ini'))
 
 
 def write_script(

@@ -1,12 +1,16 @@
 from sqlalchemy.sql.expression import _BindParamClause
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy import schema, text, sql
-from sqlalchemy.sql import expression
 from sqlalchemy import types as sqltypes
 
 from ..compat import string_types, text_type, with_metaclass
 from .. import util
 from . import base
+
+if util.sqla_08:
+    from sqlalchemy.sql.expression import TextClause
+else:
+    from sqlalchemy.sql.expression import _TextClause as TextClause
 
 
 class ImplMeta(type):
@@ -270,7 +274,7 @@ def _textual_index_column(table, text_):
         c = schema.Column(text_, sqltypes.NULLTYPE)
         table.append_column(c)
         return c
-    elif isinstance(text_, expression.TextClause):
+    elif isinstance(text_, TextClause):
         return _textual_index_element(table, text_)
     else:
         raise ValueError("String or text() construct expected")

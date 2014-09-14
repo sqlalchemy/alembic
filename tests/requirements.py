@@ -1,8 +1,9 @@
 from alembic.testing.requirements import SuiteRequirements
-from sqlalchemy.testing import exclusions
+from alembic.testing import exclusions
 
 
 class DefaultRequirements(SuiteRequirements):
+
     @property
     def schemas(self):
         """Target database must support external schemas, and have one

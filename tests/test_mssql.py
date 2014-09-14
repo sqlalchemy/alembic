@@ -10,13 +10,14 @@ from alembic.testing import eq_, assert_raises_message
 from alembic.testing.fixtures import capture_context_buffer, op_fixture
 from alembic.testing.env import staging_env, _no_sql_testing_config, \
     three_rev_fixture, clear_staging_env
+from alembic.testing import config
 
 
 class FullEnvironmentTests(TestBase):
 
     @classmethod
     def setup_class(cls):
-        env = staging_env()
+        staging_env()
         cls.cfg = cfg = _no_sql_testing_config("mssql")
 
         cls.a, cls.b, cls.c = \
@@ -90,10 +91,10 @@ class OpTest(TestBase):
                         nullable=False)
         context.assert_('ALTER TABLE tests ALTER COLUMN col BIT NOT NULL')
 
+    @config.requirements.fail_before_sqla_084
     def test_drop_index(self):
         context = op_fixture('mssql')
         op.drop_index('my_idx', 'my_table')
-        # TODO: annoying that SQLA escapes unconditionally
         context.assert_contains("DROP INDEX my_idx ON my_table")
 
     def test_drop_column_w_default(self):

@@ -12,4 +12,4 @@ from os import path
 for pth in ['../lib']:
     sys.path.insert(0, path.join(path.dirname(path.abspath(__file__)), pth))
 
-from sqlalchemy.testing.plugin.pytestplugin import *
+from alembic.testing.plugin.pytestplugin import *

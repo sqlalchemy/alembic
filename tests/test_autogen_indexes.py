@@ -5,7 +5,7 @@ from alembic.testing import config
 from sqlalchemy import MetaData, Column, Table, Integer, String, \
     Numeric, UniqueConstraint, Index, ForeignKeyConstraint,\
     ForeignKey
-from sqlalchemy.testing import engines
+from alembic.testing import engines
 from alembic.testing import eq_
 from alembic.testing.env import staging_env
 
@@ -15,6 +15,8 @@ from .test_autogenerate import AutogenFixtureTest
 
 
 class NoUqReflection(object):
+    __requires__ = ()
+
     def setUp(self):
         staging_env()
         self.bind = eng = engines.testing_engine()
@@ -23,9 +25,18 @@ class NoUqReflection(object):
             raise NotImplementedError()
         eng.dialect.get_unique_constraints = unimpl
 
+    @config.requirements.fail_before_sqla_083
+    def test_add_ix_on_table_create(self):
+        return super(NoUqReflection, self).test_add_ix_on_table_create()
+
+    @config.requirements.fail_before_sqla_080
+    def test_add_idx_non_col(self):
+        return super(NoUqReflection, self).test_add_idx_non_col()
+
 
 class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestBase):
     reports_unique_constraints = True
+    __requires__ = ('unique_constraint_reflection', )
     __only_on__ = 'sqlite'
 
     def test_index_flag_becomes_named_unique_constraint(self):

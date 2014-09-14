@@ -1,7 +1,7 @@
 from alembic.testing.fixtures import TestBase
 from alembic.testing import eq_, ne_, is_
 from alembic.testing.env import clear_staging_env, staging_env, \
-    staging_directory, _no_sql_testing_config, env_file_fixture, \
+    _get_staging_directory, _no_sql_testing_config, env_file_fixture, \
     script_file_fixture, _testing_config
 from alembic import command
 from alembic.script import ScriptDirectory, Script
@@ -137,7 +137,7 @@ class ScriptNamingTest(TestBase):
 
     def test_args(self):
         script = ScriptDirectory(
-            staging_directory,
+            _get_staging_directory(),
             file_template="%(rev)s_%(slug)s_"
             "%(year)s_%(month)s_"
             "%(day)s_%(hour)s_"
@@ -147,7 +147,7 @@ class ScriptNamingTest(TestBase):
         eq_(
             script._rev_path("12345", "this is a message", create_date),
             "%s/versions/12345_this_is_a_"
-            "message_2012_7_25_15_8_5.py" % staging_directory
+            "message_2012_7_25_15_8_5.py" % _get_staging_directory()
         )
 
 

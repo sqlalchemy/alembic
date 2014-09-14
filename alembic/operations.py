@@ -94,6 +94,11 @@ class Operations(object):
 
         tname = "%s.%s" % (referent_schema, referent) if referent_schema \
                 else referent
+
+        if util.sqla_08:
+            # "match" kw unsupported in 0.7
+            dialect_kw['match'] = match
+
         f = sa_schema.ForeignKeyConstraint(local_cols,
                                            ["%s.%s" % (tname, n)
                                             for n in remote_cols],
@@ -102,7 +107,6 @@ class Operations(object):
                                            ondelete=ondelete,
                                            deferrable=deferrable,
                                            initially=initially,
-                                           match=match,
                                            **dialect_kw
                                            )
         t1.append_constraint(f)

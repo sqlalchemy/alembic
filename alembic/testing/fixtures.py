@@ -13,13 +13,47 @@ from alembic.environment import EnvironmentContext
 from alembic.operations import Operations
 from alembic.ddl.impl import _impls
 from contextlib import contextmanager
-
-from sqlalchemy.testing.fixtures import TestBase
+from .plugin.plugin_base import SkipTest
 from .assertions import _get_dialect, eq_
 from . import mock
 
 testing_config = configparser.ConfigParser()
 testing_config.read(['test.cfg'])
+
+
+if not util.sqla_094:
+    class TestBase(object):
+        # A sequence of database names to always run, regardless of the
+        # constraints below.
+        __whitelist__ = ()
+
+        # A sequence of requirement names matching testing.requires decorators
+        __requires__ = ()
+
+        # A sequence of dialect names to exclude from the test class.
+        __unsupported_on__ = ()
+
+        # If present, test class is only runnable for the *single* specified
+        # dialect.  If you need multiple, use __unsupported_on__ and invert.
+        __only_on__ = None
+
+        # A sequence of no-arg callables. If any are True, the entire testcase is
+        # skipped.
+        __skip_if__ = None
+
+        def assert_(self, val, msg=None):
+            assert val, msg
+
+        # apparently a handful of tests are doing this....OK
+        def setup(self):
+            if hasattr(self, "setUp"):
+                self.setUp()
+
+        def teardown(self):
+            if hasattr(self, "tearDown"):
+                self.tearDown()
+else:
+    from sqlalchemy.testing.fixtures import TestBase
 
 
 def capture_db():

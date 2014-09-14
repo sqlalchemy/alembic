@@ -10,6 +10,7 @@ from alembic.testing.fixtures import op_fixture
 from alembic.testing import eq_, assert_raises_message
 from alembic.testing import mock
 from alembic.testing.fixtures import TestBase
+from alembic.testing import config
 
 
 @event.listens_for(Table, "after_parent_attach")
@@ -57,6 +58,7 @@ class OpTest(TestBase):
         context.assert_(
             'CREATE INDEX geocoded ON locations ("IShouldBeQuoted")')
 
+    @config.requirements.fail_before_sqla_080
     def test_create_index_expressions(self):
         context = op_fixture()
         op.create_index(
@@ -66,6 +68,7 @@ class OpTest(TestBase):
         context.assert_(
             "CREATE INDEX geocoded ON locations (lower(coordinates))")
 
+    @config.requirements.fail_before_sqla_080
     def test_create_index_postgresql_expressions(self):
         context = op_fixture("postgresql")
         op.create_index(
@@ -459,6 +462,7 @@ class OpTest(TestBase):
             "REFERENCES t2 (bat, hoho) INITIALLY INITIAL"
         )
 
+    @config.requirements.foreign_key_match
     def test_add_foreign_key_match(self):
         context = op_fixture()
         op.create_foreign_key('fk_test', 't1', 't2',
@@ -470,17 +474,24 @@ class OpTest(TestBase):
         )
 
     def test_add_foreign_key_dialect_kw(self):
-        context = op_fixture()
+        op_fixture()
         with mock.patch(
                 "alembic.operations.sa_schema.ForeignKeyConstraint") as fkc:
             op.create_foreign_key('fk_test', 't1', 't2',
                                   ['foo', 'bar'], ['bat', 'hoho'],
                                   foobar_arg='xyz')
-            eq_(fkc.mock_calls[0],
-                mock.call(['foo', 'bar'], ['t2.bat', 't2.hoho'],
-                          onupdate=None, ondelete=None, name='fk_test',
-                          foobar_arg='xyz',
-                          deferrable=None, initially=None, match=None))
+            if config.requirements.foreign_key_match.enabled:
+                eq_(fkc.mock_calls[0],
+                    mock.call(['foo', 'bar'], ['t2.bat', 't2.hoho'],
+                              onupdate=None, ondelete=None, name='fk_test',
+                              foobar_arg='xyz',
+                              deferrable=None, initially=None, match=None))
+            else:
+                eq_(fkc.mock_calls[0],
+                    mock.call(['foo', 'bar'], ['t2.bat', 't2.hoho'],
+                              onupdate=None, ondelete=None, name='fk_test',
+                              foobar_arg='xyz',
+                              deferrable=None, initially=None))
 
     def test_add_foreign_key_self_referential(self):
         context = op_fixture()
@@ -723,10 +734,6 @@ class OpTest(TestBase):
         op.alter_column("t", "c", new_column_name="x")
         context.assert_("ALTER TABLE t RENAME c TO x")
 
-        context = op_fixture('mssql')
-        op.drop_index('ik_test', tablename='t1')
-        context.assert_("DROP INDEX ik_test ON t1")
-
         context = op_fixture('mysql')
         op.drop_constraint("f1", "t1", type="foreignkey")
         context.assert_("ALTER TABLE t1 DROP FOREIGN KEY f1")
@@ -740,3 +747,9 @@ class OpTest(TestBase):
             r"Unknown arguments: badarg\d, badarg\d",
             op.alter_column, "t", "c", badarg1="x", badarg2="y"
         )
+
+    @config.requirements.fail_before_sqla_084
+    def test_naming_changes_drop_idx(self):
+        context = op_fixture('mssql')
+        op.drop_index('ik_test', tablename='t1')
+        context.assert_("DROP INDEX ik_test ON t1")

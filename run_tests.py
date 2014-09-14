@@ -1,3 +1,3 @@
-from sqlalchemy.testing import runner
+from alembic.testing import runner
 
 runner.main()

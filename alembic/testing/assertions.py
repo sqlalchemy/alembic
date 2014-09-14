@@ -1,8 +1,43 @@
 import re
+from alembic import util
 from sqlalchemy.engine import default
-from sqlalchemy.testing.assertions import eq_, ne_, is_, \
-    assert_raises_message, assert_raises
 from alembic.compat import text_type
+
+if not util.sqla_094:
+    def eq_(a, b, msg=None):
+        """Assert a == b, with repr messaging on failure."""
+        assert a == b, msg or "%r != %r" % (a, b)
+
+    def ne_(a, b, msg=None):
+        """Assert a != b, with repr messaging on failure."""
+        assert a != b, msg or "%r == %r" % (a, b)
+
+    def is_(a, b, msg=None):
+        """Assert a is b, with repr messaging on failure."""
+        assert a is b, msg or "%r is not %r" % (a, b)
+
+    def assert_raises(except_cls, callable_, *args, **kw):
+        try:
+            callable_(*args, **kw)
+            success = False
+        except except_cls:
+            success = True
+
+        # assert outside the block so it works for AssertionError too !
+        assert success, "Callable did not raise an exception"
+
+    def assert_raises_message(except_cls, msg, callable_, *args, **kwargs):
+        try:
+            callable_(*args, **kwargs)
+            assert False, "Callable did not raise an exception"
+        except except_cls as e:
+            assert re.search(
+                msg, text_type(e), re.UNICODE), "%r !~ %s" % (msg, e)
+            print(text_type(e).encode('utf-8'))
+
+else:
+    from sqlalchemy.testing.assertions import eq_, ne_, is_, \
+        assert_raises_message, assert_raises
 
 
 def eq_ignore_whitespace(a, b, msg=None):

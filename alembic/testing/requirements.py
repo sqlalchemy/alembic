@@ -1,6 +1,12 @@
-from sqlalchemy.testing.requirements import Requirements
-from sqlalchemy.testing import exclusions
 from alembic import util
+
+from . import exclusions
+
+if util.sqla_094:
+    from sqlalchemy.testing.requirements import Requirements
+else:
+    class Requirements(object):
+        pass
 
 
 class SuiteRequirements(Requirements):
@@ -10,6 +16,41 @@ class SuiteRequirements(Requirements):
         named 'test_schema'."""
 
         return exclusions.open()
+
+    @property
+    def unique_constraint_reflection(self):
+        return exclusions.skip_if(
+            lambda config: not util.sqla_084,
+            "SQLAlchemy 0.8.4 or greater required"
+        )
+
+    @property
+    def foreign_key_match(self):
+        return exclusions.fails_if(
+            lambda config: not util.sqla_08,
+            "MATCH for foreign keys added in SQLAlchemy 0.8.0"
+        )
+
+    @property
+    def fail_before_sqla_080(self):
+        return exclusions.fails_if(
+            lambda config: not util.sqla_08,
+            "SQLAlchemy 0.8.0 or greater required"
+        )
+
+    @property
+    def fail_before_sqla_083(self):
+        return exclusions.fails_if(
+            lambda config: not util.sqla_083,
+            "SQLAlchemy 0.8.3 or greater required"
+        )
+
+    @property
+    def fail_before_sqla_084(self):
+        return exclusions.fails_if(
+            lambda config: not util.sqla_084,
+            "SQLAlchemy 0.8.4 or greater required"
+        )
 
     @property
     def sqlalchemy_08(self):

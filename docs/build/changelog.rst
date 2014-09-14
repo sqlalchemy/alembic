@@ -16,7 +16,8 @@ Changelog
     .. change::
       :tags: change
 
-      Minimum SQLAlchemy version is now 0.8.4.
+      Minimum SQLAlchemy version is now 0.7.6, however at least
+      0.8.4 is strongly recommended.
 
 .. changelog::
     :version: 0.6.7

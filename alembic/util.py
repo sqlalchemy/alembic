@@ -26,15 +26,17 @@ def _safe_int(value):
 _vers = tuple(
     [_safe_int(x) for x in re.findall(r'(\d+|[abc]\d)', __version__)])
 sqla_07 = _vers > (0, 7, 2)
-sqla_08 = sqla_084 = _vers >= (0, 8, 4)
+sqla_08 = _vers >= (0, 8, 0)
+sqla_083 = _vers >= (0, 8, 3)
+sqla_084 = _vers >= (0, 8, 4)
 sqla_09 = _vers >= (0, 9, 0)
 sqla_092 = _vers >= (0, 9, 2)
 sqla_094 = _vers >= (0, 9, 4)
 sqla_094 = _vers >= (0, 9, 4)
 sqla_100 = _vers >= (1, 0, 0)
-if not sqla_084:
+if not sqla_07:
     raise CommandError(
-        "SQLAlchemy 0.8.4 or greater is required. ")
+        "SQLAlchemy 0.7.3 or greater is required. ")
 
 from sqlalchemy.util import format_argspec_plus, update_wrapper
 from sqlalchemy.util.compat import inspect_getfullargspec
