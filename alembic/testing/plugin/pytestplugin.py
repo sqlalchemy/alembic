@@ -9,7 +9,7 @@ import collections
 import itertools
 
 try:
-    import xdist
+    import xdist  # noqa
     has_xdist = True
 except ImportError:
     has_xdist = False

@@ -61,7 +61,7 @@ class NoseSQLAlchemy(Plugin):
         plugin_base.set_coverage_flag(options.enable_plugin_coverage)
 
         global fixtures
-        from alembic.testing import fixtures
+        from alembic.testing import fixtures  # noqa
 
     def begin(self):
         plugin_base.post_begin()

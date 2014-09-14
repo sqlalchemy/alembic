@@ -173,9 +173,11 @@ def post_begin():
     global util, fixtures, engines, exclusions, \
         assertions, warnings, profiling,\
         config, testing
-    from alembic.testing import config, warnings, exclusions, engines, fixtures
-    from sqlalchemy import util
+    from alembic.testing import config, warnings, exclusions  # noqa
+    from alembic.testing import engines, fixtures  # noqa
+    from sqlalchemy import util  # noqa
     warnings.setup_filters()
+
 
 def _log(opt_str, value, parser):
     global logging
@@ -367,8 +369,6 @@ def _prep_testing_database(options, file_config):
                             schema=enum['schema'])))
 
 
-
-
 @post
 def _reverse_topological(options, file_config):
     if options.reversetop:
@@ -381,7 +381,6 @@ def _post_setup_options(opt, file_config):
     from alembic.testing import config
     config.options = options
     config.file_config = file_config
-
 
 
 def want_class(cls):
