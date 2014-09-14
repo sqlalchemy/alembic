@@ -11,7 +11,7 @@ so that we can continue to support nose and also begin adding new
 functionality via py.test.
 
 NOTE:  copied/adapted from SQLAlchemy master for backwards compatibility;
-   this should be removable when Alembic targets SQLAlchemy 0.9.4.
+this should be removable when Alembic targets SQLAlchemy 1.0.0
 
 
 """
@@ -34,11 +34,10 @@ if py3k:
 else:
     import ConfigParser as configparser
 
-FOLLOWER_IDENT = None
-
 # late imports
 fixtures = None
 engines = None
+provision = None
 exclusions = None
 warnings = None
 assertions = None
@@ -111,8 +110,8 @@ def configure_follower(follower_ident):
     database creation.
 
     """
-    global FOLLOWER_IDENT
-    FOLLOWER_IDENT = follower_ident
+    from alembic.testing import provision
+    provision.FOLLOWER_IDENT = follower_ident
 
 
 def memoize_important_follower_config(dict_):
@@ -164,6 +163,7 @@ def set_coverage_flag(value):
 
 def post_begin():
     """things to set up later, once we know coverage is running."""
+
     # Lazy setup of other options (post coverage)
     for fn in post_configure:
         fn(options, file_config)
@@ -245,7 +245,7 @@ def _monkeypatch_cdecimal(options, file_config):
 @post
 def _engine_uri(options, file_config):
     from alembic.testing import config
-    from alembic.testing.plugin import provision
+    from alembic.testing import provision
 
     if options.dburi:
         db_urls = list(options.dburi)
@@ -268,7 +268,7 @@ def _engine_uri(options, file_config):
 
     for db_url in db_urls:
         cfg = provision.setup_config(
-            db_url, db_opts, options, file_config, FOLLOWER_IDENT)
+            db_url, db_opts, options, file_config, provision.FOLLOWER_IDENT)
 
         if not config._current:
             cfg.set_as_current(cfg)

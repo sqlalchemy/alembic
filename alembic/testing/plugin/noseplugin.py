@@ -5,14 +5,21 @@
 # This module is part of SQLAlchemy and is released under
 # the MIT License: http://www.opensource.org/licenses/mit-license.php
 
-"""NOTE:  copied/adapted from SQLAlchemy master for backwards compatibility;
-   this should be removable when Alembic targets SQLAlchemy 0.9.4.
+"""
+Enhance nose with extra options and behaviors for running SQLAlchemy tests.
+
+
+NOTE:  copied/adapted from SQLAlchemy master for backwards compatibility;
+this should be removable when Alembic targets SQLAlchemy 1.0.0.
+
 """
 
-"""Enhance nose with extra options and behaviors for running SQLAlchemy tests.
-
-
-"""
+try:
+    # installed by bootstrap.py
+    import alembic_plugin_base as plugin_base
+except ImportError:
+    # assume we're a package, use traditional import
+    from . import plugin_base
 
 import os
 import sys
@@ -21,16 +28,6 @@ from nose.plugins import Plugin
 fixtures = None
 
 py3k = sys.version_info >= (3, 0)
-# no package imports yet!  this prevents us from tripping coverage
-# too soon.
-path = os.path.join(os.path.dirname(__file__), "plugin_base.py")
-if sys.version_info >= (3, 3):
-    from importlib import machinery
-    plugin_base = machinery.SourceFileLoader(
-        "plugin_base", path).load_module()
-else:
-    import imp
-    plugin_base = imp.load_source("plugin_base", path)
 
 
 class NoseSQLAlchemy(Plugin):
@@ -60,10 +57,10 @@ class NoseSQLAlchemy(Plugin):
 
         plugin_base.set_coverage_flag(options.enable_plugin_coverage)
 
+    def begin(self):
         global fixtures
         from alembic.testing import fixtures  # noqa
 
-    def begin(self):
         plugin_base.post_begin()
 
     def describeTest(self, test):
@@ -77,7 +74,6 @@ class NoseSQLAlchemy(Plugin):
             cls = fn.__self__.cls
         else:
             cls = fn.im_class
-        print "METH:", fn, "CLS:", cls
         return plugin_base.want_method(cls, fn)
 
     def wantClass(self, cls):

@@ -1,10 +1,21 @@
 """NOTE:  copied/adapted from SQLAlchemy master for backwards compatibility;
-   this should be removable when Alembic targets SQLAlchemy 0.9.4.
+   this should be removable when Alembic targets SQLAlchemy 1.0.0.
 """
+
+try:
+    # installed by bootstrap.py
+    import alembic_plugin_base as plugin_base
+except ImportError:
+    # assume we're a package, use traditional import
+    from . import plugin_base
+
+import sys
+
+py3k = sys.version_info >= (3, 0)
+
 import pytest
 import argparse
 import inspect
-from . import plugin_base
 import collections
 import itertools
 
@@ -42,9 +53,11 @@ def pytest_configure(config):
 
     plugin_base.pre_begin(config.option)
 
-    plugin_base.set_coverage_flag(bool(getattr(config.option,
-                                               "cov_source", False)))
+    coverage = bool(getattr(config.option, "cov_source", False))
+    plugin_base.set_coverage_flag(coverage)
 
+
+def pytest_sessionstart(session):
     plugin_base.post_begin()
 
 if has_xdist:
@@ -57,11 +70,11 @@ if has_xdist:
         plugin_base.memoize_important_follower_config(node.slaveinput)
 
         node.slaveinput["follower_ident"] = "test_%s" % next(_follower_count)
-        from . import provision
+        from alembic.testing import provision
         provision.create_follower_db(node.slaveinput["follower_ident"])
 
     def pytest_testnodedown(node, error):
-        from . import provision
+        from alembic.testing import provision
         provision.drop_follower_db(node.slaveinput["follower_ident"])
 
 
@@ -120,6 +133,7 @@ def pytest_pycollect_makeitem(collector, name, obj):
         return []
 
 _current_class = None
+
 
 def pytest_runtest_setup(item):
     # here we seem to get called only based on what we collected

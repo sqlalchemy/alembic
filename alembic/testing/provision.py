@@ -1,11 +1,13 @@
 """NOTE:  copied/adapted from SQLAlchemy master for backwards compatibility;
-   this should be removable when Alembic targets SQLAlchemy 0.9.4.
+   this should be removable when Alembic targets SQLAlchemy 1.0.0
 """
 from sqlalchemy.engine import url as sa_url
 from sqlalchemy import text
 from alembic import compat
 from alembic.testing import config, engines
 from alembic.testing.compat import get_url_backend_name
+
+FOLLOWER_IDENT = None
 
 
 class register(object):

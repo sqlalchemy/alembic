@@ -1,0 +1,5 @@
+[run]
+include=alembic/*
+
+[report]
+omit=alembic/testing/*

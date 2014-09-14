@@ -8,12 +8,12 @@ from alembic.compat import u
 from alembic.script import Script, ScriptDirectory
 from alembic import util
 from . import engines
-from alembic.testing.plugin import plugin_base
+from . import provision
 
 
 def _get_staging_directory():
-    if plugin_base.FOLLOWER_IDENT:
-        return "scratch_%s" % plugin_base.FOLLOWER_IDENT
+    if provision.FOLLOWER_IDENT:
+        return "scratch_%s" % provision.FOLLOWER_IDENT
     else:
         return 'scratch'
 

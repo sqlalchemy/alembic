@@ -29,9 +29,7 @@ plugin in a special (somewhat hacky) way so that coverage against
 SQLAlchemy itself is possible.
 
 """
-
-from alembic.testing.plugin.noseplugin import NoseSQLAlchemy
-
+from .plugin.noseplugin import NoseSQLAlchemy
 import nose
 
 

@@ -8,7 +8,7 @@
 """Import stub for mock library.
 
     NOTE:  copied/adapted from SQLAlchemy master for backwards compatibility;
-   this should be removable when Alembic targets SQLAlchemy 0.9.4.
+   this should be removable when Alembic targets SQLAlchemy 1.0.0
 
 """
 from __future__ import absolute_import
@@ -18,7 +18,7 @@ if py33:
     from unittest.mock import MagicMock, Mock, call, patch
 else:
     try:
-        from mock import MagicMock, Mock, call, patch
+        from mock import MagicMock, Mock, call, patch  # noqa
     except ImportError:
         raise ImportError(
             "SQLAlchemy's test suite requires the "
