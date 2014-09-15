@@ -71,6 +71,8 @@ class NoseSQLAlchemy(Plugin):
 
     def wantMethod(self, fn):
         if py3k:
+            if not hasattr(fn.__self__, 'cls'):
+                return False
             cls = fn.__self__.cls
         else:
             cls = fn.im_class
@@ -80,9 +82,10 @@ class NoseSQLAlchemy(Plugin):
         return plugin_base.want_class(cls)
 
     def beforeTest(self, test):
-        plugin_base.before_test(test,
-                                test.test.cls.__module__,
-                                test.test.cls, test.test.method.__name__)
+        plugin_base.before_test(
+            test,
+            test.test.cls.__module__,
+            test.test.cls, test.test.method.__name__)
 
     def afterTest(self, test):
         plugin_base.after_test(test)
