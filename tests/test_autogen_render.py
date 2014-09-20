@@ -104,6 +104,7 @@ unique=False, """
                 """postgresql_where=sa.text('t.y = %(y_1)s'))"""
             )
 
+    @config.requirements.fail_before_sqla_080
     def test_render_add_index_func(self):
         m = MetaData()
         t = Table(
@@ -118,6 +119,7 @@ unique=False, """
             "[sa.text('lower(test.code)')], unique=False)"
         )
 
+    @config.requirements.fail_before_sqla_080
     def test_render_add_index_cast(self):
         m = MetaData()
         t = Table(
@@ -132,6 +134,7 @@ unique=False, """
             "[sa.text('CAST(test.code AS CHAR)')], unique=False)"
         )
 
+    @config.requirements.fail_before_sqla_080
     def test_render_add_index_desc(self):
         m = MetaData()
         t = Table(
@@ -853,6 +856,7 @@ render:primary_key\n)"""
             'nullable=False)'
         )
 
+    @config.requirements.fail_before_sqla_09
     def test_render_server_default_non_native_boolean(self):
         c = Column(
             'updated_at', Boolean(),

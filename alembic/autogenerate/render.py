@@ -92,7 +92,7 @@ def _drop_table(table, autogen_context):
 def _get_index_rendered_expressions(idx, autogen_context):
     if compat.sqla_08:
         return [repr(getattr(exp, "name", None))
-                if isinstance(exp, sql.schema.Column)
+                if isinstance(exp, sa_schema.Column)
                 else _render_potential_expr(exp, autogen_context)
                 for exp in idx.expressions]
     else:
