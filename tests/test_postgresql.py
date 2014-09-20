@@ -1,6 +1,6 @@
 
 from sqlalchemy import DateTime, MetaData, Table, Column, text, Integer, \
-    String, Interval, Sequence, Numeric, inspect, BigInteger
+    String, Interval, Sequence, Numeric, BigInteger
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.engine.reflection import Inspector
 from alembic.operations import Operations
@@ -353,7 +353,7 @@ class PostgresqlDetectSerialTest(TestBase):
             seq._set_metadata(self.metadata)
         self.metadata.create_all(config.db)
 
-        insp = inspect(config.db)
+        insp = Inspector.from_engine(config.db)
         diffs = []
         _compare_tables(
             set([(None, 't')]), set([]),
@@ -364,7 +364,7 @@ class PostgresqlDetectSerialTest(TestBase):
             tab.c.x.server_default, tab.c.x, self.autogen_context),
             c_expected)
 
-        insp = inspect(config.db)
+        insp = Inspector.from_engine(config.db)
         diffs = []
         m2 = MetaData()
         Table('t', m2, Column('x', BigInteger()))
