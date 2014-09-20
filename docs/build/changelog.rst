@@ -6,6 +6,29 @@ Changelog
     :version: 0.7.0
 
     .. change::
+      :tags: bug, autogenerate
+      :tickets: 197, 64, 196
+
+      The system by which autogenerate renders expressions within
+      a :class:`~sqlalchemy.schema.Index`, the ``server_default``
+      of :class:`~sqlalchemy.schema.Column`, and the
+      ``existing_server_default`` of
+      :meth:`.Operations.alter_column` has been overhauled to anticipate
+      arbitrary SQLAlchemy SQL constructs, such as ``func.somefunction()``,
+      ``cast()``, ``desc()``, and others.   The system does not, as might
+      be preferred, render the full-blown Python expression as originally
+      created within the application's source code, as this would be exceedingly
+      complex and difficult.  Instead, it renders the SQL expression against
+      the target backend that's subject to the autogenerate, and then
+      renders that SQL inside of a :func:`~sqlalchemy.sql.expression.text`
+      construct as a literal SQL string.  This approach still has the
+      downside that the rendered SQL construct may not be backend-agnostic
+      in all cases, so there is still a need for manual intervention in that
+      small number of cases, but overall the majority of cases should work
+      correctly now.  Big thanks to Carlos Rivera for pull requests and
+      support on this.
+
+    .. change::
       :tags: feature
 
       SQLAlchemy's testing infrastructure is now used to run tests.
