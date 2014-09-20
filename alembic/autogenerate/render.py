@@ -89,19 +89,29 @@ def _drop_table(table, autogen_context):
     return text
 
 
+def _get_index_rendered_expressions(idx, autogen_context):
+    if compat.sqla_08:
+        return [repr(getattr(exp, "name", None))
+                if isinstance(exp, sql.schema.Column)
+                else _render_potential_expr(exp, autogen_context)
+                for exp in idx.expressions]
+    else:
+        return [repr(getattr(col, "name", None)) for col in idx.columns]
+
+
 def _add_index(index, autogen_context):
     """
     Generate Alembic operations for the CREATE INDEX of an
     :class:`~sqlalchemy.schema.Index` instance.
     """
-    from .compare import _get_index_column_names
 
-    text = "%(prefix)screate_index(%(name)r, '%(table)s', %(columns)s, "\
+    text = "%(prefix)screate_index(%(name)r, '%(table)s', [%(columns)s], "\
         "unique=%(unique)r%(schema)s%(kwargs)s)" % {
             'prefix': _alembic_autogenerate_prefix(autogen_context),
             'name': _render_gen_name(autogen_context, index.name),
             'table': index.table.name,
-            'columns': _get_index_column_names(index),
+            'columns': ", ".join(
+                _get_index_rendered_expressions(index, autogen_context)),
             'unique': index.unique or False,
             'schema': (", schema='%s'" % index.table.schema)
             if index.table.schema else '',
@@ -349,19 +359,12 @@ def _render_server_default(default, autogen_context, repr_=True):
         return rendered
 
     if isinstance(default, sa_schema.DefaultClause):
-        if isinstance(default.arg, string_types):
-            default = default.arg
-        else:
-            default = str(default.arg.compile(
-                dialect=autogen_context['dialect']))
-    if isinstance(default, string_types):
-        if repr_:
-            default = re.sub(r"^'|'$", "", default)
-            return repr(default)
-        else:
-            return default
-    else:
-        return None
+        default = _render_potential_expr(default.arg, autogen_context)
+
+    elif isinstance(default, string_types) and repr_:
+        default = repr(re.sub(r"^'|'$", "", default))
+
+    return default
 
 
 def _repr_type(type_, autogen_context):

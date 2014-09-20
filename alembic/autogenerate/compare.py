@@ -1,7 +1,9 @@
 from sqlalchemy import schema as sa_schema, types as sqltypes
+from sqlalchemy.exc import NoSuchTableError
+from sqlalchemy import sql
 import logging
 from .. import compat
-from .render import _render_server_default
+from .render import _render_server_default, _render_potential_expr
 from sqlalchemy.util import OrderedSet
 
 

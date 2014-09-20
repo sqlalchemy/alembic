@@ -1,6 +1,7 @@
 from sqlalchemy.sql.expression import _BindParamClause
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy import schema, text, sql
+from sqlalchemy.sql import expression
 from sqlalchemy import types as sqltypes
 
 from ..compat import string_types, text_type, with_metaclass
@@ -281,7 +282,6 @@ def _textual_index_column(table, text_):
 
 
 class _textual_index_element(sql.ColumnElement):
-
     """Wrap around a sqlalchemy text() construct in such a way that
     we appear like a column-oriented SQL expression to an Index
     construct.

@@ -6,10 +6,11 @@ from sqlalchemy import MetaData, Column, Table, String, \
     Numeric, CHAR, ForeignKey, DATETIME, Integer, \
     CheckConstraint, Unicode, Enum,\
     UniqueConstraint, Boolean, ForeignKeyConstraint,\
-    PrimaryKeyConstraint, Index
+    PrimaryKeyConstraint, Index, func, text
+
 from sqlalchemy.types import TIMESTAMP
 from sqlalchemy.dialects import mysql, postgresql
-from sqlalchemy.sql import and_, column, literal_column
+from sqlalchemy.sql import and_, column, literal_column, false
 
 from alembic.testing.mock import patch
 
@@ -103,23 +104,33 @@ unique=False, """
                 """postgresql_where=sa.text('t.y = %(y_1)s'))"""
             )
 
-    # def test_render_add_index_func(self):
-    #     """
-    #     autogenerate.render._drop_index using func -- TODO: SQLA needs to
-    #     reflect expressions as well as columns
-    #     """
-    #     m = MetaData()
-    #     t = Table('test', m,
-    #         Column('id', Integer, primary_key=True),
-    #         Column('active', Boolean()),
-    #         Column('code', String(255)),
-    #     )
-    #     idx = Index(
-    #       'test_active_lower_code_idx', t.c.active, func.lower(t.c.code))
-    #     eq_ignore_whitespace(
-    #         autogenerate.render._add_index(idx, self.autogen_context),
-    #         ""
-    #     )
+    def test_render_add_index_func(self):
+        m = MetaData()
+        t = Table(
+            'test', m,
+            Column('id', Integer, primary_key=True),
+            Column('code', String(255))
+        )
+        idx = Index('test_lower_code_idx', func.lower(t.c.code))
+        eq_ignore_whitespace(
+            autogenerate.render._add_index(idx, self.autogen_context),
+            "op.create_index('test_lower_code_idx', 'test', "
+            "[sa.text('lower(test.code)')], unique=False)"
+        )
+
+    def test_render_add_index_desc(self):
+        m = MetaData()
+        t = Table(
+            'test', m,
+            Column('id', Integer, primary_key=True),
+            Column('code', String(255))
+        )
+        idx = Index('test_desc_code_idx', t.c.code.desc())
+        eq_ignore_whitespace(
+            autogenerate.render._add_index(idx, self.autogen_context),
+            "op.create_index('test_desc_code_idx', 'test', "
+            "[sa.text('test.code DESC')], unique=False)"
+        )
 
     def test_drop_index(self):
         """
@@ -950,3 +961,70 @@ class RenderNamingConventionTest(TestBase):
             ),
             "sa.CheckConstraint('im a constraint', name=op.f('ck_t_cc1'))"
         )
+
+    def test_render_server_default_text(self):
+        c = Column('updated_at', TIMESTAMP(),
+                server_default=text('now()'),
+                nullable=False)
+        result = autogenerate.render._render_column(
+                    c, self.autogen_context
+                )
+        eq_(
+            result,
+            'sa.Column(\'updated_at\', sa.TIMESTAMP(), '
+                'server_default=sa.text(\'now()\'), '
+                'nullable=False)'
+        )
+
+    def test_render_server_default_native_boolean(self):
+        c = Column('updated_at', Boolean(),
+                server_default=false(),
+                nullable=False)
+        result = autogenerate.render._render_column(
+                    c, self.autogen_context
+                )
+        eq_(
+            result,
+            'sa.Column(\'updated_at\', sa.Boolean(), '
+                'server_default=sa.text(\'false\'), '
+                'nullable=False)'
+        )
+
+    def test_render_server_default_non_native_boolean(self):
+        c = Column('updated_at', Boolean(),
+                server_default=false(),
+                nullable=False)
+        autogen_context = {
+            'opts': {
+                'sqlalchemy_module_prefix': 'sa.',
+                'alembic_module_prefix': 'op.',
+            },
+            'dialect': mysql.dialect()
+        }
+
+        result = autogenerate.render._render_column(
+                    c, autogen_context
+                )
+        eq_(
+            result,
+            'sa.Column(\'updated_at\', sa.Boolean(), '
+                'server_default=sa.text(\'0\'), '
+                'nullable=False)'
+        )
+
+    def test_render_server_default_func(self):
+        c = Column('updated_at', TIMESTAMP(),
+                server_default=func.now(),
+                nullable=False)
+        result = autogenerate.render._render_column(
+                    c, self.autogen_context
+                )
+        eq_(
+            result,
+            'sa.Column(\'updated_at\', sa.TIMESTAMP(), '
+                'server_default=sa.text(\'now()\'), '
+                'nullable=False)'
+        )
+
+
+
