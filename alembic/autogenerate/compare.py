@@ -1,11 +1,9 @@
 from sqlalchemy import schema as sa_schema, types as sqltypes
-from sqlalchemy.exc import NoSuchTableError
-from sqlalchemy import sql
 import logging
 from .. import compat
-from .render import _render_server_default, _render_potential_expr
 from sqlalchemy.util import OrderedSet
-
+import re
+from .render import _user_defined_render
 
 log = logging.getLogger(__name__)
 
@@ -477,9 +475,25 @@ def _compare_type(schema, tname, cname, conn_col,
 
 def _render_server_default_for_compare(metadata_default,
                                        metadata_col, autogen_context):
-    return _render_server_default(
-        metadata_default, autogen_context,
-        repr_=metadata_col.type._type_affinity is sqltypes.String)
+    rendered = _user_defined_render(
+        "server_default", metadata_default, autogen_context)
+    if rendered is not False:
+        return rendered
+
+    if isinstance(metadata_default, sa_schema.DefaultClause):
+        if isinstance(metadata_default.arg, compat.string_types):
+            metadata_default = metadata_default.arg
+        else:
+            metadata_default = str(metadata_default.arg.compile(
+                dialect=autogen_context['dialect']))
+    if isinstance(metadata_default, compat.string_types):
+        if metadata_col.type._type_affinity is sqltypes.String:
+            metadata_default = re.sub(r"^'|'$", "", metadata_default)
+            return repr(metadata_default)
+        else:
+            return metadata_default
+    else:
+        return None
 
 
 def _compare_server_default(schema, tname, cname, conn_col, metadata_col,

@@ -173,7 +173,13 @@ class PostgresqlDefaultCompareTest(TestBase):
             'imports': set(),
             'connection': connection,
             'dialect': connection.dialect,
-            'context': context
+            'context': context,
+            'opts': {
+                'compare_type': True,
+                'compare_server_default': True,
+                'alembic_module_prefix': 'op.',
+                'sqlalchemy_module_prefix': 'sa.',
+            }
         }
 
     @classmethod
