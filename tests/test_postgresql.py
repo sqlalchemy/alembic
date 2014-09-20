@@ -1,17 +1,18 @@
 
 from sqlalchemy import DateTime, MetaData, Table, Column, text, Integer, \
-    String, Interval
+    String, Interval, Sequence, Numeric, inspect, BigInteger
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.engine.reflection import Inspector
 from alembic.operations import Operations
 from sqlalchemy.sql import table, column
-from alembic.autogenerate.compare import _compare_server_default
+from alembic.autogenerate.compare import \
+    _compare_server_default, _compare_tables, _render_server_default_for_compare
 
 from alembic import command, util
 from alembic.migration import MigrationContext
 from alembic.script import ScriptDirectory
 
-from alembic.testing import eq_
+from alembic.testing import eq_, provide_metadata
 from alembic.testing.env import staging_env, clear_staging_env, \
     _no_sql_testing_config, write_script
 from alembic.testing.fixtures import capture_context_buffer
@@ -310,3 +311,102 @@ class PostgresqlDefaultCompareTest(TestBase):
         assert not self._compare_default(
             t1, t2, t2.c.id, ""
         )
+
+
+class PostgresqlDetectSerialTest(TestBase):
+    __only_on__ = 'postgresql'
+
+    @classmethod
+    def setup_class(cls):
+        cls.bind = config.db
+        staging_env()
+        context = MigrationContext.configure(
+            connection=cls.bind.connect(),
+            opts={
+                'compare_type': True,
+                'compare_server_default': True
+            }
+        )
+        connection = context.bind
+        cls.autogen_context = {
+            'imports': set(),
+            'connection': connection,
+            'dialect': connection.dialect,
+            'context': context,
+            'opts': {
+                'compare_type': True,
+                'compare_server_default': True,
+                'alembic_module_prefix': 'op.',
+                'sqlalchemy_module_prefix': 'sa.',
+            }
+        }
+
+    @classmethod
+    def teardown_class(cls):
+        clear_staging_env()
+
+    @provide_metadata
+    def _expect_default(self, c_expected, col, seq=None):
+        Table('t', self.metadata, col)
+
+        if seq:
+            seq._set_metadata(self.metadata)
+        self.metadata.create_all(config.db)
+
+        insp = inspect(config.db)
+        diffs = []
+        _compare_tables(
+            set([(None, 't')]), set([]),
+            [],
+            insp, self.metadata, diffs, self.autogen_context)
+        tab = diffs[0][1]
+        eq_(_render_server_default_for_compare(
+            tab.c.x.server_default, tab.c.x, self.autogen_context),
+            c_expected)
+
+        insp = inspect(config.db)
+        diffs = []
+        m2 = MetaData()
+        Table('t', m2, Column('x', BigInteger()))
+        _compare_tables(
+            set([(None, 't')]), set([(None, 't')]),
+            [],
+            insp, m2, diffs, self.autogen_context)
+        server_default = diffs[0][0][4]['existing_server_default']
+        eq_(_render_server_default_for_compare(
+            server_default, tab.c.x, self.autogen_context),
+            c_expected)
+
+    def test_serial(self):
+        self._expect_default(
+            None,
+            Column('x', Integer, primary_key=True)
+        )
+
+    def test_separate_seq(self):
+        seq = Sequence("x_id_seq")
+        self._expect_default(
+            "nextval('x_id_seq'::regclass)",
+            Column(
+                'x', Integer,
+                server_default=seq.next_value(), primary_key=True),
+            seq
+        )
+
+    def test_numeric(self):
+        seq = Sequence("x_id_seq")
+        self._expect_default(
+            "nextval('x_id_seq'::regclass)",
+            Column(
+                'x', Numeric(8, 2), server_default=seq.next_value(),
+                primary_key=True),
+            seq
+        )
+
+    def test_no_default(self):
+        self._expect_default(
+            None,
+            Column('x', Integer, autoincrement=False, primary_key=True)
+        )
+
+

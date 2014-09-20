@@ -1,4 +1,5 @@
 from sqlalchemy import schema as sa_schema, types as sqltypes
+from sqlalchemy import event
 import logging
 from .. import compat
 from sqlalchemy.util import OrderedSet
@@ -63,7 +64,12 @@ def _compare_tables(conn_table_names, metadata_table_names,
         name = sa_schema._get_table_key(tname, s)
         exists = name in removal_metadata.tables
         t = sa_schema.Table(tname, removal_metadata, schema=s)
+
         if not exists:
+            event.listen(
+                t,
+                "column_reflect",
+                autogen_context['context'].impl.autogen_column_reflect)
             inspector.reflecttable(t, None)
         if _run_filters(t, tname, "table", True, None, object_filters):
             diffs.append(("remove_table", t))
@@ -78,6 +84,10 @@ def _compare_tables(conn_table_names, metadata_table_names,
         exists = name in existing_metadata.tables
         t = sa_schema.Table(tname, existing_metadata, schema=s)
         if not exists:
+            event.listen(
+                t,
+                "column_reflect",
+                autogen_context['context'].impl.autogen_column_reflect)
             inspector.reflecttable(t, None)
         conn_column_info[(s, tname)] = t
 

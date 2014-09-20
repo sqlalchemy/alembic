@@ -231,6 +231,15 @@ class DefaultImpl(with_metaclass(ImplMeta)):
                                         metadata_indexes):
         pass
 
+    def autogen_column_reflect(self, inspector, table, column_info):
+        """A hook that is attached to the 'column_reflect' event for when
+        a Table is reflected from the database during the autogenerate
+        process.
+
+        Dialects can elect to modify the information gathered here.
+
+        """
+
     def start_migrations(self):
         """A hook called when :meth:`.EnvironmentContext.run_migrations`
         is called.

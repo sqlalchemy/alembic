@@ -6,6 +6,22 @@ Changelog
     :version: 0.7.0
 
     .. change::
+      :tags: bug, autogenerate, postgresql
+      :tickets: 73
+
+      Added a routine by which the Postgresql Alembic dialect inspects
+      the server default of INTEGER/BIGINT columns as they are reflected
+      during autogenerate for the pattern ``nextval(<name>...)`` containing
+      a potential sequence name, then queries ``pg_catalog`` to see if this
+      sequence is "owned" by the column being reflected; if so, it assumes
+      this is a SERIAL or BIGSERIAL column and the server default is
+      omitted from the column reflection as well as any kind of
+      server_default comparison or rendering, along with an INFO message
+      in the logs indicating this has taken place. This allows SERIAL/BIGSERIAL
+      columns to keep the SEQUENCE from being unnecessarily present within
+      the autogenerate operation.
+
+    .. change::
       :tags: bug, autogenerate
       :tickets: 197, 64, 196
 
