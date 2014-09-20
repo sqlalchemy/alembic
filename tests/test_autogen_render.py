@@ -4,7 +4,7 @@ from alembic.testing import TestBase
 
 from sqlalchemy import MetaData, Column, Table, String, \
     Numeric, CHAR, ForeignKey, DATETIME, Integer, \
-    CheckConstraint, Unicode, Enum,\
+    CheckConstraint, Unicode, Enum, cast,\
     UniqueConstraint, Boolean, ForeignKeyConstraint,\
     PrimaryKeyConstraint, Index, func, text, DefaultClause
 
@@ -116,6 +116,20 @@ unique=False, """
             autogenerate.render._add_index(idx, self.autogen_context),
             "op.create_index('test_lower_code_idx', 'test', "
             "[sa.text('lower(test.code)')], unique=False)"
+        )
+
+    def test_render_add_index_cast(self):
+        m = MetaData()
+        t = Table(
+            'test', m,
+            Column('id', Integer, primary_key=True),
+            Column('code', String(255))
+        )
+        idx = Index('test_lower_code_idx', cast(t.c.code, String))
+        eq_ignore_whitespace(
+            autogenerate.render._add_index(idx, self.autogen_context),
+            "op.create_index('test_lower_code_idx', 'test', "
+            "[sa.text('CAST(test.code AS CHAR)')], unique=False)"
         )
 
     def test_render_add_index_desc(self):
@@ -802,6 +816,108 @@ render:primary_key\n)"""
             set(['from sqlalchemy.dialects import mysql'])
             )
 
+    def test_render_server_default_text(self):
+        c = Column(
+            'updated_at', TIMESTAMP(),
+            server_default=text('now()'),
+            nullable=False)
+        result = autogenerate.render._render_column(
+            c, self.autogen_context
+        )
+        eq_(
+            result,
+            'sa.Column(\'updated_at\', sa.TIMESTAMP(), '
+            'server_default=sa.text(\'now()\'), '
+            'nullable=False)'
+        )
+
+    def test_render_server_default_native_boolean(self):
+        autogen_context = {
+            'opts': {
+                'sqlalchemy_module_prefix': 'sa.',
+                'alembic_module_prefix': 'op.',
+            },
+            'dialect': postgresql.dialect()
+        }
+        c = Column(
+            'updated_at', Boolean(),
+            server_default=false(),
+            nullable=False)
+        result = autogenerate.render._render_column(
+            c, autogen_context,
+        )
+        eq_(
+            result,
+            'sa.Column(\'updated_at\', sa.Boolean(), '
+            'server_default=sa.text(\'false\'), '
+            'nullable=False)'
+        )
+
+    def test_render_server_default_non_native_boolean(self):
+        c = Column(
+            'updated_at', Boolean(),
+            server_default=false(),
+            nullable=False)
+        autogen_context = {
+            'opts': {
+                'sqlalchemy_module_prefix': 'sa.',
+                'alembic_module_prefix': 'op.',
+            },
+            'dialect': mysql.dialect()
+        }
+
+        result = autogenerate.render._render_column(
+            c, autogen_context
+        )
+        eq_(
+            result,
+            'sa.Column(\'updated_at\', sa.Boolean(), '
+            'server_default=sa.text(\'0\'), '
+            'nullable=False)'
+        )
+
+    def test_render_server_default_func(self):
+        c = Column(
+            'updated_at', TIMESTAMP(),
+            server_default=func.now(),
+            nullable=False)
+        result = autogenerate.render._render_column(
+            c, self.autogen_context
+        )
+        eq_(
+            result,
+            'sa.Column(\'updated_at\', sa.TIMESTAMP(), '
+            'server_default=sa.text(\'now()\'), '
+            'nullable=False)'
+        )
+
+    def test_render_server_default_int(self):
+        c = Column(
+            'value', Integer,
+            server_default="0")
+        result = autogenerate.render._render_column(
+            c, self.autogen_context
+        )
+        eq_(
+            result,
+            "sa.Column('value', sa.Integer(), "
+            "server_default='0', nullable=True)"
+        )
+
+    def test_render_modify_reflected_int_server_default(self):
+        eq_ignore_whitespace(
+            autogenerate.render._modify_col(
+                "sometable", "somecolumn",
+                self.autogen_context,
+                existing_type=Integer(),
+                existing_server_default=DefaultClause(text("5")),
+                nullable=True),
+            "op.alter_column('sometable', 'somecolumn', "
+            "existing_type=sa.Integer(), nullable=True, "
+            "existing_server_default=sa.text('5'))"
+        )
+
+
 
 class RenderNamingConventionTest(TestBase):
     __requires__ = ('sqlalchemy_094',)
@@ -960,99 +1076,5 @@ class RenderNamingConventionTest(TestBase):
                 self.autogen_context
             ),
             "sa.CheckConstraint('im a constraint', name=op.f('ck_t_cc1'))"
-        )
-
-    def test_render_server_default_text(self):
-        c = Column(
-            'updated_at', TIMESTAMP(),
-            server_default=text('now()'),
-            nullable=False)
-        result = autogenerate.render._render_column(
-            c, self.autogen_context
-        )
-        eq_(
-            result,
-            'sa.Column(\'updated_at\', sa.TIMESTAMP(), '
-            'server_default=sa.text(\'now()\'), '
-            'nullable=False)'
-        )
-
-    def test_render_server_default_native_boolean(self):
-        c = Column(
-            'updated_at', Boolean(),
-            server_default=false(),
-            nullable=False)
-        result = autogenerate.render._render_column(
-            c, self.autogen_context
-        )
-        eq_(
-            result,
-            'sa.Column(\'updated_at\', sa.Boolean(), '
-            'server_default=sa.text(\'false\'), '
-            'nullable=False)'
-        )
-
-    def test_render_server_default_non_native_boolean(self):
-        c = Column(
-            'updated_at', Boolean(),
-            server_default=false(),
-            nullable=False)
-        autogen_context = {
-            'opts': {
-                'sqlalchemy_module_prefix': 'sa.',
-                'alembic_module_prefix': 'op.',
-            },
-            'dialect': mysql.dialect()
-        }
-
-        result = autogenerate.render._render_column(
-            c, autogen_context
-        )
-        eq_(
-            result,
-            'sa.Column(\'updated_at\', sa.Boolean(), '
-            'server_default=sa.text(\'0\'), '
-            'nullable=False)'
-        )
-
-    def test_render_server_default_func(self):
-        c = Column(
-            'updated_at', TIMESTAMP(),
-            server_default=func.now(),
-            nullable=False)
-        result = autogenerate.render._render_column(
-            c, self.autogen_context
-        )
-        eq_(
-            result,
-            'sa.Column(\'updated_at\', sa.TIMESTAMP(), '
-            'server_default=sa.text(\'now()\'), '
-            'nullable=False)'
-        )
-
-    def test_render_server_default_int(self):
-        c = Column(
-            'value', Integer,
-            server_default="0")
-        result = autogenerate.render._render_column(
-            c, self.autogen_context
-        )
-        eq_(
-            result,
-            "sa.Column('value', sa.Integer(), "
-            "server_default='0', nullable=True)"
-        )
-
-    def test_render_modify_reflected_int_server_default(self):
-        eq_ignore_whitespace(
-            autogenerate.render._modify_col(
-                "sometable", "somecolumn",
-                self.autogen_context,
-                existing_type=Integer(),
-                existing_server_default=DefaultClause(text("5")),
-                nullable=True),
-            "op.alter_column('sometable', 'somecolumn', "
-            "existing_type=sa.Integer(), nullable=True, "
-            "existing_server_default=sa.text('5'))"
         )
 
