@@ -69,7 +69,8 @@ def _compare_tables(conn_table_names, metadata_table_names,
             event.listen(
                 t,
                 "column_reflect",
-                autogen_context['context'].impl.autogen_column_reflect)
+                autogen_context['context'].impl.
+                _compat_autogen_column_reflect(inspector))
             inspector.reflecttable(t, None)
         if _run_filters(t, tname, "table", True, None, object_filters):
             diffs.append(("remove_table", t))
@@ -87,7 +88,8 @@ def _compare_tables(conn_table_names, metadata_table_names,
             event.listen(
                 t,
                 "column_reflect",
-                autogen_context['context'].impl.autogen_column_reflect)
+                autogen_context['context'].impl.
+                _compat_autogen_column_reflect(inspector))
             inspector.reflecttable(t, None)
         conn_column_info[(s, tname)] = t
 

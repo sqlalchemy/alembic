@@ -231,6 +231,15 @@ class DefaultImpl(with_metaclass(ImplMeta)):
                                         metadata_indexes):
         pass
 
+    def _compat_autogen_column_reflect(self, inspector):
+        if util.sqla_08:
+            return self.autogen_column_reflect
+        else:
+            def adapt(table, column_info):
+                return self.autogen_column_reflect(
+                    inspector, table, column_info)
+            return adapt
+
     def autogen_column_reflect(self, inspector, table, column_info):
         """A hook that is attached to the 'column_reflect' event for when
         a Table is reflected from the database during the autogenerate
