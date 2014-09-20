@@ -6,7 +6,7 @@ from sqlalchemy import MetaData, Column, Table, String, \
     Numeric, CHAR, ForeignKey, DATETIME, Integer, \
     CheckConstraint, Unicode, Enum,\
     UniqueConstraint, Boolean, ForeignKeyConstraint,\
-    PrimaryKeyConstraint, Index, func, text
+    PrimaryKeyConstraint, Index, func, text, DefaultClause
 
 from sqlalchemy.types import TIMESTAMP
 from sqlalchemy.dialects import mysql, postgresql
@@ -1030,5 +1030,29 @@ class RenderNamingConventionTest(TestBase):
             'nullable=False)'
         )
 
+    def test_render_server_default_int(self):
+        c = Column(
+            'value', Integer,
+            server_default="0")
+        result = autogenerate.render._render_column(
+            c, self.autogen_context
+        )
+        eq_(
+            result,
+            "sa.Column('value', sa.Integer(), "
+            "server_default='0', nullable=True)"
+        )
 
+    def test_render_modify_reflected_int_server_default(self):
+        eq_ignore_whitespace(
+            autogenerate.render._modify_col(
+                "sometable", "somecolumn",
+                self.autogen_context,
+                existing_type=Integer(),
+                existing_server_default=DefaultClause(text("5")),
+                nullable=True),
+            "op.alter_column('sometable', 'somecolumn', "
+            "existing_type=sa.Integer(), nullable=True, "
+            "existing_server_default=sa.text('5'))"
+        )
 

@@ -2,10 +2,8 @@ import re
 import sys
 
 from sqlalchemy import MetaData, Column, Table, Integer, String, Text, \
-    Numeric, CHAR, ForeignKey, DATETIME, INTEGER, \
-    TypeDecorator, CheckConstraint, Unicode, Enum,\
-    UniqueConstraint, Boolean, ForeignKeyConstraint,\
-    PrimaryKeyConstraint, Index, func
+    Numeric, CHAR, ForeignKey, INTEGER, \
+    TypeDecorator, CheckConstraint, text
 from sqlalchemy.types import NULLTYPE
 from sqlalchemy.engine.reflection import Inspector
 
@@ -321,7 +319,7 @@ class ModelOne(object):
         Table('order', m,
               Column('order_id', Integer, primary_key=True),
               Column("amount", Numeric(8, 2), nullable=False,
-                     server_default="0"),
+                     server_default=text("0")),
               CheckConstraint('amount >= 0', name='ck_order_amount')
               )
 
@@ -353,7 +351,7 @@ class ModelOne(object):
         Table('order', m,
               Column('order_id', Integer, primary_key=True),
               Column('amount', Numeric(10, 2), nullable=True,
-                     server_default="0"),
+                     server_default=text("0")),
               Column('user_id', Integer, ForeignKey('user.id')),
               CheckConstraint('amount > -1', name='ck_order_amount'),
               )
@@ -467,7 +465,7 @@ nullable=True))
                existing_type=sa.NUMERIC(precision=8, scale=2),
                type_=sa.Numeric(precision=10, scale=2),
                nullable=True,
-               existing_server_default='0')
+               existing_server_default=sa.text('0'))
     op.drop_column('user', 'pw')
     op.alter_column('user', 'a1',
                existing_type=sa.TEXT(),
@@ -493,7 +491,7 @@ nullable=True))
                existing_type=sa.Numeric(precision=10, scale=2),
                type_=sa.NUMERIC(precision=8, scale=2),
                nullable=False,
-               existing_server_default='0')
+               existing_server_default=sa.text('0'))
     op.drop_column('order', 'user_id')
     op.drop_column('address', 'street')
     op.create_table('extra',
@@ -742,7 +740,7 @@ schema='%(schema)s')
                existing_type=sa.NUMERIC(precision=8, scale=2),
                type_=sa.Numeric(precision=10, scale=2),
                nullable=True,
-               existing_server_default='0::numeric',
+               existing_server_default=sa.text('0'),
                schema='%(schema)s')
     op.drop_column('user', 'pw', schema='%(schema)s')
     op.alter_column('user', 'a1',
@@ -773,7 +771,7 @@ autoincrement=False, nullable=True), schema='%(schema)s')
                existing_type=sa.Numeric(precision=10, scale=2),
                type_=sa.NUMERIC(precision=8, scale=2),
                nullable=False,
-               existing_server_default='0::numeric',
+               existing_server_default=sa.text('0'),
                schema='%(schema)s')
     op.drop_column('order', 'user_id', schema='%(schema)s')
     op.drop_column('address', 'street', schema='%(schema)s')

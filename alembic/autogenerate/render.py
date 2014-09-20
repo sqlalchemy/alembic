@@ -359,9 +359,12 @@ def _render_server_default(default, autogen_context, repr_=True):
         return rendered
 
     if isinstance(default, sa_schema.DefaultClause):
-        default = _render_potential_expr(default.arg, autogen_context)
+        if isinstance(default.arg, compat.string_types):
+            default = default.arg
+        else:
+            return _render_potential_expr(default.arg, autogen_context)
 
-    elif isinstance(default, string_types) and repr_:
+    if isinstance(default, string_types) and repr_:
         default = repr(re.sub(r"^'|'$", "", default))
 
     return default

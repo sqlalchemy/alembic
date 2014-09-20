@@ -508,6 +508,7 @@ def _compare_server_default(schema, tname, cname, conn_col, metadata_col,
 
     rendered_conn_default = conn_col.server_default.arg.text \
         if conn_col.server_default else None
+
     isdiff = autogen_context['context']._compare_server_default(
         conn_col, metadata_col,
         rendered_metadata_default,

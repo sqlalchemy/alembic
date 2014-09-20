@@ -31,9 +31,14 @@ class SQLiteImpl(DefaultImpl):
                                rendered_metadata_default,
                                rendered_inspector_default):
 
-        rendered_metadata_default = re.sub(
-            r"^'|'$", "", rendered_metadata_default)
-        return rendered_inspector_default != repr(rendered_metadata_default)
+        if rendered_metadata_default is not None:
+            rendered_metadata_default = re.sub(
+                r"^\"'|\"'$", "", rendered_metadata_default)
+        if rendered_inspector_default is not None:
+            rendered_inspector_default = re.sub(
+                r"^\"'|\"'$", "", rendered_inspector_default)
+
+        return rendered_inspector_default != rendered_metadata_default
 
     def correct_for_autogen_constraints(
         self, conn_unique_constraints, conn_indexes,
