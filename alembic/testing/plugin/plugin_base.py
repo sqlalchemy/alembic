@@ -360,7 +360,7 @@ def _prep_testing_database(options, file_config):
                                      schema="test_schema")
                     ))
 
-            if against(cfg, "postgresql"):
+            if against(cfg, "postgresql") and util.sqla_100:
                 from sqlalchemy.dialects import postgresql
                 for enum in inspector.get_enums("*"):
                     e.execute(postgresql.DropEnumType(
