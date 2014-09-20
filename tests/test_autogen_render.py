@@ -10,6 +10,7 @@ from sqlalchemy import MetaData, Column, Table, String, \
 
 from sqlalchemy.types import TIMESTAMP
 from sqlalchemy.dialects import mysql, postgresql
+from sqlalchemy.engine.default import DefaultDialect
 from sqlalchemy.sql import and_, column, literal_column, false
 
 from alembic.testing.mock import patch
@@ -862,12 +863,13 @@ render:primary_key\n)"""
             'updated_at', Boolean(),
             server_default=false(),
             nullable=False)
+        dialect = DefaultDialect()
         autogen_context = {
             'opts': {
                 'sqlalchemy_module_prefix': 'sa.',
                 'alembic_module_prefix': 'op.',
             },
-            'dialect': mysql.dialect()
+            'dialect': dialect
         }
 
         result = autogenerate.render._render_column(
