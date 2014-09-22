@@ -58,6 +58,13 @@ Changelog
       Minimum SQLAlchemy version is now 0.7.6, however at least
       0.8.4 is strongly recommended.
 
+    .. change::
+      :tags: bug, operations
+
+      The "match" keyword is not sent to :class:`.ForeignKeyConstraint`
+      by :meth:`.Operations.create_foreign_key` when SQLAlchemy 0.7 is in use;
+      this keyword was added to SQLAlchemy as of 0.8.0.
+
 .. changelog::
     :version: 0.6.7
     :released: September 9, 2014
