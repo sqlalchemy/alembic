@@ -6,6 +6,15 @@ Changelog
     :version: 0.7.0
 
     .. change::
+      :tags: bug, operations
+      :tickets: 230
+
+      Added support for use of the :class:`~sqlalchemy.sql.elements.quoted_name`
+      construct when using the ``schema`` argument within operations.  This
+      allows a name containing a dot to be fully quoted, as well as to
+      provide configurable quoting on a per-name basis.
+
+    .. change::
       :tags: bug, autogenerate, postgresql
       :tickets: 73
 

@@ -49,6 +49,45 @@ class OpTest(TestBase):
             op.create_index, 'name', 'tname', [func.foo(column('x'))]
         )
 
+    @config.requirements.sqlalchemy_09
+    def test_add_column_schema_hard_quoting(self):
+        from sqlalchemy.sql.schema import quoted_name
+        context = op_fixture("postgresql")
+        op.add_column(
+            "somename", Column("colname", String),
+            schema=quoted_name("some.schema", quote=True))
+
+        context.assert_(
+            'ALTER TABLE "some.schema".somename ADD COLUMN colname VARCHAR'
+        )
+
+    @config.requirements.sqlalchemy_09
+    def test_rename_table_schema_hard_quoting(self):
+        from sqlalchemy.sql.schema import quoted_name
+        context = op_fixture("postgresql")
+        op.rename_table(
+            't1', 't2',
+            schema=quoted_name("some.schema", quote=True))
+
+        context.assert_(
+            'ALTER TABLE "some.schema".t1 RENAME TO t2'
+        )
+
+    @config.requirements.sqlalchemy_09
+    def test_add_constraint_schema_hard_quoting(self):
+        from sqlalchemy.sql.schema import quoted_name
+        context = op_fixture("postgresql")
+        op.create_check_constraint(
+            "ck_user_name_len",
+            "user_table",
+            func.len(column('name')) > 5,
+            schema=quoted_name("some.schema", quote=True)
+        )
+        context.assert_(
+            'ALTER TABLE "some.schema".user_table ADD '
+            'CONSTRAINT ck_user_name_len CHECK (len(name) > 5)'
+        )
+
     def test_create_index_quoting(self):
         context = op_fixture("postgresql")
         op.create_index(

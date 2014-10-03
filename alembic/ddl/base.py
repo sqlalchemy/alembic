@@ -4,6 +4,10 @@ from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.schema import DDLElement, Column
 from sqlalchemy import Integer
 from sqlalchemy import types as sqltypes
+from .. import util
+
+if util.sqla_09:
+    from sqlalchemy.sql.elements import quoted_name
 
 
 class AlterTable(DDLElement):
@@ -151,6 +155,8 @@ def visit_column_default(element, compiler, **kw):
 def quote_dotted(name, quote):
     """quote the elements of a dotted name"""
 
+    if util.sqla_09 and isinstance(name, quoted_name):
+        return quote(name)
     result = '.'.join([quote(x) for x in name.split('.')])
     return result
 
