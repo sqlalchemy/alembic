@@ -822,7 +822,8 @@ class Operations(object):
             self._table(name, **kw)
         )
 
-    def create_index(self, name, table_name, columns, schema=None, **kw):
+    def create_index(self, name, table_name, columns, schema=None,
+                     unique=False, quote=None, **kw):
         """Issue a "create index" instruction using the current
         migration context.
 
@@ -864,10 +865,26 @@ class Operations(object):
          .. versionadded:: 0.7.0 'schema' can now accept a
             :class:`~sqlalchemy.sql.elements.quoted_name` construct.
 
+        :param unique: If True, create a unique index.
+
+        :param quote:
+            Force quoting of this column's name on or off, corresponding
+            to ``True`` or ``False``. When left at its default
+            of ``None``, the column identifier will be quoted according to
+            whether the name is case sensitive (identifiers with at least one
+            upper case character are treated as case sensitive), or if it's a
+            reserved word. This flag is only needed to force quoting of a
+            reserved word which is not known by the SQLAlchemy dialect.
+
+        :param \**kw: Additional keyword arguments not mentioned above are
+            dialect specific, and passed in the form ``<dialectname>_<argname>``.
+            See the documentation regarding an individual dialect at
+            :ref:`dialect_toplevel` for detail on documented arguments.
         """
 
         self.impl.create_index(
-            self._index(name, table_name, columns, schema=schema, **kw)
+            self._index(name, table_name, columns, schema=schema,
+                        unique=unique, quote=quote, **kw)
         )
 
     @util._with_legacy_names([('tablename', 'table_name')])
