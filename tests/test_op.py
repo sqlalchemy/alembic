@@ -614,6 +614,20 @@ class OpTest(TestBase):
             "CREATE INDEX ik_test ON t1 (foo, bar)"
         )
 
+    def test_create_unique_index(self):
+        context = op_fixture()
+        op.create_index('ik_test', 't1', ['foo', 'bar'], unique=True)
+        context.assert_(
+            "CREATE UNIQUE INDEX ik_test ON t1 (foo, bar)"
+        )
+
+    def test_create_index_quote_flag(self):
+        context = op_fixture()
+        op.create_index('ik_test', 't1', ['foo', 'bar'], quote=True)
+        context.assert_(
+            'CREATE INDEX "ik_test" ON t1 (foo, bar)'
+        )
+
     def test_create_index_table_col_event(self):
         context = op_fixture()
 
