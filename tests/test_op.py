@@ -621,6 +621,7 @@ class OpTest(TestBase):
             "CREATE UNIQUE INDEX ik_test ON t1 (foo, bar)"
         )
 
+    @config.requirements.fail_before_sqla_09
     def test_create_index_quote_flag(self):
         context = op_fixture()
         op.create_index('ik_test', 't1', ['foo', 'bar'], quote=True)
