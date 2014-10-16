@@ -147,6 +147,15 @@ class OpTest(TestBase):
         context.assert_(
             "ALTER TABLE t1 ADD COLUMN c1 INTEGER DEFAULT '12' NOT NULL")
 
+    def test_add_column_with_index(self):
+        context = op_fixture()
+        op.add_column(
+            't1', Column('c1', Integer, nullable=False, index=True))
+        context.assert_(
+            "ALTER TABLE t1 ADD COLUMN c1 INTEGER NOT NULL",
+            "CREATE INDEX ix_t1_c1 ON t1 (c1)",
+        )
+
     def test_add_column_schema_with_default(self):
         context = op_fixture()
         op.add_column('t1',
