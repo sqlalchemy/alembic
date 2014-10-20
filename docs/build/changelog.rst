@@ -6,6 +6,14 @@ Changelog
     :version: 0.7.0
 
     .. change::
+      :tags: bug, templates
+      :tickets: 234
+
+      Revision files are now written out using the ``'wb'`` modifier to
+      ``open()``, since Mako reads the templates with ``'rb'``, thus preventing
+      CRs from being doubled up as has been observed on windows.
+
+    .. change::
       :tags: bug, operations
       :tickets: 230
 

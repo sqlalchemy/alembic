@@ -58,7 +58,7 @@ except (ImportError, IOError):
 
 
 def template_to_file(template_file, dest, **kw):
-    with open(dest, 'w') as f:
+    with open(dest, 'wb') as f:
         f.write(
             Template(filename=template_file).render(**kw)
         )
