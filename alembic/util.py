@@ -57,10 +57,11 @@ except (ImportError, IOError):
     TERMWIDTH = None
 
 
-def template_to_file(template_file, dest, **kw):
+def template_to_file(template_file, dest, output_encoding, **kw):
     with open(dest, 'wb') as f:
+        template = Template(filename=template_file)
         f.write(
-            Template(filename=template_file).render(**kw)
+            template.render_unicode(**kw).encode(output_encoding)
         )
 
 

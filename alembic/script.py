@@ -36,12 +36,13 @@ class ScriptDirectory(object):
 
     def __init__(self, dir, file_template=_default_file_template,
                  truncate_slug_length=40,
-                 sourceless=False):
+                 sourceless=False, output_encoding="utf-8"):
         self.dir = dir
         self.versions = os.path.join(self.dir, 'versions')
         self.file_template = file_template
         self.truncate_slug_length = truncate_slug_length or 40
         self.sourceless = sourceless
+        self.output_encoding = output_encoding
 
         if not os.access(dir, os.F_OK):
             raise util.CommandError("Path doesn't exist: %r.  Please use "
@@ -70,7 +71,8 @@ class ScriptDirectory(object):
                 'file_template',
                 _default_file_template),
             truncate_slug_length=truncate_slug_length,
-            sourceless=config.get_main_option("sourceless") == "true"
+            sourceless=config.get_main_option("sourceless") == "true",
+            output_encoding=config.get_main_option("output_encoding", "utf-8")
         )
 
     def walk_revisions(self, base="base", head="head"):
@@ -319,6 +321,7 @@ class ScriptDirectory(object):
                     util.template_to_file,
                     src,
                     dest,
+                    self.output_encoding,
                     **kw
                     )
 

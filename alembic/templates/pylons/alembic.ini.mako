@@ -20,6 +20,10 @@ script_location = ${script_location}
 # versions/ directory
 # sourceless = false
 
+# the output encoding used when revision files
+# are written from script.py.mako
+# output_encoding = utf-8
+
 pylons_config_file = ./development.ini
 
 # that's it !

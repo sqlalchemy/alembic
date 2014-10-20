@@ -11,7 +11,9 @@ Changelog
 
       Revision files are now written out using the ``'wb'`` modifier to
       ``open()``, since Mako reads the templates with ``'rb'``, thus preventing
-      CRs from being doubled up as has been observed on windows.
+      CRs from being doubled up as has been observed on windows.  The encoding
+      of the output now defaults to 'utf-8', which can be configured using
+      a newly added config file parameter ``output_encoding``.
 
     .. change::
       :tags: bug, operations

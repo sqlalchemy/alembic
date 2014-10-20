@@ -9,6 +9,8 @@ from alembic.testing.mock import Mock, call
 
 from alembic.testing import eq_, assert_raises_message
 from alembic.testing.fixtures import capture_db
+from alembic.testing.env import _no_sql_testing_config, clear_staging_env,\
+    staging_env
 
 
 class ConfigTest(TestBase):
@@ -46,7 +48,7 @@ class ConfigTest(TestBase):
         )
 
 
-class OutputEncodingTest(TestBase):
+class StdoutOutputEncodingTest(TestBase):
 
     def test_plain(self):
         stdout = Mock(encoding='latin-1')
@@ -74,3 +76,21 @@ class OutputEncodingTest(TestBase):
             stdout.mock_calls,
             [call.write('m?il x y'), call.write('\n')]
         )
+
+
+class TemplateOutputEncodingTest(TestBase):
+    def setUp(self):
+        staging_env()
+        self.cfg = _no_sql_testing_config()
+
+    def tearDown(self):
+        clear_staging_env()
+
+    def test_default(self):
+        script = ScriptDirectory.from_config(self.cfg)
+        eq_(script.output_encoding, 'utf-8')
+
+    def test_setting(self):
+        self.cfg.set_main_option('output_encoding', 'latin-1')
+        script = ScriptDirectory.from_config(self.cfg)
+        eq_(script.output_encoding, 'latin-1')

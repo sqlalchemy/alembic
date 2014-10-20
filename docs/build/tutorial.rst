@@ -132,6 +132,10 @@ The file generated with the "generic" configuration looks like::
     # versions/ directory
     # sourceless = false
 
+    # the output encoding used when revision files
+    # are written from script.py.mako
+    # output_encoding = utf-8
+
     sqlalchemy.url = driver://user:pass@localhost/dbname
 
     # Logging configuration
@@ -227,6 +231,11 @@ This file contains the following features:
   only .py files are consumed as version files.
 
   .. versionadded:: 0.6.4
+
+* ``output_encoding`` - the encoding to use when Alembic writes the
+  ``script.py.mako`` file into a new migration file.  Defaults to ``'utf-8'``.
+
+  .. versionadded:: 0.7.0
 
 * ``[loggers]``, ``[handlers]``, ``[formatters]``, ``[logger_*]``, ``[handler_*]``,
   ``[formatter_*]`` - these sections are all part of Python's standard logging configuration,
