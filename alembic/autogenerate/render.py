@@ -298,10 +298,10 @@ def _modify_col(tname, cname,
     return text
 
 
-def _user_autogenerate_prefix(autogen_context):
+def _user_autogenerate_prefix(autogen_context, target):
     prefix = autogen_context['opts']['user_module_prefix']
     if prefix is None:
-        return _sqlalchemy_autogenerate_prefix(autogen_context)
+        return "%s." % target.__module__
     else:
         return prefix
 
@@ -386,7 +386,7 @@ def _repr_type(type_, autogen_context):
         prefix = _sqlalchemy_autogenerate_prefix(autogen_context)
         return "%s%r" % (prefix, type_)
     else:
-        prefix = _user_autogenerate_prefix(autogen_context)
+        prefix = _user_autogenerate_prefix(autogen_context, type_)
         return "%s%r" % (prefix, type_)
 
 

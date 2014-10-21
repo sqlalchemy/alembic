@@ -772,7 +772,7 @@ render:primary_key\n)"""
 
         eq_ignore_whitespace(
             autogenerate.render._repr_type(type_, autogen_context),
-            "sa.MyType()"
+            "tests.test_autogen_render.MyType()"
         )
 
     def test_repr_user_type_user_prefix_present(self):

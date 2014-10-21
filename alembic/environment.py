@@ -604,10 +604,18 @@ class EnvironmentContext(object):
         :param user_module_prefix: When autogenerate refers to a SQLAlchemy
          type (e.g. :class:`.TypeEngine`) where the module name is not
          under the ``sqlalchemy`` namespace, this prefix will be used
-         within autogenerate, if non-``None``; if left at its default of
-         ``None``, the
-         :paramref:`.EnvironmentContext.configure.sqlalchemy_module_prefix`
-         is used instead.
+         within autogenerate.  If left at its default of
+         ``None``, the ``__module__`` attribute of the type is used to
+         render the import module.   It's a good practice to set this
+         and to have all custom types be available from a fixed module space,
+         in order to future-proof migration files against reorganizations
+         in modules.
+
+         .. versionchanged:: 0.7.0
+            :paramref:`.EnvironmentContext.configure.user_module_prefix`
+            no longer defaults to the value of
+            :paramref:`.EnvironmentContext.configure.sqlalchemy_module_prefix`
+            when left at ``None``; the ``__module__`` attribute is now used.
 
          .. versionadded:: 0.6.3 added
             :paramref:`.EnvironmentContext.configure.user_module_prefix`

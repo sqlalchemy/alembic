@@ -34,7 +34,7 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.intersphinx',
                 'changelog', 'sphinx_paramlinks']
 
 # tags to sort on inside of sections
-changelog_sections = ["feature", "bug", "moved", "changed", "removed"]
+changelog_sections = ["changed", "feature", "bug", "moved", "removed"]
 
 changelog_render_ticket = "https://bitbucket.org/zzzeek/alembic/issue/%s/"
 changelog_render_pullreq = "https://bitbucket.org/zzzeek/alembic/pull-request/%s"

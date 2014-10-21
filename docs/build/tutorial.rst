@@ -716,17 +716,31 @@ When using :paramref:`.EnvironmentContext.configure.render_item`, note that
 we deliver not just the reproduction of the type, but we can also deliver the
 "module prefix", which is a module namespace from which our type can be found
 within our migration script.  When Alembic renders SQLAlchemy types, it will
-typically use the value of :paramref:`.EnvironmentContext.configure.sqlalchemy_module_prefix`,
+typically use the value of
+:paramref:`.EnvironmentContext.configure.sqlalchemy_module_prefix`,
 which defaults to ``"sa."``, to achieve this::
 
     Column("my_column", sa.Integer())
 
 When we use a custom type that is not within the ``sqlalchemy.`` module namespace,
-by default Alembic will still use the ``"sa."`` prefix::
+by default Alembic will use the **value of __module__ for the custom type**::
 
-    Column("my_column", sa.MyCustomType())
+    Column("my_column", myapp.models.utils.types.MyCustomType())
 
-We can provide an alternate prefix here using the :paramref:`.EnvironmentContext.configure.user_module_prefix`
+Above, it seems our custom type is in a very specific location, based on
+the length of what ``__module__`` reports.   It's a good practice to
+not have this long name render into our migration scripts, as it means
+this long and arbitrary name will be hardcoded into all our migration
+scripts; instead, we should create a module that is
+explicitly for custom types that our migration files will use.  Suppose
+we call it ``myapp.migration_types``::
+
+  # myapp/migration_types.py
+
+  from myapp.models.utils.types import MyCustomType
+
+We can provide the name of this module to our autogenerate context using
+:paramref:`.EnvironmentContext.configure.user_module_prefix`
 option::
 
 
@@ -736,7 +750,7 @@ option::
         context.configure(
                     connection=connection,
                     target_metadata=target_metadata,
-                    user_module_prefix="mymodel.types",
+                    user_module_prefix="myapp.migration_types.",
                     # ...
                     )
 
@@ -744,7 +758,17 @@ option::
 
 Where we'd get a migration like::
 
-  Column("my_column", mymodel.types.MyCustomType())
+  Column("my_column", myapp.migration_types.MyCustomType())
+
+Now, when we inevitably refactor our application to move ``MyCustomType``
+somewhere else, we only need modify the ``myapp.migration_types`` module,
+instead of searching and replacing all instances within our migration scripts.
+
+.. versionchanged:: 0.7.0
+   :paramref:`.EnvironmentContext.configure.user_module_prefix`
+   no longer defaults to the value of
+   :paramref:`.EnvironmentContext.configure.sqlalchemy_module_prefix`
+   when left at ``None``; the ``__module__`` attribute is now used.
 
 .. versionadded:: 0.6.3 Added :paramref:`.EnvironmentContext.configure.user_module_prefix`.
 
