@@ -3,7 +3,7 @@ from contextlib import contextmanager
 from sqlalchemy.types import NULLTYPE, Integer
 from sqlalchemy import schema as sa_schema
 
-from . import util
+from . import util, batch
 from .compat import string_types
 from .ddl import impl
 
@@ -42,7 +42,7 @@ class Operations(object):
 
     """
 
-    def __init__(self, migration_context):
+    def __init__(self, migration_context, impl=None):
         """Construct a new :class:`.Operations`
 
         :param migration_context: a :class:`.MigrationContext`
@@ -50,7 +50,10 @@ class Operations(object):
 
         """
         self.migration_context = migration_context
-        self.impl = migration_context.impl
+        if impl is None:
+            self.impl = migration_context.impl
+        else:
+            self.impl = impl
 
     @classmethod
     @contextmanager
@@ -185,6 +188,13 @@ class Operations(object):
                 rel_t = metadata.tables[table_key]
             if cname not in rel_t.c:
                 rel_t.append_column(sa_schema.Column(cname, NULLTYPE))
+
+    @contextmanager
+    def batch_alter_table(self, table_name, recreate=None):
+        impl = batch.BatchOperationImpl(self, table_name, recreate)
+        batch_op = Operations(self.migration_context, impl=impl)
+        yield batch_op
+        impl.flush()
 
     def get_context(self):
         """Return the :class:`.MigrationContext` object that's
