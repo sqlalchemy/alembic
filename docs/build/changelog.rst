@@ -6,6 +6,24 @@ Changelog
     :version: 0.7.0
 
     .. change::
+      :tags: bug, autogenerate
+      :tickets: 28
+
+      If the "alembic_version" table is present in the target metadata,
+      autogenerate will skip this also.  Pull request courtesy
+      Dj Gilcrease.
+
+    .. change::
+      :tags: bug, autogenerate
+      :tickets: 77
+
+      The :paramref:`.EnvironmentContext.configure.version_table`
+      and :paramref:`.EnvironmentContext.configure.version_table_schema`
+      arguments are now honored during the autogenerate process, such that
+      these names will be used as the "skip" names on both the database
+      reflection and target metadata sides.
+
+    .. change::
       :tags: changed, autogenerate
       :tickets: 229
 

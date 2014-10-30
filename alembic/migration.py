@@ -92,8 +92,10 @@ class MigrationContext(object):
         self._user_compare_server_default = opts.get(
             'compare_server_default',
             False)
-        version_table = opts.get('version_table', 'alembic_version')
-        version_table_schema = opts.get('version_table_schema', None)
+        self.version_table = version_table = opts.get(
+            'version_table', 'alembic_version')
+        self.version_table_schema = version_table_schema = \
+            opts.get('version_table_schema', None)
         self._version = Table(
             version_table, MetaData(),
             Column('version_num', String(32), nullable=False),

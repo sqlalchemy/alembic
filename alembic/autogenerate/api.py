@@ -191,7 +191,6 @@ def _produce_net_changes(connection, metadata, diffs, autogen_context,
                          object_filters=(),
                          include_schemas=False):
     inspector = Inspector.from_engine(connection)
-    # TODO: not hardcode alembic_version here ?
     conn_table_names = set()
 
     default_schema = connection.dialect.default_schema_name
@@ -205,13 +204,20 @@ def _produce_net_changes(connection, metadata, diffs, autogen_context,
     else:
         schemas = [None]
 
+    version_table_schema = autogen_context['context'].version_table_schema
+    version_table = autogen_context['context'].version_table
+
     for s in schemas:
-        tables = set(inspector.get_table_names(schema=s)).\
-            difference(['alembic_version'])
+        tables = set(inspector.get_table_names(schema=s))
+        if s == version_table_schema:
+            tables = tables.difference(
+                [autogen_context['context'].version_table]
+            )
         conn_table_names.update(zip([s] * len(tables), tables))
 
-    metadata_table_names = OrderedSet([(table.schema, table.name)
-                                       for table in metadata.sorted_tables])
+    metadata_table_names = OrderedSet(
+        [(table.schema, table.name) for table in metadata.sorted_tables]
+    ).difference([(version_table_schema, version_table)])
 
     _compare_tables(conn_table_names, metadata_table_names,
                     object_filters,
