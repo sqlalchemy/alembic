@@ -290,6 +290,42 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestBase):
         diffs = self._fixture(m1, m2)
         eq_(diffs, [])
 
+    def test_nothing_changed_implicit_composite_fk_index_named(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table("nothing_changed", m1,
+              Column('id', Integer, primary_key=True),
+              Column('other_id_1', Integer),
+              Column('other_id_2', Integer),
+              Column('foo', Integer),
+              ForeignKeyConstraint(
+                  ['other_id_1', 'other_id_2'], ['nc2.id1', 'nc2.id2'],
+                  name='fk_my_table_other_table'
+              ),
+              mysql_engine='InnoDB')
+        Table('nc2', m1,
+              Column('id1', Integer, primary_key=True),
+              Column('id2', Integer, primary_key=True),
+              mysql_engine='InnoDB')
+
+        Table("nothing_changed", m2,
+              Column('id', Integer, primary_key=True),
+              Column('other_id_1', Integer),
+              Column('other_id_2', Integer),
+              Column('foo', Integer),
+              ForeignKeyConstraint(
+                  ['other_id_1', 'other_id_2'], ['nc2.id1', 'nc2.id2'],
+                  name='fk_my_table_other_table'
+              ),
+              mysql_engine='InnoDB')
+        Table('nc2', m2,
+              Column('id1', Integer, primary_key=True),
+              Column('id2', Integer, primary_key=True),
+              mysql_engine='InnoDB')
+        diffs = self._fixture(m1, m2)
+        eq_(diffs, [])
+
     def test_new_idx_index_named_as_column(self):
         m1 = MetaData()
         m2 = MetaData()

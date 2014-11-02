@@ -6,6 +6,15 @@ Changelog
     :version: 0.7.0
 
     .. change::
+      :tags: bug, autogenerate, mysql
+      :tickets: 240
+
+      Repaired issue related to the fix for #208 and others; a composite
+      foreign key reported by MySQL would cause a KeyError as Alembic
+      attempted to remove MySQL's implicitly generated indexes from the
+      autogenerate list.
+
+    .. change::
       :tags: bug, autogenerate
       :tickets: 28
 

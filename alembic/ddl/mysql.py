@@ -92,6 +92,8 @@ class MySQLImpl(DefaultImpl):
                         conn_indexes.remove(idx)
                         removed.add(idx.name)
                         break
+                if idx.name in removed:
+                    break
 
         # then remove indexes from the "metadata_indexes"
         # that we've removed from reflected, otherwise they come out
