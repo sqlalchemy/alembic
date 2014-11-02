@@ -167,11 +167,13 @@ def _compare_columns(schema, tname, object_filters, conn_table, metadata_table,
                       metadata_col,
                       col_diff, autogen_context
                       )
-        _compare_nullable(schema, tname, colname,
-                          conn_col,
-                          metadata_col.nullable,
-                          col_diff, autogen_context
-                          )
+        # work around SQLAlchemy issue #3023
+        if not metadata_col.primary_key:
+            _compare_nullable(schema, tname, colname,
+                              conn_col,
+                              metadata_col.nullable,
+                              col_diff, autogen_context
+                              )
         _compare_server_default(schema, tname, colname,
                                 conn_col,
                                 metadata_col,

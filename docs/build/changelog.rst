@@ -6,6 +6,17 @@ Changelog
     :version: 0.7.0
 
     .. change::
+      :tags: bug, autogenerate
+      :tickets: 199
+
+      Added a workaround for SQLAlchemy issue #3023 (fixed in 0.9.5) where
+      a column that's part of an explicit PrimaryKeyConstraint would not
+      have its "nullable" flag set to False, thus producing a false
+      autogenerate.  Also added a related correction to MySQL which will
+      correct for MySQL's implicit server default of '0' when a NULL integer
+      column is turned into a primary key column.
+
+    .. change::
       :tags: bug, autogenerate, mysql
       :tickets: 240
 

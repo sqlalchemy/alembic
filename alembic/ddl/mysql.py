@@ -72,6 +72,22 @@ class MySQLImpl(DefaultImpl):
                 )
             )
 
+    def compare_server_default(self, inspector_column,
+                               metadata_column,
+                               rendered_metadata_default,
+                               rendered_inspector_default):
+        # partially a workaround for SQLAlchemy issue #3023; if the
+        # column were created without "NOT NULL", MySQL may have added
+        # an implicit default of '0' which we need to skip
+        if metadata_column.type._type_affinity is sqltypes.Integer and \
+            inspector_column.primary_key and \
+                not inspector_column.autoincrement and \
+                not rendered_metadata_default and \
+                rendered_inspector_default == "'0'":
+            return False
+        else:
+            return rendered_inspector_default != rendered_metadata_default
+
     def correct_for_autogen_constraints(self, conn_unique_constraints,
                                         conn_indexes,
                                         metadata_unique_constraints,
