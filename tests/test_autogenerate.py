@@ -54,8 +54,7 @@ class AutogenTest(object):
         cls.m2 = cls._get_model_schema()
 
         conn = cls.bind.connect()
-        opts = cls.configure_opts.copy()
-        opts.update({
+        ctx_opts = {
             'compare_type': True,
             'compare_server_default': True,
             'target_metadata': cls.m2,
@@ -63,10 +62,12 @@ class AutogenTest(object):
             'downgrade_token': "downgrades",
             'alembic_module_prefix': 'op.',
             'sqlalchemy_module_prefix': 'sa.',
-        })
+        }
+        if cls.configure_opts:
+            ctx_opts.update(cls.configure_opts)
         cls.context = context = MigrationContext.configure(
             connection=conn,
-            opts=opts
+            opts=ctx_opts
         )
 
         connection = context.bind
@@ -85,22 +86,27 @@ class AutogenTest(object):
 
 class AutogenFixtureTest(object):
 
-    def _fixture(self, m1, m2, include_schemas=False):
+    def _fixture(
+            self, m1, m2, include_schemas=False,
+            opts=None, object_filters=_default_object_filters):
         self.metadata, model_metadata = m1, m2
         self.metadata.create_all(self.bind)
 
         with self.bind.connect() as conn:
+            ctx_opts = {
+                'compare_type': True,
+                'compare_server_default': True,
+                'target_metadata': model_metadata,
+                'upgrade_token': "upgrades",
+                'downgrade_token': "downgrades",
+                'alembic_module_prefix': 'op.',
+                'sqlalchemy_module_prefix': 'sa.',
+            }
+            if opts:
+                ctx_opts.update(opts)
             self.context = context = MigrationContext.configure(
                 connection=conn,
-                opts={
-                    'compare_type': True,
-                    'compare_server_default': True,
-                    'target_metadata': model_metadata,
-                    'upgrade_token': "upgrades",
-                    'downgrade_token': "downgrades",
-                    'alembic_module_prefix': 'op.',
-                    'sqlalchemy_module_prefix': 'sa.',
-                }
+                opts=ctx_opts
             )
 
             connection = context.bind
@@ -114,7 +120,7 @@ class AutogenFixtureTest(object):
             autogenerate._produce_net_changes(
                 connection, model_metadata, diffs,
                 autogen_context,
-                object_filters=_default_object_filters,
+                object_filters=object_filters,
                 include_schemas=include_schemas
             )
             return diffs

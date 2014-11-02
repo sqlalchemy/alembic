@@ -6,6 +6,15 @@ Changelog
     :version: 0.7.0
 
     .. change::
+      :tags: feature, autogenerate
+      :tickets: 203
+
+      Indexes and unique constraints are now included in the
+      :paramref:`.EnvironmentContext.configure.include_object` hook.
+      Indexes are sent with type ``"index"`` and unique constraints with
+      type ``"unique_constraint"``.
+
+    .. change::
       :tags: bug, autogenerate
       :tickets: 219
 

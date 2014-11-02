@@ -331,12 +331,13 @@ def _compare_indexes_and_uniques(schema, tname, object_filters, conn_table,
 
     def obj_added(obj):
         if obj.is_index:
-            diffs.append(("add_index", obj.const))
-            log.info("Detected added index '%s' on %s",
-                     obj.name, ', '.join([
-                         "'%s'" % obj.column_names
-                     ])
-                     )
+            if _run_filters(
+                    obj.const, obj.name, "index", False, None, object_filters):
+                diffs.append(("add_index", obj.const))
+                log.info("Detected added index '%s' on %s",
+                         obj.name, ', '.join([
+                             "'%s'" % obj.column_names
+                         ]))
         else:
             if not supports_unique_constraints:
                 # can't report unique indexes as added if we don't
@@ -345,12 +346,14 @@ def _compare_indexes_and_uniques(schema, tname, object_filters, conn_table,
             if is_create_table:
                 # unique constraints are created inline with table defs
                 return
-            diffs.append(("add_constraint", obj.const))
-            log.info("Detected added unique constraint '%s' on %s",
-                     obj.name, ', '.join([
-                         "'%s'" % obj.column_names
-                     ])
-                     )
+            if _run_filters(
+                    obj.const, obj.name,
+                    "unique_constraint", False, None, object_filters):
+                diffs.append(("add_constraint", obj.const))
+                log.info("Detected added unique constraint '%s' on %s",
+                         obj.name, ', '.join([
+                             "'%s'" % obj.column_names
+                         ]))
 
     def obj_removed(obj):
         if obj.is_index:
@@ -360,27 +363,39 @@ def _compare_indexes_and_uniques(schema, tname, object_filters, conn_table,
                 # be sure what we're doing here
                 return
 
-            diffs.append(("remove_index", obj.const))
-            log.info("Detected removed index '%s' on '%s'", obj.name, tname)
+            if _run_filters(
+                    obj.const, obj.name, "index", True, None, object_filters):
+                diffs.append(("remove_index", obj.const))
+                log.info(
+                    "Detected removed index '%s' on '%s'", obj.name, tname)
         else:
-            diffs.append(("remove_constraint", obj.const))
-            log.info("Detected removed unique constraint '%s' on '%s'",
-                     obj.name, tname
-                     )
+            if _run_filters(
+                    obj.const, obj.name,
+                    "unique_constraint", True, None, object_filters):
+                diffs.append(("remove_constraint", obj.const))
+                log.info("Detected removed unique constraint '%s' on '%s'",
+                         obj.name, tname
+                         )
 
     def obj_changed(old, new, msg):
         if old.is_index:
-            log.info("Detected changed index '%s' on '%s':%s",
-                     old.name, tname, ', '.join(msg)
-                     )
-            diffs.append(("remove_index", old.const))
-            diffs.append(("add_index", new.const))
+            if _run_filters(
+                    new.const, new.name, "index",
+                    False, old.const, object_filters):
+                log.info("Detected changed index '%s' on '%s':%s",
+                         old.name, tname, ', '.join(msg)
+                         )
+                diffs.append(("remove_index", old.const))
+                diffs.append(("add_index", new.const))
         else:
-            log.info("Detected changed unique constraint '%s' on '%s':%s",
-                     old.name, tname, ', '.join(msg)
-                     )
-            diffs.append(("remove_constraint", old.const))
-            diffs.append(("add_constraint", new.const))
+            if _run_filters(
+                    new.const, new.name,
+                    "unique_constraint", False, old.const, object_filters):
+                log.info("Detected changed unique constraint '%s' on '%s':%s",
+                         old.name, tname, ', '.join(msg)
+                         )
+                diffs.append(("remove_constraint", old.const))
+                diffs.append(("add_constraint", new.const))
 
     for added_name in sorted(set(metadata_names).difference(conn_names)):
         obj = metadata_names[added_name]
