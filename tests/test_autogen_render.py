@@ -699,6 +699,17 @@ render:primary_key\n)"""
             "sa.CheckConstraint('c > 5 AND c < 10')"
         )
 
+    @config.requirements.fail_before_sqla_080
+    def test_render_check_constraint_literal_binds(self):
+        c = column('c')
+        eq_ignore_whitespace(
+            autogenerate.render._render_check_constraint(
+                CheckConstraint(and_(c > 5, c < 10)),
+                self.autogen_context
+            ),
+            "sa.CheckConstraint('c > 5 AND c < 10')"
+        )
+
     def test_render_unique_constraint_opts(self):
         m = MetaData()
         t = Table('t', m, Column('c', Integer))

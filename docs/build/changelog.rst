@@ -7,6 +7,14 @@ Changelog
 
     .. change::
       :tags: bug, autogenerate
+      :tickets: 219
+
+      Bound parameters are now resolved as "literal" values within the
+      SQL expression inside of a CheckConstraint(), when rendering the SQL
+      as a text string; supported for SQLAlchemy 0.8.0 and forward.
+
+    .. change::
+      :tags: bug, autogenerate
       :tickets: 199
 
       Added a workaround for SQLAlchemy issue #3023 (fixed in 0.9.5) where
