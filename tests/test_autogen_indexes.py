@@ -691,6 +691,7 @@ class IncludeHooksTest(AutogenFixtureTest, TestBase):
         eq_(diffs[0][1].name, 'ix2')
         eq_(len(diffs), 1)
 
+    @config.requirements.unique_constraint_reflection
     def test_remove_connection_uq(self):
         m1 = MetaData()
         m2 = MetaData()
@@ -737,6 +738,7 @@ class IncludeHooksTest(AutogenFixtureTest, TestBase):
         eq_(diffs[0][1].name, 'ix2')
         eq_(len(diffs), 1)
 
+    @config.requirements.unique_constraint_reflection
     def test_add_metadata_unique(self):
         m1 = MetaData()
         m2 = MetaData()
@@ -787,6 +789,7 @@ class IncludeHooksTest(AutogenFixtureTest, TestBase):
         eq_(diffs[1][1].name, 'ix2')
         eq_(len(diffs), 2)
 
+    @config.requirements.unique_constraint_reflection
     def test_change_unique(self):
         m1 = MetaData()
         m2 = MetaData()
