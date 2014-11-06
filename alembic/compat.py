@@ -13,6 +13,12 @@ py3k = sys.version_info >= (3, 0)
 py33 = sys.version_info >= (3, 3)
 
 if py3k:
+    from io import StringIO
+else:
+    # accepts strings
+    from StringIO import StringIO
+
+if py3k:
     import builtins as compat_builtins
     string_types = str,
     binary_type = bytes
