@@ -31,14 +31,19 @@ class _f_name(object):
         return "%sf(%r)" % (self.prefix, self.name)
 
 
-def _render_potential_expr(value, autogen_context):
+def _render_potential_expr(value, autogen_context, wrap_in_text=True):
     if isinstance(value, sql.ClauseElement):
         if compat.sqla_08:
             compile_kw = dict(compile_kwargs={'literal_binds': True})
         else:
             compile_kw = {}
 
-        return "%(prefix)stext(%(sql)r)" % {
+        if wrap_in_text:
+            template = "%(prefix)stext(%(sql)r)"
+        else:
+            template = "%(sql)r"
+
+        return template % {
             "prefix": _sqlalchemy_autogenerate_prefix(autogen_context),
             "sql": str(
                 value.compile(dialect=autogen_context['dialect'],
@@ -490,15 +495,12 @@ def _render_check_constraint(constraint, autogen_context):
                 repr(_render_gen_name(autogen_context, constraint.name))
             )
         )
-    return "%(prefix)sCheckConstraint(%(sqltext)r%(opts)s)" % {
+    return "%(prefix)sCheckConstraint(%(sqltext)s%(opts)s)" % {
         "prefix": _sqlalchemy_autogenerate_prefix(autogen_context),
         "opts": ", " + (", ".join("%s=%s" % (k, v)
                                   for k, v in opts)) if opts else "",
-        "sqltext": str(
-                constraint.sqltext.compile(
-                    dialect=autogen_context['dialect']
-                )
-        )
+        "sqltext": _render_potential_expr(
+            constraint.sqltext, autogen_context, wrap_in_text=False)
     }
 
 _constraint_renderers = {

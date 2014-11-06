@@ -290,6 +290,42 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestBase):
         diffs = self._fixture(m1, m2)
         eq_(diffs, [])
 
+    def test_nothing_changed_implicit_composite_fk_index_named(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table("nothing_changed", m1,
+              Column('id', Integer, primary_key=True),
+              Column('other_id_1', Integer),
+              Column('other_id_2', Integer),
+              Column('foo', Integer),
+              ForeignKeyConstraint(
+                  ['other_id_1', 'other_id_2'], ['nc2.id1', 'nc2.id2'],
+                  name='fk_my_table_other_table'
+              ),
+              mysql_engine='InnoDB')
+        Table('nc2', m1,
+              Column('id1', Integer, primary_key=True),
+              Column('id2', Integer, primary_key=True),
+              mysql_engine='InnoDB')
+
+        Table("nothing_changed", m2,
+              Column('id', Integer, primary_key=True),
+              Column('other_id_1', Integer),
+              Column('other_id_2', Integer),
+              Column('foo', Integer),
+              ForeignKeyConstraint(
+                  ['other_id_1', 'other_id_2'], ['nc2.id1', 'nc2.id2'],
+                  name='fk_my_table_other_table'
+              ),
+              mysql_engine='InnoDB')
+        Table('nc2', m2,
+              Column('id1', Integer, primary_key=True),
+              Column('id2', Integer, primary_key=True),
+              mysql_engine='InnoDB')
+        diffs = self._fixture(m1, m2)
+        eq_(diffs, [])
+
     def test_new_idx_index_named_as_column(self):
         m1 = MetaData()
         m2 = MetaData()
@@ -627,3 +663,164 @@ class NoUqReportsIndAsUqTest(NoUqReflectionIndexTest):
         eng.dialect.get_unique_constraints = unimpl
         eng.dialect.get_indexes = get_indexes
         return eng
+
+
+class IncludeHooksTest(AutogenFixtureTest, TestBase):
+    __backend__ = True
+
+    def test_remove_connection_index(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        t1 = Table('t', m1, Column('x', Integer))
+        Index('ix1', t1.c.x)
+        Index('ix2', t1.c.x)
+
+        Table('t', m2, Column('x', Integer))
+
+        def include_object(object_, name, type_, reflected, compare_to):
+            if type_ == 'unique_constraint':
+                return False
+            return not (
+                isinstance(object_, Index) and
+                type_ == 'index' and reflected and name == 'ix1')
+
+        diffs = self._fixture(m1, m2, object_filters=[include_object])
+
+        eq_(diffs[0][0], 'remove_index')
+        eq_(diffs[0][1].name, 'ix2')
+        eq_(len(diffs), 1)
+
+    @config.requirements.unique_constraint_reflection
+    def test_remove_connection_uq(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table(
+            't', m1, Column('x', Integer), Column('y', Integer),
+            UniqueConstraint('x', name='uq1'),
+            UniqueConstraint('y', name='uq2'),
+        )
+
+        Table('t', m2, Column('x', Integer), Column('y', Integer))
+
+        def include_object(object_, name, type_, reflected, compare_to):
+            if type_ == 'index':
+                return False
+            return not (
+                isinstance(object_, UniqueConstraint) and
+                type_ == 'unique_constraint' and reflected and name == 'uq1')
+
+        diffs = self._fixture(m1, m2, object_filters=[include_object])
+
+        eq_(diffs[0][0], 'remove_constraint')
+        eq_(diffs[0][1].name, 'uq2')
+        eq_(len(diffs), 1)
+
+    def test_add_metadata_index(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table('t', m1, Column('x', Integer))
+
+        t2 = Table('t', m2, Column('x', Integer))
+        Index('ix1', t2.c.x)
+        Index('ix2', t2.c.x)
+
+        def include_object(object_, name, type_, reflected, compare_to):
+            return not (
+                isinstance(object_, Index) and
+                type_ == 'index' and not reflected and name == 'ix1')
+
+        diffs = self._fixture(m1, m2, object_filters=[include_object])
+
+        eq_(diffs[0][0], 'add_index')
+        eq_(diffs[0][1].name, 'ix2')
+        eq_(len(diffs), 1)
+
+    @config.requirements.unique_constraint_reflection
+    def test_add_metadata_unique(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table('t', m1, Column('x', Integer))
+
+        Table(
+            't', m2, Column('x', Integer),
+            UniqueConstraint('x', name='uq1'),
+            UniqueConstraint('x', name='uq2')
+        )
+
+        def include_object(object_, name, type_, reflected, compare_to):
+            return not (
+                isinstance(object_, UniqueConstraint) and
+                type_ == 'unique_constraint' and
+                not reflected and name == 'uq1')
+
+        diffs = self._fixture(m1, m2, object_filters=[include_object])
+
+        eq_(diffs[0][0], 'add_constraint')
+        eq_(diffs[0][1].name, 'uq2')
+        eq_(len(diffs), 1)
+
+    def test_change_index(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        t1 = Table('t', m1, Column('x', Integer), Column('y', Integer))
+        Index('ix1', t1.c.x)
+        Index('ix2', t1.c.x)
+
+        t2 = Table('t', m2, Column('x', Integer), Column('y', Integer))
+        Index('ix1', t2.c.x, t2.c.y)
+        Index('ix2', t2.c.x, t2.c.y)
+
+        def include_object(object_, name, type_, reflected, compare_to):
+            return not (
+                isinstance(object_, Index) and
+                type_ == 'index' and not reflected and name == 'ix1'
+                and isinstance(compare_to, Index))
+
+        diffs = self._fixture(m1, m2, object_filters=[include_object])
+
+        eq_(diffs[0][0], 'remove_index')
+        eq_(diffs[0][1].name, 'ix2')
+        eq_(diffs[1][0], 'add_index')
+        eq_(diffs[1][1].name, 'ix2')
+        eq_(len(diffs), 2)
+
+    @config.requirements.unique_constraint_reflection
+    def test_change_unique(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table(
+            't', m1, Column('x', Integer),
+            Column('y', Integer), Column('z', Integer),
+            UniqueConstraint('x', name='uq1'),
+            UniqueConstraint('y', name='uq2')
+        )
+
+        Table(
+            't', m2, Column('x', Integer), Column('y', Integer),
+            Column('z', Integer),
+            UniqueConstraint('x', 'z', name='uq1'),
+            UniqueConstraint('y', 'z', name='uq2')
+        )
+
+        def include_object(object_, name, type_, reflected, compare_to):
+            if type_ == 'index':
+                return False
+            return not (
+                isinstance(object_, UniqueConstraint) and
+                type_ == 'unique_constraint' and
+                not reflected and name == 'uq1'
+                and isinstance(compare_to, UniqueConstraint))
+
+        diffs = self._fixture(m1, m2, object_filters=[include_object])
+
+        eq_(diffs[0][0], 'remove_constraint')
+        eq_(diffs[0][1].name, 'uq2')
+        eq_(diffs[1][0], 'add_constraint')
+        eq_(diffs[1][1].name, 'uq2')
+        eq_(len(diffs), 2)

@@ -464,12 +464,19 @@ class EnvironmentContext(object):
          The function accepts the following positional arguments:
 
          * ``object``: a :class:`~sqlalchemy.schema.SchemaItem` object such
-           as a :class:`~sqlalchemy.schema.Table` or
-           :class:`~sqlalchemy.schema.Column` object
+           as a :class:`~sqlalchemy.schema.Table`,
+           :class:`~sqlalchemy.schema.Column`,
+           :class:`~sqlalchemy.schema.Index`
+           or :class:`~sqlalchemy.schema.UniqueConstraint` object
          * ``name``: the name of the object. This is typically available
            via ``object.name``.
          * ``type``: a string describing the type of object; currently
-           ``"table"`` or ``"column"``
+           ``"table"``, ``"column"``, ``"index"`` or ``"unique_constraint"``.
+
+           .. versionadded:: 0.7.0 Support for indexes and unique constraints
+              within the
+              :paramref:`~.EnvironmentContext.configure.include_object` hook.
+
          * ``reflected``: ``True`` if the given object was produced based on
            table reflection, ``False`` if it's from a local :class:`.MetaData`
            object.

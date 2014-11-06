@@ -6,6 +6,61 @@ Changelog
     :version: 0.7.0
 
     .. change::
+      :tags: feature, autogenerate
+      :tickets: 203
+
+      Indexes and unique constraints are now included in the
+      :paramref:`.EnvironmentContext.configure.include_object` hook.
+      Indexes are sent with type ``"index"`` and unique constraints with
+      type ``"unique_constraint"``.
+
+    .. change::
+      :tags: bug, autogenerate
+      :tickets: 219
+
+      Bound parameters are now resolved as "literal" values within the
+      SQL expression inside of a CheckConstraint(), when rendering the SQL
+      as a text string; supported for SQLAlchemy 0.8.0 and forward.
+
+    .. change::
+      :tags: bug, autogenerate
+      :tickets: 199
+
+      Added a workaround for SQLAlchemy issue #3023 (fixed in 0.9.5) where
+      a column that's part of an explicit PrimaryKeyConstraint would not
+      have its "nullable" flag set to False, thus producing a false
+      autogenerate.  Also added a related correction to MySQL which will
+      correct for MySQL's implicit server default of '0' when a NULL integer
+      column is turned into a primary key column.
+
+    .. change::
+      :tags: bug, autogenerate, mysql
+      :tickets: 240
+
+      Repaired issue related to the fix for #208 and others; a composite
+      foreign key reported by MySQL would cause a KeyError as Alembic
+      attempted to remove MySQL's implicitly generated indexes from the
+      autogenerate list.
+
+    .. change::
+      :tags: bug, autogenerate
+      :tickets: 28
+
+      If the "alembic_version" table is present in the target metadata,
+      autogenerate will skip this also.  Pull request courtesy
+      Dj Gilcrease.
+
+    .. change::
+      :tags: bug, autogenerate
+      :tickets: 77
+
+      The :paramref:`.EnvironmentContext.configure.version_table`
+      and :paramref:`.EnvironmentContext.configure.version_table_schema`
+      arguments are now honored during the autogenerate process, such that
+      these names will be used as the "skip" names on both the database
+      reflection and target metadata sides.
+
+    .. change::
       :tags: changed, autogenerate
       :tickets: 229
 
