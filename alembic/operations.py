@@ -190,7 +190,71 @@ class Operations(object):
                 rel_t.append_column(sa_schema.Column(cname, NULLTYPE))
 
     @contextmanager
-    def batch_alter_table(self, table_name, schema=None, recreate=None):
+    def batch_alter_table(
+            self, table_name, schema=None, recreate="auto", copy_from=None):
+        """Invoke a series of per-table migrations in batch.
+
+        Batch mode allows a series of operations specific to a table
+        to be syntactically grouped together, and allows for alternate
+        modes of table migration, in particular the "recreate" style of
+        migration required by SQLite.
+
+        "recreate" style is as follows:
+
+        1. A new table is created with the new specification, based on the
+           migration directives within the batch, using a temporary name.
+
+        2. the data copied from the existing table to the new table.
+
+        3. the existing table is dropped.
+
+        4. the new table is renamed to the existing table name.
+
+        The directive by default will only use "recreate" style on the
+        SQLite backend, and only if directives are present which require
+        this form, e.g. anything other than ``add_column()``.   The batch
+        operation on other backends will proceed using standard ALTER TABLE
+        operations.
+
+        E.g.::
+
+            with op.batch_alter_table("some_table") as batch_op:
+                batch_op.add_column(Column('foo', Integer))
+                batch_op.drop_column('bar')
+
+        The operations within the context manager are invoked at once
+        when the context is ended.   When run against SQLite, if the
+        migrations include operations not supported by SQLite's ALTER TABLE,
+        the entire table will be copied to a new one with the new
+        specification, moving all data across as well.
+
+        The copy operation by default uses reflection to retrieve the current
+        structure of the table, and therefore :meth:`.batch_alter_table`
+        in this mode requires that the migration is run in "online" mode.
+        The ``copy_from`` parameter may be passed which refers to an existing
+        :class:`.Table` object, which will bypass this reflection step.
+
+        .. note::  The table copy operation will currently not copy
+           CHECK constraints, and may not copy UNIQUE constraints that are
+           unnamed, as is possible on SQLite.
+
+        :param table_name: name of table
+        :param schema: optional schema name.
+        :param recreate: under what circumstances the table should be
+         recreated. At its default of ``"auto"``, the SQLite dialect will
+         recreate the table if any operations other than ``add_column()`` are
+         present. Other options include ``"always"`` and ``"never"``.
+        :param copy_from: optional :class:`~sqlalchemy.schema.Table` object
+         that will act as the structure of the table being copied.  If omitted,
+         table reflection is used to retrieve the structure of the table.
+
+        .. versionadded:: 0.7.0
+
+        .. seealso::
+
+            :ref:`batch_migrations`
+
+        """
         impl = batch.BatchOperationImpl(self, table_name, schema, recreate)
         batch_op = Operations(self.migration_context, impl=impl)
         yield batch_op
