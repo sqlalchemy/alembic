@@ -596,10 +596,18 @@ def _compare_foreign_keys(schema, tname, object_filters, conn_table,
 
 
 def _get_fk_info_from_db(fk):
-    return FKInfo(tuple(fk['constrained_columns']),
-                       fk['referred_table'],
-                       tuple(fk['referred_columns']))
+    return FKInfo(tuple(fk['constrained_columns']), fk['referred_table'],
+                  tuple(fk['referred_columns']))
+
 
 def _get_fk_info_from_model(fk):
-    return FKInfo((fk.parent.name,), fk.column.table.name,
-                       (fk.column.name,))
+    constrained_columns = []
+    for column in fk.constraint.columns:
+        if not isinstance(column, basestring):
+            constrained_columns.append(column.name)
+        else:
+            constrained_columns.append(column)
+    return FKInfo(
+        tuple(constrained_columns),
+        fk.column.table.name,
+        tuple(k.column.name for k in fk.constraint._elements.values()))
