@@ -582,12 +582,12 @@ def _compare_foreign_keys(schema, tname, object_filters, conn_table,
                          metadata_table.foreign_keys)
         fk_models_set = set(fk_models.keys())
         for key in (fk_db_set - fk_models_set):
-                diffs.append(('drop_key', fk_db[key], conn_table, key))
+                diffs.append(('drop_fk', fk_db[key], conn_table, key))
                 log.info(("Detected removed foreign key %(fk)r on "
                           "table %(table)r"), {'fk': fk_db[key],
                                                'table': conn_table})
         for key in (fk_models_set - fk_db_set):
-                diffs.append(('add_key', fk_models[key], key))
+                diffs.append(('add_fk', fk_models[key], key))
                 log.info((
                     "Detected added foreign key for column %(fk)r on table "
                     "%(table)r"), {'fk': fk_models[key].column.name,
@@ -595,11 +595,11 @@ def _compare_foreign_keys(schema, tname, object_filters, conn_table,
         return diffs
 
 
-def _get_fk_info_from_db(self, fk):
-    return self.FKInfo(tuple(fk['constrained_columns']),
+def _get_fk_info_from_db(fk):
+    return FKInfo(tuple(fk['constrained_columns']),
                        fk['referred_table'],
                        tuple(fk['referred_columns']))
 
-def _get_fk_info_from_model(self, fk):
-    return self.FKInfo((fk.parent.name,), fk.column.table.name,
+def _get_fk_info_from_model(fk):
+    return FKInfo((fk.parent.name,), fk.column.table.name,
                        (fk.column.name,))

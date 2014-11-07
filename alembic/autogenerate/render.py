@@ -193,7 +193,7 @@ def _uq_constraint(constraint, autogen_context, alter):
         }
 
 
-def _add_fk_constraint(constraint, autogen_context):
+def _add_fk_constraint(constraint, fk_info, autogen_context):
     raise NotImplementedError()
 
 
