@@ -152,6 +152,7 @@ def _produce_migration_diffs(context, template_args,
 
 def _indent(text):
     text = re.compile(r'^', re.M).sub("    ", text).strip()
+    text = re.compile(r' +$', re.M).sub("", text)
     return text
 
 
