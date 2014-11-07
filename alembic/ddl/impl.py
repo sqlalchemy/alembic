@@ -63,6 +63,17 @@ class DefaultImpl(with_metaclass(ImplMeta)):
         self.output_buffer.write(text_type(text + "\n\n"))
         self.output_buffer.flush()
 
+    def requires_recreate_in_batch(self, batch_op):
+        """Return True if the given :class:`.BatchOperationsImpl`
+        would need the table to be recreated and copied in order to
+        proceed.
+
+        Normally, only returns True on SQLite when operations other
+        than add_column are present.
+
+        """
+        return False
+
     @property
     def bind(self):
         return self.connection

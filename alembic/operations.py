@@ -216,7 +216,10 @@ class Operations(object):
         operation on other backends will proceed using standard ALTER TABLE
         operations.
 
-        E.g.::
+        The method is used as a context manager, which returns an instance
+        of :class:`.BatchOperations`; this object is the same as
+        :class:`.Operations` except that table names and schema names
+        are omitted.  E.g.::
 
             with op.batch_alter_table("some_table") as batch_op:
                 batch_op.add_column(Column('foo', Integer))
@@ -255,8 +258,9 @@ class Operations(object):
             :ref:`batch_migrations`
 
         """
-        impl = batch.BatchOperationImpl(self, table_name, schema, recreate)
-        batch_op = Operations(self.migration_context, impl=impl)
+        impl = batch.BatchOperationsImpl(
+            self, table_name, schema, recreate, copy_from)
+        batch_op = BatchOperations(self.migration_context, impl=impl)
         yield batch_op
         impl.flush()
 
@@ -1246,3 +1250,158 @@ class Operations(object):
 
         """
         return self.migration_context.impl.bind
+
+
+class BatchOperations(Operations):
+    """Modifies the interface :class:`.Operations` for batch mode.
+
+    This basically omits the ``table_name`` and ``schema`` parameters
+    from associated methods, as these are a given when running under batch
+    mode.
+
+    .. seealso::
+
+        :meth:`.Operations.batch_alter_table`
+
+    """
+
+    def add_column(self, column):
+        """Issue an "add column" instruction using the current
+        batch migration context.
+
+        .. seealso::
+
+            :meth:`.Operations.add_column`
+
+        """
+
+        return super(BatchOperations, self).add_column(
+            self.impl.table_name, column, schema=self.impl.schema)
+
+    def alter_column(self, column_name, **kw):
+        """Issue an "alter column" instruction using the current
+        batch migration context.
+
+        .. seealso::
+
+            :meth:`.Operations.add_column`
+
+        """
+        kw['schema'] = self.impl.schema
+        return super(BatchOperations, self).alter_column(
+            self.impl.table_name, column_name, **kw)
+
+    def drop_column(self, column_name):
+        """Issue a "drop column" instruction using the current
+        batch migration context.
+
+        .. seealso::
+
+            :meth:`.Operations.drop_column`
+
+        """
+        return super(BatchOperations, self).drop_column(
+            self.impl.table_name, column_name, schema=self.impl.schema)
+
+    def create_primary_key(self, name, cols):
+        """Issue a "create priamry key" instruction using the
+        current batch migration context.
+
+        The batch form of this call omits the ``table_name`` and ``schema``
+        arguments from the call.
+
+        .. seealso::
+
+            :meth:`.Operations.create_primary_key`
+
+        """
+
+    def create_foreign_key(self, name, referent, local_cols,
+                           remote_cols, onupdate=None, ondelete=None,
+                           deferrable=None, initially=None, match=None,
+                           referent_schema=None,
+                           **dialect_kw):
+        """Issue a "create foreign key" instruction using the
+        current batch migration context.
+
+        The batch form of this call omits the ``source`` and ``source_schema``
+        arguments from the call.
+
+        e.g.::
+
+            with batch_alter_table("address") as batch_op:
+                batch_op.create_foreign_key(
+                            "fk_user_address",
+                            "user", ["user_id"], ["id"])
+
+        .. seealso::
+
+            :meth:`.Operations.create_foreign_key`
+
+        """
+
+    def create_unique_constraint(self, name, local_cols, **kw):
+        """Issue a "create unique constraint" instruction using the
+        current batch migration context.
+
+        The batch form of this call omits the ``source`` and ``schema``
+        arguments from the call.
+
+        .. seealso::
+
+            :meth:`.Operations.create_unique_constraint`
+
+        """
+
+    def create_check_constraint(self, name, condition, **kw):
+        """Issue a "create check constraint" instruction using the
+        current batch migration context.
+
+        The batch form of this call omits the ``source`` and ``schema``
+        arguments from the call.
+
+        .. seealso::
+
+            :meth:`.Operations.create_check_constraint`
+
+        """
+
+    def create_index(self, name, table_name, columns, schema=None,
+                     unique=False, quote=None, **kw):
+        """Issue a "create index" instruction using the
+        current batch migration context.
+
+        The batch form of this call omits the ``table_name`` and ``schema``
+        arguments from the call.
+
+        .. seealso::
+
+            :meth:`.Operations.create_index`
+
+        """
+
+    def drop_index(self, name):
+        """Issue a "drop index" instruction using the
+        current batch migration context.
+
+        The batch form of this call omits the ``table_name`` and ``schema``
+        arguments from the call.
+
+        .. seealso::
+
+            :meth:`.Operations.drop_index`
+
+        """
+
+    def drop_constraint(self, name, type_=None):
+        """Issue a "drop constraint" instruction using the
+        current batch migration context.
+
+        The batch form of this call omits the ``table_name`` and ``schema``
+        arguments from the call.
+
+        .. seealso::
+
+            :meth:`.Operations.drop_constraint`
+
+        """

@@ -1,32 +1,56 @@
+from sqlalchemy import Table, MetaData, Index, select
+from sqlalchemy import types as sqltypes
+from sqlalchemy.util import OrderedDict
+
+
 class BatchOperationsImpl(object):
-    def __init__(self, operations, table_name, schema, recreate):
+    def __init__(self, operations, table_name, schema, recreate, copy_from):
         self.operations = operations
         self.table_name = table_name
         self.schema = schema
+        if recreate not in ('auto', 'always', 'never'):
+            raise ValueError(
+                "recreate may be one of 'auto', 'always', or 'never'.")
         self.recreate = recreate
+        self.copy_from = copy_from
         self.batch = []
 
+    @property
+    def dialect(self):
+        return self.operations.impl.dialect
+
+    @property
+    def impl(self):
+        return self.operations.impl
+
+    def _should_recreate(self):
+        if self.recreate == 'auto':
+            return self.operations.impl.requires_recreate_in_batch(self)
+        elif self.recreate == 'always':
+            return True
+        else:
+            return False
+
     def flush(self):
-        should_recreate = self.recreate is True or \
-            self.operations.impl.__dialect__ in set(self.recreate)
+        should_recreate = self._should_recreate()
 
         if not should_recreate:
             for opname, arg, kw in self.batch:
                 fn = getattr(self.operations.impl, opname)
                 fn(*arg, **kw)
         else:
-            # pseudocode
-            existing_table = _reflect_table(self.operations.impl, table_name)
-            impl = ApplyBatchImpl(existing_table)
+            m1 = MetaData()
+            existing_table = Table(
+                self.table_name, m1, schema=self.schema,
+                autoload=True, autoload_with=self.operations.get_bind())
+
+            batch_impl = ApplyBatchImpl(existing_table)
             for opname, arg, kw in self.batch:
-                fn = getattr(impl, opname)
+                fn = getattr(batch_impl, opname)
                 fn(*arg, **kw)
 
-            _create_new_table(use_a_temp_name)
-            _copy_data_somehow(
-                impl.use_column_transfer_data, use_insert_from_select_aswell)
-            _drop_old_table(this_parts_easy)
-            _rename_table_to_old_name(ditto)
+            batch_impl._create(self.impl)
+
 
     def alter_column(self, *arg, **kw):
         self.batch.append(
@@ -34,7 +58,6 @@ class BatchOperationsImpl(object):
         )
 
     def add_column(self, *arg, **kw):
-        # TODO: omit table and schema names from all commands
         self.batch.append(
             ("add_column", arg, kw)
         )
@@ -78,26 +101,83 @@ class ApplyBatchImpl(object):
         self.column_transfers = dict(
             (c.name, {}) for c in self.table.c
         )
+        self._grab_table_elements()
+
+    def _grab_table_elements(self):
+        schema = self.table.schema
+        self.columns = OrderedDict()
+        for c in self.table.c:
+            c_copy = c.copy(schema=schema)
+            c_copy.unique = c_copy.index = False
+            self.columns[c.name] = c_copy
+        self.named_constraints = {}
+        self.unnamed_constraints = []
+        self.indexes = {}
+        for const in self.table.constraints:
+            if const.name:
+                self.named_constraints[const.name] = const
+            else:
+                self.unnamed_constraints.append(const)
+        for idx in self.table.indexes:
+            self.indexes[idx.name] = idx
+
+    def _transfer_elements_to_new_table(self):
+        m = MetaData()
+        schema = self.table.schema
+        new_table = Table(
+            '_alembic_batch_temp', m, *self.columns.values(), schema=schema)
+
+        for c in list(self.named_constraints.values()) + \
+                self.unnamed_constraints:
+            c_copy = c.copy(schema=schema, target_table=new_table)
+            new_table.append_constraint(c_copy)
+
+        for index in self.indexes.values():
+            Index(index.name,
+                  unique=index.unique,
+                  *[new_table.c[col] for col in index.columns.keys()],
+                  **index.kwargs)
+        return new_table
+
+    def _create(self, op_impl):
+        new_table = self._transfer_elements_to_new_table()
+        op_impl.create_table(new_table)
+
+        op_impl.bind.execute(
+            new_table.insert(inline=True).from_select(
+                list(self.column_transfers.keys()),
+                select([
+                    self.table.c[key]
+                    for key in self.column_transfers
+                ])
+            )
+        )
+
+        op_impl.drop_table(self.table)
+        op_impl.rename_table(
+            "_alembic_batch_temp",
+            self.table.name,
+            schema=self.table.schema
+        )
 
     def alter_column(self, table_name, column_name,
                      nullable=None,
                      server_default=False,
-                     name=None,
+                     new_column_name=None,
                      type_=None,
                      autoincrement=None,
                      **kw
                      ):
-        existing = self.table.c[column_name]
+        existing = self.columns[column_name]
         existing_transfer = self.column_transfers[column_name]
-        if name != column_name:
-            # something like this
-            self.table.c.remove_column(existing)
-            existing.table = None
-            existing.name = name
-            existing._set_parent(self.table)
-            existing_transfer["name"] = name
+        if new_column_name is not None and new_column_name != column_name:
+            # note that we don't change '.key' - we keep referring
+            # to the renamed column by its old key in _create().  neat!
+            existing.name = new_column_name
+            existing_transfer["name"] = new_column_name
 
         if type_ is not None:
+            type_ = sqltypes.to_instance(type_)
             existing.type = type_
             existing_transfer["typecast"] = type_
         if nullable is not None:
@@ -108,13 +188,10 @@ class ApplyBatchImpl(object):
             existing.autoincrement = bool(autoincrement)
 
     def add_column(self, table_name, column, **kw):
-        column.table = None
-        column._set_parent(self.table)
+        self.columns[column.name] = column
 
     def drop_column(self, table_name, column, **kw):
-        col = self.table.c[column.name]
-        col.table = None
-        self.table.c.remove_column(col)
+        del self.columns[column.name]
         del self.column_transfers[column.name]
 
     def add_constraint(self, const):

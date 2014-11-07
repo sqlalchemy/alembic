@@ -11,6 +11,21 @@ class SQLiteImpl(DefaultImpl):
     see: http://bugs.python.org/issue10740
     """
 
+    def requires_recreate_in_batch(self, batch_op):
+        """Return True if the given :class:`.BatchOperationsImpl`
+        would need the table to be recreated and copied in order to
+        proceed.
+
+        Normally, only returns True on SQLite when operations other
+        than add_column are present.
+
+        """
+        for op in batch_op.batch:
+            if op[0] != 'add_column':
+                return True
+        else:
+            return False
+
     def add_constraint(self, const):
         # attempt to distinguish between an
         # auto-gen constraint and an explicit one
