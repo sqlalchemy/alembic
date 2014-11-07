@@ -1,7 +1,8 @@
 class BatchOperationsImpl(object):
-    def __init__(self, operations, table_name, recreate):
+    def __init__(self, operations, table_name, schema, recreate):
         self.operations = operations
         self.table_name = table_name
+        self.schema = schema
         self.recreate = recreate
         self.batch = []
 
@@ -33,6 +34,7 @@ class BatchOperationsImpl(object):
         )
 
     def add_column(self, *arg, **kw):
+        # TODO: omit table and schema names from all commands
         self.batch.append(
             ("add_column", arg, kw)
         )

@@ -165,19 +165,23 @@ def _add_unique_constraint(constraint, autogen_context):
 
 def _uq_constraint(constraint, autogen_context, alter):
     opts = []
+
+    has_batch = 'batch_prefix' in autogen_context
+
     if constraint.deferrable:
         opts.append(("deferrable", str(constraint.deferrable)))
     if constraint.initially:
         opts.append(("initially", str(constraint.initially)))
-    if alter and constraint.table.schema:
+    if not has_batch and alter and constraint.table.schema:
         opts.append(("schema", str(constraint.table.schema)))
     if not alter and constraint.name:
         opts.append(
             ("name", _render_gen_name(autogen_context, constraint.name)))
 
     if alter:
-        args = [repr(_render_gen_name(autogen_context, constraint.name)),
-                repr(constraint.table.name)]
+        args = [repr(_render_gen_name(autogen_context, constraint.name))]
+        if not has_batch:
+            args += [repr(constraint.table.name)]
         args.append(repr([col.name for col in constraint.columns]))
         args.extend(["%s=%r" % (k, v) for k, v in opts])
         return "%(prefix)screate_unique_constraint(%(args)s)" % {
@@ -224,38 +228,55 @@ def _drop_constraint(constraint, autogen_context):
     Generate Alembic operations for the ALTER TABLE ... DROP CONSTRAINT
     of a  :class:`~sqlalchemy.schema.UniqueConstraint` instance.
     """
-    text = "%(prefix)sdrop_constraint"\
-        "(%(name)r, '%(table_name)s'%(schema)s)" % {
-            'prefix': _alembic_autogenerate_prefix(autogen_context),
-            'name': _render_gen_name(autogen_context, constraint.name),
-            'table_name': constraint.table.name,
-            'schema': (", schema='%s'" % constraint.table.schema)
-            if constraint.table.schema else '',
-        }
+    if 'batch_prefix' in autogen_context:
+        template = "%(prefix)sdrop_constraint"\
+            "(%(name)r)"
+    else:
+        template = "%(prefix)sdrop_constraint"\
+            "(%(name)r, '%(table_name)s'%(schema)s)"
+
+    text = template % {
+        'prefix': _alembic_autogenerate_prefix(autogen_context),
+        'name': _render_gen_name(autogen_context, constraint.name),
+        'table_name': constraint.table.name,
+        'schema': (", schema='%s'" % constraint.table.schema)
+        if constraint.table.schema else '',
+    }
     return text
 
 
 def _add_column(schema, tname, column, autogen_context):
-    text = "%(prefix)sadd_column(%(tname)r, %(column)s" % {
+    if 'batch_prefix' in autogen_context:
+        template = "%(prefix)sadd_column(%(column)s)"
+    else:
+        template = "%(prefix)sadd_column(%(tname)r, %(column)s"
+        if schema:
+            template += ", schema=%(schema)r"
+        template += ")"
+    text = template % {
         "prefix": _alembic_autogenerate_prefix(autogen_context),
         "tname": tname,
-        "column": _render_column(column, autogen_context)
+        "column": _render_column(column, autogen_context),
+        "schema": schema
     }
-    if schema:
-        text += ", schema=%r" % schema
-    text += ")"
     return text
 
 
 def _drop_column(schema, tname, column, autogen_context):
-    text = "%(prefix)sdrop_column(%(tname)r, %(cname)r" % {
+    if 'batch_prefix' in autogen_context:
+        template = "%(prefix)sdrop_column(%(cname)r)"
+    else:
+        template = "%(prefix)sdrop_column(%(tname)r, %(cname)r"
+        if schema:
+            template += ", schema=%(schema)r"
+        template += ")"
+
+    text = template % {
         "prefix": _alembic_autogenerate_prefix(autogen_context),
         "tname": tname,
-        "cname": column.name
+        "cname": column.name,
+        "schema": schema
     }
-    if schema:
-        text += ", schema=%r" % schema
-    text += ")"
     return text
 
 
@@ -269,7 +290,13 @@ def _modify_col(tname, cname,
                 existing_server_default=False,
                 schema=None):
     indent = " " * 11
-    text = "%(prefix)salter_column(%(tname)r, %(cname)r" % {
+
+    if 'batch_prefix' in autogen_context:
+        template = "%(prefix)salter_column(%(cname)r"
+    else:
+        template = "%(prefix)salter_column(%(tname)r, %(cname)r"
+
+    text = template % {
         'prefix': _alembic_autogenerate_prefix(
             autogen_context),
         'tname': tname,
@@ -297,7 +324,7 @@ def _modify_col(tname, cname,
             autogen_context)
         text += ",\n%sexisting_server_default=%s" % (
             indent, rendered)
-    if schema:
+    if schema and "batch_prefix" not in autogen_context:
         text += ",\n%sschema=%r" % (indent, schema)
     text += ")"
     return text
@@ -316,7 +343,10 @@ def _sqlalchemy_autogenerate_prefix(autogen_context):
 
 
 def _alembic_autogenerate_prefix(autogen_context):
-    return autogen_context['opts']['alembic_module_prefix'] or ''
+    if 'batch_prefix' in autogen_context:
+        return autogen_context['batch_prefix']
+    else:
+        return autogen_context['opts']['alembic_module_prefix'] or ''
 
 
 def _user_defined_render(type_, object_, autogen_context):

@@ -264,6 +264,7 @@ class EnvironmentContext(object):
                   starting_rev=None,
                   tag=None,
                   template_args=None,
+                  render_as_batch=False,
                   target_metadata=None,
                   include_symbol=None,
                   include_object=None,
@@ -538,6 +539,16 @@ class EnvironmentContext(object):
 
             :paramref:`.EnvironmentContext.configure.include_object`
 
+        :param render_as_batch: if True, commands which alter elements
+         within a table will be placed under a ``with batch_alter_table():``
+         directive, so that batch migrations will take place.
+
+         .. versionadded:: 0.7.0
+
+         .. seealso::
+
+            :ref:`batch_migrations`
+
         :param include_schemas: If True, autogenerate will scan across
          all schemas located by the SQLAlchemy
          :meth:`~sqlalchemy.engine.reflection.Inspector.get_schema_names`
@@ -664,6 +675,7 @@ class EnvironmentContext(object):
         opts['include_symbol'] = include_symbol
         opts['include_object'] = include_object
         opts['include_schemas'] = include_schemas
+        opts['render_as_batch'] = True #render_as_batch
         opts['upgrade_token'] = upgrade_token
         opts['downgrade_token'] = downgrade_token
         opts['sqlalchemy_module_prefix'] = sqlalchemy_module_prefix

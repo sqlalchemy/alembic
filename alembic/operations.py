@@ -190,8 +190,8 @@ class Operations(object):
                 rel_t.append_column(sa_schema.Column(cname, NULLTYPE))
 
     @contextmanager
-    def batch_alter_table(self, table_name, recreate=None):
-        impl = batch.BatchOperationImpl(self, table_name, recreate)
+    def batch_alter_table(self, table_name, schema=None, recreate=None):
+        impl = batch.BatchOperationImpl(self, table_name, schema, recreate)
         batch_op = Operations(self.migration_context, impl=impl)
         yield batch_op
         impl.flush()

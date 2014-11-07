@@ -2,6 +2,7 @@
 automatically."""
 
 import logging
+import itertools
 import re
 
 from ..compat import StringIO
@@ -245,17 +246,30 @@ def _produce_net_changes(connection, metadata, diffs, autogen_context,
 
 
 def _produce_upgrade_commands(diffs, autogen_context):
-    if diffs:
-        for diff in diffs:
-            yield _invoke_command("upgrade", diff, autogen_context)
-    else:
-        yield "pass"
+    return _produce_commands("upgrade", diffs, autogen_context)
 
 
 def _produce_downgrade_commands(diffs, autogen_context):
+    return _produce_commands("downgrade", diffs, autogen_context)
+
+
+def _produce_commands(type_, diffs, autogen_context):
+    opts = autogen_context['opts']
+    render_as_batch = opts.get('render_as_batch', False)
+
     if diffs:
-        for diff in reversed(diffs):
-            yield _invoke_command("downgrade", diff, autogen_context)
+        if type_ == 'downgrade':
+            diffs = reversed(diffs)
+        for (schema, table), subdiffs in _group_diffs_by_table(diffs):
+            if table is not None and render_as_batch:
+                yield "with op.batch_alter_table"\
+                    "(%r, schema=%r) as batch_op:" % (table, schema)
+                autogen_context['batch_prefix'] = 'batch_op.'
+            for diff in subdiffs:
+                yield _invoke_command(type_, diff, autogen_context)
+            if table is not None and render_as_batch:
+                del autogen_context['batch_prefix']
+                yield ""
     else:
         yield "pass"
 
@@ -321,3 +335,23 @@ def _invoke_modify_command(updown, args, autogen_context):
     if "server_default" in kw:
         kw.pop("existing_server_default", None)
     return _modify_col(tname, cname, autogen_context, schema=sname, **kw)
+
+
+def _group_diffs_by_table(diffs):
+    _adddrop = {
+        "table": lambda diff: (None, None),
+        "column": lambda diff: (diff[0], diff[1]),
+        "index": lambda diff: (diff[0].table.schema, diff[0].table.name),
+        "constraint": lambda diff: (diff[0].table.schema, diff[0].table.name)
+    }
+
+    def _derive_table(diff):
+        if isinstance(diff, tuple):
+            cmd_type = diff[0]
+            adddrop, cmd_type = cmd_type.split("_")
+            return _adddrop[cmd_type](diff[1:])
+        else:
+            sname, tname = diff[0][1:3]
+            return sname, tname
+
+    return itertools.groupby(diffs, _derive_table)
