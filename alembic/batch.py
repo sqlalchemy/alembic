@@ -1,5 +1,5 @@
 from sqlalchemy import Table, MetaData, Index, select, Column, \
-    ForeignKeyConstraint
+    ForeignKeyConstraint, cast
 from sqlalchemy import types as sqltypes
 from sqlalchemy.util import OrderedDict
 
@@ -194,23 +194,23 @@ class ApplyBatchImpl(object):
     def alter_column(self, table_name, column_name,
                      nullable=None,
                      server_default=False,
-                     new_column_name=None,
+                     name=None,
                      type_=None,
                      autoincrement=None,
                      **kw
                      ):
         existing = self.columns[column_name]
         existing_transfer = self.column_transfers[column_name]
-        if new_column_name is not None and new_column_name != column_name:
+        if name is not None and name != column_name:
             # note that we don't change '.key' - we keep referring
             # to the renamed column by its old key in _create().  neat!
-            existing.name = new_column_name
-            existing_transfer["name"] = new_column_name
+            existing.name = name
+            existing_transfer["name"] = name
 
         if type_ is not None:
             type_ = sqltypes.to_instance(type_)
             existing.type = type_
-            existing_transfer["typecast"] = type_
+            existing_transfer["expr"] = cast(existing_transfer["expr"], type_)
         if nullable is not None:
             existing.nullable = nullable
         if server_default is not False:
@@ -219,7 +219,9 @@ class ApplyBatchImpl(object):
             existing.autoincrement = bool(autoincrement)
 
     def add_column(self, table_name, column, **kw):
-        self.columns[column.name] = column
+        # we copy the column because operations.add_column()
+        # gives us a Column that is part of a Table already.
+        self.columns[column.name] = column.copy(schema=self.table.schema)
         self.column_transfers[column.name] = {}
 
     def drop_column(self, table_name, column, **kw):
