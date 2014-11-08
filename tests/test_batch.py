@@ -1,6 +1,7 @@
 from contextlib import contextmanager
 import re
 
+from alembic.testing import exclusions
 from alembic.testing import TestBase, eq_, config
 from alembic.testing.fixtures import op_fixture
 from alembic.testing import mock
@@ -470,3 +471,31 @@ class BatchRoundTripTest(TestBase):
             {"id": 4, "data": "9.46", "x": 8, 'data2': 'hi'},
             {"id": 5, "data": "d5", "x": 9, 'data2': 'hi'}
         ])
+
+
+class BatchRoundTripMySQLTest(BatchRoundTripTest):
+    __only_on__ = "mysql"
+
+    @exclusions.fails()
+    def test_rename_column_pk(self):
+        super(BatchRoundTripMySQLTest, self).test_rename_column_pk()
+
+    @exclusions.fails()
+    def test_rename_column(self):
+        super(BatchRoundTripMySQLTest, self).test_rename_column()
+
+    @exclusions.fails()
+    def test_change_type(self):
+        super(BatchRoundTripMySQLTest, self).test_change_type()
+
+
+class BatchRoundTripPostgresqlTest(BatchRoundTripTest):
+    __only_on__ = "postgresql"
+
+    @exclusions.fails()
+    def test_change_type(self):
+        super(BatchRoundTripPostgresqlTest, self).test_change_type()
+
+    @exclusions.fails()
+    def test_add_column_recreate(self):
+        super(BatchRoundTripPostgresqlTest, self).test_add_column_recreate()

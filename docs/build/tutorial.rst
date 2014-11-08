@@ -910,6 +910,39 @@ this within the ``run_migrations_offline()`` function::
     else:
         run_migrations_online()
 
+.. _batch:
+
+Running SQLite "Batch" Migrations
+=================================
+
+The SQLite database presents an inconvenient challenge to migration tools,
+in that it has almost no support for the ALTER statement upon which
+relational schema migrations rely upon.  The rationale for this stems from
+philosophical and architecural concerns within SQLite, and they are unlikely
+to be changed.
+
+Migration tools are instead expected to produce copies of SQLite tables that
+correspond to the new structure, to transfer the data from the existing
+table to the new one, then drop the old table.  In order to accommodate this
+workflow in a way that is reasonably predictable, while remaining compatible
+with other databases, Alembic provides the "batch" operations context.
+This context provides the table recreate plus data copy operation for SQLite,
+and can also be instructed to use this flow for other databases as well,
+providing an alternative scheme in some cases where the blocking behavior of
+some ALTER statements is to be avoided.
+
+Within this context, a relational table is named, and then a series of
+any number of mutation operations to that table then proceed within the
+block.  When the context is complete, the above mentioned table-recreate
+and data copy operation proceeds, but *only* if appropriate for the target
+database; for other databases, the batch context proceeds using traditional
+ALTER statements, unless the context is set to "always".
+
+TODO: "recreate" doesn't work very well for Postgresql due to constraint naming
+TODO: caveats, beta status
+
+
+
 .. _tutorial_constraint_names:
 
 The Importance of Naming Constraints
