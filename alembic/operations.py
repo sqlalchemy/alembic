@@ -749,7 +749,7 @@ class Operations(object):
                 'account',
                 Column('id', INTEGER, primary_key=True),
                 Column('name', VARCHAR(50), nullable=False),
-                Column('description', NVARCHAR(200))
+                Column('description', NVARCHAR(200)),
                 Column('timestamp', TIMESTAMP, server_default=func.now())
             )
 
@@ -769,6 +769,33 @@ class Operations(object):
                 Column('timestamp', TIMESTAMP, server_default=func.now())
             )
 
+        The function also returns a newly created
+        :class:`~sqlalchemy.schema.Table` object, corresponding to the table
+        specification given, which is suitable for
+        immediate SQL operations, in particular
+        :meth:`.Operations.bulk_insert`::
+
+            from sqlalchemy import INTEGER, VARCHAR, NVARCHAR, Column
+            from alembic import op
+
+            account_table = op.create_table(
+                'account',
+                Column('id', INTEGER, primary_key=True),
+                Column('name', VARCHAR(50), nullable=False),
+                Column('description', NVARCHAR(200)),
+                Column('timestamp', TIMESTAMP, server_default=func.now())
+            )
+
+            op.bulk_insert(
+                account_table,
+                [
+                    {"name": "A1", "description": "account 1"},
+                    {"name": "A2", "description": "account 2"},
+                ]
+            )
+
+        .. versionadded:: 0.7.0
+
         :param name: Name of the table
         :param \*columns: collection of :class:`~sqlalchemy.schema.Column`
          objects within
@@ -787,10 +814,16 @@ class Operations(object):
         :param \**kw: Other keyword arguments are passed to the underlying
          :class:`sqlalchemy.schema.Table` object created for the command.
 
+        :return: the :class:`~sqlalchemy.schema.Table` object corresponding
+         to the parameters given.
+
+         .. versionadded:: 0.7.0 - the :class:`~sqlalchemy.schema.Table`
+            object is returned.
+
         """
-        self.impl.create_table(
-            self._table(name, *columns, **kw)
-        )
+        table = self._table(name, *columns, **kw)
+        self.impl.create_table(table)
+        return table
 
     def drop_table(self, name, **kw):
         """Issue a "drop table" instruction using the current

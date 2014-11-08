@@ -176,6 +176,26 @@ class BulkInsertTest(TestBase):
             'SET IDENTITY_INSERT ins_table OFF'
         )
 
+    def test_bulk_insert_from_new_table(self):
+        context = op_fixture("postgresql", True)
+        t1 = op.create_table(
+            "ins_table",
+            Column('id', Integer),
+            Column('v1', String()),
+            Column('v2', String()),
+        )
+        op.bulk_insert(t1, [
+            {'id': 1, 'v1': 'row v1', 'v2': 'row v5'},
+            {'id': 2, 'v1': 'row v2', 'v2': 'row v6'},
+        ])
+        context.assert_(
+            'CREATE TABLE ins_table (id INTEGER, v1 VARCHAR, v2 VARCHAR)',
+            "INSERT INTO ins_table (id, v1, v2) VALUES "
+            "(1, 'row v1', 'row v5')",
+            "INSERT INTO ins_table (id, v1, v2) VALUES "
+            "(2, 'row v2', 'row v6')"
+        )
+
     def test_invalid_format(self):
         context, t1 = self._table_fixture("sqlite", False)
         assert_raises_message(
@@ -262,4 +282,21 @@ class RoundTripTest(TestBase):
                 (1, "d1"),
                 (2, "d2"),
             ]
+        )
+
+    def test_bulk_insert_from_new_table(self):
+        t1 = self.op.create_table(
+            "ins_table",
+            Column('id', Integer),
+            Column('v1', String()),
+            Column('v2', String()),
+        )
+        self.op.bulk_insert(t1, [
+            {'id': 1, 'v1': 'row v1', 'v2': 'row v5'},
+            {'id': 2, 'v1': 'row v2', 'v2': 'row v6'},
+        ])
+        eq_(
+            self.conn.execute(
+                "select id, v1, v2 from ins_table order by id").fetchall(),
+            [(1, u'row v1', u'row v5'), (2, u'row v2', u'row v6')]
         )
