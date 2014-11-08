@@ -1,4 +1,5 @@
-from sqlalchemy import Table, MetaData, Index, select
+from sqlalchemy import Table, MetaData, Index, select, Column, \
+    ForeignKeyConstraint
 from sqlalchemy import types as sqltypes
 from sqlalchemy.util import OrderedDict
 
@@ -51,36 +52,23 @@ class BatchOperationsImpl(object):
 
             batch_impl._create(self.impl)
 
-
     def alter_column(self, *arg, **kw):
-        self.batch.append(
-            ("alter_column", arg, kw)
-        )
+        self.batch.append(("alter_column", arg, kw))
 
     def add_column(self, *arg, **kw):
-        self.batch.append(
-            ("add_column", arg, kw)
-        )
+        self.batch.append(("add_column", arg, kw))
 
     def drop_column(self, *arg, **kw):
-        self.batch.append(
-            ("drop_column", arg, kw)
-        )
+        self.batch.append(("drop_column", arg, kw))
 
     def add_constraint(self, const):
-        self.batch.append(
-            ("add_constraint", (const,), {})
-        )
+        self.batch.append(("add_constraint", (const,), {}))
 
     def drop_constraint(self, const):
-        self.batch.append(
-            ("drop_constraint", (const, ), {})
-        )
+        self.batch.append(("drop_constraint", (const, ), {}))
 
     def rename_table(self, *arg, **kw):
-        self.batch.append(
-            ("rename_table", arg, kw)
-        )
+        self.batch.append(("rename_table", arg, kw))
 
     def create_table(self, table):
         raise NotImplementedError("Can't create table in batch mode")
@@ -98,7 +86,8 @@ class BatchOperationsImpl(object):
 class ApplyBatchImpl(object):
     def __init__(self, table):
         self.table = table  # this is a Table object
-        self.column_transfers = dict(
+        self.new_table = None
+        self.column_transfers = OrderedDict(
             (c.name, {}) for c in self.table.c
         )
         self._grab_table_elements()
@@ -122,29 +111,51 @@ class ApplyBatchImpl(object):
             self.indexes[idx.name] = idx
 
     def _transfer_elements_to_new_table(self):
+        assert self.new_table is None, "Can only create new table once"
+
         m = MetaData()
         schema = self.table.schema
-        new_table = Table(
+        self.new_table = new_table = Table(
             '_alembic_batch_temp', m, *self.columns.values(), schema=schema)
 
-        for c in list(self.named_constraints.values()) + \
+        for const in list(self.named_constraints.values()) + \
                 self.unnamed_constraints:
-            c_copy = c.copy(schema=schema, target_table=new_table)
-            new_table.append_constraint(c_copy)
+            const_columns = set([c.key for c in const.columns])
+            if not const_columns.issubset(self.column_transfers):
+                continue
+            const_copy = const.copy(schema=schema, target_table=new_table)
+            if isinstance(const, ForeignKeyConstraint):
+                self._setup_referent(m, const)
+            new_table.append_constraint(const_copy)
 
         for index in self.indexes.values():
             Index(index.name,
                   unique=index.unique,
                   *[new_table.c[col] for col in index.columns.keys()],
                   **index.kwargs)
-        return new_table
+
+    def _setup_referent(self, metadata, constraint):
+        spec = constraint.elements[0]._get_colspec()
+        parts = spec.split(".")
+        tname = parts[-2]
+        if len(parts) == 3:
+            referent_schema = parts[0]
+        else:
+            referent_schema = None
+        if tname != '_alembic_batch_temp':
+            Table(
+                tname, metadata,
+                *[Column(n, sqltypes.NULLTYPE) for n in
+                    [elem._get_colspec().split(".")[-1]
+                     for elem in constraint.elements]],
+                schema=referent_schema)
 
     def _create(self, op_impl):
-        new_table = self._transfer_elements_to_new_table()
-        op_impl.create_table(new_table)
+        self._transfer_elements_to_new_table()
+        op_impl.create_table(self.new_table)
 
-        op_impl.bind.execute(
-            new_table.insert(inline=True).from_select(
+        op_impl._exec(
+            self.new_table.insert(inline=True).from_select(
                 list(self.column_transfers.keys()),
                 select([
                     self.table.c[key]
