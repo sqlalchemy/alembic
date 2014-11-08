@@ -6,6 +6,15 @@ Changelog
     :version: 0.7.0
 
     .. change::
+      :tags: feature, operations
+      :tickets: 205
+
+      The :class:`~sqlalchemy.schema.Table` object is now returned when
+      the :meth:`.Operations.create_table` method is used.  This ``Table``
+      is suitable for use in subsequent SQL operations, in particular
+      the :meth:`.Operations.bulk_insert` operation.
+
+    .. change::
       :tags: feature, autogenerate
       :tickets: 203
 

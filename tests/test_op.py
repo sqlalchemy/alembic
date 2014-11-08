@@ -699,7 +699,7 @@ class OpTest(TestBase):
 
     def test_create_table_fk_and_schema(self):
         context = op_fixture()
-        op.create_table(
+        t1 = op.create_table(
             "some_table",
             Column('id', Integer, primary_key=True),
             Column('foo_id', Integer, ForeignKey('foo.id')),
@@ -712,10 +712,12 @@ class OpTest(TestBase):
             "PRIMARY KEY (id), "
             "FOREIGN KEY(foo_id) REFERENCES foo (id))"
         )
+        eq_(t1.c.id.name, "id")
+        eq_(t1.schema, "schema")
 
     def test_create_table_no_pk(self):
         context = op_fixture()
-        op.create_table(
+        t1 = op.create_table(
             "some_table",
             Column('x', Integer),
             Column('y', Integer),
@@ -724,6 +726,7 @@ class OpTest(TestBase):
         context.assert_(
             "CREATE TABLE some_table (x INTEGER, y INTEGER, z INTEGER)"
         )
+        assert not t1.primary_key
 
     def test_create_table_two_fk(self):
         context = op_fixture()
