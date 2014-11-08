@@ -5,7 +5,8 @@ from sqlalchemy.util import OrderedDict
 
 
 class BatchOperationsImpl(object):
-    def __init__(self, operations, table_name, schema, recreate, copy_from):
+    def __init__(self, operations, table_name, schema, recreate,
+                 copy_from, table_args, table_kwargs):
         self.operations = operations
         self.table_name = table_name
         self.schema = schema
@@ -14,6 +15,8 @@ class BatchOperationsImpl(object):
                 "recreate may be one of 'auto', 'always', or 'never'.")
         self.recreate = recreate
         self.copy_from = copy_from
+        self.table_args = table_args
+        self.table_kwargs = table_kwargs
         self.batch = []
 
     @property
@@ -45,7 +48,8 @@ class BatchOperationsImpl(object):
                 self.table_name, m1, schema=self.schema,
                 autoload=True, autoload_with=self.operations.get_bind())
 
-            batch_impl = ApplyBatchImpl(existing_table)
+            batch_impl = ApplyBatchImpl(
+                existing_table, self.table_args, self.table_kwargs)
             for opname, arg, kw in self.batch:
                 fn = getattr(batch_impl, opname)
                 fn(*arg, **kw)
@@ -84,11 +88,13 @@ class BatchOperationsImpl(object):
 
 
 class ApplyBatchImpl(object):
-    def __init__(self, table):
+    def __init__(self, table, table_args, table_kwargs):
         self.table = table  # this is a Table object
+        self.table_args = table_args
+        self.table_kwargs = table_kwargs
         self.new_table = None
         self.column_transfers = OrderedDict(
-            (c.name, {}) for c in self.table.c
+            (c.name, {'expr': c}) for c in self.table.c
         )
         self._grab_table_elements()
 
@@ -116,11 +122,17 @@ class ApplyBatchImpl(object):
         m = MetaData()
         schema = self.table.schema
         self.new_table = new_table = Table(
-            '_alembic_batch_temp', m, *self.columns.values(), schema=schema)
+            '_alembic_batch_temp', m,
+            *(list(self.columns.values()) + list(self.table_args)),
+            schema=schema,
+            **self.table_kwargs)
 
         for const in list(self.named_constraints.values()) + \
                 self.unnamed_constraints:
-            const_columns = set([c.key for c in const.columns])
+
+            const_columns = set([
+                c.key for c in self._constraint_columns(const)])
+
             if not const_columns.issubset(self.column_transfers):
                 continue
             const_copy = const.copy(schema=schema, target_table=new_table)
@@ -133,6 +145,12 @@ class ApplyBatchImpl(object):
                   unique=index.unique,
                   *[new_table.c[col] for col in index.columns.keys()],
                   **index.kwargs)
+
+    def _constraint_columns(self, constraint):
+        if isinstance(constraint, ForeignKeyConstraint):
+            return [fk.parent for fk in constraint.elements]
+        else:
+            return list(constraint.columns)
 
     def _setup_referent(self, metadata, constraint):
         spec = constraint.elements[0]._get_colspec()
@@ -156,10 +174,12 @@ class ApplyBatchImpl(object):
 
         op_impl._exec(
             self.new_table.insert(inline=True).from_select(
-                list(self.column_transfers.keys()),
+                list(k for k, transfer in
+                     self.column_transfers.items() if 'expr' in transfer),
                 select([
-                    self.table.c[key]
-                    for key in self.column_transfers
+                    transfer['expr']
+                    for transfer in self.column_transfers.values()
+                    if 'expr' in transfer
                 ])
             )
         )
@@ -200,16 +220,24 @@ class ApplyBatchImpl(object):
 
     def add_column(self, table_name, column, **kw):
         self.columns[column.name] = column
+        self.column_transfers[column.name] = {}
 
     def drop_column(self, table_name, column, **kw):
         del self.columns[column.name]
         del self.column_transfers[column.name]
 
     def add_constraint(self, const):
-        raise NotImplementedError("TODO")
+        if not const.name:
+            raise ValueError("Constraint must have a name")
+        self.named_constraints[const.name] = const
 
     def drop_constraint(self, const):
-        raise NotImplementedError("TODO")
+        if not const.name:
+            raise ValueError("Constraint must have a name")
+        try:
+            del self.named_constraints[const.name]
+        except KeyError:
+            raise ValueError("No such constraint: '%s'" % const.name)
 
     def rename_table(self, *arg, **kw):
         raise NotImplementedError("TODO")

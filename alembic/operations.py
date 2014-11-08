@@ -191,7 +191,8 @@ class Operations(object):
 
     @contextmanager
     def batch_alter_table(
-            self, table_name, schema=None, recreate="auto", copy_from=None):
+            self, table_name, schema=None, recreate="auto", copy_from=None,
+            table_args=(), table_kwargs=util.immutabledict()):
         """Invoke a series of per-table migrations in batch.
 
         Batch mode allows a series of operations specific to a table
@@ -250,6 +251,16 @@ class Operations(object):
         :param copy_from: optional :class:`~sqlalchemy.schema.Table` object
          that will act as the structure of the table being copied.  If omitted,
          table reflection is used to retrieve the structure of the table.
+        :param table_args: a sequence of additional positional arguments that
+         will be applied to the new :class:`~sqlalchemy.schema.Table` when
+         created, in addition to those copied from the source table.
+         This may be used to provide additional constraints such as CHECK
+         constraints that may not be reflected.
+        :param table_kwargs: a dictionary of additional keyword arguments
+         that will be applied to the new :class:`~sqlalchemy.schema.Table`
+         when created, in addition to those copied from the source table.
+         This may be used to provide for additional table options that may
+         not be reflected.
 
         .. versionadded:: 0.7.0
 
@@ -259,7 +270,8 @@ class Operations(object):
 
         """
         impl = batch.BatchOperationsImpl(
-            self, table_name, schema, recreate, copy_from)
+            self, table_name, schema, recreate,
+            copy_from, table_args, table_kwargs)
         batch_op = BatchOperations(self.migration_context, impl=impl)
         yield batch_op
         impl.flush()
@@ -1265,6 +1277,11 @@ class BatchOperations(Operations):
 
     """
 
+    def _noop(self, operation):
+        raise NotImplementedError(
+            "The %s method does not apply to a batch table alter operation."
+            % operation)
+
     def add_column(self, column):
         """Issue an "add column" instruction using the current
         batch migration context.
@@ -1316,11 +1333,8 @@ class BatchOperations(Operations):
 
         """
 
-    def create_foreign_key(self, name, referent, local_cols,
-                           remote_cols, onupdate=None, ondelete=None,
-                           deferrable=None, initially=None, match=None,
-                           referent_schema=None,
-                           **dialect_kw):
+    def create_foreign_key(
+            self, name, referent, local_cols, remote_cols, **kw):
         """Issue a "create foreign key" instruction using the
         current batch migration context.
 
@@ -1339,6 +1353,8 @@ class BatchOperations(Operations):
             :meth:`.Operations.create_foreign_key`
 
         """
+        return super(BatchOperations, self).create_foreign_key(
+            name, self.impl.table_name, referent, local_cols, remote_cols,)
 
     def create_unique_constraint(self, name, local_cols, **kw):
         """Issue a "create unique constraint" instruction using the
@@ -1352,6 +1368,8 @@ class BatchOperations(Operations):
             :meth:`.Operations.create_unique_constraint`
 
         """
+        return super(BatchOperations, self).create_unique_constraint(
+            name, self.impl.table_name, local_cols, **kw)
 
     def create_check_constraint(self, name, condition, **kw):
         """Issue a "create check constraint" instruction using the
@@ -1363,33 +1381,6 @@ class BatchOperations(Operations):
         .. seealso::
 
             :meth:`.Operations.create_check_constraint`
-
-        """
-
-    def create_index(self, name, table_name, columns, schema=None,
-                     unique=False, quote=None, **kw):
-        """Issue a "create index" instruction using the
-        current batch migration context.
-
-        The batch form of this call omits the ``table_name`` and ``schema``
-        arguments from the call.
-
-        .. seealso::
-
-            :meth:`.Operations.create_index`
-
-        """
-
-    def drop_index(self, name):
-        """Issue a "drop index" instruction using the
-        current batch migration context.
-
-        The batch form of this call omits the ``table_name`` and ``schema``
-        arguments from the call.
-
-        .. seealso::
-
-            :meth:`.Operations.drop_index`
 
         """
 
@@ -1405,3 +1396,14 @@ class BatchOperations(Operations):
             :meth:`.Operations.drop_constraint`
 
         """
+        return super(BatchOperations, self).drop_constraint(
+            name, self.impl.table_name, type_=type_)
+
+    def create_index(self, *arg, **kw):
+        """Not implemented for batch table operations."""
+        self._noop("create_index")
+
+    def drop_index(self, name):
+        """Not implemented for batch table operations."""
+        self._noop("drop_index")
+
