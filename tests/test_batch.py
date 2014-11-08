@@ -155,12 +155,12 @@ class BatchAPITest(TestBase):
 
         with mock.patch("alembic.operations.sa_schema") as mock_schema:
             yield batch
+        batch.impl.flush()
         self.mock_schema = mock_schema
 
     def test_drop_col(self):
         with self._fixture() as batch:
             batch.drop_column('q')
-            batch.impl.flush()
 
         eq_(
             batch.impl.operations.impl.mock_calls,
@@ -173,7 +173,6 @@ class BatchAPITest(TestBase):
 
         with self._fixture() as batch:
             batch.add_column(column)
-            batch.impl.flush()
 
         eq_(
             batch.impl.operations.impl.mock_calls,
