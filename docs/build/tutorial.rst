@@ -930,7 +930,7 @@ to be changed.
 Migration tools are instead expected to produce copies of SQLite tables that
 correspond to the new structure, transfer the data from the existing
 table to the new one, then drop the old table.  For our purposes here
-we'll call this **"move and copy" workflow**, and in order to accommodate it
+we'll call this **"move and copy"** workflow, and in order to accommodate it
 in a way that is reasonably predictable, while also remaining compatible
 with other databases, Alembic provides the **batch** operations context.
 
