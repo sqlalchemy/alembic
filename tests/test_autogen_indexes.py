@@ -672,11 +672,11 @@ class IncludeHooksTest(AutogenFixtureTest, TestBase):
         m1 = MetaData()
         m2 = MetaData()
 
-        t1 = Table('t', m1, Column('x', Integer))
+        t1 = Table('t', m1, Column('x', Integer), Column('y', Integer))
         Index('ix1', t1.c.x)
-        Index('ix2', t1.c.x)
+        Index('ix2', t1.c.y)
 
-        Table('t', m2, Column('x', Integer))
+        Table('t', m2, Column('x', Integer), Column('y', Integer))
 
         def include_object(object_, name, type_, reflected, compare_to):
             if type_ == 'unique_constraint':
@@ -767,13 +767,17 @@ class IncludeHooksTest(AutogenFixtureTest, TestBase):
         m1 = MetaData()
         m2 = MetaData()
 
-        t1 = Table('t', m1, Column('x', Integer), Column('y', Integer))
+        t1 = Table(
+            't', m1, Column('x', Integer),
+            Column('y', Integer), Column('z', Integer))
         Index('ix1', t1.c.x)
-        Index('ix2', t1.c.x)
+        Index('ix2', t1.c.y)
 
-        t2 = Table('t', m2, Column('x', Integer), Column('y', Integer))
+        t2 = Table(
+            't', m2, Column('x', Integer),
+            Column('y', Integer), Column('z', Integer))
         Index('ix1', t2.c.x, t2.c.y)
-        Index('ix2', t2.c.x, t2.c.y)
+        Index('ix2', t2.c.x, t2.c.z)
 
         def include_object(object_, name, type_, reflected, compare_to):
             return not (
