@@ -910,10 +910,14 @@ this within the ``run_migrations_offline()`` function::
     else:
         run_migrations_online()
 
-.. _batch:
+.. _batch_migrations:
 
 Running SQLite "Batch" Migrations
 =================================
+
+.. note:: "Batch mode" for SQLite and other databases is a very new
+   and intricate feature within the 0.7.0 series of Alembic, and should be
+   considered as "beta" mode for the next several releases.
 
 The SQLite database presents an inconvenient challenge to migration tools,
 in that it has almost no support for the ALTER statement upon which
@@ -958,6 +962,79 @@ there were no batch directive - the batch context by default only does
 the "move and copy" process if SQLite is in use.   It can be configured
 to run "move and copy" on other backends as well, if desired.
 
+On the SQLite backend, the "move and copy" process will occur provided there
+are directives other than :meth:`.Operations.add_column` present; SQLite
+does support ALTER in the case of adding a new column.
+
+.. versionadded:: 0.7.0
+
+Dealing with Constraints
+------------------------
+
+One area of difficulty with batch mode is that of constraints.  If
+the SQLite database is enforcing referential integrity with
+``PRAGMA FOREIGN KEYS``, this pragma may need to be disabled when batch
+mode proceeds, else tables which refer to this one may prevent the table
+from being dropped.   Batch mode doesn't handle this case automatically as of
+yet.   SQLite is normally used without referential integrity enabled so
+this won't be a problem for most users.
+
+Batch mode also currently does not account for CHECK constraints, assuming
+table reflection is used.   If the table being recreated has any CHECK
+constraints, they need to be specified explicitly, such as using
+:paramref:`.Operations.batch_alter_table.table_args`::
+
+    with op.batch_alter_table("some_table", table_args=[
+          CheckConstraint('x > 5')
+      ]) as batch_op:
+        batch_op.add_column(Column('foo', Integer))
+        batch_op.drop_column('bar')
+
+For UNIQUE constraints, SQLite unlike any other database supports the concept
+of a UNIQUE constraint that has no name at all; all other backends always
+assign a name of some kind to all constraints that are otherwise not named
+when they are created.   In SQLAlchemy, an unnamed UNIQUE constraint is
+implicit when the ``unique=True`` flag is present on a
+:class:`~sqlalchemy.schema.Column`, so on SQLite these constraints will
+remain unnamed.
+
+The issue here is that SQLAlchemy until version 1.0 does not report on these
+SQLite-only unnamed constraints when the table is reflected.   So to support
+the recreation of unnamed UNIQUE constraints, either they should be named
+in the first place, or again specified within
+:paramref:`.Operations.batch_alter_table.table_args`.
+
+Working in Offline Mode
+-----------------------
+
+Another big limitation of batch mode is that in order to make a copy
+of a table, the structure of that table must be known.
+:meth:`.Operations.batch_alter_table` by default will use reflection to
+get this information, which means that "online" mode is required; the
+``--sql`` flag **cannot** be used without extra steps.
+
+To support offline mode, the system must work without table reflection
+present, which means the full table as it intends to be created must be
+passed to :meth:`.Operations.batch_alter_table` using
+:paramref:`.Operations.batch_alter_table.copy_from`::
+
+    meta = MetaData()
+    some_table = Table(
+        'some_table', meta,
+        Column('id', Integer, primary_key=True),
+        Column('bar', String(50))
+    )
+
+    with op.batch_alter_table("some_table", copy_from=some_table) as batch_op:
+        batch_op.add_column(Column('foo', Integer))
+        batch_op.drop_column('bar')
+
+The above use pattern is pretty tedious and quite far off from Alembic's
+preferred style of working; however, if one needs to do SQLite-compatible
+migrations and need them to run in "offline" mode, there's not much
+alternative.
+
+
 Batch mode with Autogenerate
 ----------------------------
 
@@ -983,6 +1060,12 @@ Autogenerate will now generate along the lines of::
         with op.batch_alter_table('address', schema=None) as batch_op:
             batch_op.add_column(sa.Column('street', sa.String(length=50), nullable=True))
 
+This mode is safe to use in all cases, as the :meth:`.Operations.batch_alter_table`
+directive by default only takes place for SQLite; other backends will
+behave just as they normally do in the absense of the batch directives.
+
+Note that autogenerate support does not include "offline" mode, where
+the :paramref:`.Operations.batch_alter_table.copy_from` parameter is used.
 
 Batch mode with databases other than SQLite
 --------------------------------------------
@@ -999,12 +1082,27 @@ backend if the flag ``recreate='always'`` is passed::
     with op.batch_alter_table("some_table", recreate='always') as batch_op:
         batch_op.add_column(Column('foo', Integer))
 
+The issues that arise in this mode are mostly to do with constraints.
+Databases such as Postgresql and MySQL with InnoDB will enforce referential
+integrity (e.g. via foreign keys) in all cases.   Unlike SQLite, it's not
+as simple to turn off referential integrity across the board (nor would it
+be desirable).  Therefore when using batch on a table, it will be necessary
+to manually disable and/or temporarily drop any foreign keys that refer
+to the target table; batch mode currently does not provide any automation
+for this.
 
+The Postgresql database and possibly others also have the behavior such
+that when the new table is created, a naming conflict occurs with the
+named constraints of the new table, in that they match those of the old
+table, and on Postgresql, these names need to be unique across all tables.
+The Postgresql dialect will therefore emit a "DROP CONSTRAINT" directive
+for all constraints on the old table before the new one is created; this is
+"safe" in case of a failed operation because Postgresql also supports
+transactional DDL.
 
-
-TODO: "recreate" doesn't work very well for Postgresql due to constraint naming
-TODO: caveats, beta status
-
+Note that also as is the case with SQLite, CHECK constraints need to be
+moved over between old and new table manually using the
+:paramref:`.Operations.batch_alter_table.table_args` parameter.
 
 
 .. _tutorial_constraint_names:
