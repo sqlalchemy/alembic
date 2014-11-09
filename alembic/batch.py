@@ -170,6 +170,8 @@ class ApplyBatchImpl(object):
 
     def _create(self, op_impl):
         self._transfer_elements_to_new_table()
+
+        op_impl.prep_table_for_batch(self.table)
         op_impl.create_table(self.new_table)
 
         op_impl._exec(

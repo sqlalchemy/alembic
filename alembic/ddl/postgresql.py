@@ -14,6 +14,10 @@ class PostgresqlImpl(DefaultImpl):
     __dialect__ = 'postgresql'
     transactional_ddl = True
 
+    def prep_table_for_batch(self, table):
+        for constraint in table.constraints:
+            self.drop_constraint(constraint)
+
     def compare_server_default(self, inspector_column,
                                metadata_column,
                                rendered_metadata_default,

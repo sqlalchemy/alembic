@@ -74,6 +74,16 @@ class DefaultImpl(with_metaclass(ImplMeta)):
         """
         return False
 
+    def prep_table_for_batch(self, table):
+        """perform any operations needed on a table before a new
+        one is created to replace it in batch mode.
+
+        the PG dialect uses this to drop constraints on the table
+        before the new one uses those same names.
+
+        """
+
+
     @property
     def bind(self):
         return self.connection

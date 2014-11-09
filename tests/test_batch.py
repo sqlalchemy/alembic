@@ -362,6 +362,7 @@ class BatchRoundTripTest(TestBase):
             Column('x', Integer)
         )
         t1.create(self.conn)
+
         self.conn.execute(
             t1.insert(),
             [
@@ -399,6 +400,18 @@ class BatchRoundTripTest(TestBase):
 
     def test_drop_column(self):
         with self.op.batch_alter_table("foo") as batch_op:
+            batch_op.drop_column('data')
+
+        self._assert_data([
+            {"id": 1, "x": 5},
+            {"id": 2, "x": 6},
+            {"id": 3, "x": 7},
+            {"id": 4, "x": 8},
+            {"id": 5, "x": 9}
+        ])
+
+    def test_drop_column_fk_recreate(self):
+        with self.op.batch_alter_table("foo", recreate='always') as batch_op:
             batch_op.drop_column('data')
 
         self._assert_data([
@@ -496,6 +509,3 @@ class BatchRoundTripPostgresqlTest(BatchRoundTripTest):
     def test_change_type(self):
         super(BatchRoundTripPostgresqlTest, self).test_change_type()
 
-    @exclusions.fails()
-    def test_add_column_recreate(self):
-        super(BatchRoundTripPostgresqlTest, self).test_add_column_recreate()
