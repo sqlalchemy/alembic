@@ -65,7 +65,7 @@ class BatchApplyTest(TestBase):
         t = Table(
             'tname', m,
             Column('id', Integer, primary_key=True),
-            Column('parent_id', ForeignKey('tname.id')),
+            Column('parent_id', Integer, ForeignKey('tname.id')),
             Column('data', String)
         )
         return ApplyBatchImpl(t, table_args, table_kwargs)
