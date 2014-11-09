@@ -7,7 +7,7 @@ from . import util, batch
 from .compat import string_types
 from .ddl import impl
 
-__all__ = ('Operations',)
+__all__ = ('Operations', 'BatchOperations')
 
 try:
     from sqlalchemy.sql.naming import conv
@@ -263,6 +263,8 @@ class Operations(object):
          not be reflected.
 
         .. versionadded:: 0.7.0
+
+        .. note:: batch mode requires SQLAlchemy 0.8 or above.
 
         .. seealso::
 

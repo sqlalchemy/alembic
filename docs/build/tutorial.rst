@@ -912,41 +912,48 @@ this within the ``run_migrations_offline()`` function::
 
 .. _batch_migrations:
 
-Running SQLite "Batch" Migrations
-=================================
+Running "Batch" Migrations for SQLite and Other Databases
+=========================================================
 
-.. note:: "Batch mode" for SQLite and other databases is a very new
-   and intricate feature within the 0.7.0 series of Alembic, and should be
-   considered as "beta" mode for the next several releases.
+.. note:: "Batch mode" for SQLite and other databases is a new and intricate
+   feature within the 0.7.0 series of Alembic, and should be
+   considered as "beta" for the next several releases.
 
-The SQLite database presents an inconvenient challenge to migration tools,
+.. versionadded:: 0.7.0
+
+The SQLite database presents a challenge to migration tools
 in that it has almost no support for the ALTER statement upon which
 relational schema migrations rely upon.  The rationale for this stems from
-philosophical and architecural concerns within SQLite, and they are unlikely
+philosophical and architectural concerns within SQLite, and they are unlikely
 to be changed.
 
 Migration tools are instead expected to produce copies of SQLite tables that
-correspond to the new structure, to transfer the data from the existing
-table to the new one, then drop the old table.  In order to accommodate this
-workflow in a way that is reasonably predictable, while remaining compatible
-with other databases, Alembic provides the "batch" operations context.
+correspond to the new structure, transfer the data from the existing
+table to the new one, then drop the old table.  For our purposes here
+we'll call this **"move and copy" workflow**, and in order to accommodate it
+in a way that is reasonably predictable, while also remaining compatible
+with other databases, Alembic provides the **batch** operations context.
 
 Within this context, a relational table is named, and then a series of
-any number of mutation operations to that table may be specified within
+mutation operations to that table alone are specified within
 the block.  When the context is complete, a process begins whereby the
-existing table structure is reflected from the database, a new version of
-this table is created with the given changes, data is copied from the
-old table to the new table, and finally the old table is dropped and the
-new one renamed to the original name.
+"move and copy" procedure begins; the existing table structure is reflected
+from the database, a new version of this table is created with the given
+changes, data is copied from the
+old table to the new table using "INSERT from SELECT", and finally the old
+table is dropped and the new one renamed to the original name.
 
-The :meth:`.Operations.batch_alter_table` provides the gateway to this
+The :meth:`.Operations.batch_alter_table` method provides the gateway to this
 process::
 
     with op.batch_alter_table("some_table") as batch_op:
         batch_op.add_column(Column('foo', Integer))
         batch_op.drop_column('bar')
 
-With the above directives, on a SQLite backend we would see SQL like::
+When the above directives are invoked within a migration script, on a
+SQLite backend we would see SQL like:
+
+.. sourcecode:: sql
 
     CREATE TABLE _alembic_batch_temp (
       id INTEGER NOT NULL,
@@ -959,27 +966,29 @@ With the above directives, on a SQLite backend we would see SQL like::
 
 On other backends, we'd see the usual ``ALTER`` statements done as though
 there were no batch directive - the batch context by default only does
-the "move and copy" process if SQLite is in use.   It can be configured
-to run "move and copy" on other backends as well, if desired.
+the "move and copy" process if SQLite is in use, and if there are
+migration directives other than :meth:`.Operations.add_column` present,
+which is the one kind of column-level ALTER statement that SQLite supports.
+:meth:`.Operations.batch_alter_table` can be configured
+to run "move and copy" unconditionally in all cases, including on databases
+other than SQLite; more on this is below.
 
-On the SQLite backend, the "move and copy" process will occur provided there
-are directives other than :meth:`.Operations.add_column` present; SQLite
-does support ALTER in the case of adding a new column.
-
-.. versionadded:: 0.7.0
 
 Dealing with Constraints
 ------------------------
 
-One area of difficulty with batch mode is that of constraints.  If
+One area of difficulty with "move and copy" is that of constraints.  If
 the SQLite database is enforcing referential integrity with
-``PRAGMA FOREIGN KEYS``, this pragma may need to be disabled when batch
-mode proceeds, else tables which refer to this one may prevent the table
-from being dropped.   Batch mode doesn't handle this case automatically as of
-yet.   SQLite is normally used without referential integrity enabled so
-this won't be a problem for most users.
+``PRAGMA FOREIGN KEYS``, this pragma may need to be disabled when the workflow
+mode proceeds, else remote constraints which refer to this table may prevent
+it from being dropped; additionally, for referential integrity to be
+re-enabled, it may be necessary to recreate the
+foreign keys on those remote tables to refer again to the new table (this
+is definitely the case on other databases, at least).  SQLite is normally used
+without referential integrity enabled so this won't be a problem for most
+users.
 
-Batch mode also currently does not account for CHECK constraints, assuming
+"Move and copy" also currently does not account for CHECK constraints, assuming
 table reflection is used.   If the table being recreated has any CHECK
 constraints, they need to be specified explicitly, such as using
 :paramref:`.Operations.batch_alter_table.table_args`::
@@ -1007,7 +1016,7 @@ in the first place, or again specified within
 Working in Offline Mode
 -----------------------
 
-Another big limitation of batch mode is that in order to make a copy
+Another big limitation of "move and copy" is that in order to make a copy
 of a table, the structure of that table must be known.
 :meth:`.Operations.batch_alter_table` by default will use reflection to
 get this information, which means that "online" mode is required; the
@@ -1031,8 +1040,8 @@ passed to :meth:`.Operations.batch_alter_table` using
 
 The above use pattern is pretty tedious and quite far off from Alembic's
 preferred style of working; however, if one needs to do SQLite-compatible
-migrations and need them to run in "offline" mode, there's not much
-alternative.
+"move and copy" migrations and need them to generate flat SQL files in
+"offline" mode, there's not much alternative.
 
 
 Batch mode with Autogenerate
@@ -1066,6 +1075,8 @@ behave just as they normally do in the absense of the batch directives.
 
 Note that autogenerate support does not include "offline" mode, where
 the :paramref:`.Operations.batch_alter_table.copy_from` parameter is used.
+The table definition here would need to be entered into migration files
+manually if this is needed.
 
 Batch mode with databases other than SQLite
 --------------------------------------------
@@ -1073,7 +1084,7 @@ Batch mode with databases other than SQLite
 There's an odd use case some shops have, where the "move and copy" style
 of migration is useful in some cases for databases that do already support
 ALTER.   There's some cases where an ALTER operation may block access to the
-table for a long time, which might not be acceptable.   "move and copy" can
+table for a long time, which might not be acceptable.  "move and copy" can
 be made to work on other backends, though with a few extra caveats.
 
 The batch mode directive will run the "recreate" system regardless of
@@ -1086,10 +1097,11 @@ The issues that arise in this mode are mostly to do with constraints.
 Databases such as Postgresql and MySQL with InnoDB will enforce referential
 integrity (e.g. via foreign keys) in all cases.   Unlike SQLite, it's not
 as simple to turn off referential integrity across the board (nor would it
-be desirable).  Therefore when using batch on a table, it will be necessary
-to manually disable and/or temporarily drop any foreign keys that refer
-to the target table; batch mode currently does not provide any automation
-for this.
+be desirable).    Since a new table is replacing the old one, existing
+foreign key constraints which refer to the target table will need to be
+unconditionally dropped before the batch operation, and re-created to refer
+to the new table afterwards.  Batch mode currently does not provide any
+automation for this.
 
 The Postgresql database and possibly others also have the behavior such
 that when the new table is created, a naming conflict occurs with the

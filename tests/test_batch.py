@@ -16,6 +16,8 @@ from sqlalchemy.schema import CreateTable
 
 
 class BatchApplyTest(TestBase):
+    __requires__ = ('sqlalchemy_08', )
+
     def setUp(self):
         self.op = Operations(mock.Mock(opts={}))
 
@@ -257,6 +259,8 @@ class BatchApplyTest(TestBase):
 
 
 class BatchAPITest(TestBase):
+    __requires__ = ('sqlalchemy_08', )
+
     @contextmanager
     def _fixture(self):
         migration_context = mock.Mock(opts={})
@@ -351,6 +355,7 @@ class BatchAPITest(TestBase):
 
 
 class BatchRoundTripTest(TestBase):
+    __requires__ = ('sqlalchemy_08', )
     __only_on__ = "sqlite"
 
     def setUp(self):
@@ -360,7 +365,8 @@ class BatchRoundTripTest(TestBase):
             'foo', self.metadata,
             Column('id', Integer, primary_key=True),
             Column('data', String(50)),
-            Column('x', Integer)
+            Column('x', Integer),
+            mysql_engine='InnoDB'
         )
         t1.create(self.conn)
 
@@ -386,6 +392,30 @@ class BatchRoundTripTest(TestBase):
             [dict(row) for row in self.conn.execute("select * from foo")],
             data
         )
+
+    def test_fk_points_to_me_auto(self):
+        self._test_fk_points_to_me("auto")
+
+    # in particular, this tests that the failures
+    # on PG and MySQL result in recovery of the batch system,
+    # e.g. that the _alembic_batch_temp table is dropped
+    @config.requirements.no_referential_integrity
+    def test_fk_points_to_me_recreate(self):
+        self._test_fk_points_to_me("always")
+
+    def _test_fk_points_to_me(self, recreate):
+        bar = Table(
+            'bar', self.metadata,
+            Column('id', Integer, primary_key=True),
+            Column('foo_id', Integer, ForeignKey('foo.id')),
+            mysql_engine='InnoDB'
+        )
+        bar.create(self.conn)
+        self.conn.execute(bar.insert(), {'id': 1, 'foo_id': 3})
+
+        with self.op.batch_alter_table("foo", recreate=recreate) as batch_op:
+            batch_op.alter_column(
+                'data', new_column_name='newdata', existing_type=String(50))
 
     def test_change_type(self):
         with self.op.batch_alter_table("foo") as batch_op:

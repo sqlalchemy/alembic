@@ -13,3 +13,9 @@ class DefaultRequirements(SuiteRequirements):
             "sqlite",
             "firebird"
         ], "no schema support")
+
+    @property
+    def no_referential_integrity(self):
+        """test will fail if referential integrity is enforced"""
+
+        return exclusions.fails_on_everything_except("sqlite")
