@@ -58,7 +58,7 @@ class AutogenTest(object):
         clear_staging_env()
 
     def setUp(self):
-        conn = self.bind.connect()
+        self.conn = conn = self.bind.connect()
         ctx_opts = {
             'compare_type': True,
             'compare_server_default': True,
@@ -82,6 +82,9 @@ class AutogenTest(object):
             'dialect': connection.dialect,
             'context': context
         }
+
+    def tearDown(self):
+        self.conn.close()
 
 
 class AutogenFixtureTest(object):

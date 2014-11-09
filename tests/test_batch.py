@@ -355,8 +355,9 @@ class BatchRoundTripTest(TestBase):
 
     def setUp(self):
         self.conn = config.db.connect()
+        self.metadata = MetaData()
         t1 = Table(
-            'foo', MetaData(),
+            'foo', self.metadata,
             Column('id', Integer, primary_key=True),
             Column('data', String(50)),
             Column('x', Integer)
@@ -377,7 +378,7 @@ class BatchRoundTripTest(TestBase):
         self.op = Operations(context)
 
     def tearDown(self):
-        self.conn.execute("drop table foo")
+        self.metadata.drop_all(self.conn)
         self.conn.close()
 
     def _assert_data(self, data):
