@@ -6,6 +6,16 @@ Changelog
     :version: 0.7.0
 
     .. change::
+      :tags: bug, operations
+      :tickets: 174
+      :pullreq: bitbucket:29
+
+      The :meth:`.Operations.add_column` directive will now additionally emit
+      the appropriate ``CREATE INDEX`` statement if the
+      :class:`~sqlalchemy.schema.Column` object specifies ``index=True``.
+      Pull request courtesy David Szotten.
+
+    .. change::
       :tags: feature, operations, sqlite
       :tickets: 21
 
