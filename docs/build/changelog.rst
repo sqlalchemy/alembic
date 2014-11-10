@@ -177,10 +177,12 @@ Changelog
       testing, and 3rd party dialect testing.
 
     .. change::
-      :tags: change
+      :tags: changed, compatibility
 
       Minimum SQLAlchemy version is now 0.7.6, however at least
-      0.8.4 is strongly recommended.
+      0.8.4 is strongly recommended.  The overhaul of the test suite
+      allows for fully passing tests on all SQLAlchemy versions
+      from 0.7.6 on forward.
 
     .. change::
       :tags: bug, operations
