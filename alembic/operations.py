@@ -560,6 +560,8 @@ class Operations(object):
         for constraint in t.constraints:
             if not isinstance(constraint, sa_schema.PrimaryKeyConstraint):
                 self.impl.add_constraint(constraint)
+        for index in t.indexes:
+            self.impl._exec(sa_schema.CreateIndex(index))
 
     def drop_column(self, table_name, column_name, **kw):
         """Issue a "drop column" instruction using the current
