@@ -195,6 +195,48 @@ class VersionNameTemplateTest(TestBase):
         """)
 
 
+class IgnoreInitTest(TestBase):
+    sourceless = False
+
+    def setUp(self):
+        self.bind = _sqlite_file_db()
+        self.env = staging_env(sourceless=self.sourceless)
+        self.cfg = _sqlite_testing_config(sourceless=self.sourceless)
+
+    def tearDown(self):
+        clear_staging_env()
+
+    def _test_ignore_init_py(self, ext):
+        """test that __init__.py is ignored."""
+
+        command.revision(self.cfg, message="some rev")
+        script = ScriptDirectory.from_config(self.cfg)
+        path = os.path.join(script.versions, "__init__.%s" % ext)
+        with open(path, 'w') as f:
+            f.write(
+                "crap, crap -> crap"
+            )
+        command.revision(self.cfg, message="another rev")
+
+        script.get_revision('head')
+
+    def test_ignore_py(self):
+        self._test_ignore_init_py("py")
+
+    def test_ignore_pyc(self):
+        self._test_ignore_init_py("pyc")
+
+    def test_ignore_pyx(self):
+        self._test_ignore_init_py("pyx")
+
+    def test_ignore_pyo(self):
+        self._test_ignore_init_py("pyo")
+
+
+class SourcelessIgnoreInitTest(IgnoreInitTest):
+    sourceless = True
+
+
 class SourcelessVersioningTest(VersioningTest):
     sourceless = True
 
