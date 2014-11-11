@@ -569,7 +569,7 @@ FKInfo = collections.namedtuple('fk_info', ['constrained_columns',
 
 
 def _compare_foreign_keys(schema, tname, object_filters, conn_table,
-            metadata_table, diffs, autogen_context, inspector):
+                          metadata_table, diffs, autogen_context, inspector):
         # This methods checks foreign keys that tables contain in models with
         # foreign keys that are in db.
             # Get all necessary information about key of current table from db
@@ -596,7 +596,8 @@ def _compare_foreign_keys(schema, tname, object_filters, conn_table,
 
 
 def _get_fk_info_from_db(fk):
-    return FKInfo(tuple(fk['constrained_columns']), fk['referred_table'],
+    return FKInfo(tuple(fk['constrained_columns']),
+                  fk['referred_table'],
                   tuple(fk['referred_columns']))
 
 
