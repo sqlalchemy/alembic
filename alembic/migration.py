@@ -209,15 +209,39 @@ class MigrationContext(object):
         if old == new:
             return
         if new is None:
-            self.impl._exec(self._version.delete())
+            ret = self.impl._exec(
+                self._version.delete().where(
+                    self._version.c.version_num == old))
+            if not self.as_sql and ret.rowcount != 1:
+                raise util.CommandError(
+                    "Online migration expected to match one "
+                    "row when deleting '%s' in '%s'; "
+                    "%d found"
+                    % (old, self._version.name, ret.rowcount))
         elif old is None:
-            self.impl._exec(self._version.insert().
-                            values(version_num=literal_column("'%s'" % new))
-                            )
+            self.impl._exec(
+                self._version.insert().
+                values(version_num=literal_column("'%s'" % new))
+            )
+        elif old is False:
+            # this is the "offline stamp" use case
+            assert self.as_sql
+            self.impl._exec(
+                self._version.update().
+                values(version_num=literal_column("'%s'" % new))
+            )
         else:
-            self.impl._exec(self._version.update().
-                            values(version_num=literal_column("'%s'" % new))
-                            )
+            ret = self.impl._exec(
+                self._version.update().
+                values(version_num=literal_column("'%s'" % new)).where(
+                    self._version.c.version_num == old)
+            )
+            if not self.as_sql and ret.rowcount != 1:
+                raise util.CommandError(
+                    "Online migration expected to match one "
+                    "row when updating '%s' to '%s' in '%s'; "
+                    "%d found"
+                    % (old, new, self._version.name, ret.rowcount))
 
     def run_migrations(self, **kw):
         """Run the migration scripts established for this

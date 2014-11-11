@@ -104,7 +104,7 @@ class DefaultImpl(with_metaclass(ImplMeta)):
             conn = self.connection
             if execution_options:
                 conn = conn.execution_options(**execution_options)
-            conn.execute(construct, *multiparams, **params)
+            return conn.execute(construct, *multiparams, **params)
 
     def execute(self, sql, execution_options=None):
         self._exec(sql, execution_options)
