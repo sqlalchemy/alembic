@@ -187,23 +187,67 @@ class MigrationContext(object):
         """Return the current revision, usually that which is present
         in the ``alembic_version`` table in the database.
 
+        This method intends to be used only for a migration stream that
+        does not contain unmerged branches in the target database;
+        if there are multiple branches present, an exception is raised.
+        The :meth:`.MigrationContext.get_current_heads` should be preferred
+        over this method going forward in order to be compatible with
+        branch migration support.
+
         If this :class:`.MigrationContext` was configured in "offline"
         mode, that is with ``as_sql=True``, the ``starting_rev``
         parameter is returned instead, if any.
 
         """
+        heads = self.get_current_heads()
+        if len(heads) == 0:
+            return None
+        elif len(heads) > 1:
+            raise util.CommandError(
+                "Version table '%s' has more than one head present; "
+                "please use get_current_heads()" % self.version_table)
+        else:
+            return heads[0]
+
+    def get_current_heads(self):
+        """Return a tuple of the current 'head versions' that are represented
+        in the target database.
+
+        For a migration stream without branches, this will be a single
+        value, synonymous with that of
+        :meth:`.MigrationContext.get_current_revision`.   However when multiple
+        unmerged branches exist within the target database, the returned tuple
+        will contain a value for each head.
+
+        If this :class:`.MigrationContext` was configured in "offline"
+        mode, that is with ``as_sql=True``, the ``starting_rev``
+        parameter is returned in a one-length tuple.
+
+        If no version table is present, or if there are no revisions
+        present, an empty tuple is returned.
+
+        .. versionadded:: 0.7.0
+
+        """
         if self.as_sql:
-            return self._start_from_rev
+            return (self._start_from_rev, )
         else:
             if self._start_from_rev:
                 raise util.CommandError(
                     "Can't specify current_rev to context "
                     "when using a database connection")
-            self._version.create(self.connection, checkfirst=True)
-        return self.connection.scalar(self._version.select())
+            if not self._has_version_table():
+                return ()
+        return tuple(
+            row[0] for row in self.connection.execute(self._version.select())
+        )
 
-    _current_rev = get_current_revision
-    """The 0.2 method name, for backwards compat."""
+    def _ensure_version_table(self):
+        self._version.create(self.connection, checkfirst=True)
+
+    def _has_version_table(self):
+        return self.connection.dialect.has_table(
+            self.connection, self.version_table, self.version_table_schema)
 
     def _update_current_rev(self, old, new):
         if old == new:
@@ -217,7 +261,7 @@ class MigrationContext(object):
                     "Online migration expected to match one "
                     "row when deleting '%s' in '%s'; "
                     "%d found"
-                    % (old, self._version.name, ret.rowcount))
+                    % (old, self.version_table, ret.rowcount))
         elif old is None:
             self.impl._exec(
                 self._version.insert().
@@ -241,7 +285,7 @@ class MigrationContext(object):
                     "Online migration expected to match one "
                     "row when updating '%s' to '%s' in '%s'; "
                     "%d found"
-                    % (old, new, self._version.name, ret.rowcount))
+                    % (old, new, self.version_table, ret.rowcount))
 
     def run_migrations(self, **kw):
         """Run the migration scripts established for this
@@ -269,12 +313,19 @@ class MigrationContext(object):
             self._transaction_per_migration
 
         self.impl.start_migrations()
+
+        heads = self.get_current_heads()
+        if not self.as_sql and not heads:
+            self._ensure_version_table()
+
         for change, prev_rev, rev, doc in self._migrations_fn(
                 self.get_current_revision(),
                 self):
             with self.begin_transaction(_per_migration=True):
                 if current_rev is False:
                     current_rev = prev_rev
+                    # for offline mode, include a CREATE TABLE from
+                    # the base
                     if self.as_sql and not current_rev:
                         self._version.create(self.connection)
                 if doc:

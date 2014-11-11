@@ -252,11 +252,20 @@ def stamp(config, revision, sql=False, tag=None):
         if sql:
             current = False
         else:
-            current = context._current_rev()
+            current = set(context.get_current_heads())
+            if not current:
+                current = None
+
         dest = script.get_revision(revision)
         if dest is not None:
             dest = dest.revision
-        context._update_current_rev(current, dest)
+
+        if current:
+            for from_rev in script.match_ancestors_and_descendants(dest, current):
+                context._update_current_rev(from_rev, dest)
+        else:
+            context._update_current_rev(current, dest)
+
         return []
     with EnvironmentContext(
         config,

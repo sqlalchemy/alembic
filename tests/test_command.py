@@ -3,8 +3,10 @@ from io import TextIOWrapper, BytesIO
 from alembic.script import ScriptDirectory
 from alembic.testing.fixtures import TestBase, capture_context_buffer
 from alembic.testing.env import staging_env, _sqlite_testing_config, \
-    three_rev_fixture, clear_staging_env, _no_sql_testing_config
+    three_rev_fixture, clear_staging_env, _no_sql_testing_config, \
+    _sqlite_file_db, write_script
 from alembic.testing import eq_
+from alembic import util
 
 
 class HistoryTest(TestBase):
@@ -140,3 +142,50 @@ class UpgradeDowngradeStampTest(TestBase):
         assert "UPDATE alembic_version "\
             "SET version_num='%s';" % self.c in buf.getvalue()
 
+
+class LiveStampTest(TestBase):
+    __only_on__ = 'sqlite'
+
+    def setUp(self):
+        self.bind = _sqlite_file_db()
+        self.env = staging_env()
+        self.cfg = _sqlite_testing_config()
+        self.a = a = util.rev_id()
+        self.b = b = util.rev_id()
+        script = ScriptDirectory.from_config(self.cfg)
+        script.generate_revision(a, None, refresh=True)
+        write_script(script, a, """
+revision = '%s'
+down_revision = None
+""" % a)
+        script.generate_revision(b, None, refresh=True)
+        write_script(script, b, """
+revision = '%s'
+down_revision = '%s'
+""" % (b, a))
+
+    def tearDown(self):
+        clear_staging_env()
+
+    def test_stamp_creates_table(self):
+        command.stamp(self.cfg, "head")
+        eq_(
+            self.bind.scalar("select version_num from alembic_version"),
+            self.b
+        )
+
+    def test_stamp_existing_upgrade(self):
+        command.stamp(self.cfg, self.a)
+        command.stamp(self.cfg, self.b)
+        eq_(
+            self.bind.scalar("select version_num from alembic_version"),
+            self.b
+        )
+
+    def test_stamp_existing_downgrade(self):
+        command.stamp(self.cfg, self.b)
+        command.stamp(self.cfg, self.a)
+        eq_(
+            self.bind.scalar("select version_num from alembic_version"),
+            self.a
+        )

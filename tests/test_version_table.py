@@ -52,12 +52,12 @@ class TestMigrationContext(TestBase):
                                 opts={'version_table_schema': 'explicit'})
         eq_(context._version.schema, 'explicit')
 
-    def test_get_current_revision_creates_version_table(self):
+    def test_get_current_revision_doesnt_create_version_table(self):
         context = self.make_one(connection=self.connection,
                                 opts={'version_table': 'version_table'})
         eq_(context.get_current_revision(), None)
         insp = Inspector(self.connection)
-        assert ('version_table' in insp.get_table_names())
+        assert ('version_table' not in insp.get_table_names())
 
     def test_get_current_revision(self):
         context = self.make_one(connection=self.connection,
@@ -147,3 +147,34 @@ class TestMigrationContext(TestBase):
             "deleting 'a' in 'version_table'; 2 found",
             context._update_current_rev, 'a', None
         )
+
+    def test_get_current_revision_multiple_heads(self):
+        version_table.create(self.connection)
+        context = self.make_one(connection=self.connection,
+                                opts={'version_table': 'version_table'})
+        context._update_current_rev(None, 'a')
+        context._update_current_rev(None, 'b')
+        assert_raises_message(
+            CommandError,
+            "Version table 'version_table' has more than one head present; "
+            "please use get_current_heads()",
+            context.get_current_revision
+        )
+
+    def test_get_heads(self):
+        version_table.create(self.connection)
+        context = self.make_one(connection=self.connection,
+                                opts={'version_table': 'version_table'})
+        context._update_current_rev(None, 'a')
+        context._update_current_rev(None, 'b')
+        eq_(context.get_current_heads(), ('a', 'b'))
+
+    def test_get_heads_offline(self):
+        version_table.create(self.connection)
+        context = self.make_one(connection=self.connection,
+                                opts={
+                                    'starting_rev': 'q',
+                                    'version_table': 'version_table',
+                                    'as_sql': True})
+        eq_(context.get_current_heads(), ('q', ))
+

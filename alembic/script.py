@@ -168,6 +168,30 @@ class ScriptDirectory(object):
         else:
             return self._iterate_revisions(upper, lower)
 
+    def match_ancestors_and_descendants(self, dest, revs):
+        """given a revision and a list of heads, iterate those heads
+        with whom the given revision is either a descendant or an
+        anscestor.
+
+        """
+        heads = set(self.get_heads())
+
+        while heads and revs:
+            todo = set(heads)
+            heads = set()
+            for head in todo:
+                if head in heads:
+                    break
+                for sc in self.iterate_revisions(head, "base"):
+                    if sc.is_branch_point and sc.revision not in todo:
+                        heads.add(sc.revision)
+                        break
+                    elif sc.revision in revs:
+                        revs.remove(sc.revision)
+                        yield sc.revision
+                        if not revs:
+                            break
+
     def _iterate_revisions(self, upper, lower):
         lower = self.get_revision(lower)
         upper = self.get_revision(upper)
