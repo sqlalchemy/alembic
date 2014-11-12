@@ -2,6 +2,9 @@ import re
 import collections
 
 from . import util
+from sqlalchemy import util as sqlautil
+
+
 _relative_destination = re.compile(r'(?:\+|-)\d+')
 
 
@@ -13,25 +16,61 @@ class RevisionMap(object):
     themselves instances of :class:`.Revision`.
 
     """
+
     def __init__(self, generator):
         self._generator = generator
 
     @util.memoized_property
+    def heads(self):
+        """All "head" revisions as strings.
+
+        This is normally a tuple of length one,
+        unless unmerged branches are present.
+
+        :return: a tuple of string revision numbers.
+
+        """
+        self._revision_map
+        return self.heads
+
+    @util.memoized_property
+    def bases(self):
+        """All "base" revisions as  strings.
+
+        These are revisions that have a ``down_revision`` of None,
+        or empty tuple.
+
+        :return: a tuple of string revision numbers.
+
+        """
+        self._revision_map
+        return self.bases
+
+    @util.memoized_property
     def _revision_map(self):
         map_ = {}
+
+        heads = sqlautil.OrderedSet()
+        self.bases = ()
 
         for revision in self._generator():
             if revision.revision in map_:
                 util.warn("Revision %s is present more than once" %
                           revision.revision)
             map_[revision.revision] = revision
+            heads.add(revision.revision)
+            if revision.is_base:
+                self.bases += (revision.revision, )
+
         for rev in map_.values():
             for downrev in rev.down_revision:
                 if downrev not in map_:
                     util.warn("Revision %s referenced from %s is not present"
                               % (rev.down_revision, rev))
                 map_[downrev].add_nextrev(rev.revision)
+                heads.discard(downrev)
         map_[None] = map_[()] = None
+        self.heads = tuple(heads)
         return map_
 
     def get_current_head(self):
@@ -49,7 +88,7 @@ class RevisionMap(object):
             :meth:`.ScriptDirectory.get_heads`
 
         """
-        current_heads = self.get_heads()
+        current_heads = self.heads
         if len(current_heads) > 1:
             raise util.CommandError(
                 'The script directory has multiple heads (due to branching).'
@@ -60,44 +99,6 @@ class RevisionMap(object):
             return current_heads[0]
         else:
             return None
-
-    def get_heads(self):
-        """Return all "head" revisions as strings.
-
-        This is normally a list of length one,
-        unless branches are present.  The
-        :meth:`.ScriptDirectory.get_current_head()` method
-        can be used normally when a script directory
-        has only one head.
-
-        :return: a tuple of string revision numbers.
-
-        """
-        heads = []
-        for script in self._revision_map.values():
-            if script and script.is_head:
-                heads.append(script.revision)
-        return tuple(heads)
-
-    def get_bases(self):
-        """Return the "base" revision(s) as a tuple of strings.
-
-        These are revisions that have a ``down_revision`` of None,
-        or empty tuple.
-
-        :return: a tuple of string revision numbers.
-
-         .. versionadded:: 0.7.0
-
-        """
-        bases = []
-        for script in self._revision_map.values():
-            if script and script.is_base:
-                # this assertion was here, not sure
-                # why this would not be true
-                assert script.revision in self._revision_map
-                bases.append(script.revision)
-        return tuple(bases)
 
     def get_symbolic_revisions(self, id_):
         """Return revisions based on a possibly "symbolic" revision,
@@ -114,9 +115,9 @@ class RevisionMap(object):
 
         """
         if id_ == 'head':
-            return tuple(self.get_revision(head) for head in self.get_heads())
+            return tuple(self.get_revision(head) for head in self.heads)
         elif id_ == 'base':
-            return tuple(self.get_revision(base) for base in self.get_bases())
+            return tuple(self.get_revision(base) for base in self.bases)
         else:
             return tuple(self.get_revision(ident)
                          for ident in util.to_tuple(id_, ()))
@@ -131,7 +132,6 @@ class RevisionMap(object):
 
         """
 
-        id_ = self.as_revision_number(id_)
         try:
             return self._revision_map[id_]
         except KeyError:
@@ -183,6 +183,22 @@ class RevisionMap(object):
         else:
             return self._iterate_revisions(upper, lower)
 
+    def _get_descendant_nodes(self, targets):
+        todo = collections.deque(targets)
+        while todo:
+            rev = todo.pop()
+            todo.extend(
+                self._revision_map[rev_id] for rev_id in rev.nextrev)
+            yield rev
+
+    def _get_ancestor_nodes(self, targets):
+        todo = collections.deque(targets)
+        while todo:
+            rev = todo.pop()
+            todo.extend(
+                self._revision_map[rev_id] for rev_id in rev.down_revision)
+            yield rev
+
     def _iterate_revisions(self, upper, lower):
         """iterate revisions from upper to lower.
 
@@ -193,29 +209,22 @@ class RevisionMap(object):
         lower = self.get_symbolic_revisions(lower)
         uppers = self.get_symbolic_revisions(upper)
 
-        # scan for branchpoints that we want to
-        # stop on.
-        branchpoints = collections.defaultdict(int)
-        todo = list(uppers)
-        stop = set(lower)
-
-        while todo:
-            rev = todo.pop(0)
-
-            if rev.is_branch_point:
-                branchpoints[rev.revision] += 1
-
-            if rev not in stop:
-                todo += [
-                    self._revision_map[downrev]
-                    for downrev in rev.down_revision]
-
-        branch_endpoints = set(
-            branch for branch, count in branchpoints.items() if count > 1
+        total_space = set(
+            rev.revision
+            for rev in self._get_ancestor_nodes(uppers)
+        ).intersection(
+            rev.revision for rev in self._get_descendant_nodes(lower)
         )
 
-        # now do the traversal.
+        branch_endpoints = set(
+            rev.revision for rev in
+            (self._revision_map[rev] for rev in total_space)
+            if rev.is_branch_point and
+            len(total_space.intersection(rev.nextrev)) > 1
+        )
+
         todo = collections.deque(uppers)
+        stop = set(lower)
         while todo:
             stop.update(
                 rev.revision for rev in todo
@@ -226,7 +235,8 @@ class RevisionMap(object):
             todo.extendleft([
                 self._revision_map[downrev]
                 for downrev in reversed(rev.down_revision)
-                if downrev not in branch_endpoints and downrev not in stop])
+                if downrev not in branch_endpoints and downrev not in stop
+                and downrev in total_space])
 
             # then put the actual branch points at the end of the
             # list for subsequent traversal
@@ -234,6 +244,7 @@ class RevisionMap(object):
                 self._revision_map[downrev]
                 for downrev in rev.down_revision
                 if downrev in branch_endpoints and downrev not in stop
+                and downrev in total_space
             ])
             yield rev
 
@@ -297,4 +308,3 @@ class Revision(object):
         """Return True if this :class:`.Script` is a merge point."""
 
         return len(self.down_revision) > 1
-

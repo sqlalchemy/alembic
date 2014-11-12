@@ -3,7 +3,16 @@ from alembic.testing import eq_
 from alembic.revision import RevisionMap, Revision
 
 
-class DiamondTest(TestBase):
+class DownIterateTest(TestBase):
+    def _assert_iteration(self, upper, lower, assertion):
+        eq_(
+            [rev.revision for rev in
+             self.map._iterate_revisions(upper, lower)],
+            assertion
+        )
+
+
+class DiamondTest(DownIterateTest):
     def setUp(self):
         self.map = RevisionMap(
             lambda: [
@@ -16,13 +25,13 @@ class DiamondTest(TestBase):
         )
 
     def test_iterate_simple_diamond(self):
-        eq_(
-            [rev.revision for rev in self.map._iterate_revisions("d", "a")],
+        self._assert_iteration(
+            "d", "a",
             ["d", "c", "b1", "b2", "a"]
         )
 
 
-class MultipleBranchTest(TestBase):
+class MultipleBranchTest(DownIterateTest):
     def setUp(self):
         self.map = RevisionMap(
             lambda: [
@@ -41,28 +50,25 @@ class MultipleBranchTest(TestBase):
         )
 
     def test_iterate_from_merge_point(self):
-        eq_(
-            [rev.revision for rev
-             in self.map._iterate_revisions("d1d2cb2", "a")],
+        self._assert_iteration(
+            "d1d2cb2", "a",
             ['d1d2cb2', 'd1cb2', 'd2cb2', 'cb2', 'b2', 'a']
         )
 
     def test_iterate_multiple_heads(self):
-        eq_(
-            [rev.revision for rev
-             in self.map._iterate_revisions(["d2cb2", "d3cb2"], "a")],
+        self._assert_iteration(
+            ["d2cb2", "d3cb2"], "a",
             ['d2cb2', 'd3cb2', 'cb2', 'b2', 'a']
         )
 
     def test_iterate_single_branch(self):
-        eq_(
-            [rev.revision for rev
-             in self.map._iterate_revisions("d3cb2", "a")],
+        self._assert_iteration(
+            "d3cb2", "a",
             ['d3cb2', 'cb2', 'b2', 'a']
         )
 
 
-class BranchTravellingTest(TestBase):
+class BranchTravellingTest(DownIterateTest):
     """test the order of revs when going along multiple branches.
 
     We want depth-first along branches, but then we want to
@@ -97,9 +103,8 @@ class BranchTravellingTest(TestBase):
 
         # here we want 'a3' as a "stop" branch point, but *not*
         # 'db1', as we don't have multiple traversals on db1
-        eq_(
-            [rev.revision for rev
-             in self.map._iterate_revisions("merge", "a1")],
+        self._assert_iteration(
+            "merge", "a1",
             ['merge',
                 'e2b1', 'db1', 'cb1', 'b1',  # e2b1 branch
                 'e2b2', 'db2', 'cb2', 'b2',  # e2b2 branch
@@ -108,12 +113,32 @@ class BranchTravellingTest(TestBase):
             ]  # noqa
         )
 
+    def test_two_branches_end_in_branch(self):
+        self._assert_iteration(
+            "merge", "b1",
+            # 'b1' is local to 'e2b1'
+            # branch so that is all we get
+            ['merge', 'e2b1', 'db1', 'cb1', 'b1',
+
+        ]  # noqa
+        )
+
+    def test_two_branches_end_behind_branch(self):
+        self._assert_iteration(
+            "merge", "a2",
+            ['merge',
+                'e2b1', 'db1', 'cb1', 'b1',  # e2b1 branch
+                'e2b2', 'db2', 'cb2', 'b2',  # e2b2 branch
+                'a3',  # both terminate at a3
+                'a2'
+            ]  # noqa
+        )
+
     def test_three_branches_to_root(self):
 
         # in this case, both "a3" and "db1" are stop points
-        eq_(
-            [rev.revision for rev
-             in self.map._iterate_revisions(["merge", "fe1b1"], "a1")],
+        self._assert_iteration(
+            ["merge", "fe1b1"], "a1",
             ['merge',
                 'e2b1',  # e2b1 branch
                 'e2b2', 'db2', 'cb2', 'b2',  # e2b2 branch
@@ -124,4 +149,68 @@ class BranchTravellingTest(TestBase):
                 'a3',  # e2b1 and e2b2 branches terminate at a3
                 'a2', 'a1'  # finish out
             ]  # noqa
+        )
+
+    def test_three_branches_end_in_single_branch(self):
+
+        # in this case, both "a3" and "db1" are stop points
+        self._assert_iteration(
+            ["merge", "fe1b1"], "e1b1",
+            ['merge',
+                'fe1b1', 'e1b1',  # fe1b1 branch
+            ]  # noqa
+        )
+
+    def test_three_branches_end_multiple_bases(self):
+
+        # in this case, both "a3" and "db1" are stop points
+        self._assert_iteration(
+            ["merge", "fe1b1"], ["cb1", "cb2"],
+            [
+                'merge',
+                'e2b1',
+                'e2b2', 'db2', 'cb2',
+                'fe1b1', 'e1b1',
+                'db1',
+                'cb1'
+            ]
+        )
+
+
+class MultipleBaseTest(DownIterateTest):
+    def setUp(self):
+        self.map = RevisionMap(
+            lambda: [
+                Revision('base1', ()),
+                Revision('base2', ()),
+                Revision('base3', ()),
+
+                Revision('a1a', ('base1',)),
+                Revision('a1b', ('base1',)),
+                Revision('a2', ('base2',)),
+                Revision('a3', ('base3',)),
+
+                Revision('b1a', ('a1a',)),
+                Revision('b1b', ('a1b',)),
+                Revision('b2', ('a2',)),
+                Revision('b3', ('a3',)),
+
+                Revision('c2', ('b2',)),
+                Revision('d2', ('c2',)),
+
+                Revision('mergeb3d2', ('b3', 'd2'))
+            ]
+        )
+
+    def test_head_to_base(self):
+        self._assert_iteration(
+            "head", "base",
+            [
+                'b1a', 'a1a',
+                'b1b', 'a1b',
+                'mergeb3d2',
+                    'b3', 'a3', 'base3',
+                    'd2', 'c2', 'b2', 'a2', 'base2',
+                'base1'
+            ]
         )
