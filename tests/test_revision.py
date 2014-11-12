@@ -3,23 +3,9 @@ from alembic.testing import eq_
 from alembic.revision import RevisionMap, Revision
 
 
-class DownwardsIterationTest(TestBase):
-    def test_straight(self):
-        map_ = RevisionMap(
-            lambda: [
-                Revision('a', ()),
-                Revision('b', ('a',)),
-                Revision('c', ('b',)),
-            ]
-        )
-
-        eq_(
-            [rev.revision for rev in map_._iterate_revisions("c", "a")],
-            ["c", "b", "a"]
-        )
-
-    def test_diamond(self):
-        map_ = RevisionMap(
+class DiamondTest(TestBase):
+    def setUp(self):
+        self.map = RevisionMap(
             lambda: [
                 Revision('a', ()),
                 Revision('b1', ('a',)),
@@ -29,13 +15,16 @@ class DownwardsIterationTest(TestBase):
             ]
         )
 
+    def test_iterate_simple_diamond(self):
         eq_(
-            [rev.revision for rev in map_.iterate_revisions("d", "a")],
+            [rev.revision for rev in self.map._iterate_revisions("d", "a")],
             ["d", "c", "b1", "b2", "a"]
         )
 
-    def test_many_branches(self):
-        map_ = RevisionMap(
+
+class MultipleBranchTest(TestBase):
+    def setUp(self):
+        self.map = RevisionMap(
             lambda: [
                 Revision('a', ()),
                 Revision('b1', ('a',)),
@@ -50,25 +39,40 @@ class DownwardsIterationTest(TestBase):
                 Revision('d1d2cb2', ('d1cb2', 'd2cb2'))
             ]
         )
+
+    def test_iterate_from_merge_point(self):
         eq_(
-            [rev.revision for rev in map_._iterate_revisions("d1d2cb2", "a")],
+            [rev.revision for rev
+             in self.map._iterate_revisions("d1d2cb2", "a")],
             ['d1d2cb2', 'd1cb2', 'd2cb2', 'cb2', 'b2', 'a']
         )
+
+    def test_iterate_multiple_heads(self):
         eq_(
-            [rev.revision for rev in map_._iterate_revisions("d3cb2", "a")],
+            [rev.revision for rev
+             in self.map._iterate_revisions(["d2cb2", "d3cb2"], "a")],
+            ['d2cb2', 'd3cb2', 'cb2', 'b2', 'a']
+        )
+
+    def test_iterate_single_branch(self):
+        eq_(
+            [rev.revision for rev
+             in self.map._iterate_revisions("d3cb2", "a")],
             ['d3cb2', 'cb2', 'b2', 'a']
         )
 
-    def test_branch_travelling(self):
-        """test the order of revs when going along multiple branches.
 
-        We want depth-first along branches, but then we want to
-        terminate all branches at their branch point before continuing
-        to the nodes preceding that branch.
+class BranchTravellingTest(TestBase):
+    """test the order of revs when going along multiple branches.
 
-        """
+    We want depth-first along branches, but then we want to
+    terminate all branches at their branch point before continuing
+    to the nodes preceding that branch.
 
-        map_ = RevisionMap(
+    """
+
+    def setUp(self):
+        self.map = RevisionMap(
             lambda: [
                 Revision('a1', ()),
                 Revision('a2', ('a1',)),
@@ -88,10 +92,14 @@ class DownwardsIterationTest(TestBase):
                 Revision("merge", ('e2b1', 'e2b2'))
             ]
         )
+
+    def test_two_branches_to_root(self):
+
         # here we want 'a3' as a "stop" branch point, but *not*
         # 'db1', as we don't have multiple traversals on db1
         eq_(
-            [rev.revision for rev in map_._iterate_revisions("merge", "a1")],
+            [rev.revision for rev
+             in self.map._iterate_revisions("merge", "a1")],
             ['merge',
                 'e2b1', 'db1', 'cb1', 'b1',  # e2b1 branch
                 'e2b2', 'db2', 'cb2', 'b2',  # e2b2 branch
@@ -100,10 +108,12 @@ class DownwardsIterationTest(TestBase):
             ]  # noqa
         )
 
+    def test_three_branches_to_root(self):
+
         # in this case, both "a3" and "db1" are stop points
         eq_(
             [rev.revision for rev
-             in map_._iterate_revisions(["merge", "fe1b1"], "a1")],
+             in self.map._iterate_revisions(["merge", "fe1b1"], "a1")],
             ['merge',
                 'e2b1',  # e2b1 branch
                 'e2b2', 'db2', 'cb2', 'b2',  # e2b2 branch

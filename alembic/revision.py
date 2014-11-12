@@ -34,28 +34,6 @@ class RevisionMap(object):
         map_[None] = map_[()] = None
         return map_
 
-    def walk_revisions(self, base="base", head="head"):
-        """Iterate through all revisions.
-
-        """
-        if head == "head":
-            heads = set(self.get_heads())
-        else:
-            heads = set([head])
-
-        while heads:
-            todo = set(heads)
-            heads = set()
-            for head in todo:
-                if head in heads:
-                    break
-                for sc in self.iterate_revisions(head, base):
-                    if sc.is_branch_point and sc.revision not in todo:
-                        heads.add(sc.revision)
-                        break
-                    else:
-                        yield sc
-
     def get_current_head(self):
         """Return the current head revision.
 
@@ -172,16 +150,6 @@ class RevisionMap(object):
             else:
                 return self._revision_map[revs[0]]
 
-    def as_revision_number(self, id_):
-        """Convert a symbolic revision, i.e. 'head' or 'base', into
-        an actual revision number."""
-
-        if id_ == 'head':
-            id_ = self.get_current_head()
-        elif id_ == 'base':
-            id_ = None
-        return id_
-
     def iterate_revisions(self, upper, lower):
         """Iterate through script revisions, starting at the given
         upper revision identifier and ending at the lower.
@@ -216,9 +184,17 @@ class RevisionMap(object):
             return self._iterate_revisions(upper, lower)
 
     def _iterate_revisions(self, upper, lower):
+        """iterate revisions from upper to lower.
+
+        The traversal is depth-first within branches, and breadth-first
+        across branches as a whole.
+
+        """
         lower = self.get_symbolic_revisions(lower)
         uppers = self.get_symbolic_revisions(upper)
 
+        # scan for branchpoints that we want to
+        # stop on.
         branchpoints = collections.defaultdict(int)
         todo = list(uppers)
         stop = set(lower)
@@ -230,26 +206,35 @@ class RevisionMap(object):
                 branchpoints[rev.revision] += 1
 
             if rev not in stop:
-                todo += [self._revision_map[downrev] for downrev in rev.down_revision]
+                todo += [
+                    self._revision_map[downrev]
+                    for downrev in rev.down_revision]
 
         branch_endpoints = set(
             branch for branch, count in branchpoints.items() if count > 1
         )
 
-        seen = set(lower)
-        todo = list(uppers)
+        # now do the traversal.
+        todo = collections.deque(uppers)
         while todo:
-            seen.update(rev.revision for rev in todo if rev.revision in branch_endpoints)
-            rev = todo.pop(0)
-            todo[:0] = [
+            stop.update(
+                rev.revision for rev in todo
+                if rev.revision in branch_endpoints)
+            rev = todo.popleft()
+
+            # do depth first for elements within the branches
+            todo.extendleft([
+                self._revision_map[downrev]
+                for downrev in reversed(rev.down_revision)
+                if downrev not in branch_endpoints and downrev not in stop])
+
+            # then put the actual branch points at the end of the
+            # list for subsequent traversal
+            todo.extend([
                 self._revision_map[downrev]
                 for downrev in rev.down_revision
-                if not downrev in branch_endpoints]
-            todo.extend(
-                self._revision_map[downrev]
-                for downrev in set(rev.down_revision).difference(seen)
-                if downrev in branch_endpoints
-            )
+                if downrev in branch_endpoints and downrev not in stop
+            ])
             yield rev
 
 
