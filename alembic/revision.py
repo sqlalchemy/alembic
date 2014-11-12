@@ -1,4 +1,5 @@
 import re
+import collections
 
 from . import util
 _relative_destination = re.compile(r'(?:\+|-)\d+')
@@ -25,15 +26,12 @@ class RevisionMap(object):
                           revision.revision)
             map_[revision.revision] = revision
         for rev in map_.values():
-            if rev.down_revision is None:
-                continue
-            if rev.down_revision not in map_:
-                util.warn("Revision %s referenced from %s is not present"
-                          % (rev.down_revision, rev))
-                rev.down_revision = None
-            else:
-                map_[rev.down_revision].add_nextrev(rev.revision)
-        map_[None] = None
+            for downrev in rev.down_revision:
+                if downrev not in map_:
+                    util.warn("Revision %s referenced from %s is not present"
+                              % (rev.down_revision, rev))
+                map_[downrev].add_nextrev(rev.revision)
+        map_[None] = map_[()] = None
         return map_
 
     def walk_revisions(self, base="base", head="head"):
@@ -44,6 +42,7 @@ class RevisionMap(object):
             heads = set(self.get_heads())
         else:
             heads = set([head])
+
         while heads:
             todo = set(heads)
             heads = set()
@@ -122,8 +121,35 @@ class RevisionMap(object):
                 bases.append(script.revision)
         return tuple(bases)
 
+    def get_symbolic_revisions(self, id_):
+        """Return revisions based on a possibly "symbolic" revision,
+        such as "head" or "base".
+
+        If an exact revision number is given, a tuple of one :class:`.Revision`
+        is returned.  If "head" or "base" is given, a tuple of potentially
+        multiple heads or bases is returned.
+
+        Supports partial identifiers, where the given identifier
+        is matched against all identifiers that start with the given
+        characters; if there is exactly one match, that determines the
+        full revision.
+
+        """
+        if id_ == 'head':
+            return tuple(self.get_revision(head) for head in self.get_heads())
+        elif id_ == 'base':
+            return tuple(self.get_revision(base) for base in self.get_bases())
+        else:
+            return tuple(self.get_revision(ident)
+                         for ident in util.to_tuple(id_, ()))
+
     def get_revision(self, id_):
         """Return the :class:`.Revision` instance with the given rev id.
+
+        Supports partial identifiers, where the given identifier
+        is matched against all identifiers that start with the given
+        characters; if there is exactly one match, that determines the
+        full revision.
 
         """
 
@@ -133,13 +159,13 @@ class RevisionMap(object):
         except KeyError:
             # do a partial lookup
             revs = [x for x in self._revision_map
-                    if x is not None and x.startswith(id_)]
+                    if x and x.startswith(id_)]
             if not revs:
                 raise util.CommandError("No such revision '%s'" % id_)
             elif len(revs) > 1:
                 raise util.CommandError(
                     "Multiple revisions start "
-                    "with '%s', %s..." % (
+                    "with '%s': %s..." % (
                         id_,
                         ", ".join("'%s'" % r for r in revs[0:3])
                     ))
@@ -190,18 +216,41 @@ class RevisionMap(object):
             return self._iterate_revisions(upper, lower)
 
     def _iterate_revisions(self, upper, lower):
-        lower = self.get_revision(lower)
-        upper = self.get_revision(upper)
-        orig = lower.revision if lower else 'base', \
-            upper.revision if upper else 'base'
-        script = upper
-        while script != lower:
-            if script is None and lower is not None:
-                raise util.CommandError(
-                    "Revision %s is not an ancestor of %s" % orig)
-            yield script
-            downrev = script.down_revision
-            script = self._revision_map[downrev]
+        lower = self.get_symbolic_revisions(lower)
+        uppers = self.get_symbolic_revisions(upper)
+
+        branchpoints = collections.defaultdict(int)
+        todo = list(uppers)
+        stop = set(lower)
+
+        while todo:
+            rev = todo.pop(0)
+
+            if rev.is_branch_point:
+                branchpoints[rev.revision] += 1
+
+            if rev not in stop:
+                todo += [self._revision_map[downrev] for downrev in rev.down_revision]
+
+        branch_endpoints = set(
+            branch for branch, count in branchpoints.items() if count > 1
+        )
+
+        seen = set(lower)
+        todo = list(uppers)
+        while todo:
+            seen.update(rev.revision for rev in todo if rev.revision in branch_endpoints)
+            rev = todo.pop(0)
+            todo[:0] = [
+                self._revision_map[downrev]
+                for downrev in rev.down_revision
+                if not downrev in branch_endpoints]
+            todo.extend(
+                self._revision_map[downrev]
+                for downrev in set(rev.down_revision).difference(seen)
+                if downrev in branch_endpoints
+            )
+            yield rev
 
 
 class Revision(object):
