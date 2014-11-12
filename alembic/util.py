@@ -282,6 +282,15 @@ def rev_id():
     return hex(val)[2:-1]
 
 
+def to_tuple(x, default=None):
+    if x is None:
+        return default
+    if not isinstance(x, (list, tuple)):
+        return (x,)
+    else:
+        return tuple(x)
+
+
 class memoized_property(object):
 
     """A read-only @property that is only evaluated once."""

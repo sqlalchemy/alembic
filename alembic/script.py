@@ -3,6 +3,7 @@ import os
 import re
 import shutil
 from . import util
+from . import revision
 
 _sourceless_rev_file = re.compile(r'(?!__init__)(.*\.py)(c|o)?$')
 _only_source_rev_file = re.compile(r'(?!__init__)(.*\.py)$')
@@ -10,7 +11,6 @@ _legacy_rev = re.compile(r'([a-f0-9]+)\.py$')
 _mod_def_re = re.compile(r'(upgrade|downgrade)_([a-z0-9]+)')
 _slug_re = re.compile(r'\w+')
 _default_file_template = "%(rev)s_%(slug)s"
-_relative_destination = re.compile(r'(?:\+|-)\d+')
 
 
 class ScriptDirectory(object):
@@ -43,11 +43,19 @@ class ScriptDirectory(object):
         self.truncate_slug_length = truncate_slug_length or 40
         self.sourceless = sourceless
         self.output_encoding = output_encoding
+        self.revision_map = revision.RevisionMap(self._load_revisions)
 
         if not os.access(dir, os.F_OK):
             raise util.CommandError("Path doesn't exist: %r.  Please use "
                                     "the 'init' command to create a new "
                                     "scripts folder." % dir)
+
+    def _load_revisions(self):
+        for file_ in os.listdir(self.versions):
+            script = Script._from_filename(self, self.versions, file_)
+            if script is None:
+                continue
+            yield script
 
     @classmethod
     def from_config(cls, config):
@@ -78,62 +86,29 @@ class ScriptDirectory(object):
     def walk_revisions(self, base="base", head="head"):
         """Iterate through all revisions.
 
-        This is actually a breadth-first tree traversal,
-        with leaf nodes being heads.
+        .. seealso::
+
+            :meth:`.RevisionMap.walk_revisions`
 
         """
-        if head == "head":
-            heads = set(self.get_heads())
-        else:
-            heads = set([head])
-        while heads:
-            todo = set(heads)
-            heads = set()
-            for head in todo:
-                if head in heads:
-                    break
-                for sc in self.iterate_revisions(head, base):
-                    if sc.is_branch_point and sc.revision not in todo:
-                        heads.add(sc.revision)
-                        break
-                    else:
-                        yield sc
+        return self.revision_map.walk_revisions(base, head)
 
     def get_revision(self, id_):
-        """Return the :class:`.Script` instance with the given rev id."""
+        """Return the :class:`.Script` instance with the given rev id.
 
-        id_ = self.as_revision_number(id_)
-        try:
-            return self._revision_map[id_]
-        except KeyError:
-            # do a partial lookup
-            revs = [x for x in self._revision_map
-                    if x is not None and x.startswith(id_)]
-            if not revs:
-                raise util.CommandError("No such revision '%s'" % id_)
-            elif len(revs) > 1:
-                raise util.CommandError(
-                    "Multiple revisions start "
-                    "with '%s', %s..." % (
-                        id_,
-                        ", ".join("'%s'" % r for r in revs[0:3])
-                    ))
-            else:
-                return self._revision_map[revs[0]]
+        .. seealso::
 
-    _get_rev = get_revision
+            :meth:`.RevisionMap.get_revision`
+
+        """
+
+        return self.revision_map.get_revision(id_)
 
     def as_revision_number(self, id_):
         """Convert a symbolic revision, i.e. 'head' or 'base', into
         an actual revision number."""
 
-        if id_ == 'head':
-            id_ = self.get_current_head()
-        elif id_ == 'base':
-            id_ = None
-        return id_
-
-    _as_rev_number = as_revision_number
+        return self.revision_map.as_revision_number(id_)
 
     def iterate_revisions(self, upper, lower):
         """Iterate through script revisions, starting at the given
@@ -147,67 +122,40 @@ class ScriptDirectory(object):
         The iterator yields :class:`.Script` objects.
 
         """
-        if upper is not None and _relative_destination.match(upper):
-            relative = int(upper)
-            revs = list(self._iterate_revisions("head", lower))
-            revs = revs[-relative:]
-            if len(revs) != abs(relative):
-                raise util.CommandError(
-                    "Relative revision %s didn't "
-                    "produce %d migrations" % (upper, abs(relative)))
-            return iter(revs)
-        elif lower is not None and _relative_destination.match(lower):
-            relative = int(lower)
-            revs = list(self._iterate_revisions(upper, "base"))
-            revs = revs[0:-relative]
-            if len(revs) != abs(relative):
-                raise util.CommandError(
-                    "Relative revision %s didn't "
-                    "produce %d migrations" % (lower, abs(relative)))
-            return iter(revs)
-        else:
-            return self._iterate_revisions(upper, lower)
+        return self.revision_map.iterate_revisions(upper, lower)
 
-    def match_ancestors_and_descendants(self, dest, revs):
-        """given a revision and a list of heads, iterate those heads
-        with whom the given revision is either a descendant or an
-        anscestor.
+    def get_current_head(self):
+        """Return the current head revision.
+
+        If the script directory has multiple heads
+        due to branching, an error is raised;
+        :meth:`.ScriptDirectory.get_heads` should be
+        preferred.
+
+        :return: a string revision number.
+
+        .. seealso::
+
+            :meth:`.ScriptDirectory.get_heads`
 
         """
-        heads = set(self.get_heads())
+        return self.revision_map.get_current_head()
 
-        while heads and revs:
-            todo = set(heads)
-            heads = set()
-            for head in todo:
-                if head in heads:
-                    break
-                for sc in self.iterate_revisions(head, "base"):
-                    if sc.is_branch_point and sc.revision not in todo:
-                        heads.add(sc.revision)
-                        break
-                    elif sc.revision in revs:
-                        revs.remove(sc.revision)
-                        yield sc.revision
-                        if not revs:
-                            break
+    def get_heads(self):
+        """Return all "head" revisions as strings.
 
-    def _iterate_revisions(self, upper, lower):
-        lower = self.get_revision(lower)
-        upper = self.get_revision(upper)
-        orig = lower.revision if lower else 'base', \
-            upper.revision if upper else 'base'
-        script = upper
-        while script != lower:
-            if script is None and lower is not None:
-                raise util.CommandError(
-                    "Revision %s is not an ancestor of %s" % orig)
-            yield script
-            downrev = script.down_revision
-            script = self._revision_map[downrev]
+        This is normally a list of length one,
+        unless branches are present.  The
+        :meth:`.ScriptDirectory.get_current_head()` method
+        can be used normally when a script directory
+        has only one head.
+
+        :return: a tuple of string revision numbers.
+        """
+        return self.revision_map.get_heads()
 
     def _upgrade_revs(self, destination, current_rev):
-        revs = self.iterate_revisions(destination, current_rev)
+        revs = self.revision_map.iterate_revisions(destination, current_rev)
         return [
             (script.module.upgrade, script.down_revision, script.revision,
                 script.doc)
@@ -215,7 +163,7 @@ class ScriptDirectory(object):
         ]
 
     def _downgrade_revs(self, destination, current_rev):
-        revs = self.iterate_revisions(current_rev, destination)
+        revs = self.revision_map.iterate_revisions(current_rev, destination)
         return [
             (script.module.downgrade, script.revision, script.down_revision,
                 script.doc)
@@ -237,29 +185,75 @@ class ScriptDirectory(object):
     def env_py_location(self):
         return os.path.abspath(os.path.join(self.dir, "env.py"))
 
-    @util.memoized_property
-    def _revision_map(self):
-        map_ = {}
+    def _generate_template(self, src, dest, **kw):
+        util.status("Generating %s" % os.path.abspath(dest),
+                    util.template_to_file,
+                    src,
+                    dest,
+                    self.output_encoding,
+                    **kw
+                    )
 
-        for file_ in os.listdir(self.versions):
-            script = Script._from_filename(self, self.versions, file_)
-            if script is None:
-                continue
-            if script.revision in map_:
-                util.warn("Revision %s is present more than once" %
-                          script.revision)
-            map_[script.revision] = script
-        for rev in map_.values():
-            if rev.down_revision is None:
-                continue
-            if rev.down_revision not in map_:
-                util.warn("Revision %s referenced from %s is not present"
-                          % (rev.down_revision, rev))
-                rev.down_revision = None
-            else:
-                map_[rev.down_revision].add_nextrev(rev.revision)
-        map_[None] = None
-        return map_
+    def _copy_file(self, src, dest):
+        util.status("Generating %s" % os.path.abspath(dest),
+                    shutil.copy,
+                    src, dest)
+
+    def generate_revision(self, revid, message, head=None, refresh=False, **kw):
+        """Generate a new revision file.
+
+        This runs the ``script.py.mako`` template, given
+        template arguments, and creates a new file.
+
+        :param revid: String revision id.  Typically this
+         comes from ``alembic.util.rev_id()``.
+        :param message: the revision message, the one passed
+         by the -m argument to the ``revision`` command.
+        :param head: the head revision to generate against.  Defaults
+         to the current "head" if no branches are present, else raises
+         an exception.
+
+         .. versionadded:: 0.7.0
+
+        :param refresh: when True, the in-memory state of this
+         :class:`.ScriptDirectory` will be updated with a new
+         :class:`.Script` instance representing the new revision;
+         the :class:`.Script` instance is returned.
+         If False, the file is created but the state of the
+         :class:`.ScriptDirectory` is unmodified; ``None``
+         is returned.
+
+        """
+        if head is None:
+            heads = self.get_heads()
+            if len(heads) > 1:
+                raise util.CommandError(
+                    "Multiple heads present, please specify head revision.")
+            elif heads:
+                # note heads can be (), in which case
+                # we use None
+                head = heads[0]
+
+        create_date = datetime.datetime.now()
+        path = self._rev_path(revid, message, create_date)
+        self._generate_template(
+            os.path.join(self.dir, "script.py.mako"),
+            path,
+            up_revision=str(revid),
+            down_revision=head,
+            create_date=create_date,
+            message=message if message is not None else ("empty message"),
+            **kw
+        )
+        if refresh:
+            script = Script._from_path(self, path)
+            self._revision_map[script.revision] = script
+            for downrev in util.to_tuple(script.down_revision, ()):
+                self._revision_map[downrev].\
+                    add_nextrev(script.revision)
+            return script
+        else:
+            return None
 
     def _rev_path(self, rev_id, message, create_date):
         slug = "_".join(_slug_re.findall(message or "")).lower()
@@ -279,124 +273,8 @@ class ScriptDirectory(object):
         )
         return os.path.join(self.versions, filename)
 
-    def get_current_head(self):
-        """Return the current head revision.
 
-        If the script directory has multiple heads
-        due to branching, an error is raised.
-
-        Returns a string revision number.
-
-        """
-        current_heads = self.get_heads()
-        if len(current_heads) > 1:
-            raise util.CommandError(
-                'Only a single head is supported. The '
-                'script directory has multiple heads (due to branching), '
-                'which must be resolved by manually editing the revision '
-                'files to form a linear sequence. Run `alembic branches` to '
-                'see the divergence(s).')
-
-        if current_heads:
-            return current_heads[0]
-        else:
-            return None
-
-    _current_head = get_current_head
-    """the 0.2 name, for backwards compat."""
-
-    def get_heads(self):
-        """Return all "head" revisions as strings.
-
-        Returns a list of string revision numbers.
-
-        This is normally a list of length one,
-        unless branches are present.  The
-        :meth:`.ScriptDirectory.get_current_head()` method
-        can be used normally when a script directory
-        has only one head.
-
-        """
-        heads = []
-        for script in self._revision_map.values():
-            if script and script.is_head:
-                heads.append(script.revision)
-        return heads
-
-    def get_base(self):
-        """Return the "base" revision as a string.
-
-        This is the revision number of the script that
-        has a ``down_revision`` of None.
-
-        Behavior is not defined if more than one script
-        has a ``down_revision`` of None.
-
-        """
-        for script in self._revision_map.values():
-            if script and script.down_revision is None \
-                    and script.revision in self._revision_map:
-                return script.revision
-        else:
-            return None
-
-    def _generate_template(self, src, dest, **kw):
-        util.status("Generating %s" % os.path.abspath(dest),
-                    util.template_to_file,
-                    src,
-                    dest,
-                    self.output_encoding,
-                    **kw
-                    )
-
-    def _copy_file(self, src, dest):
-        util.status("Generating %s" % os.path.abspath(dest),
-                    shutil.copy,
-                    src, dest)
-
-    def generate_revision(self, revid, message, refresh=False, **kw):
-        """Generate a new revision file.
-
-        This runs the ``script.py.mako`` template, given
-        template arguments, and creates a new file.
-
-        :param revid: String revision id.  Typically this
-         comes from ``alembic.util.rev_id()``.
-        :param message: the revision message, the one passed
-         by the -m argument to the ``revision`` command.
-        :param refresh: when True, the in-memory state of this
-         :class:`.ScriptDirectory` will be updated with a new
-         :class:`.Script` instance representing the new revision;
-         the :class:`.Script` instance is returned.
-         If False, the file is created but the state of the
-         :class:`.ScriptDirectory` is unmodified; ``None``
-         is returned.
-
-        """
-        current_head = self.get_current_head()
-        create_date = datetime.datetime.now()
-        path = self._rev_path(revid, message, create_date)
-        self._generate_template(
-            os.path.join(self.dir, "script.py.mako"),
-            path,
-            up_revision=str(revid),
-            down_revision=current_head,
-            create_date=create_date,
-            message=message if message is not None else ("empty message"),
-            **kw
-        )
-        if refresh:
-            script = Script._from_path(self, path)
-            self._revision_map[script.revision] = script
-            if script.down_revision:
-                self._revision_map[script.down_revision].\
-                    add_nextrev(script.revision)
-            return script
-        else:
-            return None
-
-
-class Script(object):
+class Script(revision.Revision):
 
     """Represent a single revision file in a ``versions/`` directory.
 
@@ -405,25 +283,18 @@ class Script(object):
 
     """
 
-    nextrev = frozenset()
-
     def __init__(self, module, rev_id, path):
         self.module = module
-        self.revision = rev_id
         self.path = path
-        self.down_revision = getattr(module, 'down_revision', None)
-
-    revision = None
-    """The string revision number for this :class:`.Script` instance."""
+        super(Script, self).__init__(
+            rev_id,
+            util.to_tuple(module.down_revision, default=()))
 
     module = None
     """The Python module representing the actual script itself."""
 
     path = None
     """Filesystem path of the script."""
-
-    down_revision = None
-    """The ``down_revision`` identifier within the migration script."""
 
     @property
     def doc(self):
@@ -443,43 +314,17 @@ class Script(object):
         else:
             return ""
 
-    def add_nextrev(self, rev):
-        self.nextrev = self.nextrev.union([rev])
-
-    @property
-    def is_head(self):
-        """Return True if this :class:`.Script` is a 'head' revision.
-
-        This is determined based on whether any other :class:`.Script`
-        within the :class:`.ScriptDirectory` refers to this
-        :class:`.Script`.   Multiple heads can be present.
-
-        """
-        return not bool(self.nextrev)
-
-    @property
-    def is_branch_point(self):
-        """Return True if this :class:`.Script` is a branch point.
-
-        A branchpoint is defined as a :class:`.Script` which is referred
-        to by more than one succeeding :class:`.Script`, that is more
-        than one :class:`.Script` has a `down_revision` identifier pointing
-        here.
-
-        """
-        return len(self.nextrev) > 1
-
     @property
     def log_entry(self):
         return \
             "Rev: %s%s%s\n" \
-            "Parent: %s\n" \
+            "Parent(s): %s\n" \
             "Path: %s\n" \
             "\n%s\n" % (
                 self.revision,
                 " (head)" if self.is_head else "",
                 " (branchpoint)" if self.is_branch_point else "",
-                self.down_revision,
+                ", ".join(self.down_revision),
                 self.path,
                 "\n".join(
                     "    %s" % para
@@ -489,10 +334,11 @@ class Script(object):
 
     def __str__(self):
         return "%s -> %s%s%s, %s" % (
-            self.down_revision,
+            ", ".join(self.down_revision),
             self.revision,
             " (head)" if self.is_head else "",
             " (branchpoint)" if self.is_branch_point else "",
+            " (mergepoint)" if self.is_merge_point else "",
             self.doc)
 
     @classmethod
