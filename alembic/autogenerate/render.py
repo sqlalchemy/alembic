@@ -194,11 +194,18 @@ def _uq_constraint(constraint, autogen_context, alter):
 
 
 def _add_fk_constraint(constraint, fk_info, autogen_context):
-    args = [repr(_render_gen_name(autogen_context, constraint.name)),
-            constraint.parent.table.name]
-    args.extend([vars(fk_info).values()[1],
-                 str(list(vars(fk_info).values()[0])),
-                 str(list(vars(fk_info).values()[2]))])
+    args = [
+        repr(_render_gen_name(autogen_context, constraint.name)),
+        constraint.parent.table.name,
+        fk_info.referred_table,
+        str(list(fk_info.constrained_columns)),
+        str(list(fk_info.referred_columns)),
+        "%s=%r" % ('schema', constraint.parent.table.schema),
+    ]
+    if constraint.deferrable:
+        args.append("%s=%r" % ("deferrable", str(constraint.deferrable)))
+    if constraint.initially:
+        args.append("%s=%r" % ("initially", str(constraint.initially)))
     return "%(prefix)screate_foreign_key(%(args)s)" % {
         'prefix': _alembic_autogenerate_prefix(autogen_context),
         'args': ", ".join(args)
