@@ -31,17 +31,17 @@ class RevisionPathTest(TestBase):
         eq_(
             env._upgrade_revs(e.revision, c.revision),
             [
-                (d.module.upgrade, c.revision, d.revision, d.doc),
-                (e.module.upgrade, d.revision, e.revision, e.doc),
+                (d.module.upgrade, (c.revision,), d.revision, d.doc),
+                (e.module.upgrade, (d.revision,), e.revision, e.doc),
             ]
         )
 
         eq_(
             env._upgrade_revs(c.revision, None),
             [
-                (a.module.upgrade, None, a.revision, a.doc),
-                (b.module.upgrade, a.revision, b.revision, b.doc),
-                (c.module.upgrade, b.revision, c.revision, c.doc),
+                (a.module.upgrade, (), a.revision, a.doc),
+                (b.module.upgrade, (a.revision,), b.revision, b.doc),
+                (c.module.upgrade, (b.revision,), c.revision, c.doc),
             ]
         )
 

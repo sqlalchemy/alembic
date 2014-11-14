@@ -8,6 +8,10 @@ from sqlalchemy import util as sqlautil
 _relative_destination = re.compile(r'(?:\+|-)\d+')
 
 
+class MultipleRevisions(Exception):
+    pass
+
+
 class RevisionMap(object):
     """Maintains a map of :class:`.Revision` objects.
 
@@ -73,6 +77,25 @@ class RevisionMap(object):
         self.heads = tuple(heads)
         return map_
 
+    def add_revision(self, revision):
+        map_ = self._revision_map
+        if revision.revision in map_:
+            util.warn("Revision %s is present more than once" %
+                      revision.revision)
+        map_[revision.revision] = revision
+        if revision.is_base:
+            self.bases += (revision.revision, )
+        for downrev in revision.down_revision:
+            if downrev not in map_:
+                util.warn("Revision %s referenced from %s is not present"
+                          % (revision.down_revision, revision))
+            map_[downrev].add_nextrev(revision.revision)
+        if revision.is_head:
+            self.heads = tuple(
+                head for head in self.heads
+                if head not in set(revision.down_revision)
+            ) + (revision.revision,)
+
     def get_current_head(self):
         """Return the current head revision.
 
@@ -100,13 +123,13 @@ class RevisionMap(object):
         else:
             return None
 
-    def get_symbolic_revisions(self, id_):
-        """Return revisions based on a possibly "symbolic" revision,
-        such as "head" or "base".
+    def get_revisions(self, id_):
+        """Return the :class:`.Revision` instances with the given rev id
+        or identifiers.
 
-        If an exact revision number is given, a tuple of one :class:`.Revision`
-        is returned.  If "head" or "base" is given, a tuple of potentially
-        multiple heads or bases is returned.
+        May be given a single identifier, a sequence of identifiers, or the
+        special symbols "head" or "base".  The result is a tuple of one
+        or more identifiers.
 
         Supports partial identifiers, where the given identifier
         is matched against all identifiers that start with the given
@@ -114,17 +137,16 @@ class RevisionMap(object):
         full revision.
 
         """
-        if id_ == 'head':
-            return tuple(self.get_revision(head) for head in self.heads)
-        elif id_ == 'base':
-            return tuple(self.get_revision(base) for base in self.bases)
-        else:
-            return tuple(self.get_revision(ident)
-                         for ident in util.to_tuple(id_, ()))
+        resolved_id = self._resolve_revision_symbol(id_)
+        return tuple(self.get_revision(rev_id) for rev_id in resolved_id)
 
     def get_revision(self, id_):
         """Return the :class:`.Revision` instance with the given rev id.
 
+        If a symbolic name such as "head" or "base" is given, resolves
+        the identifier into the current head or base revision.  If the symbolic
+        name refers to multiples, :class:`.MultipleRevisions` is raised.
+
         Supports partial identifiers, where the given identifier
         is matched against all identifiers that start with the given
         characters; if there is exactly one match, that determines the
@@ -132,12 +154,20 @@ class RevisionMap(object):
 
         """
 
+        resolved_id = self._resolve_revision_symbol(id_)
+        if len(resolved_id) > 1:
+            raise MultipleRevisions(
+                "Identifier %r corresponds to multiple revisions; "
+                "please use get_revisions()" % id_)
+        else:
+            resolved_id = resolved_id[0]
+
         try:
-            return self._revision_map[id_]
+            return self._revision_map[resolved_id]
         except KeyError:
             # do a partial lookup
             revs = [x for x in self._revision_map
-                    if x and x.startswith(id_)]
+                    if x and x.startswith(resolved_id)]
             if not revs:
                 raise util.CommandError("No such revision '%s'" % id_)
             elif len(revs) > 1:
@@ -149,6 +179,14 @@ class RevisionMap(object):
                     ))
             else:
                 return self._revision_map[revs[0]]
+
+    def _resolve_revision_symbol(self, id_):
+        if id_ == 'head':
+            return self.heads
+        elif id_ == 'base':
+            return self.bases
+        else:
+            return util.to_tuple(id_, default=())
 
     def iterate_revisions(self, upper, lower):
         """Iterate through script revisions, starting at the given
@@ -181,39 +219,64 @@ class RevisionMap(object):
                     "produce %d migrations" % (lower, abs(relative)))
             return iter(revs)
         else:
-            return self._iterate_revisions(upper, lower)
+            return self._iterate_revisions(upper, lower, inclusive=False)
 
     def _get_descendant_nodes(self, targets):
-        todo = collections.deque(targets)
-        while todo:
-            rev = todo.pop()
-            todo.extend(
-                self._revision_map[rev_id] for rev_id in rev.nextrev)
-            yield rev
+        total_descendants = set()
+        for target in targets:
+            descendants = set()
+            todo = collections.deque([target])
+            while todo:
+                rev = todo.pop()
+                todo.extend(
+                    self._revision_map[rev_id] for rev_id in rev.nextrev)
+                descendants.add(rev)
+            if descendants.intersection(
+                tg for tg in targets if tg is not target
+            ):
+                raise util.CommandError(
+                    "Requested base revision %s overlaps with "
+                    "other requested base revisions" % target.revision)
+            total_descendants.update(descendants)
+        return total_descendants
 
     def _get_ancestor_nodes(self, targets):
-        todo = collections.deque(targets)
-        while todo:
-            rev = todo.pop()
-            todo.extend(
-                self._revision_map[rev_id] for rev_id in rev.down_revision)
-            yield rev
+        total_ancestors = set()
+        for target in targets:
+            ancestors = set()
+            todo = collections.deque([target])
+            while todo:
+                rev = todo.pop()
+                todo.extend(
+                    self._revision_map[rev_id] for rev_id in rev.down_revision)
+                ancestors.add(rev)
+            if ancestors.intersection(
+                tg for tg in targets if tg is not target
+            ):
+                raise util.CommandError(
+                    "Requested head revision %s overlaps with "
+                    "other requested head revisions" % target.revision)
+            total_ancestors.update(ancestors)
+        return total_ancestors
 
-    def _iterate_revisions(self, upper, lower):
+    def _iterate_revisions(self, upper, lower, inclusive=True):
         """iterate revisions from upper to lower.
 
         The traversal is depth-first within branches, and breadth-first
         across branches as a whole.
 
         """
-        lower = self.get_symbolic_revisions(lower)
-        uppers = self.get_symbolic_revisions(upper)
+        if not lower:  # lower of None or (), we go to the bases.
+            lower = self.bases
+            inclusive = True
+        lowers = self.get_revisions(lower)
+        uppers = self.get_revisions(upper)
 
         total_space = set(
-            rev.revision
-            for rev in self._get_ancestor_nodes(uppers)
+            rev.revision for rev
+            in self._get_ancestor_nodes(uppers)
         ).intersection(
-            rev.revision for rev in self._get_descendant_nodes(lower)
+            rev.revision for rev in self._get_descendant_nodes(lowers)
         )
 
         branch_endpoints = set(
@@ -224,7 +287,7 @@ class RevisionMap(object):
         )
 
         todo = collections.deque(uppers)
-        stop = set(lower)
+        stop = set(lowers)
         while todo:
             stop.update(
                 rev.revision for rev in todo
@@ -246,7 +309,8 @@ class RevisionMap(object):
                 if downrev in branch_endpoints and downrev not in stop
                 and downrev in total_space
             ])
-            yield rev
+            if inclusive or rev not in lowers:
+                yield rev
 
 
 class Revision(object):

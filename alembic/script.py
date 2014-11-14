@@ -152,7 +152,7 @@ class ScriptDirectory(object):
 
         :return: a tuple of string revision numbers.
         """
-        return self.revision_map.get_heads()
+        return self.revision_map.heads
 
     def _upgrade_revs(self, destination, current_rev):
         revs = self.revision_map.iterate_revisions(destination, current_rev)
@@ -247,10 +247,7 @@ class ScriptDirectory(object):
         )
         if refresh:
             script = Script._from_path(self, path)
-            self._revision_map[script.revision] = script
-            for downrev in util.to_tuple(script.down_revision, ()):
-                self._revision_map[downrev].\
-                    add_nextrev(script.revision)
+            self.revision_map.add_revision(script)
             return script
         else:
             return None

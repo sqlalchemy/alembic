@@ -1,13 +1,95 @@
 from alembic.testing.fixtures import TestBase
-from alembic.testing import eq_
-from alembic.revision import RevisionMap, Revision
+from alembic.testing import eq_, assert_raises_message
+from alembic.revision import RevisionMap, Revision, MultipleRevisions
+from alembic.util import CommandError
+
+
+class APITest(TestBase):
+    def test_add_revision_one_head(self):
+        map_ = RevisionMap(
+            lambda: [
+                Revision('a', ()),
+                Revision('b', ('a',)),
+                Revision('c', ('b',)),
+            ]
+        )
+        eq_(map_.heads, ('c', ))
+
+        map_.add_revision(Revision('d', ('c', )))
+        eq_(map_.heads, ('d', ))
+
+    def test_add_revision_two_head(self):
+        map_ = RevisionMap(
+            lambda: [
+                Revision('a', ()),
+                Revision('b', ('a',)),
+                Revision('c1', ('b',)),
+                Revision('c2', ('b',)),
+            ]
+        )
+        eq_(map_.heads, ('c1', 'c2'))
+
+        map_.add_revision(Revision('d1', ('c1', )))
+        eq_(map_.heads, ('c2', 'd1'))
+
+    def test_get_revision_head_single(self):
+        map_ = RevisionMap(
+            lambda: [
+                Revision('a', ()),
+                Revision('b', ('a',)),
+                Revision('c', ('b',)),
+            ]
+        )
+        eq_(map_.get_revision('head'), map_._revision_map['c'])
+
+    def test_get_revision_base_single(self):
+        map_ = RevisionMap(
+            lambda: [
+                Revision('a', ()),
+                Revision('b', ('a',)),
+                Revision('c', ('b',)),
+            ]
+        )
+        eq_(map_.get_revision('base'), map_._revision_map['a'])
+
+    def test_get_revision_head_multiple(self):
+        map_ = RevisionMap(
+            lambda: [
+                Revision('a', ()),
+                Revision('b', ('a',)),
+                Revision('c1', ('b',)),
+                Revision('c2', ('b',)),
+            ]
+        )
+        assert_raises_message(
+            MultipleRevisions,
+            "Identifier 'head' corresponds to multiple revisions; "
+            "please use get_revisions()",
+            map_.get_revision, 'head'
+        )
+
+    def test_get_revision_base_multiple(self):
+        map_ = RevisionMap(
+            lambda: [
+                Revision('a', ()),
+                Revision('b', ('a',)),
+                Revision('c', ()),
+                Revision('d', ('c',)),
+            ]
+        )
+        assert_raises_message(
+            MultipleRevisions,
+            "Identifier 'base' corresponds to multiple revisions; "
+            "please use get_revisions()",
+            map_.get_revision, 'base'
+        )
 
 
 class DownIterateTest(TestBase):
-    def _assert_iteration(self, upper, lower, assertion):
+    def _assert_iteration(self, upper, lower, assertion, inclusive=True):
         eq_(
             [rev.revision for rev in
-             self.map._iterate_revisions(upper, lower)],
+             self.map._iterate_revisions(upper, lower, inclusive=inclusive)],
             assertion
         )
 
@@ -176,6 +258,42 @@ class BranchTravellingTest(DownIterateTest):
             ]
         )
 
+    def test_three_branches_end_multiple_bases_exclusive(self):
+
+        self._assert_iteration(
+            ["merge", "fe1b1"], ["cb1", "cb2"],
+            [
+                'merge',
+                'e2b1',
+                'e2b2', 'db2',
+                'fe1b1', 'e1b1',
+                'db1',
+            ],
+            inclusive=False
+        )
+
+    def test_detect_invalid_head_selection(self):
+        # db1 is an ancestor of fe1b1
+        assert_raises_message(
+            CommandError,
+            "Requested head revision fe1b1 overlaps "
+            "with other requested head revisions",
+            list,
+            self.map._iterate_revisions(["db1", "b2", "fe1b1"], ())
+        )
+
+    def test_three_branches_end_multiple_bases_exclusive_blank(self):
+        self._assert_iteration(
+            ["e2b1", "b2", "fe1b1"], (),
+            [
+                'e2b1',
+                'b2',
+                'fe1b1', 'e1b1',
+                'db1', 'cb1', 'b1', 'a3', 'a2', 'a1'
+            ],
+            inclusive=False
+        )
+
 
 class MultipleBaseTest(DownIterateTest):
     def setUp(self):
@@ -213,4 +331,39 @@ class MultipleBaseTest(DownIterateTest):
                     'd2', 'c2', 'b2', 'a2', 'base2',
                 'base1'
             ]
+        )
+
+    def test_head_to_base_exclusive(self):
+        self._assert_iteration(
+            "head", "base",
+            [
+                'b1a', 'a1a',
+                'b1b', 'a1b',
+                'mergeb3d2',
+                    'b3', 'a3',
+                    'd2', 'c2', 'b2', 'a2',
+            ],
+            inclusive=False
+        )
+
+    def test_head_to_blank(self):
+        self._assert_iteration(
+            "head", None,
+            [
+                'b1a', 'a1a',
+                'b1b', 'a1b',
+                'mergeb3d2',
+                    'b3', 'a3', 'base3',
+                    'd2', 'c2', 'b2', 'a2', 'base2',
+                'base1'
+            ]
+        )
+
+    def test_detect_invalid_base_selection(self):
+        assert_raises_message(
+            CommandError,
+            "Requested base revision a2 overlaps with "
+            "other requested base revisions",
+            list,
+            self.map._iterate_revisions(["c2"], ["a2", "b2"])
         )
