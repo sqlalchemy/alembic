@@ -155,13 +155,13 @@ class ScriptDirectory(object):
         """
         return self.revision_map.heads
 
-    def _flag_dupes(self, revs):
-        dupes = set()
+    def _flag_branch_changes(self, revs):
+        dupes = set([None])
         for rev in revs:
             dupe = False
-            if dupes.intersection(rev.down_revision):
+            if dupes.intersection(rev.down_revision or [None]):
                 dupe = True
-            dupes.update(rev.down_revision)
+            dupes.update(rev.down_revision or [None])
             yield rev, dupe
 
     def _upgrade_revs(self, destination, current_rev):
@@ -170,7 +170,8 @@ class ScriptDirectory(object):
             migration.MigrationStep.upgrade_from_script(
                 script, new_branch
             )
-            for script, new_branch in self._flag_dupes(reversed(list(revs)))
+            for script, new_branch
+            in self._flag_branch_changes(reversed(list(revs)))
         ]
 
     def _downgrade_revs(self, destination, current_rev):
@@ -179,7 +180,7 @@ class ScriptDirectory(object):
             migration.MigrationStep.downgrade_from_script(
                 script, delete_branch
             )
-            for script, delete_branch in self._flag_dupes(revs)
+            for script, delete_branch in self._flag_branch_changes(revs)
         ]
 
     def run_env(self):
@@ -238,6 +239,9 @@ class ScriptDirectory(object):
         """
         if head is None:
             heads = self.get_heads()
+            if len(heads) > 1:
+                raise util.CommandError(
+                    "Multiple heads present, please specify head revision.")
         else:
             heads = util.to_tuple(head, default=())
 
@@ -337,7 +341,7 @@ class Script(revision.Revision):
             )
 
     def __str__(self):
-        return "%s -> %s%s%s, %s" % (
+        return "%s -> %s%s%s%s, %s" % (
             ", ".join(self.down_revision),
             self.revision,
             " (head)" if self.is_head else "",

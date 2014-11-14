@@ -36,7 +36,7 @@ class RevisionPathTest(TestBase):
         eq_(
             self.env._upgrade_revs(c.revision, None),
             [
-                up_(a),
+                up_(a, True),
                 up_(b),
                 up_(c),
             ]
@@ -88,7 +88,7 @@ class RevisionPathTest(TestBase):
 
         eq_(
             self.env._downgrade_revs(None, c.revision),
-            [down_(c), down_(b), down_(a)]
+            [down_(c), down_(b), down_(a, True)]
         )
 
     def test_relative_downgrade_path(self):
@@ -187,6 +187,31 @@ class BranchedPathTest(TestBase):
         eq_(
             self.env._downgrade_revs(a.revision, (d1.revision, d2.revision)),
             [down_(d1), down_(c1), down_(d2), down_(c2, True), down_(b)]
+        )
+
+
+class ForestTest(TestBase):
+    @classmethod
+    def setup_class(cls):
+        cls.env = env = staging_env()
+        cls.a1 = env.generate_revision(util.rev_id(), '->a1', refresh=True)
+        cls.b1 = env.generate_revision(util.rev_id(), 'a1->b1', refresh=True)
+
+        cls.a2 = env.generate_revision(
+            util.rev_id(), '->a2', head=(),
+            refresh=True)
+        cls.b2 = env.generate_revision(
+            util.rev_id(), 'a2->b2', head=cls.a2.revision, refresh=True)
+
+    @classmethod
+    def teardown_class(cls):
+        clear_staging_env()
+
+    def test_base_to_head(self):
+        a1, b1, a2, b2 = self.a1, self.b1, self.a2, self.b2
+        eq_(
+            self.env._upgrade_revs("head", "base"),
+            [up_(a2, True), up_(b2), up_(a1, True), up_(b1), ]
         )
 
 

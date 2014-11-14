@@ -77,7 +77,7 @@ class RevisionMap(object):
         self.heads = tuple(heads)
         return map_
 
-    def add_revision(self, revision):
+    def add_revision(self, revision, _replace=False):
         """add a single revision to an existing map.
 
         This method is for single-revision use cases, it's not
@@ -85,21 +85,27 @@ class RevisionMap(object):
 
         """
         map_ = self._revision_map
-        if revision.revision in map_:
+        if not _replace and revision.revision in map_:
             util.warn("Revision %s is present more than once" %
                       revision.revision)
+        elif _replace and revision.revision not in map_:
+            raise Exception("revision %s not in map" % revision.revision)
+
         map_[revision.revision] = revision
         if revision.is_base:
             self.bases += (revision.revision, )
         for downrev in revision.down_revision:
             if downrev not in map_:
-                util.warn("Revision %s referenced from %s is not present"
-                          % (revision.down_revision, revision))
+                util.warn(
+                    "Revision %s referenced from %s is not present"
+                    % (revision.down_revision, revision)
+                )
             map_[downrev].add_nextrev(revision.revision)
         if revision.is_head:
             self.heads = tuple(
                 head for head in self.heads
-                if head not in set(revision.down_revision)
+                if head not in
+                set(revision.down_revision).union([revision.revision])
             ) + (revision.revision,)
 
     def get_current_head(self):
@@ -165,7 +171,7 @@ class RevisionMap(object):
             raise MultipleRevisions(
                 "Identifier %r corresponds to multiple revisions; "
                 "please use get_revisions()" % id_)
-        else:
+        elif resolved_id:
             resolved_id = resolved_id[0]
 
         try:
@@ -190,7 +196,7 @@ class RevisionMap(object):
         if id_ == 'head':
             return self.heads
         elif id_ == 'base':
-            return self.bases
+            return ()
         else:
             return util.to_tuple(id_, default=())
 
@@ -276,10 +282,11 @@ class RevisionMap(object):
         across branches as a whole.
 
         """
-        if not lower:  # lower of None or (), we go to the bases.
-            lower = self.bases
-            inclusive = True
         lowers = self.get_revisions(lower)
+        if not lowers:  # lower of None or (), we go to the bases.
+            lowers = self.get_revisions(self.bases)
+            inclusive = True
+
         uppers = self.get_revisions(upper)
 
         total_space = set(
@@ -328,6 +335,7 @@ class RevisionMap(object):
                 if downrev in branch_endpoints and downrev not in stop
                 and downrev in total_space
             ])
+
             if inclusive or rev not in lowers:
                 yield rev
 

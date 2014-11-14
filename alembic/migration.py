@@ -230,7 +230,7 @@ class MigrationContext(object):
 
         """
         if self.as_sql:
-            return (self._start_from_rev, )
+            return util.to_tuple(self._start_from_rev, default=())
         else:
             if self._start_from_rev:
                 raise util.CommandError(
@@ -248,44 +248,6 @@ class MigrationContext(object):
     def _has_version_table(self):
         return self.connection.dialect.has_table(
             self.connection, self.version_table, self.version_table_schema)
-
-    def _update_current_rev(self, old, new):
-        if old == new:
-            return
-        if new is None or new == ():
-            ret = self.impl._exec(
-                self._version.delete().where(
-                    self._version.c.version_num == old))
-            if not self.as_sql and ret.rowcount != 1:
-                raise util.CommandError(
-                    "Online migration expected to match one "
-                    "row when deleting '%s' in '%s'; "
-                    "%d found"
-                    % (old, self.version_table, ret.rowcount))
-        elif old is None or old == ():
-            self.impl._exec(
-                self._version.insert().
-                values(version_num=literal_column("'%s'" % new))
-            )
-        elif old is False:
-            # this is the "offline stamp" use case
-            assert self.as_sql
-            self.impl._exec(
-                self._version.update().
-                values(version_num=literal_column("'%s'" % new))
-            )
-        else:
-            ret = self.impl._exec(
-                self._version.update().
-                values(version_num=literal_column("'%s'" % new)).where(
-                    self._version.c.version_num == old)
-            )
-            if not self.as_sql and ret.rowcount != 1:
-                raise util.CommandError(
-                    "Online migration expected to match one "
-                    "row when updating '%s' to '%s' in '%s'; "
-                    "%d found"
-                    % (old, new, self.version_table, ret.rowcount))
 
     def run_migrations(self, **kw):
         """Run the migration scripts established for this
@@ -308,9 +270,7 @@ class MigrationContext(object):
          method within revision scripts.
 
         """
-        current_rev = rev = False
-        stamp_per_migration = not self.impl.transactional_ddl or \
-            self._transaction_per_migration
+        current_rev = False
 
         self.impl.start_migrations()
 
@@ -318,39 +278,30 @@ class MigrationContext(object):
         if not self.as_sql and not heads:
             self._ensure_version_table()
 
-        for change, prev_rev, rev, doc in self._migrations_fn(
-                self.get_current_revision(),
-                self):
+        head_maintainer = HeadMaintainer(self, heads)
+
+        for step in self._migrations_fn(heads, self):
             with self.begin_transaction(_per_migration=True):
                 if current_rev is False:
-                    current_rev = prev_rev
+                    current_rev = True
                     # for offline mode, include a CREATE TABLE from
                     # the base
-                    if self.as_sql and not current_rev:
+                    if self.as_sql and not heads:
                         self._version.create(self.connection)
-                if doc:
-                    log.info(
-                        "Running %s %s -> %s, %s", change.__name__, prev_rev,
-                        rev, doc)
-                else:
-                    log.info(
-                        "Running %s %s -> %s", change.__name__, prev_rev, rev)
+                log.info("Running %s", step)
                 if self.as_sql:
-                    self.impl.static_output(
-                        "-- Running %s %s -> %s" %
-                        (change.__name__, prev_rev, rev)
-                    )
-                change(**kw)
-                if stamp_per_migration:
-                    self._update_current_rev(prev_rev, rev)
-                prev_rev = rev
+                    self.impl.static_output("-- Running %s" % (step,))
+                step.migration_fn(**kw)
 
-        if rev is not False:
-            if not stamp_per_migration:
-                self._update_current_rev(current_rev, rev)
+                # previously, we wouldn't stamp per migration
+                # if we were in a transaction, however given the more
+                # complex model that involves any number of inserts
+                # and row-targeted updates and deletes, it's simpler for now
+                # just to run the operations on every version
+                head_maintainer.update_to_step(step)
 
-            if self.as_sql and not rev:
-                self._version.drop(self.connection)
+        if self.as_sql and not head_maintainer.heads:
+            self._version.drop(self.connection)
 
     def execute(self, sql, execution_options=None):
         """Execute a SQL construct or string statement.
@@ -448,14 +399,88 @@ class MigrationContext(object):
             rendered_metadata_default,
             rendered_column_default)
 
+
+class HeadMaintainer(object):
+    def __init__(self, context, heads):
+        self.context = context
+        self.heads = set(heads)
+
+    def _insert_version(self, version):
+        self.heads.add(version)
+
+        self.context.impl._exec(
+            self.context._version.insert().
+            values(
+                version_num=literal_column("'%s'" % version)
+            )
+        )
+
+    def _delete_version(self, version):
+        self.heads.remove(version)
+
+        ret = self.context.impl._exec(
+            self.context._version.delete().where(
+                self.context._version.c.version_num ==
+                literal_column("'%s'" % version)))
+        if not self.context.as_sql and ret.rowcount != 1:
+            raise util.CommandError(
+                "Online migration expected to match one "
+                "row when deleting '%s' in '%s'; "
+                "%d found"
+                % (version,
+                   self.context.version_table, ret.rowcount))
+
+    def _update_version(self, from_, to_):
+        self.heads.remove(from_)
+        self.heads.add(to_)
+
+        ret = self.context.impl._exec(
+            self.context._version.update().
+            values(version_num=literal_column("'%s'" % to_)).where(
+                self.context._version.c.version_num
+                == literal_column("'%s'" % from_))
+        )
+        if not self.context.as_sql and ret.rowcount != 1:
+            raise util.CommandError(
+                "Online migration expected to match one "
+                "row when updating '%s' to '%s' in '%s'; "
+                "%d found"
+                % (from_, to_, self.context.version_table, ret.rowcount))
+
+    def update_to_step(self, step):
+        if step.should_delete_branch:
+            self._delete_version(step.delete_version_num)
+        elif step.should_create_branch:
+            self._insert_version(step.insert_version_num)
+        elif step.should_merge_branches:
+            # delete revs, update from rev, update to rev
+            (delete_revs, update_from_rev,
+             update_to_rev) = step.merge_branch_idents
+            for delrev in delete_revs:
+                self._delete_version(delrev)
+            self._update_version(update_from_rev, update_to_rev)
+        elif step.should_unmerge_branches:
+            (update_from_rev, update_to_rev,
+             insert_revs) = step.unmerge_branch_idents
+            for insrev in insert_revs:
+                self._insert_version(insrev)
+            self._update_version(update_from_rev, update_to_rev)
+        else:
+            from_, to_ = step.update_version_num
+            self._update_version(from_, to_)
+
 MigrationStep = namedtuple(
     "MigrationStep",
-    ["migrate_fn", "from_revisions", "to_revisions",
+    ["migration_fn", "from_revisions", "to_revisions",
      "doc", "is_upgrade", "branch_presence_changed"]
 )
 
 
 class MigrationStep(MigrationStep):
+    @property
+    def name(self):
+        return self.migration_fn.__name__
+
     @property
     def should_create_branch(self):
         return self.is_upgrade and self.branch_presence_changed
@@ -470,11 +495,51 @@ class MigrationStep(MigrationStep):
 
     @property
     def should_unmerge_branches(self):
-        return self.is_downgrade and len(self.from_revisions) > 1
+        return self.is_downgrade and len(self.to_revisions) > 1
 
     @property
     def is_downgrade(self):
         return not self.is_upgrade
+
+    @property
+    def delete_version_num(self):
+        assert self.should_delete_branch
+        return self.from_revisions
+
+    @property
+    def insert_version_num(self):
+        assert self.should_create_branch
+        return self.to_revisions
+
+    @property
+    def update_version_num(self):
+        assert not self.should_create_branch and \
+            not self.should_delete_branch
+
+        if self.is_upgrade:
+            assert len(self.from_revisions) == 1
+            return self.from_revisions[0], self.to_revisions
+        else:
+            assert len(self.to_revisions) == 1
+            return self.from_revisions, self.to_revisions[0]
+
+    @property
+    def merge_branch_idents(self):
+        assert self.should_merge_branches
+        return (
+            # delete revs, update from rev, update to rev
+            self.from_revisions[0:-1], self.from_revisions[-1],
+            self.to_revisions
+        )
+
+    @property
+    def unmerge_branch_idents(self):
+        assert self.should_unmerge_branches
+        return (
+            # update from rev, update to rev, insert revs
+            self.from_revisions, self.to_revisions[-1],
+            self.to_revisions[0:-1]
+        )
 
     @classmethod
     def upgrade_from_script(cls, script, down_revision_seen=False):
@@ -489,3 +554,14 @@ class MigrationStep(MigrationStep):
             script.module.downgrade, script.revision, script.down_revision,
             script.doc, False, down_revision_seen
         )
+
+    def __str__(self):
+        if self.doc:
+            return "%s %s -> %s, %s" % (
+                self.name, self.from_revisions,
+                self.to_revisions, self.doc
+            )
+        else:
+            return "%s %s -> %s" % (
+                self.name, self.from_revisions, self.to_revisions
+            )

@@ -166,7 +166,7 @@ def _testing_config():
 
 def write_script(
         scriptdir, rev_id, content, encoding='ascii', sourceless=False):
-    old = scriptdir._revision_map[rev_id]
+    old = scriptdir.revision_map.get_revision(rev_id)
     path = old.path
 
     content = textwrap.dedent(content)
@@ -178,12 +178,11 @@ def write_script(
     if os.access(pyc_path, os.F_OK):
         os.unlink(pyc_path)
     script = Script._from_path(scriptdir, path)
-    old = scriptdir._revision_map[script.revision]
+    old = scriptdir.revision_map.get_revision(script.revision)
     if old.down_revision != script.down_revision:
         raise Exception("Can't change down_revision "
                         "on a refresh operation.")
-    scriptdir._revision_map[script.revision] = script
-    script.nextrev = old.nextrev
+    scriptdir.revision_map.add_revision(script, _replace=True)
 
     if sourceless:
         make_sourceless(path)

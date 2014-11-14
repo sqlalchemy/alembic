@@ -50,7 +50,7 @@ class APITest(TestBase):
                 Revision('c', ('b',)),
             ]
         )
-        eq_(map_.get_revision('base'), map_._revision_map['a'])
+        eq_(map_.get_revision('base'), None)
 
     def test_get_revision_head_multiple(self):
         map_ = RevisionMap(
@@ -77,12 +77,7 @@ class APITest(TestBase):
                 Revision('d', ('c',)),
             ]
         )
-        assert_raises_message(
-            MultipleRevisions,
-            "Identifier 'base' corresponds to multiple revisions; "
-            "please use get_revisions()",
-            map_.get_revision, 'base'
-        )
+        eq_(map_.get_revision('base'), None)
 
 
 class DownIterateTest(TestBase):
@@ -149,6 +144,18 @@ class MultipleBranchTest(DownIterateTest):
             ['d3cb2', 'cb2', 'b2', 'a']
         )
 
+    def test_iterate_single_branch_to_base(self):
+        self._assert_iteration(
+            "d3cb2", "base",
+            ['d3cb2', 'cb2', 'b2', 'a']
+        )
+
+    def test_iterate_multiple_branch_to_base(self):
+        self._assert_iteration(
+            ["d3cb2", "cb1"], "base",
+            ['d3cb2', 'cb2', 'b2', 'cb1', 'b1', 'a']
+        )
+
     def test_same_branch_wrong_direction(self):
         # nodes b1 and d1cb1 are connected, but
         # db1cb1 is the descendant of b1
@@ -182,6 +189,7 @@ class MultipleBranchTest(DownIterateTest):
             list,
             self.map._iterate_revisions((), 'd1cb1')
         )
+
 
 class BranchTravellingTest(DownIterateTest):
     """test the order of revs when going along multiple branches.
@@ -327,6 +335,13 @@ class BranchTravellingTest(DownIterateTest):
             inclusive=False
         )
 
+    def test_iterate_to_symbolic_base(self):
+        self._assert_iteration(
+            ["fe1b1"], "base",
+            ['fe1b1', 'e1b1', 'db1', 'cb1', 'b1', 'a3', 'a2', 'a1'],
+            inclusive=False
+        )
+
 
 class MultipleBaseTest(DownIterateTest):
     def setUp(self):
@@ -373,8 +388,9 @@ class MultipleBaseTest(DownIterateTest):
                 'b1a', 'a1a',
                 'b1b', 'a1b',
                 'mergeb3d2',
-                    'b3', 'a3',
-                    'd2', 'c2', 'b2', 'a2',
+                    'b3', 'a3', 'base3',
+                    'd2', 'c2', 'b2', 'a2', 'base2',
+                    'base1',
             ],
             inclusive=False
         )
