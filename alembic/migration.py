@@ -1,7 +1,7 @@
 import logging
 import sys
 from contextlib import contextmanager
-
+from collections import namedtuple
 
 from sqlalchemy import MetaData, Table, Column, String, literal_column
 from sqlalchemy import create_engine
@@ -252,7 +252,7 @@ class MigrationContext(object):
     def _update_current_rev(self, old, new):
         if old == new:
             return
-        if new is None:
+        if new is None or new == ():
             ret = self.impl._exec(
                 self._version.delete().where(
                     self._version.c.version_num == old))
@@ -262,7 +262,7 @@ class MigrationContext(object):
                     "row when deleting '%s' in '%s'; "
                     "%d found"
                     % (old, self.version_table, ret.rowcount))
-        elif old is None:
+        elif old is None or old == ():
             self.impl._exec(
                 self._version.insert().
                 values(version_num=literal_column("'%s'" % new))
@@ -447,3 +447,45 @@ class MigrationContext(object):
             metadata_column,
             rendered_metadata_default,
             rendered_column_default)
+
+MigrationStep = namedtuple(
+    "MigrationStep",
+    ["migrate_fn", "from_revisions", "to_revisions",
+     "doc", "is_upgrade", "branch_presence_changed"]
+)
+
+
+class MigrationStep(MigrationStep):
+    @property
+    def should_create_branch(self):
+        return self.is_upgrade and self.branch_presence_changed
+
+    @property
+    def should_delete_branch(self):
+        return self.is_downgrade and self.branch_presence_changed
+
+    @property
+    def should_merge_branches(self):
+        return self.is_upgrade and len(self.from_revisions) > 1
+
+    @property
+    def should_unmerge_branches(self):
+        return self.is_downgrade and len(self.from_revisions) > 1
+
+    @property
+    def is_downgrade(self):
+        return not self.is_upgrade
+
+    @classmethod
+    def upgrade_from_script(cls, script, down_revision_seen=False):
+        return MigrationStep(
+            script.module.upgrade, script.down_revision, script.revision,
+            script.doc, True, down_revision_seen
+        )
+
+    @classmethod
+    def downgrade_from_script(cls, script, down_revision_seen=False):
+        return MigrationStep(
+            script.module.downgrade, script.revision, script.down_revision,
+            script.doc, False, down_revision_seen
+        )

@@ -3,7 +3,7 @@ import collections
 
 from . import util
 from sqlalchemy import util as sqlautil
-
+from . import compat
 
 _relative_destination = re.compile(r'(?:\+|-)\d+')
 
@@ -206,7 +206,8 @@ class RevisionMap(object):
         The iterator yields :class:`.Revision` objects.
 
         """
-        if upper is not None and _relative_destination.match(upper):
+        if isinstance(upper, compat.string_types) and \
+                _relative_destination.match(upper):
             relative = int(upper)
             revs = list(
                 self._iterate_revisions("head", lower, inclusive=False))
@@ -216,7 +217,8 @@ class RevisionMap(object):
                     "Relative revision %s didn't "
                     "produce %d migrations" % (upper, abs(relative)))
             return iter(revs)
-        elif lower is not None and _relative_destination.match(lower):
+        elif isinstance(lower, compat.string_types) and \
+                _relative_destination.match(lower):
             relative = int(lower)
             revs = list(
                 self._iterate_revisions(upper, "base", inclusive=False))

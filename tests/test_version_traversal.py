@@ -3,146 +3,256 @@ from alembic.testing import assert_raises_message, eq_
 from alembic import util
 from alembic.testing.fixtures import TestBase
 
-
-env = None
-a, b, c, d, e = None, None, None, None, None
-cfg = None
+from alembic.migration import MigrationStep
+up_ = MigrationStep.upgrade_from_script
+down_ = MigrationStep.downgrade_from_script
 
 
 class RevisionPathTest(TestBase):
 
     @classmethod
     def setup_class(cls):
-        global env
-        env = staging_env()
-        global a, b, c, d, e
-        a = env.generate_revision(util.rev_id(), '->a', refresh=True)
-        b = env.generate_revision(util.rev_id(), 'a->b', refresh=True)
-        c = env.generate_revision(util.rev_id(), 'b->c', refresh=True)
-        d = env.generate_revision(util.rev_id(), 'c->d', refresh=True)
-        e = env.generate_revision(util.rev_id(), 'd->e', refresh=True)
+        cls.env = env = staging_env()
+        cls.a = env.generate_revision(util.rev_id(), '->a', refresh=True)
+        cls.b = env.generate_revision(util.rev_id(), 'a->b', refresh=True)
+        cls.c = env.generate_revision(util.rev_id(), 'b->c', refresh=True)
+        cls.d = env.generate_revision(util.rev_id(), 'c->d', refresh=True)
+        cls.e = env.generate_revision(util.rev_id(), 'd->e', refresh=True)
 
     @classmethod
     def teardown_class(cls):
         clear_staging_env()
 
     def test_upgrade_path(self):
-
+        a, b, c, d, e = self.a, self.b, self.c, self.d, self.e
         eq_(
-            env._upgrade_revs(e.revision, c.revision),
+            self.env._upgrade_revs(e.revision, c.revision),
             [
-                (d.module.upgrade, (c.revision,), d.revision, d.doc),
-                (e.module.upgrade, (d.revision,), e.revision, e.doc),
+                up_(d),
+                up_(e)
             ]
         )
 
         eq_(
-            env._upgrade_revs(c.revision, None),
+            self.env._upgrade_revs(c.revision, None),
             [
-                (a.module.upgrade, (), a.revision, a.doc),
-                (b.module.upgrade, (a.revision,), b.revision, b.doc),
-                (c.module.upgrade, (b.revision,), c.revision, c.doc),
+                up_(a),
+                up_(b),
+                up_(c),
             ]
         )
 
     def test_relative_upgrade_path(self):
+        a, b, c, d, e = self.a, self.b, self.c, self.d, self.e
         eq_(
-            env._upgrade_revs("+2", a.revision),
+            self.env._upgrade_revs("+2", a.revision),
             [
-                (b.module.upgrade, (a.revision,), b.revision, b.doc),
-                (c.module.upgrade, (b.revision,), c.revision, c.doc),
+                up_(b),
+                up_(c),
             ]
         )
 
         eq_(
-            env._upgrade_revs("+1", a.revision),
+            self.env._upgrade_revs("+1", a.revision),
             [
-                (b.module.upgrade, (a.revision,), b.revision, b.doc),
+                up_(b)
             ]
         )
 
         eq_(
-            env._upgrade_revs("+3", b.revision),
-            [
-                (c.module.upgrade, (b.revision,), c.revision, c.doc),
-                (d.module.upgrade, (c.revision,), d.revision, d.doc),
-                (e.module.upgrade, (d.revision,), e.revision, e.doc),
-            ]
+            self.env._upgrade_revs("+3", b.revision),
+            [up_(c), up_(d), up_(e)]
         )
 
     def test_invalid_relative_upgrade_path(self):
+        a, b, c, d, e = self.a, self.b, self.c, self.d, self.e
         assert_raises_message(
             util.CommandError,
             "Relative revision -2 didn't produce 2 migrations",
-            env._upgrade_revs, "-2", b.revision
+            self.env._upgrade_revs, "-2", b.revision
         )
 
         assert_raises_message(
             util.CommandError,
             r"Relative revision \+5 didn't produce 5 migrations",
-            env._upgrade_revs, "+5", b.revision
+            self.env._upgrade_revs, "+5", b.revision
         )
 
     def test_downgrade_path(self):
+        a, b, c, d, e = self.a, self.b, self.c, self.d, self.e
 
         eq_(
-            env._downgrade_revs(c.revision, e.revision),
-            [
-                (e.module.downgrade, e.revision, e.down_revision, e.doc),
-                (d.module.downgrade, d.revision, d.down_revision, d.doc),
-            ]
+            self.env._downgrade_revs(c.revision, e.revision),
+            [down_(e), down_(d)]
         )
 
         eq_(
-            env._downgrade_revs(None, c.revision),
-            [
-                (c.module.downgrade, c.revision, c.down_revision, c.doc),
-                (b.module.downgrade, b.revision, b.down_revision, b.doc),
-                (a.module.downgrade, a.revision, a.down_revision, a.doc),
-            ]
+            self.env._downgrade_revs(None, c.revision),
+            [down_(c), down_(b), down_(a)]
         )
 
     def test_relative_downgrade_path(self):
+        a, b, c, d, e = self.a, self.b, self.c, self.d, self.e
         eq_(
-            env._downgrade_revs("-1", c.revision),
-            [
-                (c.module.downgrade, c.revision, c.down_revision, c.doc),
-            ]
+            self.env._downgrade_revs("-1", c.revision),
+            [down_(c)]
         )
 
         eq_(
-            env._downgrade_revs("-3", e.revision),
-            [
-                (e.module.downgrade, e.revision, e.down_revision, e.doc),
-                (d.module.downgrade, d.revision, d.down_revision, d.doc),
-                (c.module.downgrade, c.revision, c.down_revision, c.doc),
-            ]
+            self.env._downgrade_revs("-3", e.revision),
+            [down_(e), down_(d), down_(c)]
         )
 
     def test_invalid_relative_downgrade_path(self):
+        a, b, c, d, e = self.a, self.b, self.c, self.d, self.e
         assert_raises_message(
             util.CommandError,
             "Relative revision -5 didn't produce 5 migrations",
-            env._downgrade_revs, "-5", b.revision
+            self.env._downgrade_revs, "-5", b.revision
         )
 
         assert_raises_message(
             util.CommandError,
             r"Relative revision \+2 didn't produce 2 migrations",
-            env._downgrade_revs, "+2", b.revision
+            self.env._downgrade_revs, "+2", b.revision
         )
 
     def test_invalid_move_rev_to_none(self):
+        a, b, c, d, e = self.a, self.b, self.c, self.d, self.e
         assert_raises_message(
             util.CommandError,
-            r"Revision\(s\) %s is not an ancestor of revision\(s\) base" % b.revision,
-            env._downgrade_revs, b.revision[0:3], None
+            r"Revision\(s\) %s is not an ancestor "
+            "of revision\(s\) base" % b.revision,
+            self.env._downgrade_revs, b.revision[0:3], None
         )
 
     def test_invalid_move_higher_to_lower(self):
+        a, b, c, d, e = self.a, self.b, self.c, self.d, self.e
+
         assert_raises_message(
             util.CommandError,
             r"Revision\(s\) %s is not an ancestor "
             "of revision\(s\) %s" % (c.revision, b.revision),
-            env._downgrade_revs, c.revision[0:4], b.revision
+            self.env._downgrade_revs, c.revision[0:4], b.revision
+        )
+
+
+class BranchedPathTest(TestBase):
+
+    @classmethod
+    def setup_class(cls):
+        cls.env = env = staging_env()
+        cls.a = env.generate_revision(util.rev_id(), '->a', refresh=True)
+        cls.b = env.generate_revision(util.rev_id(), 'a->b', refresh=True)
+
+        cls.c1 = env.generate_revision(util.rev_id(), 'b->c1', refresh=True)
+        cls.d1 = env.generate_revision(util.rev_id(), 'c1->d1', refresh=True)
+
+        cls.c2 = env.generate_revision(
+            util.rev_id(), 'b->c2',
+            head=cls.b.revision, refresh=True)
+        cls.d2 = env.generate_revision(
+            util.rev_id(), 'c2->d2',
+            head=cls.c2.revision, refresh=True)
+
+    @classmethod
+    def teardown_class(cls):
+        clear_staging_env()
+
+    def test_upgrade_single_branch(self):
+        a, b, c1, d1, c2, d2 = (
+            self.a, self.b, self.c1, self.d1, self.c2, self.d2
+        )
+
+        eq_(
+            self.env._upgrade_revs(d1.revision, b.revision),
+            [up_(c1), up_(d1)]
+        )
+
+    def test_upgrade_multiple_branch(self):
+        # move from a single head to multiple heads
+        a, b, c1, d1, c2, d2 = (
+            self.a, self.b, self.c1, self.d1, self.c2, self.d2
+        )
+
+        eq_(
+            self.env._upgrade_revs((d1.revision, d2.revision), a.revision),
+            [up_(b), up_(c2), up_(d2), up_(c1, True), up_(d1)]
+        )
+
+    def test_downgrade_multiple_branch(self):
+        a, b, c1, d1, c2, d2 = (
+            self.a, self.b, self.c1, self.d1, self.c2, self.d2
+        )
+        eq_(
+            self.env._downgrade_revs(a.revision, (d1.revision, d2.revision)),
+            [down_(d1), down_(c1), down_(d2), down_(c2, True), down_(b)]
+        )
+
+
+class MergedPathTest(TestBase):
+
+    @classmethod
+    def setup_class(cls):
+        cls.env = env = staging_env()
+        cls.a = env.generate_revision(util.rev_id(), '->a', refresh=True)
+        cls.b = env.generate_revision(util.rev_id(), 'a->b', refresh=True)
+
+        cls.c1 = env.generate_revision(util.rev_id(), 'b->c1', refresh=True)
+        cls.d1 = env.generate_revision(util.rev_id(), 'c1->d1', refresh=True)
+
+        cls.c2 = env.generate_revision(
+            util.rev_id(), 'b->c2',
+            head=cls.b.revision, refresh=True)
+        cls.d2 = env.generate_revision(
+            util.rev_id(), 'c2->d2',
+            head=cls.c2.revision, refresh=True)
+
+        cls.e = env.generate_revision(
+            util.rev_id(), 'merge d1 and d2',
+            head=(cls.d1.revision, cls.d2.revision), refresh=True
+        )
+
+        cls.f = env.generate_revision(util.rev_id(), 'e->f', refresh=True)
+
+    @classmethod
+    def teardown_class(cls):
+        clear_staging_env()
+
+    def test_upgrade_across_merge_point(self):
+        a, b, c1, d1, c2, d2, e, f = (
+            self.a, self.b, self.c1, self.d1, self.c2, self.d2,
+            self.e, self.f
+        )
+
+        eq_(
+            self.env._upgrade_revs(f.revision, b.revision),
+            [
+                up_(c2),
+                up_(d2),
+                up_(c1, True),  # b->c1, create new branch
+                up_(d1),
+                up_(e),  # d1/d2 -> e, merge branches
+                         # (DELETE d2, UPDATE d1->e)
+                up_(f)
+            ]
+        )
+
+    def test_downgrade_across_merge_point(self):
+        a, b, c1, d1, c2, d2, e, f = (
+            self.a, self.b, self.c1, self.d1, self.c2, self.d2,
+            self.e, self.f
+        )
+
+        eq_(
+            self.env._downgrade_revs(b.revision, f.revision),
+            [
+                down_(f),
+                down_(e),  # e -> d1 and d2, unmerge branches
+                           # (UPDATE e->d1, INSERT d2)
+                down_(d1),
+                down_(c1),
+                down_(d2),
+                down_(c2, True),  # c2->b, delete branch
+            ]
         )

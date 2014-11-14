@@ -4,6 +4,7 @@ from alembic.testing import config, eq_, assert_raises, assert_raises_message
 
 from sqlalchemy import Table, MetaData, Column, String
 from sqlalchemy.engine.reflection import Inspector
+from alembic.migration import MigrationContext
 
 from alembic.util import CommandError
 
@@ -27,7 +28,6 @@ class TestMigrationContext(TestBase):
         self.connection.close()
 
     def make_one(self, **kwargs):
-        from alembic.migration import MigrationContext
         return MigrationContext.configure(**kwargs)
 
     def get_revision(self):
@@ -82,72 +82,6 @@ class TestMigrationContext(TestBase):
                                       'as_sql': True})
         eq_(context.get_current_revision(), 'startrev')
 
-    def test_update_current_rev(self):
-        version_table.create(self.connection)
-        context = self.make_one(connection=self.connection,
-                                opts={'version_table': 'version_table'})
-
-        context._update_current_rev(None, 'a')
-        eq_(self.get_revision(), 'a')
-        context._update_current_rev('a', 'b')
-        eq_(self.get_revision(), 'b')
-        context._update_current_rev('b', None)
-        eq_(self.get_revision(), None)
-
-    def test_update_no_match(self):
-        version_table.create(self.connection)
-        context = self.make_one(connection=self.connection,
-                                opts={'version_table': 'version_table'})
-        context._update_current_rev(None, 'a')
-
-        assert_raises_message(
-            CommandError,
-            "Online migration expected to match one row when updating "
-            "'x' to 'b' in 'version_table'; 0 found",
-            context._update_current_rev, 'x', 'b'
-        )
-
-    def test_update_multi_match(self):
-        version_table.create(self.connection)
-        context = self.make_one(connection=self.connection,
-                                opts={'version_table': 'version_table'})
-        self.connection.execute(version_table.insert(), version_num='a')
-        self.connection.execute(version_table.insert(), version_num='a')
-
-        assert_raises_message(
-            CommandError,
-            "Online migration expected to match one row when updating "
-            "'a' to 'b' in 'version_table'; 2 found",
-            context._update_current_rev, 'a', 'b'
-        )
-
-    def test_delete_no_match(self):
-        version_table.create(self.connection)
-        context = self.make_one(connection=self.connection,
-                                opts={'version_table': 'version_table'})
-        context._update_current_rev(None, 'a')
-
-        assert_raises_message(
-            CommandError,
-            "Online migration expected to match one row when "
-            "deleting 'x' in 'version_table'; 0 found",
-            context._update_current_rev, 'x', None
-        )
-
-    def test_delete_multi_match(self):
-        version_table.create(self.connection)
-        context = self.make_one(connection=self.connection,
-                                opts={'version_table': 'version_table'})
-        self.connection.execute(version_table.insert(), version_num='a')
-        self.connection.execute(version_table.insert(), version_num='a')
-
-        assert_raises_message(
-            CommandError,
-            "Online migration expected to match one row when "
-            "deleting 'a' in 'version_table'; 2 found",
-            context._update_current_rev, 'a', None
-        )
-
     def test_get_current_revision_multiple_heads(self):
         version_table.create(self.connection)
         context = self.make_one(connection=self.connection,
@@ -177,4 +111,83 @@ class TestMigrationContext(TestBase):
                                     'version_table': 'version_table',
                                     'as_sql': True})
         eq_(context.get_current_heads(), ('q', ))
+
+
+class UpdateRevTest(TestBase):
+
+    @classmethod
+    def setup_class(cls):
+        cls.bind = config.db
+
+    def setUp(self):
+        self.connection = self.bind.connect()
+        self.context = MigrationContext.configure(
+            connection=self.connection,
+            opts={"version_table": "version_table"})
+        version_table.create(self.connection)
+
+    def tearDown(self):
+        version_table.drop(self.connection, checkfirst=True)
+        self.connection.close()
+
+    def test_update_none_to_single(self):
+        self.context._update_current_rev(None, 'a')
+        eq_(self.context.get_current_heads(), ('a',))
+
+    def test_update_single_to_single(self):
+        self.context._update_current_rev(None, 'a')
+        self.context._update_current_rev('a', 'b')
+        eq_(self.context.get_current_heads(), ('b',))
+
+    def test_update_single_to_none(self):
+        self.context._update_current_rev(None, 'a')
+        self.context._update_current_rev('a', None)
+        eq_(self.context.get_current_heads(), ())
+
+    def test_update_no_change(self):
+        self.context._update_current_rev(None, 'a')
+        self.context._update_current_rev('a', 'a')
+        eq_(self.context.get_current_heads(), ('a',))
+
+    def test_update_no_match(self):
+        self.context._update_current_rev(None, 'a')
+
+        assert_raises_message(
+            CommandError,
+            "Online migration expected to match one row when updating "
+            "'x' to 'b' in 'version_table'; 0 found",
+            self.context._update_current_rev, 'x', 'b'
+        )
+
+    def test_update_multi_match(self):
+        self.connection.execute(version_table.insert(), version_num='a')
+        self.connection.execute(version_table.insert(), version_num='a')
+
+        assert_raises_message(
+            CommandError,
+            "Online migration expected to match one row when updating "
+            "'a' to 'b' in 'version_table'; 2 found",
+            self.context._update_current_rev, 'a', 'b'
+        )
+
+    def test_delete_no_match(self):
+        self.context._update_current_rev(None, 'a')
+
+        assert_raises_message(
+            CommandError,
+            "Online migration expected to match one row when "
+            "deleting 'x' in 'version_table'; 0 found",
+            self.context._update_current_rev, 'x', None
+        )
+
+    def test_delete_multi_match(self):
+        self.connection.execute(version_table.insert(), version_num='a')
+        self.connection.execute(version_table.insert(), version_num='a')
+
+        assert_raises_message(
+            CommandError,
+            "Online migration expected to match one row when "
+            "deleting 'a' in 'version_table'; 2 found",
+            self.context._update_current_rev, 'a', None
+        )
 

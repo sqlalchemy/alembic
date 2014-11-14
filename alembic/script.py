@@ -4,6 +4,7 @@ import re
 import shutil
 from . import util
 from . import revision
+from . import migration
 
 _sourceless_rev_file = re.compile(r'(?!__init__)(.*\.py)(c|o)?$')
 _only_source_rev_file = re.compile(r'(?!__init__)(.*\.py)$')
@@ -154,20 +155,31 @@ class ScriptDirectory(object):
         """
         return self.revision_map.heads
 
+    def _flag_dupes(self, revs):
+        dupes = set()
+        for rev in revs:
+            dupe = False
+            if dupes.intersection(rev.down_revision):
+                dupe = True
+            dupes.update(rev.down_revision)
+            yield rev, dupe
+
     def _upgrade_revs(self, destination, current_rev):
         revs = self.revision_map.iterate_revisions(destination, current_rev)
         return [
-            (script.module.upgrade, script.down_revision, script.revision,
-                script.doc)
-            for script in reversed(list(revs))
+            migration.MigrationStep.upgrade_from_script(
+                script, new_branch
+            )
+            for script, new_branch in self._flag_dupes(reversed(list(revs)))
         ]
 
     def _downgrade_revs(self, destination, current_rev):
         revs = self.revision_map.iterate_revisions(current_rev, destination)
         return [
-            (script.module.downgrade, script.revision, script.down_revision,
-                script.doc)
-            for script in revs
+            migration.MigrationStep.downgrade_from_script(
+                script, delete_branch
+            )
+            for script, delete_branch in self._flag_dupes(revs)
         ]
 
     def run_env(self):
@@ -226,13 +238,8 @@ class ScriptDirectory(object):
         """
         if head is None:
             heads = self.get_heads()
-            if len(heads) > 1:
-                raise util.CommandError(
-                    "Multiple heads present, please specify head revision.")
-            elif heads:
-                # note heads can be (), in which case
-                # we use None
-                head = heads[0]
+        else:
+            heads = util.to_tuple(head, default=())
 
         create_date = datetime.datetime.now()
         path = self._rev_path(revid, message, create_date)
@@ -240,7 +247,7 @@ class ScriptDirectory(object):
             os.path.join(self.dir, "script.py.mako"),
             path,
             up_revision=str(revid),
-            down_revision=head,
+            down_revision=heads,
             create_date=create_date,
             message=message if message is not None else ("empty message"),
             **kw
