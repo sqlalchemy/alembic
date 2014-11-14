@@ -270,8 +270,6 @@ class MigrationContext(object):
          method within revision scripts.
 
         """
-        current_rev = False
-
         self.impl.start_migrations()
 
         heads = self.get_current_heads()
@@ -282,12 +280,10 @@ class MigrationContext(object):
 
         for step in self._migrations_fn(heads, self):
             with self.begin_transaction(_per_migration=True):
-                if current_rev is False:
-                    current_rev = True
+                if self.as_sql and not head_maintainer.heads:
                     # for offline mode, include a CREATE TABLE from
                     # the base
-                    if self.as_sql and not heads:
-                        self._version.create(self.connection)
+                    self._version.create(self.connection)
                 log.info("Running %s", step)
                 if self.as_sql:
                     self.impl.static_output("-- Running %s" % (step,))
