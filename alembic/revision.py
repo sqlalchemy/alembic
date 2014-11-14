@@ -78,6 +78,12 @@ class RevisionMap(object):
         return map_
 
     def add_revision(self, revision):
+        """add a single revision to an existing map.
+
+        This method is for single-revision use cases, it's not
+        appropriate for fully populating an entire revision map.
+
+        """
         map_ = self._revision_map
         if revision.revision in map_:
             util.warn("Revision %s is present more than once" %
@@ -202,7 +208,8 @@ class RevisionMap(object):
         """
         if upper is not None and _relative_destination.match(upper):
             relative = int(upper)
-            revs = list(self._iterate_revisions("head", lower))
+            revs = list(
+                self._iterate_revisions("head", lower, inclusive=False))
             revs = revs[-relative:]
             if len(revs) != abs(relative):
                 raise util.CommandError(
@@ -211,7 +218,8 @@ class RevisionMap(object):
             return iter(revs)
         elif lower is not None and _relative_destination.match(lower):
             relative = int(lower)
-            revs = list(self._iterate_revisions(upper, "base"))
+            revs = list(
+                self._iterate_revisions(upper, "base", inclusive=False))
             revs = revs[0:-relative]
             if len(revs) != abs(relative):
                 raise util.CommandError(
@@ -278,6 +286,15 @@ class RevisionMap(object):
         ).intersection(
             rev.revision for rev in self._get_descendant_nodes(lowers)
         )
+        if not total_space:
+            raise util.CommandError(
+                "Revision(s) %s is not an ancestor of revision(s) %s" % (
+                    (", ".join(r.revision for r in lowers)
+                        if lowers else "base"),
+                    (", ".join(r.revision for r in uppers)
+                        if uppers else "base")
+                )
+            )
 
         branch_endpoints = set(
             rev.revision for rev in

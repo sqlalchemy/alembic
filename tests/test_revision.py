@@ -149,6 +149,39 @@ class MultipleBranchTest(DownIterateTest):
             ['d3cb2', 'cb2', 'b2', 'a']
         )
 
+    def test_same_branch_wrong_direction(self):
+        # nodes b1 and d1cb1 are connected, but
+        # db1cb1 is the descendant of b1
+        assert_raises_message(
+            CommandError,
+            r"Revision\(s\) d1cb1 is not an ancestor of revision\(s\) b1",
+            list,
+            self.map._iterate_revisions('b1', 'd1cb1')
+        )
+
+    def test_distinct_branches(self):
+        # nodes db2cb2 and b1 have no path to each other
+        assert_raises_message(
+            CommandError,
+            r"Revision\(s\) b1 is not an ancestor of revision\(s\) d2cb2",
+            list,
+            self.map._iterate_revisions('d2cb2', 'b1')
+        )
+
+    def test_wrong_direction_to_base(self):
+        assert_raises_message(
+            CommandError,
+            r"Revision\(s\) d1cb1 is not an ancestor of revision\(s\) base",
+            list,
+            self.map._iterate_revisions(None, 'd1cb1')
+        )
+
+        assert_raises_message(
+            CommandError,
+            r"Revision\(s\) d1cb1 is not an ancestor of revision\(s\) base",
+            list,
+            self.map._iterate_revisions((), 'd1cb1')
+        )
 
 class BranchTravellingTest(DownIterateTest):
     """test the order of revs when going along multiple branches.

@@ -49,24 +49,24 @@ class RevisionPathTest(TestBase):
         eq_(
             env._upgrade_revs("+2", a.revision),
             [
-                (b.module.upgrade, a.revision, b.revision, b.doc),
-                (c.module.upgrade, b.revision, c.revision, c.doc),
+                (b.module.upgrade, (a.revision,), b.revision, b.doc),
+                (c.module.upgrade, (b.revision,), c.revision, c.doc),
             ]
         )
 
         eq_(
             env._upgrade_revs("+1", a.revision),
             [
-                (b.module.upgrade, a.revision, b.revision, b.doc),
+                (b.module.upgrade, (a.revision,), b.revision, b.doc),
             ]
         )
 
         eq_(
             env._upgrade_revs("+3", b.revision),
             [
-                (c.module.upgrade, b.revision, c.revision, c.doc),
-                (d.module.upgrade, c.revision, d.revision, d.doc),
-                (e.module.upgrade, d.revision, e.revision, e.doc),
+                (c.module.upgrade, (b.revision,), c.revision, c.doc),
+                (d.module.upgrade, (c.revision,), d.revision, d.doc),
+                (e.module.upgrade, (d.revision,), e.revision, e.doc),
             ]
         )
 
@@ -135,13 +135,14 @@ class RevisionPathTest(TestBase):
     def test_invalid_move_rev_to_none(self):
         assert_raises_message(
             util.CommandError,
-            "Revision %s is not an ancestor of base" % b.revision,
+            r"Revision\(s\) %s is not an ancestor of revision\(s\) base" % b.revision,
             env._downgrade_revs, b.revision[0:3], None
         )
 
     def test_invalid_move_higher_to_lower(self):
         assert_raises_message(
             util.CommandError,
-            "Revision %s is not an ancestor of %s" % (c.revision, b.revision),
+            r"Revision\(s\) %s is not an ancestor "
+            "of revision\(s\) %s" % (c.revision, b.revision),
             env._downgrade_revs, c.revision[0:4], b.revision
         )
