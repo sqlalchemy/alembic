@@ -100,7 +100,14 @@ class ScriptDirectory(object):
             refer to the set of all head branches simultaneously.
 
         """
-        return self.iterate_revisions(head, base)
+        try:
+            for rev in self.iterate_revisions(head, base):
+                yield rev
+        except revision.MultipleHeads:
+            raise util.CommandError(
+                "Revision '%s' corresponds to multiple revisions; "
+                "please specify 'heads' for all heads, or a specific "
+                "revision or branch" % head)
 
     def get_revisions(self, id_):
         """Return the :class:`.Script` instance with the given rev identifier,
@@ -127,10 +134,16 @@ class ScriptDirectory(object):
         an actual revision number."""
 
         try:
-            return revision.tuple_rev_as_scalar(id_, False)
+            rev, branch_name = self.revision_map._resolve_revision_number(id_)
         except revision.MultipleHeads:
             raise util.CommandError(
-                "Revision %s corresponds to multiple revisions")
+                "Revision %s corresponds to multiple revisions" % id_)
+        else:
+            if not rev:
+                # convert () to None
+                return None
+            else:
+                return rev[0]
 
     def iterate_revisions(self, upper, lower):
         """Iterate through script revisions, starting at the given
@@ -386,12 +399,14 @@ class Script(revision.Revision):
             "Rev: %s%s%s\n" \
             "Parent(s): %s\n" \
             "Path: %s\n" \
+            "Branches: %s\n" \
             "\n%s\n" % (
                 self.revision,
                 " (head)" if self.is_head else "",
                 " (branchpoint)" if self.is_branch_point else "",
                 self._format_down_revision(),
                 self.path,
+                ", ".join(self.member_branches),
                 "\n".join(
                     "    %s" % para
                     for para in self.longdoc.splitlines()

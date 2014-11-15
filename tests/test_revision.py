@@ -242,6 +242,14 @@ class MultipleBranchTest(DownIterateTest):
             ['d3cb2', 'cb2', 'b2', 'cb1', 'b1', 'a']
         )
 
+    def test_iterate_multiple_heads_single_base(self):
+        # head d1cb1 is omitted as it is not
+        # a descendant of b2
+        self._assert_iteration(
+            ["d1cb1", "d2cb2", "d3cb2"], "b2",
+            ["d2cb2", 'd3cb2', 'cb2', 'b2']
+        )
+
     def test_same_branch_wrong_direction(self):
         # nodes b1 and d1cb1 are connected, but
         # db1cb1 is the descendant of b1
