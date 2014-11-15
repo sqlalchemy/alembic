@@ -3,6 +3,7 @@ import os
 import re
 import shutil
 from . import util
+from . import compat
 from . import revision
 from . import migration
 
@@ -84,13 +85,19 @@ class ScriptDirectory(object):
             output_encoding=config.get_main_option("output_encoding", "utf-8")
         )
 
-    def walk_revisions(self, base="base", head="head"):
+    def walk_revisions(self, base="base", head="heads"):
         """Iterate through all revisions.
 
-        .. versionchanged:: 0.7.0 this method is now equivalent,
-           with the exception of argument order, to
-           :meth:`.ScriptDirectory.iterate_revisions`.
+        :param base: the base revision, or "base" to start from the
+         empty revision.
 
+        :param head: the head revision; defaults to "heads" to indicate
+         all head revisions.  May also be "head" to indicate a single
+         head revision.
+
+         .. versionchanged:: 0.7.0 the "head" identifier now refers to
+            the head of a non-branched repository only; use "heads" to
+            refer to the set of all head branches simultaneously.
 
         """
         return self.iterate_revisions(head, base)
@@ -110,7 +117,11 @@ class ScriptDirectory(object):
         """Convert a symbolic revision, i.e. 'head' or 'base', into
         an actual revision number."""
 
-        return self.revision_map.as_revision_number(id_)
+        try:
+            return revision.tuple_rev_as_scalar(id_, False)
+        except revision.MultipleHeads:
+            raise util.CommandError(
+                "Revision %s corresponds to multiple revisions")
 
     def iterate_revisions(self, upper, lower):
         """Iterate through script revisions, starting at the given
@@ -145,7 +156,14 @@ class ScriptDirectory(object):
             :meth:`.ScriptDirectory.get_heads`
 
         """
-        return self.revision_map.get_current_head()
+        try:
+            return self.revision_map.get_current_head()
+        except revision.MultipleHeads:
+            raise util.CommandError(
+                'The script directory has multiple heads (due to branching).'
+                'Please use get_heads(), or merge the branches using '
+                'alembic merge.'
+            )
 
     def get_heads(self):
         """Return all "head" revisions as strings.
@@ -170,23 +188,31 @@ class ScriptDirectory(object):
             yield rev, dupe
 
     def _upgrade_revs(self, destination, current_rev):
-        revs = self.revision_map.iterate_revisions(destination, current_rev)
-        return [
-            migration.MigrationStep.upgrade_from_script(
-                script, new_branch
-            )
-            for script, new_branch
-            in self._flag_branch_changes(reversed(list(revs)))
-        ]
+        try:
+            revs = self.revision_map.iterate_revisions(
+                destination, current_rev)
+            return [
+                migration.MigrationStep.upgrade_from_script(
+                    script, new_branch
+                )
+                for script, new_branch
+                in self._flag_branch_changes(reversed(list(revs)))
+            ]
+        except revision.RevisionError as err:
+            compat.raise_from_cause(util.CommandError(err.message))
 
     def _downgrade_revs(self, destination, current_rev):
-        revs = self.revision_map.iterate_revisions(current_rev, destination)
-        return [
-            migration.MigrationStep.downgrade_from_script(
-                script, delete_branch
-            )
-            for script, delete_branch in self._flag_branch_changes(revs)
-        ]
+        try:
+            revs = self.revision_map.iterate_revisions(
+                current_rev, destination)
+            return [
+                migration.MigrationStep.downgrade_from_script(
+                    script, delete_branch
+                )
+                for script, delete_branch in self._flag_branch_changes(revs)
+            ]
+        except revision.RevisionError as err:
+            compat.raise_from_cause(util.CommandError(err.message))
 
     def run_env(self):
         """Run the script environment.
@@ -243,12 +269,9 @@ class ScriptDirectory(object):
 
         """
         if head is None:
-            heads = self.get_heads()
-            if len(heads) > 1:
-                raise util.CommandError(
-                    "Multiple heads present, please specify head revision.")
-        else:
-            heads = util.to_tuple(head, default=())
+            head = self.get_current_head()
+
+        heads = util.to_tuple(head, default=())
 
         create_date = datetime.datetime.now()
         path = self._rev_path(revid, message, create_date)
@@ -256,7 +279,7 @@ class ScriptDirectory(object):
             os.path.join(self.dir, "script.py.mako"),
             path,
             up_revision=str(revid),
-            down_revision=heads,
+            down_revision=revision.tuple_rev_as_scalar(heads),
             create_date=create_date,
             message=message if message is not None else ("empty message"),
             **kw

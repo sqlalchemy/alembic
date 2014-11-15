@@ -254,7 +254,8 @@ class CommandLine(object):
                             help="Additional arguments consumed by "
                             "custom env.py scripts, e.g. -x "
                             "setting1=somesetting -x setting2=somesetting")
-
+        parser.add_argument("--raiseerr", action="store_true",
+                            help="Raise a full stack trace on error")
         subparsers = parser.add_subparsers()
 
         for fn in [getattr(command, n) for n in dir(command)]:
@@ -286,7 +287,10 @@ class CommandLine(object):
                **dict((k, getattr(options, k)) for k in kwarg)
                )
         except util.CommandError as e:
-            util.err(str(e))
+            if options.raiseerr:
+                raise
+            else:
+                util.err(str(e))
 
     def main(self, argv=None):
         options = self.parser.parse_args(argv)

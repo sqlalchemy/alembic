@@ -291,6 +291,7 @@ def to_tuple(x, default=None):
         return tuple(x)
 
 
+
 class memoized_property(object):
 
     """A read-only @property that is only evaluated once."""

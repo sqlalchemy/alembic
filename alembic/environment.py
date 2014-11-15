@@ -136,13 +136,33 @@ class EnvironmentContext(object):
         return not self.is_offline_mode()
 
     def get_head_revision(self):
-        """Return the hex identifier of the 'head' revision.
+        """Return the hex identifier of the 'head' script revision.
+
+        If the script directory has multiple heads, this
+        method raises a :class:`.CommandError`;
+        :meth:`.EnvironmentContext.get_head_revisions` should be preferred.
 
         This function does not require that the :class:`.MigrationContext`
         has been configured.
 
+        .. seealso:: :meth:`.EnvironmentContext.get_head_revisions`
+
         """
         return self.script._as_rev_number("head")
+
+    def get_head_revisions(self):
+        """Return the hex identifier of the 'heads' script revision(s).
+
+        This returns a tuple containing the version number of all
+        heads in the script directory.
+
+        This function does not require that the :class:`.MigrationContext`
+        has been configured.
+
+        .. versionadded:: 0.7.0
+
+        """
+        return self.script.as_revision_number("heads")
 
     def get_starting_revision_argument(self):
         """Return the 'starting revision' argument,

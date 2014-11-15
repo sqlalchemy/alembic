@@ -173,7 +173,7 @@ def history(config, rev_range=None):
     def _display_history(config, script, base, head):
         for sc in script.walk_revisions(
                 base=base or "base",
-                head=head or "head"):
+                head=head or "heads"):
             if sc.is_head:
                 config.print_stdout("")
             config.print_stdout(sc.log_entry)
@@ -215,7 +215,7 @@ def branches(config):
 
 
 def current(config, head_only=False):
-    """Display the current revision for each database."""
+    """Display the current revision for a database."""
 
     script = ScriptDirectory.from_config(config)
 

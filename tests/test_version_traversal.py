@@ -207,10 +207,10 @@ class ForestTest(TestBase):
     def teardown_class(cls):
         clear_staging_env()
 
-    def test_base_to_head(self):
+    def test_base_to_heads(self):
         a1, b1, a2, b2 = self.a1, self.b1, self.a2, self.b2
         eq_(
-            self.env._upgrade_revs("head", "base"),
+            self.env._upgrade_revs("heads", "base"),
             [up_(a2, True), up_(b2), up_(a1, True), up_(b1), ]
         )
 

@@ -8,7 +8,15 @@ from . import compat
 _relative_destination = re.compile(r'(?:\+|-)\d+')
 
 
-class MultipleRevisions(Exception):
+class RevisionError(Exception):
+    pass
+
+
+class MultipleHeads(RevisionError):
+    pass
+
+
+class ResolutionError(RevisionError):
     pass
 
 
@@ -125,10 +133,8 @@ class RevisionMap(object):
         """
         current_heads = self.heads
         if len(current_heads) > 1:
-            raise util.CommandError(
-                'The script directory has multiple heads (due to branching).'
-                'Please use get_heads(), or merge the branches using '
-                'alembic merge.')
+            raise MultipleHeads(
+                "Multiple heads are present; please use current_heads()")
 
         if current_heads:
             return current_heads[0]
@@ -149,7 +155,7 @@ class RevisionMap(object):
         full revision.
 
         """
-        resolved_id = self._resolve_revision_symbol(id_)
+        resolved_id = self._resolve_revision_number(id_) or ()
         return tuple(self.get_revision(rev_id) for rev_id in resolved_id)
 
     def get_revision(self, id_):
@@ -157,7 +163,7 @@ class RevisionMap(object):
 
         If a symbolic name such as "head" or "base" is given, resolves
         the identifier into the current head or base revision.  If the symbolic
-        name refers to multiples, :class:`.MultipleRevisions` is raised.
+        name refers to multiples, :class:`.MultipleHeads` is raised.
 
         Supports partial identifiers, where the given identifier
         is matched against all identifiers that start with the given
@@ -166,11 +172,10 @@ class RevisionMap(object):
 
         """
 
-        resolved_id = self._resolve_revision_symbol(id_)
+        resolved_id = self._resolve_revision_number(id_) or ()
         if len(resolved_id) > 1:
-            raise MultipleRevisions(
-                "Identifier %r corresponds to multiple revisions; "
-                "please use get_revisions()" % id_)
+            raise MultipleHeads(
+                "Identifier %r corresponds to multiple revisions" % id_)
         elif resolved_id:
             resolved_id = resolved_id[0]
 
@@ -181,9 +186,9 @@ class RevisionMap(object):
             revs = [x for x in self._revision_map
                     if x and x.startswith(resolved_id)]
             if not revs:
-                raise util.CommandError("No such revision '%s'" % id_)
+                raise ResolutionError("No such revision '%s'" % id_)
             elif len(revs) > 1:
-                raise util.CommandError(
+                raise ResolutionError(
                     "Multiple revisions start "
                     "with '%s': %s..." % (
                         id_,
@@ -192,13 +197,15 @@ class RevisionMap(object):
             else:
                 return self._revision_map[revs[0]]
 
-    def _resolve_revision_symbol(self, id_):
-        if id_ == 'head':
+    def _resolve_revision_number(self, id_):
+        if id_ == 'heads':
             return self.heads
+        elif id_ == 'head':
+            return (self.get_current_head(), )
         elif id_ == 'base':
-            return ()
+            return None
         else:
-            return util.to_tuple(id_, default=())
+            return util.to_tuple(id_, default=None)
 
     def iterate_revisions(self, upper, lower):
         """Iterate through script revisions, starting at the given
@@ -216,10 +223,10 @@ class RevisionMap(object):
                 _relative_destination.match(upper):
             relative = int(upper)
             revs = list(
-                self._iterate_revisions("head", lower, inclusive=False))
+                self._iterate_revisions("heads", lower, inclusive=False))
             revs = revs[-relative:]
             if len(revs) != abs(relative):
-                raise util.CommandError(
+                raise RevisionError(
                     "Relative revision %s didn't "
                     "produce %d migrations" % (upper, abs(relative)))
             return iter(revs)
@@ -230,7 +237,7 @@ class RevisionMap(object):
                 self._iterate_revisions(upper, "base", inclusive=False))
             revs = revs[0:-relative]
             if len(revs) != abs(relative):
-                raise util.CommandError(
+                raise RevisionError(
                     "Relative revision %s didn't "
                     "produce %d migrations" % (lower, abs(relative)))
             return iter(revs)
@@ -250,7 +257,7 @@ class RevisionMap(object):
             if descendants.intersection(
                 tg for tg in targets if tg is not target
             ):
-                raise util.CommandError(
+                raise RevisionError(
                     "Requested base revision %s overlaps with "
                     "other requested base revisions" % target.revision)
             total_descendants.update(descendants)
@@ -269,7 +276,7 @@ class RevisionMap(object):
             if ancestors.intersection(
                 tg for tg in targets if tg is not target
             ):
-                raise util.CommandError(
+                raise RevisionError(
                     "Requested head revision %s overlaps with "
                     "other requested head revisions" % target.revision)
             total_ancestors.update(ancestors)
@@ -296,7 +303,7 @@ class RevisionMap(object):
             rev.revision for rev in self._get_descendant_nodes(lowers)
         )
         if not total_space:
-            raise util.CommandError(
+            raise RevisionError(
                 "Revision(s) %s is not an ancestor of revision(s) %s" % (
                     (", ".join(r.revision for r in lowers)
                         if lowers else "base"),
@@ -399,3 +406,15 @@ class Revision(object):
         """Return True if this :class:`.Script` is a merge point."""
 
         return len(self.down_revision) > 1
+
+
+def tuple_rev_as_scalar(rev, allow_multiple=True):
+    if len(rev) == 1:
+        return rev[0]
+    elif not rev:
+        return None
+    elif not allow_multiple:
+        raise MultipleHeads("Revision number indicates multiple heads")
+    else:
+        return rev
+

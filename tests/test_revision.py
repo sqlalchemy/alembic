@@ -1,7 +1,7 @@
 from alembic.testing.fixtures import TestBase
 from alembic.testing import eq_, assert_raises_message
-from alembic.revision import RevisionMap, Revision, MultipleRevisions
-from alembic.util import CommandError
+from alembic.revision import RevisionMap, Revision, MultipleHeads, \
+    RevisionError
 
 
 class APITest(TestBase):
@@ -62,9 +62,8 @@ class APITest(TestBase):
             ]
         )
         assert_raises_message(
-            MultipleRevisions,
-            "Identifier 'head' corresponds to multiple revisions; "
-            "please use get_revisions()",
+            MultipleHeads,
+            "Multiple heads are present; please use current_heads()",
             map_.get_revision, 'head'
         )
 
@@ -160,7 +159,7 @@ class MultipleBranchTest(DownIterateTest):
         # nodes b1 and d1cb1 are connected, but
         # db1cb1 is the descendant of b1
         assert_raises_message(
-            CommandError,
+            RevisionError,
             r"Revision\(s\) d1cb1 is not an ancestor of revision\(s\) b1",
             list,
             self.map._iterate_revisions('b1', 'd1cb1')
@@ -169,7 +168,7 @@ class MultipleBranchTest(DownIterateTest):
     def test_distinct_branches(self):
         # nodes db2cb2 and b1 have no path to each other
         assert_raises_message(
-            CommandError,
+            RevisionError,
             r"Revision\(s\) b1 is not an ancestor of revision\(s\) d2cb2",
             list,
             self.map._iterate_revisions('d2cb2', 'b1')
@@ -177,14 +176,14 @@ class MultipleBranchTest(DownIterateTest):
 
     def test_wrong_direction_to_base(self):
         assert_raises_message(
-            CommandError,
+            RevisionError,
             r"Revision\(s\) d1cb1 is not an ancestor of revision\(s\) base",
             list,
             self.map._iterate_revisions(None, 'd1cb1')
         )
 
         assert_raises_message(
-            CommandError,
+            RevisionError,
             r"Revision\(s\) d1cb1 is not an ancestor of revision\(s\) base",
             list,
             self.map._iterate_revisions((), 'd1cb1')
@@ -316,7 +315,7 @@ class BranchTravellingTest(DownIterateTest):
     def test_detect_invalid_head_selection(self):
         # db1 is an ancestor of fe1b1
         assert_raises_message(
-            CommandError,
+            RevisionError,
             "Requested head revision fe1b1 overlaps "
             "with other requested head revisions",
             list,
@@ -368,9 +367,9 @@ class MultipleBaseTest(DownIterateTest):
             ]
         )
 
-    def test_head_to_base(self):
+    def test_heads_to_base(self):
         self._assert_iteration(
-            "head", "base",
+            "heads", "base",
             [
                 'b1a', 'a1a',
                 'b1b', 'a1b',
@@ -381,9 +380,9 @@ class MultipleBaseTest(DownIterateTest):
             ]
         )
 
-    def test_head_to_base_exclusive(self):
+    def test_heads_to_base_exclusive(self):
         self._assert_iteration(
-            "head", "base",
+            "heads", "base",
             [
                 'b1a', 'a1a',
                 'b1b', 'a1b',
@@ -395,9 +394,9 @@ class MultipleBaseTest(DownIterateTest):
             inclusive=False
         )
 
-    def test_head_to_blank(self):
+    def test_heads_to_blank(self):
         self._assert_iteration(
-            "head", None,
+            "heads", None,
             [
                 'b1a', 'a1a',
                 'b1b', 'a1b',
@@ -410,7 +409,7 @@ class MultipleBaseTest(DownIterateTest):
 
     def test_detect_invalid_base_selection(self):
         assert_raises_message(
-            CommandError,
+            RevisionError,
             "Requested base revision a2 overlaps with "
             "other requested base revisions",
             list,
