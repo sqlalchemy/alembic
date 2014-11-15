@@ -219,6 +219,12 @@ class CommandLine(object):
                     help="Specify head revision or <branchname>@head "
                     "to base new revision on."
                 )
+            if 'verbose' in kwargs:
+                parser.add_argument(
+                    "-v", "--verbose",
+                    action="store_true",
+                    help="Use more verbose output"
+                )
             if 'autogenerate' in kwargs:
                 parser.add_argument(
                     "--autogenerate",
@@ -231,8 +237,7 @@ class CommandLine(object):
                 parser.add_argument(
                     "--head-only",
                     action="store_true",
-                    help="Only show current version and "
-                    "whether or not this is the head revision.")
+                    help="Deprecated.  Use --verbose for additional output")
 
             if 'rev_range' in kwargs:
                 parser.add_argument("-r", "--rev-range",

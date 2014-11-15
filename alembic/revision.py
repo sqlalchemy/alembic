@@ -81,8 +81,10 @@ class RevisionMap(object):
                 if downrev not in map_:
                     util.warn("Revision %s referenced from %s is not present"
                               % (rev.down_revision, rev))
-                map_[downrev].add_nextrev(rev.revision)
+                down_revision = map_[downrev]
+                down_revision.add_nextrev(rev.revision)
                 heads.discard(downrev)
+
         map_[None] = map_[()] = None
         self.heads = tuple(heads)
         return map_
@@ -98,6 +100,10 @@ class RevisionMap(object):
                             map_[branch_name].revision)
                     )
                 map_[branch_name] = revision
+            for node in self._get_ancestor_nodes(
+                    revision, map_).intersection(
+                    self._get_descendant_nodes(revision, map_)):
+                node._member_branches.update(revision.branch_names)
 
     def add_revision(self, revision, _replace=False):
         """add a single revision to an existing map.
@@ -198,7 +204,7 @@ class RevisionMap(object):
         resolved_id, branch_name = self._resolve_revision_number(id_)
         if len(resolved_id) > 1:
             raise MultipleHeads(
-                "Identifier %r corresponds to multiple revisions" % id_)
+                "Identifier %r corresponds to multiple revisions" % (id_, ))
         elif resolved_id:
             resolved_id = resolved_id[0]
 
@@ -320,7 +326,9 @@ class RevisionMap(object):
         else:
             return self._iterate_revisions(upper, lower, inclusive=False)
 
-    def _get_descendant_nodes(self, targets):
+    def _get_descendant_nodes(self, targets, map_=None):
+        if map_ is None:
+            map_ = self._revision_map
         total_descendants = set()
         for target in targets:
             descendants = set()
@@ -328,7 +336,7 @@ class RevisionMap(object):
             while todo:
                 rev = todo.pop()
                 todo.extend(
-                    self._revision_map[rev_id] for rev_id in rev.nextrev)
+                    map_[rev_id] for rev_id in rev.nextrev)
                 descendants.add(rev)
             if descendants.intersection(
                 tg for tg in targets if tg is not target
@@ -339,7 +347,9 @@ class RevisionMap(object):
             total_descendants.update(descendants)
         return total_descendants
 
-    def _get_ancestor_nodes(self, targets):
+    def _get_ancestor_nodes(self, targets, map_=None):
+        if map_ is None:
+            map_ = self._revision_map
         total_ancestors = set()
         for target in targets:
             ancestors = set()
@@ -347,7 +357,7 @@ class RevisionMap(object):
             while todo:
                 rev = todo.pop()
                 todo.extend(
-                    self._revision_map[rev_id] for rev_id in rev.down_revision)
+                    map_[rev_id] for rev_id in rev.down_revision)
                 ancestors.add(rev)
             if ancestors.intersection(
                 tg for tg in targets if tg is not target
@@ -449,6 +459,7 @@ class Revision(object):
         self.revision = revision
         self.down_revision = down_revision
         self.branch_names = branch_names
+        self._member_branches = set()
 
     def add_nextrev(self, rev):
         self.nextrev = self.nextrev.union([rev])

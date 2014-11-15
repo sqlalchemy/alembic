@@ -102,12 +102,21 @@ class ScriptDirectory(object):
         """
         return self.iterate_revisions(head, base)
 
+    def get_revisions(self, id_):
+        """Return the :class:`.Script` instance with the given rev identifier,
+        symbolic name, or sequence of identifiers.
+
+        .. versionadded:: 0.7.0
+
+        """
+        return self.revision_map.get_revisions(id_)
+
     def get_revision(self, id_):
         """Return the :class:`.Script` instance with the given rev id.
 
         .. seealso::
 
-            :meth:`.RevisionMap.get_revision`
+            :meth:`.ScriptDirectory.get_revisions`
 
         """
 
@@ -381,7 +390,7 @@ class Script(revision.Revision):
                 self.revision,
                 " (head)" if self.is_head else "",
                 " (branchpoint)" if self.is_branch_point else "",
-                ", ".join(self.down_revision),
+                self._format_down_revision(),
                 self.path,
                 "\n".join(
                     "    %s" % para
@@ -391,12 +400,32 @@ class Script(revision.Revision):
 
     def __str__(self):
         return "%s -> %s%s%s%s, %s" % (
-            ", ".join(self.down_revision),
+            self._format_down_revision(),
             self.revision,
             " (head)" if self.is_head else "",
             " (branchpoint)" if self.is_branch_point else "",
             " (mergepoint)" if self.is_merge_point else "",
             self.doc)
+
+    def _head_only(self):
+        return "%s %s%s%s" % (
+            self.revision,
+            " (head)" if self.is_head else "",
+            " (branchpoint)" if self.is_branch_point else "",
+            " (mergepoint)" if self.is_merge_point else "",
+        )
+
+    def cmd_format(self, verbose):
+        if verbose:
+            return self.log_entry
+        else:
+            return self._head_only()
+
+    def _format_down_revision(self):
+        if not self.down_revision:
+            return "<base>"
+        else:
+            return ", ".join(self.down_revision)
 
     @classmethod
     def _from_path(cls, scriptdir, path):

@@ -1,9 +1,17 @@
 
+
 ==========
 Changelog
 ==========
 .. changelog::
     :version: 0.7.0
+
+    .. change::
+      :tags: changed, commands
+
+      The ``--head_only`` option to the ``alembic current`` command is
+      deprecated; the ``current`` command now lists just the version numbers
+      alone by default; use ``--verbose`` to get at additional output.
 
     .. change::
       :tags: bug, operations

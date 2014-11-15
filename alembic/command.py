@@ -203,6 +203,14 @@ def history(config, rev_range=None):
         _display_history(config, script, base, head)
 
 
+def heads(config, verbose=False):
+    """Show current available heads in the script directory"""
+
+    script = ScriptDirectory.from_config(config)
+    for rev in script.get_revisions("heads"):
+        config.print_stdout(rev.cmd_format(verbose))
+
+
 def branches(config):
     """Show current un-spliced branch points"""
     script = ScriptDirectory.from_config(config)
@@ -216,24 +224,22 @@ def branches(config):
                                     )
 
 
-def current(config, head_only=False):
+def current(config, verbose=False, head_only=False):
     """Display the current revision for a database."""
 
     script = ScriptDirectory.from_config(config)
 
+    if head_only:
+        util.warn("--head-only is deprecated")
+
     def display_version(rev, context):
-        rev = script.get_revision(rev)
-
-        if head_only:
-            config.print_stdout("%s%s" % (
-                rev.revision if rev else None,
-                " (head)" if rev and rev.is_head else ""))
-
-        else:
-            config.print_stdout("Current revision for %s: %s",
-                                util.obfuscate_url_pw(
-                                    context.connection.engine.url),
-                                rev)
+        if verbose:
+            config.print_stdout(
+                "Current revision(s) for %s:",
+                util.obfuscate_url_pw(context.connection.engine.url)
+            )
+        for rev in script.get_revisions(rev):
+            config.print_stdout(rev.cmd_format(verbose))
         return []
 
     with EnvironmentContext(
