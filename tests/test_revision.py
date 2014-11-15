@@ -117,12 +117,12 @@ class MultipleBranchTest(DownIterateTest):
                 Revision('b2', ('a',)),
                 Revision('cb1', ('b1',)),
                 Revision('cb2', ('b2',)),
-                Revision('d1cb1', ('cb1',)),
-                Revision('d2cb1', ('cb1',)),
+                Revision('d1cb1', ('cb1',)),  # head
+                Revision('d2cb1', ('cb1',)),  # head
                 Revision('d1cb2', ('cb2',)),
                 Revision('d2cb2', ('cb2',)),
-                Revision('d3cb2', ('cb2',)),
-                Revision('d1d2cb2', ('d1cb2', 'd2cb2'))
+                Revision('d3cb2', ('cb2',)),  # head
+                Revision('d1d2cb2', ('d1cb2', 'd2cb2'))  # head + merge point
             ]
         )
 

@@ -87,12 +87,13 @@ class ScriptDirectory(object):
     def walk_revisions(self, base="base", head="head"):
         """Iterate through all revisions.
 
-        .. seealso::
+        .. versionchanged:: 0.7.0 this method is now equivalent,
+           with the exception of argument order, to
+           :meth:`.ScriptDirectory.iterate_revisions`.
 
-            :meth:`.RevisionMap.walk_revisions`
 
         """
-        return self.revision_map.walk_revisions(base, head)
+        return self.iterate_revisions(head, base)
 
     def get_revision(self, id_):
         """Return the :class:`.Script` instance with the given rev id.
@@ -121,6 +122,10 @@ class ScriptDirectory(object):
         else you'll get nothing back.
 
         The iterator yields :class:`.Script` objects.
+
+        .. seealso::
+
+            :meth:`.RevisionMap.iterate_revisions`
 
         """
         return self.revision_map.iterate_revisions(upper, lower)
