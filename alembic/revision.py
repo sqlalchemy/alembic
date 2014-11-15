@@ -66,10 +66,12 @@ class RevisionMap(object):
         self.bases = ()
 
         for revision in self._generator():
+
             if revision.revision in map_:
                 util.warn("Revision %s is present more than once" %
                           revision.revision)
             map_[revision.revision] = revision
+            self._add_branches(revision, map_)
             heads.add(revision.revision)
             if revision.is_base:
                 self.bases += (revision.revision, )
@@ -84,6 +86,18 @@ class RevisionMap(object):
         map_[None] = map_[()] = None
         self.heads = tuple(heads)
         return map_
+
+    def _add_branches(self, revision, map_):
+        if revision.branch_names:
+            for branch_name in util.to_tuple(revision.branch_names, ()):
+                if branch_name in map_:
+                    raise RevisionError(
+                        "Branch name '%s' in revision %s already "
+                        "used by revision %s" %
+                        (branch_name, revision.revision,
+                            map_[branch_name].revision)
+                    )
+                map_[branch_name] = revision
 
     def add_revision(self, revision, _replace=False):
         """add a single revision to an existing map.
@@ -100,6 +114,7 @@ class RevisionMap(object):
             raise Exception("revision %s not in map" % revision.revision)
 
         map_[revision.revision] = revision
+        self._add_branches(revision, map_)
         if revision.is_base:
             self.bases += (revision.revision, )
         for downrev in revision.down_revision:
@@ -116,7 +131,7 @@ class RevisionMap(object):
                 set(revision.down_revision).union([revision.revision])
             ) + (revision.revision,)
 
-    def get_current_head(self):
+    def get_current_head(self, branch_name=None):
         """Return the current head revision.
 
         If the script directory has multiple heads
@@ -132,6 +147,12 @@ class RevisionMap(object):
 
         """
         current_heads = self.heads
+        if branch_name:
+            current_heads = [
+                h for h in current_heads
+                if self._shares_lineage(h, branch_name)
+            ]
+
         if len(current_heads) > 1:
             raise MultipleHeads(
                 "Multiple heads are present; please use current_heads()")
@@ -155,8 +176,10 @@ class RevisionMap(object):
         full revision.
 
         """
-        resolved_id = self._resolve_revision_number(id_) or ()
-        return tuple(self.get_revision(rev_id) for rev_id in resolved_id)
+        resolved_id, branch_name = self._resolve_revision_number(id_)
+        return tuple(
+            self._revision_for_ident(rev_id, branch_name)
+            for rev_id in resolved_id)
 
     def get_revision(self, id_):
         """Return the :class:`.Revision` instance with the given rev id.
@@ -172,40 +195,93 @@ class RevisionMap(object):
 
         """
 
-        resolved_id = self._resolve_revision_number(id_) or ()
+        resolved_id, branch_name = self._resolve_revision_number(id_)
         if len(resolved_id) > 1:
             raise MultipleHeads(
                 "Identifier %r corresponds to multiple revisions" % id_)
         elif resolved_id:
             resolved_id = resolved_id[0]
 
+        return self._revision_for_ident(resolved_id, branch_name)
+
+    def _resolve_branch(self, branch_name):
         try:
-            return self._revision_map[resolved_id]
+            branch_rev = self._revision_map[branch_name]
+        except KeyError:
+            try:
+                nonbranch_rev = self._revision_for_ident(branch_name)
+            except ResolutionError:
+                raise ResolutionError("No such branch: '%s'" % branch_name)
+            else:
+                return nonbranch_rev
+        else:
+            return branch_rev
+
+    def _revision_for_ident(self, resolved_id, check_branch=None):
+        if check_branch:
+            branch_rev = self._resolve_branch(check_branch)
+        else:
+            branch_rev = None
+
+        try:
+            revision = self._revision_map[resolved_id]
         except KeyError:
             # do a partial lookup
             revs = [x for x in self._revision_map
                     if x and x.startswith(resolved_id)]
+            if branch_rev:
+                revs = [
+                    x for x in revs if
+                    self._shares_lineage(x, check_branch)]
             if not revs:
-                raise ResolutionError("No such revision '%s'" % id_)
+                raise ResolutionError("No such revision '%s'" % resolved_id)
             elif len(revs) > 1:
                 raise ResolutionError(
                     "Multiple revisions start "
                     "with '%s': %s..." % (
-                        id_,
+                        resolved_id,
                         ", ".join("'%s'" % r for r in revs[0:3])
                     ))
             else:
-                return self._revision_map[revs[0]]
+                revision = self._revision_map[revs[0]]
+
+        if check_branch and revision is not None:
+            if not self._shares_lineage(
+                    revision.revision, branch_rev.revision):
+                raise ResolutionError(
+                    "Revision %s is not a member of branch '%s'" %
+                    (revision.revision, check_branch))
+        return revision
+
+    def _shares_lineage(self, reva, revb):
+        if not isinstance(reva, Revision):
+            reva = self._revision_for_ident(reva)
+        if not isinstance(revb, Revision):
+            revb = self._revision_for_ident(revb)
+
+        return revb in set(
+            self._get_descendant_nodes([reva])).union(
+            self._get_ancestor_nodes([reva]))
 
     def _resolve_revision_number(self, id_):
-        if id_ == 'heads':
-            return self.heads
-        elif id_ == 'head':
-            return (self.get_current_head(), )
-        elif id_ == 'base':
-            return None
+        if isinstance(id_, compat.string_types) and "@" in id_:
+            branch_name, id_ = id_.split('@', 1)
         else:
-            return util.to_tuple(id_, default=None)
+            branch_name = None
+
+        # ensure map is loaded
+        self._revision_map
+        if id_ == 'heads':
+            if branch_name:
+                raise RevisionError(
+                    "Branch name given with 'heads' makes no sense")
+            return self.heads, branch_name
+        elif id_ == 'head':
+            return (self.get_current_head(branch_name), ), branch_name
+        elif id_ == 'base' or id_ is None:
+            return (), branch_name
+        else:
+            return util.to_tuple(id_, default=None), branch_name
 
     def iterate_revisions(self, upper, lower):
         """Iterate through script revisions, starting at the given
@@ -365,9 +441,14 @@ class Revision(object):
     down_revision = None
     """The ``down_revision`` identifier(s) within the migration script."""
 
-    def __init__(self, revision, down_revision):
+    branch_names = None
+    """Optional string/tuple of symbolic names to apply to this
+    revision's branch"""
+
+    def __init__(self, revision, down_revision, branch_names=None):
         self.revision = revision
         self.down_revision = down_revision
+        self.branch_names = branch_names
 
     def add_nextrev(self, rev):
         self.nextrev = self.nextrev.union([rev])

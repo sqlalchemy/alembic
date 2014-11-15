@@ -212,6 +212,13 @@ class CommandLine(object):
                     type=str,
                     help="Arbitrary 'tag' name - can be used by "
                     "custom env.py scripts.")
+            if 'head' in kwargs:
+                parser.add_argument(
+                    "--head",
+                    type=str,
+                    help="Specify head revision or <branchname>@head "
+                    "to base new revision on."
+                )
             if 'autogenerate' in kwargs:
                 parser.add_argument(
                     "--autogenerate",

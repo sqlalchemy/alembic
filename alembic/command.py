@@ -64,7 +64,7 @@ def init(config, directory, template='generic'):
              "settings in %r before proceeding." % config_file)
 
 
-def revision(config, message=None, autogenerate=False, sql=False):
+def revision(config, message=None, autogenerate=False, sql=False, head="head"):
     """Create a new revision file."""
 
     script = ScriptDirectory.from_config(config)
@@ -99,8 +99,10 @@ def revision(config, message=None, autogenerate=False, sql=False):
             template_args=template_args,
         ):
             script.run_env()
-    return script.generate_revision(util.rev_id(), message, refresh=True,
-                                    **template_args)
+    return script.generate_revision(
+        util.rev_id(), message, refresh=True,
+        head=head,
+        **template_args)
 
 
 def upgrade(config, revision, sql=False, tag=None):

@@ -243,7 +243,9 @@ class ScriptDirectory(object):
                     shutil.copy,
                     src, dest)
 
-    def generate_revision(self, revid, message, head=None, refresh=False, **kw):
+    def generate_revision(
+            self, revid, message, head=None,
+            refresh=False, splice=False, **kw):
         """Generate a new revision file.
 
         This runs the ``script.py.mako`` template, given
@@ -266,20 +268,37 @@ class ScriptDirectory(object):
          If False, the file is created but the state of the
          :class:`.ScriptDirectory` is unmodified; ``None``
          is returned.
+        :param splice: if True, allow the "head" version to not be an
+         actual head; otherwise, the selected head must be a head
+         (e.g. endpoint) revision.
 
         """
         if head is None:
-            head = self.get_current_head()
+            head = "head"
 
-        heads = util.to_tuple(head, default=())
+        try:
+            heads = self.revision_map.get_revisions(head)
+        except revision.MultipleHeads:
+            raise util.CommandError(
+                "Multiple heads are present; please specify the head "
+                "revision on which the new revision should be based, "
+                "or perform a merge.")
 
         create_date = datetime.datetime.now()
         path = self._rev_path(revid, message, create_date)
+
+        if not splice:
+            for head in heads:
+                if head is not None and not head.is_head:
+                    raise util.CommandError(
+                        "Revision %s is not a head revision" % head.revision)
+
         self._generate_template(
             os.path.join(self.dir, "script.py.mako"),
             path,
             up_revision=str(revid),
-            down_revision=revision.tuple_rev_as_scalar(heads),
+            down_revision=revision.tuple_rev_as_scalar(
+                tuple(h.revision if h is not None else None for h in heads)),
             create_date=create_date,
             message=message if message is not None else ("empty message"),
             **kw
@@ -324,7 +343,9 @@ class Script(revision.Revision):
         self.path = path
         super(Script, self).__init__(
             rev_id,
-            util.to_tuple(module.down_revision, default=()))
+            util.to_tuple(module.down_revision, default=()),
+            branch_names=util.to_tuple(
+                getattr(module, 'branch_names', None), default=()))
 
     module = None
     """The Python module representing the actual script itself."""

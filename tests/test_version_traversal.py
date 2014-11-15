@@ -150,7 +150,7 @@ class BranchedPathTest(TestBase):
 
         cls.c2 = env.generate_revision(
             util.rev_id(), 'b->c2',
-            head=cls.b.revision, refresh=True)
+            head=cls.b.revision, refresh=True, splice=True)
         cls.d2 = env.generate_revision(
             util.rev_id(), 'c2->d2',
             head=cls.c2.revision, refresh=True)
@@ -228,7 +228,7 @@ class MergedPathTest(TestBase):
 
         cls.c2 = env.generate_revision(
             util.rev_id(), 'b->c2',
-            head=cls.b.revision, refresh=True)
+            head=cls.b.revision, refresh=True, splice=True)
         cls.d2 = env.generate_revision(
             util.rev_id(), 'c2->d2',
             head=cls.c2.revision, refresh=True)

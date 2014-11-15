@@ -107,6 +107,93 @@ class DiamondTest(DownIterateTest):
         )
 
 
+class NamedBranchTest(TestBase):
+    def test_dupe_branch_collection(self):
+        fn = lambda: [
+            Revision('a', ()),
+            Revision('b', ('a',)),
+            Revision('c', ('b',), branch_names=['xy1']),
+            Revision('d', ()),
+            Revision('e', ('d',), branch_names=['xy1']),
+            Revision('f', ('e',))
+        ]
+        assert_raises_message(
+            RevisionError,
+            "Branch name 'xy1' in revision e already used by revision c",
+            getattr, RevisionMap(fn), "_revision_map"
+        )
+
+    def setUp(self):
+        self.map_ = RevisionMap(lambda: [
+            Revision('a', (), branch_names='abranch'),
+            Revision('b', ('a',)),
+            Revision('somelongername', ('b',)),
+            Revision('c', ('somelongername',)),
+            Revision('d', ()),
+            Revision('e', ('d',), branch_names=['ebranch']),
+            Revision('someothername', ('e',)),
+            Revision('f', ('someothername',)),
+        ])
+
+    def test_partial_id_resolve(self):
+        eq_(self.map_.get_revision("ebranch@some").revision, "someothername")
+        eq_(self.map_.get_revision("abranch@some").revision, "somelongername")
+
+    def test_branch_at_heads(self):
+        assert_raises_message(
+            RevisionError,
+            "Branch name given with 'heads' makes no sense",
+            self.map_.get_revision, "abranch@heads"
+        )
+
+    def test_branch_at_syntax(self):
+        eq_(self.map_.get_revision("abranch@head").revision, 'c')
+        eq_(self.map_.get_revision("abranch@base"), None)
+        eq_(self.map_.get_revision("ebranch@head").revision, 'f')
+        eq_(self.map_.get_revision("abranch@base"), None)
+        eq_(self.map_.get_revision("ebranch@d").revision, 'd')
+
+    def test_branch_at_self(self):
+        eq_(self.map_.get_revision("ebranch@ebranch").revision, 'e')
+
+    def test_retrieve_branch_revision(self):
+        eq_(self.map_.get_revision("abranch").revision, 'a')
+        eq_(self.map_.get_revision("ebranch").revision, 'e')
+
+    def test_rev_not_in_branch(self):
+        assert_raises_message(
+            RevisionError,
+            "Revision b is not a member of branch 'ebranch'",
+            self.map_.get_revision, "ebranch@b"
+        )
+
+        assert_raises_message(
+            RevisionError,
+            "Revision d is not a member of branch 'abranch'",
+            self.map_.get_revision, "abranch@d"
+        )
+
+    def test_no_revision_exists(self):
+        assert_raises_message(
+            RevisionError,
+            "No such revision 'q'",
+            self.map_.get_revision, "abranch@q"
+        )
+
+    def test_not_actually_a_branch(self):
+        eq_(self.map_.get_revision("e@d").revision, "d")
+
+    def test_not_actually_a_branch_partial_resolution(self):
+        eq_(self.map_.get_revision("someoth@d").revision, "d")
+
+    def test_no_such_branch(self):
+        assert_raises_message(
+            RevisionError,
+            "No such branch: 'x'",
+            self.map_.get_revision, "x@d"
+        )
+
+
 class MultipleBranchTest(DownIterateTest):
     def setUp(self):
         self.map = RevisionMap(
