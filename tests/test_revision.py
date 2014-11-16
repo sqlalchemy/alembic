@@ -155,6 +155,17 @@ class NamedBranchTest(DownIterateTest):
             ['c', 'somelongername', 'b', 'a']
         )
 
+    def test_iterate_named_head_to_base(self):
+        self._assert_iteration(
+            "ebranch@head", "base",
+            ['f', 'someothername', 'e', 'd']
+        )
+
+        self._assert_iteration(
+            "abranch@head", "base",
+            ['c', 'somelongername', 'b', 'a']
+        )
+
     def test_iterate_head_to_version_specific_base(self):
         self._assert_iteration(
             "heads", "e@base",
@@ -164,6 +175,12 @@ class NamedBranchTest(DownIterateTest):
         self._assert_iteration(
             "heads", "c@base",
             ['c', 'somelongername', 'b', 'a']
+        )
+
+    def test_iterate_to_branch_at_rev(self):
+        self._assert_iteration(
+            "heads", "ebranch@d",
+            ['f', 'someothername', 'e', 'd']
         )
 
     def test_partial_id_resolve(self):

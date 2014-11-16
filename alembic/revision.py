@@ -423,21 +423,15 @@ class RevisionMap(object):
         limit_to_lower_branch = \
             isinstance(lower, compat.string_types) and '@' in lower
 
-        # TODO: rework the conditionals here to be easier
-        # to follow
-        if not limit_to_lower_branch or not requested_lowers:
-            if not requested_lowers and limit_to_lower_branch:
-                base_lowers = self.get_revisions(
-                    self._get_base_revisions(lower))
-                lowers = base_lowers
-            elif implicit_base or not requested_lowers:
-                base_lowers = set(self.get_revisions(self.bases))
-                base_lowers.difference_update(
-                    self._get_ancestor_nodes(requested_lowers))
-                lowers = base_lowers.union(requested_lowers)
-            else:
-                base_lowers = set()
-                lowers = requested_lowers
+        if limit_to_lower_branch:
+            base_lowers = self.get_revisions(
+                self._get_base_revisions(lower))
+            lowers = base_lowers
+        elif implicit_base or not requested_lowers:
+            base_lowers = set(self.get_revisions(self.bases))
+            base_lowers.difference_update(
+                self._get_ancestor_nodes(requested_lowers))
+            lowers = base_lowers.union(requested_lowers)
         else:
             base_lowers = set()
             lowers = requested_lowers
@@ -487,8 +481,6 @@ class RevisionMap(object):
 
             if not inclusive and rev in requested_lowers:
                 continue
-            #if rev in base_lowers
-            #if inclusive or rev not in lowers:
             yield rev
 
 
