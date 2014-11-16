@@ -81,12 +81,18 @@ class APITest(TestBase):
 
 class DownIterateTest(TestBase):
     def _assert_iteration(
-            self, upper, lower, assertion, inclusive=True, map_=None):
+            self, upper, lower, assertion, inclusive=True, map_=None,
+            implicit_base=False):
         if map_ is None:
             map_ = self.map
         eq_(
-            [rev.revision for rev in
-             map_._iterate_revisions(upper, lower, inclusive=inclusive)],
+            [
+                rev.revision for rev in
+                map_._iterate_revisions(
+                    upper, lower,
+                    inclusive=inclusive, implicit_base=implicit_base
+                )
+            ],
             assertion
         )
 
@@ -528,15 +534,15 @@ class MultipleBaseTest(DownIterateTest):
     def test_detect_invalid_base_selection(self):
         assert_raises_message(
             RevisionError,
-            "Requested revision b2 overlaps with "
+            "Requested revision a2 overlaps with "
             "other requested revisions",
             list,
             self.map._iterate_revisions(["c2"], ["a2", "b2"])
         )
 
-    def test_heads_to_revs_plus_base_exclusive(self):
+    def test_heads_to_revs_plus_implicit_base_exclusive(self):
         self._assert_iteration(
-            "heads", ["c2", "base"],
+            "heads", ["c2"],
             [
                 'b1a', 'a1a',
                 'b1b', 'a1b',
@@ -545,6 +551,42 @@ class MultipleBaseTest(DownIterateTest):
                     'd2',
                 'base1'
             ],
+            inclusive=False,
+            implicit_base=True
+        )
+
+    def test_heads_to_revs_base_exclusive(self):
+        self._assert_iteration(
+            "heads", ["c2"],
+            [
+                'mergeb3d2', 'd2'
+            ],
             inclusive=False
         )
 
+    def test_heads_to_revs_plus_implicit_base_inclusive(self):
+        self._assert_iteration(
+            "heads", ["c2"],
+            [
+                'b1a', 'a1a',
+                'b1b', 'a1b',
+                'mergeb3d2',
+                    'b3', 'a3', 'base3',
+                    'd2', 'c2',
+                'base1'
+            ],
+            implicit_base=True
+        )
+
+    def test_specific_path_one(self):
+        self._assert_iteration(
+            "b3", "base3",
+            ['b3', 'a3', 'base3']
+        )
+
+    def test_specific_path_two_implicit_base(self):
+        self._assert_iteration(
+            ["b3", "b2"], "base3",
+            ['b3', 'a3', 'b2', 'a2', 'base2'],
+            inclusive=False, implicit_base=True
+        )

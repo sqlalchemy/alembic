@@ -308,7 +308,7 @@ class RevisionMap(object):
             assert isinstance(id_, compat.string_types)
             return util.to_tuple(id_, default=None), branch_name
 
-    def iterate_revisions(self, upper, lower):
+    def iterate_revisions(self, upper, lower, implicit_base=False):
         """Iterate through script revisions, starting at the given
         upper revision identifier and ending at the lower.
 
@@ -324,7 +324,9 @@ class RevisionMap(object):
                 _relative_destination.match(upper):
             relative = int(upper)
             revs = list(
-                self._iterate_revisions("heads", lower, inclusive=False))
+                self._iterate_revisions(
+                    "heads", lower,
+                    inclusive=False, implicit_base=implicit_base))
             revs = revs[-relative:]
             if len(revs) != abs(relative):
                 raise RevisionError(
@@ -335,7 +337,9 @@ class RevisionMap(object):
                 _relative_destination.match(lower):
             relative = int(lower)
             revs = list(
-                self._iterate_revisions(upper, "base", inclusive=False))
+                self._iterate_revisions(
+                    upper, "base",
+                    inclusive=False, implicit_base=implicit_base))
             revs = revs[0:-relative]
             if len(revs) != abs(relative):
                 raise RevisionError(
@@ -343,7 +347,8 @@ class RevisionMap(object):
                     "produce %d migrations" % (lower, abs(relative)))
             return iter(revs)
         else:
-            return self._iterate_revisions(upper, lower, inclusive=False)
+            return self._iterate_revisions(
+                upper, lower, inclusive=False, implicit_base=implicit_base)
 
     def _get_descendant_nodes(self, targets, map_=None):
         if map_ is None:
@@ -387,7 +392,8 @@ class RevisionMap(object):
             total_ancestors.update(ancestors)
         return total_ancestors
 
-    def _iterate_revisions(self, upper, lower, inclusive=True):
+    def _iterate_revisions(
+            self, upper, lower, inclusive=True, implicit_base=False):
         """iterate revisions from upper to lower.
 
         The traversal is depth-first within branches, and breadth-first
@@ -406,16 +412,21 @@ class RevisionMap(object):
         limit_to_lower_branch = \
             isinstance(lower, compat.string_types) and '@' in lower
 
+        # TODO: rework the conditionals here to be easier
+        # to follow
         if not limit_to_lower_branch or not requested_lowers:
             if not requested_lowers and limit_to_lower_branch:
                 base_lowers = self.get_revisions(
                     self._get_base_revisions(lower))
                 lowers = base_lowers
-            else:
+            elif implicit_base or not requested_lowers:
                 base_lowers = set(self.get_revisions(self.bases))
                 base_lowers.difference_update(
                     self._get_ancestor_nodes(requested_lowers))
                 lowers = base_lowers.union(requested_lowers)
+            else:
+                base_lowers = set()
+                lowers = requested_lowers
         else:
             base_lowers = set()
             lowers = requested_lowers
