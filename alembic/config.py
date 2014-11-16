@@ -51,10 +51,13 @@ class Config(object):
 
      ..versionadded:: 0.4
 
+    :param cfg_vars: A dictionary of keys and values that will be used
+    for substitution in the alembic config file.
+
     """
 
     def __init__(self, file_=None, ini_section='alembic', output_buffer=None,
-                 stdout=sys.stdout, cmd_opts=None):
+                 stdout=sys.stdout, cmd_opts=None, cfg_vars = {}):
         """Construct a new :class:`.Config`
 
         """
@@ -63,6 +66,7 @@ class Config(object):
         self.output_buffer = output_buffer
         self.stdout = stdout
         self.cmd_opts = cmd_opts
+        self.cfg_vars = cfg_vars
 
     cmd_opts = None
     """The command-line options passed to the ``alembic`` script.
@@ -113,7 +117,8 @@ class Config(object):
             here = os.path.abspath(os.path.dirname(self.config_file_name))
         else:
             here = ""
-        file_config = SafeConfigParser({'here': here})
+        self.cfg_vars['here'] = here
+        file_config = SafeConfigParser(self.cfg_vars)
         if self.config_file_name:
             file_config.read([self.config_file_name])
         else:
