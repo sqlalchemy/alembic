@@ -160,10 +160,7 @@ class RevisionMap(object):
         """
         current_heads = self.heads
         if branch_name:
-            current_heads = [
-                h for h in current_heads
-                if self._shares_lineage(h, branch_name)
-            ]
+            current_heads = self.filter_for_lineage(current_heads, branch_name)
         if len(current_heads) > 1:
             raise MultipleHeads("Multiple heads are present")
 
@@ -189,10 +186,13 @@ class RevisionMap(object):
         full revision.
 
         """
-        resolved_id, branch_name = self._resolve_revision_number(id_)
-        return tuple(
-            self._revision_for_ident(rev_id, branch_name)
-            for rev_id in resolved_id)
+        if isinstance(id_, (list, tuple)):
+            return sum([self.get_revisions(id_elem) for id_elem in id_], ())
+        else:
+            resolved_id, branch_name = self._resolve_revision_number(id_)
+            return tuple(
+                self._revision_for_ident(rev_id, branch_name)
+                for rev_id in resolved_id)
 
     def get_revision(self, id_):
         """Return the :class:`.Revision` instance with the given rev id.
@@ -243,9 +243,7 @@ class RevisionMap(object):
             revs = [x for x in self._revision_map
                     if x and x.startswith(resolved_id)]
             if branch_rev:
-                revs = [
-                    x for x in revs if
-                    self._shares_lineage(x, branch_rev)]
+                revs = self.filter_for_lineage(revs, check_branch)
             if not revs:
                 raise ResolutionError("No such revision '%s'" % resolved_id)
             elif len(revs) > 1:
@@ -267,28 +265,24 @@ class RevisionMap(object):
         return revision
 
     def filter_for_lineage(self, targets, check_against):
-        if not isinstance(check_against, Revision):
-            check_against = self.get_revisions(check_against)
+        id_, branch_name = self._resolve_revision_number(check_against)
 
         return [
             tg for tg in targets
-            if self._shares_lineage(tg, check_against)]
+            if self._shares_lineage(tg, branch_name or id_[0])]
 
-    def _shares_lineage(self, target, test_against_revs):
-        if not test_against_revs:
+    def _shares_lineage(self, target, test_against_rev):
+        if not test_against_rev:
             return True
         if not isinstance(target, Revision):
             target = self._revision_for_ident(target)
-        test_against_revs = [
-            self._revision_for_ident(tr)
-            if not isinstance(tr, Revision) else tr
-            for tr in util.to_tuple(test_against_revs, ())
-        ]
+        if not isinstance(test_against_rev, Revision):
+            test_against_rev = self._revision_for_ident(test_against_rev)
 
         return bool(
             self._get_descendant_nodes([target])
                 .union(self._get_ancestor_nodes([target]))
-                .intersection(test_against_revs)
+                .intersection([test_against_rev])
         )
 
     def _resolve_revision_number(self, id_):
@@ -311,6 +305,7 @@ class RevisionMap(object):
         elif id_ == 'base' or id_ is None:
             return (), branch_name
         else:
+            assert isinstance(id_, compat.string_types)
             return util.to_tuple(id_, default=None), branch_name
 
     def iterate_revisions(self, upper, lower):
@@ -366,8 +361,8 @@ class RevisionMap(object):
                 tg for tg in targets if tg is not target
             ):
                 raise RevisionError(
-                    "Requested base revision %s overlaps with "
-                    "other requested base revisions" % target.revision)
+                    "Requested revision %s overlaps with "
+                    "other requested revisions" % target.revision)
             total_descendants.update(descendants)
         return total_descendants
 
@@ -387,8 +382,8 @@ class RevisionMap(object):
                 tg for tg in targets if tg is not target
             ):
                 raise RevisionError(
-                    "Requested head revision %s overlaps with "
-                    "other requested head revisions" % target.revision)
+                    "Requested revision %s overlaps with "
+                    "other requested revisions" % target.revision)
             total_ancestors.update(ancestors)
         return total_ancestors
 
@@ -399,12 +394,34 @@ class RevisionMap(object):
         across branches as a whole.
 
         """
-        lowers = self.get_revisions(lower)
-        if not lowers:  # lower of None or (), we go to the bases.
-            lowers = self.get_revisions(self._get_base_revisions(lower))
-            inclusive = True
+
+        requested_lowers = self.get_revisions(lower)
+
+        # some complexity to accommodate an iteration where some
+        # branches are starting from nothing, and others are starting
+        # from a given point.  Additionally, if the bottom branch
+        # is specified using a branch identifier, then we limit operations
+        # to just that branch.
+
+        limit_to_lower_branch = \
+            isinstance(lower, compat.string_types) and '@' in lower
+
+        if not limit_to_lower_branch or not requested_lowers:
+            if not requested_lowers and limit_to_lower_branch:
+                base_lowers = self.get_revisions(
+                    self._get_base_revisions(lower))
+                lowers = base_lowers
+            else:
+                base_lowers = set(self.get_revisions(self.bases))
+                base_lowers.difference_update(
+                    self._get_ancestor_nodes(requested_lowers))
+                lowers = base_lowers.union(requested_lowers)
+        else:
+            base_lowers = set()
+            lowers = requested_lowers
 
         uppers = self.get_revisions(upper)
+
         total_space = set(
             rev.revision for rev
             in self._get_ancestor_nodes(uppers)
@@ -453,8 +470,11 @@ class RevisionMap(object):
                 and downrev in total_space
             ])
 
-            if inclusive or rev not in lowers:
-                yield rev
+            if not inclusive and rev in requested_lowers:
+                continue
+            #if rev in base_lowers
+            #if inclusive or rev not in lowers:
+            yield rev
 
 
 class Revision(object):

@@ -63,7 +63,7 @@ class APITest(TestBase):
         )
         assert_raises_message(
             MultipleHeads,
-            "Multiple heads are present; please use current_heads()",
+            "Multiple heads are present",
             map_.get_revision, 'head'
         )
 
@@ -80,10 +80,13 @@ class APITest(TestBase):
 
 
 class DownIterateTest(TestBase):
-    def _assert_iteration(self, upper, lower, assertion, inclusive=True):
+    def _assert_iteration(
+            self, upper, lower, assertion, inclusive=True, map_=None):
+        if map_ is None:
+            map_ = self.map
         eq_(
             [rev.revision for rev in
-             self.map._iterate_revisions(upper, lower, inclusive=inclusive)],
+             map_._iterate_revisions(upper, lower, inclusive=inclusive)],
             assertion
         )
 
@@ -107,7 +110,7 @@ class DiamondTest(DownIterateTest):
         )
 
 
-class NamedBranchTest(TestBase):
+class NamedBranchTest(DownIterateTest):
     def test_dupe_branch_collection(self):
         fn = lambda: [
             Revision('a', ()),
@@ -124,7 +127,7 @@ class NamedBranchTest(TestBase):
         )
 
     def setUp(self):
-        self.map_ = RevisionMap(lambda: [
+        self.map = RevisionMap(lambda: [
             Revision('a', (), branch_names='abranch'),
             Revision('b', ('a',)),
             Revision('somelongername', ('b',)),
@@ -135,62 +138,84 @@ class NamedBranchTest(TestBase):
             Revision('f', ('someothername',)),
         ])
 
+    def test_iterate_head_to_named_base(self):
+        self._assert_iteration(
+            "heads", "ebranch@base",
+            ['f', 'someothername', 'e', 'd']
+        )
+
+        self._assert_iteration(
+            "heads", "abranch@base",
+            ['c', 'somelongername', 'b', 'a']
+        )
+
+    def test_iterate_head_to_version_specific_base(self):
+        self._assert_iteration(
+            "heads", "e@base",
+            ['f', 'someothername', 'e', 'd']
+        )
+
+        self._assert_iteration(
+            "heads", "c@base",
+            ['c', 'somelongername', 'b', 'a']
+        )
+
     def test_partial_id_resolve(self):
-        eq_(self.map_.get_revision("ebranch@some").revision, "someothername")
-        eq_(self.map_.get_revision("abranch@some").revision, "somelongername")
+        eq_(self.map.get_revision("ebranch@some").revision, "someothername")
+        eq_(self.map.get_revision("abranch@some").revision, "somelongername")
 
     def test_branch_at_heads(self):
         assert_raises_message(
             RevisionError,
             "Branch name given with 'heads' makes no sense",
-            self.map_.get_revision, "abranch@heads"
+            self.map.get_revision, "abranch@heads"
         )
 
     def test_branch_at_syntax(self):
-        eq_(self.map_.get_revision("abranch@head").revision, 'c')
-        eq_(self.map_.get_revision("abranch@base"), None)
-        eq_(self.map_.get_revision("ebranch@head").revision, 'f')
-        eq_(self.map_.get_revision("abranch@base"), None)
-        eq_(self.map_.get_revision("ebranch@d").revision, 'd')
+        eq_(self.map.get_revision("abranch@head").revision, 'c')
+        eq_(self.map.get_revision("abranch@base"), None)
+        eq_(self.map.get_revision("ebranch@head").revision, 'f')
+        eq_(self.map.get_revision("abranch@base"), None)
+        eq_(self.map.get_revision("ebranch@d").revision, 'd')
 
     def test_branch_at_self(self):
-        eq_(self.map_.get_revision("ebranch@ebranch").revision, 'e')
+        eq_(self.map.get_revision("ebranch@ebranch").revision, 'e')
 
     def test_retrieve_branch_revision(self):
-        eq_(self.map_.get_revision("abranch").revision, 'a')
-        eq_(self.map_.get_revision("ebranch").revision, 'e')
+        eq_(self.map.get_revision("abranch").revision, 'a')
+        eq_(self.map.get_revision("ebranch").revision, 'e')
 
     def test_rev_not_in_branch(self):
         assert_raises_message(
             RevisionError,
             "Revision b is not a member of branch 'ebranch'",
-            self.map_.get_revision, "ebranch@b"
+            self.map.get_revision, "ebranch@b"
         )
 
         assert_raises_message(
             RevisionError,
             "Revision d is not a member of branch 'abranch'",
-            self.map_.get_revision, "abranch@d"
+            self.map.get_revision, "abranch@d"
         )
 
     def test_no_revision_exists(self):
         assert_raises_message(
             RevisionError,
             "No such revision 'q'",
-            self.map_.get_revision, "abranch@q"
+            self.map.get_revision, "abranch@q"
         )
 
     def test_not_actually_a_branch(self):
-        eq_(self.map_.get_revision("e@d").revision, "d")
+        eq_(self.map.get_revision("e@d").revision, "d")
 
     def test_not_actually_a_branch_partial_resolution(self):
-        eq_(self.map_.get_revision("someoth@d").revision, "d")
+        eq_(self.map.get_revision("someoth@d").revision, "d")
 
     def test_no_such_branch(self):
         assert_raises_message(
             RevisionError,
             "No such branch: 'x'",
-            self.map_.get_revision, "x@d"
+            self.map.get_revision, "x@d"
         )
 
 
@@ -316,6 +341,14 @@ class BranchTravellingTest(DownIterateTest):
             ]
         )
 
+    def test_three_branches_end_in_single_branch(self):
+
+        self._assert_iteration(
+            ["merge", "fe1b1"], "a3",
+            ['merge', 'e2b1', 'e2b2', 'db2', 'cb2', 'b2',
+             'fe1b1', 'e1b1', 'db1', 'cb1', 'b1', 'a3']
+        )
+
     def test_two_branches_to_root(self):
 
         # here we want 'a3' as a "stop" branch point, but *not*
@@ -368,16 +401,6 @@ class BranchTravellingTest(DownIterateTest):
             ]  # noqa
         )
 
-    def test_three_branches_end_in_single_branch(self):
-
-        # in this case, both "a3" and "db1" are stop points
-        self._assert_iteration(
-            ["merge", "fe1b1"], "e1b1",
-            ['merge',
-                'fe1b1', 'e1b1',  # fe1b1 branch
-            ]  # noqa
-        )
-
     def test_three_branches_end_multiple_bases(self):
 
         # in this case, both "a3" and "db1" are stop points
@@ -411,8 +434,8 @@ class BranchTravellingTest(DownIterateTest):
         # db1 is an ancestor of fe1b1
         assert_raises_message(
             RevisionError,
-            "Requested head revision fe1b1 overlaps "
-            "with other requested head revisions",
+            "Requested revision fe1b1 overlaps "
+            "with other requested revisions",
             list,
             self.map._iterate_revisions(["db1", "b2", "fe1b1"], ())
         )
@@ -505,8 +528,23 @@ class MultipleBaseTest(DownIterateTest):
     def test_detect_invalid_base_selection(self):
         assert_raises_message(
             RevisionError,
-            "Requested base revision a2 overlaps with "
-            "other requested base revisions",
+            "Requested revision b2 overlaps with "
+            "other requested revisions",
             list,
             self.map._iterate_revisions(["c2"], ["a2", "b2"])
         )
+
+    def test_heads_to_revs_plus_base_exclusive(self):
+        self._assert_iteration(
+            "heads", ["c2", "base"],
+            [
+                'b1a', 'a1a',
+                'b1b', 'a1b',
+                'mergeb3d2',
+                    'b3', 'a3', 'base3',
+                    'd2',
+                'base1'
+            ],
+            inclusive=False
+        )
+
