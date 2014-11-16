@@ -121,8 +121,8 @@ class RevisionPathTest(TestBase):
         a, b, c, d, e = self.a, self.b, self.c, self.d, self.e
         assert_raises_message(
             util.CommandError,
-            r"Revision\(s\) %s is not an ancestor "
-            "of revision\(s\) base" % b.revision,
+            r"Destination %s is not a valid downgrade "
+            "target from current head\(s\)" % b.revision[0:3],
             self.env._downgrade_revs, b.revision[0:3], None
         )
 
@@ -131,8 +131,8 @@ class RevisionPathTest(TestBase):
 
         assert_raises_message(
             util.CommandError,
-            r"Revision\(s\) %s is not an ancestor "
-            "of revision\(s\) %s" % (c.revision, b.revision),
+            r"Destination %s is not a valid downgrade "
+            "target from current head\(s\)" % c.revision[0:4],
             self.env._downgrade_revs, c.revision[0:4], b.revision
         )
 

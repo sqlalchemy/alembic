@@ -12,6 +12,16 @@ class RevisionError(Exception):
     pass
 
 
+class RangeNotAncestorError(RevisionError):
+    def __init__(self, lower, upper):
+        self.lower = lower
+        self.upper = upper
+        super(RangeNotAncestorError, self).__init__(
+            "Revision %s is not an ancestor of revision %s" %
+            (lower or "base", upper or "base")
+        )
+
+
 class MultipleHeads(RevisionError):
     pass
 
@@ -245,7 +255,8 @@ class RevisionMap(object):
             if branch_rev:
                 revs = self.filter_for_lineage(revs, check_branch)
             if not revs:
-                raise ResolutionError("No such revision '%s'" % resolved_id)
+                raise ResolutionError(
+                    "No such revision or branch '%s'" % resolved_id)
             elif len(revs) > 1:
                 raise ResolutionError(
                     "Multiple revisions start "
@@ -440,14 +451,7 @@ class RevisionMap(object):
             rev.revision for rev in self._get_descendant_nodes(lowers)
         )
         if not total_space:
-            raise RevisionError(
-                "Revision(s) %s is not an ancestor of revision(s) %s" % (
-                    (", ".join(r.revision for r in lowers)
-                        if lowers else "base"),
-                    (", ".join(r.revision for r in uppers)
-                        if uppers else "base")
-                )
-            )
+            raise RangeNotAncestorError(lower, upper)
 
         branch_endpoints = set(
             rev.revision for rev in
