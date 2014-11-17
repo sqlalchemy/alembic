@@ -14,6 +14,19 @@ Changelog
       alone by default; use ``--verbose`` to get at additional output.
 
     .. change::
+      :tags: bug, autogenerate
+      :tickets: 243
+
+      Fixed a variety of issues surrounding rendering of Python code that
+      contains unicode literals.  The first is that the "quoted_name" construct
+      that SQLAlchemy uses to represent table and column names as well
+      as schema names does not ``repr()`` correctly on Py2K when the value
+      contains unicode characters; therefore an explicit stringification is
+      added to these.  Additionally, SQL expressions such as server defaults
+      were not being generated in a unicode-safe fashion leading to decode
+      errors if server defaults contained non-ascii characters.
+
+    .. change::
       :tags: bug, operations
       :tickets: 174
       :pullreq: bitbucket:29

@@ -137,7 +137,7 @@ class compound(object):
                     name, fail._as_string(config), str(ex))))
                 break
         else:
-            raise ex
+            compat.raise_from_cause(ex)
 
     def _expect_success(self, config, name='block'):
         if not self.fails:
