@@ -1,7 +1,7 @@
 import re
 from alembic import util
 from sqlalchemy.engine import default
-from alembic.compat import text_type
+from alembic.compat import text_type, py3k
 
 if not util.sqla_094:
     def eq_(a, b, msg=None):
@@ -45,6 +45,14 @@ def eq_ignore_whitespace(a, b, msg=None):
     a = re.sub(r' {2,}', " ", a)
     b = re.sub(r'^\s+?|\n', "", b)
     b = re.sub(r' {2,}', " ", b)
+
+    # convert for unicode string rendering,
+    # using special escape character "!U"
+    if py3k:
+        b = re.sub(r'!U', '', b)
+    else:
+        b = re.sub(r'!U', 'u', b)
+
     assert a == b, msg or "%r != %r" % (a, b)
 
 

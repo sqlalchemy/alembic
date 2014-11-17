@@ -95,14 +95,14 @@ class AutogenRenderTest(TestBase):
                 autogenerate.render._add_index(idx, autogen_context),
                 """op.create_index('foo_idx', 't', \
 ['x', 'y'], unique=False, """
-                """postgresql_where=sa.text("t.y = 'something'"))"""
+                """postgresql_where=sa.text(!U"t.y = 'something'"))"""
             )
         else:
             eq_ignore_whitespace(
                 autogenerate.render._add_index(idx, autogen_context),
                 """op.create_index('foo_idx', 't', ['x', 'y'], \
 unique=False, """
-                """postgresql_where=sa.text('t.y = %(y_1)s'))"""
+                """postgresql_where=sa.text(!U't.y = %(y_1)s'))"""
             )
 
     @config.requirements.fail_before_sqla_080
@@ -117,7 +117,7 @@ unique=False, """
         eq_ignore_whitespace(
             autogenerate.render._add_index(idx, self.autogen_context),
             "op.create_index('test_lower_code_idx', 'test', "
-            "[sa.text('lower(test.code)')], unique=False)"
+            "[sa.text(!U'lower(test.code)')], unique=False)"
         )
 
     @config.requirements.fail_before_sqla_080
@@ -132,7 +132,7 @@ unique=False, """
         eq_ignore_whitespace(
             autogenerate.render._add_index(idx, self.autogen_context),
             "op.create_index('test_lower_code_idx', 'test', "
-            "[sa.text('CAST(test.code AS CHAR)')], unique=False)"
+            "[sa.text(!U'CAST(test.code AS CHAR)')], unique=False)"
         )
 
     @config.requirements.fail_before_sqla_080
@@ -147,7 +147,7 @@ unique=False, """
         eq_ignore_whitespace(
             autogenerate.render._add_index(idx, self.autogen_context),
             "op.create_index('test_desc_code_idx', 'test', "
-            "[sa.text('test.code DESC')], unique=False)"
+            "[sa.text(!U'test.code DESC')], unique=False)"
         )
 
     def test_drop_index(self):
@@ -300,6 +300,32 @@ unique=False, """
             ")"
         )
 
+    def test_render_table_w_unicode_name(self):
+        m = MetaData()
+        t = Table(compat.ue('\u0411\u0435\u0437'), m,
+                  Column('id', Integer, primary_key=True),
+                  )
+        eq_ignore_whitespace(
+            autogenerate.render._add_table(t, self.autogen_context),
+            "op.create_table(%r,"
+            "sa.Column('id', sa.Integer(), nullable=False),"
+            "sa.PrimaryKeyConstraint('id'))" % compat.ue('\u0411\u0435\u0437')
+        )
+
+    def test_render_table_w_unicode_schema(self):
+        m = MetaData()
+        t = Table('test', m,
+                  Column('id', Integer, primary_key=True),
+                  schema=compat.ue('\u0411\u0435\u0437')
+                  )
+        eq_ignore_whitespace(
+            autogenerate.render._add_table(t, self.autogen_context),
+            "op.create_table('test',"
+            "sa.Column('id', sa.Integer(), nullable=False),"
+            "sa.PrimaryKeyConstraint('id'),"
+            "schema=%r)" % compat.ue('\u0411\u0435\u0437')
+        )
+
     @patch("alembic.autogenerate.render.MAX_PYTHON_ARGS", 3)
     def test_render_table_max_cols(self):
         m = MetaData()
@@ -359,7 +385,8 @@ unique=False, """
         eq_ignore_whitespace(
             re.sub(
                 r"u'", "'",
-                autogenerate.render._add_table(t, self.autogen_context)),
+                autogenerate.render._add_table(t, self.autogen_context)
+            ),
             "op.create_table('test',"
             "sa.Column('id', sa.Integer(), nullable=False),"
             "sa.Column('q', sa.Integer(), nullable=True),"
@@ -404,14 +431,14 @@ unique=False, """
         )
 
     def test_render_drop_table(self):
-        eq_(
+        eq_ignore_whitespace(
             autogenerate.render._drop_table(Table("sometable", MetaData()),
                                             self.autogen_context),
             "op.drop_table('sometable')"
         )
 
     def test_render_drop_table_w_schema(self):
-        eq_(
+        eq_ignore_whitespace(
             autogenerate.render._drop_table(
                 Table("sometable", MetaData(), schema='foo'),
                 self.autogen_context),
@@ -435,7 +462,8 @@ unique=False, """
 
         eq_ignore_whitespace(
             autogenerate.render._add_table(t1, self.autogen_context),
-            "op.create_table('t1',sa.Column('x', sa.Integer(), nullable=True))"
+            "op.create_table('t1',"
+            "sa.Column('x', sa.Integer(), nullable=True))"
         )
 
         eq_ignore_whitespace(
@@ -446,7 +474,7 @@ unique=False, """
         )
 
     def test_render_add_column(self):
-        eq_(
+        eq_ignore_whitespace(
             autogenerate.render._add_column(
                 None, "foo", Column("x", Integer, server_default="5"),
                 self.autogen_context),
@@ -455,7 +483,7 @@ unique=False, """
         )
 
     def test_render_add_column_w_schema(self):
-        eq_(
+        eq_ignore_whitespace(
             autogenerate.render._add_column(
                 "foo", "bar", Column("x", Integer, server_default="5"),
                 self.autogen_context),
@@ -464,7 +492,7 @@ unique=False, """
         )
 
     def test_render_drop_column(self):
-        eq_(
+        eq_ignore_whitespace(
             autogenerate.render._drop_column(
                 None, "foo", Column("x", Integer, server_default="5"),
                 self.autogen_context),
@@ -473,7 +501,7 @@ unique=False, """
         )
 
     def test_render_drop_column_w_schema(self):
-        eq_(
+        eq_ignore_whitespace(
             autogenerate.render._drop_column(
                 "foo", "bar", Column("x", Integer, server_default="5"),
                 self.autogen_context),
@@ -489,6 +517,24 @@ unique=False, """
             '"nextval(\'group_to_perm_group_to_perm_id_seq\'::regclass)"'
         )
 
+    def test_render_unicode_server_default(self):
+        default = compat.ue(
+            '\u0411\u0435\u0437 '
+            '\u043d\u0430\u0437\u0432\u0430\u043d\u0438\u044f'
+        )
+
+        c = Column(
+            'x', Unicode,
+            server_default=text(default)
+        )
+
+        eq_ignore_whitespace(
+            autogenerate.render._render_server_default(
+                c.server_default, self.autogen_context
+            ),
+            "sa.text(%r)" % default
+        )
+
     def test_render_col_with_server_default(self):
         c = Column('updated_at', TIMESTAMP(),
                    server_default='TIMEZONE("utc", CURRENT_TIMESTAMP)',
@@ -496,7 +542,7 @@ unique=False, """
         result = autogenerate.render._render_column(
             c, self.autogen_context
         )
-        eq_(
+        eq_ignore_whitespace(
             result,
             'sa.Column(\'updated_at\', sa.TIMESTAMP(), '
             'server_default=\'TIMEZONE("utc", CURRENT_TIMESTAMP)\', '
@@ -509,7 +555,7 @@ unique=False, """
         result = autogenerate.render._render_column(
             c, self.autogen_context
         )
-        eq_(
+        eq_ignore_whitespace(
             result,
             'sa.Column(\'some_key\', sa.Integer(), '
             'autoincrement=False, '
@@ -542,10 +588,11 @@ unique=False, """
         result = autogenerate.render._add_table(
             t, autogen_context
         )
-        eq_(
-            result, """sa.create_table('t',
-col(x),
-render:primary_key\n)"""
+        eq_ignore_whitespace(
+            result,
+            "sa.create_table('t',"
+            "col(x),"
+            "render:primary_key)"
         )
 
     def test_render_modify_type(self):
@@ -601,6 +648,9 @@ render:primary_key\n)"""
         if not util.sqla_08:
             t1.append_constraint(fk)
 
+        # SQLA 0.9 generates a u'' here for remote cols while 0.8 does not,
+        # so just whack out "'u" here from the generated
+
         eq_ignore_whitespace(
             re.sub(
                 r"u'", "'",
@@ -628,7 +678,8 @@ render:primary_key\n)"""
             re.sub(
                 r"u'", "'",
                 autogenerate.render._render_constraint(
-                    fk, self.autogen_context)),
+                    fk, self.autogen_context),
+            ),
             "sa.ForeignKeyConstraint(['c'], ['t2.c_rem'], deferrable=True)"
         )
 
@@ -639,7 +690,8 @@ render:primary_key\n)"""
             re.sub(
                 r"u'", "'",
                 autogenerate.render._render_constraint(
-                    fk, self.autogen_context)),
+                    fk, self.autogen_context)
+            ),
             "sa.ForeignKeyConstraint(['c'], ['t2.c_rem'], initially='XYZ')"
         )
 
@@ -673,7 +725,8 @@ render:primary_key\n)"""
             re.sub(
                 r"u'", "'",
                 autogenerate.render._render_constraint(
-                    fk, self.autogen_context)),
+                    fk, self.autogen_context)
+            ),
             "sa.ForeignKeyConstraint(['c'], ['foo.t2.c_rem'], "
             "onupdate='CASCADE')"
         )
@@ -684,7 +737,7 @@ render:primary_key\n)"""
                 CheckConstraint("im a constraint", name='cc1'),
                 self.autogen_context
             ),
-            "sa.CheckConstraint('im a constraint', name='cc1')"
+            "sa.CheckConstraint(!U'im a constraint', name='cc1')"
         )
 
     def test_render_check_constraint_sqlexpr(self):
@@ -696,7 +749,7 @@ render:primary_key\n)"""
                 CheckConstraint(and_(c > five, c < ten)),
                 self.autogen_context
             ),
-            "sa.CheckConstraint('c > 5 AND c < 10')"
+            "sa.CheckConstraint(!U'c > 5 AND c < 10')"
         )
 
     @config.requirements.fail_before_sqla_080
@@ -707,7 +760,7 @@ render:primary_key\n)"""
                 CheckConstraint(and_(c > 5, c < 10)),
                 self.autogen_context
             ),
-            "sa.CheckConstraint('c > 5 AND c < 10')"
+            "sa.CheckConstraint(!U'c > 5 AND c < 10')"
         )
 
     def test_render_unique_constraint_opts(self):
@@ -719,6 +772,21 @@ render:primary_key\n)"""
                 self.autogen_context
             ),
             "sa.UniqueConstraint('c', deferrable='XYZ', name='uq_1')"
+        )
+
+    def test_add_unique_constraint_unicode_schema(self):
+        m = MetaData()
+        t = Table(
+            't', m, Column('c', Integer),
+            schema=compat.ue('\u0411\u0435\u0437')
+        )
+        eq_ignore_whitespace(
+            autogenerate.render._add_unique_constraint(
+                UniqueConstraint(t.c.c),
+                self.autogen_context
+            ),
+            "op.create_unique_constraint(None, 't', ['c'], "
+            "schema=%r)" % compat.ue('\u0411\u0435\u0437')
         )
 
     def test_render_modify_nullable_w_default(self):
@@ -839,10 +907,10 @@ render:primary_key\n)"""
         result = autogenerate.render._render_column(
             c, self.autogen_context
         )
-        eq_(
+        eq_ignore_whitespace(
             result,
             'sa.Column(\'updated_at\', sa.TIMESTAMP(), '
-            'server_default=sa.text(\'now()\'), '
+            'server_default=sa.text(!U\'now()\'), '
             'nullable=False)'
         )
 
@@ -861,10 +929,10 @@ render:primary_key\n)"""
         result = autogenerate.render._render_column(
             c, autogen_context,
         )
-        eq_(
+        eq_ignore_whitespace(
             result,
             'sa.Column(\'updated_at\', sa.Boolean(), '
-            'server_default=sa.text(\'false\'), '
+            'server_default=sa.text(!U\'false\'), '
             'nullable=False)'
         )
 
@@ -886,10 +954,10 @@ render:primary_key\n)"""
         result = autogenerate.render._render_column(
             c, autogen_context
         )
-        eq_(
+        eq_ignore_whitespace(
             result,
             'sa.Column(\'updated_at\', sa.Boolean(), '
-            'server_default=sa.text(\'0\'), '
+            'server_default=sa.text(!U\'0\'), '
             'nullable=False)'
         )
 
@@ -901,10 +969,10 @@ render:primary_key\n)"""
         result = autogenerate.render._render_column(
             c, self.autogen_context
         )
-        eq_(
+        eq_ignore_whitespace(
             result,
             'sa.Column(\'updated_at\', sa.TIMESTAMP(), '
-            'server_default=sa.text(\'now()\'), '
+            'server_default=sa.text(!U\'now()\'), '
             'nullable=False)'
         )
 
@@ -931,9 +999,8 @@ render:primary_key\n)"""
                 nullable=True),
             "op.alter_column('sometable', 'somecolumn', "
             "existing_type=sa.Integer(), nullable=True, "
-            "existing_server_default=sa.text('5'))"
+            "existing_server_default=sa.text(!U'5'))"
         )
-
 
 
 class RenderNamingConventionTest(TestBase):
@@ -1059,7 +1126,7 @@ class RenderNamingConventionTest(TestBase):
         eq_ignore_whitespace(
             autogenerate.render._add_table(t, self.autogen_context),
             "op.create_table('t',sa.Column('c', sa.Integer(), nullable=True),"
-            "sa.CheckConstraint('c > 5', name=op.f('ck_ct_t')))"
+            "sa.CheckConstraint(!U'c > 5', name=op.f('ck_ct_t')))"
         )
 
     def test_inline_fk(self):
@@ -1092,6 +1159,6 @@ class RenderNamingConventionTest(TestBase):
                 ck,
                 self.autogen_context
             ),
-            "sa.CheckConstraint('im a constraint', name=op.f('ck_t_cc1'))"
+            "sa.CheckConstraint(!U'im a constraint', name=op.f('ck_t_cc1'))"
         )
 

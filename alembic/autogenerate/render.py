@@ -28,7 +28,33 @@ class _f_name(object):
         self.name = name
 
     def __repr__(self):
-        return "%sf(%r)" % (self.prefix, self.name)
+        return "%sf(%r)" % (self.prefix, _ident(self.name))
+
+
+def _ident(name):
+    """produce a __repr__() object for a string identifier that may
+    use quoted_name() in SQLAlchemy 0.9 and greater.
+
+    The issue worked around here is that quoted_name() doesn't have
+    very good repr() behavior by itself when unicode is involved.
+
+    """
+    if name is None:
+        return name
+    elif compat.sqla_09 and isinstance(name, sql.elements.quoted_name):
+        if compat.py2k:
+            # the attempt to encode to ascii here isn't super ideal,
+            # however we are trying to cut down on an explosion of
+            # u'' literals only when py2k + SQLA 0.9, in particular
+            # makes unit tests testing code generation very difficult
+            try:
+                return name.encode('ascii')
+            except UnicodeError:
+                return compat.text_type(name)
+        else:
+            return compat.text_type(name)
+    elif isinstance(name, compat.string_types):
+        return name
 
 
 def _render_potential_expr(value, autogen_context, wrap_in_text=True):
@@ -45,7 +71,7 @@ def _render_potential_expr(value, autogen_context, wrap_in_text=True):
 
         return template % {
             "prefix": _sqlalchemy_autogenerate_prefix(autogen_context),
-            "sql": str(
+            "sql": compat.text_type(
                 value.compile(dialect=autogen_context['dialect'],
                               **compile_kw)
             )
@@ -71,12 +97,12 @@ def _add_table(table, autogen_context):
         args = ',\n'.join(args)
 
     text = "%(prefix)screate_table(%(tablename)r,\n%(args)s" % {
-        'tablename': table.name,
+        'tablename': _ident(table.name),
         'prefix': _alembic_autogenerate_prefix(autogen_context),
         'args': args,
     }
     if table.schema:
-        text += ",\nschema=%r" % table.schema
+        text += ",\nschema=%r" % _ident(table.schema)
     for k in sorted(table.kwargs):
         text += ",\n%s=%r" % (k.replace(" ", "_"), table.kwargs[k])
     text += "\n)"
@@ -86,22 +112,23 @@ def _add_table(table, autogen_context):
 def _drop_table(table, autogen_context):
     text = "%(prefix)sdrop_table(%(tname)r" % {
         "prefix": _alembic_autogenerate_prefix(autogen_context),
-        "tname": table.name
+        "tname": _ident(table.name)
     }
     if table.schema:
-        text += ", schema=%r" % table.schema
+        text += ", schema=%r" % _ident(table.schema)
     text += ")"
     return text
 
 
 def _get_index_rendered_expressions(idx, autogen_context):
     if compat.sqla_08:
-        return [repr(getattr(exp, "name", None))
+        return [repr(_ident(getattr(exp, "name", None)))
                 if isinstance(exp, sa_schema.Column)
                 else _render_potential_expr(exp, autogen_context)
                 for exp in idx.expressions]
     else:
-        return [repr(getattr(col, "name", None)) for col in idx.columns]
+        return [
+            repr(_ident(getattr(col, "name", None))) for col in idx.columns]
 
 
 def _add_index(index, autogen_context):
@@ -110,15 +137,15 @@ def _add_index(index, autogen_context):
     :class:`~sqlalchemy.schema.Index` instance.
     """
 
-    text = "%(prefix)screate_index(%(name)r, '%(table)s', [%(columns)s], "\
+    text = "%(prefix)screate_index(%(name)r, %(table)r, [%(columns)s], "\
         "unique=%(unique)r%(schema)s%(kwargs)s)" % {
             'prefix': _alembic_autogenerate_prefix(autogen_context),
             'name': _render_gen_name(autogen_context, index.name),
-            'table': index.table.name,
+            'table': _ident(index.table.name),
             'columns': ", ".join(
                 _get_index_rendered_expressions(index, autogen_context)),
             'unique': index.unique or False,
-            'schema': (", schema='%s'" % index.table.schema)
+            'schema': (", schema=%r" % _ident(index.table.schema))
             if index.table.schema else '',
             'kwargs': (
                 ', ' +
@@ -137,11 +164,11 @@ def _drop_index(index, autogen_context):
     :class:`~sqlalchemy.schema.Index` instance.
     """
     text = "%(prefix)sdrop_index(%(name)r, "\
-        "table_name='%(table_name)s'%(schema)s)" % {
+        "table_name=%(table_name)r%(schema)s)" % {
             'prefix': _alembic_autogenerate_prefix(autogen_context),
             'name': _render_gen_name(autogen_context, index.name),
-            'table_name': index.table.name,
-            'schema': ((", schema='%s'" % index.table.schema)
+            'table_name': _ident(index.table.name),
+            'schema': ((", schema=%r" % _ident(index.table.schema))
                        if index.table.schema else '')
         }
     return text
@@ -173,23 +200,25 @@ def _uq_constraint(constraint, autogen_context, alter):
     if constraint.initially:
         opts.append(("initially", str(constraint.initially)))
     if not has_batch and alter and constraint.table.schema:
-        opts.append(("schema", str(constraint.table.schema)))
+        opts.append(("schema", _ident(constraint.table.schema)))
     if not alter and constraint.name:
         opts.append(
-            ("name", _render_gen_name(autogen_context, constraint.name)))
+            ("name",
+             _render_gen_name(autogen_context, constraint.name)))
 
     if alter:
-        args = [repr(_render_gen_name(autogen_context, constraint.name))]
+        args = [
+            repr(_render_gen_name(autogen_context, constraint.name))]
         if not has_batch:
-            args += [repr(constraint.table.name)]
-        args.append(repr([col.name for col in constraint.columns]))
+            args += [repr(_ident(constraint.table.name))]
+        args.append(repr([_ident(col.name) for col in constraint.columns]))
         args.extend(["%s=%r" % (k, v) for k, v in opts])
         return "%(prefix)screate_unique_constraint(%(args)s)" % {
             'prefix': _alembic_autogenerate_prefix(autogen_context),
             'args': ", ".join(args)
         }
     else:
-        args = [repr(col.name) for col in constraint.columns]
+        args = [repr(_ident(col.name)) for col in constraint.columns]
         args.extend(["%s=%r" % (k, v) for k, v in opts])
         return "%(prefix)sUniqueConstraint(%(args)s)" % {
             "prefix": _sqlalchemy_autogenerate_prefix(autogen_context),
@@ -238,8 +267,8 @@ def _drop_constraint(constraint, autogen_context):
     text = template % {
         'prefix': _alembic_autogenerate_prefix(autogen_context),
         'name': _render_gen_name(autogen_context, constraint.name),
-        'table_name': constraint.table.name,
-        'schema': (", schema='%s'" % constraint.table.schema)
+        'table_name': _ident(constraint.table.name),
+        'schema': (", schema='%s'" % _ident(constraint.table.schema))
         if constraint.table.schema else '',
     }
     return text
@@ -273,9 +302,9 @@ def _drop_column(schema, tname, column, autogen_context):
 
     text = template % {
         "prefix": _alembic_autogenerate_prefix(autogen_context),
-        "tname": tname,
-        "cname": column.name,
-        "schema": schema
+        "tname": _ident(tname),
+        "cname": _ident(column.name),
+        "schema": _ident(schema)
     }
     return text
 
@@ -382,7 +411,7 @@ def _render_column(column, autogen_context):
     # TODO: for non-ascii colname, assign a "key"
     return "%(prefix)sColumn(%(name)r, %(type)s, %(kw)s)" % {
         'prefix': _sqlalchemy_autogenerate_prefix(autogen_context),
-        'name': column.name,
+        'name': _ident(column.name),
         'type': _repr_type(column.type, autogen_context),
         'kw': ", ".join(["%s=%s" % (kwname, val) for kwname, val in opts])
     }
@@ -494,7 +523,7 @@ def _render_foreign_key(constraint, autogen_context):
         "[%(refcols)s], %(args)s)" % {
             "prefix": _sqlalchemy_autogenerate_prefix(autogen_context),
             "cols": ", ".join(
-                "'%s'" % f.parent.key for f in constraint.elements),
+                "%r" % f.parent.key for f in constraint.elements),
             "refcols": ", ".join(repr(_fk_colspec(f, apply_metadata_schema))
                                  for f in constraint.elements),
             "args": ", ".join(
@@ -522,7 +551,8 @@ def _render_check_constraint(constraint, autogen_context):
         opts.append(
             (
                 "name",
-                repr(_render_gen_name(autogen_context, constraint.name))
+                repr(
+                    _render_gen_name(autogen_context, constraint.name))
             )
         )
     return "%(prefix)sCheckConstraint(%(sqltext)s%(opts)s)" % {
