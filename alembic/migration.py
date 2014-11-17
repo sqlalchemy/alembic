@@ -303,7 +303,7 @@ class MigrationContext(object):
                     self._version.create(self.connection)
                 log.info("Running %s", step)
                 if self.as_sql:
-                    self.impl.static_output("-- Running %s" % (step,))
+                    self.impl.static_output("-- Running %s" % (step.short_log,))
                 step.migration_fn(**kw)
 
                 # previously, we wouldn't stamp per migration
@@ -573,6 +573,13 @@ class MigrationStep(MigrationStep):
             script.doc, False, down_revision_seen
         )
 
+    @property
+    def short_log(self):
+        return "%s %s -> %s" % (
+            self.name, tuple_rev_as_scalar(self.from_revisions),
+            tuple_rev_as_scalar(self.to_revisions)
+        )
+
     def __str__(self):
         if self.doc:
             return "%s %s -> %s, %s" % (
@@ -580,7 +587,4 @@ class MigrationStep(MigrationStep):
                 tuple_rev_as_scalar(self.to_revisions), self.doc
             )
         else:
-            return "%s %s -> %s" % (
-                self.name, tuple_rev_as_scalar(self.from_revisions),
-                tuple_rev_as_scalar(self.to_revisions)
-            )
+            return self.short_log

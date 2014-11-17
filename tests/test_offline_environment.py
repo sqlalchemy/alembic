@@ -1,11 +1,11 @@
-from alembic.testing.fixtures import TestBase
+from alembic.testing.fixtures import TestBase, capture_context_buffer
 
 from alembic import command, util
 
 from alembic.testing import assert_raises_message
 from alembic.testing.env import staging_env, _no_sql_testing_config, \
     three_rev_fixture, clear_staging_env, env_file_fixture
-
+import re
 
 a = b = c = None
 
@@ -165,3 +165,13 @@ assert not context.requires_connection()
 """)
         command.upgrade(self.cfg, a, sql=True)
         command.downgrade(self.cfg, "%s:%s" % (b, a), sql=True)
+
+    def test_running_comments_not_in_sql(self):
+
+        message = "this is a very long \nand multiline\nmessage"
+
+        d = command.revision(self.cfg, message=message)
+        with capture_context_buffer(transactional_ddl=True) as buf:
+            command.upgrade(self.cfg, "%s:%s" % (a, d.revision), sql=True)
+
+        assert not re.match(r".*-- .*and multiline", buf.getvalue(), re.S | re.M)
