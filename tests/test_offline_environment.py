@@ -53,14 +53,14 @@ assert context.get_starting_revision_argument() == 'x'
         command.upgrade(self.cfg, "x:y", sql=True)
         command.downgrade(self.cfg, "x:y", sql=True)
 
-    def test_starting_rev_pre_context_stamp(self):
+    def test_starting_rev_pre_context_cmd_w_no_startrev(self):
         env_file_fixture("""
 assert context.get_starting_revision_argument() == 'x'
 """)
         assert_raises_message(
             util.CommandError,
             "No starting revision argument is available.",
-            command.stamp, self.cfg, a)
+            command.current, self.cfg)
 
     def test_starting_rev_current_pre_context(self):
         env_file_fixture("""

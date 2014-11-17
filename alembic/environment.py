@@ -179,10 +179,14 @@ class EnvironmentContext(object):
         if self._migration_context is not None:
             return self.script.as_revision_number(
                 self.get_context()._start_from_rev)
-        elif self.context_opts.get('starting_rev') is not None:
+        elif 'starting_rev' in self.context_opts:
             return self.script.as_revision_number(
                 self.context_opts['starting_rev'])
         else:
+            # this should raise only in the case that a command
+            # is being run where the "starting rev" is never applicable;
+            # this is to catch scripts which rely upon this in
+            # non-sql mode or similar
             raise util.CommandError(
                 "No starting revision argument is available.")
 
