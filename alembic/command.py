@@ -64,7 +64,9 @@ def init(config, directory, template='generic'):
              "settings in %r before proceeding." % config_file)
 
 
-def revision(config, message=None, autogenerate=False, sql=False, head="head"):
+def revision(
+        config, message=None, autogenerate=False, sql=False,
+        head="head", splice=False):
     """Create a new revision file."""
 
     script = ScriptDirectory.from_config(config)
@@ -101,7 +103,7 @@ def revision(config, message=None, autogenerate=False, sql=False, head="head"):
             script.run_env()
     return script.generate_revision(
         util.rev_id(), message, refresh=True,
-        head=head,
+        head=head, splice=splice,
         **template_args)
 
 
@@ -257,24 +259,8 @@ def stamp(config, revision, sql=False, tag=None):
     script = ScriptDirectory.from_config(config)
 
     def do_stamp(rev, context):
-        if sql:
-            current = False
-        else:
-            current = set(context.get_current_heads())
-            if not current:
-                current = None
+        return script._stamp_revs(revision, rev)
 
-        dest = script.get_revision(revision)
-        if dest is not None:
-            dest = dest.revision
-
-        if current:
-            for from_rev in script.match_ancestors_and_descendants(dest, current):
-                context._update_current_rev(from_rev, dest)
-        else:
-            context._update_current_rev(current, dest)
-
-        return []
     with EnvironmentContext(
         config,
         script,

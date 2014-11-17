@@ -256,6 +256,65 @@ class ScriptDirectory(object):
                 for script, delete_branch in self._flag_branch_changes(revs)
             ]
 
+    def _stamp_revs(self, revision, heads):
+        with self._catch_revision_errors(
+                multiple_heads="Multiple heads are present; please specify a "
+                "single target revision"):
+            heads = self.get_revisions(heads)
+
+            # filter for lineage will resolve things like
+            # branchname@base, version@base, etc.
+            filtered_heads = set(self.revision_map.filter_for_lineage(
+                heads, revision))
+
+            null_migration = lambda **kw: None
+
+            dest = self.get_revision(revision)
+
+            if dest is None:
+                # dest is 'base'.  Return a "delete branch" migration
+                # for all applicable heads.
+                return [
+                    migration.MigrationStep(
+                        null_migration, head.revision, None, None, False, True)
+                    for head in filtered_heads
+                ]
+            elif dest in filtered_heads:
+                # the dest is already in the version table, do nothing.
+                return []
+
+            # figure out if the dest is a descendant or an
+            # ancestor of the selected nodes
+            descendants = set(self.revision_map._get_descendant_nodes([dest]))
+            ancestors = set(self.revision_map._get_ancestor_nodes([dest]))
+
+            import pdb
+            pdb.set_trace()
+
+            if filtered_heads.intersection(descendants):
+                # heads are above the target, so this is a downgrade.
+                # we can treat them as a "merge", single step.
+                assert not filtered_heads.intersection(ancestors)
+                todo_heads = [head.revision for head in filtered_heads]
+                step = migration.MigrationStep(
+                    null_migration, todo_heads,
+                    dest.revision, None, False, False)
+                return [step]
+            elif filtered_heads.intersection(ancestors):
+                # heads are below the target, so this is an upgrade.
+                # we can treat them as a "merge", single step.
+                todo_heads = [head.revision for head in filtered_heads]
+                step = migration.MigrationStep(
+                    null_migration, todo_heads,
+                    dest.revision, None, True, False)
+                return [step]
+            else:
+                # destination is in a branch not represented,
+                # treat it as new branch
+                step = migration.MigrationStep(
+                    null_migration, [None], dest.revision, None, True, True)
+                return [step]
+
     def run_env(self):
         """Run the script environment.
 
@@ -414,23 +473,29 @@ class Script(revision.Revision):
 
     @property
     def log_entry(self):
-        return \
-            "Rev: %s%s%s\n" \
-            "Parent(s): %s\n" \
-            "Path: %s\n" \
-            "Branches: %s\n" \
-            "\n%s\n" % (
-                self.revision,
-                " (head)" if self.is_head else "",
-                " (branchpoint)" if self.is_branch_point else "",
-                self._format_down_revision(),
-                self.path,
-                ", ".join(self.member_branches),
-                "\n".join(
-                    "    %s" % para
-                    for para in self.longdoc.splitlines()
-                )
+        entry = "Rev: %s%s%s%s\n" % (
+            self.revision,
+            " (head)" if self.is_head else "",
+            " (branchpoint)" if self.is_branch_point else "",
+            " (mergepoint)" if self.is_merge_point else "",
+        )
+        if self.is_merge_point:
+            entry += "Merge parents: %s\n" % (self._format_down_revision(), )
+        else:
+            entry += "Parent: %s\n" % (self._format_down_revision(), )
+
+        entry += "Path: %s\n" % (self.path,)
+
+        if self.member_branches:
+            entry += "Branches: %s\n" % (", ".join(self.member_branches), )
+
+        entry += "\n%s\n" % (
+            "\n".join(
+                "    %s" % para
+                for para in self.longdoc.splitlines()
             )
+        )
+        return entry
 
     def __str__(self):
         return "%s -> %s%s%s%s, %s" % (

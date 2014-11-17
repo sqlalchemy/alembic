@@ -116,10 +116,18 @@ class RevisionMap(object):
                     )
                 map_[branch_name] = revision
             revision.member_branches.update(revision.branch_names)
-            for node in self._get_ancestor_nodes(
-                    [revision], map_).union(
-                    self._get_descendant_nodes([revision], map_)):
+            for node in self._get_descendant_nodes([revision], map_):
                 node.member_branches.update(revision.branch_names)
+
+            parent = node
+            while parent and \
+                    not parent.is_branch_point and not parent.is_merge_point:
+
+                parent.member_branches.update(revision.branch_names)
+                if parent.down_revision:
+                    parent = map_[parent.down_revision[0]]
+                else:
+                    break
 
     def add_revision(self, revision, _replace=False):
         """add a single revision to an existing map.
@@ -277,10 +285,10 @@ class RevisionMap(object):
 
     def filter_for_lineage(self, targets, check_against):
         id_, branch_name = self._resolve_revision_number(check_against)
-
         return [
             tg for tg in targets
-            if self._shares_lineage(tg, branch_name or id_[0])]
+            if self._shares_lineage(
+                tg, branch_name or (id_[0] if id_ else None))]
 
     def _shares_lineage(self, target, test_against_rev):
         if not test_against_rev:

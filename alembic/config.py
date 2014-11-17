@@ -219,6 +219,13 @@ class CommandLine(object):
                     help="Specify head revision or <branchname>@head "
                     "to base new revision on."
                 )
+            if 'splice' in kwargs:
+                parser.add_argument(
+                    "--splice",
+                    action="store_true",
+                    help="Allow a non-head revision as the "
+                    "'head' to splice onto"
+                )
             if 'verbose' in kwargs:
                 parser.add_argument(
                     "-v", "--verbose",

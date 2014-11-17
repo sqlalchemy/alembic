@@ -249,6 +249,22 @@ class MigrationContext(object):
         return self.connection.dialect.has_table(
             self.connection, self.version_table, self.version_table_schema)
 
+    def stamp(self, script_directory, revision):
+        """Stamp the version table with a specific revision.
+
+        This method calculates those branches to which the given revision
+        can apply, and updates those branches as though they were migrated
+        towards that revision (either up or down).  If no current branches
+        include the revision, it is added as a new branch head.
+
+        .. versionadded:: 0.7.0
+
+        """
+        heads = self.get_current_heads()
+        head_maintainer = HeadMaintainer(self, heads)
+        for step in script_directory._steps_revs(revision, heads):
+            head_maintainer.update_to_step(step)
+
     def run_migrations(self, **kw):
         """Run the migration scripts established for this
         :class:`.MigrationContext`, if any.
@@ -487,7 +503,7 @@ class MigrationStep(MigrationStep):
 
     @property
     def should_merge_branches(self):
-        return self.is_upgrade and len(self.from_revisions) > 1
+        return len(self.from_revisions) > 1
 
     @property
     def should_unmerge_branches(self):
