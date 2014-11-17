@@ -1,8 +1,9 @@
 from alembic.testing.fixtures import TestBase
-from alembic.testing import eq_, ne_, is_
+from alembic.testing import eq_, ne_, is_, assert_raises_message
 from alembic.testing.env import clear_staging_env, staging_env, \
     _get_staging_directory, _no_sql_testing_config, env_file_fixture, \
-    script_file_fixture, _testing_config
+    script_file_fixture, _testing_config, _sqlite_testing_config, \
+    three_rev_fixture
 from alembic import command
 from alembic.script import ScriptDirectory
 from alembic.environment import EnvironmentContext
@@ -148,6 +149,74 @@ class ScriptNamingTest(TestBase):
             script._rev_path("12345", "this is a message", create_date),
             "%s/versions/12345_this_is_a_"
             "message_2012_7_25_15_8_5.py" % _get_staging_directory()
+        )
+
+
+class RevisionCommandTest(TestBase):
+    def setUp(self):
+        self.env = staging_env()
+        self.cfg = _sqlite_testing_config()
+        self.a, self.b, self.c = three_rev_fixture(self.cfg)
+
+    def tearDown(self):
+        clear_staging_env()
+
+    def test_create_script_basic(self):
+        rev = command.revision(self.cfg, message="some message")
+        script = ScriptDirectory.from_config(self.cfg)
+        rev = script.get_revision(rev.revision)
+        eq_(rev.down_revision, self.c)
+        assert "some message" in rev.doc
+
+    def test_create_script_splice(self):
+        rev = command.revision(
+            self.cfg, message="some message", head=self.b, splice=True)
+        script = ScriptDirectory.from_config(self.cfg)
+        rev = script.get_revision(rev.revision)
+        eq_(rev.down_revision, self.b)
+        assert "some message" in rev.doc
+        eq_(set(script.get_heads()), set([rev.revision, self.c]))
+
+    def test_create_script_missing_splice(self):
+        assert_raises_message(
+            util.CommandError,
+            "Revision %s is not a head revision; please specify --splice "
+            "to create a new branch from this revision" % self.b,
+            command.revision,
+            self.cfg, message="some message", head=self.b
+        )
+
+    def test_create_script_branches(self):
+        rev = command.revision(
+            self.cfg, message="some message", branch_name="foobar")
+        script = ScriptDirectory.from_config(self.cfg)
+        rev = script.get_revision(rev.revision)
+        eq_(script.get_revision("foobar"), rev)
+
+    def test_create_script_branches_old_template(self):
+        script = ScriptDirectory.from_config(self.cfg)
+        with open(os.path.join(script.dir, "script.py.mako"), "w") as file_:
+            file_.write(
+                "<%text>#</%text> ${message}\n"
+                "revision = ${repr(up_revision)}\n"
+                "down_revision = ${repr(down_revision)}\n"
+                "def upgrade():\n"
+                "    ${upgrades if upgrades else 'pass'}\n\n"
+                "def downgrade():\n"
+                "    ${downgrade if downgrades else 'pass'}\n\n"
+            )
+
+        # works OK if no branch names
+        command.revision(self.cfg, message="some message")
+
+        assert_raises_message(
+            util.CommandError,
+            r"Version \w+ specified branch_names foobar, "
+            r"however the migration file .+?\b does not have them; have you "
+            "upgraded your script.py.mako to include the 'branch_names' "
+            r"section\?",
+            command.revision,
+            self.cfg, message="some message", branch_name="foobar"
         )
 
 

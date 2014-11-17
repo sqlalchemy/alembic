@@ -9,6 +9,7 @@ from sqlalchemy.engine import url as sqla_url
 
 from .compat import callable, EncodedIO, string_types
 from . import ddl, util
+from .revision import tuple_rev_as_scalar
 
 log = logging.getLogger(__name__)
 
@@ -575,10 +576,11 @@ class MigrationStep(MigrationStep):
     def __str__(self):
         if self.doc:
             return "%s %s -> %s, %s" % (
-                self.name, self.from_revisions,
-                self.to_revisions, self.doc
+                self.name, tuple_rev_as_scalar(self.from_revisions),
+                tuple_rev_as_scalar(self.to_revisions), self.doc
             )
         else:
             return "%s %s -> %s" % (
-                self.name, self.from_revisions, self.to_revisions
+                self.name, tuple_rev_as_scalar(self.from_revisions),
+                tuple_rev_as_scalar(self.to_revisions)
             )

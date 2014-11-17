@@ -226,6 +226,12 @@ class CommandLine(object):
                     help="Allow a non-head revision as the "
                     "'head' to splice onto"
                 )
+            if 'branch_name' in kwargs:
+                parser.add_argument(
+                    "--branch-name",
+                    type=str,
+                    help="Specify a branch name to apply to the new revision"
+                )
             if 'verbose' in kwargs:
                 parser.add_argument(
                     "-v", "--verbose",

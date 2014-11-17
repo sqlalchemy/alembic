@@ -300,7 +300,9 @@ class ScriptDirectory(object):
             filtered_heads = self.revision_map.filter_for_lineage(
                 heads, revision)
 
-            null_migration = lambda **kw: None
+            def stamp_revision(**kw):
+                return None
+            null_migration = stamp_revision
 
             dest = self.get_revision(revision)
 
@@ -421,7 +423,9 @@ class ScriptDirectory(object):
             for head in heads:
                 if head is not None and not head.is_head:
                     raise util.CommandError(
-                        "Revision %s is not a head revision" % head.revision)
+                        "Revision %s is not a head revision; please specify "
+                        "--splice to create a new branch from this revision"
+                        % head.revision)
 
         self._generate_template(
             os.path.join(self.dir, "script.py.mako"),
@@ -524,10 +528,10 @@ class Script(revision.Revision):
         else:
             entry += "Parent: %s\n" % (self._format_down_revision(), )
 
-        entry += "Path: %s\n" % (self.path,)
-
         if self.member_branches:
             entry += "Branches: %s\n" % (", ".join(self.member_branches), )
+
+        entry += "Path: %s\n" % (self.path,)
 
         entry += "\n%s\n" % (
             "\n".join(
