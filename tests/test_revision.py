@@ -132,6 +132,24 @@ class NamedBranchTest(DownIterateTest):
             getattr, RevisionMap(fn), "_revision_map"
         )
 
+    def test_filter_for_lineage_labeled_head_across_merge(self):
+        fn = lambda: [
+            Revision('a', ()),
+            Revision('b', ('a', )),
+            Revision('c1', ('b', ), branch_names='c1branch'),
+            Revision('c2', ('b', )),
+            Revision('d', ('c1', 'c2')),
+
+        ]
+        map_ = RevisionMap(fn)
+        c1 = map_.get_revision('c1')
+        c2 = map_.get_revision('c2')
+        d = map_.get_revision('d')
+        eq_(
+            map_.filter_for_lineage([c1, c2, d], "c1branch@head"),
+            [c1, c2, d]
+        )
+
     def setUp(self):
         self.map = RevisionMap(lambda: [
             Revision('a', (), branch_names='abranch'),
@@ -143,6 +161,18 @@ class NamedBranchTest(DownIterateTest):
             Revision('someothername', ('e',)),
             Revision('f', ('someothername',)),
         ])
+
+    def test_get_base_revisions_labeled(self):
+        eq_(
+            self.map._get_base_revisions("somelongername@base"),
+            ['a']
+        )
+
+    def test_get_base_revisions(self):
+        eq_(
+            self.map._get_base_revisions("base"),
+            ['a', 'd']
+        )
 
     def test_iterate_head_to_named_base(self):
         self._assert_iteration(

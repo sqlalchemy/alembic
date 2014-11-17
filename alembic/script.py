@@ -297,8 +297,8 @@ class ScriptDirectory(object):
 
             # filter for lineage will resolve things like
             # branchname@base, version@base, etc.
-            filtered_heads = set(self.revision_map.filter_for_lineage(
-                heads, revision))
+            filtered_heads = self.revision_map.filter_for_lineage(
+                heads, revision)
 
             null_migration = lambda **kw: None
 
@@ -321,16 +321,16 @@ class ScriptDirectory(object):
             descendants = set(self.revision_map._get_descendant_nodes([dest]))
             ancestors = set(self.revision_map._get_ancestor_nodes([dest]))
 
-            if filtered_heads.intersection(descendants):
+            if descendants.intersection(filtered_heads):
                 # heads are above the target, so this is a downgrade.
                 # we can treat them as a "merge", single step.
-                assert not filtered_heads.intersection(ancestors)
+                assert not ancestors.intersection(filtered_heads)
                 todo_heads = [head.revision for head in filtered_heads]
                 step = migration.MigrationStep(
                     null_migration, todo_heads,
                     dest.revision, None, False, False)
                 return [step]
-            elif filtered_heads.intersection(ancestors):
+            elif ancestors.intersection(filtered_heads):
                 # heads are below the target, so this is an upgrade.
                 # we can treat them as a "merge", single step.
                 todo_heads = [head.revision for head in filtered_heads]
@@ -376,7 +376,7 @@ class ScriptDirectory(object):
 
     def generate_revision(
             self, revid, message, head=None,
-            refresh=False, splice=False, **kw):
+            refresh=False, splice=False, branch_names=None, **kw):
         """Generate a new revision file.
 
         This runs the ``script.py.mako`` template, given
@@ -429,12 +429,22 @@ class ScriptDirectory(object):
             up_revision=str(revid),
             down_revision=revision.tuple_rev_as_scalar(
                 tuple(h.revision if h is not None else None for h in heads)),
+            branch_names=util.to_tuple(branch_names),
             create_date=create_date,
             message=message if message is not None else ("empty message"),
             **kw
         )
         if refresh:
             script = Script._from_path(self, path)
+            if branch_names and not script.branch_names:
+                raise util.CommandError(
+                    "Version %s specified branch_names %s, however the "
+                    "migration file %s does not have them; have you upgraded "
+                    "your script.py.mako to include the "
+                    "'branch_names' section?" % (
+                        script.revision, branch_names, script.path
+                    ))
+
             self.revision_map.add_revision(script)
             return script
         else:

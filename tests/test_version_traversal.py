@@ -145,11 +145,15 @@ class BranchedPathTest(TestBase):
         cls.a = env.generate_revision(util.rev_id(), '->a', refresh=True)
         cls.b = env.generate_revision(util.rev_id(), 'a->b', refresh=True)
 
-        cls.c1 = env.generate_revision(util.rev_id(), 'b->c1', refresh=True)
+        cls.c1 = env.generate_revision(
+            util.rev_id(), 'b->c1',
+            branch_names='c1branch',
+            refresh=True)
         cls.d1 = env.generate_revision(util.rev_id(), 'c1->d1', refresh=True)
 
         cls.c2 = env.generate_revision(
             util.rev_id(), 'b->c2',
+            branch_names='c2branch',
             head=cls.b.revision, refresh=True, splice=True)
         cls.d2 = env.generate_revision(
             util.rev_id(), 'c2->d2',
@@ -158,6 +162,42 @@ class BranchedPathTest(TestBase):
     @classmethod
     def teardown_class(cls):
         clear_staging_env()
+
+    def test_stamp_down_across_multiple_branch_to_branchpoint(self):
+        a, b, c1, d1, c2, d2 = (
+            self.a, self.b, self.c1, self.d1, self.c2, self.d2
+        )
+        revs = self.env._stamp_revs(
+            self.b.revision, [self.d1.revision, self.c2.revision])
+        eq_(len(revs), 1)
+        eq_(
+            revs[0].merge_branch_idents,
+            # DELETE d1 revision, UPDATE c2 to b
+            ([self.d1.revision], self.c2.revision, self.b.revision)
+        )
+
+    def test_stamp_to_labeled_base_multiple_heads(self):
+        a, b, c1, d1, c2, d2 = (
+            self.a, self.b, self.c1, self.d1, self.c2, self.d2
+        )
+        revs = self.env._stamp_revs(
+            "c1branch@base", [self.d1.revision, self.c2.revision])
+        eq_(len(revs), 1)
+        assert revs[0].should_delete_branch
+        eq_(revs[0].delete_version_num, self.d1.revision)
+
+    def test_stamp_to_labeled_head_multiple_heads(self):
+        a, b, c1, d1, c2, d2 = (
+            self.a, self.b, self.c1, self.d1, self.c2, self.d2
+        )
+        revs = self.env._stamp_revs(
+            "c2branch@head", [self.d1.revision, self.c2.revision])
+        eq_(len(revs), 1)
+        eq_(
+            revs[0].merge_branch_idents,
+            # the c1branch remains unchanged
+            ([], self.c2.revision, self.d2.revision)
+        )
 
     def test_upgrade_single_branch(self):
         a, b, c1, d1, c2, d2 = (
@@ -228,6 +268,7 @@ class MergedPathTest(TestBase):
 
         cls.c2 = env.generate_revision(
             util.rev_id(), 'b->c2',
+            branch_names='c2branch',
             head=cls.b.revision, refresh=True, splice=True)
         cls.d2 = env.generate_revision(
             util.rev_id(), 'c2->d2',
@@ -243,6 +284,89 @@ class MergedPathTest(TestBase):
     @classmethod
     def teardown_class(cls):
         clear_staging_env()
+
+    def test_stamp_down_across_merge_point_branch(self):
+        a, b, c1, d1, c2, d2, e, f = (
+            self.a, self.b, self.c1, self.d1, self.c2, self.d2,
+            self.e, self.f
+        )
+        revs = self.env._stamp_revs(self.c2.revision, [self.e.revision])
+        eq_(len(revs), 1)
+        eq_(
+            revs[0].merge_branch_idents,
+            # no deletes, UPDATE e to c2
+            ([], self.e.revision, self.c2.revision)
+        )
+
+    def test_stamp_down_across_merge_prior_branching(self):
+        a, b, c1, d1, c2, d2, e, f = (
+            self.a, self.b, self.c1, self.d1, self.c2, self.d2,
+            self.e, self.f
+        )
+        revs = self.env._stamp_revs(self.a.revision, [self.e.revision])
+        eq_(len(revs), 1)
+        eq_(
+            revs[0].merge_branch_idents,
+            # no deletes, UPDATE e to c2
+            ([], self.e.revision, self.a.revision)
+        )
+
+    def test_stamp_up_across_merge_from_single_branch(self):
+        a, b, c1, d1, c2, d2, e, f = (
+            self.a, self.b, self.c1, self.d1, self.c2, self.d2,
+            self.e, self.f
+        )
+        revs = self.env._stamp_revs(self.e.revision, [self.c2.revision])
+        eq_(len(revs), 1)
+        eq_(
+            revs[0].merge_branch_idents,
+            # no deletes, UPDATE e to c2
+            ([], self.c2.revision, self.e.revision)
+        )
+
+    def test_stamp_labled_head_across_merge_from_multiple_branch(self):
+        a, b, c1, d1, c2, d2, e, f = (
+            self.a, self.b, self.c1, self.d1, self.c2, self.d2,
+            self.e, self.f
+        )
+        # this is testing that filter_for_lineage() checks for
+        # d1 both in terms of "c2branch" as well as that the "head"
+        # revision "f" is the head of both d1 and d2
+        revs = self.env._stamp_revs(
+            "c2branch@head", [self.d1.revision, self.c2.revision])
+        eq_(len(revs), 1)
+        eq_(
+            revs[0].merge_branch_idents,
+            # DELETE d1 revision, UPDATE c2 to e
+            ([self.d1.revision], self.c2.revision, self.f.revision)
+        )
+
+    def test_stamp_up_across_merge_from_multiple_branch(self):
+        a, b, c1, d1, c2, d2, e, f = (
+            self.a, self.b, self.c1, self.d1, self.c2, self.d2,
+            self.e, self.f
+        )
+        revs = self.env._stamp_revs(
+            self.e.revision, [self.d1.revision, self.c2.revision])
+        eq_(len(revs), 1)
+        eq_(
+            revs[0].merge_branch_idents,
+            # DELETE d1 revision, UPDATE c2 to e
+            ([self.d1.revision], self.c2.revision, self.e.revision)
+        )
+
+    def test_stamp_up_across_merge_prior_branching(self):
+        a, b, c1, d1, c2, d2, e, f = (
+            self.a, self.b, self.c1, self.d1, self.c2, self.d2,
+            self.e, self.f
+        )
+        revs = self.env._stamp_revs(self.e.revision, [self.b.revision])
+        eq_(len(revs), 1)
+        eq_(
+            revs[0].merge_branch_idents,
+            # no deletes, UPDATE e to c2
+            ([], self.b.revision, self.e.revision)
+        )
 
     def test_upgrade_across_merge_point(self):
         a, b, c1, d1, c2, d2, e, f = (

@@ -285,23 +285,37 @@ class RevisionMap(object):
 
     def filter_for_lineage(self, targets, check_against):
         id_, branch_name = self._resolve_revision_number(check_against)
+
+        shares = []
+        if branch_name:
+            shares.append(branch_name)
+        if id_:
+            shares.append(id_[0])
+
+        #shares = branch_name or (id_[0] if id_ else None)
+
         return [
             tg for tg in targets
-            if self._shares_lineage(
-                tg, branch_name or (id_[0] if id_ else None))]
+            if self._shares_lineage(tg, shares)]
 
-    def _shares_lineage(self, target, test_against_rev):
-        if not test_against_rev:
+    def _shares_lineage(self, target, test_against_revs):
+        if not test_against_revs:
             return True
         if not isinstance(target, Revision):
             target = self._revision_for_ident(target)
-        if not isinstance(test_against_rev, Revision):
-            test_against_rev = self._revision_for_ident(test_against_rev)
+
+        test_against_revs = [
+            self._revision_for_ident(test_against_rev)
+            if not isinstance(test_against_rev, Revision)
+            else test_against_rev
+            for test_against_rev
+            in util.to_tuple(test_against_revs, default=())
+        ]
 
         return bool(
             self._get_descendant_nodes([target])
                 .union(self._get_ancestor_nodes([target]))
-                .intersection([test_against_rev])
+                .intersection(test_against_revs)
         )
 
     def _resolve_revision_number(self, id_):
