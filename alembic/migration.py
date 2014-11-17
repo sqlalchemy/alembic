@@ -7,7 +7,7 @@ from sqlalchemy import MetaData, Table, Column, String, literal_column
 from sqlalchemy import create_engine
 from sqlalchemy.engine import url as sqla_url
 
-from .compat import callable, EncodedIO
+from .compat import callable, EncodedIO, string_types
 from . import ddl, util
 
 log = logging.getLogger(__name__)
@@ -503,7 +503,10 @@ class MigrationStep(MigrationStep):
 
     @property
     def should_merge_branches(self):
-        return len(self.from_revisions) > 1
+        return not self.branch_presence_changed and \
+            isinstance(self.from_revisions, (tuple, list)) and \
+            len(self.from_revisions) > 0 and \
+            isinstance(self.to_revisions, string_types)
 
     @property
     def should_unmerge_branches(self):
@@ -556,14 +559,16 @@ class MigrationStep(MigrationStep):
     @classmethod
     def upgrade_from_script(cls, script, down_revision_seen=False):
         return MigrationStep(
-            script.module.upgrade, script.down_revision, script.revision,
+            script.module.upgrade, script._down_revision_tuple,
+            script.revision,
             script.doc, True, down_revision_seen
         )
 
     @classmethod
     def downgrade_from_script(cls, script, down_revision_seen=False):
         return MigrationStep(
-            script.module.downgrade, script.revision, script.down_revision,
+            script.module.downgrade, script.revision,
+            script._down_revision_tuple,
             script.doc, False, down_revision_seen
         )
 

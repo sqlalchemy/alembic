@@ -258,6 +258,12 @@ def stamp(config, revision, sql=False, tag=None):
 
     script = ScriptDirectory.from_config(config)
 
+    starting_rev = None
+    if ":" in revision:
+        if not sql:
+            raise util.CommandError("Range revision not allowed")
+        starting_rev, revision = revision.split(':', 2)
+
     def do_stamp(rev, context):
         return script._stamp_revs(revision, rev)
 
@@ -267,6 +273,7 @@ def stamp(config, revision, sql=False, tag=None):
         fn=do_stamp,
         as_sql=sql,
         destination_rev=revision,
+        starting_rev=starting_rev,
         tag=tag
     ):
         script.run_env()

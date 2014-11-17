@@ -218,15 +218,47 @@ class ScriptDirectory(object):
 
         :return: a tuple of string revision numbers.
         """
-        return self.revision_map.heads
+        return list(self.revision_map.heads)
+
+    def get_base(self):
+        """Return the "base" revision as a string.
+
+        This is the revision number of the script that
+        has a ``down_revision`` of None.
+
+        If the script directory has multiple bases, an error is raised;
+        :meth:`.ScriptDirectory.get_bases` should be
+        preferred.
+
+        """
+        bases = self.get_bases()
+        if len(bases) > 1:
+            raise util.CommandError(
+                "The script directory has multiple bases. "
+                "Please use get_bases().")
+        elif bases:
+            return bases[0]
+        else:
+            return None
+
+    def get_bases(self):
+        """return all "base" revisions as strings.
+
+        This is the revision number of all scripts that
+        have a ``down_revision`` of None.
+
+        .. versionadded:: 0.7.0
+
+        """
+        return list(self.revision_map.bases)
 
     def _flag_branch_changes(self, revs):
         dupes = set([None])
         for rev in revs:
             dupe = False
-            if dupes.intersection(rev.down_revision or [None]):
+            if dupes.intersection(rev._down_revision_tuple or [None]):
                 dupe = True
-            dupes.update(rev.down_revision or [None])
+            dupes.update(rev._down_revision_tuple or [None])
             yield rev, dupe
 
     def _upgrade_revs(self, destination, current_rev):
@@ -260,6 +292,7 @@ class ScriptDirectory(object):
         with self._catch_revision_errors(
                 multiple_heads="Multiple heads are present; please specify a "
                 "single target revision"):
+
             heads = self.get_revisions(heads)
 
             # filter for lineage will resolve things like
@@ -287,9 +320,6 @@ class ScriptDirectory(object):
             # ancestor of the selected nodes
             descendants = set(self.revision_map._get_descendant_nodes([dest]))
             ancestors = set(self.revision_map._get_ancestor_nodes([dest]))
-
-            import pdb
-            pdb.set_trace()
 
             if filtered_heads.intersection(descendants):
                 # heads are above the target, so this is a downgrade.
@@ -443,7 +473,7 @@ class Script(revision.Revision):
         self.path = path
         super(Script, self).__init__(
             rev_id,
-            util.to_tuple(module.down_revision, default=()),
+            module.down_revision,
             branch_names=util.to_tuple(
                 getattr(module, 'branch_names', None), default=()))
 
@@ -526,7 +556,7 @@ class Script(revision.Revision):
         if not self.down_revision:
             return "<base>"
         else:
-            return ", ".join(self.down_revision)
+            return ", ".join(self._down_revision_tuple)
 
     @classmethod
     def _from_path(cls, scriptdir, path):

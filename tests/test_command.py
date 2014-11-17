@@ -136,11 +136,14 @@ class UpgradeDowngradeStampTest(TestBase):
         assert "DROP STEP 2" in buf.getvalue()
         assert "DROP STEP 1" not in buf.getvalue()
 
-    def test_stamp(self):
+    def test_sql_stamp_from_rev(self):
         with capture_context_buffer() as buf:
-            command.stamp(self.cfg, "head", sql=True)
-        assert "UPDATE alembic_version "\
-            "SET version_num='%s';" % self.c in buf.getvalue()
+            command.stamp(self.cfg, "%s:head" % self.a, sql=True)
+        assert (
+            "UPDATE alembic_version "
+            "SET version_num='%s' "
+            "WHERE alembic_version.version_num = '%s';" % (self.c, self.a)
+        ) in buf.getvalue()
 
 
 class LiveStampTest(TestBase):

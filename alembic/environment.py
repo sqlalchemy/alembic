@@ -148,7 +148,7 @@ class EnvironmentContext(object):
         .. seealso:: :meth:`.EnvironmentContext.get_head_revisions`
 
         """
-        return self.script._as_rev_number("head")
+        return self.script.as_revision_number("head")
 
     def get_head_revisions(self):
         """Return the hex identifier of the 'heads' script revision(s).
@@ -177,10 +177,10 @@ class EnvironmentContext(object):
 
         """
         if self._migration_context is not None:
-            return self.script._as_rev_number(
+            return self.script.as_revision_number(
                 self.get_context()._start_from_rev)
-        elif 'starting_rev' in self.context_opts:
-            return self.script._as_rev_number(
+        elif self.context_opts.get('starting_rev') is not None:
+            return self.script.as_revision_number(
                 self.context_opts['starting_rev'])
         else:
             raise util.CommandError(
@@ -200,7 +200,7 @@ class EnvironmentContext(object):
         has been configured.
 
         """
-        return self.script._as_rev_number(
+        return self.script.as_revision_number(
             self.context_opts['destination_rev'])
 
     def get_tag_argument(self):

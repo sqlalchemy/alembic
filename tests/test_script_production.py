@@ -72,7 +72,7 @@ class GeneralOrderedTests(TestBase):
                 '%s_this_is_the_next_rev.py' % def_), os.F_OK)
         eq_(script.revision, def_)
         eq_(script.down_revision, abc)
-        eq_(env._revision_map[abc].nextrev, set([def_]))
+        eq_(env.get_revision(abc).nextrev, set([def_]))
         assert script.module.down_revision == abc
         assert callable(script.module.upgrade)
         assert callable(script.module.downgrade)
@@ -84,8 +84,8 @@ class GeneralOrderedTests(TestBase):
         # new ScriptDirectory instance.
 
         env = staging_env(create=False)
-        abc_rev = env._revision_map[abc]
-        def_rev = env._revision_map[def_]
+        abc_rev = env.get_revision(abc)
+        def_rev = env.get_revision(def_)
         eq_(abc_rev.nextrev, set([def_]))
         eq_(abc_rev.revision, abc)
         eq_(def_rev.down_revision, abc)
@@ -97,7 +97,7 @@ class GeneralOrderedTests(TestBase):
         script = env.generate_revision(rid, "dont' refresh")
         is_(script, None)
         env2 = staging_env(create=False)
-        eq_(env2._as_rev_number("head"), rid)
+        eq_(env2.get_current_head(), rid)
 
     def _test_008_long_name(self):
         rid = util.rev_id()

@@ -89,7 +89,7 @@ class RevisionMap(object):
                 self.bases += (revision.revision, )
 
         for rev in map_.values():
-            for downrev in rev.down_revision:
+            for downrev in rev._down_revision_tuple:
                 if downrev not in map_:
                     util.warn("Revision %s referenced from %s is not present"
                               % (rev.down_revision, rev))
@@ -125,7 +125,7 @@ class RevisionMap(object):
 
                 parent.member_branches.update(revision.branch_names)
                 if parent.down_revision:
-                    parent = map_[parent.down_revision[0]]
+                    parent = map_[parent.down_revision]
                 else:
                     break
 
@@ -147,7 +147,7 @@ class RevisionMap(object):
         self._add_branches(revision, map_)
         if revision.is_base:
             self.bases += (revision.revision, )
-        for downrev in revision.down_revision:
+        for downrev in revision._down_revision_tuple:
             if downrev not in map_:
                 util.warn(
                     "Revision %s referenced from %s is not present"
@@ -158,7 +158,7 @@ class RevisionMap(object):
             self.heads = tuple(
                 head for head in self.heads
                 if head not in
-                set(revision.down_revision).union([revision.revision])
+                set(revision._down_revision_tuple).union([revision.revision])
             ) + (revision.revision,)
 
     def get_current_head(self, branch_name=None):
@@ -400,7 +400,7 @@ class RevisionMap(object):
             while todo:
                 rev = todo.pop()
                 todo.extend(
-                    map_[rev_id] for rev_id in rev.down_revision)
+                    map_[rev_id] for rev_id in rev._down_revision_tuple)
                 ancestors.add(rev)
             if ancestors.intersection(
                 tg for tg in targets if tg is not target
@@ -474,7 +474,7 @@ class RevisionMap(object):
             # do depth first for elements within the branches
             todo.extendleft([
                 self._revision_map[downrev]
-                for downrev in reversed(rev.down_revision)
+                for downrev in reversed(rev._down_revision_tuple)
                 if downrev not in branch_endpoints and downrev not in stop
                 and downrev in total_space])
 
@@ -482,7 +482,7 @@ class RevisionMap(object):
             # list for subsequent traversal
             todo.extend([
                 self._revision_map[downrev]
-                for downrev in rev.down_revision
+                for downrev in rev._down_revision_tuple
                 if downrev in branch_endpoints and downrev not in stop
                 and downrev in total_space
             ])
@@ -516,12 +516,16 @@ class Revision(object):
 
     def __init__(self, revision, down_revision, branch_names=None):
         self.revision = revision
-        self.down_revision = down_revision
+        self.down_revision = tuple_rev_as_scalar(down_revision)
         self.branch_names = branch_names
         self.member_branches = set()
 
     def add_nextrev(self, rev):
         self.nextrev = self.nextrev.union([rev])
+
+    @property
+    def _down_revision_tuple(self):
+        return util.to_tuple(self.down_revision, default=())
 
     @property
     def is_head(self):
@@ -538,7 +542,7 @@ class Revision(object):
     def is_base(self):
         """Return True if this :class:`.Revision` is a 'base' revision."""
 
-        return self.down_revision in (None, ())
+        return self.down_revision is None
 
     @property
     def is_branch_point(self):
@@ -556,14 +560,13 @@ class Revision(object):
     def is_merge_point(self):
         """Return True if this :class:`.Script` is a merge point."""
 
-        return len(self.down_revision) > 1
+        return len(self._down_revision_tuple) > 1
 
 
 def tuple_rev_as_scalar(rev):
-    if len(rev) == 1:
-        return rev[0]
-    elif not rev:
+    if not rev:
         return None
+    elif len(rev) == 1:
+        return rev[0]
     else:
         return rev
-
