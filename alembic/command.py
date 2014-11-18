@@ -161,6 +161,14 @@ def downgrade(config, revision, sql=False, tag=None):
         script.run_env()
 
 
+def show(config, rev):
+    """Show a single revision"""
+
+    script = ScriptDirectory.from_config(config)
+    sc = script.get_revision(rev)
+    config.print_stdout(sc.log_entry)
+
+
 def history(config, rev_range=None):
     """List changeset scripts in chronological order."""
 

@@ -168,6 +168,12 @@ class NamedBranchTest(DownIterateTest):
             ['a']
         )
 
+    def test_get_current_named_rev(self):
+        eq_(
+            self.map.get_revision("ebranch@head"),
+            self.map.get_revision("f")
+        )
+
     def test_get_base_revisions(self):
         eq_(
             self.map._get_base_revisions("base"),

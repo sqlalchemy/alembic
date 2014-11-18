@@ -141,7 +141,8 @@ class ScriptDirectory(object):
         .. versionadded:: 0.7.0
 
         """
-        return self.revision_map.get_revisions(id_)
+        with self._catch_revision_errors():
+            return self.revision_map.get_revisions(id_)
 
     def get_revision(self, id_):
         """Return the :class:`.Script` instance with the given rev id.
@@ -152,13 +153,14 @@ class ScriptDirectory(object):
 
         """
 
-        return self.revision_map.get_revision(id_)
+        with self._catch_revision_errors():
+            return self.revision_map.get_revision(id_)
 
     def as_revision_number(self, id_):
         """Convert a symbolic revision, i.e. 'head' or 'base', into
         an actual revision number."""
 
-        with self._catch_revision_errors(id_):
+        with self._catch_revision_errors():
             rev, branch_name = self.revision_map._resolve_revision_number(id_)
 
         if not rev:
@@ -524,12 +526,15 @@ class Script(revision.Revision):
             " (mergepoint)" if self.is_merge_point else "",
         )
         if self.is_merge_point:
-            entry += "Merge parents: %s\n" % (self._format_down_revision(), )
+            entry += "Merges: %s\n" % (self._format_down_revision(), )
         else:
             entry += "Parent: %s\n" % (self._format_down_revision(), )
 
+        if self.is_branch_point:
+            entry += "Branches into: %s\n" % (", ".join(self.nextrev))
+
         if self.member_branches:
-            entry += "Branches: %s\n" % (", ".join(self.member_branches), )
+            entry += "Branch names: %s\n" % (", ".join(self.member_branches), )
 
         entry += "Path: %s\n" % (self.path,)
 
