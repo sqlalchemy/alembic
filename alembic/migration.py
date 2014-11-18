@@ -419,6 +419,7 @@ class HeadMaintainer(object):
         self.heads = set(heads)
 
     def _insert_version(self, version):
+        assert version not in self.heads
         self.heads.add(version)
 
         self.context.impl._exec(
@@ -444,6 +445,7 @@ class HeadMaintainer(object):
                    self.context.version_table, ret.rowcount))
 
     def _update_version(self, from_, to_):
+        assert to_ not in self.heads
         self.heads.remove(from_)
         self.heads.add(to_)
 
@@ -462,24 +464,35 @@ class HeadMaintainer(object):
 
     def update_to_step(self, step):
         if step.should_delete_branch(self.heads):
-            self._delete_version(step.delete_version_num)
+            vers = step.delete_version_num
+            log.debug("branch delete %s", vers)
+            self._delete_version(vers)
         elif step.should_create_branch(self.heads):
-            self._insert_version(step.insert_version_num)
+            vers = step.insert_version_num
+            log.debug("new branch insert %s", vers)
+            self._insert_version(vers)
         elif step.should_merge_branches(self.heads):
             # delete revs, update from rev, update to rev
             (delete_revs, update_from_rev,
              update_to_rev) = step.merge_branch_idents
+            log.debug(
+                "merge, delete %s, update %s to %s",
+                delete_revs, update_from_rev, update_to_rev)
             for delrev in delete_revs:
                 self._delete_version(delrev)
             self._update_version(update_from_rev, update_to_rev)
         elif step.should_unmerge_branches(self.heads):
             (update_from_rev, update_to_rev,
              insert_revs) = step.unmerge_branch_idents
+            log.debug(
+                "unmerge, insert %s, update %s to %s",
+                insert_revs, update_from_rev, update_to_rev)
             for insrev in insert_revs:
                 self._insert_version(insrev)
             self._update_version(update_from_rev, update_to_rev)
         else:
             from_, to_ = step.update_version_num
+            log.debug("update %s to %s", from_, to_)
             self._update_version(from_, to_)
 
 
@@ -557,15 +570,32 @@ class RevisionStep(MigrationStep):
             return False
 
         downrevs = self.revision._down_revision_tuple
-
         if not downrevs:
             # is a base
             return True
         elif len(downrevs) == 1:
             downrev = self.revision_map.get_revision(downrevs[0])
-            # the downrev is a branchpoint, and other members of
-            # the branch are still in heads; so delete this branch
-            if len(downrev.nextrev.intersection(heads)) > 1:
+
+            if not downrev.is_branch_point:
+                return False
+
+            descendants = set(
+                r.revision for r in self.revision_map._get_descendant_nodes(
+                    self.revision_map.get_revisions(downrev.nextrev),
+                    check=False
+                )
+            )
+
+            # the downrev is a branchpoint, and other members or descendants
+            # of the branch are still in heads; so delete this branch
+            if len(descendants.intersection(heads).difference(
+                    [self.revision.revision])):
+
+            # TODO: this doesn't work; make sure tests are here to ensure
+            # this fails
+            #if len(downrev.nextrev.intersection(heads).difference(
+            #        [self.revision.revision])):
+
                 return True
             else:
                 return False
@@ -635,7 +665,7 @@ class RevisionStep(MigrationStep):
         return (
             # delete revs, update from rev, update to rev
             self.from_revisions[0:-1], self.from_revisions[-1],
-            self.to_revisions
+            self.to_revisions[0]
         )
 
     @property

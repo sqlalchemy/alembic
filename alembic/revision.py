@@ -212,7 +212,7 @@ class RevisionMap(object):
         full revision.
 
         """
-        if isinstance(id_, (list, tuple)):
+        if isinstance(id_, (list, tuple, set, frozenset)):
             return sum([self.get_revisions(id_elem) for id_elem in id_], ())
         else:
             resolved_id, branch_name = self._resolve_revision_number(id_)

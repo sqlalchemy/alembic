@@ -266,6 +266,8 @@ class ScriptDirectory(object):
                 "target from current head(s)", end=destination):
             revs = self.revision_map.iterate_revisions(
                 destination, current_rev, implicit_base=True)
+            revs = list(revs)
+            print ", ".join([r.revision for r in revs])
             return [
                 migration.MigrationStep.upgrade_from_script(
                     self.revision_map, script)
