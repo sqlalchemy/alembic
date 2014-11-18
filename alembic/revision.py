@@ -447,6 +447,16 @@ class RevisionMap(object):
             total_ancestors.update(ancestors)
         return total_ancestors
 
+    def _iterate_descendant_nodes(self, targets):
+        map_ = self._revision_map
+        for target in targets:
+            todo = collections.deque([target])
+            while todo:
+                rev = todo.pop()
+                todo.extend(
+                    map_[rev_id] for rev_id in rev.nextrev)
+                yield rev
+
     def _iterate_revisions(
             self, upper, lower, inclusive=True, implicit_base=False):
         """iterate revisions from upper to lower.
@@ -473,9 +483,7 @@ class RevisionMap(object):
             lowers = base_lowers
         elif implicit_base or not requested_lowers:
             base_lowers = set(self.get_revisions(self.bases))
-            base_lowers.difference_update(
-                self._get_ancestor_nodes(requested_lowers))
-            lowers = base_lowers.union(requested_lowers)
+            lowers = base_lowers #.union(requested_lowers)
         else:
             base_lowers = set()
             lowers = requested_lowers
@@ -488,6 +496,7 @@ class RevisionMap(object):
         ).intersection(
             rev.revision for rev in self._get_descendant_nodes(lowers)
         )
+
         if not total_space:
             raise RangeNotAncestorError(lower, upper)
 
@@ -501,6 +510,8 @@ class RevisionMap(object):
         todo = collections.deque(
             r for r in uppers if r.revision in total_space)
         stop = set(lowers)
+        if implicit_base:
+            stop.update(self._get_ancestor_nodes(requested_lowers))
         while todo:
             stop.update(
                 rev.revision for rev in todo

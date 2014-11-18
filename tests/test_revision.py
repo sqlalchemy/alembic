@@ -224,10 +224,9 @@ class NamedBranchTest(DownIterateTest):
         eq_(self.map.get_revision("abranch@some").revision, "somelongername")
 
     def test_branch_at_heads(self):
-        assert_raises_message(
-            RevisionError,
-            "Branch name given with 'heads' makes no sense",
-            self.map.get_revision, "abranch@heads"
+        eq_(
+            self.map.get_revision("abranch@heads").revision,
+            "c"
         )
 
     def test_branch_at_syntax(self):
@@ -398,6 +397,17 @@ class BranchTravellingTest(DownIterateTest):
                 Revision('e2b2', ('db2',)),
                 Revision("merge", ('e2b1', 'e2b2'))
             ]
+        )
+
+    def test_iterate_one_branch_both_to_merge(self):
+        # test that when we hit a merge point, implicit base will
+        # ensure all branches that supply the merge point are filled in
+        self._assert_iteration(
+            "merge", "db1",
+            ['merge',
+                'e2b1', 'db1',
+                'e2b2', 'db2', 'cb2', 'b2'],
+            implicit_base=True
         )
 
     def test_three_branches_end_in_single_branch(self):
