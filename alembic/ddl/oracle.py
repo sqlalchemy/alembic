@@ -8,7 +8,7 @@ from .base import alter_table, AddColumn, ColumnName, \
 
 class OracleImpl(DefaultImpl):
     __dialect__ = 'oracle'
-    transactional_ddl = True
+    transactional_ddl = False
     batch_separator = "/"
     command_terminator = ""
 
