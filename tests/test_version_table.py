@@ -7,21 +7,20 @@ from sqlalchemy.engine.reflection import Inspector
 from alembic import migration
 
 from alembic.util import CommandError
-from alembic import util
 
 version_table = Table('version_table', MetaData(),
                       Column('version_num', String(32), nullable=False))
 
 
 def _up(from_, to_, branch_presence_changed=False):
-    return migration.MigrationStep(
-        None, util.to_tuple(from_), to_, "", True, branch_presence_changed
+    return migration.StampStep(
+        from_, to_, True, branch_presence_changed
     )
 
 
 def _down(from_, to_, branch_presence_changed=False):
-    return migration.MigrationStep(
-        None, from_, util.to_tuple(to_), "", False, branch_presence_changed
+    return migration.StampStep(
+        from_, to_, False, branch_presence_changed
     )
 
 

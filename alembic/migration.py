@@ -692,7 +692,6 @@ class StampStep(MigrationStep):
     def __init__(self, from_, to_, is_upgrade, branch_move):
         self.from_ = util.to_tuple(from_, default=())
         self.to_ = util.to_tuple(to_, default=())
-        assert len(self.to_) <= 1
         self.is_upgrade = is_upgrade
         self.branch_move = branch_move
         self.migration_fn = self.stamp_revision
@@ -743,4 +742,4 @@ class StampStep(MigrationStep):
         return len(self.from_) > 1
 
     def should_unmerge_branches(self, heads):
-        return False
+        return len(self.to_) > 1
