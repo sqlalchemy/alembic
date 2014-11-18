@@ -4,11 +4,19 @@ from alembic import util
 from alembic.testing.fixtures import TestBase
 
 from alembic.migration import MigrationStep
-up_ = MigrationStep.upgrade_from_script
-down_ = MigrationStep.downgrade_from_script
 
 
-class RevisionPathTest(TestBase):
+class MigrationTest(TestBase):
+    def up_(self, rev):
+        return MigrationStep.upgrade_from_script(
+            self.env.revision_map, rev)
+
+    def down_(self, rev):
+        return MigrationStep.downgrade_from_script(
+            self.env.revision_map, rev)
+
+
+class RevisionPathTest(MigrationTest):
 
     @classmethod
     def setup_class(cls):
@@ -28,17 +36,17 @@ class RevisionPathTest(TestBase):
         eq_(
             self.env._upgrade_revs(e.revision, c.revision),
             [
-                up_(d),
-                up_(e)
+                self.up_(d),
+                self.up_(e)
             ]
         )
 
         eq_(
             self.env._upgrade_revs(c.revision, None),
             [
-                up_(a, True),
-                up_(b),
-                up_(c),
+                self.up_(a),
+                self.up_(b),
+                self.up_(c),
             ]
         )
 
@@ -47,21 +55,21 @@ class RevisionPathTest(TestBase):
         eq_(
             self.env._upgrade_revs("+2", a.revision),
             [
-                up_(b),
-                up_(c),
+                self.up_(b),
+                self.up_(c),
             ]
         )
 
         eq_(
             self.env._upgrade_revs("+1", a.revision),
             [
-                up_(b)
+                self.up_(b)
             ]
         )
 
         eq_(
             self.env._upgrade_revs("+3", b.revision),
-            [up_(c), up_(d), up_(e)]
+            [self.up_(c), self.up_(d), self.up_(e)]
         )
 
     def test_invalid_relative_upgrade_path(self):
@@ -83,24 +91,24 @@ class RevisionPathTest(TestBase):
 
         eq_(
             self.env._downgrade_revs(c.revision, e.revision),
-            [down_(e), down_(d)]
+            [self.down_(e), self.down_(d)]
         )
 
         eq_(
             self.env._downgrade_revs(None, c.revision),
-            [down_(c), down_(b), down_(a, True)]
+            [self.down_(c), self.down_(b), self.down_(a)]
         )
 
     def test_relative_downgrade_path(self):
         a, b, c, d, e = self.a, self.b, self.c, self.d, self.e
         eq_(
             self.env._downgrade_revs("-1", c.revision),
-            [down_(c)]
+            [self.down_(c)]
         )
 
         eq_(
             self.env._downgrade_revs("-3", e.revision),
-            [down_(e), down_(d), down_(c)]
+            [self.down_(e), self.down_(d), self.down_(c)]
         )
 
     def test_invalid_relative_downgrade_path(self):
@@ -137,7 +145,7 @@ class RevisionPathTest(TestBase):
         )
 
 
-class BranchedPathTest(TestBase):
+class BranchedPathTest(MigrationTest):
 
     @classmethod
     def setup_class(cls):
@@ -206,7 +214,7 @@ class BranchedPathTest(TestBase):
 
         eq_(
             self.env._upgrade_revs(d1.revision, b.revision),
-            [up_(c1), up_(d1)]
+            [self.up_(c1), self.up_(d1)]
         )
 
     def test_upgrade_multiple_branch(self):
@@ -217,7 +225,7 @@ class BranchedPathTest(TestBase):
 
         eq_(
             self.env._upgrade_revs((d1.revision, d2.revision), a.revision),
-            [up_(b), up_(c2), up_(d2), up_(c1, True), up_(d1)]
+            [self.up_(b), self.up_(c2), self.up_(d2), self.up_(c1), self.up_(d1)]
         )
 
     def test_downgrade_multiple_branch(self):
@@ -226,11 +234,11 @@ class BranchedPathTest(TestBase):
         )
         eq_(
             self.env._downgrade_revs(a.revision, (d1.revision, d2.revision)),
-            [down_(d1), down_(c1), down_(d2), down_(c2, True), down_(b)]
+            [self.down_(d1), self.down_(c1), self.down_(d2), self.down_(c2), self.down_(b)]
         )
 
 
-class ForestTest(TestBase):
+class ForestTest(MigrationTest):
     @classmethod
     def setup_class(cls):
         cls.env = env = staging_env()
@@ -251,11 +259,11 @@ class ForestTest(TestBase):
         a1, b1, a2, b2 = self.a1, self.b1, self.a2, self.b2
         eq_(
             self.env._upgrade_revs("heads", "base"),
-            [up_(a2, True), up_(b2), up_(a1, True), up_(b1), ]
+            [self.up_(a2), self.up_(b2), self.up_(a1), self.up_(b1), ]
         )
 
 
-class MergedPathTest(TestBase):
+class MergedPathTest(MigrationTest):
 
     @classmethod
     def setup_class(cls):
@@ -377,13 +385,13 @@ class MergedPathTest(TestBase):
         eq_(
             self.env._upgrade_revs(f.revision, b.revision),
             [
-                up_(c2),
-                up_(d2),
-                up_(c1, True),  # b->c1, create new branch
-                up_(d1),
-                up_(e),  # d1/d2 -> e, merge branches
+                self.up_(c2),
+                self.up_(d2),
+                self.up_(c1),  # b->c1, create new branch
+                self.up_(d1),
+                self.up_(e),  # d1/d2 -> e, merge branches
                          # (DELETE d2, UPDATE d1->e)
-                up_(f)
+                self.up_(f)
             ]
         )
 
@@ -396,12 +404,12 @@ class MergedPathTest(TestBase):
         eq_(
             self.env._downgrade_revs(b.revision, f.revision),
             [
-                down_(f),
-                down_(e),  # e -> d1 and d2, unmerge branches
+                self.down_(f),
+                self.down_(e),  # e -> d1 and d2, unmerge branches
                            # (UPDATE e->d1, INSERT d2)
-                down_(d1),
-                down_(c1),
-                down_(d2),
-                down_(c2, True),  # c2->b, delete branch
+                self.down_(d1),
+                self.down_(c1),
+                self.down_(d2),
+                self.down_(c2),  # c2->b, delete branch
             ]
         )

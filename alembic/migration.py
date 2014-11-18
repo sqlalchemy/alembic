@@ -536,6 +536,11 @@ class RevisionStep(MigrationStep):
         else:
             self.migration_fn = revision.module.downgrade
 
+    def __eq__(self, other):
+        return isinstance(other, RevisionStep) and \
+            other.revision == self.revision and \
+            self.is_upgrade == other.is_upgrade
+
     @property
     def doc(self):
         return self.revision.doc
@@ -587,7 +592,14 @@ class RevisionStep(MigrationStep):
             )
 
             # the downrev is a branchpoint, and other members or descendants
-            # of the branch are still in heads; so delete this branch
+            # of the branch are still in heads; so delete this branch.
+            # the reason this occurs is because traversal tries to stay
+            # fully on one branch down to the branchpoint before starting
+            # the other; so if we have a->b->(c1->d1->e1, c2->d2->e2),
+            # on a downgrade from the top we may go e1, d1, c1, now heads
+            # are at c1 and e2, with the current method, we don't know that
+            # "e2" is important unless we get all descendants of c1/c2
+
             if len(descendants.intersection(heads).difference(
                     [self.revision.revision])):
 
