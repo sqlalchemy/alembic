@@ -298,18 +298,13 @@ class ScriptDirectory(object):
             filtered_heads = self.revision_map.filter_for_lineage(
                 heads, revision)
 
-            def stamp_revision(**kw):
-                return None
-            null_migration = stamp_revision
-
             dest = self.get_revision(revision)
 
             if dest is None:
                 # dest is 'base'.  Return a "delete branch" migration
                 # for all applicable heads.
                 return [
-                    migration.MigrationStep(
-                        null_migration, head.revision, None, None, False, True)
+                    migration.StampStep(head.revision, None, False, True)
                     for head in filtered_heads
                 ]
             elif dest in filtered_heads:
@@ -326,23 +321,20 @@ class ScriptDirectory(object):
                 # we can treat them as a "merge", single step.
                 assert not ancestors.intersection(filtered_heads)
                 todo_heads = [head.revision for head in filtered_heads]
-                step = migration.MigrationStep(
-                    null_migration, todo_heads,
-                    dest.revision, None, False, False)
+                step = migration.StampStep(
+                    todo_heads, dest.revision, False, False)
                 return [step]
             elif ancestors.intersection(filtered_heads):
                 # heads are below the target, so this is an upgrade.
                 # we can treat them as a "merge", single step.
                 todo_heads = [head.revision for head in filtered_heads]
-                step = migration.MigrationStep(
-                    null_migration, todo_heads,
-                    dest.revision, None, True, False)
+                step = migration.StampStep(
+                    todo_heads, dest.revision, True, False)
                 return [step]
             else:
                 # destination is in a branch not represented,
                 # treat it as new branch
-                step = migration.MigrationStep(
-                    null_migration, [None], dest.revision, None, True, True)
+                step = migration.StampStep([None], dest.revision, True, True)
                 return [step]
 
     def run_env(self):

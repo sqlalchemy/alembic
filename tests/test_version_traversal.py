@@ -243,9 +243,10 @@ class BranchedPathTest(MigrationTest):
             self.a, self.b, self.c1, self.d1, self.c2, self.d2
         )
 
-        eq_(
-            self.env._upgrade_revs(d1.revision, b.revision),
-            [self.up_(c1), self.up_(d1)]
+        self._assert_upgrade(
+            d1.revision, b.revision,
+            [self.up_(c1), self.up_(d1)],
+            set([d1.revision])
         )
 
     def test_upgrade_multiple_branch(self):
@@ -254,10 +255,11 @@ class BranchedPathTest(MigrationTest):
             self.a, self.b, self.c1, self.d1, self.c2, self.d2
         )
 
-        eq_(
-            self.env._upgrade_revs((d1.revision, d2.revision), a.revision),
+        self._assert_upgrade(
+            (d1.revision, d2.revision), a.revision,
             [self.up_(b), self.up_(c2), self.up_(d2),
-             self.up_(c1), self.up_(d1)]
+             self.up_(c1), self.up_(d1)],
+            set([d1.revision, d2.revision])
         )
 
     def test_downgrade_multiple_branch(self):
@@ -267,14 +269,9 @@ class BranchedPathTest(MigrationTest):
         self._assert_downgrade(
             a.revision, (d1.revision, d2.revision),
             [self.down_(d1), self.down_(c1), self.down_(d2),
-             self.down_(c2), self.down_(b)]
+             self.down_(c2), self.down_(b)],
+            set([a.revision])
         )
-        eq_(
-            self.env._downgrade_revs(a.revision, (d1.revision, d2.revision)),
-            [self.down_(d1), self.down_(c1), self.down_(d2),
-             self.down_(c2), self.down_(b)]
-        )
-
 
 
 class ForestTest(MigrationTest):

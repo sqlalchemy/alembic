@@ -1,13 +1,12 @@
 import logging
 import sys
 from contextlib import contextmanager
-from collections import namedtuple
 
 from sqlalchemy import MetaData, Table, Column, String, literal_column
 from sqlalchemy import create_engine
 from sqlalchemy.engine import url as sqla_url
 
-from .compat import callable, EncodedIO, string_types
+from .compat import callable, EncodedIO
 from . import ddl, util
 from .revision import tuple_rev_as_scalar
 
@@ -510,6 +509,26 @@ class MigrationStep(object):
         return RevisionStep(revision_map, script, False)
 
     @property
+    def is_downgrade(self):
+        return not self.is_upgrade
+
+    @property
+    def merge_branch_idents(self):
+        return (
+            # delete revs, update from rev, update to rev
+            list(self.from_revisions[0:-1]), self.from_revisions[-1],
+            self.to_revisions[0]
+        )
+
+    @property
+    def unmerge_branch_idents(self):
+        return (
+            # update from rev, update to rev, insert revs
+            self.from_revisions[0], self.to_revisions[-1],
+            list(self.to_revisions[0:-1])
+        )
+
+    @property
     def short_log(self):
         return "%s %s -> %s" % (
             self.name, tuple_rev_as_scalar(self.from_revisions),
@@ -558,10 +577,6 @@ class RevisionStep(MigrationStep):
             return (self.revision.revision, )
         else:
             return self.revision._down_revision_tuple
-
-    @property
-    def is_downgrade(self):
-        return not self.is_upgrade
 
     @property
     def _has_scalar_down_revision(self):
@@ -672,22 +687,60 @@ class RevisionStep(MigrationStep):
     def insert_version_num(self):
         return self.revision.revision
 
-    @property
-    def merge_branch_idents(self):
-        return (
-            # delete revs, update from rev, update to rev
-            self.from_revisions[0:-1], self.from_revisions[-1],
-            self.to_revisions[0]
-        )
-
-    @property
-    def unmerge_branch_idents(self):
-        return (
-            # update from rev, update to rev, insert revs
-            self.from_revisions[0], self.to_revisions[-1],
-            self.to_revisions[0:-1]
-        )
-
 
 class StampStep(MigrationStep):
-    pass
+    def __init__(self, from_, to_, is_upgrade, branch_move):
+        self.from_ = util.to_tuple(from_, default=())
+        self.to_ = util.to_tuple(to_, default=())
+        assert len(self.to_) <= 1
+        self.is_upgrade = is_upgrade
+        self.branch_move = branch_move
+        self.migration_fn = self.stamp_revision
+
+    doc = None
+
+    def stamp_revision(self, **kw):
+        return None
+
+    def __eq__(self, other):
+        return isinstance(other, StampStep) and \
+            other.from_revisions == self.revisions and \
+            other.to_revisions == self.to_revisions and \
+            other.branch_move == self.branch_move and \
+            self.is_upgrade == other.is_upgrade
+
+    @property
+    def from_revisions(self):
+        return self.from_
+
+    @property
+    def to_revisions(self):
+        return self.to_
+
+    @property
+    def delete_version_num(self):
+        assert len(self.from_) == 1
+        return self.from_[0]
+
+    @property
+    def insert_version_num(self):
+        assert len(self.to_) == 1
+        return self.to_[0]
+
+    @property
+    def update_version_num(self):
+        assert len(self.from_) == 1
+        assert len(self.to_) == 1
+        return self.from_[0], self.to_[0]
+
+    def should_delete_branch(self, heads):
+        return self.is_downgrade and self.branch_move
+
+    def should_create_branch(self, heads):
+        return self.is_upgrade and self.branch_move
+
+    def should_merge_branches(self, heads):
+        return len(self.from_) > 1
+
+    def should_unmerge_branches(self, heads):
+        return False

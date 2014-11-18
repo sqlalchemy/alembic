@@ -121,7 +121,6 @@ def merge(config, revisiona, revisionb, message=None, branch_name=None):
         **template_args)
 
 
-
 def upgrade(config, revision, sql=False, tag=None):
     """Upgrade to a later version."""
 
