@@ -5,7 +5,7 @@ from . import util
 from sqlalchemy import util as sqlautil
 from . import compat
 
-_relative_destination = re.compile(r'(?:(.+?)@)?(?:\+|-)(\d+)')
+_relative_destination = re.compile(r'(?:(.+?)@)?((?:\+|-)\d+)')
 
 
 class RevisionError(Exception):

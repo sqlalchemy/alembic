@@ -260,15 +260,6 @@ class ScriptDirectory(object):
         """
         return list(self.revision_map.bases)
 
-    def _flag_branch_changes(self, revs):
-        dupes = set([None])
-        for rev in revs:
-            dupe = False
-            if dupes.intersection(rev._down_revision_tuple or [None]):
-                dupe = True
-            dupes.update(rev._down_revision_tuple or [None])
-            yield rev, dupe
-
     def _upgrade_revs(self, destination, current_rev):
         with self._catch_revision_errors(
                 ancestor="Destination %(end)s is not a valid upgrade "
@@ -277,10 +268,8 @@ class ScriptDirectory(object):
                 destination, current_rev, implicit_base=True)
             return [
                 migration.MigrationStep.upgrade_from_script(
-                    script, new_branch
-                )
-                for script, new_branch
-                in self._flag_branch_changes(reversed(list(revs)))
+                    self.revision_map, script)
+                for script in reversed(list(revs))
             ]
 
     def _downgrade_revs(self, destination, current_rev):
@@ -291,9 +280,8 @@ class ScriptDirectory(object):
                 current_rev, destination)
             return [
                 migration.MigrationStep.downgrade_from_script(
-                    script, delete_branch
-                )
-                for script, delete_branch in self._flag_branch_changes(revs)
+                    self.revision_map, script)
+                for script in revs
             ]
 
     def _stamp_revs(self, revision, heads):

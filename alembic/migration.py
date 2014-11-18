@@ -461,18 +461,18 @@ class HeadMaintainer(object):
                 % (from_, to_, self.context.version_table, ret.rowcount))
 
     def update_to_step(self, step):
-        if step.should_delete_branch:
+        if step.should_delete_branch(self.heads):
             self._delete_version(step.delete_version_num)
-        elif step.should_create_branch:
+        elif step.should_create_branch(self.heads):
             self._insert_version(step.insert_version_num)
-        elif step.should_merge_branches:
+        elif step.should_merge_branches(self.heads):
             # delete revs, update from rev, update to rev
             (delete_revs, update_from_rev,
              update_to_rev) = step.merge_branch_idents
             for delrev in delete_revs:
                 self._delete_version(delrev)
             self._update_version(update_from_rev, update_to_rev)
-        elif step.should_unmerge_branches:
+        elif step.should_unmerge_branches(self.heads):
             (update_from_rev, update_to_rev,
              insert_revs) = step.unmerge_branch_idents
             for insrev in insert_revs:
@@ -482,96 +482,19 @@ class HeadMaintainer(object):
             from_, to_ = step.update_version_num
             self._update_version(from_, to_)
 
-MigrationStep = namedtuple(
-    "MigrationStep",
-    ["migration_fn", "from_revisions", "to_revisions",
-     "doc", "is_upgrade", "branch_presence_changed"]
-)
 
-
-class MigrationStep(MigrationStep):
+class MigrationStep(object):
     @property
     def name(self):
         return self.migration_fn.__name__
 
-    @property
-    def should_create_branch(self):
-        return self.is_upgrade and self.branch_presence_changed
-
-    @property
-    def should_delete_branch(self):
-        return self.is_downgrade and self.branch_presence_changed
-
-    @property
-    def should_merge_branches(self):
-        return not self.branch_presence_changed and \
-            isinstance(self.from_revisions, (tuple, list)) and \
-            len(self.from_revisions) > 0 and \
-            isinstance(self.to_revisions, string_types)
-
-    @property
-    def should_unmerge_branches(self):
-        return self.is_downgrade and len(self.to_revisions) > 1
-
-    @property
-    def is_downgrade(self):
-        return not self.is_upgrade
-
-    @property
-    def delete_version_num(self):
-        assert self.should_delete_branch
-        return self.from_revisions
-
-    @property
-    def insert_version_num(self):
-        assert self.should_create_branch
-        return self.to_revisions
-
-    @property
-    def update_version_num(self):
-        assert not self.should_create_branch and \
-            not self.should_delete_branch
-
-        if self.is_upgrade:
-            assert len(self.from_revisions) == 1
-            return self.from_revisions[0], self.to_revisions
-        else:
-            assert len(self.to_revisions) == 1
-            return self.from_revisions, self.to_revisions[0]
-
-    @property
-    def merge_branch_idents(self):
-        assert self.should_merge_branches
-        return (
-            # delete revs, update from rev, update to rev
-            self.from_revisions[0:-1], self.from_revisions[-1],
-            self.to_revisions
-        )
-
-    @property
-    def unmerge_branch_idents(self):
-        assert self.should_unmerge_branches
-        return (
-            # update from rev, update to rev, insert revs
-            self.from_revisions, self.to_revisions[-1],
-            self.to_revisions[0:-1]
-        )
+    @classmethod
+    def upgrade_from_script(cls, revision_map, script):
+        return RevisionStep(revision_map, script, True)
 
     @classmethod
-    def upgrade_from_script(cls, script, down_revision_seen=False):
-        return MigrationStep(
-            script.module.upgrade, script._down_revision_tuple,
-            script.revision,
-            script.doc, True, down_revision_seen
-        )
-
-    @classmethod
-    def downgrade_from_script(cls, script, down_revision_seen=False):
-        return MigrationStep(
-            script.module.downgrade, script.revision,
-            script._down_revision_tuple,
-            script.doc, False, down_revision_seen
-        )
+    def downgrade_from_script(cls, revision_map, script):
+        return RevisionStep(revision_map, script, False)
 
     @property
     def short_log(self):
@@ -588,3 +511,141 @@ class MigrationStep(MigrationStep):
             )
         else:
             return self.short_log
+
+
+class RevisionStep(MigrationStep):
+    def __init__(self, revision_map, revision, is_upgrade):
+        self.revision_map = revision_map
+        self.revision = revision
+        self.is_upgrade = is_upgrade
+        if is_upgrade:
+            self.migration_fn = revision.module.upgrade
+        else:
+            self.migration_fn = revision.module.downgrade
+
+    @property
+    def doc(self):
+        return self.revision.doc
+
+    @property
+    def from_revisions(self):
+        if self.is_upgrade:
+            return self.revision._down_revision_tuple
+        else:
+            return (self.revision.revision, )
+
+    @property
+    def to_revisions(self):
+        if self.is_upgrade:
+            return (self.revision.revision, )
+        else:
+            return self.revision._down_revision_tuple
+
+    @property
+    def is_downgrade(self):
+        return not self.is_upgrade
+
+    @property
+    def _has_scalar_down_revision(self):
+        return len(self.revision._down_revision_tuple) == 1
+
+    def should_delete_branch(self, heads):
+        if not self.is_downgrade:
+            return False
+
+        if self.revision.revision not in heads:
+            return False
+
+        downrevs = self.revision._down_revision_tuple
+
+        if not downrevs:
+            # is a base
+            return True
+        elif len(downrevs) == 1:
+            downrev = self.revision_map.get_revision(downrevs[0])
+            # the downrev is a branchpoint, and other members of
+            # the branch are still in heads; so delete this branch
+            if len(downrev.nextrev.intersection(heads)) > 1:
+                return True
+            else:
+                return False
+        else:
+            # is a merge point
+            return False
+
+    def should_create_branch(self, heads):
+        if not self.is_upgrade:
+            return False
+
+        downrevs = self.revision._down_revision_tuple
+
+        if not downrevs:
+            # is a base
+            return True
+        elif len(downrevs) == 1:
+            if downrevs[0] in heads:
+                return False
+            else:
+                return True
+        else:
+            # is a merge point
+            return False
+
+    def should_merge_branches(self, heads):
+        if not self.is_upgrade:
+            return False
+
+        downrevs = self.revision._down_revision_tuple
+
+        if len(downrevs) > 1 and \
+                len(heads.intersection(downrevs)) > 1:
+            return True
+
+        return False
+
+    def should_unmerge_branches(self, heads):
+        if not self.is_downgrade:
+            return False
+
+        downrevs = self.revision._down_revision_tuple
+
+        if self.revision.revision in heads and len(downrevs) > 1:
+            return True
+
+        return False
+
+    @property
+    def update_version_num(self):
+        assert self._has_scalar_down_revision
+        if self.is_upgrade:
+            return self.revision.down_revision, self.revision.revision
+        else:
+            return self.revision.revision, self.revision.down_revision
+
+    @property
+    def delete_version_num(self):
+        return self.revision.revision
+
+    @property
+    def insert_version_num(self):
+        return self.revision.revision
+
+    @property
+    def merge_branch_idents(self):
+        return (
+            # delete revs, update from rev, update to rev
+            self.from_revisions[0:-1], self.from_revisions[-1],
+            self.to_revisions
+        )
+
+    @property
+    def unmerge_branch_idents(self):
+        return (
+            # update from rev, update to rev, insert revs
+            self.from_revisions[0], self.to_revisions[-1],
+            self.to_revisions[0:-1]
+        )
+
+
+class StampStep(MigrationStep):
+    pass

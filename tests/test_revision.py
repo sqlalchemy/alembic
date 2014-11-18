@@ -115,6 +115,12 @@ class DiamondTest(DownIterateTest):
             ["d", "c", "b1", "b2", "a"]
         )
 
+    def test_iterate_on_diamond_to_head(self):
+        self._assert_iteration(
+            "head", "c",
+            []
+        )
+
 
 class NamedBranchTest(DownIterateTest):
     def test_dupe_branch_collection(self):
