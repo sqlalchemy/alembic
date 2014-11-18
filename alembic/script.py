@@ -418,6 +418,9 @@ class ScriptDirectory(object):
         )):
             heads = self.revision_map.get_revisions(head)
 
+        if len(set(heads)) != len(heads):
+            raise util.CommandError("Duplicate head revisions specified")
+
         create_date = datetime.datetime.now()
         path = self._rev_path(revid, message, create_date)
 

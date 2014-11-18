@@ -107,6 +107,21 @@ def revision(
         **template_args)
 
 
+def merge(config, revisiona, revisionb, message=None, branch_name=None):
+    """Merge two revisions together.  Creates a new migration file."""
+
+    script = ScriptDirectory.from_config(config)
+    template_args = {
+        'config': config  # Let templates use config for
+                          # e.g. multiple databases
+    }
+    return script.generate_revision(
+        util.rev_id(), message, refresh=True,
+        head=[revisiona, revisionb], branch_names=branch_name,
+        **template_args)
+
+
+
 def upgrade(config, revision, sql=False, tag=None):
     """Upgrade to a later version."""
 
@@ -165,8 +180,21 @@ def show(config, rev):
     """Show a single revision"""
 
     script = ScriptDirectory.from_config(config)
-    sc = script.get_revision(rev)
-    config.print_stdout(sc.log_entry)
+
+    if rev == "current":
+        def show_current(rev, context):
+            for sc in script.get_revisions(rev):
+                config.print_stdout(sc.log_entry)
+            return []
+        with EnvironmentContext(
+            config,
+            script,
+            fn=show_current
+        ):
+            script.run_env()
+    else:
+        sc = script.get_revision(rev)
+        config.print_stdout(sc.log_entry)
 
 
 def history(config, rev_range=None):
@@ -221,12 +249,12 @@ def heads(config, verbose=False):
         config.print_stdout(rev.cmd_format(verbose, short_head_status=False))
 
 
-def branches(config):
+def branches(config, verbose=False):
     """Show current un-spliced branch points"""
     script = ScriptDirectory.from_config(config)
     for sc in script.walk_revisions():
         if sc.is_branch_point:
-            config.print_stdout(sc)
+            config.print_stdout(sc.cmd_format(verbose))
             for rev in sc.nextrev:
                 config.print_stdout("%s -> %s",
                                     " " * len(str(sc.down_revision)),
@@ -287,10 +315,3 @@ def stamp(config, revision, sql=False, tag=None):
         script.run_env()
 
 
-def splice(config, parent, child):
-    """'splice' two branches, creating a new revision file.
-
-    this command isn't implemented right now.
-
-    """
-    raise NotImplementedError()
