@@ -105,12 +105,18 @@ class ScriptDirectory(object):
                 )
             ancestor = ancestor % {"start": start, "end": end}
             compat.raise_from_cause(util.CommandError(ancestor))
-        except revision.MultipleHeads:
+        except revision.MultipleHeads as mh:
             if not multiple_heads:
                 multiple_heads = (
-                    "Multiple head revisions are present; please "
-                    "specify a specific target revision or specify 'heads' to "
-                    "refer to all branch heads at once")
+                    "Multiple head revisions are present for given "
+                    "argument '%(head_arg)s'; please "
+                    "specify a specific target revision or "
+                    "specify '[<branchname>@]heads' to "
+                    "refer to multiple branch heads")
+            multiple_heads = multiple_heads % {
+                "head_arg": mh.argument,
+                "heads": ", ".join(mh.heads)
+            }
             compat.raise_from_cause(util.CommandError(multiple_heads))
         except revision.RevisionError as err:
             compat.raise_from_cause(util.CommandError(err.message))

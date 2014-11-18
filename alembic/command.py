@@ -177,7 +177,7 @@ def downgrade(config, revision, sql=False, tag=None):
 
 
 def show(config, rev):
-    """Show a single revision"""
+    """Show the revision(s) denoted by the given symbol."""
 
     script = ScriptDirectory.from_config(config)
 
@@ -193,8 +193,8 @@ def show(config, rev):
         ):
             script.run_env()
     else:
-        sc = script.get_revision(rev)
-        config.print_stdout(sc.log_entry)
+        for sc in script.get_revisions(rev):
+            config.print_stdout(sc.log_entry)
 
 
 def history(config, rev_range=None):

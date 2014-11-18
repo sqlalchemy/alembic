@@ -5,7 +5,7 @@ from . import util
 from sqlalchemy import util as sqlautil
 from . import compat
 
-_relative_destination = re.compile(r'(?:\+|-)\d+')
+_relative_destination = re.compile(r'(?:(.+?)@)?(?:\+|-)(\d+)')
 
 
 class RevisionError(Exception):
@@ -23,7 +23,13 @@ class RangeNotAncestorError(RevisionError):
 
 
 class MultipleHeads(RevisionError):
-    pass
+    def __init__(self, heads, argument):
+        self.heads = heads
+        self.argument = argument
+        super(MultipleHeads, self).__init__(
+            "Multiple heads are present for given argument '%s'; "
+            "%s" % (argument, ", ".join(heads))
+        )
 
 
 class ResolutionError(RevisionError):
@@ -180,7 +186,9 @@ class RevisionMap(object):
         if branch_name:
             current_heads = self.filter_for_lineage(current_heads, branch_name)
         if len(current_heads) > 1:
-            raise MultipleHeads("Multiple heads are present")
+            raise MultipleHeads(
+                current_heads,
+                "%s@head" % branch_name if branch_name else "head")
 
         if current_heads:
             return current_heads[0]
@@ -328,13 +336,12 @@ class RevisionMap(object):
         self._revision_map
         if id_ == 'heads':
             if branch_name:
-                raise RevisionError(
-                    "Branch name given with 'heads' makes no sense")
-            return self.heads, branch_name
+                return self.filter_for_lineage(
+                    self.heads, branch_name), branch_name
+            else:
+                return self.heads, branch_name
         elif id_ == 'head':
-            return (
-                self.get_current_head(branch_name),
-            ), branch_name
+            return (self.get_current_head(branch_name), ), branch_name
         elif id_ == 'base' or id_ is None:
             return (), branch_name
         else:
@@ -355,10 +362,17 @@ class RevisionMap(object):
         """
         if isinstance(upper, compat.string_types) and \
                 _relative_destination.match(upper):
-            relative = int(upper)
+
+            match = _relative_destination.match(upper)
+            relative = int(match.group(2))
+            branch_name = match.group(1)
+            if branch_name:
+                from_ = "%s@head" % branch_name
+            else:
+                from_ = "head"
             revs = list(
                 self._iterate_revisions(
-                    "heads", lower,
+                    from_, lower,
                     inclusive=False, implicit_base=implicit_base))
             revs = revs[-relative:]
             if len(revs) != abs(relative):
@@ -368,10 +382,18 @@ class RevisionMap(object):
             return iter(revs)
         elif isinstance(lower, compat.string_types) and \
                 _relative_destination.match(lower):
-            relative = int(lower)
+            match = _relative_destination.match(lower)
+            relative = int(match.group(2))
+            branch_name = match.group(1)
+
+            if branch_name:
+                to_ = "%s@base" % branch_name
+            else:
+                to_ = "base"
+
             revs = list(
                 self._iterate_revisions(
-                    upper, "base",
+                    upper, to_,
                     inclusive=False, implicit_base=implicit_base))
             revs = revs[0:-relative]
             if len(revs) != abs(relative):
