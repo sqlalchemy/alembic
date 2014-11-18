@@ -405,7 +405,7 @@ class RevisionMap(object):
             return self._iterate_revisions(
                 upper, lower, inclusive=False, implicit_base=implicit_base)
 
-    def _get_descendant_nodes(self, targets, map_=None):
+    def _get_descendant_nodes(self, targets, map_=None, check=True):
         if map_ is None:
             map_ = self._revision_map
         total_descendants = set()
@@ -417,7 +417,7 @@ class RevisionMap(object):
                 todo.extend(
                     map_[rev_id] for rev_id in rev.nextrev)
                 descendants.add(rev)
-            if descendants.intersection(
+            if check and descendants.intersection(
                 tg for tg in targets if tg is not target
             ):
                 raise RevisionError(
@@ -426,7 +426,7 @@ class RevisionMap(object):
             total_descendants.update(descendants)
         return total_descendants
 
-    def _get_ancestor_nodes(self, targets, map_=None):
+    def _get_ancestor_nodes(self, targets, map_=None, check=True):
         if map_ is None:
             map_ = self._revision_map
         total_ancestors = set()
@@ -438,7 +438,7 @@ class RevisionMap(object):
                 todo.extend(
                     map_[rev_id] for rev_id in rev._down_revision_tuple)
                 ancestors.add(rev)
-            if ancestors.intersection(
+            if check and ancestors.intersection(
                 tg for tg in targets if tg is not target
             ):
                 raise RevisionError(
@@ -446,16 +446,6 @@ class RevisionMap(object):
                     "other requested revisions" % target.revision)
             total_ancestors.update(ancestors)
         return total_ancestors
-
-    def _iterate_descendant_nodes(self, targets):
-        map_ = self._revision_map
-        for target in targets:
-            todo = collections.deque([target])
-            while todo:
-                rev = todo.pop()
-                todo.extend(
-                    map_[rev_id] for rev_id in rev.nextrev)
-                yield rev
 
     def _iterate_revisions(
             self, upper, lower, inclusive=True, implicit_base=False):
@@ -477,23 +467,42 @@ class RevisionMap(object):
         limit_to_lower_branch = \
             isinstance(lower, compat.string_types) and '@' in lower
 
+        uppers = self.get_revisions(upper)
+        upper_ancestors = set(self._get_ancestor_nodes(uppers))
+
         if limit_to_lower_branch:
             base_lowers = self.get_revisions(
                 self._get_base_revisions(lower))
             lowers = base_lowers
         elif implicit_base or not requested_lowers:
-            base_lowers = set(self.get_revisions(self.bases))
-            lowers = base_lowers #.union(requested_lowers)
+
+            if implicit_base and requested_lowers:
+                lower_ancestors = set(
+                    self._get_ancestor_nodes(requested_lowers)
+                )
+                lower_descendants = set(
+                    self._get_descendant_nodes(requested_lowers)
+                )
+                base_lowers = set()
+                candidate_lowers = upper_ancestors.\
+                    difference(lower_ancestors).\
+                    difference(lower_descendants)
+                for rev in candidate_lowers:
+                    for downrev in rev._down_revision_tuple:
+                        if self._revision_map[downrev] in candidate_lowers:
+                            break
+                    else:
+                        base_lowers.add(rev)
+            else:
+                base_lowers = set(self.get_revisions(self.bases))
+
+            lowers = base_lowers.union(requested_lowers)
         else:
             base_lowers = set()
             lowers = requested_lowers
 
-        uppers = self.get_revisions(upper)
-
         total_space = set(
-            rev.revision for rev
-            in self._get_ancestor_nodes(uppers)
-        ).intersection(
+            rev.revision for rev in upper_ancestors).intersection(
             rev.revision for rev in self._get_descendant_nodes(lowers)
         )
 
