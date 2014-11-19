@@ -250,8 +250,7 @@ class RevisionMap(object):
 
         resolved_id, branch_label = self._resolve_revision_number(id_)
         if len(resolved_id) > 1:
-            raise MultipleHeads(
-                "'%s' refers to multiple revisions" % (id_, ))
+            raise MultipleHeads(resolved_id, id_)
         elif resolved_id:
             resolved_id = resolved_id[0]
 

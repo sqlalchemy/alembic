@@ -67,6 +67,21 @@ class APITest(TestBase):
             map_.get_revision, 'head'
         )
 
+    def test_get_revision_heads_multiple(self):
+        map_ = RevisionMap(
+            lambda: [
+                Revision('a', ()),
+                Revision('b', ('a',)),
+                Revision('c1', ('b',)),
+                Revision('c2', ('b',)),
+            ]
+        )
+        assert_raises_message(
+            MultipleHeads,
+            "Multiple heads are present",
+            map_.get_revision, "heads"
+        )
+
     def test_get_revision_base_multiple(self):
         map_ = RevisionMap(
             lambda: [
@@ -128,7 +143,8 @@ class LabeledBranchTest(DownIterateTest):
         ]
         assert_raises_message(
             RevisionError,
-            "Branch name 'xy1' in revision e already used by revision c",
+            r"Branch name 'xy1' in revision (?:e|c) already "
+            "used by revision (?:e|c)",
             getattr, RevisionMap(fn), "_revision_map"
         )
 

@@ -5,13 +5,14 @@ import warnings
 import re
 import inspect
 import uuid
+import collections
 
 from mako.template import Template
 from sqlalchemy.engine import url
 from sqlalchemy import __version__
 
 from .compat import callable, exec_, load_module_py, load_module_pyc, \
-    binary_type
+    binary_type, string_types
 
 
 class CommandError(Exception):
@@ -285,11 +286,23 @@ def rev_id():
 def to_tuple(x, default=None):
     if x is None:
         return default
-    if not isinstance(x, (list, tuple)):
-        return (x,)
-    else:
+    elif isinstance(x, string_types):
+        return (x, )
+    elif isinstance(x, collections.Iterable):
         return tuple(x)
+    else:
+        raise ValueError("Don't know how to turn %r into a tuple" % x)
 
+
+def format_as_comma(value):
+    if value is None:
+        return ""
+    elif isinstance(value, string_types):
+        return value
+    elif isinstance(value, collections.Iterable):
+        return ", ".join(value)
+    else:
+        raise ValueError("Don't know how to comma-format %r" % value)
 
 
 class memoized_property(object):

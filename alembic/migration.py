@@ -532,16 +532,16 @@ class MigrationStep(object):
     def short_log(self):
         return "%s %s -> %s" % (
             self.name,
-            ", ".join(self.from_revisions),
-            ", ".join(self.to_revisions)
+            util.format_as_comma(self.from_revisions),
+            util.format_as_comma(self.to_revisions)
         )
 
     def __str__(self):
         if self.doc:
             return "%s %s -> %s, %s" % (
                 self.name,
-                ", ".join(self.from_revisions),
-                ", ".join(self.to_revisions),
+                util.format_as_comma(self.from_revisions),
+                util.format_as_comma(self.to_revisions),
                 self.doc
             )
         else:

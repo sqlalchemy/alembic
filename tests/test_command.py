@@ -5,7 +5,7 @@ from alembic.testing.fixtures import TestBase, capture_context_buffer
 from alembic.testing.env import staging_env, _sqlite_testing_config, \
     three_rev_fixture, clear_staging_env, _no_sql_testing_config, \
     _sqlite_file_db, write_script, env_file_fixture
-from alembic.testing import eq_
+from alembic.testing import eq_, assert_raises_message
 from alembic import util
 
 
@@ -86,13 +86,11 @@ class HistoryTest(TestBase):
 
 
 class RevisionTest(TestBase):
-    @classmethod
-    def setup_class(cls):
-        cls.env = staging_env()
-        cls.cfg = _sqlite_testing_config()
+    def setUp(self):
+        self.env = staging_env()
+        self.cfg = _sqlite_testing_config()
 
-    @classmethod
-    def teardown_class(cls):
+    def tearDown(self):
         clear_staging_env()
 
     def _env_fixture(self):
@@ -117,9 +115,117 @@ finally:
 
 """)
 
+    def test_create_rev_plain_db_not_up_to_date(self):
+        self._env_fixture()
+        command.revision(self.cfg)
+        command.revision(self.cfg)  # no problem
+
     def test_create_rev_autogen(self):
         self._env_fixture()
         command.revision(self.cfg, autogenerate=True)
+
+    def test_create_rev_autogen_db_not_up_to_date(self):
+        self._env_fixture()
+        command.revision(self.cfg)
+        assert_raises_message(
+            util.CommandError,
+            "Target database is not up to date.",
+            command.revision, self.cfg, autogenerate=True
+        )
+
+    def test_create_rev_autogen_db_not_up_to_date_multi_heads(self):
+        self._env_fixture()
+        command.revision(self.cfg)
+        rev2 = command.revision(self.cfg)
+        rev3a = command.revision(self.cfg)
+        command.revision(self.cfg, head=rev2.revision, splice=True)
+        command.upgrade(self.cfg, "heads")
+        command.revision(self.cfg, head=rev3a.revision)
+
+        assert_raises_message(
+            util.CommandError,
+            "Target database is not up to date.",
+            command.revision, self.cfg, autogenerate=True
+        )
+
+    def test_create_rev_plain_db_not_up_to_date_multi_heads(self):
+        self._env_fixture()
+        command.revision(self.cfg)
+        rev2 = command.revision(self.cfg)
+        rev3a = command.revision(self.cfg)
+        command.revision(self.cfg, head=rev2.revision, splice=True)
+        command.upgrade(self.cfg, "heads")
+        command.revision(self.cfg, head=rev3a.revision)
+
+        assert_raises_message(
+            util.CommandError,
+            "Multiple heads are present; please specify the head revision "
+            "on which the new revision should be based, or perform a merge.",
+            command.revision, self.cfg
+        )
+
+    def test_create_rev_autogen_need_to_select_head(self):
+        self._env_fixture()
+        command.revision(self.cfg)
+        rev2 = command.revision(self.cfg)
+        command.revision(self.cfg)
+        command.revision(self.cfg, head=rev2.revision, splice=True)
+        command.upgrade(self.cfg, "heads")
+        # there's multiple heads present
+        assert_raises_message(
+            util.CommandError,
+            "Multiple heads are present; please specify the head revision "
+            "on which the new revision should be based, or perform a merge.",
+            command.revision, self.cfg, autogenerate=True
+        )
+
+    def test_create_rev_plain_need_to_select_head(self):
+        self._env_fixture()
+        command.revision(self.cfg)
+        rev2 = command.revision(self.cfg)
+        command.revision(self.cfg)
+        command.revision(self.cfg, head=rev2.revision, splice=True)
+        command.upgrade(self.cfg, "heads")
+        # there's multiple heads present
+        assert_raises_message(
+            util.CommandError,
+            "Multiple heads are present; please specify the head revision "
+            "on which the new revision should be based, or perform a merge.",
+            command.revision, self.cfg
+        )
+
+    def test_create_rev_plain_post_merge(self):
+        self._env_fixture()
+        command.revision(self.cfg)
+        rev2 = command.revision(self.cfg)
+        command.revision(self.cfg)
+        command.revision(self.cfg, head=rev2.revision, splice=True)
+        command.merge(self.cfg, "heads")
+        command.revision(self.cfg)
+
+    def test_create_rev_autogenerate_post_merge(self):
+        self._env_fixture()
+        command.revision(self.cfg)
+        rev2 = command.revision(self.cfg)
+        command.revision(self.cfg)
+        command.revision(self.cfg, head=rev2.revision, splice=True)
+        command.merge(self.cfg, "heads")
+        command.upgrade(self.cfg, "heads")
+        command.revision(self.cfg, autogenerate=True)
+
+    def test_create_rev_autogenerate_db_not_up_to_date_post_merge(self):
+        self._env_fixture()
+        command.revision(self.cfg)
+        rev2 = command.revision(self.cfg)
+        command.revision(self.cfg)
+        command.revision(self.cfg, head=rev2.revision, splice=True)
+        command.upgrade(self.cfg, "heads")
+        command.merge(self.cfg, "heads")
+        assert_raises_message(
+            util.CommandError,
+            "Target database is not up to date.",
+            command.revision, self.cfg, autogenerate=True
+        )
 
 
 class UpgradeDowngradeStampTest(TestBase):

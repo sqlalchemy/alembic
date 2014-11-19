@@ -84,7 +84,7 @@ def revision(
         environment = True
 
         def retrieve_migrations(rev, context):
-            if script.get_revision(rev) is not script.get_revision("head"):
+            if set(script.get_revisions(rev)) != set(script.get_revisions("heads")):
                 raise util.CommandError("Target database is not up to date.")
             autogen._produce_migration_diffs(context, template_args, imports)
             return []

@@ -115,7 +115,7 @@ class ScriptDirectory(object):
                     "narrow to a specific head, or 'heads' for all heads")
             multiple_heads = multiple_heads % {
                 "head_arg": end or mh.argument,
-                "heads": ", ".join(mh.heads)
+                "heads": util.format_as_comma(mh.heads)
             }
             compat.raise_from_cause(util.CommandError(multiple_heads))
         except revision.RevisionError as err:
@@ -137,7 +137,8 @@ class ScriptDirectory(object):
 
         """
         with self._catch_revision_errors(start=base, end=head):
-            for rev in self.revision_map.iterate_revisions(head, base, inclusive=True):
+            for rev in self.revision_map.iterate_revisions(
+                    head, base, inclusive=True):
                 yield rev
 
     def get_revisions(self, id_):
@@ -427,6 +428,7 @@ class ScriptDirectory(object):
                 tuple(h.revision if h is not None else None for h in heads)),
             branch_labels=util.to_tuple(branch_labels),
             create_date=create_date,
+            comma=util.format_as_comma,
             message=message if message is not None else ("empty message"),
             **kw
         )
@@ -521,10 +523,12 @@ class Script(revision.Revision):
             entry += "Parent: %s\n" % (self._format_down_revision(), )
 
         if self.is_branch_point:
-            entry += "Branches into: %s\n" % (", ".join(self.nextrev))
+            entry += "Branches into: %s\n" % (
+                util.format_as_comma(self.nextrev))
 
         if self.branch_labels:
-            entry += "Branch names: %s\n" % (", ".join(self.branch_labels), )
+            entry += "Branch names: %s\n" % (
+                util.format_as_comma(self.branch_labels), )
 
         entry += "Path: %s\n" % (self.path,)
 
@@ -548,7 +552,7 @@ class Script(revision.Revision):
     def _head_only(self, include_branches=False):
         text = self.revision
         if include_branches and self.branch_labels:
-            text += " (%s)" % ", ".join(self.branch_labels)
+            text += " (%s)" % util.format_as_comma(self.branch_labels)
         text += "%s%s%s" % (
             " (head)" if self.is_head else "",
             " (branchpoint)" if self.is_branch_point else "",
@@ -570,7 +574,7 @@ class Script(revision.Revision):
         if not self.down_revision:
             return "<base>"
         else:
-            return ", ".join(self._down_revision_tuple)
+            return util.format_as_comma(self._down_revision_tuple)
 
     @classmethod
     def _from_path(cls, scriptdir, path):
