@@ -18,7 +18,7 @@ def list_templates(config):
         config.print_stdout("%s - %s", tempname, synopsis)
 
     config.print_stdout("\nTemplates are used via the 'init' command, e.g.:")
-    config.print_stdout("\n  alembic init --template pylons ./scripts")
+    config.print_stdout("\n  alembic init --template generic ./scripts")
 
 
 def init(config, directory, template='generic'):
@@ -84,7 +84,8 @@ def revision(
         environment = True
 
         def retrieve_migrations(rev, context):
-            if set(script.get_revisions(rev)) != set(script.get_revisions("heads")):
+            if set(script.get_revisions(rev)) != \
+                    set(script.get_revisions("heads")):
                 raise util.CommandError("Target database is not up to date.")
             autogen._produce_migration_diffs(context, template_args, imports)
             return []
@@ -249,18 +250,21 @@ def heads(config, verbose=False):
 
 
 def branches(config, verbose=False):
-    """Show current un-spliced branch points"""
+    """Show current branch points"""
     script = ScriptDirectory.from_config(config)
     for sc in script.walk_revisions():
         if sc.is_branch_point:
-            config.print_stdout(sc.cmd_format(verbose, include_branches=True))
-            for rev in sc.nextrev:
-                rev_obj = script.get_revision(rev)
-                config.print_stdout(
-                    "%s -> %s",
-                    " " * len(str(sc.down_revision)),
-                    rev_obj.cmd_format(False, include_branches=True)
+            config.print_stdout(
+                "%s\n%s\n",
+                sc.cmd_format(verbose, include_branches=True),
+                "\n".join(
+                    "%s -> %s" % (
+                        " " * len(str(sc.revision)),
+                        rev_obj.cmd_format(False, include_branches=True)
+                    ) for rev_obj in
+                    (script.get_revision(rev) for rev in sc.nextrev)
                 )
+            )
 
 
 def current(config, verbose=False, head_only=False):

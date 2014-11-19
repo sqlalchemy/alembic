@@ -190,80 +190,102 @@ class CommandLine(object):
 
     def _generate_args(self, prog):
         def add_options(parser, positional, kwargs):
-            if 'template' in kwargs:
-                parser.add_argument("-t", "--template",
-                                    default='generic',
-                                    type=str,
-                                    help="Setup template for use with 'init'")
-            if 'message' in kwargs:
-                parser.add_argument(
+            kwargs_opts = {
+                'template': (
+                    "-t", "--template",
+                    dict(
+                        default='generic',
+                        type=str,
+                        help="Setup template for use with 'init'"
+                    )
+                ),
+                'message': (
                     "-m", "--message",
-                    type=str,
-                    help="Message string to use with 'revision'")
-            if 'sql' in kwargs:
-                parser.add_argument(
+                    dict(
+                        type=str,
+                        help="Message string to use with 'revision'")
+                ),
+                'sql': (
                     "--sql",
-                    action="store_true",
-                    help="Don't emit SQL to database - dump to "
-                    "standard output/file instead")
-            if 'tag' in kwargs:
-                parser.add_argument(
+                    dict(
+                        action="store_true",
+                        help="Don't emit SQL to database - dump to "
+                        "standard output/file instead"
+                    )
+                ),
+                'tag': (
                     "--tag",
-                    type=str,
-                    help="Arbitrary 'tag' name - can be used by "
-                    "custom env.py scripts.")
-            if 'head' in kwargs:
-                parser.add_argument(
+                    dict(
+                        type=str,
+                        help="Arbitrary 'tag' name - can be used by "
+                        "custom env.py scripts.")
+                ),
+                'head': (
                     "--head",
-                    type=str,
-                    help="Specify head revision or <branchname>@head "
-                    "to base new revision on."
-                )
-            if 'splice' in kwargs:
-                parser.add_argument(
+                    dict(
+                        type=str,
+                        help="Specify head revision or <branchname>@head "
+                        "to base new revision on."
+                    )
+                ),
+                'splice': (
                     "--splice",
-                    action="store_true",
-                    help="Allow a non-head revision as the "
-                    "'head' to splice onto"
-                )
-            if 'branch_label' in kwargs:
-                parser.add_argument(
+                    dict(
+                        action="store_true",
+                        help="Allow a non-head revision as the "
+                        "'head' to splice onto"
+                    )
+                ),
+                'branch_label': (
                     "--branch-label",
-                    type=str,
-                    help="Specify a branch label to apply to the new revision"
-                )
-            if 'verbose' in kwargs:
-                parser.add_argument(
+                    dict(
+                        type=str,
+                        help="Specify a branch label to apply to the "
+                        "new revision"
+                    )
+                ),
+                'verbose': (
                     "-v", "--verbose",
-                    action="store_true",
-                    help="Use more verbose output"
-                )
-            if 'autogenerate' in kwargs:
-                parser.add_argument(
+                    dict(
+                        action="store_true",
+                        help="Use more verbose output"
+                    )
+                ),
+                'autogenerate': (
                     "--autogenerate",
-                    action="store_true",
-                    help="Populate revision script with candidate "
-                    "migration operations, based on comparison "
-                    "of database to model.")
-            # "current" command
-            if 'head_only' in kwargs:
-                parser.add_argument(
+                    dict(
+                        action="store_true",
+                        help="Populate revision script with candidate "
+                        "migration operations, based on comparison "
+                        "of database to model.")
+                ),
+                'head_only': (
                     "--head-only",
-                    action="store_true",
-                    help="Deprecated.  Use --verbose for additional output")
-
-            if 'rev_range' in kwargs:
-                parser.add_argument("-r", "--rev-range",
-                                    action="store",
-                                    help="Specify a revision range; "
-                                    "format is [start]:[end]")
-
+                    dict(
+                        action="store_true",
+                        help="Deprecated.  Use --verbose for "
+                        "additional output")
+                ),
+                'rev_range': (
+                    "-r", "--rev-range",
+                    dict(
+                        action="store",
+                        help="Specify a revision range; "
+                        "format is [start]:[end]")
+                )
+            }
             positional_help = {
                 'directory': "location of scripts directory",
                 'revision': "revision identifier",
                 'revisions': "one or more revisions, or 'heads' for all heads"
 
             }
+            for arg in kwargs:
+                if arg in kwargs_opts:
+                    args = kwargs_opts[arg]
+                    args, kw = args[0:-1], args[-1]
+                    parser.add_argument(*args, **kw)
+
             for arg in positional:
                 if arg == "revisions":
                     subparser.add_argument(

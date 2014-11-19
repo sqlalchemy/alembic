@@ -8,7 +8,6 @@ from sqlalchemy.engine import url as sqla_url
 
 from .compat import callable, EncodedIO
 from . import ddl, util
-from .revision import tuple_rev_as_scalar
 
 log = logging.getLogger(__name__)
 
