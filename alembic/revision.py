@@ -359,7 +359,6 @@ class RevisionMap(object):
         elif id_ == 'base' or id_ is None:
             return (), branch_label
         else:
-            assert isinstance(id_, compat.string_types)
             return util.to_tuple(id_, default=None), branch_label
 
     def iterate_revisions(

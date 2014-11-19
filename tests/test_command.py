@@ -4,7 +4,7 @@ from alembic.script import ScriptDirectory
 from alembic.testing.fixtures import TestBase, capture_context_buffer
 from alembic.testing.env import staging_env, _sqlite_testing_config, \
     three_rev_fixture, clear_staging_env, _no_sql_testing_config, \
-    _sqlite_file_db, write_script
+    _sqlite_file_db, write_script, env_file_fixture
 from alembic.testing import eq_
 from alembic import util
 
@@ -83,6 +83,43 @@ class HistoryTest(TestBase):
         self.cfg.stdout = buf = self._buf_fixture()
         command.history(self.cfg, "current:")
         self._eq_cmd_output(buf, [self.c, self.b, self.a])
+
+
+class RevisionTest(TestBase):
+    @classmethod
+    def setup_class(cls):
+        cls.env = staging_env()
+        cls.cfg = _sqlite_testing_config()
+
+    @classmethod
+    def teardown_class(cls):
+        clear_staging_env()
+
+    def _env_fixture(self):
+        env_file_fixture("""
+
+from sqlalchemy import MetaData, engine_from_config
+target_metadata = MetaData()
+
+engine = engine_from_config(
+    config.get_section(config.config_ini_section),
+    prefix='sqlalchemy.')
+
+connection = engine.connect()
+
+context.configure(connection=connection, target_metadata=target_metadata)
+
+try:
+    with context.begin_transaction():
+        context.run_migrations()
+finally:
+    connection.close()
+
+""")
+
+    def test_create_rev_autogen(self):
+        self._env_fixture()
+        command.revision(self.cfg, autogenerate=True)
 
 
 class UpgradeDowngradeStampTest(TestBase):
