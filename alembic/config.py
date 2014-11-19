@@ -260,10 +260,16 @@ class CommandLine(object):
 
             positional_help = {
                 'directory': "location of scripts directory",
-                'revision': "revision identifier"
+                'revision': "revision identifier",
+                'revisions': "one or more revisions, or 'heads' for all heads"
+
             }
             for arg in positional:
-                subparser.add_argument(arg, help=positional_help.get(arg))
+                if arg == "revisions":
+                    subparser.add_argument(
+                        arg, nargs='+', help=positional_help.get(arg))
+                else:
+                    subparser.add_argument(arg, help=positional_help.get(arg))
 
         parser = ArgumentParser(prog=prog)
         parser.add_argument("-c", "--config",

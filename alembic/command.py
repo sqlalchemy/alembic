@@ -107,7 +107,7 @@ def revision(
         **template_args)
 
 
-def merge(config, revisiona, revisionb, message=None, branch_label=None):
+def merge(config, revisions, message=None, branch_label=None):
     """Merge two revisions together.  Creates a new migration file."""
 
     script = ScriptDirectory.from_config(config)
@@ -117,7 +117,7 @@ def merge(config, revisiona, revisionb, message=None, branch_label=None):
     }
     return script.generate_revision(
         util.rev_id(), message, refresh=True,
-        head=[revisiona, revisionb], branch_labels=branch_label,
+        head=revisions, branch_labels=branch_label,
         **template_args)
 
 

@@ -531,15 +531,18 @@ class MigrationStep(object):
     @property
     def short_log(self):
         return "%s %s -> %s" % (
-            self.name, tuple_rev_as_scalar(self.from_revisions),
-            tuple_rev_as_scalar(self.to_revisions)
+            self.name,
+            ", ".join(self.from_revisions),
+            ", ".join(self.to_revisions)
         )
 
     def __str__(self):
         if self.doc:
             return "%s %s -> %s, %s" % (
-                self.name, tuple_rev_as_scalar(self.from_revisions),
-                tuple_rev_as_scalar(self.to_revisions), self.doc
+                self.name,
+                ", ".join(self.from_revisions),
+                ", ".join(self.to_revisions),
+                self.doc
             )
         else:
             return self.short_log
