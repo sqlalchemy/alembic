@@ -8,6 +8,7 @@ if sys.version_info < (2, 6):
 sqla_08 = sa_version >= '0.8.0'
 sqla_09 = sa_version >= '0.9.0'
 
+py27 = sys.version_info >= (2, 7)
 py2k = sys.version_info < (3, 0)
 py3k = sys.version_info >= (3, 0)
 py33 = sys.version_info >= (3, 3)

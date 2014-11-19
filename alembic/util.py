@@ -12,7 +12,7 @@ from sqlalchemy.engine import url
 from sqlalchemy import __version__
 
 from .compat import callable, exec_, load_module_py, load_module_pyc, \
-    binary_type, string_types
+    binary_type, string_types, py27
 
 
 class CommandError(Exception):
@@ -44,6 +44,11 @@ from sqlalchemy.util.compat import inspect_getfullargspec
 
 import logging
 log = logging.getLogger(__name__)
+
+if py27:
+    # disable "no handler found" errors
+    logging.getLogger('alembic').addHandler(logging.NullHandler())
+
 
 try:
     import fcntl
