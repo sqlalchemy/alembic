@@ -88,7 +88,7 @@ class DownIterateTest(TestBase):
         eq_(
             [
                 rev.revision for rev in
-                map_._iterate_revisions(
+                map_.iterate_revisions(
                     upper, lower,
                     inclusive=inclusive, implicit_base=implicit_base
                 )
@@ -116,14 +116,14 @@ class DiamondTest(DownIterateTest):
         )
 
 
-class NamedBranchTest(DownIterateTest):
+class LabeledBranchTest(DownIterateTest):
     def test_dupe_branch_collection(self):
         fn = lambda: [
             Revision('a', ()),
             Revision('b', ('a',)),
-            Revision('c', ('b',), branch_names=['xy1']),
+            Revision('c', ('b',), branch_labels=['xy1']),
             Revision('d', ()),
-            Revision('e', ('d',), branch_names=['xy1']),
+            Revision('e', ('d',), branch_labels=['xy1']),
             Revision('f', ('e',))
         ]
         assert_raises_message(
@@ -136,7 +136,7 @@ class NamedBranchTest(DownIterateTest):
         fn = lambda: [
             Revision('a', ()),
             Revision('b', ('a', )),
-            Revision('c1', ('b', ), branch_names='c1branch'),
+            Revision('c1', ('b', ), branch_labels='c1branch'),
             Revision('c2', ('b', )),
             Revision('d', ('c1', 'c2')),
 
@@ -152,12 +152,12 @@ class NamedBranchTest(DownIterateTest):
 
     def setUp(self):
         self.map = RevisionMap(lambda: [
-            Revision('a', (), branch_names='abranch'),
+            Revision('a', (), branch_labels='abranch'),
             Revision('b', ('a',)),
             Revision('somelongername', ('b',)),
             Revision('c', ('somelongername',)),
             Revision('d', ()),
-            Revision('e', ('d',), branch_names=['ebranch']),
+            Revision('e', ('d',), branch_labels=['ebranch']),
             Revision('someothername', ('e',)),
             Revision('f', ('someothername',)),
         ])
@@ -231,6 +231,18 @@ class NamedBranchTest(DownIterateTest):
         self._assert_iteration(
             "heads", "ebranch@d",
             ['f', 'someothername', 'e', 'd']
+        )
+
+    def test_branch_w_down_relative(self):
+        self._assert_iteration(
+            "heads", "ebranch@-2",
+            ['f', 'someothername', 'e']
+        )
+
+    def test_branch_w_up_relative(self):
+        self._assert_iteration(
+            "ebranch@+2", "base",
+            ['someothername', 'e', 'd']
         )
 
     def test_partial_id_resolve(self):

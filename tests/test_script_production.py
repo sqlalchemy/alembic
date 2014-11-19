@@ -188,7 +188,7 @@ class RevisionCommandTest(TestBase):
 
     def test_create_script_branches(self):
         rev = command.revision(
-            self.cfg, message="some message", branch_name="foobar")
+            self.cfg, message="some message", branch_label="foobar")
         script = ScriptDirectory.from_config(self.cfg)
         rev = script.get_revision(rev.revision)
         eq_(script.get_revision("foobar"), rev)
@@ -211,12 +211,12 @@ class RevisionCommandTest(TestBase):
 
         assert_raises_message(
             util.CommandError,
-            r"Version \w+ specified branch_names foobar, "
+            r"Version \w+ specified branch_labels foobar, "
             r"however the migration file .+?\b does not have them; have you "
-            "upgraded your script.py.mako to include the 'branch_names' "
+            "upgraded your script.py.mako to include the 'branch_labels' "
             r"section\?",
             command.revision,
-            self.cfg, message="some message", branch_name="foobar"
+            self.cfg, message="some message", branch_label="foobar"
         )
 
 

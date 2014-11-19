@@ -186,13 +186,13 @@ class BranchedPathTest(MigrationTest):
 
         cls.c1 = env.generate_revision(
             util.rev_id(), 'b->c1',
-            branch_names='c1branch',
+            branch_labels='c1branch',
             refresh=True)
         cls.d1 = env.generate_revision(util.rev_id(), 'c1->d1', refresh=True)
 
         cls.c2 = env.generate_revision(
             util.rev_id(), 'b->c2',
-            branch_names='c2branch',
+            branch_labels='c2branch',
             head=cls.b.revision, refresh=True, splice=True)
         cls.d2 = env.generate_revision(
             util.rev_id(), 'c2->d2',
@@ -312,7 +312,7 @@ class MergedPathTest(MigrationTest):
 
         cls.c2 = env.generate_revision(
             util.rev_id(), 'b->c2',
-            branch_names='c2branch',
+            branch_labels='c2branch',
             head=cls.b.revision, refresh=True, splice=True)
         cls.d2 = env.generate_revision(
             util.rev_id(), 'c2->d2',

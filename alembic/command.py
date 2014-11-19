@@ -66,7 +66,7 @@ def init(config, directory, template='generic'):
 
 def revision(
         config, message=None, autogenerate=False, sql=False,
-        head="head", splice=False, branch_name=None):
+        head="head", splice=False, branch_label=None):
     """Create a new revision file."""
 
     script = ScriptDirectory.from_config(config)
@@ -103,11 +103,11 @@ def revision(
             script.run_env()
     return script.generate_revision(
         util.rev_id(), message, refresh=True,
-        head=head, splice=splice, branch_names=branch_name,
+        head=head, splice=splice, branch_labels=branch_label,
         **template_args)
 
 
-def merge(config, revisiona, revisionb, message=None, branch_name=None):
+def merge(config, revisiona, revisionb, message=None, branch_label=None):
     """Merge two revisions together.  Creates a new migration file."""
 
     script = ScriptDirectory.from_config(config)
@@ -117,7 +117,7 @@ def merge(config, revisiona, revisionb, message=None, branch_name=None):
     }
     return script.generate_revision(
         util.rev_id(), message, refresh=True,
-        head=[revisiona, revisionb], branch_names=branch_name,
+        head=[revisiona, revisionb], branch_labels=branch_label,
         **template_args)
 
 

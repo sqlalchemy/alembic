@@ -368,7 +368,7 @@ class ScriptDirectory(object):
 
     def generate_revision(
             self, revid, message, head=None,
-            refresh=False, splice=False, branch_names=None, **kw):
+            refresh=False, splice=False, branch_labels=None, **kw):
         """Generate a new revision file.
 
         This runs the ``script.py.mako`` template, given
@@ -426,20 +426,20 @@ class ScriptDirectory(object):
             up_revision=str(revid),
             down_revision=revision.tuple_rev_as_scalar(
                 tuple(h.revision if h is not None else None for h in heads)),
-            branch_names=util.to_tuple(branch_names),
+            branch_labels=util.to_tuple(branch_labels),
             create_date=create_date,
             message=message if message is not None else ("empty message"),
             **kw
         )
         if refresh:
             script = Script._from_path(self, path)
-            if branch_names and not script.branch_names:
+            if branch_labels and not script.branch_labels:
                 raise util.CommandError(
-                    "Version %s specified branch_names %s, however the "
+                    "Version %s specified branch_labels %s, however the "
                     "migration file %s does not have them; have you upgraded "
                     "your script.py.mako to include the "
-                    "'branch_names' section?" % (
-                        script.revision, branch_names, script.path
+                    "'branch_labels' section?" % (
+                        script.revision, branch_labels, script.path
                     ))
 
             self.revision_map.add_revision(script)
@@ -481,8 +481,8 @@ class Script(revision.Revision):
         super(Script, self).__init__(
             rev_id,
             module.down_revision,
-            branch_names=util.to_tuple(
-                getattr(module, 'branch_names', None), default=()))
+            branch_labels=util.to_tuple(
+                getattr(module, 'branch_labels', None), default=()))
 
     module = None
     """The Python module representing the actual script itself."""
@@ -524,8 +524,8 @@ class Script(revision.Revision):
         if self.is_branch_point:
             entry += "Branches into: %s\n" % (", ".join(self.nextrev))
 
-        if self.member_branches:
-            entry += "Branch names: %s\n" % (", ".join(self.member_branches), )
+        if self.branch_labels:
+            entry += "Branch names: %s\n" % (", ".join(self.branch_labels), )
 
         entry += "Path: %s\n" % (self.path,)
 
@@ -548,8 +548,8 @@ class Script(revision.Revision):
 
     def _head_only(self, include_branches=False):
         text = self.revision
-        if include_branches and self.member_branches:
-            text += " (%s)" % ", ".join(self.member_branches)
+        if include_branches and self.branch_labels:
+            text += " (%s)" % ", ".join(self.branch_labels)
         text += "%s%s%s" % (
             " (head)" if self.is_head else "",
             " (branchpoint)" if self.is_branch_point else "",

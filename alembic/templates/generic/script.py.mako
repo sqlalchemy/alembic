@@ -9,7 +9,7 @@ Create Date: ${create_date}
 # revision identifiers, used by Alembic.
 revision = ${repr(up_revision)}
 down_revision = ${repr(down_revision)}
-branch_names = ${repr(branch_names)}
+branch_labels = ${repr(branch_labels)}
 
 from alembic import op
 import sqlalchemy as sa

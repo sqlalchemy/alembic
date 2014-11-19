@@ -46,6 +46,13 @@ class RevisionMap(object):
     """
 
     def __init__(self, generator):
+        """Construct a new :class:`.RevisionMap`.
+
+        :param generator: a zero-arg callable that will generate an iterable
+         of :class:`.Revision` instances to be used.   These are typically
+         :class:`.Script` subclasses within regular Alembic use.
+
+        """
         self._generator = generator
 
     @util.memoized_property
@@ -63,7 +70,7 @@ class RevisionMap(object):
 
     @util.memoized_property
     def bases(self):
-        """All "base" revisions as  strings.
+        """All "base" revisions as strings.
 
         These are revisions that have a ``down_revision`` of None,
         or empty tuple.
@@ -76,20 +83,24 @@ class RevisionMap(object):
 
     @util.memoized_property
     def _revision_map(self):
+        """memoized attribute, initializes the revision map from the
+        initial collection.
+
+        """
         map_ = {}
 
         heads = sqlautil.OrderedSet()
         self.bases = ()
 
-        has_branch_names = set()
+        has_branch_labels = set()
         for revision in self._generator():
 
             if revision.revision in map_:
                 util.warn("Revision %s is present more than once" %
                           revision.revision)
             map_[revision.revision] = revision
-            if revision.branch_names:
-                has_branch_names.add(revision)
+            if revision.branch_labels:
+                has_branch_labels.add(revision)
             heads.add(revision.revision)
             if revision.is_base:
                 self.bases += (revision.revision, )
@@ -106,30 +117,30 @@ class RevisionMap(object):
         map_[None] = map_[()] = None
         self.heads = tuple(heads)
 
-        for revision in has_branch_names:
+        for revision in has_branch_labels:
             self._add_branches(revision, map_)
         return map_
 
     def _add_branches(self, revision, map_):
-        if revision.branch_names:
-            for branch_name in util.to_tuple(revision.branch_names, ()):
-                if branch_name in map_:
+        if revision.branch_labels:
+            for branch_label in revision._orig_branch_labels:
+                if branch_label in map_:
                     raise RevisionError(
                         "Branch name '%s' in revision %s already "
                         "used by revision %s" %
-                        (branch_name, revision.revision,
-                            map_[branch_name].revision)
+                        (branch_label, revision.revision,
+                            map_[branch_label].revision)
                     )
-                map_[branch_name] = revision
-            revision.member_branches.update(revision.branch_names)
+                map_[branch_label] = revision
+            revision.branch_labels.update(revision.branch_labels)
             for node in self._get_descendant_nodes([revision], map_):
-                node.member_branches.update(revision.branch_names)
+                node.branch_labels.update(revision.branch_labels)
 
             parent = node
             while parent and \
                     not parent.is_branch_point and not parent.is_merge_point:
 
-                parent.member_branches.update(revision.branch_names)
+                parent.branch_labels.update(revision.branch_labels)
                 if parent.down_revision:
                     parent = map_[parent.down_revision]
                 else:
@@ -167,13 +178,16 @@ class RevisionMap(object):
                 set(revision._down_revision_tuple).union([revision.revision])
             ) + (revision.revision,)
 
-    def get_current_head(self, branch_name=None):
+    def get_current_head(self, branch_label=None):
         """Return the current head revision.
 
         If the script directory has multiple heads
         due to branching, an error is raised;
         :meth:`.ScriptDirectory.get_heads` should be
         preferred.
+
+        :param branch_label: optional branch name which will limit the
+         heads considered to those which include that branch_label.
 
         :return: a string revision number.
 
@@ -183,12 +197,12 @@ class RevisionMap(object):
 
         """
         current_heads = self.heads
-        if branch_name:
-            current_heads = self.filter_for_lineage(current_heads, branch_name)
+        if branch_label:
+            current_heads = self.filter_for_lineage(current_heads, branch_label)
         if len(current_heads) > 1:
             raise MultipleHeads(
                 current_heads,
-                "%s@head" % branch_name if branch_name else "head")
+                "%s@head" % branch_label if branch_label else "head")
 
         if current_heads:
             return current_heads[0]
@@ -215,9 +229,9 @@ class RevisionMap(object):
         if isinstance(id_, (list, tuple, set, frozenset)):
             return sum([self.get_revisions(id_elem) for id_elem in id_], ())
         else:
-            resolved_id, branch_name = self._resolve_revision_number(id_)
+            resolved_id, branch_label = self._resolve_revision_number(id_)
             return tuple(
-                self._revision_for_ident(rev_id, branch_name)
+                self._revision_for_ident(rev_id, branch_label)
                 for rev_id in resolved_id)
 
     def get_revision(self, id_):
@@ -234,23 +248,23 @@ class RevisionMap(object):
 
         """
 
-        resolved_id, branch_name = self._resolve_revision_number(id_)
+        resolved_id, branch_label = self._resolve_revision_number(id_)
         if len(resolved_id) > 1:
             raise MultipleHeads(
                 "'%s' refers to multiple revisions" % (id_, ))
         elif resolved_id:
             resolved_id = resolved_id[0]
 
-        return self._revision_for_ident(resolved_id, branch_name)
+        return self._revision_for_ident(resolved_id, branch_label)
 
-    def _resolve_branch(self, branch_name):
+    def _resolve_branch(self, branch_label):
         try:
-            branch_rev = self._revision_map[branch_name]
+            branch_rev = self._revision_map[branch_label]
         except KeyError:
             try:
-                nonbranch_rev = self._revision_for_ident(branch_name)
+                nonbranch_rev = self._revision_for_ident(branch_label)
             except ResolutionError:
-                raise ResolutionError("No such branch: '%s'" % branch_name)
+                raise ResolutionError("No such branch: '%s'" % branch_label)
             else:
                 return nonbranch_rev
         else:
@@ -292,15 +306,15 @@ class RevisionMap(object):
         return revision
 
     def filter_for_lineage(self, targets, check_against):
-        id_, branch_name = self._resolve_revision_number(check_against)
+        id_, branch_label = self._resolve_revision_number(check_against)
 
         shares = []
-        if branch_name:
-            shares.append(branch_name)
+        if branch_label:
+            shares.append(branch_label)
         if id_:
             shares.append(id_[0])
 
-        #shares = branch_name or (id_[0] if id_ else None)
+        #shares = branch_label or (id_[0] if id_ else None)
 
         return [
             tg for tg in targets
@@ -321,32 +335,32 @@ class RevisionMap(object):
         ]
 
         return bool(
-            self._get_descendant_nodes([target])
-                .union(self._get_ancestor_nodes([target]))
-                .intersection(test_against_revs)
+            set(self._get_descendant_nodes([target]))
+            .union(self._get_ancestor_nodes([target]))
+            .intersection(test_against_revs)
         )
 
     def _resolve_revision_number(self, id_):
         if isinstance(id_, compat.string_types) and "@" in id_:
-            branch_name, id_ = id_.split('@', 1)
+            branch_label, id_ = id_.split('@', 1)
         else:
-            branch_name = None
+            branch_label = None
 
         # ensure map is loaded
         self._revision_map
         if id_ == 'heads':
-            if branch_name:
+            if branch_label:
                 return self.filter_for_lineage(
-                    self.heads, branch_name), branch_name
+                    self.heads, branch_label), branch_label
             else:
-                return self.heads, branch_name
+                return self.heads, branch_label
         elif id_ == 'head':
-            return (self.get_current_head(branch_name), ), branch_name
+            return (self.get_current_head(branch_label), ), branch_label
         elif id_ == 'base' or id_ is None:
-            return (), branch_name
+            return (), branch_label
         else:
             assert isinstance(id_, compat.string_types)
-            return util.to_tuple(id_, default=None), branch_name
+            return util.to_tuple(id_, default=None), branch_label
 
     def iterate_revisions(
             self, upper, lower, implicit_base=False, inclusive=False):
@@ -361,15 +375,16 @@ class RevisionMap(object):
         The iterator yields :class:`.Revision` objects.
 
         """
+
         if isinstance(upper, compat.string_types) and \
                 _relative_destination.match(upper):
 
             reldelta = 1 if inclusive else 0
             match = _relative_destination.match(upper)
             relative = int(match.group(2))
-            branch_name = match.group(1)
-            if branch_name:
-                from_ = "%s@head" % branch_name
+            branch_label = match.group(1)
+            if branch_label:
+                from_ = "%s@head" % branch_label
             else:
                 from_ = "head"
             revs = list(
@@ -387,10 +402,10 @@ class RevisionMap(object):
             reldelta = 1 if inclusive else 0
             match = _relative_destination.match(lower)
             relative = int(match.group(2))
-            branch_name = match.group(1)
+            branch_label = match.group(1)
 
-            if branch_name:
-                to_ = "%s@base" % branch_name
+            if branch_label:
+                to_ = "%s@base" % branch_label
             else:
                 to_ = "base"
 
@@ -408,47 +423,38 @@ class RevisionMap(object):
             return self._iterate_revisions(
                 upper, lower, inclusive=inclusive, implicit_base=implicit_base)
 
-    def _get_descendant_nodes(self, targets, map_=None, check=True):
-        if map_ is None:
-            map_ = self._revision_map
-        total_descendants = set()
-        for target in targets:
-            descendants = set()
-            todo = collections.deque([target])
-            while todo:
-                rev = todo.pop()
-                todo.extend(
-                    map_[rev_id] for rev_id in rev.nextrev)
-                descendants.add(rev)
-            if check and descendants.intersection(
-                tg for tg in targets if tg is not target
-            ):
-                raise RevisionError(
-                    "Requested revision %s overlaps with "
-                    "other requested revisions" % target.revision)
-            total_descendants.update(descendants)
-        return total_descendants
+    def _get_descendant_nodes(self, targets, map_=None, check=False):
+        return self._iterate_related_revisions(
+            lambda rev: rev.nextrev,
+            targets, map_=map_, check=check
+        )
 
-    def _get_ancestor_nodes(self, targets, map_=None, check=True):
+    def _get_ancestor_nodes(self, targets, map_=None, check=False):
+        return self._iterate_related_revisions(
+            lambda rev: rev._down_revision_tuple,
+            targets, map_=map_, check=check
+        )
+
+    def _iterate_related_revisions(self, fn, targets, map_, check=False):
         if map_ is None:
             map_ = self._revision_map
-        total_ancestors = set()
+
+        todo = collections.deque()
         for target in targets:
-            ancestors = set()
-            todo = collections.deque([target])
+            todo.append(target)
+            if check:
+                per_target = set()
             while todo:
                 rev = todo.pop()
                 todo.extend(
-                    map_[rev_id] for rev_id in rev._down_revision_tuple)
-                ancestors.add(rev)
-            if check and ancestors.intersection(
-                tg for tg in targets if tg is not target
-            ):
+                    map_[rev_id] for rev_id in fn(rev))
+                if check:
+                    per_target.add(rev)
+                yield rev
+            if check and per_target.intersection(targets).difference([target]):
                 raise RevisionError(
                     "Requested revision %s overlaps with "
                     "other requested revisions" % target.revision)
-            total_ancestors.update(ancestors)
-        return total_ancestors
 
     def _iterate_revisions(
             self, upper, lower, inclusive=True, implicit_base=False):
@@ -471,42 +477,40 @@ class RevisionMap(object):
             isinstance(lower, compat.string_types) and lower.endswith('@base')
 
         uppers = self.get_revisions(upper)
-        upper_ancestors = set(self._get_ancestor_nodes(uppers))
+        upper_ancestors = set(self._get_ancestor_nodes(uppers, check=True))
 
         if limit_to_lower_branch:
-            base_lowers = self.get_revisions(
-                self._get_base_revisions(lower))
-            lowers = base_lowers
-        elif implicit_base or not requested_lowers:
-
-            if implicit_base and requested_lowers:
-                lower_ancestors = set(
-                    self._get_ancestor_nodes(requested_lowers)
-                )
-                lower_descendants = set(
-                    self._get_descendant_nodes(requested_lowers)
-                )
-                base_lowers = set()
-                candidate_lowers = upper_ancestors.\
-                    difference(lower_ancestors).\
-                    difference(lower_descendants)
-                for rev in candidate_lowers:
-                    for downrev in rev._down_revision_tuple:
-                        if self._revision_map[downrev] in candidate_lowers:
-                            break
-                    else:
-                        base_lowers.add(rev)
-            else:
-                base_lowers = set(self.get_revisions(self.bases))
-
-            lowers = base_lowers.union(requested_lowers)
-        else:
+            lowers = self.get_revisions(self._get_base_revisions(lower))
+        elif implicit_base and requested_lowers:
+            lower_ancestors = set(
+                self._get_ancestor_nodes(requested_lowers)
+            )
+            lower_descendants = set(
+                self._get_descendant_nodes(requested_lowers)
+            )
             base_lowers = set()
+            candidate_lowers = upper_ancestors.\
+                difference(lower_ancestors).\
+                difference(lower_descendants)
+            for rev in candidate_lowers:
+                for downrev in rev._down_revision_tuple:
+                    if self._revision_map[downrev] in candidate_lowers:
+                        break
+                else:
+                    base_lowers.add(rev)
+            lowers = base_lowers.union(requested_lowers)
+        elif implicit_base:
+            base_lowers = set(self.get_revisions(self.bases))
+            lowers = base_lowers.union(requested_lowers)
+        elif not requested_lowers:
+            lowers = set(self.get_revisions(self.bases))
+        else:
             lowers = requested_lowers
 
         total_space = set(
             rev.revision for rev in upper_ancestors).intersection(
-            rev.revision for rev in self._get_descendant_nodes(lowers)
+            rev.revision for rev
+            in self._get_descendant_nodes(lowers, check=True)
         )
 
         if not total_space:
@@ -569,15 +573,15 @@ class Revision(object):
     down_revision = None
     """The ``down_revision`` identifier(s) within the migration script."""
 
-    branch_names = None
+    branch_labels = None
     """Optional string/tuple of symbolic names to apply to this
     revision's branch"""
 
-    def __init__(self, revision, down_revision, branch_names=None):
+    def __init__(self, revision, down_revision, branch_labels=None):
         self.revision = revision
         self.down_revision = tuple_rev_as_scalar(down_revision)
-        self.branch_names = branch_names
-        self.member_branches = set()
+        self._orig_branch_labels = util.to_tuple(branch_labels, default=())
+        self.branch_labels = set(self._orig_branch_labels)
 
     def add_nextrev(self, rev):
         self.nextrev = self.nextrev.union([rev])
