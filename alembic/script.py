@@ -119,7 +119,7 @@ class ScriptDirectory(object):
             }
             compat.raise_from_cause(util.CommandError(multiple_heads))
         except revision.RevisionError as err:
-            compat.raise_from_cause(util.CommandError(err.message))
+            compat.raise_from_cause(util.CommandError(err.args[0]))
 
     def walk_revisions(self, base="base", head="heads"):
         """Iterate through all revisions.
