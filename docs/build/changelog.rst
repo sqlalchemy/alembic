@@ -14,6 +14,13 @@ Changelog
       alone by default; use ``--verbose`` to get at additional output.
 
     .. change::
+      :tags: bug, oracle
+      :tickets: 245
+
+      The Oracle dialect sets "transactional DDL" to False by default,
+      as Oracle does not support transactional DDL.
+
+    .. change::
       :tags: bug, autogenerate
       :tickets: 243
 
