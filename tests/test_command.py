@@ -50,7 +50,7 @@ class HistoryTest(TestBase):
     def test_history_num_range(self):
         self.cfg.stdout = buf = self._buf_fixture()
         command.history(self.cfg, "%s:%s" % (self.a, self.b))
-        self._eq_cmd_output(buf, [self.b])
+        self._eq_cmd_output(buf, [self.b, self.a])
 
     def test_history_base_to_num(self):
         self.cfg.stdout = buf = self._buf_fixture()
@@ -60,23 +60,23 @@ class HistoryTest(TestBase):
     def test_history_num_to_head(self):
         self.cfg.stdout = buf = self._buf_fixture()
         command.history(self.cfg, "%s:" % (self.a))
-        self._eq_cmd_output(buf, [self.c, self.b])
+        self._eq_cmd_output(buf, [self.c, self.b, self.a])
 
     def test_history_num_plus_relative(self):
         self.cfg.stdout = buf = self._buf_fixture()
         command.history(self.cfg, "%s:+2" % (self.a))
-        self._eq_cmd_output(buf, [self.c, self.b])
+        self._eq_cmd_output(buf, [self.c, self.b, self.a])
 
     def test_history_relative_to_num(self):
         self.cfg.stdout = buf = self._buf_fixture()
         command.history(self.cfg, "-2:%s" % (self.c))
-        self._eq_cmd_output(buf, [self.c, self.b])
+        self._eq_cmd_output(buf, [self.c, self.b, self.a])
 
     def test_history_current_to_head_as_b(self):
         command.stamp(self.cfg, self.b)
         self.cfg.stdout = buf = self._buf_fixture()
         command.history(self.cfg, "current:")
-        self._eq_cmd_output(buf, [self.c])
+        self._eq_cmd_output(buf, [self.c, self.b])
 
     def test_history_current_to_head_as_base(self):
         command.stamp(self.cfg, "base")

@@ -364,6 +364,7 @@ class RevisionMap(object):
         if isinstance(upper, compat.string_types) and \
                 _relative_destination.match(upper):
 
+            reldelta = 1 if inclusive else 0
             match = _relative_destination.match(upper)
             relative = int(match.group(2))
             branch_name = match.group(1)
@@ -375,14 +376,15 @@ class RevisionMap(object):
                 self._iterate_revisions(
                     from_, lower,
                     inclusive=inclusive, implicit_base=implicit_base))
-            revs = revs[-relative:]
-            if len(revs) != abs(relative):
+            revs = revs[-relative - reldelta:]
+            if len(revs) != abs(relative) + reldelta:
                 raise RevisionError(
                     "Relative revision %s didn't "
                     "produce %d migrations" % (upper, abs(relative)))
             return iter(revs)
         elif isinstance(lower, compat.string_types) and \
                 _relative_destination.match(lower):
+            reldelta = 1 if inclusive else 0
             match = _relative_destination.match(lower)
             relative = int(match.group(2))
             branch_name = match.group(1)
@@ -396,8 +398,8 @@ class RevisionMap(object):
                 self._iterate_revisions(
                     upper, to_,
                     inclusive=inclusive, implicit_base=implicit_base))
-            revs = revs[0:-relative]
-            if len(revs) != abs(relative):
+            revs = revs[0:-relative + reldelta]
+            if len(revs) != abs(relative) + reldelta:
                 raise RevisionError(
                     "Relative revision %s didn't "
                     "produce %d migrations" % (lower, abs(relative)))
