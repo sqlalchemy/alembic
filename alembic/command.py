@@ -253,12 +253,14 @@ def branches(config, verbose=False):
     script = ScriptDirectory.from_config(config)
     for sc in script.walk_revisions():
         if sc.is_branch_point:
-            config.print_stdout(sc.cmd_format(verbose))
+            config.print_stdout(sc.cmd_format(verbose, include_branches=True))
             for rev in sc.nextrev:
-                config.print_stdout("%s -> %s",
-                                    " " * len(str(sc.down_revision)),
-                                    script.get_revision(rev)
-                                    )
+                rev_obj = script.get_revision(rev)
+                config.print_stdout(
+                    "%s -> %s",
+                    " " * len(str(sc.down_revision)),
+                    rev_obj.cmd_format(False, include_branches=True)
+                )
 
 
 def current(config, verbose=False, head_only=False):

@@ -110,11 +110,11 @@ class ScriptDirectory(object):
                 multiple_heads = (
                     "Multiple head revisions are present for given "
                     "argument '%(head_arg)s'; please "
-                    "specify a specific target revision or "
-                    "specify '[<branchname>@]heads' to "
-                    "refer to multiple branch heads")
+                    "specify a specific target revision, "
+                    "'<branchname>@%(head_arg)s' to "
+                    "narrow to a specific head, or 'heads' for all heads")
             multiple_heads = multiple_heads % {
-                "head_arg": mh.argument,
+                "head_arg": end or mh.argument,
                 "heads": ", ".join(mh.heads)
             }
             compat.raise_from_cause(util.CommandError(multiple_heads))
@@ -137,7 +137,7 @@ class ScriptDirectory(object):
 
         """
         with self._catch_revision_errors(start=base, end=head):
-            for rev in self.iterate_revisions(head, base):
+            for rev in self.revision_map.iterate_revisions(head, base, inclusive=True):
                 yield rev
 
     def get_revisions(self, id_):
@@ -546,19 +546,24 @@ class Script(revision.Revision):
             " (mergepoint)" if self.is_merge_point else "",
             self.doc)
 
-    def _head_only(self):
-        return "%s %s%s%s" % (
-            self.revision,
+    def _head_only(self, include_branches=False):
+        text = self.revision
+        if include_branches and self.member_branches:
+            text += " (%s)" % ", ".join(self.member_branches)
+        text += "%s%s%s" % (
             " (head)" if self.is_head else "",
             " (branchpoint)" if self.is_branch_point else "",
             " (mergepoint)" if self.is_merge_point else "",
         )
+        return text
 
-    def cmd_format(self, verbose, short_head_status=True):
+    def cmd_format(
+        self,
+            verbose, short_head_status=True, include_branches=False):
         if verbose:
             return self.log_entry
-        elif short_head_status:
-            return self._head_only()
+        elif short_head_status or include_branches:
+            return self._head_only(include_branches)
         else:
             return self.revision
 

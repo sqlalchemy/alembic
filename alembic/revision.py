@@ -348,7 +348,8 @@ class RevisionMap(object):
             assert isinstance(id_, compat.string_types)
             return util.to_tuple(id_, default=None), branch_name
 
-    def iterate_revisions(self, upper, lower, implicit_base=False):
+    def iterate_revisions(
+            self, upper, lower, implicit_base=False, inclusive=False):
         """Iterate through script revisions, starting at the given
         upper revision identifier and ending at the lower.
 
@@ -373,7 +374,7 @@ class RevisionMap(object):
             revs = list(
                 self._iterate_revisions(
                     from_, lower,
-                    inclusive=False, implicit_base=implicit_base))
+                    inclusive=inclusive, implicit_base=implicit_base))
             revs = revs[-relative:]
             if len(revs) != abs(relative):
                 raise RevisionError(
@@ -394,7 +395,7 @@ class RevisionMap(object):
             revs = list(
                 self._iterate_revisions(
                     upper, to_,
-                    inclusive=False, implicit_base=implicit_base))
+                    inclusive=inclusive, implicit_base=implicit_base))
             revs = revs[0:-relative]
             if len(revs) != abs(relative):
                 raise RevisionError(
@@ -403,7 +404,7 @@ class RevisionMap(object):
             return iter(revs)
         else:
             return self._iterate_revisions(
-                upper, lower, inclusive=False, implicit_base=implicit_base)
+                upper, lower, inclusive=inclusive, implicit_base=implicit_base)
 
     def _get_descendant_nodes(self, targets, map_=None, check=True):
         if map_ is None:
@@ -465,7 +466,7 @@ class RevisionMap(object):
         # to just that branch.
 
         limit_to_lower_branch = \
-            isinstance(lower, compat.string_types) and '@' in lower
+            isinstance(lower, compat.string_types) and lower.endswith('@base')
 
         uppers = self.get_revisions(upper)
         upper_ancestors = set(self._get_ancestor_nodes(uppers))

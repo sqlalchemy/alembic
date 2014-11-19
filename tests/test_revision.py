@@ -202,6 +202,20 @@ class NamedBranchTest(DownIterateTest):
             ['c', 'somelongername', 'b', 'a']
         )
 
+    def test_iterate_named_head_to_heads(self):
+        self._assert_iteration(
+            "heads", "ebranch@head",
+            ['f'],
+            inclusive=True
+        )
+
+    def test_iterate_named_rev_to_heads(self):
+        self._assert_iteration(
+            "heads", "ebranch@d",
+            ['f', 'someothername', 'e', 'd'],
+            inclusive=True
+        )
+
     def test_iterate_head_to_version_specific_base(self):
         self._assert_iteration(
             "heads", "e@base",
