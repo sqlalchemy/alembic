@@ -138,7 +138,7 @@ class ScriptDirectory(object):
         """
         with self._catch_revision_errors(start=base, end=head):
             for rev in self.revision_map.iterate_revisions(
-                    head, base, inclusive=True):
+                    head, base, inclusive=True, assert_relative_length=False):
                 yield rev
 
     def get_revisions(self, id_):

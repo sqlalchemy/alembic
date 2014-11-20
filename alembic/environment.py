@@ -366,8 +366,6 @@ class EnvironmentContext(object):
         :param output_encoding: when using ``--sql`` to generate SQL
          scripts, apply this encoding to the string output.
 
-         .. versionadded:: 0.5.0
-
         :param starting_rev: Override the "starting revision" argument
          when using ``--sql`` mode.
         :param tag: a string tag for usage by custom ``env.py`` scripts.
@@ -379,14 +377,10 @@ class EnvironmentContext(object):
          option is used, or if the option "revision_environment=true"
          is present in the alembic.ini file.
 
-         .. versionadded:: 0.3.3
-
         :param version_table: The name of the Alembic version table.
          The default is ``'alembic_version'``.
         :param version_table_schema: Optional schema to place version
          table within.
-
-         .. versionadded:: 0.5.0
 
         Parameters specific to the autogenerate feature, when
         ``alembic revision`` is run with the ``--autogenerate`` feature:
@@ -582,8 +576,6 @@ class EnvironmentContext(object):
          option to specify a callable which
          can filter the tables/schemas that get included.
 
-         .. versionadded :: 0.4.0
-
          .. seealso::
 
             :paramref:`.EnvironmentContext.configure.include_object`
@@ -612,8 +604,6 @@ class EnvironmentContext(object):
          Available values for the type string include: ``"column"``,
          ``"primary_key"``, ``"foreign_key"``, ``"unique"``, ``"check"``,
          ``"type"``, ``"server_default"``.
-
-         .. versionadded:: 0.5.0
 
          .. seealso::
 

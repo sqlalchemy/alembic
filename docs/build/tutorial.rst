@@ -207,8 +207,6 @@ This file contains the following features:
       ``%%(minute).2d``, ``%%(second).2d`` - components of the create date
       as returned by ``datetime.datetime.now()``
 
-  .. versionadded:: 0.3.6 - added date parameters to ``file_template``.
-
 * ``truncate_slug_length`` - defaults to 40, the max number of characters
   to include in the "slug" field.
 
@@ -222,8 +220,6 @@ This file contains the following features:
 * ``revision_environment`` - this is a flag which when set to the value 'true', will indicate
   that the migration environment script ``env.py`` should be run unconditionally when
   generating new revision files
-
-  .. versionadded:: 0.3.3
 
 * ``sourceless`` - when set to 'true', revision files that only exist as .pyc
   or .pyo files in the versions directory will be used as versions, allowing
@@ -266,7 +262,7 @@ A new file ``1975ea83b712_create_account_table.py`` is generated.  Looking insid
     """create account table
 
     Revision ID: 1975ea83b712
-    Revises: None
+    Revises:
     Create Date: 2011-11-08 11:40:27.089406
 
     """
@@ -410,6 +406,20 @@ Negative values are accepted for downgrades::
 
     $ alembic downgrade -1
 
+Partial Revision Identifiers
+=============================
+
+Any time we need to refer to a revision number explicitly, we have the option
+to use a partial number.  As long as this number uniquely identifies the
+version, it may be used in any command in any place that version numbers
+are accepted::
+
+    $ alembic upgrade ae1
+
+Above, we use ``ae1`` to refer to revision ``ae1027a6acf``.
+Alembic will stop and let you know if more than one version starts with
+that prefix.
+
 Getting Information
 ===================
 
@@ -424,28 +434,40 @@ First we can view the current revision::
 
 ``head`` is displayed only if the revision identifier for this database matches the head revision.
 
-We can also view history::
+We can also view history with ``alembic history``; the ``--verbose`` option
+(accepted by several commands, including ``history``, ``current``, ``heads``
+and ``branches``) will show us full information about each revision::
 
-    $ alembic history
+    $ alembic history --verbose
 
-    1975ea83b712 -> ae1027a6acf (head), Add a column
-    None -> 1975ea83b712, empty message
+    Rev: ae1027a6acf (head)
+    Parent: 1975ea83b712
+    Path: /path/to/yourproject/alembic/versions/ae1027a6acf_add_a_column.py
 
-We can also identify specific migrations using just enough characters to uniquely identify them.
-If we wanted to upgrade directly to ``ae1027a6acf`` we could say::
+        add a column
 
-    $ alembic upgrade ae1
+        Revision ID: ae1027a6acf
+        Revises: 1975ea83b712
+        Create Date: 2014-11-20 13:02:54.849677
 
-Alembic will stop and let you know if more than one version starts with that prefix.
+    Rev: 1975ea83b712
+    Parent: <base>
+    Path: /path/to/yourproject/alembic/versions/1975ea83b712_add_account_table.py
+
+        add account table
+
+        Revision ID: 1975ea83b712
+        Revises:
+        Create Date: 2014-11-20 13:02:46.257104
 
 Viewing History Ranges
 ----------------------
 
 Using the ``-r`` option to ``alembic history``, we can also view various slices
 of history.  The ``-r`` argument accepts an argument ``[start]:[end]``, where
-either may be a revision number, or various combinations of ``base``, ``head``,
-``currrent`` to specify the current revision, as well as negative relative
-ranges for ``[start]`` and positive relative ranges for ``[end]``::
+either may be a revision number, symbols like ``head``, ``heads`` or
+``base``,  ``current`` to specify the current revision(s), as well as negative
+relative ranges for ``[start]`` and positive relative ranges for ``[end]``::
 
   $ alembic history -r1975ea:ae1027
 

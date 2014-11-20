@@ -361,7 +361,8 @@ class RevisionMap(object):
             return util.to_tuple(id_, default=None), branch_label
 
     def iterate_revisions(
-            self, upper, lower, implicit_base=False, inclusive=False):
+            self, upper, lower, implicit_base=False, inclusive=False,
+            assert_relative_length=True):
         """Iterate through script revisions, starting at the given
         upper revision identifier and ending at the lower.
 
@@ -390,7 +391,8 @@ class RevisionMap(object):
                     from_, lower,
                     inclusive=inclusive, implicit_base=implicit_base))
             revs = revs[-relative - reldelta:]
-            if len(revs) != abs(relative) + reldelta:
+            if assert_relative_length and \
+                    len(revs) != abs(relative) + reldelta:
                 raise RevisionError(
                     "Relative revision %s didn't "
                     "produce %d migrations" % (upper, abs(relative)))
@@ -412,7 +414,8 @@ class RevisionMap(object):
                     upper, to_,
                     inclusive=inclusive, implicit_base=implicit_base))
             revs = revs[0:-relative + reldelta]
-            if len(revs) != abs(relative) + reldelta:
+            if assert_relative_length and \
+                    len(revs) != abs(relative) + reldelta:
                 raise RevisionError(
                     "Relative revision %s didn't "
                     "produce %d migrations" % (lower, abs(relative)))
