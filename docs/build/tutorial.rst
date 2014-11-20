@@ -1929,19 +1929,6 @@ from the base using ``history -r networking@base:``::
 Note this is the same output we'd get at this point if we used
 ``-r :networking@head``.
 
-
-We have quite a lot of versioning going on, history overall now shows::
-
-    $ alembic history
-    109ec7d132bf -> 29f859a13ea (networking) (head), add DNS table
-    3782d9986ced -> 109ec7d132bf (networking), add ip number table
-    <base> -> 3782d9986ced (networking), create networking branch
-    ae1027a6acf -> 55af2cb1c267 (head), add another account column
-    1975ea83b712 -> ae1027a6acf, add a column
-    27c6a30d7c24 -> d747a8a8879 (shoppingcart) (head), add a shopping cart column
-    1975ea83b712 -> 27c6a30d7c24 (shoppingcart), add shopping cart table
-    <base> -> 1975ea83b712 (branchpoint), add account table
-
 We may now run upgrades or downgrades freely, among individual branches
 (let's assume a clean database again)::
 
@@ -1958,6 +1945,22 @@ or against the whole thing using ``heads``::
     INFO  [alembic.migration] Running upgrade 27c6a30d7c24 -> d747a8a8879, add a shopping cart column
     INFO  [alembic.migration] Running upgrade 1975ea83b712 -> ae1027a6acf, add a column
     INFO  [alembic.migration] Running upgrade ae1027a6acf -> 55af2cb1c267, add another account column
+
+Branch and Merge Nuttiness
+--------------------------
+
+We have quite a lot of versioning going on, history overall now shows::
+
+    $ alembic history
+    109ec7d132bf -> 29f859a13ea (networking) (head), add DNS table
+    3782d9986ced -> 109ec7d132bf (networking), add ip number table
+    <base> -> 3782d9986ced (networking), create networking branch
+    ae1027a6acf -> 55af2cb1c267 (head), add another account column
+    1975ea83b712 -> ae1027a6acf, add a column
+    27c6a30d7c24 -> d747a8a8879 (shoppingcart) (head), add a shopping cart column
+    1975ea83b712 -> 27c6a30d7c24 (shoppingcart), add shopping cart table
+    <base> -> 1975ea83b712 (branchpoint), add account table
+
 
 If you actually wanted, all three branches can be merged::
 
