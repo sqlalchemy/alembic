@@ -1,5 +1,8 @@
 #!coding: utf-8
 
+import os
+import tempfile
+
 from alembic import config, util, compat
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
@@ -14,6 +17,17 @@ from alembic.testing.env import _no_sql_testing_config, clear_staging_env,\
 
 
 class ConfigTest(TestBase):
+    def test_config_args(self):
+        config_file = tempfile.mktemp()
+        with open(config_file, "w") as fp:
+            fp.write("""
+[alembic]
+migrations = %(base_path)s/db/migrations
+""")
+        cfg = config.Config(config_file, config_args=dict(base_path = "/home/alembic"))
+        eq_(cfg.get_section_option("alembic", "migrations"), "/home/alembic/db/migrations")
+        print config_file
+        os.unlink(config_file)
 
     def test_config_no_file_main_option(self):
         cfg = config.Config()
