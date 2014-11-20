@@ -334,7 +334,7 @@ class ScriptDirectory(object):
             else:
                 # destination is in a branch not represented,
                 # treat it as new branch
-                step = migration.StampStep([None], dest.revision, True, True)
+                step = migration.StampStep((), dest.revision, True, True)
                 return [step]
 
     def run_env(self):

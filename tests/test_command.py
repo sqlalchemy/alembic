@@ -293,6 +293,15 @@ class UpgradeDowngradeStampTest(TestBase):
             "WHERE alembic_version.version_num = '%s';" % (self.c, self.a)
         ) in buf.getvalue()
 
+    def test_sql_stamp_from_partial_rev(self):
+        with capture_context_buffer() as buf:
+            command.stamp(self.cfg, "%s:head" % self.a[0:3], sql=True)
+        assert (
+            "UPDATE alembic_version "
+            "SET version_num='%s' "
+            "WHERE alembic_version.version_num = '%s';" % (self.c, self.a)
+        ) in buf.getvalue()
+
 
 class LiveStampTest(TestBase):
     __only_on__ = 'sqlite'
