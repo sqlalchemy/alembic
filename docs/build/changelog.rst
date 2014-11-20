@@ -27,6 +27,36 @@ Changelog
           :ref:`branches`
 
     .. change::
+      :tags: feature, operations, sqlite
+      :tickets: 21
+
+      Added "move and copy" workflow, where a table to be altered is copied to
+      a new one with the new structure and the old one dropped, is now
+      implemented for SQLite as well as all database backends in general
+      using the new :meth:`.Operations.batch_alter_table` system.   This
+      directive provides a table-specific operations context which gathers
+      column- and constraint-level mutations specific to that table, and
+      at the end of the context creates a new table combining the structure
+      of the old one with the given changes, copies data from old table to new,
+      and finally drops the old table,
+      renaming the new one to the existing name.  This is required for
+      fully featured SQLite migrations, as SQLite has very little support for the
+      traditional ALTER directive.   The batch directive
+      is intended to produce code that is still compatible with other databases,
+      in that the "move and copy" process only occurs for SQLite by default,
+      while still providing some level of sanity to SQLite's
+      requirement by allowing multiple table mutation operations to
+      proceed within one "move and copy" as well as providing explicit
+      control over when this operation actually occurs.  The "move and copy"
+      feature may be optionally applied to other backends as well, however
+      dealing with referential integrity constraints from other tables must
+      still be handled explicitly.
+
+      .. seealso::
+
+          :ref:`batch_migrations`
+
+    .. change::
       :tags: feature, commands
 
       New commands added: ``alembic show``, ``alembic heads`` and
@@ -85,36 +115,6 @@ Changelog
       the appropriate ``CREATE INDEX`` statement if the
       :class:`~sqlalchemy.schema.Column` object specifies ``index=True``.
       Pull request courtesy David Szotten.
-
-    .. change::
-      :tags: feature, operations, sqlite
-      :tickets: 21
-
-      Added "move and copy" workflow, where a table to be altered is copied to
-      a new one with the new structure and the old one dropped, is now
-      implemented for SQLite as well as all database backends in general
-      using the new :meth:`.Operations.batch_alter_table` system.   This
-      directive provides a table-specific operations context which gathers
-      column- and constraint-level mutations specific to that table, and
-      at the end of the context creates a new table combining the structure
-      of the old one with the given changes, copies data from old table to new,
-      and finally drops the old table,
-      renaming the new one to the existing name.  This is required for
-      fully featured SQLite migrations, as SQLite has very little support for the
-      traditional ALTER directive.   The batch directive
-      is intended to produce code that is still compatible with other databases,
-      in that the "move and copy" process only occurs for SQLite by default,
-      while still providing some level of sanity to SQLite's
-      requirement by allowing multiple table mutation operations to
-      proceed within one "move and copy" as well as providing explicit
-      control over when this operation actually occurs.  The "move and copy"
-      feature may be optionally applied to other backends as well, however
-      dealing with referential integrity constraints from other tables must
-      still be handled explicitly.
-
-      .. seealso::
-
-          :ref:`batch_migrations`
 
     .. change::
       :tags: feature, operations
