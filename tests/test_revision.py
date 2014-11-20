@@ -319,6 +319,26 @@ class LabeledBranchTest(DownIterateTest):
         )
 
 
+class LongShortBranchTest(DownIterateTest):
+    def setUp(self):
+        self.map = RevisionMap(
+            lambda: [
+                Revision('a', ()),
+                Revision('b1', ('a',)),
+                Revision('b2', ('a',)),
+                Revision('c1', ('b1',)),
+                Revision('d11', ('c1',)),
+                Revision('d12', ('c1',)),
+            ]
+        )
+
+    def test_iterate_full(self):
+        self._assert_iteration(
+            "heads", "base",
+            ['b2', 'd11', 'd12', 'c1', 'b1', 'a']
+        )
+
+
 class MultipleBranchTest(DownIterateTest):
     def setUp(self):
         self.map = RevisionMap(

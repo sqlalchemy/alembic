@@ -505,6 +505,7 @@ class RevisionMap(object):
         else:
             lowers = requested_lowers
 
+        # represents all nodes we will produce
         total_space = set(
             rev.revision for rev in upper_ancestors).intersection(
             rev.revision for rev
@@ -514,43 +515,52 @@ class RevisionMap(object):
         if not total_space:
             raise RangeNotAncestorError(lower, upper)
 
-        branch_endpoints = set(
-            rev.revision for rev in
+        # organize branch points to be consumed separately from
+        # member nodes
+        branch_todo = set(
+            rev for rev in
             (self._revision_map[rev] for rev in total_space)
             if rev.is_branch_point and
             len(total_space.intersection(rev.nextrev)) > 1
         )
 
+        # it's not possible for any "uppers" to be in branch_todo,
+        # because the .nextrev of those nodes is not in total_space
+        #assert not branch_todo.intersection(uppers)
+
         todo = collections.deque(
             r for r in uppers if r.revision in total_space)
-        stop = set(lowers)
-        if implicit_base:
-            stop.update(self._get_ancestor_nodes(requested_lowers))
-        while todo:
-            stop.update(
-                rev.revision for rev in todo
-                if rev.revision in branch_endpoints)
-            rev = todo.popleft()
 
-            # do depth first for elements within the branches
-            todo.extendleft([
-                self._revision_map[downrev]
-                for downrev in reversed(rev._down_revision_tuple)
-                if downrev not in branch_endpoints and downrev not in stop
-                and downrev in total_space])
+        # iterate for total_space being emptied out
+        while total_space:
+            # when everything non-branch pending is consumed,
+            # add to the todo any branch nodes that have no
+            # descendants left in the queue
+            if not todo:
+                todo.extendleft(
+                    rev for rev in branch_todo
+                    if not rev.nextrev.intersection(total_space)
+                )
+                branch_todo.difference_update(todo)
 
-            # then put the actual branch points at the end of the
-            # list for subsequent traversal
-            todo.extend([
-                self._revision_map[downrev]
-                for downrev in rev._down_revision_tuple
-                if downrev in branch_endpoints and downrev not in stop
-                and downrev in total_space
-            ])
+            # iterate nodes that are in the immediate todo
+            while todo:
+                rev = todo.popleft()
+                total_space.remove(rev.revision)
 
-            if not inclusive and rev in requested_lowers:
-                continue
-            yield rev
+                # do depth first for elements within branches,
+                # don't consume any actual branch nodes
+                todo.extendleft([
+                    self._revision_map[downrev]
+                    for downrev in reversed(rev._down_revision_tuple)
+                    if self._revision_map[downrev] not in branch_todo
+                    and downrev in total_space])
+
+                if not inclusive and rev in requested_lowers:
+                    continue
+                yield rev
+
+        assert not branch_todo
 
 
 class Revision(object):
