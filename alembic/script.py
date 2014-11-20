@@ -549,8 +549,13 @@ class Script(revision.Revision):
             " (mergepoint)" if self.is_merge_point else "",
             self.doc)
 
-    def _head_only(self, include_branches=False):
+    def _head_only(
+            self, include_branches=False, include_doc=False,
+            include_parents=False):
         text = self.revision
+        if include_parents:
+            text = "%s -> %s" % (
+                self._format_down_revision(), text)
         if include_branches and self.branch_labels:
             text += " (%s)" % util.format_as_comma(self.branch_labels)
         text += "%s%s%s" % (
@@ -558,15 +563,20 @@ class Script(revision.Revision):
             " (branchpoint)" if self.is_branch_point else "",
             " (mergepoint)" if self.is_merge_point else "",
         )
+        if include_doc:
+            text += ", %s" % self.doc
         return text
 
     def cmd_format(
         self,
-            verbose, short_head_status=True, include_branches=False):
+            verbose, short_head_status=True,
+            include_branches=False, include_doc=False,
+            include_parents=False):
         if verbose:
             return self.log_entry
-        elif short_head_status or include_branches:
-            return self._head_only(include_branches)
+        elif short_head_status or include_branches or \
+                include_doc or include_parents:
+            return self._head_only(include_branches, include_doc, include_parents)
         else:
             return self.revision
 

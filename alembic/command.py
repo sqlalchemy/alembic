@@ -109,7 +109,15 @@ def revision(
 
 
 def merge(config, revisions, message=None, branch_label=None):
-    """Merge two revisions together.  Creates a new migration file."""
+    """Merge two revisions together.  Creates a new migration file.
+
+    .. versionadded:: 0.7.0
+
+    .. seealso::
+
+        :ref:`branches`
+
+    """
 
     script = ScriptDirectory.from_config(config)
     template_args = {
@@ -197,7 +205,7 @@ def show(config, rev):
             config.print_stdout(sc.log_entry)
 
 
-def history(config, rev_range=None):
+def history(config, rev_range=None, verbose=False):
     """List changeset scripts in chronological order."""
 
     script = ScriptDirectory.from_config(config)
@@ -214,9 +222,10 @@ def history(config, rev_range=None):
         for sc in script.walk_revisions(
                 base=base or "base",
                 head=head or "heads"):
-            if sc.is_head:
-                config.print_stdout("")
-            config.print_stdout(sc.log_entry)
+            config.print_stdout(
+                sc.cmd_format(
+                    verbose=verbose, include_branches=True,
+                    include_doc=True, include_parents=True))
 
     def _display_history_w_current(config, script, base=None, head=None):
         def _display_current_history(rev, context):
@@ -260,7 +269,8 @@ def branches(config, verbose=False):
                 "\n".join(
                     "%s -> %s" % (
                         " " * len(str(sc.revision)),
-                        rev_obj.cmd_format(False, include_branches=True)
+                        rev_obj.cmd_format(
+                            False, include_branches=True, include_doc=verbose)
                     ) for rev_obj in
                     (script.get_revision(rev) for rev in sc.nextrev)
                 )

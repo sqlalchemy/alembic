@@ -249,6 +249,9 @@ the SQLAlchemy URL is all that's needed::
 
     sqlalchemy.url = postgresql://scott:tiger@localhost/test
 
+
+.. _create_migration:
+
 Create a Migration Script
 =========================
 
@@ -271,6 +274,7 @@ A new file ``1975ea83b712_create_account_table.py`` is generated.  Looking insid
     # revision identifiers, used by Alembic.
     revision = '1975ea83b712'
     down_revision = None
+    branch_labels = None
 
     from alembic import op
     import sqlalchemy as sa
@@ -359,7 +363,7 @@ Let's do another one so we have some things to play with.    We again create a r
 file::
 
     $ alembic revision -m "Add a column"
-    Generating /path/to/yourapp/alembic/versions/ae1027a6acf.py_add_a_column.py...
+    Generating /path/to/yourapp/alembic/versions/ae1027a6acf_add_a_column.py...
     done
 
 Let's edit this file and add a new column to the ``account`` table::
@@ -397,7 +401,8 @@ We've now added the ``last_transaction_date`` column to the database.
 Relative Migration Identifiers
 ==============================
 
-As of 0.3.3, relative upgrades/downgrades are also supported.  To move two versions from the current, a decimal value "+N" can be supplied::
+Relative upgrades/downgrades are also supported.  To move two versions from
+the current, a decimal value "+N" can be supplied::
 
     $ alembic upgrade +2
 
@@ -1333,20 +1338,43 @@ tokenized::
 For more detail on the naming convention feature, see :ref:`sqla:constraint_naming_conventions`.
 
 
+.. _branches:
 
 Working with Branches
 =====================
 
-A *branch* describes when a source tree is broken up into two versions representing
-two independent sets of changes.   The challenge of a branch is to *merge* the
+.. note:: Alembic 0.7.0 features an all-new versioning model that fully
+   supports branch points, merge points, and long-lived, labeled branches,
+   including independent branches originating from multiple bases.
+   A great emphasis has been placed on there being almost no impact on the
+   existing Alembic workflow, including that all commands work pretty much
+   the same as they did before, the format of migration files doesn't require
+   any change (though there are some changes that are recommended),
+   and even the structure of the ``alembic_version``
+   table does not change at all.  However, most alembic commands now offer
+   new features which will break out an Alembic environment into
+   "branch mode", where things become a lot more intricate.   Working in
+   "branch mode" should be considered as a "beta" feature, with many new
+   paradigms and use cases still to be stress tested in the wild.
+   Please tread lightly!
+
+.. versionadded:: 0.7.0
+
+A **branch** describes when a source tree is broken up into two versions representing
+two independent sets of changes.   The challenge of a branch is to **merge** the
 branches into a single series of changes.  Alembic's GUID-based version number scheme
 allows branches to be reconciled.
 
-Consider if we merged into our source repository another branch which contained
-a revision for another table called ``shopping_cart``.   This revision was made
+Starting with the "account table" example we began in :ref:`create_migration`,
+assume we have our basemost version ``1975ea83b712``, which leads into
+the second revision ``ae1027a6acf``, and the migration files for these
+two revisions are checked into our source repository.
+Consider if we merged into our source repository another code branch which contained
+a revision for another table called ``shopping_cart``.  This revision was made
 against our first Alembic revision, the one that generated ``account``.   After
-loading the second source tree in, a new file ``27c6a30d7c24.py`` exists within
-our ``versions`` directory.   Both it, as well as ``ae1027a6acf.py``, reference
+loading the second source tree in, a new file
+``27c6a30d7c24_add_accont_table.py`` exists within our ``versions`` directory.
+Both it, as well as ``ae1027a6acf_add_a_column.py``, reference
 ``1975ea83b712`` as the "downgrade" revision.  To illustrate::
 
     # main source tree:
@@ -1355,67 +1383,230 @@ our ``versions`` directory.   Both it, as well as ``ae1027a6acf.py``, reference
     # branched source tree
     1975ea83b712 (add account table) -> 27c6a30d7c24 (add shopping cart table)
 
-So above we can see 1975ea83b712 is our *branch point*.  The Alembic command ``branches``
-illustrates this fact::
+Above, we can see 1975ea83b712 is our **branch point**; two distinct versions
+both refer to it as its parent.  The Alembic command ``branches`` illustrates
+this fact::
 
-    $ alembic branches
-    None -> 1975ea83b712 (branchpoint), add account table
-         -> 1975ea83b712 -> 27c6a30d7c24 (head), add shopping cart table
-         -> 1975ea83b712 -> ae1027a6acf (head), add a column
+  $ alembic branches --verbose
+  Rev: 1975ea83b712 (branchpoint)
+  Parent: <base>
+  Branches into: 27c6a30d7c24, ae1027a6acf
+  Path: foo/versions/1975ea83b712_add_account_table.py
+
+      add account table
+
+      Revision ID: 1975ea83b712
+      Revises:
+      Create Date: 2014-11-20 13:02:46.257104
+
+               -> 27c6a30d7c24 (head), add shopping cart table
+               -> ae1027a6acf (head), add a column
 
 History shows it too, illustrating two ``head`` entries as well
 as a ``branchpoint``::
 
     $ alembic history
-
     1975ea83b712 -> 27c6a30d7c24 (head), add shopping cart table
-
     1975ea83b712 -> ae1027a6acf (head), add a column
-    None -> 1975ea83b712 (branchpoint), add account table
+    <base> -> 1975ea83b712 (branchpoint), add account table
 
-Alembic will also refuse to run any migrations until this is resolved::
+We can get a view of just the current heads using ``alembic heads``::
+
+    $ alembic heads --verbose
+    Rev: 27c6a30d7c24 (head)
+    Parent: 1975ea83b712
+    Path: foo/versions/27c6a30d7c24_add_shopping_cart_table.py
+
+        add shopping cart table
+
+        Revision ID: 27c6a30d7c24
+        Revises: 1975ea83b712
+        Create Date: 2014-11-20 13:03:11.436407
+
+    Rev: ae1027a6acf (head)
+    Parent: 1975ea83b712
+    Path: foo/versions/ae1027a6acf_add_a_column.py
+
+        add a column
+
+        Revision ID: ae1027a6acf
+        Revises: 1975ea83b712
+        Create Date: 2014-11-20 13:02:54.849677
+
+If we try to run an ``upgrade`` to the usual end target of ``head``, Alembic no
+longer considers this to be an unambiguous command.  As we have more than
+one ``head``, the ``upgrade`` command wants us to provide more information::
 
     $ alembic upgrade head
-    INFO  [alembic.context] Context class PostgresqlContext.
-    INFO  [alembic.context] Will assume transactional DDL.
-    Exception: Only a single head supported so far...
+      FAILED: Multiple head revisions are present for given argument 'head'; please specify a specific
+      target revision, '<branchname>@head' to narrow to a specific head, or 'heads' for all heads
 
-We resolve this branch by editing the files to be in a straight line.   In this case we edit
-``27c6a30d7c24.py`` to point to ``ae1027a6acf.py``::
+The ``upgrade`` command gives us quite a few options in which we can proceed
+with our upgrade, either giving it information on *which* head we'd like to upgrade
+towards, or alternatively stating that we'd like *all* heads to be upgraded
+towards at once.
 
-    """add shopping cart table
+However, in the typical case of two source trees being merged, we will
+want to pursue a third option, which is that we can **merge** these
+branches.   An Alembic merge is a new migration file that joins two or
+more "head" files together. If the two branches we have right now can
+be said to be a "tree" structure, introducing this merge file will
+turn it into a "diamond" structure::
 
-    Revision ID: 27c6a30d7c24
-    Revises: ae1027a6acf  # changed from 1975ea83b712
-    Create Date: 2011-11-08 13:02:14.212810
+                                -- ae1027a6acf -->
+                               /                   \
+    <base> --> 1975ea83b712 -->                      --> mergepoint
+                               \                   /
+                                -- 27c6a30d7c24 -->
+
+We create the merge file using ``alembic merge``; with this command, we can
+pass to it an argument such as ``heads``, meaning we'd like to merge all
+heads.  Or, we can pass it individual revision numbers sequentally::
+
+    python -m alembic.config merge -m "merge ae1 and 27c" ae1027 27c6a
+      Generating /path_to/foo/versions/53fffde5ad5_merge_ae1_and_27c.py ... done
+
+Looking inside the new file, we see it as a regular migration file, with
+the only new twist is that the ``down_migrations`` points to both revisions::
+
+    """merge ae1 and 27c
+
+    Revision ID: 53fffde5ad5
+    Revises: ae1027a6acf, 27c6a30d7c24
+    Create Date: 2014-11-20 13:31:50.811663
 
     """
 
     # revision identifiers, used by Alembic.
-    revision = '27c6a30d7c24'
-    # changed from 1975ea83b712
-    down_revision = 'ae1027a6acf'
+    revision = '53fffde5ad5'
+    down_revision = ('ae1027a6acf', '27c6a30d7c24')
+    branch_labels = None
 
-.. sidebar:: The future of Branches
+    from alembic import op
+    import sqlalchemy as sa
 
-    As of this writing, a new approach to branching has been planned.  When
-    implemented, the task of manually splicing files into a line will no longer
-    be needed; instead, a simple command along the lines of ``alembic merge``
-    will be able to produce merges of migration files.   Keep a lookout
-    for future Alembic versions!
 
-The ``branches`` command then shows no branches::
+    def upgrade():
+        pass
 
-    $ alembic branches
-    $
 
-And the history is similarly linear::
+    def downgrade():
+        pass
+
+This file is a regular migration file, and if we wish to, we may place
+:class:`.Operations` directives into the ``upgrade()`` and ``downgrade()``
+functions like any other migration file.  Though it is probably best to limit
+the instructions placed here only to those that deal with any kind of
+reconciliation that is needed between the two merged branches, if any.
+
+The ``heads`` command now illustrates that the multiple heads in our
+``versions/`` directory have been resolved into our new head::
+
+    $ alembic heads --verbose
+    Rev: 53fffde5ad5 (head) (mergepoint)
+    Merges: ae1027a6acf, 27c6a30d7c24
+    Path: foo/versions/53fffde5ad5_merge_ae1_and_27c.py
+
+        merge ae1 and 27c
+
+        Revision ID: 53fffde5ad5
+        Revises: ae1027a6acf, 27c6a30d7c24
+        Create Date: 2014-11-20 13:31:50.811663
+
+History shows a similar result, as the mergepoint becomes our head::
 
     $ alembic history
-
-    ae1027a6acf -> 27c6a30d7c24 (head), add shopping cart table
+    ae1027a6acf, 27c6a30d7c24 -> 53fffde5ad5 (head) (mergepoint), merge ae1 and 27c
     1975ea83b712 -> ae1027a6acf, add a column
-    None -> 1975ea83b712, add account table
+    1975ea83b712 -> 27c6a30d7c24, add shopping cart table
+    <base> -> 1975ea83b712 (branchpoint), add account table
+
+With a single ``head`` target, a generic ``upgrade `` can proceed::
+
+    $ alembic upgrade head
+    INFO  [alembic.migration] Context impl PostgresqlImpl.
+    INFO  [alembic.migration] Will assume transactional DDL.
+    INFO  [alembic.migration] Running upgrade  -> 1975ea83b712, add account table
+    INFO  [alembic.migration] Running upgrade 1975ea83b712 -> 27c6a30d7c24, add shopping cart table
+    INFO  [alembic.migration] Running upgrade 1975ea83b712 -> ae1027a6acf, add a column
+    INFO  [alembic.migration] Running upgrade ae1027a6acf, 27c6a30d7c24 -> 53fffde5ad5, merge ae1 and 27c
+
+
+.. topic:: merge mechanics
+
+  The upgrade process traverses through all of our migration files using
+  a  **topological sorting** algorithm, treating the list of migration
+  files not as a linked list, but as a **directed acyclic graph**.  The starting
+  points of this traversal are the **current heads** within our database,
+  and the end point is the "head" revision or revisions specified.
+
+  When a migration proceeds across a point at which there are multiple heads,
+  the ``alembic_version`` table will at that point store *multiple* rows,
+  one for each head.  Our migration process above will emit SQL against
+  ``alembic_version`` along these lines:
+
+    .. sourcecode:: sql
+
+      -- Running upgrade  -> 1975ea83b712, add account table
+      INSERT INTO alembic_version (version_num) VALUES ('1975ea83b712')
+
+      -- Running upgrade 1975ea83b712 -> 27c6a30d7c24, add shopping cart table
+      UPDATE alembic_version SET version_num='27c6a30d7c24' WHERE alembic_version.version_num = '1975ea83b712'
+
+      -- Running upgrade 1975ea83b712 -> ae1027a6acf, add a column
+      INSERT INTO alembic_version (version_num) VALUES ('ae1027a6acf')
+
+      -- Running upgrade ae1027a6acf, 27c6a30d7c24 -> 53fffde5ad5, merge ae1 and 27c
+      DELETE FROM alembic_version WHERE alembic_version.version_num = 'ae1027a6acf'
+      UPDATE alembic_version SET version_num='53fffde5ad5' WHERE alembic_version.version_num = '27c6a30d7c24'
+
+  At the point at which both 27c6a30d7c24 and ae1027a6acf exist within our
+  database, both values are present in ``alembic_version``, which now has
+  two rows.   If we upgrade to these two versions alone, then stop and
+  run ``alembic current``, we will see this::
+
+      $ alembic current --verbose
+      Current revision(s) for postgresql://scott:XXXXX@localhost/test:
+      Rev: ae1027a6acf
+      Parent: 1975ea83b712
+      Path: foo/versions/ae1027a6acf_add_a_column.py
+
+          add a column
+
+          Revision ID: ae1027a6acf
+          Revises: 1975ea83b712
+          Create Date: 2014-11-20 13:02:54.849677
+
+      Rev: 27c6a30d7c24
+      Parent: 1975ea83b712
+      Path: foo/versions/27c6a30d7c24_add_shopping_cart_table.py
+
+          add shopping cart table
+
+          Revision ID: 27c6a30d7c24
+          Revises: 1975ea83b712
+          Create Date: 2014-11-20 13:03:11.436407
+
+  A key advantage to the ``merge`` process is that this merge process will
+  run equally well on databases that were present on version ``ae1027a6acf``
+  alone, versus databases that were present on version ``27c6a30d7c24`` alone;
+  whichever version was not yet applied, will be applied before the merge point
+  can be crossed.   This brings forth a way of thinking about a merge file;
+  it's a point that cannot be crossed until all of its dependencies are
+  satisfied.
+
+  Prior to Alembic's support of merge points, the use case of databases
+  sitting on different heads was basically impossible to reconcile; having
+  to manually splice the head files together invariably meant that one migration
+  would occur before the other, thus being incompatible with databases that
+  were present on the other migration.
+
+Working with Explicit Branches
+------------------------------
+
+Working with Multiple Bases
+---------------------------
+
 
 
 .. _building_uptodate:

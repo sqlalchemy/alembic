@@ -7,6 +7,15 @@ Changelog
     :version: 0.7.0
 
     .. change::
+      :tags: feature, commands
+
+      New commands added: ``alembic show``and ``alembic merge``.  Also,
+      a new option ``--verbose`` has been added to several informational
+      commands, such as ``alembic current``, ``alembic branches``, and
+      ``alembic heads``.   ``alembic revision`` also contains several new
+      options used within the new branch management system.
+
+    .. change::
       :tags: changed, commands
 
       The ``--head_only`` option to the ``alembic current`` command is
