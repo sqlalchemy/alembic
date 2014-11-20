@@ -255,7 +255,9 @@ def heads(config, verbose=False):
 
     script = ScriptDirectory.from_config(config)
     for rev in script.get_revisions("heads"):
-        config.print_stdout(rev.cmd_format(verbose, short_head_status=False))
+        config.print_stdout(
+            rev.cmd_format(
+                verbose, include_branches=True, tree_indicators=False))
 
 
 def branches(config, verbose=False):

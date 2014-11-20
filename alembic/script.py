@@ -551,34 +551,34 @@ class Script(revision.Revision):
 
     def _head_only(
             self, include_branches=False, include_doc=False,
-            include_parents=False):
+            include_parents=False, tree_indicators=True):
         text = self.revision
         if include_parents:
             text = "%s -> %s" % (
                 self._format_down_revision(), text)
         if include_branches and self.branch_labels:
             text += " (%s)" % util.format_as_comma(self.branch_labels)
-        text += "%s%s%s" % (
-            " (head)" if self.is_head else "",
-            " (branchpoint)" if self.is_branch_point else "",
-            " (mergepoint)" if self.is_merge_point else "",
-        )
+        if tree_indicators:
+            text += "%s%s%s" % (
+                " (head)" if self.is_head else "",
+                " (branchpoint)" if self.is_branch_point else "",
+                " (mergepoint)" if self.is_merge_point else "",
+            )
         if include_doc:
             text += ", %s" % self.doc
         return text
 
     def cmd_format(
         self,
-            verbose, short_head_status=True,
+            verbose,
             include_branches=False, include_doc=False,
-            include_parents=False):
+            include_parents=False, tree_indicators=True):
         if verbose:
             return self.log_entry
-        elif short_head_status or include_branches or \
-                include_doc or include_parents:
-            return self._head_only(include_branches, include_doc, include_parents)
         else:
-            return self.revision
+            return self._head_only(
+                include_branches, include_doc,
+                include_parents, tree_indicators)
 
     def _format_down_revision(self):
         if not self.down_revision:
