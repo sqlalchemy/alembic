@@ -1405,9 +1405,9 @@ Consider if we merged into our source repository another code branch which conta
 a revision for another table called ``shopping_cart``.  This revision was made
 against our first Alembic revision, the one that generated ``account``.   After
 loading the second source tree in, a new file
-``27c6a30d7c24_add_accont_table.py`` exists within our ``versions`` directory.
+``27c6a30d7c24_add_shopping_cart_table.py`` exists within our ``versions`` directory.
 Both it, as well as ``ae1027a6acf_add_a_column.py``, reference
-``1975ea83b712`` as the "downgrade" revision.  To illustrate::
+``1975ea83b712_add_account_table.py`` as the "downgrade" revision.  To illustrate::
 
     # main source tree:
     1975ea83b712 (add account table) -> ae1027a6acf (add a column)
