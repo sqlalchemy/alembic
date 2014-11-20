@@ -1,5 +1,8 @@
 #!coding: utf-8
 
+import os
+import tempfile
+
 from alembic import config, util, compat
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
@@ -10,7 +13,24 @@ from alembic.testing.mock import Mock, call
 from alembic.testing import eq_, assert_raises_message
 from alembic.testing.fixtures import capture_db
 from alembic.testing.env import _no_sql_testing_config, clear_staging_env,\
-    staging_env
+    staging_env, _write_config_file
+
+
+class FileConfigTest(TestBase):
+    def test_config_args(self):
+        cfg = _write_config_file("""
+[alembic]
+migrations = %(base_path)s/db/migrations
+""")
+        test_cfg = config.Config(
+            cfg.config_file_name, config_args=dict(base_path="/home/alembic")
+        )
+        eq_(
+            test_cfg.get_section_option("alembic", "migrations"),
+            "/home/alembic/db/migrations")
+
+    def tearDown(self):
+        clear_staging_env()
 
 
 class ConfigTest(TestBase):

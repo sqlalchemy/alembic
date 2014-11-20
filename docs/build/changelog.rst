@@ -14,6 +14,15 @@ Changelog
       alone by default; use ``--verbose`` to get at additional output.
 
     .. change::
+      :tags: feature, config
+      :pullreq: bitbucket:33
+
+      Added new argument :paramref:`.Config.config_args`, allows a dictionary
+      of replacement variables to be passed which will serve as substitution
+      values when an API-produced :class:`.Config` consumes the ``.ini``
+      file.  Pull request courtesy Noufal Ibrahim.
+
+    .. change::
       :tags: bug, oracle
       :tickets: 245
 
