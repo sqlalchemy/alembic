@@ -1382,10 +1382,20 @@ Working with Branches
 
 .. versionadded:: 0.7.0
 
-A **branch** describes when a source tree is broken up into two versions representing
-two independent sets of changes.   The challenge of a branch is to **merge** the
-branches into a single series of changes.  Alembic's GUID-based version number scheme
-allows branches to be reconciled.
+A **branch** describes a point in a migration stream when two or more
+versions refer to the same parent migration as their anscestor.  Branches
+occur naturally when two divergent source trees, both containing Alembic
+revision files created independently within those source trees, are merged
+together into one.  When this occurs, the challenge of a branch is to **merge** the
+branches into a single series of changes, so that databases established
+from either source tree individually can be upgraded to reference the merged
+result equally.  Another scenario where branches are present are when we create them
+directly; either at some point in the migration stream we'd like different
+series of migrations to be managed independently (e.g. we create a tree),
+or we'd like separate migration streams for different features starting
+at the root (e.g. a *forest*).  We'll illustrate all of these cases, starting
+with the most common which is a source-merge-originated branch that we'll
+merge.
 
 Starting with the "account table" example we began in :ref:`create_migration`,
 assume we have our basemost version ``1975ea83b712``, which leads into
@@ -1405,7 +1415,7 @@ Both it, as well as ``ae1027a6acf_add_a_column.py``, reference
     # branched source tree
     1975ea83b712 (add account table) -> 27c6a30d7c24 (add shopping cart table)
 
-Above, we can see 1975ea83b712 is our **branch point**; two distinct versions
+Above, we can see ``1975ea83b712`` is our **branch point**; two distinct versions
 both refer to it as its parent.  The Alembic command ``branches`` illustrates
 this fact::
 
@@ -1488,7 +1498,7 @@ We create the merge file using ``alembic merge``; with this command, we can
 pass to it an argument such as ``heads``, meaning we'd like to merge all
 heads.  Or, we can pass it individual revision numbers sequentally::
 
-    python -m alembic.config merge -m "merge ae1 and 27c" ae1027 27c6a
+    $ alembic merge -m "merge ae1 and 27c" ae1027 27c6a
       Generating /path/to/foo/versions/53fffde5ad5_merge_ae1_and_27c.py ... done
 
 Looking inside the new file, we see it as a regular migration file, with
@@ -1546,7 +1556,7 @@ History shows a similar result, as the mergepoint becomes our head::
     1975ea83b712 -> 27c6a30d7c24, add shopping cart table
     <base> -> 1975ea83b712 (branchpoint), add account table
 
-With a single ``head`` target, a generic ``upgrade `` can proceed::
+With a single ``head`` target, a generic ``upgrade`` can proceed::
 
     $ alembic upgrade head
     INFO  [alembic.migration] Context impl PostgresqlImpl.
@@ -1612,7 +1622,7 @@ With a single ``head`` target, a generic ``upgrade `` can proceed::
           Revises: 1975ea83b712
           Create Date: 2014-11-20 13:03:11.436407
 
-  A key advantage to the ``merge`` process is that this merge process will
+  A key advantage to the ``merge`` process is that it will
   run equally well on databases that were present on version ``ae1027a6acf``
   alone, versus databases that were present on version ``27c6a30d7c24`` alone;
   whichever version was not yet applied, will be applied before the merge point
@@ -1741,7 +1751,7 @@ label applied to this revision::
     1975ea83b712 -> ae1027a6acf (head), add a column
     <base> -> 1975ea83b712 (branchpoint), add account table
 
-With the label applied the name ``shoppingcart`` now serves as an alias
+With the label applied, the name ``shoppingcart`` now serves as an alias
 for the ``27c6a30d7c24`` revision specifically.  We can illustrate this
 by showing it with ``alembic show``::
 
@@ -1823,6 +1833,16 @@ revision in our listing as well.  The ``<branchname>@base`` syntax can be
 useful when we are dealing with individual bases, as we'll see in the next
 section.
 
+The ``<branchname>@head`` format can also be used with revision numbers
+instead of branch names, though this is less convenient.  If we wanted to
+add a new revision to our branch that includes the un-labeled ``ae1027a6acf``,
+if this weren't a head already, we could ask for the "head of the branch
+that includes ``ae1027a6acf``" as follows::
+
+    $ alembic revision -m "add another account column" --head ae10@head
+      Generating /Users/classic/dev/alembic/foo/versions/55af2cb1c267_add_another_account_column.py ... done
+
+
 Working with Multiple Bases
 ---------------------------
 
@@ -1832,7 +1852,7 @@ if we have multiple heads, ``alembic revision`` allows us to tell it which
 allow us to assign names to branches that we can use in subsequent commands.
 Let's put all these together and refer to a new "base", that is, a whole
 new tree of revision files that will be semi-independent of the account/shopping
-cart tables we've been working with.
+cart revisions we've been working with.
 
 Creating a Labeled Base Revision
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1898,16 +1918,19 @@ we didn't mean to specify the head::
       FAILED: Revision 3782d9986ced is not a head revision; please
       specify --splice to create a new branch from this revision
 
-The ``<branchname>@head`` format can also be used with revision numbers
-instead of branch names, though this is less convenient.  If we wanted to
-add a new revision to our branch that includes the un-labeled ``ae1027a6acf``,
-if this weren't a head already, we could ask for the "head of the branch
-that includes ``ae1027a6acf``" as follows::
+As mentioned earlier, as this base is independent, we can view its history
+from the base using ``history -r networking@base:``::
 
-    $ alembic revision -m "add another account column" --head ae10@head
-      Generating /Users/classic/dev/alembic/foo/versions/55af2cb1c267_add_another_account_column.py ... done
+    $ alembic history -r networking@base:
+    109ec7d132bf -> 29f859a13ea (networking) (head), add DNS table
+    3782d9986ced -> 109ec7d132bf (networking), add ip number table
+    <base> -> 3782d9986ced (networking), create networking branch
 
-We have quite a lot of versioning going on, history now shows::
+Note this is the same output we'd get at this point if we used
+``-r :networking@head``.
+
+
+We have quite a lot of versioning going on, history overall now shows::
 
     $ alembic history
     109ec7d132bf -> 29f859a13ea (networking) (head), add DNS table
@@ -1936,7 +1959,7 @@ or against the whole thing using ``heads``::
     INFO  [alembic.migration] Running upgrade 1975ea83b712 -> ae1027a6acf, add a column
     INFO  [alembic.migration] Running upgrade ae1027a6acf -> 55af2cb1c267, add another account column
 
-If you actually wanted it, all three branches can be merged::
+If you actually wanted, all three branches can be merged::
 
     $ alembic merge -m "merge all three branches" heads
       Generating /Users/classic/dev/alembic/foo/versions/3180f4d6e81d_merge_all_three_branches.py ... done
@@ -1981,8 +2004,10 @@ unnamed ``ae1027a6acf`` branch since we've merged everything together.
     <base> -> 1975ea83b712 (branchpoint), add account table
 
 It follows then that the "branch labels" feature is useful for branches
-that are **unmerged**.  Once branches are merged into a single stream, the
-usefulness of labels is not as apparent.
+that are **unmerged**.  Once branches are merged into a single stream, labels
+are not particularly useful as they tend to refer to the whole revision
+stream in any case.  They can of course be removed from revision files
+at the point at which they are no longer useful, or moved to other files.
 
 For posterity, here's the graph of the whole thing::
 
