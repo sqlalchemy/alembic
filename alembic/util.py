@@ -5,13 +5,14 @@ import warnings
 import re
 import inspect
 import uuid
+import collections
 
 from mako.template import Template
 from sqlalchemy.engine import url
 from sqlalchemy import __version__
 
 from .compat import callable, exec_, load_module_py, load_module_pyc, \
-    binary_type
+    binary_type, string_types, py27
 
 
 class CommandError(Exception):
@@ -43,6 +44,11 @@ from sqlalchemy.util.compat import inspect_getfullargspec
 
 import logging
 log = logging.getLogger(__name__)
+
+if py27:
+    # disable "no handler found" errors
+    logging.getLogger('alembic').addHandler(logging.NullHandler())
+
 
 try:
     import fcntl
@@ -280,6 +286,28 @@ def pyc_file_from_path(path):
 def rev_id():
     val = int(uuid.uuid4()) % 100000000000000
     return hex(val)[2:-1]
+
+
+def to_tuple(x, default=None):
+    if x is None:
+        return default
+    elif isinstance(x, string_types):
+        return (x, )
+    elif isinstance(x, collections.Iterable):
+        return tuple(x)
+    else:
+        raise ValueError("Don't know how to turn %r into a tuple" % x)
+
+
+def format_as_comma(value):
+    if value is None:
+        return ""
+    elif isinstance(value, string_types):
+        return value
+    elif isinstance(value, collections.Iterable):
+        return ", ".join(value)
+    else:
+        raise ValueError("Don't know how to comma-format %r" % value)
 
 
 class memoized_property(object):

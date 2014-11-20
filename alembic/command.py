@@ -18,7 +18,7 @@ def list_templates(config):
         config.print_stdout("%s - %s", tempname, synopsis)
 
     config.print_stdout("\nTemplates are used via the 'init' command, e.g.:")
-    config.print_stdout("\n  alembic init --template pylons ./scripts")
+    config.print_stdout("\n  alembic init --template generic ./scripts")
 
 
 def init(config, directory, template='generic'):
@@ -64,7 +64,9 @@ def init(config, directory, template='generic'):
              "settings in %r before proceeding." % config_file)
 
 
-def revision(config, message=None, autogenerate=False, sql=False):
+def revision(
+        config, message=None, autogenerate=False, sql=False,
+        head="head", splice=False, branch_label=None):
     """Create a new revision file."""
 
     script = ScriptDirectory.from_config(config)
@@ -82,7 +84,8 @@ def revision(config, message=None, autogenerate=False, sql=False):
         environment = True
 
         def retrieve_migrations(rev, context):
-            if script.get_revision(rev) is not script.get_revision("head"):
+            if set(script.get_revisions(rev)) != \
+                    set(script.get_revisions("heads")):
                 raise util.CommandError("Target database is not up to date.")
             autogen._produce_migration_diffs(context, template_args, imports)
             return []
@@ -99,8 +102,32 @@ def revision(config, message=None, autogenerate=False, sql=False):
             template_args=template_args,
         ):
             script.run_env()
-    return script.generate_revision(util.rev_id(), message, refresh=True,
-                                    **template_args)
+    return script.generate_revision(
+        util.rev_id(), message, refresh=True,
+        head=head, splice=splice, branch_labels=branch_label,
+        **template_args)
+
+
+def merge(config, revisions, message=None, branch_label=None):
+    """Merge two revisions together.  Creates a new migration file.
+
+    .. versionadded:: 0.7.0
+
+    .. seealso::
+
+        :ref:`branches`
+
+    """
+
+    script = ScriptDirectory.from_config(config)
+    template_args = {
+        'config': config  # Let templates use config for
+                          # e.g. multiple databases
+    }
+    return script.generate_revision(
+        util.rev_id(), message, refresh=True,
+        head=revisions, branch_labels=branch_label,
+        **template_args)
 
 
 def upgrade(config, revision, sql=False, tag=None):
@@ -157,7 +184,28 @@ def downgrade(config, revision, sql=False, tag=None):
         script.run_env()
 
 
-def history(config, rev_range=None):
+def show(config, rev):
+    """Show the revision(s) denoted by the given symbol."""
+
+    script = ScriptDirectory.from_config(config)
+
+    if rev == "current":
+        def show_current(rev, context):
+            for sc in script.get_revisions(rev):
+                config.print_stdout(sc.log_entry)
+            return []
+        with EnvironmentContext(
+            config,
+            script,
+            fn=show_current
+        ):
+            script.run_env()
+    else:
+        for sc in script.get_revisions(rev):
+            config.print_stdout(sc.log_entry)
+
+
+def history(config, rev_range=None, verbose=False):
     """List changeset scripts in chronological order."""
 
     script = ScriptDirectory.from_config(config)
@@ -173,10 +221,11 @@ def history(config, rev_range=None):
     def _display_history(config, script, base, head):
         for sc in script.walk_revisions(
                 base=base or "base",
-                head=head or "head"):
-            if sc.is_head:
-                config.print_stdout("")
-            config.print_stdout(sc.log_entry)
+                head=head or "heads"):
+            config.print_stdout(
+                sc.cmd_format(
+                    verbose=verbose, include_branches=True,
+                    include_doc=True, include_parents=True))
 
     def _display_history_w_current(config, script, base=None, head=None):
         def _display_current_history(rev, context):
@@ -201,37 +250,51 @@ def history(config, rev_range=None):
         _display_history(config, script, base, head)
 
 
-def branches(config):
-    """Show current un-spliced branch points"""
+def heads(config, verbose=False):
+    """Show current available heads in the script directory"""
+
+    script = ScriptDirectory.from_config(config)
+    for rev in script.get_revisions("heads"):
+        config.print_stdout(
+            rev.cmd_format(
+                verbose, include_branches=True, tree_indicators=False))
+
+
+def branches(config, verbose=False):
+    """Show current branch points"""
     script = ScriptDirectory.from_config(config)
     for sc in script.walk_revisions():
         if sc.is_branch_point:
-            config.print_stdout(sc)
-            for rev in sc.nextrev:
-                config.print_stdout("%s -> %s",
-                                    " " * len(str(sc.down_revision)),
-                                    script.get_revision(rev)
-                                    )
+            config.print_stdout(
+                "%s\n%s\n",
+                sc.cmd_format(verbose, include_branches=True),
+                "\n".join(
+                    "%s -> %s" % (
+                        " " * len(str(sc.revision)),
+                        rev_obj.cmd_format(
+                            False, include_branches=True, include_doc=verbose)
+                    ) for rev_obj in
+                    (script.get_revision(rev) for rev in sc.nextrev)
+                )
+            )
 
 
-def current(config, head_only=False):
-    """Display the current revision for each database."""
+def current(config, verbose=False, head_only=False):
+    """Display the current revision for a database."""
 
     script = ScriptDirectory.from_config(config)
 
+    if head_only:
+        util.warn("--head-only is deprecated")
+
     def display_version(rev, context):
-        rev = script.get_revision(rev)
-
-        if head_only:
-            config.print_stdout("%s%s" % (
-                rev.revision if rev else None,
-                " (head)" if rev and rev.is_head else ""))
-
-        else:
-            config.print_stdout("Current revision for %s: %s",
-                                util.obfuscate_url_pw(
-                                    context.connection.engine.url),
-                                rev)
+        if verbose:
+            config.print_stdout(
+                "Current revision(s) for %s:",
+                util.obfuscate_url_pw(context.connection.engine.url)
+            )
+        for rev in script.get_revisions(rev):
+            config.print_stdout(rev.cmd_format(verbose))
         return []
 
     with EnvironmentContext(
@@ -248,31 +311,27 @@ def stamp(config, revision, sql=False, tag=None):
 
     script = ScriptDirectory.from_config(config)
 
+    starting_rev = None
+    if ":" in revision:
+        if not sql:
+            raise util.CommandError("Range revision not allowed")
+        starting_rev, revision = revision.split(':', 2)
+        starting_rev = script.get_revision(starting_rev)
+        if starting_rev is not None:
+            starting_rev = starting_rev.revision
+
     def do_stamp(rev, context):
-        if sql:
-            current = False
-        else:
-            current = context._current_rev()
-        dest = script.get_revision(revision)
-        if dest is not None:
-            dest = dest.revision
-        context._update_current_rev(current, dest)
-        return []
+        return script._stamp_revs(revision, rev)
+
     with EnvironmentContext(
         config,
         script,
         fn=do_stamp,
         as_sql=sql,
         destination_rev=revision,
+        starting_rev=starting_rev,
         tag=tag
     ):
         script.run_env()
 
 
-def splice(config, parent, child):
-    """'splice' two branches, creating a new revision file.
-
-    this command isn't implemented right now.
-
-    """
-    raise NotImplementedError()

@@ -203,55 +203,108 @@ class CommandLine(object):
 
     def _generate_args(self, prog):
         def add_options(parser, positional, kwargs):
-            if 'template' in kwargs:
-                parser.add_argument("-t", "--template",
-                                    default='generic',
-                                    type=str,
-                                    help="Setup template for use with 'init'")
-            if 'message' in kwargs:
-                parser.add_argument(
+            kwargs_opts = {
+                'template': (
+                    "-t", "--template",
+                    dict(
+                        default='generic',
+                        type=str,
+                        help="Setup template for use with 'init'"
+                    )
+                ),
+                'message': (
                     "-m", "--message",
-                    type=str,
-                    help="Message string to use with 'revision'")
-            if 'sql' in kwargs:
-                parser.add_argument(
+                    dict(
+                        type=str,
+                        help="Message string to use with 'revision'")
+                ),
+                'sql': (
                     "--sql",
-                    action="store_true",
-                    help="Don't emit SQL to database - dump to "
-                    "standard output/file instead")
-            if 'tag' in kwargs:
-                parser.add_argument(
+                    dict(
+                        action="store_true",
+                        help="Don't emit SQL to database - dump to "
+                        "standard output/file instead"
+                    )
+                ),
+                'tag': (
                     "--tag",
-                    type=str,
-                    help="Arbitrary 'tag' name - can be used by "
-                    "custom env.py scripts.")
-            if 'autogenerate' in kwargs:
-                parser.add_argument(
+                    dict(
+                        type=str,
+                        help="Arbitrary 'tag' name - can be used by "
+                        "custom env.py scripts.")
+                ),
+                'head': (
+                    "--head",
+                    dict(
+                        type=str,
+                        help="Specify head revision or <branchname>@head "
+                        "to base new revision on."
+                    )
+                ),
+                'splice': (
+                    "--splice",
+                    dict(
+                        action="store_true",
+                        help="Allow a non-head revision as the "
+                        "'head' to splice onto"
+                    )
+                ),
+                'branch_label': (
+                    "--branch-label",
+                    dict(
+                        type=str,
+                        help="Specify a branch label to apply to the "
+                        "new revision"
+                    )
+                ),
+                'verbose': (
+                    "-v", "--verbose",
+                    dict(
+                        action="store_true",
+                        help="Use more verbose output"
+                    )
+                ),
+                'autogenerate': (
                     "--autogenerate",
-                    action="store_true",
-                    help="Populate revision script with candidate "
-                    "migration operations, based on comparison "
-                    "of database to model.")
-            # "current" command
-            if 'head_only' in kwargs:
-                parser.add_argument(
+                    dict(
+                        action="store_true",
+                        help="Populate revision script with candidate "
+                        "migration operations, based on comparison "
+                        "of database to model.")
+                ),
+                'head_only': (
                     "--head-only",
-                    action="store_true",
-                    help="Only show current version and "
-                    "whether or not this is the head revision.")
-
-            if 'rev_range' in kwargs:
-                parser.add_argument("-r", "--rev-range",
-                                    action="store",
-                                    help="Specify a revision range; "
-                                    "format is [start]:[end]")
-
+                    dict(
+                        action="store_true",
+                        help="Deprecated.  Use --verbose for "
+                        "additional output")
+                ),
+                'rev_range': (
+                    "-r", "--rev-range",
+                    dict(
+                        action="store",
+                        help="Specify a revision range; "
+                        "format is [start]:[end]")
+                )
+            }
             positional_help = {
                 'directory': "location of scripts directory",
-                'revision': "revision identifier"
+                'revision': "revision identifier",
+                'revisions': "one or more revisions, or 'heads' for all heads"
+
             }
+            for arg in kwargs:
+                if arg in kwargs_opts:
+                    args = kwargs_opts[arg]
+                    args, kw = args[0:-1], args[-1]
+                    parser.add_argument(*args, **kw)
+
             for arg in positional:
-                subparser.add_argument(arg, help=positional_help.get(arg))
+                if arg == "revisions":
+                    subparser.add_argument(
+                        arg, nargs='+', help=positional_help.get(arg))
+                else:
+                    subparser.add_argument(arg, help=positional_help.get(arg))
 
         parser = ArgumentParser(prog=prog)
         parser.add_argument("-c", "--config",
@@ -267,7 +320,8 @@ class CommandLine(object):
                             help="Additional arguments consumed by "
                             "custom env.py scripts, e.g. -x "
                             "setting1=somesetting -x setting2=somesetting")
-
+        parser.add_argument("--raiseerr", action="store_true",
+                            help="Raise a full stack trace on error")
         subparsers = parser.add_subparsers()
 
         for fn in [getattr(command, n) for n in dir(command)]:
@@ -299,7 +353,10 @@ class CommandLine(object):
                **dict((k, getattr(options, k)) for k in kwarg)
                )
         except util.CommandError as e:
-            util.err(str(e))
+            if options.raiseerr:
+                raise
+            else:
+                util.err(str(e))
 
     def main(self, argv=None):
         options = self.parser.parse_args(argv)

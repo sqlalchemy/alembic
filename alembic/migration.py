@@ -2,7 +2,6 @@ import logging
 import sys
 from contextlib import contextmanager
 
-
 from sqlalchemy import MetaData, Table, Column, String, literal_column
 from sqlalchemy import create_engine
 from sqlalchemy.engine import url as sqla_url
@@ -187,37 +186,83 @@ class MigrationContext(object):
         """Return the current revision, usually that which is present
         in the ``alembic_version`` table in the database.
 
+        This method intends to be used only for a migration stream that
+        does not contain unmerged branches in the target database;
+        if there are multiple branches present, an exception is raised.
+        The :meth:`.MigrationContext.get_current_heads` should be preferred
+        over this method going forward in order to be compatible with
+        branch migration support.
+
         If this :class:`.MigrationContext` was configured in "offline"
         mode, that is with ``as_sql=True``, the ``starting_rev``
         parameter is returned instead, if any.
 
         """
+        heads = self.get_current_heads()
+        if len(heads) == 0:
+            return None
+        elif len(heads) > 1:
+            raise util.CommandError(
+                "Version table '%s' has more than one head present; "
+                "please use get_current_heads()" % self.version_table)
+        else:
+            return heads[0]
+
+    def get_current_heads(self):
+        """Return a tuple of the current 'head versions' that are represented
+        in the target database.
+
+        For a migration stream without branches, this will be a single
+        value, synonymous with that of
+        :meth:`.MigrationContext.get_current_revision`.   However when multiple
+        unmerged branches exist within the target database, the returned tuple
+        will contain a value for each head.
+
+        If this :class:`.MigrationContext` was configured in "offline"
+        mode, that is with ``as_sql=True``, the ``starting_rev``
+        parameter is returned in a one-length tuple.
+
+        If no version table is present, or if there are no revisions
+        present, an empty tuple is returned.
+
+        .. versionadded:: 0.7.0
+
+        """
         if self.as_sql:
-            return self._start_from_rev
+            return util.to_tuple(self._start_from_rev, default=())
         else:
             if self._start_from_rev:
                 raise util.CommandError(
                     "Can't specify current_rev to context "
                     "when using a database connection")
-            self._version.create(self.connection, checkfirst=True)
-        return self.connection.scalar(self._version.select())
+            if not self._has_version_table():
+                return ()
+        return tuple(
+            row[0] for row in self.connection.execute(self._version.select())
+        )
 
-    _current_rev = get_current_revision
-    """The 0.2 method name, for backwards compat."""
+    def _ensure_version_table(self):
+        self._version.create(self.connection, checkfirst=True)
 
-    def _update_current_rev(self, old, new):
-        if old == new:
-            return
-        if new is None:
-            self.impl._exec(self._version.delete())
-        elif old is None:
-            self.impl._exec(self._version.insert().
-                            values(version_num=literal_column("'%s'" % new))
-                            )
-        else:
-            self.impl._exec(self._version.update().
-                            values(version_num=literal_column("'%s'" % new))
-                            )
+    def _has_version_table(self):
+        return self.connection.dialect.has_table(
+            self.connection, self.version_table, self.version_table_schema)
+
+    def stamp(self, script_directory, revision):
+        """Stamp the version table with a specific revision.
+
+        This method calculates those branches to which the given revision
+        can apply, and updates those branches as though they were migrated
+        towards that revision (either up or down).  If no current branches
+        include the revision, it is added as a new branch head.
+
+        .. versionadded:: 0.7.0
+
+        """
+        heads = self.get_current_heads()
+        head_maintainer = HeadMaintainer(self, heads)
+        for step in script_directory._steps_revs(revision, heads):
+            head_maintainer.update_to_step(step)
 
     def run_migrations(self, **kw):
         """Run the migration scripts established for this
@@ -240,42 +285,34 @@ class MigrationContext(object):
          method within revision scripts.
 
         """
-        current_rev = rev = False
-        stamp_per_migration = not self.impl.transactional_ddl or \
-            self._transaction_per_migration
-
         self.impl.start_migrations()
-        for change, prev_rev, rev, doc in self._migrations_fn(
-                self.get_current_revision(),
-                self):
+
+        heads = self.get_current_heads()
+        if not self.as_sql and not heads:
+            self._ensure_version_table()
+
+        head_maintainer = HeadMaintainer(self, heads)
+
+        for step in self._migrations_fn(heads, self):
             with self.begin_transaction(_per_migration=True):
-                if current_rev is False:
-                    current_rev = prev_rev
-                    if self.as_sql and not current_rev:
-                        self._version.create(self.connection)
-                if doc:
-                    log.info(
-                        "Running %s %s -> %s, %s", change.__name__, prev_rev,
-                        rev, doc)
-                else:
-                    log.info(
-                        "Running %s %s -> %s", change.__name__, prev_rev, rev)
+                if self.as_sql and not head_maintainer.heads:
+                    # for offline mode, include a CREATE TABLE from
+                    # the base
+                    self._version.create(self.connection)
+                log.info("Running %s", step)
                 if self.as_sql:
-                    self.impl.static_output(
-                        "-- Running %s %s -> %s" %
-                        (change.__name__, prev_rev, rev)
-                    )
-                change(**kw)
-                if stamp_per_migration:
-                    self._update_current_rev(prev_rev, rev)
-                prev_rev = rev
+                    self.impl.static_output("-- Running %s" % (step.short_log,))
+                step.migration_fn(**kw)
 
-        if rev is not False:
-            if not stamp_per_migration:
-                self._update_current_rev(current_rev, rev)
+                # previously, we wouldn't stamp per migration
+                # if we were in a transaction, however given the more
+                # complex model that involves any number of inserts
+                # and row-targeted updates and deletes, it's simpler for now
+                # just to run the operations on every version
+                head_maintainer.update_to_step(step)
 
-            if self.as_sql and not rev:
-                self._version.drop(self.connection)
+        if self.as_sql and not head_maintainer.heads:
+            self._version.drop(self.connection)
 
     def execute(self, sql, execution_options=None):
         """Execute a SQL construct or string statement.
@@ -372,3 +409,339 @@ class MigrationContext(object):
             metadata_column,
             rendered_metadata_default,
             rendered_column_default)
+
+
+class HeadMaintainer(object):
+    def __init__(self, context, heads):
+        self.context = context
+        self.heads = set(heads)
+
+    def _insert_version(self, version):
+        assert version not in self.heads
+        self.heads.add(version)
+
+        self.context.impl._exec(
+            self.context._version.insert().
+            values(
+                version_num=literal_column("'%s'" % version)
+            )
+        )
+
+    def _delete_version(self, version):
+        self.heads.remove(version)
+
+        ret = self.context.impl._exec(
+            self.context._version.delete().where(
+                self.context._version.c.version_num ==
+                literal_column("'%s'" % version)))
+        if not self.context.as_sql and ret.rowcount != 1:
+            raise util.CommandError(
+                "Online migration expected to match one "
+                "row when deleting '%s' in '%s'; "
+                "%d found"
+                % (version,
+                   self.context.version_table, ret.rowcount))
+
+    def _update_version(self, from_, to_):
+        assert to_ not in self.heads
+        self.heads.remove(from_)
+        self.heads.add(to_)
+
+        ret = self.context.impl._exec(
+            self.context._version.update().
+            values(version_num=literal_column("'%s'" % to_)).where(
+                self.context._version.c.version_num
+                == literal_column("'%s'" % from_))
+        )
+        if not self.context.as_sql and ret.rowcount != 1:
+            raise util.CommandError(
+                "Online migration expected to match one "
+                "row when updating '%s' to '%s' in '%s'; "
+                "%d found"
+                % (from_, to_, self.context.version_table, ret.rowcount))
+
+    def update_to_step(self, step):
+        if step.should_delete_branch(self.heads):
+            vers = step.delete_version_num
+            log.debug("branch delete %s", vers)
+            self._delete_version(vers)
+        elif step.should_create_branch(self.heads):
+            vers = step.insert_version_num
+            log.debug("new branch insert %s", vers)
+            self._insert_version(vers)
+        elif step.should_merge_branches(self.heads):
+            # delete revs, update from rev, update to rev
+            (delete_revs, update_from_rev,
+             update_to_rev) = step.merge_branch_idents
+            log.debug(
+                "merge, delete %s, update %s to %s",
+                delete_revs, update_from_rev, update_to_rev)
+            for delrev in delete_revs:
+                self._delete_version(delrev)
+            self._update_version(update_from_rev, update_to_rev)
+        elif step.should_unmerge_branches(self.heads):
+            (update_from_rev, update_to_rev,
+             insert_revs) = step.unmerge_branch_idents
+            log.debug(
+                "unmerge, insert %s, update %s to %s",
+                insert_revs, update_from_rev, update_to_rev)
+            for insrev in insert_revs:
+                self._insert_version(insrev)
+            self._update_version(update_from_rev, update_to_rev)
+        else:
+            from_, to_ = step.update_version_num
+            log.debug("update %s to %s", from_, to_)
+            self._update_version(from_, to_)
+
+
+class MigrationStep(object):
+    @property
+    def name(self):
+        return self.migration_fn.__name__
+
+    @classmethod
+    def upgrade_from_script(cls, revision_map, script):
+        return RevisionStep(revision_map, script, True)
+
+    @classmethod
+    def downgrade_from_script(cls, revision_map, script):
+        return RevisionStep(revision_map, script, False)
+
+    @property
+    def is_downgrade(self):
+        return not self.is_upgrade
+
+    @property
+    def merge_branch_idents(self):
+        return (
+            # delete revs, update from rev, update to rev
+            list(self.from_revisions[0:-1]), self.from_revisions[-1],
+            self.to_revisions[0]
+        )
+
+    @property
+    def unmerge_branch_idents(self):
+        return (
+            # update from rev, update to rev, insert revs
+            self.from_revisions[0], self.to_revisions[-1],
+            list(self.to_revisions[0:-1])
+        )
+
+    @property
+    def short_log(self):
+        return "%s %s -> %s" % (
+            self.name,
+            util.format_as_comma(self.from_revisions),
+            util.format_as_comma(self.to_revisions)
+        )
+
+    def __str__(self):
+        if self.doc:
+            return "%s %s -> %s, %s" % (
+                self.name,
+                util.format_as_comma(self.from_revisions),
+                util.format_as_comma(self.to_revisions),
+                self.doc
+            )
+        else:
+            return self.short_log
+
+
+class RevisionStep(MigrationStep):
+    def __init__(self, revision_map, revision, is_upgrade):
+        self.revision_map = revision_map
+        self.revision = revision
+        self.is_upgrade = is_upgrade
+        if is_upgrade:
+            self.migration_fn = revision.module.upgrade
+        else:
+            self.migration_fn = revision.module.downgrade
+
+    def __eq__(self, other):
+        return isinstance(other, RevisionStep) and \
+            other.revision == self.revision and \
+            self.is_upgrade == other.is_upgrade
+
+    @property
+    def doc(self):
+        return self.revision.doc
+
+    @property
+    def from_revisions(self):
+        if self.is_upgrade:
+            return self.revision._down_revision_tuple
+        else:
+            return (self.revision.revision, )
+
+    @property
+    def to_revisions(self):
+        if self.is_upgrade:
+            return (self.revision.revision, )
+        else:
+            return self.revision._down_revision_tuple
+
+    @property
+    def _has_scalar_down_revision(self):
+        return len(self.revision._down_revision_tuple) == 1
+
+    def should_delete_branch(self, heads):
+        if not self.is_downgrade:
+            return False
+
+        if self.revision.revision not in heads:
+            return False
+
+        downrevs = self.revision._down_revision_tuple
+        if not downrevs:
+            # is a base
+            return True
+        elif len(downrevs) == 1:
+            downrev = self.revision_map.get_revision(downrevs[0])
+
+            if not downrev.is_branch_point:
+                return False
+
+            descendants = set(
+                r.revision for r in self.revision_map._get_descendant_nodes(
+                    self.revision_map.get_revisions(downrev.nextrev),
+                    check=False
+                )
+            )
+
+            # the downrev is a branchpoint, and other members or descendants
+            # of the branch are still in heads; so delete this branch.
+            # the reason this occurs is because traversal tries to stay
+            # fully on one branch down to the branchpoint before starting
+            # the other; so if we have a->b->(c1->d1->e1, c2->d2->e2),
+            # on a downgrade from the top we may go e1, d1, c1, now heads
+            # are at c1 and e2, with the current method, we don't know that
+            # "e2" is important unless we get all descendants of c1/c2
+
+            if len(descendants.intersection(heads).difference(
+                    [self.revision.revision])):
+
+            # TODO: this doesn't work; make sure tests are here to ensure
+            # this fails
+            #if len(downrev.nextrev.intersection(heads).difference(
+            #        [self.revision.revision])):
+
+                return True
+            else:
+                return False
+        else:
+            # is a merge point
+            return False
+
+    def should_create_branch(self, heads):
+        if not self.is_upgrade:
+            return False
+
+        downrevs = self.revision._down_revision_tuple
+
+        if not downrevs:
+            # is a base
+            return True
+        elif len(downrevs) == 1:
+            if downrevs[0] in heads:
+                return False
+            else:
+                return True
+        else:
+            # is a merge point
+            return False
+
+    def should_merge_branches(self, heads):
+        if not self.is_upgrade:
+            return False
+
+        downrevs = self.revision._down_revision_tuple
+
+        if len(downrevs) > 1 and \
+                len(heads.intersection(downrevs)) > 1:
+            return True
+
+        return False
+
+    def should_unmerge_branches(self, heads):
+        if not self.is_downgrade:
+            return False
+
+        downrevs = self.revision._down_revision_tuple
+
+        if self.revision.revision in heads and len(downrevs) > 1:
+            return True
+
+        return False
+
+    @property
+    def update_version_num(self):
+        assert self._has_scalar_down_revision
+        if self.is_upgrade:
+            return self.revision.down_revision, self.revision.revision
+        else:
+            return self.revision.revision, self.revision.down_revision
+
+    @property
+    def delete_version_num(self):
+        return self.revision.revision
+
+    @property
+    def insert_version_num(self):
+        return self.revision.revision
+
+
+class StampStep(MigrationStep):
+    def __init__(self, from_, to_, is_upgrade, branch_move):
+        self.from_ = util.to_tuple(from_, default=())
+        self.to_ = util.to_tuple(to_, default=())
+        self.is_upgrade = is_upgrade
+        self.branch_move = branch_move
+        self.migration_fn = self.stamp_revision
+
+    doc = None
+
+    def stamp_revision(self, **kw):
+        return None
+
+    def __eq__(self, other):
+        return isinstance(other, StampStep) and \
+            other.from_revisions == self.revisions and \
+            other.to_revisions == self.to_revisions and \
+            other.branch_move == self.branch_move and \
+            self.is_upgrade == other.is_upgrade
+
+    @property
+    def from_revisions(self):
+        return self.from_
+
+    @property
+    def to_revisions(self):
+        return self.to_
+
+    @property
+    def delete_version_num(self):
+        assert len(self.from_) == 1
+        return self.from_[0]
+
+    @property
+    def insert_version_num(self):
+        assert len(self.to_) == 1
+        return self.to_[0]
+
+    @property
+    def update_version_num(self):
+        assert len(self.from_) == 1
+        assert len(self.to_) == 1
+        return self.from_[0], self.to_[0]
+
+    def should_delete_branch(self, heads):
+        return self.is_downgrade and self.branch_move
+
+    def should_create_branch(self, heads):
+        return self.is_upgrade and self.branch_move
+
+    def should_merge_branches(self, heads):
+        return len(self.from_) > 1
+
+    def should_unmerge_branches(self, heads):
+        return len(self.to_) > 1

@@ -229,7 +229,7 @@ class VersionNameTemplateTest(TestBase):
     """ % a)
 
         script = ScriptDirectory.from_config(self.cfg)
-        rev = script._get_rev(a)
+        rev = script.get_revision(a)
         eq_(rev.revision, a)
         eq_(os.path.basename(rev.path), "myfile_some_message.py")
 
@@ -252,7 +252,7 @@ class VersionNameTemplateTest(TestBase):
     """)
 
         script = ScriptDirectory.from_config(self.cfg)
-        rev = script._get_rev(a)
+        rev = script.get_revision(a)
         eq_(rev.revision, a)
         eq_(os.path.basename(rev.path), "%s.py" % a)
 
@@ -262,7 +262,7 @@ class VersionNameTemplateTest(TestBase):
         a = util.rev_id()
         script.generate_revision(a, "foobar", refresh=True)
 
-        path = script._revision_map[a].path
+        path = script.get_revision(a).path
         with open(path, 'w') as fp:
             fp.write("""
 down_revision = None

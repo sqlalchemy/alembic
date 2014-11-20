@@ -1,9 +1,51 @@
 
+
 ==========
 Changelog
 ==========
 .. changelog::
     :version: 0.7.0
+
+    .. change::
+      :tags: feature, versioning
+      :tickets: 167
+
+      The "multiple heads / branches" feature has now landed.  This is
+      by far the most significant change Alembic has seen since its inception;
+      while the workflow of most commands hasn't changed, and the format
+      of version files and the ``alembic_version`` table are unchanged as well,
+      a new suite of features opens up in the case where multiple version
+      files refer to the same parent, or to the "base".  Merging of
+      branches, operating across distinct named heads, and multiple
+      independent bases are now all supported.   The feature incurs radical
+      changes to the internals of versioning and traversal, and should be
+      treated as "beta mode" for the next several subsequent releases
+      within 0.7.
+
+      .. seealso::
+
+          :ref:`branches`
+
+    .. change::
+      :tags: feature, commands
+
+      New commands added: ``alembic show``, ``alembic heads`` and
+      ``alembic merge``.  Also, a new option ``--verbose`` has been
+      added to  several informational commands, such as ``alembic history``,
+      ``alembic current``, ``alembic branches``, and ``alembic heads``.
+      ``alembic revision`` also contains several new options used
+      within the new branch management system.    The output of commands has
+      been altered in many cases to support new fields and attributes;
+      the ``history`` command in particular now returns it's "verbose" output
+      only if ``--verbose`` is sent; without this flag it reverts to it's
+      older behavior of short line items (which was never changed in the docs).
+
+    .. change::
+      :tags: changed, commands
+
+      The ``--head_only`` option to the ``alembic current`` command is
+      deprecated; the ``current`` command now lists just the version numbers
+      alone by default; use ``--verbose`` to get at additional output.
 
     .. change::
       :tags: feature, config

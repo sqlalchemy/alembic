@@ -136,13 +136,33 @@ class EnvironmentContext(object):
         return not self.is_offline_mode()
 
     def get_head_revision(self):
-        """Return the hex identifier of the 'head' revision.
+        """Return the hex identifier of the 'head' script revision.
+
+        If the script directory has multiple heads, this
+        method raises a :class:`.CommandError`;
+        :meth:`.EnvironmentContext.get_head_revisions` should be preferred.
 
         This function does not require that the :class:`.MigrationContext`
         has been configured.
 
+        .. seealso:: :meth:`.EnvironmentContext.get_head_revisions`
+
         """
-        return self.script._as_rev_number("head")
+        return self.script.as_revision_number("head")
+
+    def get_head_revisions(self):
+        """Return the hex identifier of the 'heads' script revision(s).
+
+        This returns a tuple containing the version number of all
+        heads in the script directory.
+
+        This function does not require that the :class:`.MigrationContext`
+        has been configured.
+
+        .. versionadded:: 0.7.0
+
+        """
+        return self.script.as_revision_number("heads")
 
     def get_starting_revision_argument(self):
         """Return the 'starting revision' argument,
@@ -157,12 +177,16 @@ class EnvironmentContext(object):
 
         """
         if self._migration_context is not None:
-            return self.script._as_rev_number(
+            return self.script.as_revision_number(
                 self.get_context()._start_from_rev)
         elif 'starting_rev' in self.context_opts:
-            return self.script._as_rev_number(
+            return self.script.as_revision_number(
                 self.context_opts['starting_rev'])
         else:
+            # this should raise only in the case that a command
+            # is being run where the "starting rev" is never applicable;
+            # this is to catch scripts which rely upon this in
+            # non-sql mode or similar
             raise util.CommandError(
                 "No starting revision argument is available.")
 
@@ -180,7 +204,7 @@ class EnvironmentContext(object):
         has been configured.
 
         """
-        return self.script._as_rev_number(
+        return self.script.as_revision_number(
             self.context_opts['destination_rev'])
 
     def get_tag_argument(self):
@@ -342,8 +366,6 @@ class EnvironmentContext(object):
         :param output_encoding: when using ``--sql`` to generate SQL
          scripts, apply this encoding to the string output.
 
-         .. versionadded:: 0.5.0
-
         :param starting_rev: Override the "starting revision" argument
          when using ``--sql`` mode.
         :param tag: a string tag for usage by custom ``env.py`` scripts.
@@ -355,14 +377,10 @@ class EnvironmentContext(object):
          option is used, or if the option "revision_environment=true"
          is present in the alembic.ini file.
 
-         .. versionadded:: 0.3.3
-
         :param version_table: The name of the Alembic version table.
          The default is ``'alembic_version'``.
         :param version_table_schema: Optional schema to place version
          table within.
-
-         .. versionadded:: 0.5.0
 
         Parameters specific to the autogenerate feature, when
         ``alembic revision`` is run with the ``--autogenerate`` feature:
@@ -558,8 +576,6 @@ class EnvironmentContext(object):
          option to specify a callable which
          can filter the tables/schemas that get included.
 
-         .. versionadded :: 0.4.0
-
          .. seealso::
 
             :paramref:`.EnvironmentContext.configure.include_object`
@@ -588,8 +604,6 @@ class EnvironmentContext(object):
          Available values for the type string include: ``"column"``,
          ``"primary_key"``, ``"foreign_key"``, ``"unique"``, ``"check"``,
          ``"type"``, ``"server_default"``.
-
-         .. versionadded:: 0.5.0
 
          .. seealso::
 

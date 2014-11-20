@@ -4,7 +4,7 @@ import re
 %>"""${message}
 
 Revision ID: ${up_revision}
-Revises: ${down_revision}
+Revises: ${down_revision | comma,n}
 Create Date: ${create_date}
 
 """
@@ -12,6 +12,7 @@ Create Date: ${create_date}
 # revision identifiers, used by Alembic.
 revision = ${repr(up_revision)}
 down_revision = ${repr(down_revision)}
+branch_labels = ${repr(branch_labels)}
 
 from alembic import op
 import sqlalchemy as sa

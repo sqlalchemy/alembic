@@ -17,16 +17,16 @@ and :class:`.Operations` classes, pictured below.
 
 An Alembic command begins by instantiating an :class:`.EnvironmentContext` object, then
 making it available via the ``alembic.context`` proxy module.  The ``env.py``
-script, representing a user-configurable migration environment, is then 
+script, representing a user-configurable migration environment, is then
 invoked.   The ``env.py`` script is then responsible for calling upon the
-:meth:`.EnvironmentContext.configure`, whose job it is to create 
-a :class:`.MigrationContext` object. 
+:meth:`.EnvironmentContext.configure`, whose job it is to create
+a :class:`.MigrationContext` object.
 
 Before this method is called, there's not
-yet any database connection or dialect-specific state set up.  While 
+yet any database connection or dialect-specific state set up.  While
 many methods on :class:`.EnvironmentContext` are usable at this stage,
-those which require database access, or at least access to the kind 
-of database dialect in use, are not.   Once the 
+those which require database access, or at least access to the kind
+of database dialect in use, are not.   Once the
 :meth:`.EnvironmentContext.configure` method is called, the :class:`.EnvironmentContext`
 is said to be *configured* with database connectivity, available via
 a new :class:`.MigrationContext` object.   The :class:`.MigrationContext`
@@ -37,7 +37,7 @@ Finally, ``env.py`` calls upon the :meth:`.EnvironmentContext.run_migrations`
 method.   Within this method, a new :class:`.Operations` object, which
 provides an API for individual database migration operations, is established
 within the ``alembic.op`` proxy module.   The :class:`.Operations` object
-uses the :class:`.MigrationContext` object ultimately as a source of 
+uses the :class:`.MigrationContext` object ultimately as a source of
 database connectivity, though in such a way that it does not care if the
 :class:`.MigrationContext` is talking to a real database or just writing
 out SQL to a file.
@@ -46,7 +46,7 @@ The Environment Context
 =======================
 
 The :class:`.EnvironmentContext` class provides most of the
-API used within an ``env.py`` script.  Within ``env.py``, 
+API used within an ``env.py`` script.  Within ``env.py``,
 the instantated :class:`.EnvironmentContext` is made available
 via a special *proxy module* called ``alembic.context``.   That is,
 you can import ``alembic.context`` like a regular Python module,
@@ -79,7 +79,7 @@ Alembic commands are all represented by functions in the :mod:`alembic.command`
 package.  They all accept the same style of usage, being sent
 the :class:`~.alembic.config.Config` object as the first argument.
 
-Commands can be run programmatically, by first constructing a :class:`.Config` 
+Commands can be run programmatically, by first constructing a :class:`.Config`
 object, as in::
 
     from alembic.config import Config
@@ -100,13 +100,13 @@ classes directly.
 Configuration
 ==============
 
-The :class:`.Config` object represents the configuration 
+The :class:`.Config` object represents the configuration
 passed to the Alembic environment.  From an API usage perspective,
 it is needed for the following use cases:
 
 * to create a :class:`.ScriptDirectory`, which allows you to work
   with the actual script files in a migration environment
-* to create an :class:`.EnvironmentContext`, which allows you to 
+* to create an :class:`.EnvironmentContext`, which allows you to
   actually run the ``env.py`` module within the migration environment
 * to programatically run any of the commands in the :mod:`alembic.command`
   module.
@@ -130,6 +130,15 @@ The :class:`.ScriptDirectory` object provides programmatic access
 to the Alembic version files present in the filesystem.
 
 .. automodule:: alembic.script
+    :members:
+
+Revision
+========
+
+The :class:`.RevisionMap` object serves as the basis for revision
+management, used exclusively by :class:`.ScriptDirectory`.
+
+.. automodule:: alembic.revision
     :members:
 
 Autogeneration

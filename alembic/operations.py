@@ -296,8 +296,6 @@ class Operations(object):
          the SQLAlchemy construct
          :class:`~sqlalchemy.sql.elements.quoted_name`.
 
-         .. versionadded:: 0.4.0 support for 'schema'
-
          .. versionadded:: 0.7.0 'schema' can now accept a
             :class:`~sqlalchemy.sql.elements.quoted_name` construct.
 
@@ -359,12 +357,6 @@ class Operations(object):
          Set to ``None`` to have the default removed.
         :param new_column_name: Optional; specify a string name here to
          indicate the new name within a column rename operation.
-
-         .. versionchanged:: 0.5.0
-            The ``name`` parameter is now named ``new_column_name``.
-            The old name will continue to function for backwards
-            compatibility.
-
         :param ``type_``: Optional; a :class:`~sqlalchemy.types.TypeEngine`
          type object to specify a change to the column's type.
          For SQLAlchemy types that also indicate a constraint (i.e.
@@ -397,8 +389,6 @@ class Operations(object):
          quoting of the schema outside of the default behavior, use
          the SQLAlchemy construct
          :class:`~sqlalchemy.sql.elements.quoted_name`.
-
-         .. versionadded:: 0.4.0 support for 'schema'
 
          .. versionadded:: 0.7.0 'schema' can now accept a
             :class:`~sqlalchemy.sql.elements.quoted_name` construct.
@@ -543,8 +533,6 @@ class Operations(object):
          the SQLAlchemy construct
          :class:`~sqlalchemy.sql.elements.quoted_name`.
 
-         .. versionadded:: 0.4.0 support for 'schema'
-
          .. versionadded:: 0.7.0 'schema' can now accept a
             :class:`~sqlalchemy.sql.elements.quoted_name` construct.
 
@@ -577,8 +565,6 @@ class Operations(object):
          quoting of the schema outside of the default behavior, use
          the SQLAlchemy construct
          :class:`~sqlalchemy.sql.elements.quoted_name`.
-
-         .. versionadded:: 0.4.0 support for 'schema'
 
          .. versionadded:: 0.7.0 'schema' can now accept a
             :class:`~sqlalchemy.sql.elements.quoted_name` construct.
@@ -636,8 +622,6 @@ class Operations(object):
         off normally.   The :class:`~sqlalchemy.schema.AddConstraint`
         construct is ultimately used to generate the ALTER statement.
 
-        .. versionadded:: 0.5.0
-
         :param name: Name of the primary key constraint.  The name is necessary
          so that an ALTER statement can be emitted.  For setups that
          use an automated naming scheme such as that described at
@@ -652,8 +636,6 @@ class Operations(object):
          quoting of the schema outside of the default behavior, use
          the SQLAlchemy construct
          :class:`~sqlalchemy.sql.elements.quoted_name`.
-
-         .. versionadded:: 0.4.0 support for 'schema'
 
          .. versionadded:: 0.7.0 'schema' can now accept a
             :class:`~sqlalchemy.sql.elements.quoted_name` construct.
@@ -764,8 +746,6 @@ class Operations(object):
          the SQLAlchemy construct
          :class:`~sqlalchemy.sql.elements.quoted_name`.
 
-         .. versionadded:: 0.4.0 support for 'schema'
-
          .. versionadded:: 0.7.0 'schema' can now accept a
             :class:`~sqlalchemy.sql.elements.quoted_name` construct.
 
@@ -816,8 +796,6 @@ class Operations(object):
          quoting of the schema outside of the default behavior, use
          the SQLAlchemy construct
          :class:`~sqlalchemy.sql.elements.quoted_name`.
-
-         .. versionadded:: 0.4.0 support for 'schema'
 
          .. versionadded:: 0.7.0 'schema' can now accept a
             :class:`~sqlalchemy.sql.elements.quoted_name` construct.
@@ -901,8 +879,6 @@ class Operations(object):
          the SQLAlchemy construct
          :class:`~sqlalchemy.sql.elements.quoted_name`.
 
-         .. versionadded:: 0.4.0 support for 'schema'
-
          .. versionadded:: 0.7.0 'schema' can now accept a
             :class:`~sqlalchemy.sql.elements.quoted_name` construct.
         :param \**kw: Other keyword arguments are passed to the underlying
@@ -934,12 +910,8 @@ class Operations(object):
          the SQLAlchemy construct
          :class:`~sqlalchemy.sql.elements.quoted_name`.
 
-         .. versionadded:: 0.4.0 support for 'schema'
-
          .. versionadded:: 0.7.0 'schema' can now accept a
             :class:`~sqlalchemy.sql.elements.quoted_name` construct.
-
-         .. versionadded:: 0.4.0
 
         :param \**kw: Other keyword arguments are passed to the underlying
          :class:`sqlalchemy.schema.Table` object created for the command.
@@ -974,20 +946,12 @@ class Operations(object):
 
         :param name: name of the index.
         :param table_name: name of the owning table.
-
-         .. versionchanged:: 0.5.0
-            The ``tablename`` parameter is now named ``table_name``.
-            As this is a positional argument, the old name is no
-            longer present.
-
         :param columns: a list consisting of string column names and/or
          :func:`~sqlalchemy.sql.expression.text` constructs.
         :param schema: Optional schema name to operate within.  To control
          quoting of the schema outside of the default behavior, use
          the SQLAlchemy construct
          :class:`~sqlalchemy.sql.elements.quoted_name`.
-
-         .. versionadded:: 0.4.0 support for 'schema'
 
          .. versionadded:: 0.7.0 'schema' can now accept a
             :class:`~sqlalchemy.sql.elements.quoted_name` construct.
@@ -1026,18 +990,10 @@ class Operations(object):
         :param name: name of the index.
         :param table_name: name of the owning table.  Some
          backends such as Microsoft SQL Server require this.
-
-         .. versionchanged:: 0.5.0
-            The ``tablename`` parameter is now named ``table_name``.
-            The old name will continue to function for backwards
-            compatibility.
-
         :param schema: Optional schema name to operate within.  To control
          quoting of the schema outside of the default behavior, use
          the SQLAlchemy construct
          :class:`~sqlalchemy.sql.elements.quoted_name`.
-
-         .. versionadded:: 0.4.0 support for 'schema'
 
          .. versionadded:: 0.7.0 'schema' can now accept a
             :class:`~sqlalchemy.sql.elements.quoted_name` construct.
@@ -1055,28 +1011,12 @@ class Operations(object):
 
         :param name: name of the constraint.
         :param table_name: table name.
-
-         .. versionchanged:: 0.5.0
-            The ``tablename`` parameter is now named ``table_name``.
-            As this is a positional argument, the old name is no
-            longer present.
-
         :param ``type_``: optional, required on MySQL.  can be
          'foreignkey', 'primary', 'unique', or 'check'.
-
-         .. versionchanged:: 0.5.0
-            The ``type`` parameter is now named ``type_``.  The old name
-            ``type`` will remain for backwards compatibility.
-
-         .. versionadded:: 0.3.6 'primary' qualfier to enable
-            dropping of MySQL primary key constraints.
-
         :param schema: Optional schema name to operate within.  To control
          quoting of the schema outside of the default behavior, use
          the SQLAlchemy construct
          :class:`~sqlalchemy.sql.elements.quoted_name`.
-
-         .. versionadded:: 0.4.0 support for 'schema'
 
          .. versionadded:: 0.7.0 'schema' can now accept a
             :class:`~sqlalchemy.sql.elements.quoted_name` construct.
