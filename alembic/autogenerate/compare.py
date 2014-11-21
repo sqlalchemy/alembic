@@ -5,6 +5,7 @@ from .. import compat
 from sqlalchemy.util import OrderedSet
 import re
 from .render import _user_defined_render
+import contextlib
 
 log = logging.getLogger(__name__)
 
@@ -102,14 +103,15 @@ def _compare_tables(conn_table_names, metadata_table_names,
         if _run_filters(
                 metadata_table, tname, "table", False,
                 conn_table, object_filters):
-            _compare_columns(s, tname, object_filters,
-                             conn_table,
-                             metadata_table,
-                             diffs, autogen_context, inspector)
-            _compare_indexes_and_uniques(s, tname, object_filters,
-                                         conn_table,
-                                         metadata_table,
-                                         diffs, autogen_context, inspector)
+            with _compare_columns(
+                s, tname, object_filters,
+                conn_table,
+                metadata_table,
+                    diffs, autogen_context, inspector):
+                _compare_indexes_and_uniques(s, tname, object_filters,
+                                             conn_table,
+                                             metadata_table,
+                                             diffs, autogen_context, inspector)
 
     # TODO:
     # table constraints
@@ -131,6 +133,7 @@ def _make_unique_constraint(params, conn_table):
     )
 
 
+@contextlib.contextmanager
 def _compare_columns(schema, tname, object_filters, conn_table, metadata_table,
                      diffs, autogen_context, inspector):
     name = '%s.%s' % (schema, tname) if schema else tname
@@ -145,14 +148,6 @@ def _compare_columns(schema, tname, object_filters, conn_table, metadata_table,
                 ("add_column", schema, tname, metadata_cols_by_name[cname])
             )
             log.info("Detected added column '%s.%s'", name, cname)
-
-    for cname in set(conn_col_names).difference(metadata_col_names):
-        if _run_filters(conn_table.c[cname], cname,
-                        "column", True, None, object_filters):
-            diffs.append(
-                ("remove_column", schema, tname, conn_table.c[cname])
-            )
-            log.info("Detected removed column '%s.%s'", name, cname)
 
     for colname in metadata_col_names.intersection(conn_col_names):
         metadata_col = metadata_cols_by_name[colname]
@@ -181,6 +176,17 @@ def _compare_columns(schema, tname, object_filters, conn_table, metadata_table,
                                 )
         if col_diff:
             diffs.append(col_diff)
+
+    yield
+
+    for cname in set(conn_col_names).difference(metadata_col_names):
+        if _run_filters(conn_table.c[cname], cname,
+                        "column", True, None, object_filters):
+            diffs.append(
+                ("remove_column", schema, tname, conn_table.c[cname])
+            )
+            log.info("Detected removed column '%s.%s'", name, cname)
+
 
 
 class _constraint_sig(object):

@@ -57,6 +57,15 @@ Changelog
           :ref:`batch_migrations`
 
     .. change::
+      :tags: bug, autogenerate
+      :tickets: 247
+
+      A change in the ordering when columns and constraints are dropped;
+      autogenerate will now place the "drop constraint" calls *before*
+      the "drop column" calls, so that columns involved in those constraints
+      still exist when the constraint is dropped.
+
+    .. change::
       :tags: feature, commands
 
       New commands added: ``alembic show``, ``alembic heads`` and
