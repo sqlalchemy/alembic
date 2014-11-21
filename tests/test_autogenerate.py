@@ -308,6 +308,8 @@ class AutogenDefaultSchemaTest(AutogenFixtureTest, TestBase):
 
 
 class ModelOne(object):
+    __requires__ = ('unique_constraint_reflection', )
+
     schema = None
 
     @classmethod
