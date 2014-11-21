@@ -78,17 +78,17 @@ class BatchOperationsImpl(object):
     def rename_table(self, *arg, **kw):
         self.batch.append(("rename_table", arg, kw))
 
+    def create_index(self, idx):
+        self.batch.append(("create_index", (idx,), {}))
+
+    def drop_index(self, idx):
+        self.batch.append(("drop_index", (idx,), {}))
+
     def create_table(self, table):
         raise NotImplementedError("Can't create table in batch mode")
 
     def drop_table(self, table):
         raise NotImplementedError("Can't drop table in batch mode")
-
-    def create_index(self, index):
-        raise NotImplementedError("Can't create index in batch mode")
-
-    def drop_index(self, index):
-        raise NotImplementedError("Can't drop index in batch mode")
 
 
 class ApplyBatchImpl(object):
@@ -117,6 +117,7 @@ class ApplyBatchImpl(object):
                 self.named_constraints[const.name] = const
             else:
                 self.unnamed_constraints.append(const)
+
         for idx in self.table.indexes:
             self.indexes[idx.name] = idx
 
@@ -250,6 +251,15 @@ class ApplyBatchImpl(object):
             del self.named_constraints[const.name]
         except KeyError:
             raise ValueError("No such constraint: '%s'" % const.name)
+
+    def add_index(self, idx):
+        self.indexes[idx.name] = idx
+
+    def drop_index(self, idx):
+        try:
+            del self.indexes[idx.name]
+        except KeyError:
+            raise ValueError("No such index: '%s'" % idx.name)
 
     def rename_table(self, *arg, **kw):
         raise NotImplementedError("TODO")

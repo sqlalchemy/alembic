@@ -137,24 +137,32 @@ def _add_index(index, autogen_context):
     :class:`~sqlalchemy.schema.Index` instance.
     """
 
-    text = "%(prefix)screate_index(%(name)r, %(table)r, [%(columns)s], "\
-        "unique=%(unique)r%(schema)s%(kwargs)s)" % {
-            'prefix': _alembic_autogenerate_prefix(autogen_context),
-            'name': _render_gen_name(autogen_context, index.name),
-            'table': _ident(index.table.name),
-            'columns': ", ".join(
-                _get_index_rendered_expressions(index, autogen_context)),
-            'unique': index.unique or False,
-            'schema': (", schema=%r" % _ident(index.table.schema))
-            if index.table.schema else '',
-            'kwargs': (
-                ', ' +
-                ', '.join(
-                    ["%s=%s" %
-                     (key, _render_potential_expr(val, autogen_context))
-                     for key, val in index.kwargs.items()]))
-            if len(index.kwargs) else ''
-        }
+    has_batch = 'batch_prefix' in autogen_context
+
+    if has_batch:
+        tmpl = "%(prefix)screate_index(%(name)r, [%(columns)s], "\
+            "unique=%(unique)r%(kwargs)s)"
+    else:
+        tmpl = "%(prefix)screate_index(%(name)r, %(table)r, [%(columns)s], "\
+            "unique=%(unique)r%(schema)s%(kwargs)s)"
+
+    text = tmpl % {
+        'prefix': _alembic_autogenerate_prefix(autogen_context),
+        'name': _render_gen_name(autogen_context, index.name),
+        'table': _ident(index.table.name),
+        'columns': ", ".join(
+            _get_index_rendered_expressions(index, autogen_context)),
+        'unique': index.unique or False,
+        'schema': (", schema=%r" % _ident(index.table.schema))
+        if index.table.schema else '',
+        'kwargs': (
+            ', ' +
+            ', '.join(
+                ["%s=%s" %
+                 (key, _render_potential_expr(val, autogen_context))
+                 for key, val in index.kwargs.items()]))
+        if len(index.kwargs) else ''
+    }
     return text
 
 
@@ -163,14 +171,21 @@ def _drop_index(index, autogen_context):
     Generate Alembic operations for the DROP INDEX of an
     :class:`~sqlalchemy.schema.Index` instance.
     """
-    text = "%(prefix)sdrop_index(%(name)r, "\
-        "table_name=%(table_name)r%(schema)s)" % {
-            'prefix': _alembic_autogenerate_prefix(autogen_context),
-            'name': _render_gen_name(autogen_context, index.name),
-            'table_name': _ident(index.table.name),
-            'schema': ((", schema=%r" % _ident(index.table.schema))
-                       if index.table.schema else '')
-        }
+    has_batch = 'batch_prefix' in autogen_context
+
+    if has_batch:
+        tmpl = "%(prefix)sdrop_index(%(name)r)"
+    else:
+        tmpl = "%(prefix)sdrop_index(%(name)r, "\
+            "table_name=%(table_name)r%(schema)s)"
+
+    text = tmpl % {
+        'prefix': _alembic_autogenerate_prefix(autogen_context),
+        'name': _render_gen_name(autogen_context, index.name),
+        'table_name': _ident(index.table.name),
+        'schema': ((", schema=%r" % _ident(index.table.schema))
+                   if index.table.schema else '')
+    }
     return text
 
 

@@ -10,9 +10,9 @@ from alembic.batch import ApplyBatchImpl
 from alembic.migration import MigrationContext
 
 from sqlalchemy import Integer, Table, Column, String, MetaData, ForeignKey, \
-    UniqueConstraint, ForeignKeyConstraint
+    UniqueConstraint, ForeignKeyConstraint, Index
 from sqlalchemy.sql import column
-from sqlalchemy.schema import CreateTable
+from sqlalchemy.schema import CreateTable, CreateIndex
 
 
 class BatchApplyTest(TestBase):
@@ -39,6 +39,17 @@ class BatchApplyTest(TestBase):
             Column('x', String()),
             Column('y', Integer),
             UniqueConstraint('y', name='uq1')
+        )
+        return ApplyBatchImpl(t, table_args, table_kwargs)
+
+    def _ix_fixture(self, table_args=(), table_kwargs={}):
+        m = MetaData()
+        t = Table(
+            'tname', m,
+            Column('id', Integer, primary_key=True),
+            Column('x', String()),
+            Column('y', Integer),
+            Index('ix1', 'y')
         )
         return ApplyBatchImpl(t, table_args, table_kwargs)
 
@@ -90,13 +101,23 @@ class BatchApplyTest(TestBase):
             CreateTable(impl.new_table).compile(dialect=context.dialect))
         create_stmt = re.sub(r'[\n\t]', '', create_stmt)
 
-        if ddl_contains:
-            assert ddl_contains in create_stmt
-        if ddl_not_contains:
-            assert ddl_not_contains not in create_stmt
+        idx_stmt = ""
+        for idx in impl.new_table.indexes:
+            idx_stmt += str(CreateIndex(idx).compile(dialect=context.dialect))
+        idx_stmt = re.sub(r'[\n\t]', '', idx_stmt)
 
-        context.assert_(
+        if ddl_contains:
+            assert ddl_contains in create_stmt + idx_stmt
+        if ddl_not_contains:
+            assert ddl_not_contains not in create_stmt + idx_stmt
+
+        expected = [
             create_stmt,
+        ]
+        if impl.new_table.indexes:
+            expected.append(idx_stmt)
+
+        expected.extend([
             'INSERT INTO _alembic_batch_temp (%(colnames)s) '
             'SELECT %(tname_colnames)s FROM tname' % {
                 "colnames": ", ".join([
@@ -116,7 +137,8 @@ class BatchApplyTest(TestBase):
             },
             'DROP TABLE tname',
             'ALTER TABLE _alembic_batch_temp RENAME TO tname'
-        )
+        ])
+        context.assert_(*expected)
         return impl.new_table
 
     def test_change_type(self):
@@ -250,6 +272,24 @@ class BatchApplyTest(TestBase):
             impl, colnames=['id', 'x', 'y'],
             ddl_not_contains="CONSTRAINT uq1 UNIQUE")
 
+    def test_add_index(self):
+        impl = self._simple_fixture()
+        ix = self.op._index('ix1', 'tname', ['y'])
+
+        impl.add_index(ix)
+        self._assert_impl(
+            impl, colnames=['id', 'x', 'y'],
+            ddl_contains="CREATE INDEX ix1")
+
+    def test_drop_index(self):
+        impl = self._ix_fixture()
+
+        ix = self.op._index('ix1', 'tname', ['y'])
+        impl.drop_index(ix)
+        self._assert_impl(
+            impl, colnames=['id', 'x', 'y'],
+            ddl_not_contains="CONSTRAINT uq1 UNIQUE")
+
     def test_add_table_opts(self):
         impl = self._simple_fixture(table_kwargs={'mysql_engine': 'InnoDB'})
         self._assert_impl(
@@ -304,7 +344,8 @@ class BatchAPITest(TestBase):
                 mock.call(
                     ['x'], ['user.y'],
                     onupdate=None, ondelete=None, name='myfk',
-                    initially=None, deferrable=None, match=None)
+                    initially=None, deferrable=None, match=None,
+                    schema=None)
             ]
         )
         eq_(

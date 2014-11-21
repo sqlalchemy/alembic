@@ -1309,6 +1309,7 @@ class BatchOperations(Operations):
             :meth:`.Operations.create_primary_key`
 
         """
+        raise NotImplementedError("not yet implemented")
 
     def create_foreign_key(
             self, name, referent, local_cols, remote_cols, **kw):
@@ -1331,7 +1332,8 @@ class BatchOperations(Operations):
 
         """
         return super(BatchOperations, self).create_foreign_key(
-            name, self.impl.table_name, referent, local_cols, remote_cols,)
+            name, self.impl.table_name, referent, local_cols, remote_cols,
+            schema=self.impl.schema)
 
     def create_unique_constraint(self, name, local_cols, **kw):
         """Issue a "create unique constraint" instruction using the
@@ -1345,6 +1347,7 @@ class BatchOperations(Operations):
             :meth:`.Operations.create_unique_constraint`
 
         """
+        kw['schema'] = self.impl.schema
         return super(BatchOperations, self).create_unique_constraint(
             name, self.impl.table_name, local_cols, **kw)
 
@@ -1360,6 +1363,7 @@ class BatchOperations(Operations):
             :meth:`.Operations.create_check_constraint`
 
         """
+        raise NotImplementedError("not yet implemented")
 
     def drop_constraint(self, name, type_=None):
         """Issue a "drop constraint" instruction using the
@@ -1374,13 +1378,23 @@ class BatchOperations(Operations):
 
         """
         return super(BatchOperations, self).drop_constraint(
-            name, self.impl.table_name, type_=type_)
+            name, self.impl.table_name, type_=type_,
+            schema=self.impl.schema)
 
-    def create_index(self, *arg, **kw):
-        """Not implemented for batch table operations."""
-        self._noop("create_index")
+    def create_index(self, name, columns, **kw):
+        """Issue a "create index" instruction using the
+        current batch migration context."""
 
-    def drop_index(self, name):
-        """Not implemented for batch table operations."""
-        self._noop("drop_index")
+        kw['schema'] = self.impl.schema
 
+        return super(BatchOperations, self).create_index(
+            name, self.impl.table_name, columns, **kw)
+
+    def drop_index(self, name, **kw):
+        """Issue a "drop index" instruction using the
+        current batch migration context."""
+
+        kw['schema'] = self.impl.schema
+
+        return super(BatchOperations, self).drop_index(
+            name, self.impl.table_name, **kw)
