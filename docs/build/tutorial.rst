@@ -394,6 +394,8 @@ Running again to ``head``::
 
 We've now added the ``last_transaction_date`` column to the database.
 
+.. relative_migrations:
+
 Relative Migration Identifiers
 ==============================
 
@@ -1841,6 +1843,24 @@ that includes ``ae1027a6acf``" as follows::
 
     $ alembic revision -m "add another account column" --head ae10@head
       Generating /Users/classic/dev/alembic/foo/versions/55af2cb1c267_add_another_account_column.py ... done
+
+More Label Syntaxes
+^^^^^^^^^^^^^^^^^^^
+
+The ``heads`` symbol can be combined with a branch label, in the case that
+your labeled branch itself breaks off into multiple branches::
+
+    $ alembic upgrade shoppingcart@heads
+
+Relative identifiers, as introduced in :ref:`relative_migrations`,
+work with labels too.  For example, upgrading to ``shoppingcart@+2``
+means to upgrade from current heads on "shoppingcart" upwards two revisions::
+
+    $ alembic upgrade shoppingcart@+2
+
+This kind of thing works from history as well::
+
+    $ alembic history -r current:shoppingcart@+2
 
 
 Working with Multiple Bases
