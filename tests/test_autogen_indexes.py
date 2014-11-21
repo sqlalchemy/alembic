@@ -553,6 +553,25 @@ class PGUniqueIndexTest(AutogenerateUniqueIndexTest):
         eq_(diffs[0][0], "add_table")
         eq_(len(diffs), 1)
 
+    def test_uq_dropped(self):
+        m1 = MetaData()
+        m2 = MetaData()
+        Table(
+            'add_uq', m1,
+            Column('id', Integer, primary_key=True),
+            Column('name', String),
+            UniqueConstraint('name', name='uq_name')
+        )
+        Table(
+            'add_uq', m2,
+            Column('id', Integer, primary_key=True),
+            Column('name', String),
+        )
+        diffs = self._fixture(m1, m2, include_schemas=True)
+        eq_(diffs[0][0], "remove_constraint")
+        eq_(diffs[0][1].name, "uq_name")
+        eq_(len(diffs), 1)
+
 
 class MySQLUniqueIndexTest(AutogenerateUniqueIndexTest):
     reports_unnamed_constraints = True

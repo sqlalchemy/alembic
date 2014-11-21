@@ -119,6 +119,7 @@ def _compare_tables(conn_table_names, metadata_table_names,
 
 
 def _make_index(params, conn_table):
+    # TODO: add .info such as 'duplicates_constraint'
     return sa_schema.Index(
         params['name'],
         *[conn_table.c[cname] for cname in params['column_names']],
@@ -127,6 +128,7 @@ def _make_index(params, conn_table):
 
 
 def _make_unique_constraint(params, conn_table):
+    # TODO: add .info such as 'duplicates_index'
     return sa_schema.UniqueConstraint(
         *[conn_table.c[cname] for cname in params['column_names']],
         name=params['name']

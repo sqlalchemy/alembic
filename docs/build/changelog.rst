@@ -57,6 +57,16 @@ Changelog
           :ref:`batch_migrations`
 
     .. change::
+      :tags: bug, autogenerate, postgresql
+      :tickets: 247
+
+      Added a rule for Postgresql to not render a "drop unique" and "drop index"
+      given the same name; for now it is assumed that the "index" is the
+      implicit one Postgreql generates.   Future integration with
+      new SQLAlchemy 1.0 features will improve this to be more
+      resilient.
+
+    .. change::
       :tags: bug, autogenerate
       :tickets: 247
 

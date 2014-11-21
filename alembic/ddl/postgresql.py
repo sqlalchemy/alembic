@@ -75,6 +75,25 @@ class PostgresqlImpl(DefaultImpl):
                         # its a SERIAL - whack it!
                         del column_info['default']
 
+    def correct_for_autogen_constraints(self, conn_unique_constraints,
+                                        conn_indexes,
+                                        metadata_unique_constraints,
+                                        metadata_indexes):
+        conn_uniques_by_name = dict(
+            (c.name, c) for c in conn_unique_constraints)
+        conn_indexes_by_name = dict(
+            (c.name, c) for c in conn_indexes)
+
+        # TODO: if SQLA 1.0, make use of "duplicates_constraint"
+        # metadata
+        doubled_constraints = dict(
+            (name, (conn_uniques_by_name[name], conn_indexes_by_name[name]))
+            for name in set(conn_uniques_by_name).intersection(
+                conn_indexes_by_name)
+        )
+        for name, (uq, ix) in doubled_constraints.items():
+            conn_indexes.remove(ix)
+
 
 @compiles(RenameTable, "postgresql")
 def visit_rename_table(element, compiler, **kw):
