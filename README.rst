@@ -1,4 +1,4 @@
-Alembic is a new database migrations tool, written by the author
+Alembic is a database migrations tool written by the author
 of `SQLAlchemy <http://www.sqlalchemy.org>`_.  A migrations tool
 offers the following functionality:
 
@@ -52,26 +52,27 @@ The goals of Alembic are:
   operations that rely upon in-memory SELECTs of rows - Alembic tries to
   provide helper constructs like bulk_insert() to help with data-oriented
   operations that are compatible with script-based DDL.
-* Non-linear versioning.   Scripts are given UUID identifiers similarly
-  to a DVCS, and the linkage of one script to the next is achieved via markers
-  within the scripts themselves. Through this open-ended mechanism, branches
-  containing other migration scripts can be merged - the linkages can be
-  manually edited within the script files to create the new sequence.
+* Non-linear, dependency-graph versioning.   Scripts are given UUID
+  identifiers similarly to a DVCS, and the linkage of one script to the next
+  is achieved via human-editable markers within the scripts themselves.
+  The structure of a set of migration files is considered as a
+  directed-acyclic graph, meaning any migration file can be dependent
+  on any other arbitrary set of migration files, or none at
+  all.  Through this open-ended system, migration files can be organized
+  into branches, multiple roots, and mergepoints, without restriction.
+  Commands are provided to produce new branches, roots, and merges of
+  branches automatically.
 * Provide a library of ALTER constructs that can be used by any SQLAlchemy
   application. The DDL constructs build upon SQLAlchemy's own DDLElement base
   and can be used standalone by any application or script.
-* Don't break our necks over SQLite's inability to ALTER things.   SQLite
-  has almost no support for table or column alteration, and this is likely
-  intentional.   Alembic's design
-  is kept simple by not contorting its core API around these limitations,
-  understanding that SQLite is simply not intended to support schema
-  changes.   While Alembic's architecture can support SQLite's workarounds, and
-  we will support these features provided someone takes the initiative
-  to implement and test, until the SQLite developers decide
-  to provide a fully working version of ALTER, it's still vastly preferable
-  to use Alembic, or any migrations tool, with databases that
-  are designed to work under the assumption of in-place schema migrations
-  taking place.
+* At long last, bring SQLite and its inablity to ALTER things into the fold,
+  but in such a way that SQLite's very special workflow needs are accommodated
+  in an explicit way that makes the most of a bad situation, through the
+  concept of a "batch" migration, where multiple changes to a table can
+  be batched together to form a series of instructions for a single, subsequent
+  "move-and-copy" workflow.   You can even use "move-and-copy" workflow for
+  other databases, if you want to recreate a table in the background
+  on a busy system.
 
-Documentation and status of Alembic is at http://readthedocs.org/docs/alembic/.
+Documentation and status of Alembic is at http://alembic.readthedocs.org/
 
