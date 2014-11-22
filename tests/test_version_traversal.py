@@ -43,11 +43,11 @@ class RevisionPathTest(MigrationTest):
     @classmethod
     def setup_class(cls):
         cls.env = env = staging_env()
-        cls.a = env.generate_revision(util.rev_id(), '->a', refresh=True)
-        cls.b = env.generate_revision(util.rev_id(), 'a->b', refresh=True)
-        cls.c = env.generate_revision(util.rev_id(), 'b->c', refresh=True)
-        cls.d = env.generate_revision(util.rev_id(), 'c->d', refresh=True)
-        cls.e = env.generate_revision(util.rev_id(), 'd->e', refresh=True)
+        cls.a = env.generate_revision(util.rev_id(), '->a')
+        cls.b = env.generate_revision(util.rev_id(), 'a->b')
+        cls.c = env.generate_revision(util.rev_id(), 'b->c')
+        cls.d = env.generate_revision(util.rev_id(), 'c->d')
+        cls.e = env.generate_revision(util.rev_id(), 'd->e')
 
     @classmethod
     def teardown_class(cls):
@@ -181,22 +181,22 @@ class BranchedPathTest(MigrationTest):
     @classmethod
     def setup_class(cls):
         cls.env = env = staging_env()
-        cls.a = env.generate_revision(util.rev_id(), '->a', refresh=True)
-        cls.b = env.generate_revision(util.rev_id(), 'a->b', refresh=True)
+        cls.a = env.generate_revision(util.rev_id(), '->a')
+        cls.b = env.generate_revision(util.rev_id(), 'a->b')
 
         cls.c1 = env.generate_revision(
             util.rev_id(), 'b->c1',
             branch_labels='c1branch',
             refresh=True)
-        cls.d1 = env.generate_revision(util.rev_id(), 'c1->d1', refresh=True)
+        cls.d1 = env.generate_revision(util.rev_id(), 'c1->d1')
 
         cls.c2 = env.generate_revision(
             util.rev_id(), 'b->c2',
             branch_labels='c2branch',
-            head=cls.b.revision, refresh=True, splice=True)
+            head=cls.b.revision, splice=True)
         cls.d2 = env.generate_revision(
             util.rev_id(), 'c2->d2',
-            head=cls.c2.revision, refresh=True)
+            head=cls.c2.revision)
 
     @classmethod
     def teardown_class(cls):
@@ -285,17 +285,17 @@ class BranchFromMergepointTest(MigrationTest):
     @classmethod
     def setup_class(cls):
         cls.env = env = staging_env()
-        cls.a1 = env.generate_revision(util.rev_id(), '->a1', refresh=True)
-        cls.b1 = env.generate_revision(util.rev_id(), 'a1->b1', refresh=True)
-        cls.c1 = env.generate_revision(util.rev_id(), 'b1->c1', refresh=True)
+        cls.a1 = env.generate_revision(util.rev_id(), '->a1')
+        cls.b1 = env.generate_revision(util.rev_id(), 'a1->b1')
+        cls.c1 = env.generate_revision(util.rev_id(), 'b1->c1')
 
         cls.a2 = env.generate_revision(
             util.rev_id(), '->a2', head=(),
             refresh=True)
         cls.b2 = env.generate_revision(
-            util.rev_id(), 'a2->b2', head=cls.a2.revision, refresh=True)
+            util.rev_id(), 'a2->b2', head=cls.a2.revision)
         cls.c2 = env.generate_revision(
-            util.rev_id(), 'b2->c2', head=cls.b2.revision, refresh=True)
+            util.rev_id(), 'b2->c2', head=cls.b2.revision)
 
         # mergepoint between c1, c2
         # d1 dependent on c2
@@ -332,6 +332,7 @@ class BranchFromMergepointTest(MigrationTest):
             set([d2.revision, b1.revision])
         )
 
+
 class BranchFrom3WayMergepointTest(MigrationTest):
     """this is a form that will come up frequently in the
     "many independent roots with cross-dependencies" case.
@@ -341,25 +342,25 @@ class BranchFrom3WayMergepointTest(MigrationTest):
     @classmethod
     def setup_class(cls):
         cls.env = env = staging_env()
-        cls.a1 = env.generate_revision(util.rev_id(), '->a1', refresh=True)
-        cls.b1 = env.generate_revision(util.rev_id(), 'a1->b1', refresh=True)
-        cls.c1 = env.generate_revision(util.rev_id(), 'b1->c1', refresh=True)
+        cls.a1 = env.generate_revision(util.rev_id(), '->a1')
+        cls.b1 = env.generate_revision(util.rev_id(), 'a1->b1')
+        cls.c1 = env.generate_revision(util.rev_id(), 'b1->c1')
 
         cls.a2 = env.generate_revision(
             util.rev_id(), '->a2', head=(),
             refresh=True)
         cls.b2 = env.generate_revision(
-            util.rev_id(), 'a2->b2', head=cls.a2.revision, refresh=True)
+            util.rev_id(), 'a2->b2', head=cls.a2.revision)
         cls.c2 = env.generate_revision(
-            util.rev_id(), 'b2->c2', head=cls.b2.revision, refresh=True)
+            util.rev_id(), 'b2->c2', head=cls.b2.revision)
 
         cls.a3 = env.generate_revision(
             util.rev_id(), '->a3', head=(),
             refresh=True)
         cls.b3 = env.generate_revision(
-            util.rev_id(), 'a3->b3', head=cls.a3.revision, refresh=True)
+            util.rev_id(), 'a3->b3', head=cls.a3.revision)
         cls.c3 = env.generate_revision(
-            util.rev_id(), 'b3->c3', head=cls.b3.revision, refresh=True)
+            util.rev_id(), 'b3->c3', head=cls.b3.revision)
 
         # mergepoint between c1, c2, c3
         # d1 dependent on c2, c3
@@ -423,18 +424,52 @@ class BranchFrom3WayMergepointTest(MigrationTest):
         )
 
 
+class DependsOnBranchTestOne(MigrationTest):
+    @classmethod
+    def setup_class(cls):
+        cls.env = env = staging_env()
+        cls.a1 = env.generate_revision(
+            util.rev_id(), '->a1',
+            branch_labels=['lib1'])
+        cls.b1 = env.generate_revision(util.rev_id(), 'a1->b1')
+        cls.c1 = env.generate_revision(util.rev_id(), 'b1->c1')
+
+        cls.a2 = env.generate_revision(util.rev_id(), '->a2', head=())
+        cls.b2 = env.generate_revision(
+            util.rev_id(), 'a2->b2', head=cls.a2.revision)
+        cls.c2 = env.generate_revision(
+            util.rev_id(), 'b2->c2', head=cls.b2.revision,
+            depends_on=cls.c1.revision)
+
+        cls.d1 = env.generate_revision(
+            util.rev_id(), 'c1->d1',
+            head=cls.c1.revision)
+        cls.e1 = env.generate_revision(
+            util.rev_id(), 'd1->e1',
+            head=cls.d1.revision)
+        cls.f1 = env.generate_revision(
+            util.rev_id(), 'e1->f1',
+            head=cls.e1.revision)
+
+    def test_downgrade_to_dependency(self):
+        heads = [self.c2.revision, self.d1.revision]
+        head = HeadMaintainer(mock.Mock(), heads)
+        head.update_to_step(self.down_(self.d1))
+        eq_(head.heads, set([self.c2.revision]))
+
+
 class ForestTest(MigrationTest):
     @classmethod
     def setup_class(cls):
         cls.env = env = staging_env()
-        cls.a1 = env.generate_revision(util.rev_id(), '->a1', refresh=True)
-        cls.b1 = env.generate_revision(util.rev_id(), 'a1->b1', refresh=True)
+        cls.a1 = env.generate_revision(util.rev_id(), '->a1')
+        cls.b1 = env.generate_revision(util.rev_id(), 'a1->b1')
 
         cls.a2 = env.generate_revision(
             util.rev_id(), '->a2', head=(),
             refresh=True)
         cls.b2 = env.generate_revision(
-            util.rev_id(), 'a2->b2', head=cls.a2.revision, refresh=True)
+            util.rev_id(), 'a2->b2', head=cls.a2.revision)
 
     @classmethod
     def teardown_class(cls):
@@ -453,26 +488,26 @@ class MergedPathTest(MigrationTest):
     @classmethod
     def setup_class(cls):
         cls.env = env = staging_env()
-        cls.a = env.generate_revision(util.rev_id(), '->a', refresh=True)
-        cls.b = env.generate_revision(util.rev_id(), 'a->b', refresh=True)
+        cls.a = env.generate_revision(util.rev_id(), '->a')
+        cls.b = env.generate_revision(util.rev_id(), 'a->b')
 
-        cls.c1 = env.generate_revision(util.rev_id(), 'b->c1', refresh=True)
-        cls.d1 = env.generate_revision(util.rev_id(), 'c1->d1', refresh=True)
+        cls.c1 = env.generate_revision(util.rev_id(), 'b->c1')
+        cls.d1 = env.generate_revision(util.rev_id(), 'c1->d1')
 
         cls.c2 = env.generate_revision(
             util.rev_id(), 'b->c2',
             branch_labels='c2branch',
-            head=cls.b.revision, refresh=True, splice=True)
+            head=cls.b.revision, splice=True)
         cls.d2 = env.generate_revision(
             util.rev_id(), 'c2->d2',
-            head=cls.c2.revision, refresh=True)
+            head=cls.c2.revision)
 
         cls.e = env.generate_revision(
             util.rev_id(), 'merge d1 and d2',
-            head=(cls.d1.revision, cls.d2.revision), refresh=True
+            head=(cls.d1.revision, cls.d2.revision)
         )
 
-        cls.f = env.generate_revision(util.rev_id(), 'e->f', refresh=True)
+        cls.f = env.generate_revision(util.rev_id(), 'e->f')
 
     @classmethod
     def teardown_class(cls):

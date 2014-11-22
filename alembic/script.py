@@ -409,7 +409,7 @@ class ScriptDirectory(object):
     def generate_revision(
             self, revid, message, head=None,
             refresh=False, splice=False, branch_labels=None,
-            version_path=None, **kw):
+            version_path=None, depends_on=None, **kw):
         """Generate a new revision file.
 
         This runs the ``script.py.mako`` template, given
@@ -488,6 +488,7 @@ class ScriptDirectory(object):
             down_revision=revision.tuple_rev_as_scalar(
                 tuple(h.revision if h is not None else None for h in heads)),
             branch_labels=util.to_tuple(branch_labels),
+            depends_on=revision.tuple_rev_as_scalar(depends_on),
             create_date=create_date,
             comma=util.format_as_comma,
             message=message if message is not None else ("empty message"),

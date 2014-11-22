@@ -582,7 +582,7 @@ class RevisionStep(MigrationStep):
         elif len(downrevs) == 1:
             downrev = self.revision_map.get_revision(downrevs[0])
 
-            if not downrev.is_branch_point:
+            if not downrev._is_real_branch_point:
                 return False
 
             descendants = set(
