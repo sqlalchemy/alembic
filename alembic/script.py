@@ -483,7 +483,10 @@ class Script(revision.Revision):
             rev_id,
             module.down_revision,
             branch_labels=util.to_tuple(
-                getattr(module, 'branch_labels', None), default=()))
+                getattr(module, 'branch_labels', None), default=()),
+            dependencies=util.to_tuple(
+                getattr(module, 'depends_on', None), default=())
+        )
 
     module = None
     """The Python module representing the actual script itself."""
@@ -522,6 +525,10 @@ class Script(revision.Revision):
         else:
             entry += "Parent: %s\n" % (self._format_down_revision(), )
 
+        if self.dependencies:
+            entry += "Depends on: %s\n" % (
+                util.format_as_comma(self.dependencies))
+
         if self.is_branch_point:
             entry += "Branches into: %s\n" % (
                 util.format_as_comma(self.nextrev))
@@ -554,8 +561,15 @@ class Script(revision.Revision):
             include_parents=False, tree_indicators=True):
         text = self.revision
         if include_parents:
-            text = "%s -> %s" % (
-                self._format_down_revision(), text)
+            if self.dependencies:
+                text = "%s (%s) -> %s" % (
+                    self._format_down_revision(),
+                    util.format_as_comma(self.dependencies),
+                    text
+                )
+            else:
+                text = "%s -> %s" % (
+                    self._format_down_revision(), text)
         if include_branches and self.branch_labels:
             text += " (%s)" % util.format_as_comma(self.branch_labels)
         if tree_indicators:
@@ -584,7 +598,7 @@ class Script(revision.Revision):
         if not self.down_revision:
             return "<base>"
         else:
-            return util.format_as_comma(self._down_revision_tuple)
+            return util.format_as_comma(self._versioned_down_revisions)
 
     @classmethod
     def _from_path(cls, scriptdir, path):

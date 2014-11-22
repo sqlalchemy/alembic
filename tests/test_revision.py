@@ -715,3 +715,160 @@ class MultipleBaseTest(DownIterateTest):
             ['b3', 'a3', 'b2', 'a2', 'base2'],
             inclusive=False, implicit_base=True
         )
+
+
+class MultipleBaseCrossDependencyTestOne(DownIterateTest):
+    def setUp(self):
+        self.map = RevisionMap(
+            lambda: [
+                Revision('base1', (), branch_labels='b_1'),
+                Revision('a1a', ('base1',)),
+                Revision('a1b', ('base1',)),
+                Revision('b1a', ('a1a',)),
+                Revision('b1b', ('a1b', ), dependencies='a3'),
+
+                Revision('base2', (), branch_labels='b_2'),
+                Revision('a2', ('base2',)),
+                Revision('b2', ('a2',)),
+                Revision('c2', ('b2', ), dependencies='a3'),
+                Revision('d2', ('c2',)),
+
+                Revision('base3', (), branch_labels='b_3'),
+                Revision('a3', ('base3',)),
+                Revision('b3', ('a3',)),
+            ]
+        )
+
+    def test_what_are_the_heads(self):
+        eq_(self.map.heads, ("b1a", "b1b", "d2", "b3"))
+
+    def test_heads_to_base(self):
+        self._assert_iteration(
+            "heads", "base",
+            [
+
+                'b1a', 'a1a', 'b1b', 'a1b', 'd2', 'c2', 'b2', 'a2', 'base2',
+                'b3', 'a3', 'base3',
+                'base1'
+            ]
+        )
+
+    def test_we_need_head2(self):
+        # the 2 branch relies on the 3 branch
+        self._assert_iteration(
+            "b_2@head", "base",
+            ['d2', 'c2', 'b2', 'a2', 'base2', 'a3', 'base3']
+        )
+
+    def test_we_need_head3(self):
+        # the 3 branch can be upgraded alone.
+        self._assert_iteration(
+            "b_3@head", "base",
+            ['b3', 'a3', 'base3']
+        )
+
+    def test_we_need_head1(self):
+        # the 1 branch relies on the 3 branch
+        self._assert_iteration(
+            "b1b@head", "base",
+            ['b1b', 'a1b', 'base1', 'a3', 'base3']
+        )
+
+    def test_we_need_base2(self):
+        # consider a downgrade to b_2@base - we
+        # want to run through all the "2"s alone, and we're done.
+        self._assert_iteration(
+            "heads", "b_2@base",
+            ['d2', 'c2', 'b2', 'a2', 'base2']
+        )
+
+    def test_we_need_base3(self):
+        # consider a downgrade to b_3@base - due to the a3 dependency, we
+        # need to downgrade everything dependent on a3
+        # as well, which means b1b and c2.  Then we can downgrade
+        # the 3s.
+        self._assert_iteration(
+            "heads", "b_3@base",
+            ['b1b', 'd2', 'c2', 'b3', 'a3', 'base3']
+        )
+
+
+class MultipleBaseCrossDependencyTestTwo(DownIterateTest):
+    def setUp(self):
+        self.map = RevisionMap(
+            lambda: [
+                Revision('base1', (), branch_labels='b_1'),
+                Revision('a1', 'base1'),
+                Revision('b1', 'a1'),
+                Revision('c1', 'b1'),
+
+                Revision('base2', (), dependencies='base1', branch_labels='b_2'),
+                Revision('a2', 'base2'),
+                Revision('b2', 'a2'),
+                Revision('c2', 'b2'),
+                Revision('d2', 'c2'),
+
+                Revision('base3', (), branch_labels='b_3'),
+                Revision('a3', 'base3'),
+                Revision('b3', 'a3'),
+                Revision('c3', 'b3', dependencies='b2'),
+                Revision('d3', 'c3'),
+            ]
+        )
+
+    def test_what_are_the_heads(self):
+        eq_(self.map.heads, ("c1", "d2", "d3"))
+
+    def test_heads_to_base(self):
+        self._assert_iteration(
+            "heads", "base",
+            [
+                'c1', 'b1', 'a1',
+                'd2', 'c2',
+                'd3', 'c3', 'b3', 'a3', 'base3',
+                'b2', 'a2', 'base2',
+                'base1'
+            ]
+        )
+
+    def test_we_need_head2(self):
+        self._assert_iteration(
+            "b_2@head", "base",
+            ['d2', 'c2', 'b2', 'a2', 'base2', 'base1']
+        )
+
+    def test_we_need_head3(self):
+        self._assert_iteration(
+            "b_3@head", "base",
+            ['d3', 'c3', 'b3', 'a3', 'base3', 'b2', 'a2', 'base2', 'base1']
+        )
+
+    def test_we_need_head1(self):
+        self._assert_iteration(
+            "b_1@head", "base",
+            ['c1', 'b1', 'a1', 'base1']
+        )
+
+    def test_we_need_base1(self):
+        self._assert_iteration(
+            "heads", "b_1@base",
+            [
+                'c1', 'b1', 'a1',
+                'd2', 'c2',
+                'd3', 'c3', 'b2', 'a2', 'base2',
+                'base1'
+            ]
+        )
+
+    def test_we_need_base2(self):
+        self._assert_iteration(
+            "heads", "b_2@base",
+            ['d2', 'c2', 'd3', 'c3', 'b2', 'a2', 'base2']
+        )
+
+    def test_we_need_base3(self):
+        self._assert_iteration(
+            "heads", "b_3@base",
+            ['d3', 'c3', 'b3', 'a3', 'base3']
+        )
+
