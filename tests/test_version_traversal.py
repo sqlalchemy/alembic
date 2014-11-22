@@ -206,11 +206,12 @@ class BranchedPathTest(MigrationTest):
         a, b, c1, d1, c2, d2 = (
             self.a, self.b, self.c1, self.d1, self.c2, self.d2
         )
+        heads = [self.d1.revision, self.c2.revision]
         revs = self.env._stamp_revs(
-            self.b.revision, [self.d1.revision, self.c2.revision])
+            self.b.revision, heads)
         eq_(len(revs), 1)
         eq_(
-            revs[0].merge_branch_idents,
+            revs[0].merge_branch_idents(heads),
             # DELETE d1 revision, UPDATE c2 to b
             ([self.d1.revision], self.c2.revision, self.b.revision)
         )
@@ -229,11 +230,12 @@ class BranchedPathTest(MigrationTest):
         a, b, c1, d1, c2, d2 = (
             self.a, self.b, self.c1, self.d1, self.c2, self.d2
         )
+        heads = [self.d1.revision, self.c2.revision]
         revs = self.env._stamp_revs(
-            "c2branch@head", [self.d1.revision, self.c2.revision])
+            "c2branch@head", heads)
         eq_(len(revs), 1)
         eq_(
-            revs[0].merge_branch_idents,
+            revs[0].merge_branch_idents(heads),
             # the c1branch remains unchanged
             ([], self.c2.revision, self.d2.revision)
         )
@@ -271,6 +273,153 @@ class BranchedPathTest(MigrationTest):
             [self.down_(d1), self.down_(c1), self.down_(d2),
              self.down_(c2), self.down_(b)],
             set([a.revision])
+        )
+
+
+class BranchFromMergepointTest(MigrationTest):
+    """this is a form that will come up frequently in the
+    "many independent roots with cross-dependencies" case.
+
+    """
+
+    @classmethod
+    def setup_class(cls):
+        cls.env = env = staging_env()
+        cls.a1 = env.generate_revision(util.rev_id(), '->a1', refresh=True)
+        cls.b1 = env.generate_revision(util.rev_id(), 'a1->b1', refresh=True)
+        cls.c1 = env.generate_revision(util.rev_id(), 'b1->c1', refresh=True)
+
+        cls.a2 = env.generate_revision(
+            util.rev_id(), '->a2', head=(),
+            refresh=True)
+        cls.b2 = env.generate_revision(
+            util.rev_id(), 'a2->b2', head=cls.a2.revision, refresh=True)
+        cls.c2 = env.generate_revision(
+            util.rev_id(), 'b2->c2', head=cls.b2.revision, refresh=True)
+
+        # mergepoint between c1, c2
+        # d1 dependent on c2
+        cls.d1 = env.generate_revision(
+            util.rev_id(), 'd1', head=(cls.c1.revision, cls.c2.revision),
+            refresh=True)
+
+        # but then c2 keeps going into d2
+        cls.d2 = env.generate_revision(
+            util.rev_id(), 'd2', head=cls.c2.revision,
+            refresh=True, splice=True)
+
+    def test_mergepoint_to_only_one_side_upgrade(self):
+        a1, b1, c1, a2, b2, c2, d1, d2 = (
+            self.a1, self.b1, self.c1, self.a2, self.b2, self.c2,
+            self.d1, self.d2
+        )
+
+        self._assert_upgrade(
+            d1.revision, (d2.revision, b1.revision),
+            [self.up_(c1), self.up_(d1)],
+            set([d2.revision, d1.revision])
+        )
+
+    def test_mergepoint_to_only_one_side_downgrade(self):
+        a1, b1, c1, a2, b2, c2, d1, d2 = (
+            self.a1, self.b1, self.c1, self.a2, self.b2, self.c2,
+            self.d1, self.d2
+        )
+
+        self._assert_downgrade(
+            b1.revision, (d2.revision, d1.revision),
+            [self.down_(d1), self.down_(c1)],
+            set([d2.revision, b1.revision])
+        )
+
+class BranchFrom3WayMergepointTest(MigrationTest):
+    """this is a form that will come up frequently in the
+    "many independent roots with cross-dependencies" case.
+
+    """
+
+    @classmethod
+    def setup_class(cls):
+        cls.env = env = staging_env()
+        cls.a1 = env.generate_revision(util.rev_id(), '->a1', refresh=True)
+        cls.b1 = env.generate_revision(util.rev_id(), 'a1->b1', refresh=True)
+        cls.c1 = env.generate_revision(util.rev_id(), 'b1->c1', refresh=True)
+
+        cls.a2 = env.generate_revision(
+            util.rev_id(), '->a2', head=(),
+            refresh=True)
+        cls.b2 = env.generate_revision(
+            util.rev_id(), 'a2->b2', head=cls.a2.revision, refresh=True)
+        cls.c2 = env.generate_revision(
+            util.rev_id(), 'b2->c2', head=cls.b2.revision, refresh=True)
+
+        cls.a3 = env.generate_revision(
+            util.rev_id(), '->a3', head=(),
+            refresh=True)
+        cls.b3 = env.generate_revision(
+            util.rev_id(), 'a3->b3', head=cls.a3.revision, refresh=True)
+        cls.c3 = env.generate_revision(
+            util.rev_id(), 'b3->c3', head=cls.b3.revision, refresh=True)
+
+        # mergepoint between c1, c2, c3
+        # d1 dependent on c2, c3
+        cls.d1 = env.generate_revision(
+            util.rev_id(), 'd1', head=(
+                cls.c1.revision, cls.c2.revision, cls.c3.revision),
+            refresh=True)
+
+        # but then c2 keeps going into d2
+        cls.d2 = env.generate_revision(
+            util.rev_id(), 'd2', head=cls.c2.revision,
+            refresh=True, splice=True)
+
+        # c3 keeps going into d3
+        cls.d3 = env.generate_revision(
+            util.rev_id(), 'd3', head=cls.c3.revision,
+            refresh=True, splice=True)
+
+    def test_mergepoint_to_only_one_side_upgrade(self):
+        a1, b1, c1, a2, b2, c2, d1, d2, a3, b3, c3, d3 = (
+            self.a1, self.b1, self.c1, self.a2, self.b2, self.c2,
+            self.d1, self.d2, self.a3, self.b3, self.c3, self.d3
+        )
+
+        self._assert_upgrade(
+            d1.revision, (d3.revision, d2.revision, b1.revision),
+            [self.up_(c1), self.up_(d1)],
+            set([d3.revision, d2.revision, d1.revision])
+        )
+
+    def test_mergepoint_to_only_one_side_downgrade(self):
+        a1, b1, c1, a2, b2, c2, d1, d2, a3, b3, c3, d3 = (
+            self.a1, self.b1, self.c1, self.a2, self.b2, self.c2,
+            self.d1, self.d2, self.a3, self.b3, self.c3, self.d3
+        )
+
+        self._assert_downgrade(
+            b1.revision, (d3.revision, d2.revision, d1.revision),
+            [self.down_(d1), self.down_(c1)],
+            set([d3.revision, d2.revision, b1.revision])
+        )
+
+    def test_mergepoint_to_two_sides_upgrade(self):
+        a1, b1, c1, a2, b2, c2, d1, d2, a3, b3, c3, d3 = (
+            self.a1, self.b1, self.c1, self.a2, self.b2, self.c2,
+            self.d1, self.d2, self.a3, self.b3, self.c3, self.d3
+        )
+
+        self._assert_upgrade(
+            d1.revision, (d3.revision, b2.revision, b1.revision),
+            [self.up_(c2), self.up_(c1), self.up_(d1)],
+            # this will merge b2 and b1 into d1
+            set([d3.revision, d1.revision])
+        )
+
+        # but then!  b2 will break out again if we keep going with it
+        self._assert_upgrade(
+            d2.revision, (d3.revision, d1.revision),
+            [self.up_(d2)],
+            set([d3.revision, d2.revision, d1.revision])
         )
 
 
@@ -334,10 +483,11 @@ class MergedPathTest(MigrationTest):
             self.a, self.b, self.c1, self.d1, self.c2, self.d2,
             self.e, self.f
         )
-        revs = self.env._stamp_revs(self.c2.revision, [self.e.revision])
+        heads = [self.e.revision]
+        revs = self.env._stamp_revs(self.c2.revision, heads)
         eq_(len(revs), 1)
         eq_(
-            revs[0].merge_branch_idents,
+            revs[0].merge_branch_idents(heads),
             # no deletes, UPDATE e to c2
             ([], self.e.revision, self.c2.revision)
         )
@@ -347,10 +497,11 @@ class MergedPathTest(MigrationTest):
             self.a, self.b, self.c1, self.d1, self.c2, self.d2,
             self.e, self.f
         )
-        revs = self.env._stamp_revs(self.a.revision, [self.e.revision])
+        heads = [self.e.revision]
+        revs = self.env._stamp_revs(self.a.revision, heads)
         eq_(len(revs), 1)
         eq_(
-            revs[0].merge_branch_idents,
+            revs[0].merge_branch_idents(heads),
             # no deletes, UPDATE e to c2
             ([], self.e.revision, self.a.revision)
         )
@@ -363,7 +514,7 @@ class MergedPathTest(MigrationTest):
         revs = self.env._stamp_revs(self.e.revision, [self.c2.revision])
         eq_(len(revs), 1)
         eq_(
-            revs[0].merge_branch_idents,
+            revs[0].merge_branch_idents([self.c2.revision]),
             # no deletes, UPDATE e to c2
             ([], self.c2.revision, self.e.revision)
         )
@@ -380,7 +531,7 @@ class MergedPathTest(MigrationTest):
             "c2branch@head", [self.d1.revision, self.c2.revision])
         eq_(len(revs), 1)
         eq_(
-            revs[0].merge_branch_idents,
+            revs[0].merge_branch_idents([self.d1.revision, self.c2.revision]),
             # DELETE d1 revision, UPDATE c2 to e
             ([self.d1.revision], self.c2.revision, self.f.revision)
         )
@@ -390,11 +541,12 @@ class MergedPathTest(MigrationTest):
             self.a, self.b, self.c1, self.d1, self.c2, self.d2,
             self.e, self.f
         )
+        heads = [self.d1.revision, self.c2.revision]
         revs = self.env._stamp_revs(
-            self.e.revision, [self.d1.revision, self.c2.revision])
+            self.e.revision, heads)
         eq_(len(revs), 1)
         eq_(
-            revs[0].merge_branch_idents,
+            revs[0].merge_branch_idents(heads),
             # DELETE d1 revision, UPDATE c2 to e
             ([self.d1.revision], self.c2.revision, self.e.revision)
         )
@@ -404,10 +556,11 @@ class MergedPathTest(MigrationTest):
             self.a, self.b, self.c1, self.d1, self.c2, self.d2,
             self.e, self.f
         )
-        revs = self.env._stamp_revs(self.e.revision, [self.b.revision])
+        heads = [self.b.revision]
+        revs = self.env._stamp_revs(self.e.revision, heads)
         eq_(len(revs), 1)
         eq_(
-            revs[0].merge_branch_idents,
+            revs[0].merge_branch_idents(heads),
             # no deletes, UPDATE e to c2
             ([], self.b.revision, self.e.revision)
         )

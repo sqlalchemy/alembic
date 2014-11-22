@@ -472,7 +472,7 @@ class HeadMaintainer(object):
         elif step.should_merge_branches(self.heads):
             # delete revs, update from rev, update to rev
             (delete_revs, update_from_rev,
-             update_to_rev) = step.merge_branch_idents
+             update_to_rev) = step.merge_branch_idents(self.heads)
             log.debug(
                 "merge, delete %s, update %s to %s",
                 delete_revs, update_from_rev, update_to_rev)
@@ -481,7 +481,7 @@ class HeadMaintainer(object):
             self._update_version(update_from_rev, update_to_rev)
         elif step.should_unmerge_branches(self.heads):
             (update_from_rev, update_to_rev,
-             insert_revs) = step.unmerge_branch_idents
+             insert_revs) = step.unmerge_branch_idents(self.heads)
             log.debug(
                 "unmerge, insert %s, update %s to %s",
                 insert_revs, update_from_rev, update_to_rev)
@@ -489,7 +489,7 @@ class HeadMaintainer(object):
                 self._insert_version(insrev)
             self._update_version(update_from_rev, update_to_rev)
         else:
-            from_, to_ = step.update_version_num
+            from_, to_ = step.update_version_num(self.heads)
             log.debug("update %s to %s", from_, to_)
             self._update_version(from_, to_)
 
@@ -510,22 +510,6 @@ class MigrationStep(object):
     @property
     def is_downgrade(self):
         return not self.is_upgrade
-
-    @property
-    def merge_branch_idents(self):
-        return (
-            # delete revs, update from rev, update to rev
-            list(self.from_revisions[0:-1]), self.from_revisions[-1],
-            self.to_revisions[0]
-        )
-
-    @property
-    def unmerge_branch_idents(self):
-        return (
-            # update from rev, update to rev, insert revs
-            self.from_revisions[0], self.to_revisions[-1],
-            list(self.to_revisions[0:-1])
-        )
 
     @property
     def short_log(self):
@@ -632,6 +616,48 @@ class RevisionStep(MigrationStep):
             # is a merge point
             return False
 
+    def merge_branch_idents(self, heads):
+        other_heads = set(heads).difference(self.from_revisions)
+
+        if other_heads:
+            ancestors = set(
+                r.revision for r in
+                self.revision_map._get_ancestor_nodes(
+                    self.revision_map.get_revisions(other_heads),
+                    check=False
+                )
+            )
+            from_revisions = list(
+                set(self.from_revisions).difference(ancestors))
+        else:
+            from_revisions = list(self.from_revisions)
+
+        return (
+            # delete revs, update from rev, update to rev
+            list(from_revisions[0:-1]), from_revisions[-1],
+            self.to_revisions[0]
+        )
+
+    def unmerge_branch_idents(self, heads):
+        other_heads = set(heads).difference([self.revision.revision])
+        if other_heads:
+            ancestors = set(
+                r.revision for r in
+                self.revision_map._get_ancestor_nodes(
+                    self.revision_map.get_revisions(other_heads),
+                    check=False
+                )
+            )
+            to_revisions = list(set(self.to_revisions).difference(ancestors))
+        else:
+            to_revisions = self.to_revisions
+
+        return (
+            # update from rev, update to rev, insert revs
+            self.from_revisions[0], to_revisions[-1],
+            to_revisions[0:-1]
+        )
+
     def should_create_branch(self, heads):
         if not self.is_upgrade:
             return False
@@ -673,13 +699,19 @@ class RevisionStep(MigrationStep):
 
         return False
 
-    @property
-    def update_version_num(self):
-        assert self._has_scalar_down_revision
-        if self.is_upgrade:
-            return self.revision.down_revision, self.revision.revision
+    def update_version_num(self, heads):
+        if not self._has_scalar_down_revision:
+            downrev = heads.intersection(self.revision._down_revision_tuple)
+            assert len(downrev) == 1, \
+                "Can't do an UPDATE because downrevision is ambiguous"
+            down_revision = list(downrev)[0]
         else:
-            return self.revision.revision, self.revision.down_revision
+            down_revision = self.revision.down_revision
+
+        if self.is_upgrade:
+            return down_revision, self.revision.revision
+        else:
+            return self.revision.revision, down_revision
 
     @property
     def delete_version_num(self):
@@ -728,11 +760,24 @@ class StampStep(MigrationStep):
         assert len(self.to_) == 1
         return self.to_[0]
 
-    @property
-    def update_version_num(self):
+    def update_version_num(self, heads):
         assert len(self.from_) == 1
         assert len(self.to_) == 1
         return self.from_[0], self.to_[0]
+
+    def merge_branch_idents(self, heads):
+        return (
+            # delete revs, update from rev, update to rev
+            list(self.from_[0:-1]), self.from_[-1],
+            self.to_[0]
+        )
+
+    def unmerge_branch_idents(self, heads):
+        return (
+            # update from rev, update to rev, insert revs
+            self.from_[0], self.to_[-1],
+            list(self.to_[0:-1])
+        )
 
     def should_delete_branch(self, heads):
         return self.is_downgrade and self.branch_move
