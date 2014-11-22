@@ -674,7 +674,15 @@ directive ``depends_on='55af2cb1c267'`` underneath the other directives::
     depends_on='55af2cb1c267'
 
 Currently, ``depends_on`` needs to be a real revision number, not a partial
-number or branch name.
+number or branch name.   It can of course refer to a tuple of any number
+of dependent revisions::
+
+    # revision identifiers, used by Alembic.
+    revision = '2a95102259be'
+    down_revision = '29f859a13ea'
+    branch_labels = None
+    depends_on = ('55af2cb1c267', 'd747a8a8879', 'fa4456a9201')
+
 
 We can see the effect this directive has when we view the history
 of the ``networking`` branch in terms of "heads", e.g., all the revisions that
