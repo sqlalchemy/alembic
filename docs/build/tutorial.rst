@@ -1888,6 +1888,8 @@ new tree of revision files that will be semi-independent of the account/shopping
 cart revisions we've been working with.  This new tree will deal with
 database tables involving "networking".
 
+.. _multiple_version_directories:
+
 Setting up Multiple Version Directories
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
