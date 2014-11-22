@@ -20,6 +20,11 @@ script_location = ${script_location}
 # versions/ directory
 # sourceless = false
 
+# version location specification; this defaults
+# to ${script_location}/versions.  When using multiple version
+# directories, initial revisions must be specified with --version-path
+# version_locations = %(here)s/bar %(here)s/bat ${script_location}/versions
+
 # the output encoding used when revision files
 # are written from script.py.mako
 # output_encoding = utf-8

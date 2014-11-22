@@ -15,6 +15,7 @@ _legacy_rev = re.compile(r'([a-f0-9]+)\.py$')
 _mod_def_re = re.compile(r'(upgrade|downgrade)_([a-z0-9]+)')
 _slug_re = re.compile(r'\w+')
 _default_file_template = "%(rev)s_%(slug)s"
+_split_on_space_comma = re.compile(r',|(?: +)')
 
 
 class ScriptDirectory(object):
@@ -40,10 +41,11 @@ class ScriptDirectory(object):
 
     def __init__(self, dir, file_template=_default_file_template,
                  truncate_slug_length=40,
+                 version_locations=None,
                  sourceless=False, output_encoding="utf-8"):
         self.dir = dir
-        self.versions = os.path.join(self.dir, 'versions')
         self.file_template = file_template
+        self.version_locations = version_locations
         self.truncate_slug_length = truncate_slug_length or 40
         self.sourceless = sourceless
         self.output_encoding = output_encoding
@@ -54,12 +56,38 @@ class ScriptDirectory(object):
                                     "the 'init' command to create a new "
                                     "scripts folder." % dir)
 
+    @property
+    def versions(self):
+        loc = self._version_locations
+        if len(loc) > 1:
+            raise util.CommandError("Multiple version_locations present")
+        else:
+            return loc[0]
+
+    @util.memoized_property
+    def _version_locations(self):
+        if self.version_locations:
+            return [
+                os.path.abspath(util.coerce_resource_to_filename(location))
+                for location in self.version_locations
+            ]
+        else:
+            return (os.path.abspath(os.path.join(self.dir, 'versions')),)
+
     def _load_revisions(self):
-        for file_ in os.listdir(self.versions):
-            script = Script._from_filename(self, self.versions, file_)
-            if script is None:
-                continue
-            yield script
+        if self.version_locations:
+            paths = [
+                vers for vers in self._version_locations
+                if os.path.exists(vers)]
+        else:
+            paths = [self.versions]
+
+        for vers in paths:
+            for file_ in os.listdir(vers):
+                script = Script._from_filename(self, vers, file_)
+                if script is None:
+                    continue
+                yield script
 
     @classmethod
     def from_config(cls, config):
@@ -77,6 +105,10 @@ class ScriptDirectory(object):
         truncate_slug_length = config.get_main_option("truncate_slug_length")
         if truncate_slug_length is not None:
             truncate_slug_length = int(truncate_slug_length)
+
+        version_locations = config.get_main_option("version_locations")
+        if version_locations:
+            version_locations = _split_on_space_comma.split(version_locations)
         return ScriptDirectory(
             util.coerce_resource_to_filename(script_location),
             file_template=config.get_main_option(
@@ -84,7 +116,8 @@ class ScriptDirectory(object):
                 _default_file_template),
             truncate_slug_length=truncate_slug_length,
             sourceless=config.get_main_option("sourceless") == "true",
-            output_encoding=config.get_main_option("output_encoding", "utf-8")
+            output_encoding=config.get_main_option("output_encoding", "utf-8"),
+            version_locations=version_locations
         )
 
     @contextmanager
@@ -217,7 +250,7 @@ class ScriptDirectory(object):
             return self.revision_map.get_current_head()
 
     def get_heads(self):
-        """Return all "head" revisions as strings.
+        """Return all "versioned head" revisions as strings.
 
         This is normally a list of length one,
         unless branches are present.  The
@@ -366,9 +399,17 @@ class ScriptDirectory(object):
                     shutil.copy,
                     src, dest)
 
+    def _ensure_directory(self, path):
+        path = os.path.abspath(path)
+        if not os.path.exists(path):
+            util.status(
+                "Creating directory %s" % path,
+                os.makedirs, path)
+
     def generate_revision(
             self, revid, message, head=None,
-            refresh=False, splice=False, branch_labels=None, **kw):
+            refresh=False, splice=False, branch_labels=None,
+            version_path=None, **kw):
         """Generate a new revision file.
 
         This runs the ``script.py.mako`` template, given
@@ -384,16 +425,10 @@ class ScriptDirectory(object):
 
          .. versionadded:: 0.7.0
 
-        :param refresh: when True, the in-memory state of this
-         :class:`.ScriptDirectory` will be updated with a new
-         :class:`.Script` instance representing the new revision;
-         the :class:`.Script` instance is returned.
-         If False, the file is created but the state of the
-         :class:`.ScriptDirectory` is unmodified; ``None``
-         is returned.
         :param splice: if True, allow the "head" version to not be an
          actual head; otherwise, the selected head must be a head
          (e.g. endpoint) revision.
+        :param refresh: deprecated.
 
         """
         if head is None:
@@ -410,7 +445,33 @@ class ScriptDirectory(object):
             raise util.CommandError("Duplicate head revisions specified")
 
         create_date = datetime.datetime.now()
-        path = self._rev_path(revid, message, create_date)
+
+        if version_path is None:
+            if len(self._version_locations) > 1:
+                for head in heads:
+                    if head is not None:
+                        version_path = os.path.dirname(head.path)
+                        break
+                else:
+                    raise util.CommandError(
+                        "Multiple version locations present, "
+                        "please specify --version-path")
+            else:
+                version_path = self.versions
+
+        norm_path = os.path.normpath(os.path.abspath(version_path))
+        for vers_path in self._version_locations:
+            if os.path.normpath(vers_path) == norm_path:
+                break
+        else:
+            raise util.CommandError(
+                "Path %s is not represented in current "
+                "version locations" % version_path)
+
+        if self.version_locations:
+            self._ensure_directory(version_path)
+
+        path = self._rev_path(version_path, revid, message, create_date)
 
         if not splice:
             for head in heads:
@@ -432,23 +493,20 @@ class ScriptDirectory(object):
             message=message if message is not None else ("empty message"),
             **kw
         )
-        if refresh:
-            script = Script._from_path(self, path)
-            if branch_labels and not script.branch_labels:
-                raise util.CommandError(
-                    "Version %s specified branch_labels %s, however the "
-                    "migration file %s does not have them; have you upgraded "
-                    "your script.py.mako to include the "
-                    "'branch_labels' section?" % (
-                        script.revision, branch_labels, script.path
-                    ))
+        script = Script._from_path(self, path)
+        if branch_labels and not script.branch_labels:
+            raise util.CommandError(
+                "Version %s specified branch_labels %s, however the "
+                "migration file %s does not have them; have you upgraded "
+                "your script.py.mako to include the "
+                "'branch_labels' section?" % (
+                    script.revision, branch_labels, script.path
+                ))
 
-            self.revision_map.add_revision(script)
-            return script
-        else:
-            return None
+        self.revision_map.add_revision(script)
+        return script
 
-    def _rev_path(self, rev_id, message, create_date):
+    def _rev_path(self, path, rev_id, message, create_date):
         slug = "_".join(_slug_re.findall(message or "")).lower()
         if len(slug) > self.truncate_slug_length:
             slug = slug[:self.truncate_slug_length].rsplit('_', 1)[0] + '_'
@@ -464,7 +522,7 @@ class ScriptDirectory(object):
                 'second': create_date.second
             }
         )
-        return os.path.join(self.versions, filename)
+        return os.path.join(path, filename)
 
 
 class Script(revision.Revision):
@@ -526,7 +584,7 @@ class Script(revision.Revision):
             entry += "Parent: %s\n" % (self._format_down_revision(), )
 
         if self.dependencies:
-            entry += "Depends on: %s\n" % (
+            entry += "Also depends on: %s\n" % (
                 util.format_as_comma(self.dependencies))
 
         if self.is_branch_point:
@@ -558,7 +616,8 @@ class Script(revision.Revision):
 
     def _head_only(
             self, include_branches=False, include_doc=False,
-            include_parents=False, tree_indicators=True):
+            include_parents=False, tree_indicators=True,
+            head_indicators=True):
         text = self.revision
         if include_parents:
             if self.dependencies:
@@ -572,9 +631,14 @@ class Script(revision.Revision):
                     self._format_down_revision(), text)
         if include_branches and self.branch_labels:
             text += " (%s)" % util.format_as_comma(self.branch_labels)
+        if head_indicators or tree_indicators:
+            text += "%s%s" % (
+                " (head)" if self._is_real_head else "",
+                " (effective head)" if self.is_head and
+                    not self._is_real_head else ""
+                )
         if tree_indicators:
-            text += "%s%s%s" % (
-                " (head)" if self.is_head else "",
+            text += "%s%s" % (
                 " (branchpoint)" if self.is_branch_point else "",
                 " (mergepoint)" if self.is_merge_point else "",
             )

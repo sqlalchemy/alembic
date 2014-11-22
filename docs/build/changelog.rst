@@ -27,6 +27,22 @@ Changelog
           :ref:`branches`
 
     .. change::
+      :tags: feature, versioning
+      :tickets: 124
+
+      In conjunction with support for multiple independent bases, the
+      specific version directories are now also configurable to include
+      multiple, user-defined directories.   When multiple directories exist,
+      the creation of a revision file with no down revision requires
+      that the starting directory is indicated; the creation of subsequent
+      revisions along that lineage will then automatically use that
+      directory for new files.
+
+      .. seealso::
+
+          :ref:`multiple_version_directories`
+
+    .. change::
       :tags: feature, operations, sqlite
       :tickets: 21
 

@@ -66,7 +66,8 @@ def init(config, directory, template='generic'):
 
 def revision(
         config, message=None, autogenerate=False, sql=False,
-        head="head", splice=False, branch_label=None):
+        head="head", splice=False, branch_label=None,
+        version_path=None, rev_id=None):
     """Create a new revision file."""
 
     script = ScriptDirectory.from_config(config)
@@ -103,12 +104,12 @@ def revision(
         ):
             script.run_env()
     return script.generate_revision(
-        util.rev_id(), message, refresh=True,
+        rev_id or util.rev_id(), message, refresh=True,
         head=head, splice=splice, branch_labels=branch_label,
-        **template_args)
+        version_path=version_path, **template_args)
 
 
-def merge(config, revisions, message=None, branch_label=None):
+def merge(config, revisions, message=None, branch_label=None, rev_id=None):
     """Merge two revisions together.  Creates a new migration file.
 
     .. versionadded:: 0.7.0
@@ -125,7 +126,7 @@ def merge(config, revisions, message=None, branch_label=None):
                           # e.g. multiple databases
     }
     return script.generate_revision(
-        util.rev_id(), message, refresh=True,
+        rev_id or util.rev_id(), message, refresh=True,
         head=revisions, branch_labels=branch_label,
         **template_args)
 
@@ -250,11 +251,16 @@ def history(config, rev_range=None, verbose=False):
         _display_history(config, script, base, head)
 
 
-def heads(config, verbose=False):
+def heads(config, verbose=False, resolve_dependencies=False):
     """Show current available heads in the script directory"""
 
     script = ScriptDirectory.from_config(config)
-    for rev in script.get_revisions("heads"):
+    if resolve_dependencies:
+        heads = script.get_revisions("heads")
+    else:
+        heads = script.get_revisions(script.get_heads())
+
+    for rev in heads:
         config.print_stdout(
             rev.cmd_format(
                 verbose, include_branches=True, tree_indicators=False))

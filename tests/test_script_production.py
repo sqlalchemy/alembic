@@ -3,7 +3,7 @@ from alembic.testing import eq_, ne_, is_, assert_raises_message
 from alembic.testing.env import clear_staging_env, staging_env, \
     _get_staging_directory, _no_sql_testing_config, env_file_fixture, \
     script_file_fixture, _testing_config, _sqlite_testing_config, \
-    three_rev_fixture
+    three_rev_fixture, _multi_dir_testing_config
 from alembic import command
 from alembic.script import ScriptDirectory
 from alembic.environment import EnvironmentContext
@@ -30,9 +30,8 @@ class GeneralOrderedTests(TestBase):
         self._test_004_rev()
         self._test_005_nextrev()
         self._test_006_from_clean_env()
-        self._test_007_no_refresh()
-        self._test_008_long_name()
-        self._test_009_long_name_configurable()
+        self._test_007_long_name()
+        self._test_008_long_name_configurable()
 
     def _test_001_environment(self):
         assert_set = set(['env.py', 'script.py.mako', 'README'])
@@ -93,14 +92,7 @@ class GeneralOrderedTests(TestBase):
         eq_(env.get_heads(), [def_])
         eq_(env.get_base(), abc)
 
-    def _test_007_no_refresh(self):
-        rid = util.rev_id()
-        script = env.generate_revision(rid, "dont' refresh")
-        is_(script, None)
-        env2 = staging_env(create=False)
-        eq_(env2.get_current_head(), rid)
-
-    def _test_008_long_name(self):
+    def _test_007_long_name(self):
         rid = util.rev_id()
         env.generate_revision(rid,
                               "this is a really long name with "
@@ -112,7 +104,7 @@ class GeneralOrderedTests(TestBase):
                 '%s_this_is_a_really_long_name_with_lots_of_.py' % rid),
             os.F_OK)
 
-    def _test_009_long_name_configurable(self):
+    def _test_008_long_name_configurable(self):
         env.truncate_slug_length = 60
         rid = util.rev_id()
         env.generate_revision(rid,
@@ -146,9 +138,11 @@ class ScriptNamingTest(TestBase):
         )
         create_date = datetime.datetime(2012, 7, 25, 15, 8, 5)
         eq_(
-            script._rev_path("12345", "this is a message", create_date),
-            "%s/versions/12345_this_is_a_"
-            "message_2012_7_25_15_8_5.py" % _get_staging_directory()
+            script._rev_path(
+                script.versions, "12345", "this is a message", create_date),
+            os.path.abspath(
+                "%s/versions/12345_this_is_a_"
+                "message_2012_7_25_15_8_5.py" % _get_staging_directory())
         )
 
 
@@ -218,6 +212,59 @@ class RevisionCommandTest(TestBase):
             command.revision,
             self.cfg, message="some message", branch_label="foobar"
         )
+
+
+class MultiDirRevisionCommandTest(TestBase):
+    def setUp(self):
+        self.env = staging_env()
+        self.cfg = _multi_dir_testing_config()
+
+    def tearDown(self):
+        clear_staging_env()
+
+    def test_multiple_dir_no_bases(self):
+        assert_raises_message(
+            util.CommandError,
+            "Multiple version locations present, please specify "
+            "--version-path",
+            command.revision, self.cfg, message="some message"
+        )
+
+    def test_multiple_dir_no_bases_invalid_version_path(self):
+        assert_raises_message(
+            util.CommandError,
+            "Path foo/bar/ is not represented in current version locations",
+            command.revision,
+            self.cfg, message="x",
+            version_path=os.path.join("foo/bar/")
+        )
+
+    def test_multiple_dir_no_bases_version_path(self):
+        script = command.revision(
+            self.cfg, message="x",
+            version_path=os.path.join(_get_staging_directory(), "model1"))
+        assert os.access(script.path, os.F_OK)
+
+    def test_multiple_dir_chooses_base(self):
+        command.revision(
+            self.cfg, message="x",
+            head="base",
+            version_path=os.path.join(_get_staging_directory(), "model1"))
+
+        script2 = command.revision(
+            self.cfg, message="y",
+            head="base",
+            version_path=os.path.join(_get_staging_directory(), "model2"))
+
+        script3 = command.revision(
+            self.cfg, message="y2",
+            head=script2.revision)
+
+        eq_(
+            os.path.dirname(script3.path),
+            os.path.abspath(os.path.join(_get_staging_directory(), "model2"))
+        )
+        assert os.access(script3.path, os.F_OK)
 
 
 class TemplateArgsTest(TestBase):

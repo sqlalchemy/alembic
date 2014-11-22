@@ -249,6 +249,22 @@ class CommandLine(object):
                         "'head' to splice onto"
                     )
                 ),
+                'rev_id': (
+                    "--rev-id",
+                    dict(
+                        type=str,
+                        help="Specify a hardcoded revision id instead of "
+                        "generating one"
+                    )
+                ),
+                'version_path': (
+                    "--version-path",
+                    dict(
+                        type=str,
+                        help="Specify specific path from config for "
+                        "version file"
+                    )
+                ),
                 'branch_label': (
                     "--branch-label",
                     dict(
@@ -262,6 +278,13 @@ class CommandLine(object):
                     dict(
                         action="store_true",
                         help="Use more verbose output"
+                    )
+                ),
+                'resolve_dependencies': (
+                    '--resolve-dependencies',
+                    dict(
+                        action="store_true",
+                        help="Treat dependency versions as down revisions"
                     )
                 ),
                 'autogenerate': (

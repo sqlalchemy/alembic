@@ -82,6 +82,16 @@ class RevisionMap(object):
         return self.bases
 
     @util.memoized_property
+    def _real_heads(self):
+        """All "real" head revisions as strings.
+
+        :return: a tuple of string revision numbers.
+
+        """
+        self._revision_map
+        return self._real_heads
+
+    @util.memoized_property
     def _real_bases(self):
         """All "real" base revisions as strings.
 
@@ -100,6 +110,7 @@ class RevisionMap(object):
         map_ = {}
 
         heads = sqlautil.OrderedSet()
+        _real_heads = sqlautil.OrderedSet()
         self.bases = ()
         self._real_bases = ()
 
@@ -113,6 +124,7 @@ class RevisionMap(object):
             if revision.branch_labels:
                 has_branch_labels.add(revision)
             heads.add(revision.revision)
+            _real_heads.add(revision.revision)
             if revision.is_base:
                 self.bases += (revision.revision, )
             if revision._is_real_base:
@@ -125,10 +137,13 @@ class RevisionMap(object):
                               % (downrev, rev))
                 down_revision = map_[downrev]
                 down_revision.add_nextrev(rev)
-                heads.discard(downrev)
+                if downrev in rev._versioned_down_revisions:
+                    heads.discard(downrev)
+                _real_heads.discard(downrev)
 
         map_[None] = map_[()] = None
         self.heads = tuple(heads)
+        self._real_heads = tuple(_real_heads)
 
         for revision in has_branch_labels:
             self._add_branches(revision, map_)
@@ -188,10 +203,16 @@ class RevisionMap(object):
                 )
             map_[downrev].add_nextrev(revision)
         if revision._is_real_head:
+            self._real_heads = tuple(
+                head for head in self._real_heads
+                if head not in
+                set(revision._all_down_revisions).union([revision.revision])
+            ) + (revision.revision,)
+        if revision.is_head:
             self.heads = tuple(
                 head for head in self.heads
                 if head not in
-                set(revision._all_down_revisions).union([revision.revision])
+                set(revision._versioned_down_revisions).union([revision.revision])
             ) + (revision.revision,)
 
     def get_current_head(self, branch_label=None):
@@ -351,11 +372,9 @@ class RevisionMap(object):
 
         return bool(
             set(self._get_descendant_nodes([target],
-                include_dependencies=False
-                ))
+                include_dependencies=False))
             .union(self._get_ancestor_nodes([target],
-                   include_dependencies=False
-                   ))
+                   include_dependencies=False))
             .intersection(test_against_revs)
         )
 
@@ -372,7 +391,7 @@ class RevisionMap(object):
                 return self.filter_for_lineage(
                     self.heads, branch_label), branch_label
             else:
-                return self.heads, branch_label
+                return self._real_heads, branch_label
         elif id_ == 'head':
             return (self.get_current_head(branch_label), ), branch_label
         elif id_ == 'base' or id_ is None:
