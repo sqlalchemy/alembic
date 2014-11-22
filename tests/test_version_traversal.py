@@ -458,6 +458,72 @@ class DependsOnBranchTestOne(MigrationTest):
         eq_(head.heads, set([self.c2.revision]))
 
 
+class DependsOnBranchTestTwo(MigrationTest):
+    @classmethod
+    def setup_class(cls):
+        cls.env = env = staging_env()
+        cls.a1 = env.generate_revision(util.rev_id(), '->a1', head='base')
+        cls.a2 = env.generate_revision(util.rev_id(), '->a2', head='base')
+        cls.a3 = env.generate_revision(util.rev_id(), '->a3', head='base')
+        cls.amerge = env.generate_revision(util.rev_id(), 'amerge', head=[
+            cls.a1.revision, cls.a2.revision, cls.a3.revision
+        ])
+
+        cls.b1 = env.generate_revision(util.rev_id(), '->b1', head='base')
+        cls.b2 = env.generate_revision(util.rev_id(), '->b2', head='base')
+        cls.bmerge = env.generate_revision(util.rev_id(), 'bmerge', head=[
+            cls.b1.revision, cls.b2.revision
+        ])
+
+        cls.c1 = env.generate_revision(util.rev_id(), '->c1', head='base')
+        cls.c2 = env.generate_revision(util.rev_id(), '->c2', head='base')
+        cls.c3 = env.generate_revision(util.rev_id(), '->c3', head='base')
+        cls.cmerge = env.generate_revision(util.rev_id(), 'cmerge', head=[
+            cls.c1.revision, cls.c2.revision, cls.c3.revision
+        ])
+
+        cls.d1 = env.generate_revision(
+            util.rev_id(), 'overmerge',
+            head="base",
+            depends_on=[
+                cls.a3.revision, cls.b2.revision, cls.c1.revision
+            ])
+
+    def test_kaboom(self):
+        # here's the upgrade path:
+        # ['->c1', '->b2', '->a3', 'overmerge', '->c3', '->c2', 'cmerge',
+        # '->b1', 'bmerge', '->a2', '->a1', 'amerge'],
+
+        heads = [
+            self.amerge.revision,
+            self.bmerge.revision, self.cmerge.revision,
+            self.d1.revision
+        ]
+
+        self._assert_downgrade(
+            self.b2.revision, heads,
+            [self.down_(self.bmerge), self.down_(self.d1)],
+            set([
+                self.amerge.revision, self.b2.revision,
+                self.b1.revision, self.cmerge.revision])
+        )
+
+        heads = [
+            self.amerge.revision, self.b2.revision,
+            self.b1.revision, self.cmerge.revision]
+        self._assert_downgrade(
+            "base", heads,
+            [
+                self.down_(self.amerge), self.down_(self.a1),
+                self.down_(self.a2), self.down_(self.a3),
+                self.down_(self.b2), self.down_(self.b1),
+                self.down_(self.cmerge), self.down_(self.c1),
+                self.down_(self.c2), self.down_(self.c3)
+            ],
+            set([])
+        )
+
+
 class ForestTest(MigrationTest):
     @classmethod
     def setup_class(cls):
