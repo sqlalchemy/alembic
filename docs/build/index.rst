@@ -10,6 +10,10 @@ with the `SQLAlchemy <http://www.sqlalchemy.org>`_ Database Toolkit for Python.
 
    front
    tutorial
+   autogenerate
+   offline
+   naming
+   branches
    ops
    cookbook
    api
