@@ -261,7 +261,7 @@ class MigrationContext(object):
         """
         heads = self.get_current_heads()
         head_maintainer = HeadMaintainer(self, heads)
-        for step in script_directory._steps_revs(revision, heads):
+        for step in script_directory._stamp_revs(revision, heads):
             head_maintainer.update_to_step(step)
 
     def run_migrations(self, **kw):
