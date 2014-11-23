@@ -98,7 +98,19 @@ command.   We should also go into our migration file and alter it as needed, inc
 adjustments to the directives as well as the addition of other directives which these may
 be dependent on - specifically data changes in between creates/alters/drops.
 
-Autogenerate will by default detect:
+What does Autogenerate Detect (and what does it *not* detect?)
+--------------------------------------------------------------
+
+The vast majority of user issues with Alembic centers on the topic of what
+kinds of changes autogenerate can and cannot detect reliably, as well as
+how it renders Python code for what it does detect.     it is critical to
+note that **autogenerate is not intended to be perfect**.   It is *always*
+necessary to manually review and correct the **candidate migrations**
+that autogenererate produces.   The feature is getting more and more
+comprehensive and error-free as releases continue, but one should take
+note of the current limitations.
+
+Autogenerate **will detect**:
 
 * Table additions, removals.
 * Column additions, removals.
@@ -107,18 +119,18 @@ Autogenerate will by default detect:
 
 .. versionadded:: 0.6.1 Support for autogenerate of indexes and unique constraints.
 
-Autogenerate can *optionally* detect:
+Autogenerate can **optionally detect**:
 
 * Change of column type.  This will occur if you set
   the :paramref:`.EnvironmentContext.configure.compare_type` parameter
-  to ``True``, or to a custom callable.
+  to ``True``, or to a custom callable function.
   The feature works well in most cases,
   but is off by default so that it can be tested on the target schema
   first.  It can also be customized by passing a callable here; see the
   function's documentation for details.
 * Change of server default.  This will occur if you set
   the :paramref:`.EnvironmentContext.configure.compare_server_default`
-  paramter to ``True``, or to a custom callable.
+  parameter to ``True``, or to a custom callable function.
   This feature works well for simple cases but cannot always produce
   accurate results.  The Postgresql backend will actually invoke
   the "detected" and "metadata" values against the database to
@@ -127,14 +139,16 @@ Autogenerate can *optionally* detect:
   it can also be customized by passing a callable; see the
   function's documentation for details.
 
-Autogenerate can *not* detect:
+Autogenerate **can not detect**:
 
 * Changes of table name.   These will come out as an add/drop of two different
   tables, and should be hand-edited into a name change instead.
 * Changes of column name.  Like table name changes, these are detected as
   a column add/drop pair, which is not at all the same as a name change.
 * Anonymously named constraints.  Give your constraints a name,
-  e.g. ``UniqueConstraint('col1', 'col2', name="my_name")``
+  e.g. ``UniqueConstraint('col1', 'col2', name="my_name")``.  See the section
+  :doc:`naming` for background on how to configure automatic naming schemes
+  for constraints.
 * Special SQLAlchemy types such as :class:`~sqlalchemy.types.Enum` when generated
   on a backend which doesn't support ENUM directly - this because the
   representation of such a type
@@ -143,23 +157,127 @@ Autogenerate can *not* detect:
   an ENUM would only be a guess, something that's generally a bad idea.
   To implement your own "guessing" function here, use the
   :meth:`sqlalchemy.events.DDLEvents.column_reflect` event
-  to alter the SQLAlchemy type passed for certain columns and possibly
-  :meth:`sqlalchemy.events.DDLEvents.after_parent_attach` to intercept
+  to detect when a CHAR (or whatever the target type is) is reflected,
+  and change it to an ENUM (or whatever type is desired) if it is known that
+  that's the intent of the type.  The
+  :meth:`sqlalchemy.events.DDLEvents.after_parent_attach`
+  can be used within the autogenerate process to intercept and un-attach
   unwanted CHECK constraints.
 
-Autogenerate can't currently, but will *eventually* detect:
+Autogenerate can't currently, but **will eventually detect**:
 
 * Some free-standing constraint additions and removals,
-  like CHECK and FOREIGN KEY - these are not fully implemented.
+  like CHECK, FOREIGN KEY, PRIMARY KEY - these are not fully implemented.
 * Sequence additions, removals - not yet implemented.
 
 
+Rendering Types
+----------------
+
+The area of autogenerate's behavior of rendering Python-based type objects
+in migration scripts presents a challenge, in that there's
+a very wide variety of types to be rendered in scripts, including those
+part of SQLAlchemy as well as user-defined types.   A few options
+are given to help out with this task.
+
+.. _autogen_module_prefix:
+
+Controlling the Module Prefix
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When types are rendered, they are generated with a **module prefix**, so
+that they are available based on a relatively small number of imports.
+The rules for what the prefix is is based on the kind of datatype as well
+as configurational settings.   For example, when Alembic renders SQLAlchemy
+types, it will by default prefix the type name with the prefix ``sa.``::
+
+    Column("my_column", sa.Integer())
+
+The use of the ``sa.`` prefix is controllable by altering the value
+of :paramref:`.EnvironmentContext.configure.sqlalchemy_module_prefix`::
+
+    def run_migrations_online():
+        # ...
+
+        context.configure(
+                    connection=connection,
+                    target_metadata=target_metadata,
+                    sqlalchemy_module_prefix="sqla.",
+                    # ...
+                    )
+
+        # ...
+
+In either case, the ``sa.`` prefix, or whatever prefix is desired, should
+also be included in the imports section of ``script.py.mako``; it also
+defaults to ``import sqlalchemy as sa``.
+
+
+For user-defined types, that is, any custom type that
+is not within the ``sqlalchemy.`` module namespace, by default Alembic will
+use the **value of __module__ for the custom type**::
+
+    Column("my_column", myapp.models.utils.types.MyCustomType())
+
+The imports for the above type again must be made present within the migration,
+either manually, or by adding it to ``script.py.mako``.
+
+.. versionchanged:: 0.7.0
+   The default module prefix rendering for a user-defined type now makes use
+   of the type's ``__module__`` attribute to retrieve the prefix, rather than
+   using the value of
+   :paramref:`~.EnvironmentContext.configure.sqlalchemy_module_prefix`.
+
+
+The above custom type has a long and cumbersome name based on the use
+of ``__module__`` directly, which also implies that lots of imports would
+be needed in order to accomodate lots of types.  For this reason, it is
+recommended that user-defined types used in migration scripts be made
+available from a single module.  Suppose we call it ``myapp.migration_types``::
+
+    # myapp/migration_types.py
+
+    from myapp.models.utils.types import MyCustomType
+
+We can first add an import for ``migration_types`` to our ``script.py.mako``::
+
+    from alembic import op
+    import sqlalchemy as sa
+    import myapp.migration_types
+    ${imports if imports else ""}
+
+We then override Alembic's use of ``__module__`` by providing a fixed
+prefix, using the :paramref:`.EnvironmentContext.configure.user_module_prefix`
+option::
+
+    def run_migrations_online():
+        # ...
+
+        context.configure(
+                    connection=connection,
+                    target_metadata=target_metadata,
+                    user_module_prefix="myapp.migration_types.",
+                    # ...
+                    )
+
+        # ...
+
+Above, we now would get a migration like::
+
+  Column("my_column", myapp.migration_types.MyCustomType())
+
+Now, when we inevitably refactor our application to move ``MyCustomType``
+somewhere else, we only need modify the ``myapp.migration_types`` module,
+instead of searching and replacing all instances within our migration scripts.
+
+.. versionadded:: 0.6.3 Added :paramref:`.EnvironmentContext.configure.user_module_prefix`.
+
 .. _autogen_render_types:
 
-Rendering Custom Types in Autogenerate
---------------------------------------
+Affecting the Rendering of Types Themselves
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The methodology Alembic uses to generate SQLAlchemy type constructs
+The methodology Alembic uses to generate SQLAlchemy and user-defined type constructs
 as Python code is plain old ``__repr__()``.   SQLAlchemy's built-in types
 for the most part have a ``__repr__()`` that faithfully renders a
 Python-compatible constructor call, but there are some exceptions, particularly
@@ -168,11 +286,12 @@ with ``__repr__()``, such as a pickling function.
 
 When building a custom type that will be rendered into a migration script,
 it is often necessary to explicitly give the type a ``__repr__()`` that will
-faithfully reproduce the constructor for that type.   But beyond that, it
-also is usually necessary to change how the enclosing module or package
-is rendered as well;
-this is accomplished using the :paramref:`.EnvironmentContext.configure.render_item`
-configuration option::
+faithfully reproduce the constructor for that type.   This, in combination
+with :paramref:`.EnvironmentContext.configure.user_module_prefix`, is usually
+enough.  However, if additional behaviors are needed, a more comprehensive
+hook is the :paramref:`.EnvironmentContext.configure.render_item` option.
+This hook allows one to provide a callable function within ``env.py`` that will fully take
+over how a type is rendered, including its module prefix::
 
     def render_item(type_, obj, autogen_context):
         """Apply custom rendering for selected items."""
@@ -195,7 +314,7 @@ configuration option::
 
         # ...
 
-Above, we also need to make sure our ``MySpecialType`` includes an appropriate
+In the above example, we'd ensure our ``MySpecialType`` includes an appropriate
 ``__repr__()`` method, which is invoked when we call it against ``"%r"``.
 
 The callable we use for :paramref:`.EnvironmentContext.configure.render_item`
@@ -226,68 +345,4 @@ The finished migration script will include our imports where the
   def upgrade():
       op.add_column('sometable', Column('mycolumn', types.MySpecialType()))
 
-.. _autogen_module_prefix:
-
-Controlling the Module Prefix
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-When using :paramref:`.EnvironmentContext.configure.render_item`, note that
-we deliver not just the reproduction of the type, but we can also deliver the
-"module prefix", which is a module namespace from which our type can be found
-within our migration script.  When Alembic renders SQLAlchemy types, it will
-typically use the value of
-:paramref:`.EnvironmentContext.configure.sqlalchemy_module_prefix`,
-which defaults to ``"sa."``, to achieve this::
-
-    Column("my_column", sa.Integer())
-
-When we use a custom type that is not within the ``sqlalchemy.`` module namespace,
-by default Alembic will use the **value of __module__ for the custom type**::
-
-    Column("my_column", myapp.models.utils.types.MyCustomType())
-
-Above, it seems our custom type is in a very specific location, based on
-the length of what ``__module__`` reports.   It's a good practice to
-not have this long name render into our migration scripts, as it means
-this long and arbitrary name will be hardcoded into all our migration
-scripts; instead, we should create a module that is
-explicitly for custom types that our migration files will use.  Suppose
-we call it ``myapp.migration_types``::
-
-  # myapp/migration_types.py
-
-  from myapp.models.utils.types import MyCustomType
-
-We can provide the name of this module to our autogenerate context using
-:paramref:`.EnvironmentContext.configure.user_module_prefix`
-option::
-
-
-    def run_migrations_online():
-        # ...
-
-        context.configure(
-                    connection=connection,
-                    target_metadata=target_metadata,
-                    user_module_prefix="myapp.migration_types.",
-                    # ...
-                    )
-
-        # ...
-
-Where we'd get a migration like::
-
-  Column("my_column", myapp.migration_types.MyCustomType())
-
-Now, when we inevitably refactor our application to move ``MyCustomType``
-somewhere else, we only need modify the ``myapp.migration_types`` module,
-instead of searching and replacing all instances within our migration scripts.
-
-.. versionchanged:: 0.7.0
-   :paramref:`.EnvironmentContext.configure.user_module_prefix`
-   no longer defaults to the value of
-   :paramref:`.EnvironmentContext.configure.sqlalchemy_module_prefix`
-   when left at ``None``; the ``__module__`` attribute is now used.
-
-.. versionadded:: 0.6.3 Added :paramref:`.EnvironmentContext.configure.user_module_prefix`.
 
