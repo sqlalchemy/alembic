@@ -13,6 +13,7 @@ with the `SQLAlchemy <http://www.sqlalchemy.org>`_ Database Toolkit for Python.
    autogenerate
    offline
    naming
+   batch
    branches
    ops
    cookbook
