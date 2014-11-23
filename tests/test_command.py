@@ -232,6 +232,28 @@ finally:
             command.revision, self.cfg, autogenerate=True
         )
 
+    def test_nonsensical_sql_mode_autogen(self):
+        self._env_fixture()
+        assert_raises_message(
+            util.CommandError,
+            "Using --sql with --autogenerate does not make any sense",
+            command.revision, self.cfg, autogenerate=True, sql=True
+        )
+
+    def test_nonsensical_sql_no_env(self):
+        self._env_fixture()
+        assert_raises_message(
+            util.CommandError,
+            "Using --sql with the revision command when revision_environment "
+            "is not configured does not make any sense",
+            command.revision, self.cfg, sql=True
+        )
+
+    def test_sensical_sql_w_env(self):
+        self._env_fixture()
+        self.cfg.set_main_option("revision_environment", "true")
+        command.revision(self.cfg, sql=True)
+
 
 class UpgradeDowngradeStampTest(TestBase):
 

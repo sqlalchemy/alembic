@@ -81,6 +81,19 @@ Changelog
       a migration target relative to the given exact version.
 
     .. change::
+      :tags: bug, commands
+      :tickets: 248
+
+      The ``alembic revision`` command accepts the ``--sql`` option to
+      suit some very obscure use case where the ``revision_environment``
+      flag is set up, so that ``env.py`` is run when ``alembic revision``
+      is run even though autogenerate isn't specified.   As this flag is
+      otherwise confusing, error messages are now raised if
+      ``alembic revision`` is invoked with both ``--sql`` and
+      ``--autogenerate`` or with ``--sql`` without
+      ``revision_environment`` being set.
+
+    .. change::
       :tags: bug, autogenerate, postgresql
       :tickets: 247
 

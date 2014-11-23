@@ -84,6 +84,10 @@ def revision(
     if autogenerate:
         environment = True
 
+        if sql:
+            raise util.CommandError(
+                "Using --sql with --autogenerate does not make any sense")
+
         def retrieve_migrations(rev, context):
             if set(script.get_revisions(rev)) != \
                     set(script.get_revisions("heads")):
@@ -93,6 +97,10 @@ def revision(
     elif environment:
         def retrieve_migrations(rev, context):
             return []
+    elif sql:
+        raise util.CommandError(
+            "Using --sql with the revision command when "
+            "revision_environment is not configured does not make any sense")
 
     if environment:
         with EnvironmentContext(
