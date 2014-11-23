@@ -99,6 +99,18 @@ class RevisionPathTest(MigrationTest):
             set([e.revision])
         )
 
+        self._assert_upgrade(
+            "%s+2" % b.revision, a.revision,
+            [self.up_(b), self.up_(c), self.up_(d)],
+            set([d.revision])
+        )
+
+        self._assert_upgrade(
+            "%s-2" % d.revision, a.revision,
+            [self.up_(b)],
+            set([b.revision])
+        )
+
     def test_invalid_relative_upgrade_path(self):
         a, b, c, d, e = self.a, self.b, self.c, self.d, self.e
         assert_raises_message(
@@ -140,6 +152,18 @@ class RevisionPathTest(MigrationTest):
             "-3", e.revision,
             [self.down_(e), self.down_(d), self.down_(c)],
             set([b.revision])
+        )
+
+        self._assert_downgrade(
+            "%s+2" % a.revision, d.revision,
+            [self.down_(d)],
+            set([c.revision])
+        )
+
+        self._assert_downgrade(
+            "%s-2" % c.revision, d.revision,
+            [self.down_(d), self.down_(c), self.down_(b)],
+            set([a.revision])
         )
 
     def test_invalid_relative_downgrade_path(self):
@@ -273,6 +297,28 @@ class BranchedPathTest(MigrationTest):
             [self.down_(d1), self.down_(c1), self.down_(d2),
              self.down_(c2), self.down_(b)],
             set([a.revision])
+        )
+
+    def test_relative_upgrade(self):
+        a, b, c1, d1, c2, d2 = (
+            self.a, self.b, self.c1, self.d1, self.c2, self.d2
+        )
+
+        self._assert_upgrade(
+            "c2branch@head-1", b.revision,
+            [self.up_(c2)],
+            set([c2.revision])
+        )
+
+    def test_relative_downgrade(self):
+        a, b, c1, d1, c2, d2 = (
+            self.a, self.b, self.c1, self.d1, self.c2, self.d2
+        )
+
+        self._assert_downgrade(
+            "c2branch@base+2", [d2.revision, d1.revision],
+            [self.down_(d2), self.down_(c2), self.down_(d1)],
+            set([c1.revision])
         )
 
 

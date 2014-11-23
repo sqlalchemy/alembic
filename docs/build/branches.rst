@@ -498,6 +498,11 @@ This kind of thing works from history as well::
 
     $ alembic history -r current:shoppingcart@+2
 
+The newer ``relnum+delta`` format can be combined as well, for example
+if we wanted to list along ``shoppingcart`` up until two revisions
+before the head::
+
+    $ alembic history -r :shoppingcart@head-2
 
 .. _multiple_bases:
 

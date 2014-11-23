@@ -73,6 +73,14 @@ Changelog
           :ref:`batch_migrations`
 
     .. change::
+      :tags: feature, commands
+
+      Relative revision identifiers as used with ``alembic upgrade``,
+      ``alembic downgrade`` and ``alembic history`` can be combined with
+      specific revisions as well, e.g. ``alembic upgrade ae10+3``, to produce
+      a migration target relative to the given exact version.
+
+    .. change::
       :tags: bug, autogenerate, postgresql
       :tickets: 247
 

@@ -405,6 +405,20 @@ Running again to ``head``::
 
 We've now added the ``last_transaction_date`` column to the database.
 
+Partial Revision Identifiers
+=============================
+
+Any time we need to refer to a revision number explicitly, we have the option
+to use a partial number.  As long as this number uniquely identifies the
+version, it may be used in any command in any place that version numbers
+are accepted::
+
+    $ alembic upgrade ae1
+
+Above, we use ``ae1`` to refer to revision ``ae1027a6acf``.
+Alembic will stop and let you know if more than one version starts with
+that prefix.
+
 .. relative_migrations:
 
 Relative Migration Identifiers
@@ -419,19 +433,13 @@ Negative values are accepted for downgrades::
 
     $ alembic downgrade -1
 
-Partial Revision Identifiers
-=============================
+Relative identifiers may also be in terms of a specific revision.  For example,
+to upgrade to revision ``ae1027a6acf`` plus two additional steps::
 
-Any time we need to refer to a revision number explicitly, we have the option
-to use a partial number.  As long as this number uniquely identifies the
-version, it may be used in any command in any place that version numbers
-are accepted::
+    $ alembic upgrade ae10+2
 
-    $ alembic upgrade ae1
-
-Above, we use ``ae1`` to refer to revision ``ae1027a6acf``.
-Alembic will stop and let you know if more than one version starts with
-that prefix.
+.. versionadded:: 0.7.0 Support for relative migrations in terms of a specific
+   revision.
 
 Getting Information
 ===================

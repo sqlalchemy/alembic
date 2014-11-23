@@ -34,6 +34,7 @@ if py3k:
     def ue(s):
         return s
 
+    range = range
 else:
     import __builtin__ as compat_builtins
     string_types = basestring,
@@ -46,6 +47,8 @@ else:
 
     def ue(s):
         return unicode(s, "unicode_escape")
+
+    range = xrange
 
 if py3k:
     from configparser import ConfigParser as SafeConfigParser
