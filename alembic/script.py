@@ -329,7 +329,7 @@ class ScriptDirectory(object):
             # filter for lineage will resolve things like
             # branchname@base, version@base, etc.
             filtered_heads = self.revision_map.filter_for_lineage(
-                heads, revision)
+                heads, revision, include_dependencies=True)
 
             dest = self.get_revision(revision)
 

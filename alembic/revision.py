@@ -341,7 +341,8 @@ class RevisionMap(object):
                     (revision.revision, check_branch))
         return revision
 
-    def filter_for_lineage(self, targets, check_against):
+    def filter_for_lineage(
+            self, targets, check_against, include_dependencies=False):
         id_, branch_label = self._resolve_revision_number(check_against)
 
         shares = []
@@ -354,9 +355,11 @@ class RevisionMap(object):
 
         return [
             tg for tg in targets
-            if self._shares_lineage(tg, shares)]
+            if self._shares_lineage(
+                tg, shares, include_dependencies=include_dependencies)]
 
-    def _shares_lineage(self, target, test_against_revs):
+    def _shares_lineage(
+            self, target, test_against_revs, include_dependencies=False):
         if not test_against_revs:
             return True
         if not isinstance(target, Revision):
@@ -372,9 +375,9 @@ class RevisionMap(object):
 
         return bool(
             set(self._get_descendant_nodes([target],
-                include_dependencies=False))
+                include_dependencies=include_dependencies))
             .union(self._get_ancestor_nodes([target],
-                   include_dependencies=False))
+                   include_dependencies=include_dependencies))
             .intersection(test_against_revs)
         )
 

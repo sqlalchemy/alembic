@@ -457,6 +457,13 @@ class DependsOnBranchTestOne(MigrationTest):
         head.update_to_step(self.down_(self.d1))
         eq_(head.heads, set([self.c2.revision]))
 
+    def test_stamp_across_dependency(self):
+        heads = [self.e1.revision, self.c2.revision]
+        head = HeadMaintainer(mock.Mock(), heads)
+        for step in self.env._stamp_revs(self.b1.revision, heads):
+            head.update_to_step(step)
+        eq_(head.heads, set([self.b1.revision]))
+
 
 class DependsOnBranchTestTwo(MigrationTest):
     @classmethod
