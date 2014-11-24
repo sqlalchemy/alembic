@@ -1,11 +1,12 @@
 Running Unit Tests
 ==================
 
-Tests can be run be run using via py.test, nose, or the Python setup.py script::
+Tests can be run be run using via py.test, via the nose front-end
+script, or the Python setup.py script::
 
 	py.test
 
-	nosetests -v
+	python run_tests.py
 
 	python setup.py test
 
@@ -18,13 +19,13 @@ Setting up Optional Databases
 
 The test suite will attempt to run a subset of tests against various
 database backends, including Postgresql and MySQL.   It uses the database
-URLs in the file test.cfg to locate a URL for particular backend types.
+URLs in the [db] section of setup.cfg to locate a URL for particular backend types.
 If the URL cannot be loaded, either because the requisite DBAPI is
 not present, or if the target database is found to be not accessible,
 the test is skipped.
 
 To run tests for these backends, replace URLs with working ones
-inside the test.cfg file.   Setting a URL here requires that the
+inside the setup.cfg file.   Setting a URL here requires that the
 corresponding DBAPI is installed as well as that the target database
 is running.  A connection to the database should provide access
 to a *blank* schema, where tables will be created and dropped.  It
