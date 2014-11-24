@@ -2,7 +2,7 @@ recursive-include docs *.html *.css *.txt *.js *.jpg *.png *.py Makefile *.rst *
 recursive-include tests *.py *.dat
 recursive-include alembic/templates *.mako README *.py
 
-include README* LICENSE distribute_setup.py CHANGES* test.cfg
+include README* LICENSE run_tests.py CHANGES* tox.ini
 
 prune docs/build/output
 
