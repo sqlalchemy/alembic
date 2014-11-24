@@ -45,6 +45,7 @@ class AutogenTest(object):
 
     configure_opts = {}
 
+    @classmethod
     def setup_class(cls):
         staging_env()
         cls.bind = cls._get_bind()
