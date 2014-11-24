@@ -5,6 +5,7 @@ Changelog
 ==========
 .. changelog::
     :version: 0.7.0
+    :released: November 24, 2014
 
     .. change::
       :tags: feature, versioning
