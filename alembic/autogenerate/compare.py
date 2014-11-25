@@ -570,29 +570,40 @@ FKInfo = collections.namedtuple('fk_info', ['constrained_columns',
 
 def _compare_foreign_keys(schema, tname, object_filters, conn_table,
                           metadata_table, diffs, autogen_context, inspector):
-        # This methods checks foreign keys that tables contain in models with
-        # foreign keys that are in db.
-            # Get all necessary information about key of current table from db
-        fk_db = dict((_get_fk_info_from_db(i), i['name']) for i in
-                     inspector.get_foreign_keys(tname))
-        fk_db_set = set(fk_db.keys())
-        # Get all necessary information about key of current table from
-        # models
-        fk_models = dict((_get_fk_info_from_model(fk), fk) for fk in
-                         metadata_table.foreign_keys)
-        fk_models_set = set(fk_models.keys())
-        for key in (fk_db_set - fk_models_set):
-                diffs.append(('drop_fk', fk_db[key], conn_table, key))
-                log.info(("Detected removed foreign key %(fk)r on "
-                          "table %(table)r"), {'fk': fk_db[key],
-                                               'table': conn_table})
-        for key in (fk_models_set - fk_db_set):
-                diffs.append(('add_fk', fk_models[key], key))
-                log.info((
-                    "Detected added foreign key for column %(fk)r on table "
-                    "%(table)r"), {'fk': fk_models[key].column.name,
-                                   'table': conn_table})
-        return diffs
+
+    # This methods checks foreign keys that tables contain in models with
+    # foreign keys that are in db.
+    # Get all necessary information about key of current table from db
+    if conn_table is None:
+        return
+
+    fk_db = {}
+    if hasattr(inspector, "get_foreign_keys"):
+        try:
+            fk_db = dict((_get_fk_info_from_db(i), i['name']) for i in
+                         inspector.get_foreign_keys(tname, schema=schema))
+        except NotImplementedError:
+            pass
+
+
+    # Get all necessary information about key of current table from
+    # models
+    fk_models = dict((_get_fk_info_from_model(fk), fk) for fk in
+                     metadata_table.foreign_keys)
+    fk_models_set = set(fk_models.keys())
+    fk_db_set = set(fk_db.keys())
+    for key in (fk_db_set - fk_models_set):
+            diffs.append(('drop_fk', fk_db[key], conn_table, key))
+            log.info(("Detected removed foreign key %(fk)r on "
+                      "table %(table)r"), {'fk': fk_db[key],
+                                           'table': conn_table})
+    for key in (fk_models_set - fk_db_set):
+            diffs.append(('add_fk', fk_models[key], key))
+            log.info((
+                "Detected added foreign key for column %(fk)r on table "
+                "%(table)r"), {'fk': fk_models[key].column.name,
+                               'table': conn_table})
+    return diffs
 
 
 def _get_fk_info_from_db(fk):
