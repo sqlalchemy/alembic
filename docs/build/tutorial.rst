@@ -419,7 +419,7 @@ Above, we use ``ae1`` to refer to revision ``ae1027a6acf``.
 Alembic will stop and let you know if more than one version starts with
 that prefix.
 
-.. relative_migrations:
+.. _relative_migrations:
 
 Relative Migration Identifiers
 ==============================
