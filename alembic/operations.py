@@ -1333,7 +1333,7 @@ class BatchOperations(Operations):
         """
         return super(BatchOperations, self).create_foreign_key(
             name, self.impl.table_name, referent, local_cols, remote_cols,
-            schema=self.impl.schema)
+            source_schema=self.impl.schema, **kw)
 
     def create_unique_constraint(self, name, local_cols, **kw):
         """Issue a "create unique constraint" instruction using the
