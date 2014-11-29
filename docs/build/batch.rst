@@ -61,6 +61,55 @@ which is the one kind of column-level ALTER statement that SQLite supports.
 to run "move and copy" unconditionally in all cases, including on databases
 other than SQLite; more on this is below.
 
+.. _batch_controlling_table_reflection:
+
+Controlling Table Reflection
+----------------------------
+
+The :class:`~sqlalchemy.schema.Table` object that is reflected when
+"move and copy" proceeds is performed using the standard ``autoload=True``
+approach.  This call can be affected using the
+:paramref:`~.Operations.batch_alter_table.reflect_args` and
+:paramref:`~.Operations.batch_alter_table.reflect_kwargs` arguments.
+For example, to override a :class:`~sqlalchemy.schema.Column` within
+the reflection process such that a :class:`~sqlalchemy.types.Boolean`
+object is reflected with the ``create_constraint`` flag set to ``False``::
+
+    with self.op.batch_alter_table(
+        "bar",
+        reflect_args=[Column('flag', Boolean(create_constraint=False))]
+    ) as batch_op:
+        batch_op.alter_column(
+            'flag', new_column_name='bflag', existing_type=Boolean)
+
+Another use case, add a listener to the :class:`~sqlalchemy.schema.Table`
+as it is reflected so that special logic can be applied to columns or
+types, using the :meth:`~sqlalchemy.events.DDLEvents.column_reflect` event::
+
+    def listen_for_reflect(inspector, table, column_info):
+        "correct an ENUM type"
+        if column_info['name'] == 'my_enum':
+            column_info['type'] = Enum('a', 'b', 'c')
+
+    with self.op.batch_alter_table(
+        "bar",
+        reflect_kwargs=dict(
+            listeners=[
+                ('column_reflect', listen_for_reflect)
+            ]
+        )
+    ) as batch_op:
+        batch_op.alter_column(
+            'flag', new_column_name='bflag', existing_type=Boolean)
+
+The reflection process may also be bypassed entirely by sending a
+pre-fabricated :class:`~sqlalchemy.schema.Table` object; see
+:ref:`batch_offline_mode` for an example.
+
+.. versionadded:: 0.7.1
+   added :paramref:`.Operations.batch_alter_table.reflect_args`
+   and :paramref:`.Operations.batch_alter_table.reflect_kwargs` options.
+
 
 Dealing with Constraints
 ------------------------
@@ -101,6 +150,8 @@ the recreation of unnamed UNIQUE constraints, either they should be named
 in the first place, or again specified within
 :paramref:`.Operations.batch_alter_table.table_args`.
 
+.. _batch_offline_mode:
+
 Working in Offline Mode
 -----------------------
 
@@ -113,7 +164,7 @@ get this information, which means that "online" mode is required; the
 To support offline mode, the system must work without table reflection
 present, which means the full table as it intends to be created must be
 passed to :meth:`.Operations.batch_alter_table` using
-:paramref:`.Operations.batch_alter_table.copy_from`::
+:paramref:`~.Operations.batch_alter_table.copy_from`::
 
     meta = MetaData()
     some_table = Table(

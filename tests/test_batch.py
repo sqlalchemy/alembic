@@ -10,7 +10,8 @@ from alembic.batch import ApplyBatchImpl
 from alembic.migration import MigrationContext
 
 from sqlalchemy import Integer, Table, Column, String, MetaData, ForeignKey, \
-    UniqueConstraint, ForeignKeyConstraint, Index
+    UniqueConstraint, ForeignKeyConstraint, Index, Boolean, CheckConstraint, \
+    Enum
 from sqlalchemy.sql import column
 from sqlalchemy.schema import CreateTable, CreateIndex
 
@@ -53,6 +54,30 @@ class BatchApplyTest(TestBase):
         )
         return ApplyBatchImpl(t, table_args, table_kwargs)
 
+    def _literal_ck_fixture(
+            self, copy_from=None, table_args=(), table_kwargs={}):
+        m = MetaData()
+        if copy_from is not None:
+            t = copy_from
+        else:
+            t = Table(
+                'tname', m,
+                Column('id', Integer, primary_key=True),
+                Column('email', String()),
+                CheckConstraint("email LIKE '%@%'")
+            )
+        return ApplyBatchImpl(t, table_args, table_kwargs)
+
+    def _sql_ck_fixture(self, table_args=(), table_kwargs={}):
+        m = MetaData()
+        t = Table(
+            'tname', m,
+            Column('id', Integer, primary_key=True),
+            Column('email', String())
+        )
+        t.append_constraint(CheckConstraint(t.c.email.like('%@%')))
+        return ApplyBatchImpl(t, table_args, table_kwargs)
+
     def _fk_fixture(self, table_args=(), table_kwargs={}):
         m = MetaData()
         t = Table(
@@ -80,6 +105,33 @@ class BatchApplyTest(TestBase):
             Column('id', Integer, primary_key=True),
             Column('parent_id', Integer, ForeignKey('tname.id')),
             Column('data', String)
+        )
+        return ApplyBatchImpl(t, table_args, table_kwargs)
+
+    def _boolean_fixture(self, table_args=(), table_kwargs={}):
+        m = MetaData()
+        t = Table(
+            'tname', m,
+            Column('id', Integer, primary_key=True),
+            Column('flag', Boolean)
+        )
+        return ApplyBatchImpl(t, table_args, table_kwargs)
+
+    def _boolean_no_ck_fixture(self, table_args=(), table_kwargs={}):
+        m = MetaData()
+        t = Table(
+            'tname', m,
+            Column('id', Integer, primary_key=True),
+            Column('flag', Boolean(create_constraint=False))
+        )
+        return ApplyBatchImpl(t, table_args, table_kwargs)
+
+    def _enum_fixture(self, table_args=(), table_kwargs={}):
+        m = MetaData()
+        t = Table(
+            'tname', m,
+            Column('id', Integer, primary_key=True),
+            Column('thing', Enum('a', 'b', 'c'))
         )
         return ApplyBatchImpl(t, table_args, table_kwargs)
 
@@ -129,8 +181,8 @@ class BatchApplyTest(TestBase):
                     "CAST(tname.%s AS %s) AS anon_1" % (
                         name, impl.new_table.c[name].type)
                     if (
-                        impl.new_table.c[name].type
-                        is not impl.table.c[name].type)
+                        impl.new_table.c[name].type._type_affinity
+                        is not impl.table.c[name].type._type_affinity)
                     else "tname.%s" % name
                     for name in colnames if name in impl.table.c
                 )
@@ -152,6 +204,92 @@ class BatchApplyTest(TestBase):
         impl.alter_column('tname', 'x', name='q')
         new_table = self._assert_impl(impl)
         eq_(new_table.c.x.name, 'q')
+
+    def test_rename_col_boolean(self):
+        impl = self._boolean_fixture()
+        impl.alter_column('tname', 'flag', name='bflag')
+        new_table = self._assert_impl(
+            impl, ddl_contains="CHECK (bflag IN (0, 1)",
+            colnames=["id", "flag"])
+        eq_(new_table.c.flag.name, 'bflag')
+        eq_(
+            len([
+                const for const
+                in new_table.constraints
+                if isinstance(const, CheckConstraint)]),
+            1)
+
+    def test_rename_col_boolean_no_ck(self):
+        impl = self._boolean_no_ck_fixture()
+        impl.alter_column('tname', 'flag', name='bflag')
+        new_table = self._assert_impl(
+            impl, ddl_not_contains="CHECK",
+            colnames=["id", "flag"])
+        eq_(new_table.c.flag.name, 'bflag')
+        eq_(
+            len([
+                const for const
+                in new_table.constraints
+                if isinstance(const, CheckConstraint)]),
+            0)
+
+    def test_rename_col_enum(self):
+        impl = self._enum_fixture()
+        impl.alter_column('tname', 'thing', name='thang')
+        new_table = self._assert_impl(
+            impl, ddl_contains="CHECK (thang IN ('a', 'b', 'c')",
+            colnames=["id", "thing"])
+        eq_(new_table.c.thing.name, 'thang')
+        eq_(
+            len([
+                const for const
+                in new_table.constraints
+                if isinstance(const, CheckConstraint)]),
+            1)
+
+    def test_rename_col_literal_ck(self):
+        impl = self._literal_ck_fixture()
+        impl.alter_column('tname', 'email', name='emol')
+        new_table = self._assert_impl(
+            # note this is wrong, we don't dig into the SQL
+            impl, ddl_contains="CHECK (email LIKE '%@%')",
+            colnames=["id", "email"])
+        eq_(
+            len([c for c in new_table.constraints
+                if isinstance(c, CheckConstraint)]), 1)
+
+        eq_(new_table.c.email.name, 'emol')
+
+    def test_rename_col_literal_ck_workaround(self):
+        impl = self._literal_ck_fixture(
+            copy_from=Table(
+                'tname', MetaData(),
+                Column('id', Integer, primary_key=True),
+                Column('email', String),
+            ),
+            table_args=[CheckConstraint("emol LIKE '%@%'")])
+
+        impl.alter_column('tname', 'email', name='emol')
+        new_table = self._assert_impl(
+            impl, ddl_contains="CHECK (emol LIKE '%@%')",
+            colnames=["id", "email"])
+        eq_(
+            len([c for c in new_table.constraints
+                if isinstance(c, CheckConstraint)]), 1)
+        eq_(new_table.c.email.name, 'emol')
+
+    def test_rename_col_sql_ck(self):
+        impl = self._sql_ck_fixture()
+
+        impl.alter_column('tname', 'email', name='emol')
+        new_table = self._assert_impl(
+            impl, ddl_contains="CHECK (emol LIKE '%@%')",
+            colnames=["id", "email"])
+        eq_(
+            len([c for c in new_table.constraints
+                if isinstance(c, CheckConstraint)]), 1)
+
+        eq_(new_table.c.email.name, 'emol')
 
     def test_add_col(self):
         impl = self._simple_fixture()
@@ -428,9 +566,10 @@ class BatchRoundTripTest(TestBase):
         self.metadata.drop_all(self.conn)
         self.conn.close()
 
-    def _assert_data(self, data):
+    def _assert_data(self, data, tablename='foo'):
         eq_(
-            [dict(row) for row in self.conn.execute("select * from foo")],
+            [dict(row) for row
+             in self.conn.execute("select * from %s" % tablename)],
             data
         )
 
@@ -505,6 +644,54 @@ class BatchRoundTripTest(TestBase):
             {"id": 4, "data": "9.46", "y": 8},
             {"id": 5, "data": "d5", "y": 9}
         ])
+
+    def test_rename_column_boolean(self):
+        bar = Table(
+            'bar', self.metadata,
+            Column('id', Integer, primary_key=True),
+            Column('flag', Boolean()),
+            mysql_engine='InnoDB'
+        )
+        bar.create(self.conn)
+        self.conn.execute(bar.insert(), {'id': 1, 'flag': True})
+        self.conn.execute(bar.insert(), {'id': 2, 'flag': False})
+
+        with self.op.batch_alter_table(
+            "bar"
+        ) as batch_op:
+            batch_op.alter_column(
+                'flag', new_column_name='bflag', existing_type=Boolean)
+
+        self._assert_data([
+            {"id": 1, 'bflag': True},
+            {"id": 2, 'bflag': False},
+        ], 'bar')
+
+    @config.requirements.non_native_boolean
+    def test_rename_column_non_native_boolean_no_ck(self):
+        bar = Table(
+            'bar', self.metadata,
+            Column('id', Integer, primary_key=True),
+            Column('flag', Boolean(create_constraint=False)),
+            mysql_engine='InnoDB'
+        )
+        bar.create(self.conn)
+        self.conn.execute(bar.insert(), {'id': 1, 'flag': True})
+        self.conn.execute(bar.insert(), {'id': 2, 'flag': False})
+        self.conn.execute(bar.insert(), {'id': 3, 'flag': 5})
+
+        with self.op.batch_alter_table(
+            "bar",
+            reflect_args=[Column('flag', Boolean(create_constraint=False))]
+        ) as batch_op:
+            batch_op.alter_column(
+                'flag', new_column_name='bflag', existing_type=Boolean)
+
+        self._assert_data([
+            {"id": 1, 'bflag': True},
+            {"id": 2, 'bflag': False},
+            {'id': 3, 'bflag': 5}
+        ], 'bar')
 
     def test_drop_column_pk(self):
         with self.op.batch_alter_table("foo") as batch_op:

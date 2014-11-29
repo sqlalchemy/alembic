@@ -4,6 +4,33 @@
 Changelog
 ==========
 .. changelog::
+    :version: 0.7.1
+
+    .. change::
+      :tags: bug, batch
+      :tickets: 249
+
+      Repaired the inspection, copying and rendering of CHECK constraints
+      and so-called "schema" types such as Boolean, Enum within the batch
+      copy system; the CHECK constraint will not be "doubled" when the table is
+      copied, and additionally the inspection of the CHECK constraint for
+      its member columns will no longer fail with an attribute error.
+
+    .. change::
+      :tags: feature, batch
+
+      Added two new arguments
+      :paramref:`.Operations.batch_alter_table.reflect_args`
+      and :paramref:`.Operations.batch_alter_table.reflect_kwargs`, so that
+      arguments may be passed directly to suit the
+      :class:`~.sqlalchemy.schema.Table`
+      object that will be reflected.
+
+      .. seealso::
+
+        :ref:`batch_controlling_table_reflection`
+
+.. changelog::
     :version: 0.7.0
     :released: November 24, 2014
 

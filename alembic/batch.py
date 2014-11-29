@@ -3,11 +3,13 @@ from sqlalchemy import Table, MetaData, Index, select, Column, \
 from sqlalchemy import types as sqltypes
 from sqlalchemy.util import OrderedDict
 from . import util
+from .ddl.base import _columns_for_constraint, _is_type_bound
 
 
 class BatchOperationsImpl(object):
     def __init__(self, operations, table_name, schema, recreate,
-                 copy_from, table_args, table_kwargs):
+                 copy_from, table_args, table_kwargs,
+                 reflect_args, reflect_kwargs):
         if not util.sqla_08:
             raise NotImplementedError(
                 "batch mode requires SQLAlchemy 0.8 or greater.")
@@ -21,6 +23,8 @@ class BatchOperationsImpl(object):
         self.copy_from = copy_from
         self.table_args = table_args
         self.table_kwargs = table_kwargs
+        self.reflect_args = reflect_args
+        self.reflect_kwargs = reflect_kwargs
         self.batch = []
 
     @property
@@ -48,9 +52,13 @@ class BatchOperationsImpl(object):
                 fn(*arg, **kw)
         else:
             m1 = MetaData()
+
             existing_table = Table(
-                self.table_name, m1, schema=self.schema,
-                autoload=True, autoload_with=self.operations.get_bind())
+                self.table_name, m1,
+                schema=self.schema,
+                autoload=True,
+                autoload_with=self.operations.get_bind(),
+                *self.reflect_args, **self.reflect_kwargs)
 
             batch_impl = ApplyBatchImpl(
                 existing_table, self.table_args, self.table_kwargs)
@@ -113,6 +121,8 @@ class ApplyBatchImpl(object):
         self.unnamed_constraints = []
         self.indexes = {}
         for const in self.table.constraints:
+            if _is_type_bound(const):
+                continue
             if const.name:
                 self.named_constraints[const.name] = const
             else:
@@ -136,7 +146,7 @@ class ApplyBatchImpl(object):
                 self.unnamed_constraints:
 
             const_columns = set([
-                c.key for c in self._constraint_columns(const)])
+                c.key for c in _columns_for_constraint(const)])
 
             if not const_columns.issubset(self.column_transfers):
                 continue
@@ -150,12 +160,6 @@ class ApplyBatchImpl(object):
                   unique=index.unique,
                   *[new_table.c[col] for col in index.columns.keys()],
                   **index.kwargs)
-
-    def _constraint_columns(self, constraint):
-        if isinstance(constraint, ForeignKeyConstraint):
-            return [fk.parent for fk in constraint.elements]
-        else:
-            return list(constraint.columns)
 
     def _setup_referent(self, metadata, constraint):
         spec = constraint.elements[0]._get_colspec()

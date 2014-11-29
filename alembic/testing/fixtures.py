@@ -100,7 +100,7 @@ def op_fixture(dialect='default', as_sql=False, naming_convention=None):
             # TODO: this might need to
             # be more like a real connection
             # as tests get more involved
-            self.connection = None
+            self.connection = mock.Mock(dialect=dialect)
 
         def _exec(self, construct, *args, **kw):
             if isinstance(construct, string_types):

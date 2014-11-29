@@ -192,7 +192,8 @@ class Operations(object):
     @contextmanager
     def batch_alter_table(
             self, table_name, schema=None, recreate="auto", copy_from=None,
-            table_args=(), table_kwargs=util.immutabledict()):
+            table_args=(), table_kwargs=util.immutabledict(),
+            reflect_args=(), reflect_kwargs=util.immutabledict()):
         """Invoke a series of per-table migrations in batch.
 
         Batch mode allows a series of operations specific to a table
@@ -251,6 +252,31 @@ class Operations(object):
         :param copy_from: optional :class:`~sqlalchemy.schema.Table` object
          that will act as the structure of the table being copied.  If omitted,
          table reflection is used to retrieve the structure of the table.
+
+         .. seealso::
+
+            :paramref:`~.Operations.batch_alter_table.reflect_args`
+
+            :paramref:`~.Operations.batch_alter_table.reflect_kwargs`
+
+        :param reflect_args: a sequence of additional positional arguments that
+         will be applied to the table structure being reflected / copied;
+         this may be used to pass column and constraint overrides to the
+         table that will be reflected, in lieu of passing the whole
+         :class:`~sqlalchemy.schema.Table` using
+         :paramref:`~.Operations.batch_alter_table.copy_from`.
+
+         .. versionadded:: 0.7.1
+
+        :param reflect_kwargs: a dictionary of additional keyword arguments
+         that will be applied to the table structure being copied; this may be
+         used to pass additional table and reflection options to the table that
+         will be reflected, in lieu of passing the whole
+         :class:`~sqlalchemy.schema.Table` using
+         :paramref:`~.Operations.batch_alter_table.copy_from`.
+
+         .. versionadded:: 0.7.1
+
         :param table_args: a sequence of additional positional arguments that
          will be applied to the new :class:`~sqlalchemy.schema.Table` when
          created, in addition to those copied from the source table.
@@ -273,7 +299,7 @@ class Operations(object):
         """
         impl = batch.BatchOperationsImpl(
             self, table_name, schema, recreate,
-            copy_from, table_args, table_kwargs)
+            copy_from, table_args, table_kwargs, reflect_args, reflect_kwargs)
         batch_op = BatchOperations(self.migration_context, impl=impl)
         yield batch_op
         impl.flush()

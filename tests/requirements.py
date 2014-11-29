@@ -19,3 +19,13 @@ class DefaultRequirements(SuiteRequirements):
         """test will fail if referential integrity is enforced"""
 
         return exclusions.fails_on_everything_except("sqlite")
+
+    @property
+    def non_native_boolean(self):
+        """test will fail if native boolean is provided"""
+
+        return exclusions.fails_if(
+            exclusions.LambdaPredicate(
+                lambda config: config.db.dialect.supports_native_boolean
+            )
+        )
