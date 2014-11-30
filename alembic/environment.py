@@ -486,14 +486,19 @@ class EnvironmentContext(object):
            as a :class:`~sqlalchemy.schema.Table`,
            :class:`~sqlalchemy.schema.Column`,
            :class:`~sqlalchemy.schema.Index`
-           or :class:`~sqlalchemy.schema.UniqueConstraint` object
+           :class:`~sqlalchemy.schema.UniqueConstraint`,
+           or :class:`~sqlalchemy.schema.ForeignKeyConstraint` object
          * ``name``: the name of the object. This is typically available
            via ``object.name``.
          * ``type``: a string describing the type of object; currently
-           ``"table"``, ``"column"``, ``"index"`` or ``"unique_constraint"``.
+           ``"table"``, ``"column"``, ``"index"``, ``"unique_constraint"``,
+           or ``"foreign_key_constraint"``
 
            .. versionadded:: 0.7.0 Support for indexes and unique constraints
               within the
+              :paramref:`~.EnvironmentContext.configure.include_object` hook.
+
+           .. versionadded:: 0.7.1 Support for foreign keys within the
               :paramref:`~.EnvironmentContext.configure.include_object` hook.
 
          * ``reflected``: ``True`` if the given object was produced based on

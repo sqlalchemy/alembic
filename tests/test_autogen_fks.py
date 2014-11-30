@@ -278,7 +278,8 @@ class IncludeHooksTest(AutogenFixtureTest, TestBase):
         def include_object(object_, name, type_, reflected, compare_to):
             return not (
                 isinstance(object_, ForeignKeyConstraint) and
-                type_ == 'foreignkey' and reflected and name == 'fk1')
+                type_ == 'foreign_key_constraint'
+                and reflected and name == 'fk1')
 
         diffs = self._fixture(m1, m2, object_filters=[include_object])
 
@@ -316,7 +317,8 @@ class IncludeHooksTest(AutogenFixtureTest, TestBase):
         def include_object(object_, name, type_, reflected, compare_to):
             return not (
                 isinstance(object_, ForeignKeyConstraint) and
-                type_ == 'foreignkey' and not reflected and name == 'fk1')
+                type_ == 'foreign_key_constraint'
+                and not reflected and name == 'fk1')
 
         diffs = self._fixture(m1, m2, object_filters=[include_object])
 
@@ -380,7 +382,8 @@ class IncludeHooksTest(AutogenFixtureTest, TestBase):
         def include_object(object_, name, type_, reflected, compare_to):
             return not (
                 isinstance(object_, ForeignKeyConstraint) and
-                type_ == 'foreignkey' and name == 'fk1'
+                type_ == 'foreign_key_constraint'
+                and name == 'fk1'
             )
 
         diffs = self._fixture(m1, m2, object_filters=[include_object])

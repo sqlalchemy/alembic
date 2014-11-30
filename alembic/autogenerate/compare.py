@@ -638,7 +638,7 @@ def _compare_foreign_keys(schema, tname, object_filters, conn_table,
 
     def _add_fk(obj, compare_to):
         if _run_filters(
-                obj.const, obj.name, "foreignkey", False,
+                obj.const, obj.name, "foreign_key_constraint", False,
                 compare_to, object_filters):
             diffs.append(('add_fk', const.const))
 
@@ -651,7 +651,7 @@ def _compare_foreign_keys(schema, tname, object_filters, conn_table,
 
     def _remove_fk(obj, compare_to):
         if _run_filters(
-                obj.const, obj.name, "foreignkey", True,
+                obj.const, obj.name, "foreign_key_constraint", True,
                 compare_to, object_filters):
             diffs.append(('remove_fk', obj.const))
             log.info(

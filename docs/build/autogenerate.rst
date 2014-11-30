@@ -119,6 +119,10 @@ Autogenerate **will detect**:
 
 .. versionadded:: 0.6.1 Support for autogenerate of indexes and unique constraints.
 
+* Basic changes in foreign key constraints
+
+.. versionadded:: 0.7.1 Support for autogenerate of foreign key constraints.
+
 Autogenerate can **optionally detect**:
 
 * Change of column type.  This will occur if you set
@@ -167,7 +171,7 @@ Autogenerate **can not detect**:
 Autogenerate can't currently, but **will eventually detect**:
 
 * Some free-standing constraint additions and removals,
-  like CHECK, FOREIGN KEY, PRIMARY KEY - these are not fully implemented.
+  like CHECK, PRIMARY KEY - these are not fully implemented.
 * Sequence additions, removals - not yet implemented.
 
 

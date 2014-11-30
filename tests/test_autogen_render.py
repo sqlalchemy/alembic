@@ -220,7 +220,7 @@ unique=False, """
             "['code'], schema='CamelSchema')"
         )
 
-    def test_drop_constraint(self):
+    def test_drop_unique_constraint(self):
         """
         autogenerate.render._drop_constraint
         """
@@ -233,10 +233,10 @@ unique=False, """
         uq = UniqueConstraint(t.c.code, name='uq_test_code')
         eq_ignore_whitespace(
             autogenerate.render._drop_constraint(uq, self.autogen_context),
-            "op.drop_constraint('uq_test_code', 'test')"
+            "op.drop_constraint('uq_test_code', 'test', type_='unique')"
         )
 
-    def test_drop_constraint_schema(self):
+    def test_drop_unique_constraint_schema(self):
         """
         autogenerate.render._drop_constraint using schema
         """
@@ -250,7 +250,39 @@ unique=False, """
         uq = UniqueConstraint(t.c.code, name='uq_test_code')
         eq_ignore_whitespace(
             autogenerate.render._drop_constraint(uq, self.autogen_context),
-            "op.drop_constraint('uq_test_code', 'test', schema='CamelSchema')"
+            "op.drop_constraint('uq_test_code', 'test', "
+            "schema='CamelSchema', type_='unique')"
+        )
+
+    def test_drop_fk_constraint(self):
+        m = MetaData()
+        Table('a', m, Column('id', Integer, primary_key=True))
+        b = Table('b', m, Column('a_id', Integer, ForeignKey('a.id')))
+        fk = ForeignKeyConstraint(['a_id'], ['a.id'], name='fk_a_id')
+        b.append_constraint(fk)
+        eq_ignore_whitespace(
+            autogenerate.render._drop_constraint(fk, self.autogen_context),
+            "op.drop_constraint('fk_a_id', 'b', type_='foreignkey')"
+        )
+
+    def test_drop_fk_constraint_schema(self):
+        m = MetaData()
+        m = MetaData()
+        Table(
+            'a', m, Column('id', Integer, primary_key=True),
+            schema="CamelSchemaTwo")
+        b = Table(
+            'b', m, Column('a_id', Integer, ForeignKey('a.id')),
+            schema="CamelSchemaOne")
+        fk = ForeignKeyConstraint(
+            ["a_id"],
+            ["CamelSchemaTwo.a.id"], name='fk_a_id')
+        b.append_constraint(fk)
+
+        eq_ignore_whitespace(
+            autogenerate.render._drop_constraint(fk, self.autogen_context),
+            "op.drop_constraint('fk_a_id', 'b', schema='CamelSchemaOne', "
+            "type_='foreignkey')"
         )
 
     def test_render_table_upgrade(self):

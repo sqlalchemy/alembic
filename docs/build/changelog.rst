@@ -7,6 +7,16 @@ Changelog
     :version: 0.7.1
 
     .. change::
+      :tags: feature, autogenerate
+      :tickets: 178
+      :pullreq: bitbucket:32
+
+      Support for autogenerate of FOREIGN KEY constraints has been added.
+      These are delivered within the autogenerate process in the same
+      manner as UNIQUE constraints, including ``include_object`` support.
+      Big thanks to Ann Kamyshnikova for doing the heavy lifting here.
+
+    .. change::
       :tags: bug, batch
       :pullreq: bitbucket:34
 
