@@ -17,6 +17,19 @@ Changelog
       Big thanks to Ann Kamyshnikova for doing the heavy lifting here.
 
     .. change::
+      :tags: feature, batch
+
+      Added :paramref:`~.Operations.batch_alter_table.naming_convention`
+      argument to :meth:`.Operations.batch_alter_table`, as this is necessary
+      in order to drop foreign key constraints; these are often unnamed
+      on the target database, and in the case that they are named, SQLAlchemy
+      is as of the 0.9 series not including these names yet.
+
+      .. seealso::
+
+        :ref:`dropping_sqlite_foreign_keys`
+
+    .. change::
       :tags: bug, batch
       :pullreq: bitbucket:34
 

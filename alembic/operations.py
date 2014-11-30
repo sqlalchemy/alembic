@@ -193,7 +193,8 @@ class Operations(object):
     def batch_alter_table(
             self, table_name, schema=None, recreate="auto", copy_from=None,
             table_args=(), table_kwargs=util.immutabledict(),
-            reflect_args=(), reflect_kwargs=util.immutabledict()):
+            reflect_args=(), reflect_kwargs=util.immutabledict(),
+            naming_convention=None):
         """Invoke a series of per-table migrations in batch.
 
         Batch mode allows a series of operations specific to a table
@@ -290,6 +291,19 @@ class Operations(object):
 
         .. versionadded:: 0.7.0
 
+        :param naming_convention: a naming convention dictionary of the form
+         described at :ref:`autogen_naming_conventions` which will be applied
+         to the :class:`~sqlalchemy.schema.MetaData` during the reflection
+         process.  This is typically required if one wants to drop SQLite
+         constraints, as these constraints will not have names when
+         reflected on this backend.
+
+         .. seealso::
+
+            :ref:`dropping_sqlite_foreign_keys`
+
+         .. versionadded:: 0.7.1
+
         .. note:: batch mode requires SQLAlchemy 0.8 or above.
 
         .. seealso::
@@ -299,7 +313,8 @@ class Operations(object):
         """
         impl = batch.BatchOperationsImpl(
             self, table_name, schema, recreate,
-            copy_from, table_args, table_kwargs, reflect_args, reflect_kwargs)
+            copy_from, table_args, table_kwargs, reflect_args,
+            reflect_kwargs, naming_convention)
         batch_op = BatchOperations(self.migration_context, impl=impl)
         yield batch_op
         impl.flush()

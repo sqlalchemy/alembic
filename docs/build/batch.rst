@@ -110,12 +110,101 @@ pre-fabricated :class:`~sqlalchemy.schema.Table` object; see
    added :paramref:`.Operations.batch_alter_table.reflect_args`
    and :paramref:`.Operations.batch_alter_table.reflect_kwargs` options.
 
-
 Dealing with Constraints
 ------------------------
 
-One area of difficulty with "move and copy" is that of constraints.  If
-the SQLite database is enforcing referential integrity with
+There are a variety of issues when using "batch" mode with constraints,
+such as FOREIGN KEY, CHECK and UNIQUE constraints.  This section
+will attempt to detail many of these scenarios.
+
+.. _dropping_sqlite_foreign_keys:
+
+Dropping Unnamed or Named Foreign Key Constraints
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+SQLite, unlike any other database, allows constraints to exist in the
+database that have no identifying name.  On all other backends, the
+target database will always generate some kind of name, if one is not
+given.
+
+The first challenge this represents is that an unnamed constraint can't
+by itself be targeted by the :meth:`.BatchOperations.drop_constraint` method.
+An unnamed FOREIGN KEY constraint is implicit whenever the
+:class:`~sqlalchemy.schema.ForeignKey`
+or :class:`~sqlalchemy.schema.ForeignKeyConstraint` objects are used without
+passing them a name.  Only on SQLite will these constraints remain entirely
+unnamed when they are created on the target database; an automatically generated
+name will be assigned in the case of all other database backends.
+
+A second issue is that SQLAlchemy itself has inconsistent behavior in
+dealing with SQLite constraints as far as names.   Prior to version 1.0,
+SQLAlchemy omits the name of foreign key constraints when reflecting them
+against the SQLite backend.  So even if the target application has gone through
+the steps to apply names to the constraints as stated in the database,
+they still aren't targetable within the batch reflection process prior
+to SQLAlchemy 1.0.
+
+Within the scope of batch mode, this presents the issue that the
+:meth:`.BatchOperations.drop_constraint` method requires a constraint name
+in order to target the correct constraint.
+
+In order to overcome this, the :meth:`.Operations.batch_alter_table` method supports a
+:paramref:`~.Operations.batch_alter_table.naming_convention` argument, so that
+all reflected constraints, including foreign keys that are unnamed, or
+were named but SQLAlchemy isn't loading this name, may be given a name,
+as described in :ref:`autogen_naming_conventions`.   Usage is as follows::
+
+    naming_convention = {
+        "fk":
+        "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+    }
+    with self.op.batch_alter_table(
+            "bar", naming_convention=naming_convention) as batch_op:
+        batch_op.drop_constraint(
+            "fk_bar_foo_id_foo", type_="foreignkey")
+
+.. versionadded:: 0.7.1
+   added :paramref:`~.Operations.batch_alter_table.naming_convention` to
+   :meth:`.Operations.batch_alter_table`.
+
+Including unnamed UNIQUE constraints
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A similar, but frustratingly slightly different, issue is that in the
+case of UNIQUE constraints, we again have the issue that SQLite allows
+unnamed UNIQUE constraints to exist on the database, however in this case,
+SQLAlchemy prior to version 1.0 doesn't reflect these constraints at all.
+It does properly reflect named unique constraints with their names, however.
+
+So in this case, the workaround for foreign key names is still not sufficient
+prior to SQLAlchemy 1.0.  If our table includes unnamed unique constraints,
+and we'd like them to be re-created along with the table, we need to include
+them directly, which can be via the
+:paramref:`~.Operations.batch_alter_table.table_args` argument::
+
+    with self.op.batch_alter_table(
+            "bar", table_args=(UniqueConstraint('username'),)
+        ):
+        batch_op.add_column(Column('foo', Integer))
+
+Including CHECK constraints
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+SQLAlchemy currently doesn't reflect CHECK constraints on any backend.
+So again these must be stated explicitly if they are to be included in the
+recreated table::
+
+    with op.batch_alter_table("some_table", table_args=[
+          CheckConstraint('x > 5')
+      ]) as batch_op:
+        batch_op.add_column(Column('foo', Integer))
+        batch_op.drop_column('bar')
+
+
+Dealing with Referencing Foreign Keys
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If the SQLite database is enforcing referential integrity with
 ``PRAGMA FOREIGN KEYS``, this pragma may need to be disabled when the workflow
 mode proceeds, else remote constraints which refer to this table may prevent
 it from being dropped; additionally, for referential integrity to be
@@ -124,31 +213,6 @@ foreign keys on those remote tables to refer again to the new table (this
 is definitely the case on other databases, at least).  SQLite is normally used
 without referential integrity enabled so this won't be a problem for most
 users.
-
-"Move and copy" also currently does not account for CHECK constraints, assuming
-table reflection is used.   If the table being recreated has any CHECK
-constraints, they need to be specified explicitly, such as using
-:paramref:`.Operations.batch_alter_table.table_args`::
-
-    with op.batch_alter_table("some_table", table_args=[
-          CheckConstraint('x > 5')
-      ]) as batch_op:
-        batch_op.add_column(Column('foo', Integer))
-        batch_op.drop_column('bar')
-
-For UNIQUE constraints, SQLite unlike any other database supports the concept
-of a UNIQUE constraint that has no name at all; all other backends always
-assign a name of some kind to all constraints that are otherwise not named
-when they are created.   In SQLAlchemy, an unnamed UNIQUE constraint is
-implicit when the ``unique=True`` flag is present on a
-:class:`~sqlalchemy.schema.Column`, so on SQLite these constraints will
-remain unnamed.
-
-The issue here is that SQLAlchemy until version 1.0 does not report on these
-SQLite-only unnamed constraints when the table is reflected.   So to support
-the recreation of unnamed UNIQUE constraints, either they should be named
-in the first place, or again specified within
-:paramref:`.Operations.batch_alter_table.table_args`.
 
 .. _batch_offline_mode:
 

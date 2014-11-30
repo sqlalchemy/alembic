@@ -12,6 +12,7 @@ from alembic.migration import MigrationContext
 from sqlalchemy import Integer, Table, Column, String, MetaData, ForeignKey, \
     UniqueConstraint, ForeignKeyConstraint, Index, Boolean, CheckConstraint, \
     Enum
+from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.sql import column
 from sqlalchemy.schema import CreateTable, CreateIndex
 
@@ -673,6 +674,29 @@ class BatchRoundTripTest(TestBase):
             {"id": 4, "x": 8},
             {"id": 5, "x": 9}
         ])
+
+    def test_drop_foreign_key(self):
+        bar = Table(
+            'bar', self.metadata,
+            Column('id', Integer, primary_key=True),
+            Column('foo_id', Integer, ForeignKey('foo.id')),
+            mysql_engine='InnoDB'
+        )
+        bar.create(self.conn)
+        self.conn.execute(bar.insert(), {'id': 1, 'foo_id': 3})
+
+        naming_convention = {
+            "fk":
+            "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+        }
+        with self.op.batch_alter_table(
+                "bar", naming_convention=naming_convention) as batch_op:
+            batch_op.drop_constraint(
+                "fk_bar_foo_id_foo", type_="foreignkey")
+        eq_(
+            Inspector.from_engine(self.conn).get_foreign_keys('bar'),
+            []
+        )
 
     def test_drop_column_fk_recreate(self):
         with self.op.batch_alter_table("foo", recreate='always') as batch_op:

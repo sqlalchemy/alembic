@@ -9,7 +9,7 @@ from .ddl.base import _columns_for_constraint, _is_type_bound
 class BatchOperationsImpl(object):
     def __init__(self, operations, table_name, schema, recreate,
                  copy_from, table_args, table_kwargs,
-                 reflect_args, reflect_kwargs):
+                 reflect_args, reflect_kwargs, naming_convention):
         if not util.sqla_08:
             raise NotImplementedError(
                 "batch mode requires SQLAlchemy 0.8 or greater.")
@@ -25,6 +25,7 @@ class BatchOperationsImpl(object):
         self.table_kwargs = table_kwargs
         self.reflect_args = reflect_args
         self.reflect_kwargs = reflect_kwargs
+        self.naming_convention = naming_convention
         self.batch = []
 
     @property
@@ -51,7 +52,10 @@ class BatchOperationsImpl(object):
                 fn = getattr(self.operations.impl, opname)
                 fn(*arg, **kw)
         else:
-            m1 = MetaData()
+            if self.naming_convention:
+                m1 = MetaData(naming_convention=self.naming_convention)
+            else:
+                m1 = MetaData()
 
             existing_table = Table(
                 self.table_name, m1,
