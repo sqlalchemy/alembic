@@ -8,6 +8,14 @@ Changelog
 
     .. change::
       :tags: bug, batch
+      :pullreq: bitbucket:34
+
+      Fixed bug where the "source_schema" argument was not correctly passed
+      when calling :meth:`.BatchOperations.create_foreign_key`.  Pull
+      request courtesy Malte Marquarding.
+
+    .. change::
+      :tags: bug, batch
       :tickets: 249
 
       Repaired the inspection, copying and rendering of CHECK constraints

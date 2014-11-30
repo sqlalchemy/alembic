@@ -440,10 +440,11 @@ class BatchAPITest(TestBase):
     __requires__ = ('sqlalchemy_08', )
 
     @contextmanager
-    def _fixture(self):
+    def _fixture(self, schema=None):
         migration_context = mock.Mock(opts={})
         op = Operations(migration_context)
-        batch = op.batch_alter_table('tname', recreate='never').__enter__()
+        batch = op.batch_alter_table(
+            'tname', recreate='never', schema=schema).__enter__()
 
         with mock.patch("alembic.operations.sa_schema") as mock_schema:
             yield batch
@@ -482,8 +483,60 @@ class BatchAPITest(TestBase):
                 mock.call(
                     ['x'], ['user.y'],
                     onupdate=None, ondelete=None, name='myfk',
-                    initially=None, deferrable=None, match=None,
-                    schema=None)
+                    initially=None, deferrable=None, match=None)
+            ]
+        )
+        eq_(
+            self.mock_schema.Table.mock_calls,
+            [
+                mock.call(
+                    'user', self.mock_schema.MetaData(),
+                    self.mock_schema.Column(),
+                    schema=None
+                ),
+                mock.call(
+                    'tname', self.mock_schema.MetaData(),
+                    self.mock_schema.Column(),
+                    schema=None
+                ),
+                mock.call().append_constraint(
+                    self.mock_schema.ForeignKeyConstraint())
+            ]
+        )
+        eq_(
+            batch.impl.operations.impl.mock_calls,
+            [mock.call.add_constraint(
+                self.mock_schema.ForeignKeyConstraint())]
+        )
+
+    def test_create_fk_schema(self):
+        with self._fixture(schema='foo') as batch:
+            batch.create_foreign_key('myfk', 'user', ['x'], ['y'])
+
+        eq_(
+            self.mock_schema.ForeignKeyConstraint.mock_calls,
+            [
+                mock.call(
+                    ['x'], ['user.y'],
+                    onupdate=None, ondelete=None, name='myfk',
+                    initially=None, deferrable=None, match=None)
+            ]
+        )
+        eq_(
+            self.mock_schema.Table.mock_calls,
+            [
+                mock.call(
+                    'user', self.mock_schema.MetaData(),
+                    self.mock_schema.Column(),
+                    schema=None
+                ),
+                mock.call(
+                    'tname', self.mock_schema.MetaData(),
+                    self.mock_schema.Column(),
+                    schema='foo'
+                ),
+                mock.call().append_constraint(
+                    self.mock_schema.ForeignKeyConstraint())
             ]
         )
         eq_(
