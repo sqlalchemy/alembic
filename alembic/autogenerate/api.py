@@ -12,7 +12,8 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.util import OrderedSet
 from .compare import _compare_tables
 from .render import _drop_table, _drop_column, _drop_index, _drop_constraint, \
-    _add_table, _add_column, _add_index, _add_constraint, _modify_col
+    _add_table, _add_column, _add_index, _add_constraint, _modify_col, \
+    _add_fk_constraint, _drop_fk_constraint
 from .. import util
 
 log = logging.getLogger(__name__)
@@ -293,6 +294,7 @@ def _invoke_adddrop_command(updown, args, autogen_context):
         "column": (_drop_column, _add_column),
         "index": (_drop_index, _add_index),
         "constraint": (_drop_constraint, _add_constraint),
+        "fk":(_drop_fk_constraint, _add_fk_constraint)
     }
 
     cmd_callables = _commands[cmd_type]
@@ -343,7 +345,9 @@ def _group_diffs_by_table(diffs):
         "table": lambda diff: (None, None),
         "column": lambda diff: (diff[0], diff[1]),
         "index": lambda diff: (diff[0].table.schema, diff[0].table.name),
-        "constraint": lambda diff: (diff[0].table.schema, diff[0].table.name)
+        "constraint": lambda diff: (diff[0].table.schema, diff[0].table.name),
+        "fk": lambda diff:
+        (diff[0].parent.table.schema, diff[0].parent.table.name)
     }
 
     def _derive_table(diff):

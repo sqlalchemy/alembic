@@ -1,3 +1,4 @@
+import collections
 from sqlalchemy import schema as sa_schema, types as sqltypes
 from sqlalchemy import event
 import logging
@@ -112,6 +113,9 @@ def _compare_tables(conn_table_names, metadata_table_names,
                                              conn_table,
                                              metadata_table,
                                              diffs, autogen_context, inspector)
+                _compare_foreign_keys(s, tname, object_filters, conn_table,
+                                      metadata_table, diffs, autogen_context,
+                                      inspector)
 
     # TODO:
     # table constraints
@@ -566,3 +570,64 @@ def _compare_server_default(schema, tname, cname, conn_col, metadata_col,
                  tname,
                  cname
                  )
+
+FKInfo = collections.namedtuple('fk_info', ['constrained_columns',
+                                            'referred_table',
+                                            'referred_columns'])
+
+
+def _compare_foreign_keys(schema, tname, object_filters, conn_table,
+                          metadata_table, diffs, autogen_context, inspector):
+
+    # This methods checks foreign keys that tables contain in models with
+    # foreign keys that are in db.
+    # Get all necessary information about key of current table from db
+    if conn_table is None:
+        return
+
+    fk_db = {}
+    if hasattr(inspector, "get_foreign_keys"):
+        try:
+            fk_db = dict((_get_fk_info_from_db(i), i['name']) for i in
+                         inspector.get_foreign_keys(tname, schema=schema))
+        except NotImplementedError:
+            pass
+
+
+    # Get all necessary information about key of current table from
+    # models
+    fk_models = dict((_get_fk_info_from_model(fk), fk) for fk in
+                     metadata_table.foreign_keys)
+    fk_models_set = set(fk_models.keys())
+    fk_db_set = set(fk_db.keys())
+    for key in (fk_db_set - fk_models_set):
+            diffs.append(('drop_fk', fk_db[key], conn_table, key))
+            log.info(("Detected removed foreign key %(fk)r on "
+                      "table %(table)r"), {'fk': fk_db[key],
+                                           'table': conn_table})
+    for key in (fk_models_set - fk_db_set):
+            diffs.append(('add_fk', fk_models[key], key))
+            log.info((
+                "Detected added foreign key for column %(fk)r on table "
+                "%(table)r"), {'fk': fk_models[key].column.name,
+                               'table': conn_table})
+    return diffs
+
+
+def _get_fk_info_from_db(fk):
+    return FKInfo(tuple(fk['constrained_columns']),
+                  fk['referred_table'],
+                  tuple(fk['referred_columns']))
+
+
+def _get_fk_info_from_model(fk):
+    constrained_columns = []
+    for column in fk.constraint.columns:
+        if not isinstance(column, basestring):
+            constrained_columns.append(column.name)
+        else:
+            constrained_columns.append(column)
+    return FKInfo(
+        tuple(constrained_columns),
+        fk.column.table.name,
+        tuple(k.column.name for k in fk.constraint._elements.values()))

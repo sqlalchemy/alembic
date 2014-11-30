@@ -241,8 +241,32 @@ def _uq_constraint(constraint, autogen_context, alter):
         }
 
 
-def _add_fk_constraint(constraint, autogen_context):
-    raise NotImplementedError()
+def _add_fk_constraint(constraint, fk_info, autogen_context):
+    args = [
+        repr(_render_gen_name(autogen_context, constraint.name)),
+        constraint.parent.table.name,
+        fk_info.referred_table,
+        str(list(fk_info.constrained_columns)),
+        str(list(fk_info.referred_columns)),
+        "%s=%r" % ('schema', constraint.parent.table.schema),
+    ]
+    if constraint.deferrable:
+        args.append("%s=%r" % ("deferrable", str(constraint.deferrable)))
+    if constraint.initially:
+        args.append("%s=%r" % ("initially", str(constraint.initially)))
+    return "%(prefix)screate_foreign_key(%(args)s)" % {
+        'prefix': _alembic_autogenerate_prefix(autogen_context),
+        'args': ", ".join(args)
+    }
+
+
+def _drop_fk_constraint(constraint, fk_info, autogen_context):
+    args = [repr(_render_gen_name(autogen_context, constraint.name)),
+            constraint.parent.table.name, "type_='foreignkey'"]
+    return "%(prefix)sdrop_constraint(%(args)s)" % {
+        'prefix': _alembic_autogenerate_prefix(autogen_context),
+        'args': ", ".join(args)
+    }
 
 
 def _add_pk_constraint(constraint, autogen_context):
