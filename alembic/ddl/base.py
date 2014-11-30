@@ -154,6 +154,13 @@ def visit_column_default(element, compiler, **kw):
     )
 
 
+def _table_for_constraint(constraint):
+    if isinstance(constraint, ForeignKeyConstraint):
+        return constraint.parent
+    else:
+        return constraint.table
+
+
 def _columns_for_constraint(constraint):
     if isinstance(constraint, ForeignKeyConstraint):
         return [fk.parent for fk in constraint.elements]
@@ -161,6 +168,24 @@ def _columns_for_constraint(constraint):
         return _find_columns(constraint.sqltext)
     else:
         return list(constraint.columns)
+
+
+def _fk_spec(constraint):
+    if util.sqla_100:
+        source_columns = constraint.column_keys
+    else:
+        source_columns = [
+            element.parent.key for element in constraint.elements]
+
+    source_table = constraint.parent.name
+    source_schema = constraint.parent.schema
+    target_schema = constraint.elements[0].column.table.schema
+    target_table = constraint.elements[0].column.table.name
+    target_columns = [element.column.name for element in constraint.elements]
+
+    return (
+        source_schema, source_table,
+        source_columns, target_schema, target_table, target_columns)
 
 
 def _is_type_bound(constraint):

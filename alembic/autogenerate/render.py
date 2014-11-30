@@ -1,6 +1,7 @@
 from sqlalchemy import schema as sa_schema, types as sqltypes, sql
 import logging
 from .. import compat
+from ..ddl.base import _table_for_constraint, _fk_spec
 import re
 from ..compat import string_types
 
@@ -241,29 +242,32 @@ def _uq_constraint(constraint, autogen_context, alter):
         }
 
 
-def _add_fk_constraint(constraint, fk_info, autogen_context):
+def _add_fk_constraint(constraint, autogen_context):
+    source_schema, source_table, \
+        source_columns, target_schema, \
+        target_table, target_columns = _fk_spec(constraint)
+
     args = [
         repr(_render_gen_name(autogen_context, constraint.name)),
-        constraint.parent.table.name,
-        fk_info.referred_table,
-        str(list(fk_info.constrained_columns)),
-        str(list(fk_info.referred_columns)),
-        "%s=%r" % ('schema', constraint.parent.table.schema),
+        source_table,
+        target_table,
+        repr(source_columns),
+        repr(target_columns)
     ]
+    if source_schema:
+        args.append(
+            "%s=%r" % ('source_schema', source_schema),
+        )
+    if target_schema:
+        args.append(
+            "%s=%r" % ('referent_schema', target_schema)
+        )
+
     if constraint.deferrable:
         args.append("%s=%r" % ("deferrable", str(constraint.deferrable)))
     if constraint.initially:
         args.append("%s=%r" % ("initially", str(constraint.initially)))
     return "%(prefix)screate_foreign_key(%(args)s)" % {
-        'prefix': _alembic_autogenerate_prefix(autogen_context),
-        'args': ", ".join(args)
-    }
-
-
-def _drop_fk_constraint(constraint, fk_info, autogen_context):
-    args = [repr(_render_gen_name(autogen_context, constraint.name)),
-            constraint.parent.table.name, "type_='foreignkey'"]
-    return "%(prefix)sdrop_constraint(%(args)s)" % {
         'prefix': _alembic_autogenerate_prefix(autogen_context),
         'args': ", ".join(args)
     }
@@ -296,19 +300,30 @@ def _drop_constraint(constraint, autogen_context):
     Generate Alembic operations for the ALTER TABLE ... DROP CONSTRAINT
     of a  :class:`~sqlalchemy.schema.UniqueConstraint` instance.
     """
+
+    types = {
+        "unique_constraint": "unique",
+        "foreign_key_constraint": "foreignkey",
+        "primary_key_constraint": "primary",
+        "check_constraint": "check",
+        "column_check_constraint": "check",
+    }
+
     if 'batch_prefix' in autogen_context:
         template = "%(prefix)sdrop_constraint"\
-            "(%(name)r)"
+            "(%(name)r, type_=%(type)r)"
     else:
         template = "%(prefix)sdrop_constraint"\
-            "(%(name)r, '%(table_name)s'%(schema)s)"
+            "(%(name)r, '%(table_name)s'%(schema)s, type_=%(type)r)"
 
+    constraint_table = _table_for_constraint(constraint)
     text = template % {
         'prefix': _alembic_autogenerate_prefix(autogen_context),
         'name': _render_gen_name(autogen_context, constraint.name),
-        'table_name': _ident(constraint.table.name),
-        'schema': (", schema='%s'" % _ident(constraint.table.schema))
-        if constraint.table.schema else '',
+        'table_name': _ident(constraint_table.name),
+        'type': types[constraint.__visit_name__],
+        'schema': (", schema='%s'" % _ident(constraint_table.schema))
+        if constraint_table.schema else '',
     }
     return text
 

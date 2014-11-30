@@ -1,5 +1,5 @@
 import sys
-from alembic.testing import TestBase
+from alembic.testing import TestBase, config
 
 from sqlalchemy import MetaData, Column, Table, Integer, String, \
     ForeignKeyConstraint
@@ -11,74 +11,81 @@ from .test_autogenerate import AutogenFixtureTest
 
 
 class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
-    __only_on__ = 'sqlite'
+    __backend__ = True
 
-    def test_extra_fk(self):
+    def test_added_fk(self):
         m1 = MetaData()
         m2 = MetaData()
 
         Table('table', m1,
-              Column('id', Integer, primary_key=True),
-              Column('test', String(10)))
+              Column('test', String(10), primary_key=True),
+              mysql_engine='InnoDB')
 
         Table('user', m1,
               Column('id', Integer, primary_key=True),
               Column('name', String(50), nullable=False),
               Column('a1', String(10), server_default="x"),
               Column('test2', String(10)),
-              ForeignKeyConstraint(['test2'], ['table.test']))
+              ForeignKeyConstraint(['test2'], ['table.test']),
+              mysql_engine='InnoDB')
 
         Table('table', m2,
-              Column('id', Integer, primary_key=True),
-              Column('test', String(10)))
+              Column('test', String(10), primary_key=True),
+              mysql_engine='InnoDB')
 
         Table('user', m2,
               Column('id', Integer, primary_key=True),
               Column('name', String(50), nullable=False),
               Column('a1', String(10), server_default="x"),
-              Column('test2', String(10))
+              Column('test2', String(10)),
+              mysql_engine='InnoDB'
               )
 
         diffs = self._fixture(m1, m2)
 
-        eq_(diffs[0][0], "drop_fk")
-        eq_(diffs[0][2].name, "user")
-        eq_(diffs[0][3].constrained_columns, ('test2',))
-        eq_(diffs[0][3].referred_table, 'table')
-        eq_(diffs[0][3].referred_columns, ('test',))
+        self._assert_fk_diff(
+            diffs[0], "remove_fk",
+            "user", ['test2'],
+            'table', ['test'],
+            conditional_name="servergenerated"
+        )
 
-    def test_missing_fk(self):
+    def test_removed_fk(self):
         m1 = MetaData()
         m2 = MetaData()
 
         Table('table', m1,
               Column('id', Integer, primary_key=True),
-              Column('test', String(10)))
+              Column('test', String(10)),
+              mysql_engine='InnoDB')
 
         Table('user', m1,
               Column('id', Integer, primary_key=True),
               Column('name', String(50), nullable=False),
               Column('a1', String(10), server_default="x"),
-              Column('test2', String(10)))
+              Column('test2', String(10)),
+              mysql_engine='InnoDB')
 
         Table('table', m2,
               Column('id', Integer, primary_key=True),
-              Column('test', String(10)))
+              Column('test', String(10)),
+              mysql_engine='InnoDB')
 
         Table('user', m2,
               Column('id', Integer, primary_key=True),
               Column('name', String(50), nullable=False),
               Column('a1', String(10), server_default="x"),
               Column('test2', String(10)),
-              ForeignKeyConstraint(['test2'], ['table.test']))
+              ForeignKeyConstraint(['test2'], ['table.test']),
+              mysql_engine='InnoDB')
 
         diffs = self._fixture(m1, m2)
 
-        eq_(diffs[0][0], "add_fk")
-        eq_(diffs[0][1].parent.table.name, "user")
-        eq_(diffs[0][2].constrained_columns, ('test2',))
-        eq_(diffs[0][2].referred_table, 'table')
-        eq_(diffs[0][2].referred_columns, ('test',))
+        self._assert_fk_diff(
+            diffs[0], "add_fk",
+            "user", ["test2"],
+            "table", ["test"]
+        )
 
     def test_no_change(self):
         m1 = MetaData()
@@ -86,25 +93,29 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
 
         Table('table', m1,
               Column('id', Integer, primary_key=True),
-              Column('test', String(10)))
+              Column('test', String(10)),
+              mysql_engine='InnoDB')
 
         Table('user', m1,
               Column('id', Integer, primary_key=True),
               Column('name', String(50), nullable=False),
               Column('a1', String(10), server_default="x"),
-              Column('test2', String(10)),
-              ForeignKeyConstraint(['test2'], ['table.test']))
+              Column('test2', Integer),
+              ForeignKeyConstraint(['test2'], ['table.id']),
+              mysql_engine='InnoDB')
 
         Table('table', m2,
               Column('id', Integer, primary_key=True),
-              Column('test', String(10)))
+              Column('test', String(10)),
+              mysql_engine='InnoDB')
 
         Table('user', m2,
               Column('id', Integer, primary_key=True),
               Column('name', String(50), nullable=False),
               Column('a1', String(10), server_default="x"),
-              Column('test2', String(10)),
-              ForeignKeyConstraint(['test2'], ['table.test']))
+              Column('test2', Integer),
+              ForeignKeyConstraint(['test2'], ['table.id']),
+              mysql_engine='InnoDB')
 
         diffs = self._fixture(m1, m2)
 
@@ -115,9 +126,9 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
         m2 = MetaData()
 
         Table('table', m1,
-              Column('id', Integer, primary_key=True),
-              Column('id_1', String(10)),
-              Column('id_2', String(10)))
+              Column('id_1', String(10), primary_key=True),
+              Column('id_2', String(10), primary_key=True),
+              mysql_engine='InnoDB')
 
         Table('user', m1,
               Column('id', Integer, primary_key=True),
@@ -126,12 +137,14 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
               Column('other_id_1', String(10)),
               Column('other_id_2', String(10)),
               ForeignKeyConstraint(['other_id_1', 'other_id_2'],
-                                   ['table.id_1','table.id_2']))
+                                   ['table.id_1', 'table.id_2']),
+              mysql_engine='InnoDB')
 
         Table('table', m2,
-              Column('id', Integer, primary_key=True),
-              Column('id_1', String(10)),
-              Column('id_2', String(10)))
+              Column('id_1', String(10), primary_key=True),
+              Column('id_2', String(10), primary_key=True),
+              mysql_engine='InnoDB'
+              )
 
         Table('user', m2,
               Column('id', Integer, primary_key=True),
@@ -140,32 +153,36 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
               Column('other_id_1', String(10)),
               Column('other_id_2', String(10)),
               ForeignKeyConstraint(['other_id_1', 'other_id_2'],
-                                   ['table.id_1','table.id_2']))
+                                   ['table.id_1', 'table.id_2']),
+              mysql_engine='InnoDB')
 
         diffs = self._fixture(m1, m2)
 
         eq_(diffs, [])
 
-    def test_missing_composite_fk_with_name(self):
+    def test_removed_composite_fk_with_name(self):
         m1 = MetaData()
         m2 = MetaData()
 
         Table('table', m1,
               Column('id', Integer, primary_key=True),
               Column('id_1', String(10)),
-              Column('id_2', String(10)))
+              Column('id_2', String(10)),
+              mysql_engine='InnoDB')
 
         Table('user', m1,
               Column('id', Integer, primary_key=True),
               Column('name', String(50), nullable=False),
               Column('a1', String(10), server_default="x"),
               Column('other_id_1', String(10)),
-              Column('other_id_2', String(10)))
+              Column('other_id_2', String(10)),
+              mysql_engine='InnoDB')
 
         Table('table', m2,
               Column('id', Integer, primary_key=True),
               Column('id_1', String(10)),
-              Column('id_2', String(10)))
+              Column('id_2', String(10)),
+              mysql_engine='InnoDB')
 
         Table('user', m2,
               Column('id', Integer, primary_key=True),
@@ -174,26 +191,27 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
               Column('other_id_1', String(10)),
               Column('other_id_2', String(10)),
               ForeignKeyConstraint(['other_id_1', 'other_id_2'],
-                                   ['table.id_1','table.id_2'],
-                                   name='fk_test_name'))
+                                   ['table.id_1', 'table.id_2'],
+                                   name='fk_test_name'),
+              mysql_engine='InnoDB')
 
         diffs = self._fixture(m1, m2)
 
-        eq_(diffs[0][0], "add_fk")
-        eq_(diffs[0][1].parent.table.name, "user")
-        eq_(diffs[0][1].name, "fk_test_name")
-        eq_(diffs[0][2].constrained_columns, ('other_id_1', 'other_id_2'))
-        eq_(diffs[0][2].referred_table, 'table')
-        eq_(diffs[0][2].referred_columns, ('id_1', 'id_2'))
+        self._assert_fk_diff(
+            diffs[0], "add_fk",
+            "user", ['other_id_1', 'other_id_2'],
+            'table', ['id_1', 'id_2'],
+            name="fk_test_name"
+        )
 
-    def test_extra_composite_fk(self):
+    def test_added_composite_fk(self):
         m1 = MetaData()
         m2 = MetaData()
 
         Table('table', m1,
-              Column('id', Integer, primary_key=True),
-              Column('id_1', String(10)),
-              Column('id_2', String(10)))
+              Column('id_1', String(10), primary_key=True),
+              Column('id_2', String(10), primary_key=True),
+              mysql_engine='InnoDB')
 
         Table('user', m1,
               Column('id', Integer, primary_key=True),
@@ -203,24 +221,178 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
               Column('other_id_2', String(10)),
               ForeignKeyConstraint(['other_id_1', 'other_id_2'],
                                    ['table.id_1', 'table.id_2'],
-                                   name='fk_test_name'))
+                                   name='fk_test_name'),
+              mysql_engine='InnoDB')
 
         Table('table', m2,
-              Column('id', Integer, primary_key=True),
-              Column('id_1', String(10)),
-              Column('id_2', String(10)))
+              Column('id_1', String(10), primary_key=True),
+              Column('id_2', String(10), primary_key=True),
+              mysql_engine='InnoDB')
 
         Table('user', m2,
               Column('id', Integer, primary_key=True),
               Column('name', String(50), nullable=False),
               Column('a1', String(10), server_default="x"),
               Column('other_id_1', String(10)),
-              Column('other_id_2', String(10)))
+              Column('other_id_2', String(10)),
+              mysql_engine='InnoDB')
 
         diffs = self._fixture(m1, m2)
 
-        eq_(diffs[0][0], "drop_fk")
-        eq_(diffs[0][2].name, "user")
-        eq_(diffs[0][3].constrained_columns, ('other_id_1', 'other_id_2'))
-        eq_(diffs[0][3].referred_table, 'table')
-        eq_(diffs[0][3].referred_columns, ('id_1', 'id_2'))
+        self._assert_fk_diff(
+            diffs[0], "remove_fk",
+            "user", ['other_id_1', 'other_id_2'],
+            "table", ['id_1', 'id_2'],
+            conditional_name="fk_test_name"
+        )
+
+
+class IncludeHooksTest(AutogenFixtureTest, TestBase):
+    __backend__ = True
+    __requires__ = 'fk_names',
+
+    def test_remove_connection_fk(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        ref = Table(
+            'ref', m1, Column('id', Integer, primary_key=True),
+            mysql_engine='InnoDB')
+        t1 = Table(
+            't', m1, Column('x', Integer), Column('y', Integer),
+            mysql_engine='InnoDB')
+        t1.append_constraint(
+            ForeignKeyConstraint([t1.c.x], [ref.c.id], name="fk1")
+        )
+        t1.append_constraint(
+            ForeignKeyConstraint([t1.c.y], [ref.c.id], name="fk2")
+        )
+
+        ref = Table(
+            'ref', m2, Column('id', Integer, primary_key=True),
+            mysql_engine='InnoDB')
+        Table(
+            't', m2, Column('x', Integer), Column('y', Integer),
+            mysql_engine='InnoDB')
+
+        def include_object(object_, name, type_, reflected, compare_to):
+            return not (
+                isinstance(object_, ForeignKeyConstraint) and
+                type_ == 'foreignkey' and reflected and name == 'fk1')
+
+        diffs = self._fixture(m1, m2, object_filters=[include_object])
+
+        self._assert_fk_diff(
+            diffs[0], "remove_fk",
+            't', ['y'], 'ref', ['id'],
+            conditional_name='fk2'
+        )
+        eq_(len(diffs), 1)
+
+    def test_add_metadata_fk(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table(
+            'ref', m1,
+            Column('id', Integer, primary_key=True), mysql_engine='InnoDB')
+        Table(
+            't', m1,
+            Column('x', Integer), Column('y', Integer), mysql_engine='InnoDB')
+
+        ref = Table(
+            'ref', m2, Column('id', Integer, primary_key=True),
+            mysql_engine='InnoDB')
+        t2 = Table(
+            't', m2, Column('x', Integer), Column('y', Integer),
+            mysql_engine='InnoDB')
+        t2.append_constraint(
+            ForeignKeyConstraint([t2.c.x], [ref.c.id], name="fk1")
+        )
+        t2.append_constraint(
+            ForeignKeyConstraint([t2.c.y], [ref.c.id], name="fk2")
+        )
+
+        def include_object(object_, name, type_, reflected, compare_to):
+            return not (
+                isinstance(object_, ForeignKeyConstraint) and
+                type_ == 'foreignkey' and not reflected and name == 'fk1')
+
+        diffs = self._fixture(m1, m2, object_filters=[include_object])
+
+        self._assert_fk_diff(
+            diffs[0], "add_fk",
+            't', ['y'], 'ref', ['id'],
+            name='fk2'
+        )
+        eq_(len(diffs), 1)
+
+    def test_change_fk(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        r1a = Table(
+            'ref_a', m1,
+            Column('a', Integer, primary_key=True),
+            mysql_engine='InnoDB'
+        )
+        Table(
+            'ref_b', m1,
+            Column('a', Integer, primary_key=True),
+            Column('b', Integer, primary_key=True),
+            mysql_engine='InnoDB'
+        )
+        t1 = Table(
+            't', m1, Column('x', Integer),
+            Column('y', Integer), Column('z', Integer),
+            mysql_engine='InnoDB')
+        t1.append_constraint(
+            ForeignKeyConstraint([t1.c.x], [r1a.c.a], name="fk1")
+        )
+        t1.append_constraint(
+            ForeignKeyConstraint([t1.c.y], [r1a.c.a], name="fk2")
+        )
+
+        Table(
+            'ref_a', m2,
+            Column('a', Integer, primary_key=True),
+            mysql_engine='InnoDB'
+        )
+        r2b = Table(
+            'ref_b', m2,
+            Column('a', Integer, primary_key=True),
+            Column('b', Integer, primary_key=True),
+            mysql_engine='InnoDB'
+        )
+        t2 = Table(
+            't', m2, Column('x', Integer),
+            Column('y', Integer), Column('z', Integer),
+            mysql_engine='InnoDB')
+        t2.append_constraint(
+            ForeignKeyConstraint(
+                [t2.c.x, t2.c.z], [r2b.c.a, r2b.c.b], name="fk1")
+        )
+        t2.append_constraint(
+            ForeignKeyConstraint(
+                [t2.c.y, t2.c.z], [r2b.c.a, r2b.c.b], name="fk2")
+        )
+
+        def include_object(object_, name, type_, reflected, compare_to):
+            return not (
+                isinstance(object_, ForeignKeyConstraint) and
+                type_ == 'foreignkey' and name == 'fk1'
+            )
+
+        diffs = self._fixture(m1, m2, object_filters=[include_object])
+
+        self._assert_fk_diff(
+            diffs[0], "remove_fk",
+            't', ['y'], 'ref_a', ['a'],
+            name='fk2'
+        )
+        self._assert_fk_diff(
+            diffs[1], "add_fk",
+            't', ['y', 'z'], 'ref_b', ['a', 'b'],
+            name='fk2'
+        )
+        eq_(len(diffs), 2)

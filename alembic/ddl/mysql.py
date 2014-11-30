@@ -95,7 +95,6 @@ class MySQLImpl(DefaultImpl):
 
         # TODO: if SQLA 1.0, make use of "duplicates_index"
         # metadata
-
         removed = set()
         for idx in list(conn_indexes):
             # MySQL puts implicit indexes on FK columns, even if

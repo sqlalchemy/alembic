@@ -29,3 +29,13 @@ class DefaultRequirements(SuiteRequirements):
                 lambda config: config.db.dialect.supports_native_boolean
             )
         )
+
+    @property
+    def no_fk_names(self):
+        """foreign key constraints have no names in the DB"""
+        return exclusions.only_on(['sqlite'])
+
+    @property
+    def fk_names(self):
+        """foreign key constraints always have names in the DB"""
+        return exclusions.fails_on('sqlite')
