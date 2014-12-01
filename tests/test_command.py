@@ -317,7 +317,7 @@ class UpgradeDowngradeStampTest(TestBase):
 
     def test_sql_stamp_from_partial_rev(self):
         with capture_context_buffer() as buf:
-            command.stamp(self.cfg, "%s:head" % self.a[0:3], sql=True)
+            command.stamp(self.cfg, "%s:head" % self.a[0:7], sql=True)
         assert (
             "UPDATE alembic_version "
             "SET version_num='%s' "
