@@ -32,7 +32,15 @@ class DefaultRequirements(SuiteRequirements):
 
     @property
     def no_fk_names(self):
-        """foreign key constraints have no names in the DB"""
+        """foreign key constraints *never* have names in the DB"""
+        # TODO: add exclusion SQLAlchemy < 1.0 when
+        # https://bitbucket.org/zzzeek/sqlalchemy/issue/3261/sqlite-backend-ignores-names-on-reflected
+        # is fixed
+        return exclusions.only_on(['sqlite'])
+
+    @property
+    def unnamed_constraints(self):
+        """constraints without names are supported."""
         return exclusions.only_on(['sqlite'])
 
     @property
