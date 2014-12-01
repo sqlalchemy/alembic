@@ -219,11 +219,13 @@ users.
 Working in Offline Mode
 -----------------------
 
-Another big limitation of "move and copy" is that in order to make a copy
-of a table, the structure of that table must be known.
-:meth:`.Operations.batch_alter_table` by default will use reflection to
-get this information, which means that "online" mode is required; the
-``--sql`` flag **cannot** be used without extra steps.
+In the preceding sections, we've seen how much of an emphasis the
+"move and copy" process has on using reflection in order to know the
+structure of the table that is to be copied.  This means that in the typical
+case, "online" mode, where a live database connection is present so that
+:meth:`.Operations.batch_alter_table` can reflect the table from the
+database, is required; the ``--sql`` flag **cannot** be used without extra
+steps.
 
 To support offline mode, the system must work without table reflection
 present, which means the full table as it intends to be created must be
