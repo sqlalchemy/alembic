@@ -254,6 +254,36 @@ unique=False, """
             "schema='CamelSchema', type_='unique')"
         )
 
+    def test_add_fk_constraint(self):
+        m = MetaData()
+        Table('a', m, Column('id', Integer, primary_key=True))
+        b = Table('b', m, Column('a_id', Integer, ForeignKey('a.id')))
+        fk = ForeignKeyConstraint(['a_id'], ['a.id'], name='fk_a_id')
+        b.append_constraint(fk)
+        eq_ignore_whitespace(
+            autogenerate.render._add_fk_constraint(fk, self.autogen_context),
+            "op.create_foreign_key('fk_a_id', 'b', 'a', ['a_id'], ['id'])"
+        )
+
+    def test_add_fk_constraint_schema(self):
+        m = MetaData()
+        Table(
+            'a', m, Column('id', Integer, primary_key=True),
+            schema="CamelSchemaTwo")
+        b = Table(
+            'b', m, Column('a_id', Integer, ForeignKey('a.id')),
+            schema="CamelSchemaOne")
+        fk = ForeignKeyConstraint(
+            ["a_id"],
+            ["CamelSchemaTwo.a.id"], name='fk_a_id')
+        b.append_constraint(fk)
+        eq_ignore_whitespace(
+            autogenerate.render._add_fk_constraint(fk, self.autogen_context),
+            "op.create_foreign_key('fk_a_id', 'b', 'a', ['a_id'], ['id'],"
+            " source_schema='CamelSchemaOne', "
+            "referent_schema='CamelSchemaTwo')"
+        )
+
     def test_drop_fk_constraint(self):
         m = MetaData()
         Table('a', m, Column('id', Integer, primary_key=True))
@@ -266,7 +296,6 @@ unique=False, """
         )
 
     def test_drop_fk_constraint_schema(self):
-        m = MetaData()
         m = MetaData()
         Table(
             'a', m, Column('id', Integer, primary_key=True),

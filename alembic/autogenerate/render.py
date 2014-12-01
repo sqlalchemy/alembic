@@ -249,10 +249,10 @@ def _add_fk_constraint(constraint, autogen_context):
 
     args = [
         repr(_render_gen_name(autogen_context, constraint.name)),
-        source_table,
-        target_table,
-        repr(source_columns),
-        repr(target_columns)
+        repr(_ident(source_table)),
+        repr(_ident(target_table)),
+        repr([_ident(col) for col in source_columns]),
+        repr([_ident(col) for col in target_columns])
     ]
     if source_schema:
         args.append(

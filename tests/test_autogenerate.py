@@ -559,7 +559,7 @@ nullable=True))
                type_=sa.Numeric(precision=10, scale=2),
                nullable=True,
                existing_server_default=sa.text('0'))
-    op.create_foreign_key(None, order, user, ['user_id'], ['id'])
+    op.create_foreign_key(None, 'order', 'user', ['user_id'], ['id'])
     op.alter_column('user', 'a1',
                existing_type=sa.TEXT(),
                server_default='x',
@@ -630,7 +630,7 @@ nullable=True))
                type_=sa.Numeric(precision=10, scale=2),
                nullable=True,
                existing_server_default=sa.text('0'))
-        batch_op.create_foreign_key(None, order, user, ['user_id'], ['id'])
+        batch_op.create_foreign_key(None, 'order', 'user', ['user_id'], ['id'])
 
     with op.batch_alter_table('user', schema=None) as batch_op:
         batch_op.alter_column('a1',
@@ -934,7 +934,7 @@ schema='%(schema)s')
                nullable=True,
                existing_server_default=sa.text('0'),
                schema='%(schema)s')
-    op.create_foreign_key(None, order, user, ['user_id'], ['id'], \
+    op.create_foreign_key(None, 'order', 'user', ['user_id'], ['id'], \
 source_schema='%(schema)s', referent_schema='%(schema)s')
     op.alter_column('user', 'a1',
                existing_type=sa.TEXT(),
