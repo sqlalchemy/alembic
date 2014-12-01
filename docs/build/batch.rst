@@ -163,6 +163,9 @@ as described in :ref:`autogen_naming_conventions`.   Usage is as follows::
         batch_op.drop_constraint(
             "fk_bar_foo_id_foo", type_="foreignkey")
 
+Note that the naming convention feature requires at least
+**SQLAlchemy 0.9.4** for support.
+
 .. versionadded:: 0.7.1
    added :paramref:`~.Operations.batch_alter_table.naming_convention` to
    :meth:`.Operations.batch_alter_table`.

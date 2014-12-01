@@ -296,7 +296,7 @@ class Operations(object):
          to the :class:`~sqlalchemy.schema.MetaData` during the reflection
          process.  This is typically required if one wants to drop SQLite
          constraints, as these constraints will not have names when
-         reflected on this backend.
+         reflected on this backend.  Requires SQLAlchemy **0.9.4** or greater.
 
          .. seealso::
 
