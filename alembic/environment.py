@@ -694,7 +694,7 @@ class EnvironmentContext(object):
         opts['include_symbol'] = include_symbol
         opts['include_object'] = include_object
         opts['include_schemas'] = include_schemas
-        opts['render_as_batch'] = True #render_as_batch
+        opts['render_as_batch'] = render_as_batch
         opts['upgrade_token'] = upgrade_token
         opts['downgrade_token'] = downgrade_token
         opts['sqlalchemy_module_prefix'] = sqlalchemy_module_prefix

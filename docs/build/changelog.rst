@@ -7,6 +7,13 @@ Changelog
     :version: 0.7.1
 
     .. change::
+      :tags: bug, batch
+
+      The ``render_as_batch`` flag was inadvertently hardcoded to ``True``,
+      so all autogenerates were spitting out batch mode...this has been
+      fixed so that batch mode again is only when selected in env.py.
+
+    .. change::
       :tags: feature, autogenerate
       :tickets: 178
       :pullreq: bitbucket:32
