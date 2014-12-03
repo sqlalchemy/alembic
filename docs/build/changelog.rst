@@ -5,6 +5,7 @@ Changelog
 ==========
 .. changelog::
     :version: 0.7.1
+    :released: December 3, 2014
 
     .. change::
       :tags: bug, batch
