@@ -102,6 +102,8 @@ class MySQLImpl(DefaultImpl):
             # the name of the index may be the column name or it may
             # be the name of the FK constraint.
             for col in idx.columns:
+                if idx.unique:
+                    continue
                 if idx.name == col.name:
                     conn_indexes.remove(idx)
                     removed.add(idx.name)

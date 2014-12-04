@@ -586,6 +586,25 @@ class MySQLUniqueIndexTest(AutogenerateUniqueIndexTest):
         else:
             assert False, "unexpected success"
 
+    def test_unique_index_foreign_key(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table('unq_idx', m1,
+              Column('id', Integer, primary_key=True),
+              Column('x', String(20)),
+              Index('x', 'x', unique=True)
+              )
+
+        Table('unq_idx', m2,
+              Column('id', Integer, primary_key=True),
+              Column('x', String(20)),
+              Index('x', 'x', unique=True)
+              )
+
+        diffs = self._fixture(m1, m2)
+        eq_(diffs, [])
+
 
 class NoUqReflectionIndexTest(NoUqReflection, AutogenerateUniqueIndexTest):
     reports_unique_constraints = False
