@@ -97,13 +97,13 @@ class MySQLImpl(DefaultImpl):
         # metadata
         removed = set()
         for idx in list(conn_indexes):
+            if idx.unique:
+                continue
             # MySQL puts implicit indexes on FK columns, even if
             # composite and even if MyISAM, so can't check this too easily.
             # the name of the index may be the column name or it may
             # be the name of the FK constraint.
             for col in idx.columns:
-                if idx.unique:
-                    continue
                 if idx.name == col.name:
                     conn_indexes.remove(idx)
                     removed.add(idx.name)

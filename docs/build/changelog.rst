@@ -4,6 +4,19 @@
 Changelog
 ==========
 .. changelog::
+    :version: 0.7.2
+
+    .. change::
+      :tags: bug, mysql
+      :tickets: 251
+      :pullreq: bitbucket:35
+
+      Fixed an issue where the MySQL routine to skip foreign-key-implicit
+      indexes would also catch unnamed unique indexes, as they would be
+      named after the column and look like the FK indexes.  Pull request
+      courtesy Johannes Erdfelt.
+
+.. changelog::
     :version: 0.7.1
     :released: December 3, 2014
 
