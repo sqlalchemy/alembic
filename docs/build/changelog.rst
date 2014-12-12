@@ -16,6 +16,14 @@ Changelog
       named after the column and look like the FK indexes.  Pull request
       courtesy Johannes Erdfelt.
 
+    .. change::
+      :tags: bug, mssql, oracle
+      :tickets: 253
+
+      Repaired a regression in both the MSSQL and Oracle dialects whereby
+      the overridden ``_exec()`` method failed to return a value, as is
+      needed now in the 0.7 series.
+
 .. changelog::
     :version: 0.7.1
     :released: December 3, 2014

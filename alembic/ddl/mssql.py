@@ -20,9 +20,10 @@ class MSSQLImpl(DefaultImpl):
             self.batch_separator)
 
     def _exec(self, construct, *args, **kw):
-        super(MSSQLImpl, self)._exec(construct, *args, **kw)
+        result = super(MSSQLImpl, self)._exec(construct, *args, **kw)
         if self.as_sql and self.batch_separator:
             self.static_output(self.batch_separator)
+        return result
 
     def emit_begin(self):
         self.static_output("BEGIN TRANSACTION" + self.command_terminator)

@@ -19,9 +19,10 @@ class OracleImpl(DefaultImpl):
             self.batch_separator)
 
     def _exec(self, construct, *args, **kw):
-        super(OracleImpl, self)._exec(construct, *args, **kw)
+        result = super(OracleImpl, self)._exec(construct, *args, **kw)
         if self.as_sql and self.batch_separator:
             self.static_output(self.batch_separator)
+        return result
 
     def emit_begin(self):
         self._exec("SET TRANSACTION READ WRITE")

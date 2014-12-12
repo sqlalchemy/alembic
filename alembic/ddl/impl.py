@@ -83,7 +83,6 @@ class DefaultImpl(with_metaclass(ImplMeta)):
 
         """
 
-
     @property
     def bind(self):
         return self.connection

@@ -128,6 +128,7 @@ class TestMigrationContext(TestBase):
 
 
 class UpdateRevTest(TestBase):
+    __backend__ = True
 
     @classmethod
     def setup_class(cls):
@@ -146,7 +147,7 @@ class UpdateRevTest(TestBase):
         self.connection.close()
 
     def _assert_heads(self, heads):
-        eq_(self.context.get_current_heads(), heads)
+        eq_(set(self.context.get_current_heads()), set(heads))
         eq_(self.updater.heads, set(heads))
 
     def test_update_none_to_single(self):
