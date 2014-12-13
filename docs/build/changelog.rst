@@ -7,6 +7,15 @@ Changelog
     :version: 0.7.2
 
     .. change::
+      :tags: bug, batch
+      :tickets: 254
+
+      Fixed bug in batch where if the target table contained multiple
+      foreign keys to the same target table, the batch mechanics would
+      fail with a "table already exists" error.  Thanks for the help
+      on this from Lucas Kahlert.
+
+    .. change::
       :tags: bug, mysql
       :tickets: 251
       :pullreq: bitbucket:35

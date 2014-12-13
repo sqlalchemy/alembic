@@ -89,6 +89,22 @@ class BatchApplyTest(TestBase):
         )
         return ApplyBatchImpl(t, table_args, table_kwargs)
 
+    def _multi_fk_fixture(self, table_args=(), table_kwargs={}):
+        m = MetaData()
+        t = Table(
+            'tname', m,
+            Column('id', Integer, primary_key=True),
+            Column('email', String()),
+            Column('user_id_1', Integer, ForeignKey('user.id')),
+            Column('user_id_2', Integer, ForeignKey('user.id')),
+            Column('user_id_3', Integer),
+            Column('user_id_version', Integer),
+            ForeignKeyConstraint(
+                ['user_id_3', 'user_id_version'],
+                ['user.id', 'user.id_version'])
+        )
+        return ApplyBatchImpl(t, table_args, table_kwargs)
+
     def _named_fk_fixture(self, table_args=(), table_kwargs={}):
         m = MetaData()
         t = Table(
@@ -320,6 +336,15 @@ class BatchApplyTest(TestBase):
             list(new_table.c.user_id.foreign_keys)[0]._get_colspec(),
             "user.id"
         )
+
+    def test_regen_multi_fk(self):
+        impl = self._multi_fk_fixture()
+        self._assert_impl(
+            impl, colnames=[
+                'id', 'email', 'user_id_1', 'user_id_2',
+                'user_id_3', 'user_id_version'],
+            ddl_contains='FOREIGN KEY(user_id_3, user_id_version) '
+            'REFERENCES "user" (id, id_version)')
 
     def test_drop_col(self):
         impl = self._simple_fixture()

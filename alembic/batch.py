@@ -1,6 +1,7 @@
 from sqlalchemy import Table, MetaData, Index, select, Column, \
     ForeignKeyConstraint, cast
 from sqlalchemy import types as sqltypes
+from sqlalchemy import schema as sql_schema
 from sqlalchemy.util import OrderedDict
 from . import util
 from .ddl.base import _columns_for_constraint, _is_type_bound
@@ -174,12 +175,22 @@ class ApplyBatchImpl(object):
         else:
             referent_schema = None
         if tname != '_alembic_batch_temp':
-            Table(
-                tname, metadata,
-                *[Column(n, sqltypes.NULLTYPE) for n in
-                    [elem._get_colspec().split(".")[-1]
-                     for elem in constraint.elements]],
-                schema=referent_schema)
+            key = sql_schema._get_table_key(tname, referent_schema)
+            if key in metadata.tables:
+                t = metadata.tables[key]
+                for elem in constraint.elements:
+                    colname = elem._get_colspec().split(".")[-1]
+                    if not t.c.contains_column(colname):
+                        t.append_column(
+                            Column(colname, sqltypes.NULLTYPE)
+                        )
+            else:
+                Table(
+                    tname, metadata,
+                    *[Column(n, sqltypes.NULLTYPE) for n in
+                        [elem._get_colspec().split(".")[-1]
+                         for elem in constraint.elements]],
+                    schema=referent_schema)
 
     def _create(self, op_impl):
         self._transfer_elements_to_new_table()
