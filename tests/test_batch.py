@@ -89,19 +89,25 @@ class BatchApplyTest(TestBase):
         )
         return ApplyBatchImpl(t, table_args, table_kwargs)
 
-    def _multi_fk_fixture(self, table_args=(), table_kwargs={}):
+    def _multi_fk_fixture(self, table_args=(), table_kwargs={}, schema=None):
         m = MetaData()
+        if schema:
+            schemaarg = "%s." % schema
+        else:
+            schemaarg = ""
+
         t = Table(
             'tname', m,
             Column('id', Integer, primary_key=True),
             Column('email', String()),
-            Column('user_id_1', Integer, ForeignKey('user.id')),
-            Column('user_id_2', Integer, ForeignKey('user.id')),
+            Column('user_id_1', Integer, ForeignKey('%suser.id' % schemaarg)),
+            Column('user_id_2', Integer, ForeignKey('%suser.id' % schemaarg)),
             Column('user_id_3', Integer),
             Column('user_id_version', Integer),
             ForeignKeyConstraint(
                 ['user_id_3', 'user_id_version'],
-                ['user.id', 'user.id_version'])
+                ['%suser.id' % schemaarg, '%suser.id_version' % schemaarg]),
+            schema=schema
         )
         return ApplyBatchImpl(t, table_args, table_kwargs)
 
@@ -154,7 +160,7 @@ class BatchApplyTest(TestBase):
 
     def _assert_impl(self, impl, colnames=None,
                      ddl_contains=None, ddl_not_contains=None,
-                     dialect='default'):
+                     dialect='default', schema=None):
         context = op_fixture(dialect=dialect)
 
         impl._create(context.impl)
@@ -186,26 +192,35 @@ class BatchApplyTest(TestBase):
         if impl.new_table.indexes:
             expected.append(idx_stmt)
 
+        if schema:
+            args = {"schema": "%s." % schema}
+        else:
+            args = {"schema": ""}
+
+        args['colnames'] = ", ".join([
+            impl.new_table.c[name].name
+            for name in colnames
+            if name in impl.table.c])
+        args['tname_colnames'] = ", ".join(
+            "CAST(%(schema)stname.%(name)s AS %(type)s) AS anon_1" % {
+                'schema': args['schema'],
+                'name': name,
+                'type': impl.new_table.c[name].type
+            }
+            if (
+                impl.new_table.c[name].type._type_affinity
+                is not impl.table.c[name].type._type_affinity)
+            else "%(schema)stname.%(name)s" % {
+                'schema': args['schema'], 'name': name}
+            for name in colnames if name in impl.table.c
+        )
+
         expected.extend([
-            'INSERT INTO _alembic_batch_temp (%(colnames)s) '
-            'SELECT %(tname_colnames)s FROM tname' % {
-                "colnames": ", ".join([
-                    impl.new_table.c[name].name
-                    for name in colnames
-                    if name in impl.table.c]),
-                "tname_colnames":
-                ", ".join(
-                    "CAST(tname.%s AS %s) AS anon_1" % (
-                        name, impl.new_table.c[name].type)
-                    if (
-                        impl.new_table.c[name].type._type_affinity
-                        is not impl.table.c[name].type._type_affinity)
-                    else "tname.%s" % name
-                    for name in colnames if name in impl.table.c
-                )
-            },
-            'DROP TABLE tname',
-            'ALTER TABLE _alembic_batch_temp RENAME TO tname'
+            'INSERT INTO %(schema)s_alembic_batch_temp (%(colnames)s) '
+            'SELECT %(tname_colnames)s FROM %(schema)stname' % args,
+            'DROP TABLE %(schema)stname' % args,
+            'ALTER TABLE %(schema)s_alembic_batch_temp '
+            'RENAME TO %(schema)stname' % args
         ])
         context.assert_(*expected)
         return impl.new_table
@@ -345,6 +360,16 @@ class BatchApplyTest(TestBase):
                 'user_id_3', 'user_id_version'],
             ddl_contains='FOREIGN KEY(user_id_3, user_id_version) '
             'REFERENCES "user" (id, id_version)')
+
+    def test_regen_multi_fk_schema(self):
+        impl = self._multi_fk_fixture(schema='foo_schema')
+        self._assert_impl(
+            impl, colnames=[
+                'id', 'email', 'user_id_1', 'user_id_2',
+                'user_id_3', 'user_id_version'],
+            ddl_contains='FOREIGN KEY(user_id_3, user_id_version) '
+            'REFERENCES foo_schema."user" (id, id_version)',
+            schema='foo_schema')
 
     def test_drop_col(self):
         impl = self._simple_fixture()
