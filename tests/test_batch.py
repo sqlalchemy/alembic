@@ -361,6 +361,9 @@ class BatchApplyTest(TestBase):
             ddl_contains='FOREIGN KEY(user_id_3, user_id_version) '
             'REFERENCES "user" (id, id_version)')
 
+    # _get_colspec() in 0.8 calls upon fk.column when schema is
+    # present.  not sure if we want to try to fix this
+    @config.requirements.fail_before_sqla_09
     def test_regen_multi_fk_schema(self):
         impl = self._multi_fk_fixture(schema='foo_schema')
         self._assert_impl(
