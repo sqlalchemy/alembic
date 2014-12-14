@@ -60,6 +60,13 @@ class SQLiteImpl(DefaultImpl):
         metadata_unique_constraints,
             metadata_indexes):
 
+        if util.sqla_100:
+            return
+
+        # adjustments to accommodate for SQLite unnamed unique constraints
+        # not being reported from the backend; this was updated in
+        # SQLA 1.0.
+
         def uq_sig(uq):
             return tuple(sorted(uq.columns.keys()))
 
@@ -74,13 +81,6 @@ class SQLiteImpl(DefaultImpl):
             if idx.name is None and uq_sig(idx) not in conn_unique_sigs:
                 metadata_unique_constraints.remove(idx)
 
-        for idx in list(conn_unique_constraints):
-            # just in case we fix the backend such that it does report
-            # on them, blow them out of the reflected collection too otherwise
-            # they will come up as removed.  if the backend supports this now,
-            # add a version check here for the dialect.
-            if idx.name is None:
-                conn_unique_constraints.remove(idx)
 
 # @compiles(AddColumn, 'sqlite')
 # def visit_add_column(element, compiler, **kw):

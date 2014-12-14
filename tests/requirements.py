@@ -1,5 +1,6 @@
 from alembic.testing.requirements import SuiteRequirements
 from alembic.testing import exclusions
+from alembic import util
 
 
 class DefaultRequirements(SuiteRequirements):
@@ -33,10 +34,11 @@ class DefaultRequirements(SuiteRequirements):
     @property
     def no_fk_names(self):
         """foreign key constraints *never* have names in the DB"""
-        # TODO: add exclusion SQLAlchemy < 1.0 when
-        # https://bitbucket.org/zzzeek/sqlalchemy/issue/3261/sqlite-backend-ignores-names-on-reflected
-        # is fixed
-        return exclusions.only_on(['sqlite'])
+
+        return exclusions.only_if(
+            lambda config: exclusions.against(config, "sqlite")
+            and not util.sqla_100
+        )
 
     @property
     def unnamed_constraints(self):

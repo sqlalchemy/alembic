@@ -7,6 +7,13 @@ Changelog
     :version: 0.7.2
 
     .. change::
+      :tags: bug, sqlite, autogenerate
+
+      Adjusted the SQLite backend regarding autogen of unique constraints
+      to work fully with the current SQLAlchemy 1.0, which now will report
+      on UNIQUE constraints that have no name.
+
+    .. change::
       :tags: bug, batch
       :tickets: 254
 
