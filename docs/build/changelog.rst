@@ -5,6 +5,7 @@ Changelog
 ==========
 .. changelog::
     :version: 0.7.2
+    :released: December 18, 2014
 
     .. change::
       :tags: bug, sqlite, autogenerate
