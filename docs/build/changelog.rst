@@ -4,6 +4,17 @@
 Changelog
 ==========
 .. changelog::
+    :version: 0.7.3
+
+    .. change::
+      :tags: bug, versioning
+      :tickets: 258
+
+      Fixed regression in new versioning system where upgrade / history
+      operation would fail on AttributeError if no version files were
+      present at all.
+
+.. changelog::
     :version: 0.7.2
     :released: December 18, 2014
 

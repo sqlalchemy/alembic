@@ -1,6 +1,6 @@
 from os import path
 
-__version__ = '0.7.2'
+__version__ = '0.7.3'
 
 package_dir = path.abspath(path.dirname(__file__))
 

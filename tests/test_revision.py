@@ -131,6 +131,21 @@ class DiamondTest(DownIterateTest):
         )
 
 
+class EmptyMapTest(DownIterateTest):
+    # see issue #258
+
+    def setUp(self):
+        self.map = RevisionMap(
+            lambda: []
+        )
+
+    def test_iterate(self):
+        self._assert_iteration(
+            "head", "base",
+            []
+        )
+
+
 class LabeledBranchTest(DownIterateTest):
     def test_dupe_branch_collection(self):
         fn = lambda: [
@@ -414,7 +429,9 @@ class MultipleBranchTest(DownIterateTest):
             self.map._iterate_revisions('d2cb2', 'b1')
         )
 
-    def test_wrong_direction_to_base(self):
+    def test_wrong_direction_to_base_as_none(self):
+        # this needs to raise and not just return empty iteration
+        # as added by #258
         assert_raises_message(
             RevisionError,
             r"Revision d1cb1 is not an ancestor of revision base",
@@ -422,6 +439,9 @@ class MultipleBranchTest(DownIterateTest):
             self.map._iterate_revisions(None, 'd1cb1')
         )
 
+    def test_wrong_direction_to_base_as_empty(self):
+        # this needs to raise and not just return empty iteration
+        # as added by #258
         assert_raises_message(
             RevisionError,
             r"Revision d1cb1 is not an ancestor of revision base",

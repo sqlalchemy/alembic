@@ -256,7 +256,10 @@ class RevisionMap(object):
 
         May be given a single identifier, a sequence of identifiers, or the
         special symbols "head" or "base".  The result is a tuple of one
-        or more identifiers.
+        or more identifiers, or an empty tuple in the case of "base".
+
+        In the cases where 'head', 'heads' is requested and the
+        revision map is empty, returns an empty tuple.
 
         Supports partial identifiers, where the given identifier
         is matched against all identifiers that start with the given
@@ -397,7 +400,11 @@ class RevisionMap(object):
             else:
                 return self._real_heads, branch_label
         elif id_ == 'head':
-            return (self.get_current_head(branch_label), ), branch_label
+            current_head = self.get_current_head(branch_label)
+            if current_head:
+                return (current_head, ), branch_label
+            else:
+                return (), branch_label
         elif id_ == 'base' or id_ is None:
             return (), branch_label
         else:
@@ -578,6 +585,9 @@ class RevisionMap(object):
             isinstance(lower, compat.string_types) and lower.endswith('@base')
 
         uppers = self.get_revisions(upper)
+        if not uppers and not requested_lowers:
+            raise StopIteration()
+
         upper_ancestors = set(self._get_ancestor_nodes(uppers, check=True))
 
         if limit_to_lower_branch:
