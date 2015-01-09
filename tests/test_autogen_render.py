@@ -9,6 +9,7 @@ from sqlalchemy import MetaData, Column, Table, String, \
     PrimaryKeyConstraint, Index, func, text, DefaultClause
 
 from sqlalchemy.types import TIMESTAMP
+from sqlalchemy.types import UserDefinedType
 from sqlalchemy.dialects import mysql, postgresql
 from sqlalchemy.engine.default import DefaultDialect
 from sqlalchemy.sql import and_, column, literal_column, false
@@ -892,9 +893,29 @@ unique=False, """
             "sa.Integer()"
         )
 
-    def test_repr_user_type_user_prefix_None(self):
-        from sqlalchemy.types import UserDefinedType
+    def test_repr_custom_type_w_sqla_prefix(self):
+        autogen_context = {
+            'opts': {
+                'sqlalchemy_module_prefix': 'sa.',
+                'alembic_module_prefix': 'op.',
+                'user_module_prefix': None
+            },
+            'dialect': mysql.dialect()
+        }
 
+        class MyType(UserDefinedType):
+            pass
+
+        MyType.__module__ = "sqlalchemy_util.types"
+
+        type_ = MyType()
+
+        eq_ignore_whitespace(
+            autogenerate.render._repr_type(type_, autogen_context),
+            "sqlalchemy_util.types.MyType()"
+        )
+
+    def test_repr_user_type_user_prefix_None(self):
         class MyType(UserDefinedType):
 
             def get_col_spec(self):

@@ -4,6 +4,19 @@
 Changelog
 ==========
 .. changelog::
+    :version: 0.7.4
+
+    .. change::
+      :tags: bug, autogenerate
+      :tickets: 261
+      :pullreq: github:17
+
+      Fixed issue in autogenerate type rendering where types that belong
+      to modules that have the name "sqlalchemy" in them would be mistaken
+      as being part of the ``sqlalchemy.`` namespace.  Pull req courtesy
+      Bartosz Burclaf.
+
+.. changelog::
     :version: 0.7.3
     :released: December 30, 2014
 
