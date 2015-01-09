@@ -500,7 +500,7 @@ def _repr_type(type_, autogen_context):
         if imports is not None:
             imports.add("from sqlalchemy.dialects import %s" % dname)
         return "%s.%r" % (dname, type_)
-    elif mod.startswith("sqlalchemy"):
+    elif mod.startswith("sqlalchemy."):
         prefix = _sqlalchemy_autogenerate_prefix(autogen_context)
         return "%s%r" % (prefix, type_)
     else:
