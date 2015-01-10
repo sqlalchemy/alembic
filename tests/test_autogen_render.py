@@ -19,6 +19,9 @@ from alembic.testing.mock import patch
 from alembic import autogenerate, util, compat
 from alembic.testing import eq_, eq_ignore_whitespace, config
 
+from alembic.testing.fixtures import op_fixture
+from alembic import op  # noqa
+import sqlalchemy as sa  # noqa
 
 py3k = sys.version_info >= (3, )
 
@@ -265,6 +268,64 @@ unique=False, """
             autogenerate.render._add_fk_constraint(fk, self.autogen_context),
             "op.create_foreign_key('fk_a_id', 'b', 'a', ['a_id'], ['id'])"
         )
+
+    def test_add_fk_constraint_inline_colkeys(self):
+        m = MetaData()
+        Table('a', m, Column('id', Integer, key='aid', primary_key=True))
+        b = Table(
+            'b', m,
+            Column('a_id', Integer, ForeignKey('a.aid'), key='baid'))
+
+        py_code = autogenerate.render._add_table(b, self.autogen_context)
+
+        eq_ignore_whitespace(
+            py_code,
+            "op.create_table('b',"
+            "sa.Column('a_id', sa.Integer(), nullable=True),"
+            "sa.ForeignKeyConstraint(['a_id'], ['a.id'], ))"
+        )
+
+        context = op_fixture()
+        eval(py_code)
+        context.assert_(
+            "CREATE TABLE b (a_id INTEGER, "
+            "FOREIGN KEY(a_id) REFERENCES a (id))")
+
+    def test_add_fk_constraint_separate_colkeys(self):
+        m = MetaData()
+        Table('a', m, Column('id', Integer, key='aid', primary_key=True))
+        b = Table('b', m, Column('a_id', Integer, key='baid'))
+        fk = ForeignKeyConstraint(['baid'], ['a.aid'], name='fk_a_id')
+        b.append_constraint(fk)
+
+        py_code = autogenerate.render._add_table(b, self.autogen_context)
+
+        eq_ignore_whitespace(
+            py_code,
+            "op.create_table('b',"
+            "sa.Column('a_id', sa.Integer(), nullable=True),"
+            "sa.ForeignKeyConstraint(['a_id'], ['a.id'], name='fk_a_id'))"
+        )
+
+        context = op_fixture()
+        eval(py_code)
+        context.assert_(
+            "CREATE TABLE b (a_id INTEGER, CONSTRAINT "
+            "fk_a_id FOREIGN KEY(a_id) REFERENCES a (id))")
+
+        context = op_fixture()
+        py_code = autogenerate.render._add_fk_constraint(
+            fk, self.autogen_context)
+
+        eq_ignore_whitespace(
+            autogenerate.render._add_fk_constraint(fk, self.autogen_context),
+            "op.create_foreign_key('fk_a_id', 'b', 'a', ['a_id'], ['id'])"
+        )
+
+        eval(py_code)
+        context.assert_(
+            "ALTER TABLE b ADD CONSTRAINT fk_a_id "
+            "FOREIGN KEY(a_id) REFERENCES a (id)")
 
     def test_add_fk_constraint_schema(self):
         m = MetaData()

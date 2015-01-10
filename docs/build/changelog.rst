@@ -8,6 +8,19 @@ Changelog
 
     .. change::
       :tags: bug, autogenerate
+      :tickets: 259
+
+      The rendering of a :class:`~sqlalchemy.schema.ForeignKeyConstraint`
+      will now ensure that the names of the source and target columns are
+      the database-side name of each column, and not the value of the
+      ``.key`` attribute as may be set only on the Python side.
+      This is because Alembic generates the DDL for constraints
+      as standalone objects without the need to actually refer to an in-Python
+      :class:`~sqlalchemy.schema.Table` object, so there's no step that
+      would resolve these Python-only key names to database column names.
+
+    .. change::
+      :tags: bug, autogenerate
       :tickets: 260
 
       Fixed bug in foreign key autogenerate where if the in-Python table

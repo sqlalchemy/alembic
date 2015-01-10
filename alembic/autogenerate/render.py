@@ -543,12 +543,22 @@ def _fk_colspec(fk, metadata_schema):
 
     """
     colspec = fk._get_colspec()
-    if metadata_schema is not None and colspec.count(".") == 1:
-        # need to render schema breaking up tokens by hand, since the
-        # ForeignKeyConstraint here may not actually have a remote
-        # Table present
-        # no schema in the colspec, render it
-        colspec = "%s.%s" % (metadata_schema, colspec)
+    tokens = colspec.split(".")
+    tname, colname = tokens[-2:]
+
+    if metadata_schema is not None and len(tokens) == 2:
+        table_fullname = "%s.%s" % (metadata_schema, tname)
+    else:
+        table_fullname = ".".join(tokens[0:-1])
+
+    if fk.parent is not None and fk.parent.table is not None:
+        # try to resolve the remote table and adjust for column.key
+        parent_metadata = fk.parent.table.metadata
+        if table_fullname in parent_metadata.tables:
+            colname = _ident(parent_metadata.tables[table_fullname].c[colname].name)
+
+    colspec = "%s.%s" % (table_fullname, colname)
+
     return colspec
 
 
@@ -577,7 +587,7 @@ def _render_foreign_key(constraint, autogen_context):
         "[%(refcols)s], %(args)s)" % {
             "prefix": _sqlalchemy_autogenerate_prefix(autogen_context),
             "cols": ", ".join(
-                "%r" % f.parent.key for f in constraint.elements),
+                "%r" % _ident(f.parent.name) for f in constraint.elements),
             "refcols": ", ".join(repr(_fk_colspec(f, apply_metadata_schema))
                                  for f in constraint.elements),
             "args": ", ".join(
