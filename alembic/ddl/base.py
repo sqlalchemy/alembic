@@ -172,10 +172,11 @@ def _columns_for_constraint(constraint):
 
 def _fk_spec(constraint):
     if util.sqla_100:
-        source_columns = constraint.column_keys
+        source_columns = [
+            constraint.columns[key].name for key in constraint.column_keys]
     else:
         source_columns = [
-            element.parent.key for element in constraint.elements]
+            element.parent.name for element in constraint.elements]
 
     source_table = constraint.parent.name
     source_schema = constraint.parent.schema

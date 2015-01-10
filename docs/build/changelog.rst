@@ -8,6 +8,19 @@ Changelog
 
     .. change::
       :tags: bug, autogenerate
+      :tickets: 260
+
+      Fixed bug in foreign key autogenerate where if the in-Python table
+      used custom column keys (e.g. using the ``key='foo'`` kwarg to
+      ``Column``), the comparison of existing foreign keys to those specified
+      in the metadata would fail, as the reflected table would not have
+      these keys available which to match up.  Foreign key comparison for
+      autogenerate now ensures it's looking at the database-side names
+      of the columns in all cases; this matches the same functionality
+      within unique constraints and indexes.
+
+    .. change::
+      :tags: bug, autogenerate
       :tickets: 261
       :pullreq: github:17
 

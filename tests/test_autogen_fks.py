@@ -244,6 +244,78 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
             conditional_name="fk_test_name"
         )
 
+    def test_add_fk_colkeys(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table('table', m1,
+              Column('id_1', String(10), primary_key=True),
+              Column('id_2', String(10), primary_key=True),
+              mysql_engine='InnoDB')
+
+        Table('user', m1,
+              Column('id', Integer, primary_key=True),
+              Column('other_id_1', String(10)),
+              Column('other_id_2', String(10)),
+              mysql_engine='InnoDB')
+
+        Table('table', m2,
+              Column('id_1', String(10), key='tid1', primary_key=True),
+              Column('id_2', String(10), key='tid2', primary_key=True),
+              mysql_engine='InnoDB')
+
+        Table('user', m2,
+              Column('id', Integer, primary_key=True),
+              Column('other_id_1', String(10), key='oid1'),
+              Column('other_id_2', String(10), key='oid2'),
+              ForeignKeyConstraint(['oid1', 'oid2'],
+                                   ['table.tid1', 'table.tid2'],
+                                   name='fk_test_name'),
+              mysql_engine='InnoDB')
+
+        diffs = self._fixture(m1, m2)
+
+        self._assert_fk_diff(
+            diffs[0], "add_fk",
+            "user", ['other_id_1', 'other_id_2'],
+            'table', ['id_1', 'id_2'],
+            name="fk_test_name"
+        )
+
+    def test_no_change_colkeys(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table('table', m1,
+              Column('id_1', String(10), primary_key=True),
+              Column('id_2', String(10), primary_key=True),
+              mysql_engine='InnoDB')
+
+        Table('user', m1,
+              Column('id', Integer, primary_key=True),
+              Column('other_id_1', String(10)),
+              Column('other_id_2', String(10)),
+              ForeignKeyConstraint(['other_id_1', 'other_id_2'],
+                                   ['table.id_1', 'table.id_2']),
+              mysql_engine='InnoDB')
+
+        Table('table', m2,
+              Column('id_1', String(10), key='tid1', primary_key=True),
+              Column('id_2', String(10), key='tid2', primary_key=True),
+              mysql_engine='InnoDB')
+
+        Table('user', m2,
+              Column('id', Integer, primary_key=True),
+              Column('other_id_1', String(10), key='oid1'),
+              Column('other_id_2', String(10), key='oid2'),
+              ForeignKeyConstraint(['oid1', 'oid2'],
+                                   ['table.tid1', 'table.tid2']),
+              mysql_engine='InnoDB')
+
+        diffs = self._fixture(m1, m2)
+
+        eq_(diffs, [])
+
 
 class IncludeHooksTest(AutogenFixtureTest, TestBase):
     __backend__ = True

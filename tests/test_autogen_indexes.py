@@ -258,6 +258,40 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestBase):
         diffs = self._fixture(m1, m2)
         eq_(diffs, [])
 
+    def test_nothing_changed_unique_w_colkeys(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table('nothing_changed', m1,
+              Column('x', String(20), key='nx'),
+              UniqueConstraint('nx')
+              )
+
+        Table('nothing_changed', m2,
+              Column('x', String(20), key='nx'),
+              UniqueConstraint('nx')
+              )
+
+        diffs = self._fixture(m1, m2)
+        eq_(diffs, [])
+
+    def test_nothing_changed_index_w_colkeys(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table('nothing_changed', m1,
+              Column('x', String(20), key='nx'),
+              Index('foobar', 'nx')
+              )
+
+        Table('nothing_changed', m2,
+              Column('x', String(20), key='nx'),
+              Index('foobar', 'nx')
+              )
+
+        diffs = self._fixture(m1, m2)
+        eq_(diffs, [])
+
     def test_nothing_changed_index_named_as_column(self):
         m1 = MetaData()
         m2 = MetaData()
