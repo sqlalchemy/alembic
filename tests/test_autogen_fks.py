@@ -13,7 +13,7 @@ from .test_autogenerate import AutogenFixtureTest
 class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
     __backend__ = True
 
-    def test_added_fk(self):
+    def test_remove_fk(self):
         m1 = MetaData()
         m2 = MetaData()
 
@@ -50,7 +50,7 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
             conditional_name="servergenerated"
         )
 
-    def test_removed_fk(self):
+    def test_add_fk(self):
         m1 = MetaData()
         m2 = MetaData()
 
@@ -160,7 +160,7 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
 
         eq_(diffs, [])
 
-    def test_removed_composite_fk_with_name(self):
+    def test_add_composite_fk_with_name(self):
         m1 = MetaData()
         m2 = MetaData()
 
@@ -204,7 +204,7 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
             name="fk_test_name"
         )
 
-    def test_added_composite_fk(self):
+    def test_remove_composite_fk(self):
         m1 = MetaData()
         m2 = MetaData()
 
