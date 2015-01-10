@@ -165,9 +165,8 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
         m2 = MetaData()
 
         Table('table', m1,
-              Column('id', Integer, primary_key=True),
-              Column('id_1', String(10)),
-              Column('id_2', String(10)),
+              Column('id_1', String(10), primary_key=True),
+              Column('id_2', String(10), primary_key=True),
               mysql_engine='InnoDB')
 
         Table('user', m1,
@@ -179,9 +178,8 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
               mysql_engine='InnoDB')
 
         Table('table', m2,
-              Column('id', Integer, primary_key=True),
-              Column('id_1', String(10)),
-              Column('id_2', String(10)),
+              Column('id_1', String(10), primary_key=True),
+              Column('id_2', String(10), primary_key=True),
               mysql_engine='InnoDB')
 
         Table('user', m2,
