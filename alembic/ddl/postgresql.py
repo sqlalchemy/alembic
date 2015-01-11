@@ -4,7 +4,7 @@ from .. import compat
 from .base import compiles, alter_table, format_table_name, RenameTable
 from .impl import DefaultImpl
 from sqlalchemy.dialects.postgresql import INTEGER, BIGINT
-from sqlalchemy import text
+from sqlalchemy import text, Float, Numeric
 import logging
 
 log = logging.getLogger(__name__)
@@ -35,7 +35,10 @@ class PostgresqlImpl(DefaultImpl):
         if metadata_column.server_default is not None and \
             isinstance(metadata_column.server_default.arg,
                        compat.string_types) and \
-                not re.match(r"^'.+'$", rendered_metadata_default):
+                not re.match(r"^'.+'$", rendered_metadata_default) and \
+                not isinstance(inspector_column.type, (Float, Numeric)):
+                # don't single quote if the column type is float/numeric,
+                # otherwise a comparison such as SELECT 5 = '5.0' will fail
             rendered_metadata_default = "'%s'" % rendered_metadata_default
 
         return not self.connection.scalar(
