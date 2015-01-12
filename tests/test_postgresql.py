@@ -1,6 +1,6 @@
 
 from sqlalchemy import DateTime, MetaData, Table, Column, text, Integer, \
-    String, Interval, Sequence, Numeric, BigInteger
+    String, Interval, Sequence, Numeric, BigInteger, Float, Numeric
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.engine.reflection import Inspector
 from alembic.operations import Operations
@@ -193,8 +193,11 @@ class PostgresqlDefaultCompareTest(TestBase):
     def tearDown(self):
         self.metadata.drop_all()
 
-    def _compare_default_roundtrip(self, type_, orig_default, alternate=None):
-        diff_expected = alternate is not None
+    def _compare_default_roundtrip(
+            self, type_, orig_default, alternate=None, diff_expected=None):
+        diff_expected = diff_expected \
+            if diff_expected is not None \
+            else alternate is not None
         if alternate is None:
             alternate = orig_default
 
@@ -272,6 +275,67 @@ class PostgresqlDefaultCompareTest(TestBase):
         self._compare_default_roundtrip(
             Integer(),
             text("5"), "7"
+        )
+
+    def test_compare_float_str(self):
+        self._compare_default_roundtrip(
+            Float(),
+            "5.2",
+        )
+
+    def test_compare_float_text(self):
+        self._compare_default_roundtrip(
+            Float(),
+            text("5.2"),
+        )
+
+    def test_compare_float_no_diff1(self):
+        self._compare_default_roundtrip(
+            Float(),
+            text("5.2"), "5.2",
+            diff_expected=False
+        )
+
+    def test_compare_float_no_diff2(self):
+        self._compare_default_roundtrip(
+            Float(),
+            "5.2", text("5.2"),
+            diff_expected=False
+        )
+
+    def test_compare_float_no_diff3(self):
+        self._compare_default_roundtrip(
+            Float(),
+            text("5"), text("5.0"),
+            diff_expected=False
+        )
+
+    def test_compare_float_no_diff4(self):
+        self._compare_default_roundtrip(
+            Float(),
+            "5", "5.0",
+            diff_expected=False
+        )
+
+    def test_compare_float_no_diff5(self):
+        self._compare_default_roundtrip(
+            Float(),
+            text("5"), "5.0",
+            diff_expected=False
+        )
+
+    def test_compare_float_no_diff6(self):
+        self._compare_default_roundtrip(
+            Float(),
+            "5", text("5.0"),
+            diff_expected=False
+        )
+
+    def test_compare_numeric_no_diff(self):
+        self._compare_default_roundtrip(
+            Numeric(),
+            text("5"), "5.0",
+            diff_expected=False
         )
 
     def test_compare_character_str(self):
