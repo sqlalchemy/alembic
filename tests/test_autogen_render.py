@@ -938,6 +938,12 @@ unique=False, """
                 self.autogen_context),
             "sa.Enum('one', 'two', 'three')"
         )
+        eq_ignore_whitespace(
+            autogenerate.render._repr_type(
+                Enum("one", "two", "three", native_enum=False),
+                self.autogen_context),
+            "sa.Enum('one', 'two', 'three', native_enum=False)"
+        )
 
     def test_repr_plain_sqla_type(self):
         type_ = Integer()
