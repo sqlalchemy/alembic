@@ -7,6 +7,17 @@ Changelog
     :version: 0.7.4
 
     .. change::
+      :tags: bug, autogenerate, postgresql
+      :tickets: 241
+      :pullreq: bitbucket:37
+
+      Repaired issue where a server default specified without ``text()``
+      that represented a numeric or floating point (e.g. with decimal places)
+      value would fail in the Postgresql-specific check for "compare server
+      default"; as PG accepts the value with quotes in the table specification,
+      it's still valid.  Pull request courtesy Dimitris Theodorou.
+
+    .. change::
       :tags: bug, autogenerate
       :tickets: 259
 
