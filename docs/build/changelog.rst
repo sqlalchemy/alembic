@@ -1,10 +1,11 @@
 
-
 ==========
 Changelog
 ==========
+
 .. changelog::
     :version: 0.7.4
+    :released: January 12, 2015
 
     .. change::
       :tags: bug, autogenerate, postgresql
