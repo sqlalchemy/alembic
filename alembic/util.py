@@ -34,6 +34,7 @@ sqla_09 = _vers >= (0, 9, 0)
 sqla_092 = _vers >= (0, 9, 2)
 sqla_094 = _vers >= (0, 9, 4)
 sqla_094 = _vers >= (0, 9, 4)
+sqla_099 = _vers >= (0, 9, 9)
 sqla_100 = _vers >= (1, 0, 0)
 if not sqla_07:
     raise CommandError(

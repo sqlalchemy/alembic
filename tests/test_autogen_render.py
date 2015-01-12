@@ -938,6 +938,9 @@ unique=False, """
                 self.autogen_context),
             "sa.Enum('one', 'two', 'three')"
         )
+
+    @config.requirements.fail_before_sqla_099
+    def test_render_non_native_enum(self):
         eq_ignore_whitespace(
             autogenerate.render._repr_type(
                 Enum("one", "two", "three", native_enum=False),
