@@ -1,6 +1,6 @@
 import re
 import sys
-from alembic.testing import TestBase
+from alembic.testing import TestBase, exclusions
 
 from sqlalchemy import MetaData, Column, Table, String, \
     Numeric, CHAR, ForeignKey, DATETIME, Integer, \
@@ -925,6 +925,7 @@ unique=False, """
             "existing_server_default='5')"
         )
 
+    @config.requirements.fail_before_sqla_079
     def test_render_enum(self):
         eq_ignore_whitespace(
             autogenerate.render._repr_type(
@@ -939,7 +940,10 @@ unique=False, """
             "sa.Enum('one', 'two', 'three')"
         )
 
-    @config.requirements.fail_before_sqla_099
+    @exclusions.fails_if(
+        lambda config: (util.sqla_09 and not util.sqla_099) or not util.sqla_079,
+        "Fails on SQLAlchemy <0.7.9, 0.9.0-0.9.8"
+    )
     def test_render_non_native_enum(self):
         eq_ignore_whitespace(
             autogenerate.render._repr_type(

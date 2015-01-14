@@ -32,6 +32,13 @@ class SuiteRequirements(Requirements):
         )
 
     @property
+    def fail_before_sqla_079(self):
+        return exclusions.fails_if(
+            lambda config: not util.sqla_079,
+            "SQLAlchemy 0.7.9 or greater required"
+        )
+
+    @property
     def fail_before_sqla_080(self):
         return exclusions.fails_if(
             lambda config: not util.sqla_08,
