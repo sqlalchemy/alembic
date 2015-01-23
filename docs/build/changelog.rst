@@ -4,6 +4,15 @@ Changelog
 ==========
 
 .. changelog::
+    :version: 0.7.5
+
+    .. change::
+      :tags: feature, versioning
+      :tickets: 267
+
+      Added support for "alembic stamp" to work when given "heads" as an
+      argument, when multiple heads are present.
+
     :version: 0.7.4
     :released: January 12, 2015
 

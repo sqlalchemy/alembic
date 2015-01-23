@@ -196,6 +196,12 @@ class RevisionPathTest(MigrationTest):
             self.env._downgrade_revs, self.c.revision[0:4], self.b.revision
         )
 
+    def test_stamp_to_base(self):
+        revs = self.env._stamp_revs("base", self.d.revision)
+        eq_(len(revs), 1)
+        assert revs[0].should_delete_branch
+        eq_(revs[0].delete_version_num, self.d.revision)
+
 
 class BranchedPathTest(MigrationTest):
 
@@ -560,6 +566,17 @@ class ForestTest(MigrationTest):
             self.env._upgrade_revs("heads", "base"),
             [self.up_(self.a2), self.up_(self.b2),
              self.up_(self.a1), self.up_(self.b1)]
+        )
+
+    def test_stamp_to_heads(self):
+        a1, b1, a2, b2 = self.a1, self.b1, self.a2, self.b2
+        revs = self.env._stamp_revs("heads", ())
+        eq_(len(revs), 2)
+        #import pdb
+        #pdb.set_trace()
+        eq_(
+            set(r.to_revisions for r in revs),
+            set([(self.b1.revision,), (self.b2.revision,)])
         )
 
 
