@@ -13,6 +13,7 @@ Changelog
       Added support for "alembic stamp" to work when given "heads" as an
       argument, when multiple heads are present.
 
+.. changelog::
     :version: 0.7.4
     :released: January 12, 2015
 
