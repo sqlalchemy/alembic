@@ -569,11 +569,8 @@ class ForestTest(MigrationTest):
         )
 
     def test_stamp_to_heads(self):
-        a1, b1, a2, b2 = self.a1, self.b1, self.a2, self.b2
         revs = self.env._stamp_revs("heads", ())
         eq_(len(revs), 2)
-        #import pdb
-        #pdb.set_trace()
         eq_(
             set(r.to_revisions for r in revs),
             set([(self.b1.revision,), (self.b2.revision,)])
