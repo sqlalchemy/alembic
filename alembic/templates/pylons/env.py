@@ -62,23 +62,14 @@ def run_migrations_online():
     # engine = meta.engine
     raise NotImplementedError("Please specify engine connectivity here")
 
-    if isinstance(engine, Engine):
-        connection = engine.connect()
-    else:
-        raise Exception(
-            'Expected engine instance got %s instead' % type(engine)
+    with engine.connect() as connection:
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata
         )
 
-    context.configure(
-        connection=connection,
-        target_metadata=target_metadata
-    )
-
-    try:
         with context.begin_transaction():
             context.run_migrations()
-    finally:
-        connection.close()
 
 if context.is_offline_mode():
     run_migrations_offline()

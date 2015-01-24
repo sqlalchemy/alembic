@@ -323,7 +323,7 @@ class memoized_property(object):
 
     def __get__(self, obj, cls):
         if obj is None:
-            return None
+            return self
         obj.__dict__[self.__name__] = result = self.fget(obj)
         return result
 

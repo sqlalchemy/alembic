@@ -7,6 +7,27 @@ Changelog
     :version: 0.7.5
 
     .. change::
+      :tags: feature, commands
+
+      Added a new feature :attr:`.Config.attributes`, to help with the use
+      case of sharing state such as engines and connections on the outside
+      with a series of Alembic API calls; also added a new cookbook section
+      to describe this simple but pretty important use case.
+
+      .. seealso::
+
+          :ref:`connection_sharing`
+
+    .. change::
+      :tags: feature, environment
+
+      The format of the default ``env.py`` script has been refined a bit;
+      it now uses context managers not only for the scope of the transaction,
+      but also for connectivity from the starting engine.  The engine is also
+      now called a "connectable" in support of the use case of an external
+      connection being passed in.
+
+    .. change::
       :tags: feature, versioning
       :tickets: 267
 

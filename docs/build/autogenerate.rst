@@ -35,19 +35,14 @@ we can see the directive passed to :meth:`.EnvironmentContext.configure`::
         engine = engine_from_config(
                     config.get_section(config.config_ini_section), prefix='sqlalchemy.')
 
-        connection = engine.connect()
-        context.configure(
-                    connection=connection,
-                    target_metadata=target_metadata
-                    )
+        with engine.connect() as connection:
+            context.configure(
+                        connection=connection,
+                        target_metadata=target_metadata
+                        )
 
-        trans = connection.begin()
-        try:
-            context.run_migrations()
-            trans.commit()
-        except:
-            trans.rollback()
-            raise
+            with context.begin_transaction():
+                context.run_migrations()
 
 We can then use the ``alembic revision`` command in conjunction with the
 ``--autogenerate`` option.  Suppose

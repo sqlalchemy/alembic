@@ -187,3 +187,77 @@ To invoke our migrations with data included, we use the ``-x`` flag::
 The :meth:`.EnvironmentContext.get_x_argument` is an easy way to support
 new commandline options within environment and migration scripts.
 
+.. _connection_sharing:
+
+Sharing a Connection with a Series of Migration Commands and Environments
+=========================================================================
+
+It is often the case that an application will need to call upon a series
+of commands within :mod:`alembic.command`, where it would be advantageous
+for all operations to proceed along a single transaction.   The connectivity
+for a migration is typically solely determined within the ``env.py`` script
+of a migration environment, which is called within the scope of a command.
+
+The steps to take here are:
+
+1. Produce the :class:`~sqlalchemy.engine.Connection` object to use.
+
+2. Place it somewhere that ``env.py`` will be able to access it.  This
+   can be either a. a module-level global somewhere, or b.
+   an attribute which we place into the :attr:`.Config.attributes`
+   dictionary (if we are on an older Alembic version, we may also attach
+   an attribute directly to the :class:`.Config` object).
+
+3. The ``env.py`` script is modified such that it looks for this
+   :class:`~sqlalchemy.engine.Connection` and makes use of it, in lieu
+   of building up its own :class:`~sqlalchemy.engine.Engine` instance.
+
+We illustrate using :attr:`.Config.attributes`::
+
+    from alembic import command, config
+
+    cfg = config.Config("/path/to/yourapp/alembic.ini")
+    with engine.begin() as connection:
+        cfg.attributes['connection'] = connection
+        command.upgrade(cfg, "head")
+
+Then in ``env.py``::
+
+    def run_migrations_online():
+        connectable = config.attributes.get('connection', None)
+
+        if connectable is None:
+            # only create Engine if we don't have a Connection
+            # from the outside
+            connectable = engine_from_config(
+                config.get_section(config.config_ini_section),
+                prefix='sqlalchemy.',
+                poolclass=pool.NullPool)
+
+        # when connectable is already a Connection object, calling
+        # connect() gives us a *branched connection*.
+
+        with connectable.connect() as connection:
+            context.configure(
+                connection=connection,
+                target_metadata=target_metadata
+            )
+
+            with context.begin_transaction():
+                context.run_migrations()
+
+.. topic:: Branched Connections
+
+    Note that we are calling the ``connect()`` method, **even if we are
+    using a** :class:`~sqlalchemy.engine.Connection` **object to start with**.
+    The effect this has when calling :meth:`~sqlalchemy.engine.Connection.connect`
+    is that SQLAlchemy passes us a **branch** of the original connection; it
+    is in every way the same as the :class:`~sqlalchemy.engine.Connection`
+    we started with, except it provides **nested scope**; the
+    context we have here as well as the
+    :meth:`~sqlalchemy.engine.Connection.close` method of this branched
+    connection doesn't actually close the outer connection, which stays
+    active for continued use.
+
+.. versionadded:: 0.7.5 Added :attr:`.Config.attributes`.
+

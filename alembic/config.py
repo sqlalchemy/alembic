@@ -40,6 +40,13 @@ class Config(object):
         alembic_cfg.set_main_option("url", "postgresql://foo/bar")
         alembic_cfg.set_section_option("mysection", "foo", "bar")
 
+    For passing non-string values to environments, such as connections and
+    engines, use the :attr:`.Config.attributes` dictionary::
+
+        with engine.begin() as connection:
+            alembic_cfg.attributes['connection'] = connection
+            command.upgrade(alembic_cfg, "head")
+
     :param file_: name of the .ini file to open.
     :param ini_section: name of the main Alembic section within the
      .ini file
@@ -49,7 +56,7 @@ class Config(object):
     :param stdout: buffer where the "print" output of commands will be sent.
      Defaults to ``sys.stdout``.
 
-     ..versionadded:: 0.4
+     .. versionadded:: 0.4
 
     :param config_args: A dictionary of keys and values that will be used
      for substitution in the alembic config file.  The dictionary as given
@@ -59,13 +66,22 @@ class Config(object):
      dictionary before the dictionary is passed to ``SafeConfigParser()``
      to parse the .ini file.
 
-     ..versionadded:: 0.7.0
+     .. versionadded:: 0.7.0
+
+    :param attributes: optional dictionary of arbitrary Python keys/values,
+     which will be populated into the :attr:`.Config.attributes` dictionary.
+
+     .. versionadded:: 0.7.5
+
+     .. seealso::
+
+        :ref:`connection_sharing`
 
     """
 
     def __init__(self, file_=None, ini_section='alembic', output_buffer=None,
                  stdout=sys.stdout, cmd_opts=None,
-                 config_args=util.immutabledict()):
+                 config_args=util.immutabledict(), attributes=None):
         """Construct a new :class:`.Config`
 
         """
@@ -75,6 +91,8 @@ class Config(object):
         self.stdout = stdout
         self.cmd_opts = cmd_opts
         self.config_args = dict(config_args)
+        if attributes:
+            self.attributes.update(attributes)
 
     cmd_opts = None
     """The command-line options passed to the ``alembic`` script.
@@ -100,6 +118,28 @@ class Config(object):
     option to the Alembic runnier.
 
     """
+
+    @util.memoized_property
+    def attributes(self):
+        """A Python dictionary for storage of additional state.
+
+
+        This is a utility dictionary which can include not just strings but
+        engines, connections, schema objects, or anything else.
+        Use this to pass objects into an env.py script, such as passing
+        a :class:`.Connection` when calling
+        commands from :mod:`alembic.command` programmatically.
+
+        .. versionadded:: 0.7.5
+
+        .. seealso::
+
+            :ref:`connection_sharing`
+
+            :paramref:`.Config.attributes`
+
+        """
+        return {}
 
     def print_stdout(self, text, *arg):
         """Render a message to standard out."""

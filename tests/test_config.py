@@ -67,6 +67,23 @@ class ConfigTest(TestBase):
             ScriptDirectory.from_config, cfg
         )
 
+    def test_attributes_attr(self):
+        m1 = Mock()
+        cfg = config.Config()
+        cfg.attributes['connection'] = m1
+        eq_(
+            cfg.attributes['connection'], m1
+        )
+
+    def test_attributes_construtor(self):
+        m1 = Mock()
+        m2 = Mock()
+        cfg = config.Config(attributes={'m1': m1})
+        cfg.attributes['connection'] = m2
+        eq_(
+            cfg.attributes, {'m1': m1, 'connection': m2}
+        )
+
 
 class StdoutOutputEncodingTest(TestBase):
 
