@@ -80,6 +80,7 @@ assert context.get_revision_argument() == '%s'
         command.stamp(self.cfg, b, sql=True)
         command.downgrade(self.cfg, "%s:%s" % (c, b), sql=True)
 
+
     def test_destination_rev_post_context(self):
         env_file_fixture("""
 context.configure(dialect_name='sqlite')
@@ -175,3 +176,36 @@ assert not context.requires_connection()
             command.upgrade(self.cfg, "%s:%s" % (a, d.revision), sql=True)
 
         assert not re.match(r".*-- .*and multiline", buf.getvalue(), re.S | re.M)
+
+    def test_starting_rev_pre_context_abbreviated(self):
+        env_file_fixture("""
+assert context.get_starting_revision_argument() == '%s'
+""" % b[0:4])
+        command.upgrade(self.cfg, "%s:%s" % (b[0:4], c), sql=True)
+        command.stamp(self.cfg, "%s:%s" % (b[0:4], c), sql=True)
+        command.downgrade(self.cfg, "%s:%s" % (b[0:4], a), sql=True)
+
+    def test_destination_rev_pre_context_abbreviated(self):
+        env_file_fixture("""
+assert context.get_revision_argument() == '%s'
+""" % b[0:4])
+        command.upgrade(self.cfg, "%s:%s" % (a, b[0:4]), sql=True)
+        command.stamp(self.cfg, b[0:4], sql=True)
+        command.downgrade(self.cfg, "%s:%s" % (c, b[0:4]), sql=True)
+
+    def test_starting_rev_context_runs_abbreviated(self):
+        env_file_fixture("""
+context.configure(dialect_name='sqlite')
+context.run_migrations()
+""")
+        command.upgrade(self.cfg, "%s:%s" % (b[0:4], c), sql=True)
+        command.downgrade(self.cfg, "%s:%s" % (b[0:4], a), sql=True)
+
+    def test_destination_rev_context_runs_abbreviated(self):
+        env_file_fixture("""
+context.configure(dialect_name='sqlite')
+context.run_migrations()
+""")
+        command.upgrade(self.cfg, "%s:%s" % (a, b[0:4]), sql=True)
+        command.stamp(self.cfg, b[0:4], sql=True)
+        command.downgrade(self.cfg, "%s:%s" % (c, b[0:4]), sql=True)

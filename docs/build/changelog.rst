@@ -7,6 +7,24 @@ Changelog
     :version: 0.7.5
 
     .. change::
+      :tags: bug, commands
+      :tickets: 269
+
+      Fixed bug where using a partial revision identifier as the
+      "starting revision" in ``--sql`` mode in a downgrade operation
+      would fail to resolve properly.
+
+      As a side effect of this change, the
+      :meth:`.EnvironmentContext.get_starting_revision_argument`
+      method will return the "starting" revision in its originally-
+      given "partial" form in all cases, whereas previously when
+      running within the :meth:`.command.stamp` command, it would have
+      been resolved to a full number before passing it to the
+      :class:`.EnvironmentContext`.  The resolution of this value to
+      a real revision number has basically been moved to a more fundamental
+      level within the offline migration process.
+
+    .. change::
       :tags: feature, commands
 
       Added a new feature :attr:`.Config.attributes`, to help with the use

@@ -64,7 +64,6 @@ class MigrationContext(object):
         self.opts = opts
         self.dialect = dialect
         self.script = opts.get('script')
-
         as_sql = opts.get('as_sql', False)
         transactional_ddl = opts.get("transactional_ddl")
 
@@ -229,7 +228,12 @@ class MigrationContext(object):
 
         """
         if self.as_sql:
-            return util.to_tuple(self._start_from_rev, default=())
+            start_from_rev = self._start_from_rev
+            if start_from_rev is not None and self.script:
+                start_from_rev = \
+                    self.script.get_revision(start_from_rev).revision
+
+            return util.to_tuple(start_from_rev, default=())
         else:
             if self._start_from_rev:
                 raise util.CommandError(

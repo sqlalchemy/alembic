@@ -330,9 +330,6 @@ def stamp(config, revision, sql=False, tag=None):
         if not sql:
             raise util.CommandError("Range revision not allowed")
         starting_rev, revision = revision.split(':', 2)
-        starting_rev = script.get_revision(starting_rev)
-        if starting_rev is not None:
-            starting_rev = starting_rev.revision
 
     def do_stamp(rev, context):
         return script._stamp_revs(revision, rev)
@@ -347,5 +344,3 @@ def stamp(config, revision, sql=False, tag=None):
         tag=tag
     ):
         script.run_env()
-
-
