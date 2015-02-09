@@ -181,6 +181,15 @@ class LabeledBranchTest(DownIterateTest):
             [c1, c2, d]
         )
 
+    def test_filter_for_lineage_heads(self):
+        eq_(
+            self.map.filter_for_lineage(
+                [self.map.get_revision("f")],
+                "heads"
+            ),
+            [self.map.get_revision("f")]
+        )
+
     def setUp(self):
         self.map = RevisionMap(lambda: [
             Revision('a', (), branch_labels='abranch'),

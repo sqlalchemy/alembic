@@ -576,6 +576,11 @@ class ForestTest(MigrationTest):
             set([(self.b1.revision,), (self.b2.revision,)])
         )
 
+    def test_stamp_to_heads_no_moves_needed(self):
+        revs = self.env._stamp_revs(
+            "heads", (self.b1.revision, self.b2.revision))
+        eq_(len(revs), 0)
+
 
 class MergedPathTest(MigrationTest):
 

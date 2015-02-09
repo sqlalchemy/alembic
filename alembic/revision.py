@@ -353,9 +353,7 @@ class RevisionMap(object):
         if branch_label:
             shares.append(branch_label)
         if id_:
-            shares.append(id_[0])
-
-        #shares = branch_label or (id_[0] if id_ else None)
+            shares.extend(id_)
 
         return [
             tg for tg in targets
