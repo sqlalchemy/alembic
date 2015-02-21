@@ -7,6 +7,21 @@ Changelog
     :version: 0.7.5
 
     .. change::
+      :tags: bug, autogenerate, mysql
+      :tickets: 276
+
+      Fixed bug where MySQL backend would report dropped unique indexes
+      and/or constraints as both at the same time.  This is because
+      MySQL doesn't actually have a "unique constraint" construct that
+      reports differently than a "unique index", so it is present in both
+      lists.  The net effect though is that the MySQL backend will report
+      a dropped unique index/constraint as an index in cases where the object
+      was first created as a unique constraint, if no other information
+      is available to make the decision.  This differs from other backends
+      like Postgresql which can report on unique constraints and
+      unique indexes separately.
+
+    .. change::
       :tags: bug, commands
       :tickets: 269
 

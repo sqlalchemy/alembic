@@ -9,6 +9,7 @@ from .base import ColumnNullable, ColumnName, ColumnDefault, \
     ColumnType, AlterColumn, format_column_name, \
     format_server_default
 from .base import alter_table
+from ..autogenerate import compare
 
 
 class MySQLImpl(DefaultImpl):
@@ -122,6 +123,39 @@ class MySQLImpl(DefaultImpl):
         for idx in list(metadata_indexes):
             if idx.name in removed:
                 metadata_indexes.remove(idx)
+
+        # then dedupe unique indexes vs. constraints, since MySQL
+        # doesn't really have unique constraints as a separate construct.
+        # but look in the metadata and try to maintain constructs
+        # that already seem to be defined one way or the other
+        # on that side.  See #276
+        metadata_uq_names = set([
+            cons.name for cons in metadata_unique_constraints
+            if cons.name is not None])
+
+        unnamed_metadata_uqs = set([
+            compare._uq_constraint_sig(cons).sig
+            for cons in metadata_unique_constraints
+            if cons.name is None
+        ])
+
+        metadata_ix_names = set([
+            cons.name for cons in metadata_indexes if cons.unique])
+        conn_uq_names = dict(
+            (cons.name, cons) for cons in conn_unique_constraints
+        )
+        conn_ix_names = dict(
+            (cons.name, cons) for cons in conn_indexes if cons.unique
+        )
+
+        for overlap in set(conn_uq_names).intersection(conn_ix_names):
+            if overlap not in metadata_uq_names:
+                if compare._uq_constraint_sig(conn_uq_names[overlap]).sig \
+                        not in unnamed_metadata_uqs:
+
+                    conn_unique_constraints.discard(conn_uq_names[overlap])
+            elif overlap not in metadata_ix_names:
+                conn_indexes.discard(conn_ix_names[overlap])
 
 
 class MySQLAlterDefault(AlterColumn):

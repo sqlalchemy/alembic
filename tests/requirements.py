@@ -49,3 +49,7 @@ class DefaultRequirements(SuiteRequirements):
     def fk_names(self):
         """foreign key constraints always have names in the DB"""
         return exclusions.fails_on('sqlite')
+
+    @property
+    def reflects_unique_constraints_unambiguously(self):
+        return exclusions.fails_on("mysql")
