@@ -7,6 +7,16 @@ Changelog
     :version: 0.7.5
 
     .. change::
+      :tags: bug, autogenerate, postgresql
+      :tickets: 282
+
+      Postgresql "functional" indexes are necessarily skipped from the
+      autogenerate process, as the SQLAlchemy backend currently does not
+      support reflection of these structures.   A warning is emitted
+      both from the SQLAlchemy backend as well as from the Alembic
+      backend for Postgresql when such an index is detected.
+
+    .. change::
       :tags: bug, autogenerate, mysql
       :tickets: 276
 

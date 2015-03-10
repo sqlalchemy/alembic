@@ -1,10 +1,11 @@
 import sys
 from alembic.testing import TestBase
 from alembic.testing import config
+from alembic.testing import assertions
 
 from sqlalchemy import MetaData, Column, Table, Integer, String, \
     Numeric, UniqueConstraint, Index, ForeignKeyConstraint,\
-    ForeignKey
+    ForeignKey, func
 from alembic.testing import engines
 from alembic.testing import eq_
 from alembic.testing.env import staging_env
@@ -638,6 +639,31 @@ class PGUniqueIndexTest(AutogenerateUniqueIndexTest):
         eq_(diffs[0][0], "remove_constraint")
         eq_(diffs[0][1].name, "uq_name")
         eq_(len(diffs), 1)
+
+    def test_functional_ix(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        t1 = Table(
+            'foo', m1,
+            Column('id', Integer, primary_key=True),
+            Column('email', String(50))
+        )
+        Index("email_idx", func.lower(t1.c.email), unique=True)
+
+        t2 = Table(
+            'foo', m2,
+            Column('id', Integer, primary_key=True),
+            Column('email', String(50))
+        )
+        Index("email_idx", func.lower(t2.c.email), unique=True)
+
+        with assertions.expect_warnings(
+                "Skipped unsupported reflection",
+                "autogenerate skipping functional index"
+        ):
+            diffs = self._fixture(m1, m2)
+        eq_(diffs, [])
 
 
 class MySQLUniqueIndexTest(AutogenerateUniqueIndexTest):

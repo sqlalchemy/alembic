@@ -1,10 +1,17 @@
 import re
 
 from .. import compat
+from .. import util
 from .base import compiles, alter_table, format_table_name, RenameTable
 from .impl import DefaultImpl
 from sqlalchemy.dialects.postgresql import INTEGER, BIGINT
-from sqlalchemy import text, Numeric
+from sqlalchemy import text, Numeric, Column
+
+if compat.sqla_08:
+    from sqlalchemy.sql.expression import UnaryExpression
+else:
+    from sqlalchemy.sql.expression import _UnaryExpression as UnaryExpression
+
 import logging
 
 log = logging.getLogger(__name__)
@@ -96,6 +103,19 @@ class PostgresqlImpl(DefaultImpl):
         )
         for name, (uq, ix) in doubled_constraints.items():
             conn_indexes.remove(ix)
+
+        for idx in list(metadata_indexes):
+            if compat.sqla_08:
+                exprs = idx.expressions
+            else:
+                exprs = idx.columns
+            for expr in exprs:
+                if not isinstance(expr, (Column, UnaryExpression)):
+                    util.warn(
+                        "autogenerate skipping functional index %s; "
+                        "not supported by SQLAlchemy reflection" % idx.name
+                    )
+                    metadata_indexes.discard(idx)
 
 
 @compiles(RenameTable, "postgresql")
