@@ -105,6 +105,8 @@ class PostgresqlImpl(DefaultImpl):
             conn_indexes.remove(ix)
 
         for idx in list(metadata_indexes):
+            if idx.name in conn_indexes_by_name:
+                continue
             if compat.sqla_08:
                 exprs = idx.expressions
             else:
