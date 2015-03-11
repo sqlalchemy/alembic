@@ -123,7 +123,7 @@ class MSSQLImpl(DefaultImpl):
             self._exec(
                 _ExecDropFKConstraint(table_name, column)
             )
-        super(MSSQLImpl, self).drop_column(table_name, column)
+        super(MSSQLImpl, self).drop_column(table_name, column, **kw)
 
 
 class _ExecDropConstraint(Executable, ClauseElement):

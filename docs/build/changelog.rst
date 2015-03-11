@@ -7,6 +7,13 @@ Changelog
     :version: 0.7.5
 
     .. change::
+      :tags: bug, operations, mssql
+      :tickets: 284
+
+      Fixed bug where the mssql DROP COLUMN directive failed to include
+      modifiers such as "schema" when emitting the DDL.
+
+    .. change::
       :tags: bug, autogenerate, postgresql
       :tickets: 282
 

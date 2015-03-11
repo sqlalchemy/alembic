@@ -116,6 +116,11 @@ class OpTest(TestBase):
         op.alter_column("t", "c", server_default=False)
         context.assert_()
 
+    def test_drop_column_w_schema(self):
+        context = op_fixture('mssql')
+        op.drop_column('t1', 'c1', schema='xyz')
+        context.assert_contains("ALTER TABLE xyz.t1 DROP COLUMN c1")
+
     def test_drop_column_w_check(self):
         context = op_fixture('mssql')
         op.drop_column('t1', 'c1', mssql_drop_check=True)
