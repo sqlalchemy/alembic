@@ -106,6 +106,13 @@ def compare_metadata(context, metadata):
      instance.
 
     """
+    # as_sql=True is nonsensical here. autogenerate requires a connection
+    # it can use to run queries against to get the database schema.
+    if context.opts.get('as_sql', False) is True:
+        raise util.CommandError(
+            "autogenerate can't use as_sql=True as it prevents querying "
+            "the database for schema information")
+
     autogen_context, connection = _autogen_context(context, None)
     diffs = []
 

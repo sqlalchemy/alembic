@@ -15,6 +15,7 @@ from alembic.testing.mock import Mock
 from alembic.testing.env import staging_env, clear_staging_env
 from alembic.testing import eq_
 from alembic.ddl.base import _fk_spec
+from alembic.util import CommandError
 
 py3k = sys.version_info >= (3, )
 
@@ -1349,6 +1350,20 @@ class CompareMetadataTest(ModelOne, AutogenTest, TestBase):
         eq_(diffs[2][1][2], 'order')
         eq_(diffs[2][1][5], False)
         eq_(diffs[2][1][6], True)
+
+    def test_compare_metadata_as_sql(self):
+        context = MigrationContext.configure(
+            connection=self.bind.connect(),
+            opts={'as_sql': True}
+        )
+        metadata = self.m2
+
+        try:
+            autogenerate.compare_metadata(context, metadata)
+        except CommandError:
+            pass
+        else:
+            assert False, "unexpected success"
 
 
 class PGCompareMetaData(ModelOne, AutogenTest, TestBase):
