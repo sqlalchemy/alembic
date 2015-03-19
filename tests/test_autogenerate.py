@@ -11,6 +11,7 @@ from alembic import autogenerate
 from alembic.migration import MigrationContext
 from alembic.testing import TestBase
 from alembic.testing import config
+from alembic.testing import assert_raises_message
 from alembic.testing.mock import Mock
 from alembic.testing.env import staging_env, clear_staging_env
 from alembic.testing import eq_
@@ -1358,12 +1359,12 @@ class CompareMetadataTest(ModelOne, AutogenTest, TestBase):
         )
         metadata = self.m2
 
-        try:
-            autogenerate.compare_metadata(context, metadata)
-        except CommandError:
-            pass
-        else:
-            assert False, "unexpected success"
+        assert_raises_message(
+            CommandError,
+            "autogenerate can't use as_sql=True as it prevents "
+            "querying the database for schema information",
+            autogenerate.compare_metadata, context, metadata
+        )
 
 
 class PGCompareMetaData(ModelOne, AutogenTest, TestBase):

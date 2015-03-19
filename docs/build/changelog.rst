@@ -7,6 +7,16 @@ Changelog
     :version: 0.7.5
 
     .. change::
+      :tags: bug, autogenerate
+      :tickets: 266
+      :pullreq: bitbucket:39
+
+      The ``--autogenerate`` option is not valid when used in conjunction
+      with "offline" mode, e.g. ``--sql``.  This now raises a ``CommandError``,
+      rather than failing more deeply later on.  Pull request courtesy
+      Johannes Erdfelt.
+
+    .. change::
       :tags: bug, operations, mssql
       :tickets: 284
 
