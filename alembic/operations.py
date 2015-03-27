@@ -242,19 +242,27 @@ class Operations(object):
 
         .. note::  The table copy operation will currently not copy
            CHECK constraints, and may not copy UNIQUE constraints that are
-           unnamed, as is possible on SQLite.
+           unnamed, as is possible on SQLite.   See the section
+           :ref:`sqlite_batch_constraints` for workarounds.
 
         :param table_name: name of table
         :param schema: optional schema name.
         :param recreate: under what circumstances the table should be
          recreated. At its default of ``"auto"``, the SQLite dialect will
-         recreate the table if any operations other than ``add_column()`` are
+         recreate the table if any operations other than ``add_column()``,
+         ``create_index()``, or ``drop_index()`` are
          present. Other options include ``"always"`` and ``"never"``.
         :param copy_from: optional :class:`~sqlalchemy.schema.Table` object
          that will act as the structure of the table being copied.  If omitted,
          table reflection is used to retrieve the structure of the table.
 
+         .. versionadded:: 0.7.6 Fully implemented the
+            :paramref:`~.Operations.batch_alter_table.copy_from`
+            parameter.
+
          .. seealso::
+
+            :ref:`batch_offline_mode`
 
             :paramref:`~.Operations.batch_alter_table.reflect_args`
 

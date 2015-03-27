@@ -1,6 +1,8 @@
 from contextlib import contextmanager
 import re
 
+import io
+
 from alembic.testing import exclusions
 from alembic.testing import TestBase, eq_, config
 from alembic.testing.fixtures import op_fixture
@@ -8,6 +10,7 @@ from alembic.testing import mock
 from alembic.operations import Operations
 from alembic.batch import ApplyBatchImpl
 from alembic.migration import MigrationContext
+
 
 from sqlalchemy import inspect
 from sqlalchemy import Integer, Table, Column, String, MetaData, ForeignKey, \
@@ -638,6 +641,129 @@ class BatchAPITest(TestBase):
         eq_(
             batch.impl.operations.impl.mock_calls,
             [mock.call.drop_constraint(self.mock_schema.Constraint())]
+        )
+
+
+class CopyFromTest(TestBase):
+    __requires__ = ('sqlalchemy_08', )
+
+    def _fixture(self):
+        self.metadata = MetaData()
+        self.table = Table(
+            'foo', self.metadata,
+            Column('id', Integer, primary_key=True),
+            Column('data', String(50)),
+            Column('x', Integer),
+        )
+
+        context = op_fixture(dialect="sqlite", as_sql=True)
+        self.op = Operations(context)
+        return context
+
+    def test_change_type(self):
+        context = self._fixture()
+        with self.op.batch_alter_table(
+                "foo", copy_from=self.table) as batch_op:
+            batch_op.alter_column('data', type_=Integer)
+
+        context.assert_(
+            'CREATE TABLE _alembic_batch_temp (id INTEGER NOT NULL, '
+            'data INTEGER, x INTEGER, PRIMARY KEY (id))',
+            'INSERT INTO _alembic_batch_temp (id, data, x) SELECT foo.id, '
+            'CAST(foo.data AS INTEGER) AS anon_1, foo.x FROM foo',
+            'DROP TABLE foo',
+            'ALTER TABLE _alembic_batch_temp RENAME TO foo'
+        )
+
+    def test_create_drop_index_w_always(self):
+        context = self._fixture()
+        with self.op.batch_alter_table(
+                "foo", copy_from=self.table, recreate='always') as batch_op:
+            batch_op.create_index(
+                batch_op.f('ix_data'), ['data'], unique=True)
+
+        context.assert_(
+            'CREATE TABLE _alembic_batch_temp (id INTEGER NOT NULL, '
+            'data VARCHAR(50), '
+            'x INTEGER, PRIMARY KEY (id))',
+            'CREATE UNIQUE INDEX ix_data ON _alembic_batch_temp (data)',
+            'INSERT INTO _alembic_batch_temp (id, data, x) '
+            'SELECT foo.id, foo.data, foo.x FROM foo',
+            'DROP TABLE foo',
+            'ALTER TABLE _alembic_batch_temp RENAME TO foo'
+        )
+
+        context.clear_assertions()
+
+        Index('ix_data', self.table.c.data, unique=True)
+        with self.op.batch_alter_table(
+                "foo", copy_from=self.table, recreate='always') as batch_op:
+            batch_op.drop_index('ix_data')
+
+        context.assert_(
+            'CREATE TABLE _alembic_batch_temp (id INTEGER NOT NULL, '
+            'data VARCHAR(50), x INTEGER, PRIMARY KEY (id))',
+            'INSERT INTO _alembic_batch_temp (id, data, x) '
+            'SELECT foo.id, foo.data, foo.x FROM foo',
+            'DROP TABLE foo',
+            'ALTER TABLE _alembic_batch_temp RENAME TO foo'
+        )
+
+    def test_create_drop_index_wo_always(self):
+        context = self._fixture()
+        with self.op.batch_alter_table(
+                "foo", copy_from=self.table) as batch_op:
+            batch_op.create_index(
+                batch_op.f('ix_data'), ['data'], unique=True)
+
+        context.assert_(
+            'CREATE UNIQUE INDEX ix_data ON foo (data)'
+        )
+
+        context.clear_assertions()
+
+        Index('ix_data', self.table.c.data, unique=True)
+        with self.op.batch_alter_table(
+                "foo", copy_from=self.table) as batch_op:
+            batch_op.drop_index('ix_data')
+
+        context.assert_(
+            'DROP INDEX ix_data'
+        )
+
+    def test_create_drop_index_w_other_ops(self):
+        context = self._fixture()
+        with self.op.batch_alter_table(
+                "foo", copy_from=self.table) as batch_op:
+            batch_op.alter_column('data', type_=Integer)
+            batch_op.create_index(
+                batch_op.f('ix_data'), ['data'], unique=True)
+
+        context.assert_(
+            'CREATE TABLE _alembic_batch_temp (id INTEGER NOT NULL, '
+            'data INTEGER, x INTEGER, PRIMARY KEY (id))',
+            'CREATE UNIQUE INDEX ix_data ON _alembic_batch_temp (data)',
+            'INSERT INTO _alembic_batch_temp (id, data, x) SELECT foo.id, '
+            'CAST(foo.data AS INTEGER) AS anon_1, foo.x FROM foo',
+            'DROP TABLE foo',
+            'ALTER TABLE _alembic_batch_temp RENAME TO foo'
+        )
+
+        context.clear_assertions()
+
+        Index('ix_data', self.table.c.data, unique=True)
+        with self.op.batch_alter_table(
+                "foo", copy_from=self.table) as batch_op:
+            batch_op.drop_index('ix_data')
+            batch_op.alter_column('data', type_=String)
+
+        context.assert_(
+            'CREATE TABLE _alembic_batch_temp (id INTEGER NOT NULL, '
+            'data VARCHAR, x INTEGER, PRIMARY KEY (id))',
+            'INSERT INTO _alembic_batch_temp (id, data, x) SELECT foo.id, '
+            'CAST(foo.data AS VARCHAR) AS anon_1, foo.x FROM foo',
+            'DROP TABLE foo',
+            'ALTER TABLE _alembic_batch_temp RENAME TO foo'
         )
 
 

@@ -21,7 +21,7 @@ class SQLiteImpl(DefaultImpl):
 
         """
         for op in batch_op.batch:
-            if op[0] != 'add_column':
+            if op[0] not in ('add_column', 'create_index', 'drop_index'):
                 return True
         else:
             return False

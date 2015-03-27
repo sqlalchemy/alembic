@@ -58,12 +58,15 @@ class BatchOperationsImpl(object):
             else:
                 m1 = MetaData()
 
-            existing_table = Table(
-                self.table_name, m1,
-                schema=self.schema,
-                autoload=True,
-                autoload_with=self.operations.get_bind(),
-                *self.reflect_args, **self.reflect_kwargs)
+            if self.copy_from is not None:
+                existing_table = self.copy_from
+            else:
+                existing_table = Table(
+                    self.table_name, m1,
+                    schema=self.schema,
+                    autoload=True,
+                    autoload_with=self.operations.get_bind(),
+                    *self.reflect_args, **self.reflect_kwargs)
 
             batch_impl = ApplyBatchImpl(
                 existing_table, self.table_args, self.table_kwargs)

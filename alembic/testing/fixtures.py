@@ -100,7 +100,17 @@ def op_fixture(dialect='default', as_sql=False, naming_convention=None):
             # TODO: this might need to
             # be more like a real connection
             # as tests get more involved
-            self.connection = mock.Mock(dialect=dialect)
+            if as_sql and self.dialect.name != 'default':
+                # act similarly to MigrationContext
+                def dump(construct, *multiparams, **params):
+                    self._exec(construct)
+
+                self.connection = create_engine(
+                    "%s://" % self.dialect.name,
+                    strategy="mock", executor=dump)
+
+            else:
+                self.connection = mock.Mock(dialect=dialect)
 
         def _exec(self, construct, *args, **kw):
             if isinstance(construct, string_types):
@@ -127,6 +137,9 @@ def op_fixture(dialect='default', as_sql=False, naming_convention=None):
             self.impl = Impl(self.dialect, as_sql)
             self.opts = opts
             self.as_sql = as_sql
+
+        def clear_assertions(self):
+            self.impl.assertion[:] = []
 
         def assert_(self, *sql):
             # TODO: make this more flexible about

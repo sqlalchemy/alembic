@@ -110,6 +110,8 @@ pre-fabricated :class:`~sqlalchemy.schema.Table` object; see
    added :paramref:`.Operations.batch_alter_table.reflect_args`
    and :paramref:`.Operations.batch_alter_table.reflect_kwargs` options.
 
+.. _sqlite_batch_constraints:
+
 Dealing with Constraints
 ------------------------
 
@@ -250,6 +252,10 @@ The above use pattern is pretty tedious and quite far off from Alembic's
 preferred style of working; however, if one needs to do SQLite-compatible
 "move and copy" migrations and need them to generate flat SQL files in
 "offline" mode, there's not much alternative.
+
+.. versionadded:: 0.7.6 Fully implemented the
+   :paramref:`~.Operations.batch_alter_table.copy_from`
+   parameter.
 
 
 Batch mode with Autogenerate

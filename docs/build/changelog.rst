@@ -8,11 +8,26 @@ Changelog
 
     .. change::
       :tags: bug, batch
+      :tickets: 289
+
+      Fully implemented the
+      :paramref:`~.Operations.batch_alter_table.copy_from` parameter for
+      batch mode, which previously was not functioning.  This allows
+      "batch mode" to be usable in conjunction with ``--sql``.
+
+    .. change::
+      :tags: bug, batch
       :tickets: 287
 
       Repaired support for the :meth:`.BatchOperations.create_index`
       directive, which was mis-named internally such that the operation
-      within a batch context could not proceed.
+      within a batch context could not proceed.   The create index
+      operation will proceed as part of a larger "batch table recreate"
+      operation only if
+      :paramref:`~.Operations.batch_alter_table.recreate` is set to
+      "always", or if the batch operation includes other instructions that
+      require a table recreate.
+
 
 .. changelog::
     :version: 0.7.5
