@@ -4,6 +4,17 @@ Changelog
 ==========
 
 .. changelog::
+    :version: 0.7.6
+
+    .. change::
+      :tags: bug, batch
+      :tickets: 287
+
+      Repaired support for the :meth:`.BatchOperations.create_index`
+      directive, which was mis-named internally such that the operation
+      within a batch context could not proceed.
+
+.. changelog::
     :version: 0.7.5
     :released: March 19, 2015
 

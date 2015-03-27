@@ -271,7 +271,7 @@ class ApplyBatchImpl(object):
         except KeyError:
             raise ValueError("No such constraint: '%s'" % const.name)
 
-    def add_index(self, idx):
+    def create_index(self, idx):
         self.indexes[idx.name] = idx
 
     def drop_index(self, idx):

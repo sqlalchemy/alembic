@@ -9,6 +9,7 @@ from alembic.operations import Operations
 from alembic.batch import ApplyBatchImpl
 from alembic.migration import MigrationContext
 
+from sqlalchemy import inspect
 from sqlalchemy import Integer, Table, Column, String, MetaData, ForeignKey, \
     UniqueConstraint, ForeignKeyConstraint, Index, Boolean, CheckConstraint, \
     Enum
@@ -464,11 +465,11 @@ class BatchApplyTest(TestBase):
             impl, colnames=['id', 'x', 'y'],
             ddl_not_contains="CONSTRAINT uq1 UNIQUE")
 
-    def test_add_index(self):
+    def test_create_index(self):
         impl = self._simple_fixture()
         ix = self.op._index('ix1', 'tname', ['y'])
 
-        impl.add_index(ix)
+        impl.create_index(ix)
         self._assert_impl(
             impl, colnames=['id', 'x', 'y'],
             ddl_contains="CREATE INDEX ix1")
@@ -876,6 +877,43 @@ class BatchRoundTripTest(TestBase):
             {"id": 5, "data": "d5", "x": 9, 'data2': 'hi'}
         ])
 
+    def test_create_drop_index(self):
+        insp = inspect(config.db)
+        eq_(
+            insp.get_indexes('foo'), []
+        )
+
+        with self.op.batch_alter_table("foo", recreate='always') as batch_op:
+            batch_op.create_index(
+                batch_op.f('ix_data'), ['data'], unique=True)
+
+        self._assert_data([
+            {"id": 1, "data": "d1", "x": 5},
+            {"id": 2, "data": "22", "x": 6},
+            {"id": 3, "data": "8.5", "x": 7},
+            {"id": 4, "data": "9.46", "x": 8},
+            {"id": 5, "data": "d5", "x": 9}
+        ])
+
+        insp = inspect(config.db)
+        eq_(
+            [
+                dict(unique=ix['unique'],
+                     name=ix['name'],
+                     column_names=ix['column_names'])
+                for ix in insp.get_indexes('foo')
+            ],
+            [{'unique': True, 'name': 'ix_data', 'column_names': ['data']}]
+        )
+
+        with self.op.batch_alter_table("foo", recreate='always') as batch_op:
+            batch_op.drop_index('ix_data')
+
+        insp = inspect(config.db)
+        eq_(
+            insp.get_indexes('foo'), []
+        )
+
 
 class BatchRoundTripMySQLTest(BatchRoundTripTest):
     __only_on__ = "mysql"
@@ -892,6 +930,9 @@ class BatchRoundTripMySQLTest(BatchRoundTripTest):
     def test_change_type(self):
         super(BatchRoundTripMySQLTest, self).test_change_type()
 
+    def test_create_drop_index(self):
+        super(BatchRoundTripMySQLTest, self).test_create_drop_index()
+
 
 class BatchRoundTripPostgresqlTest(BatchRoundTripTest):
     __only_on__ = "postgresql"
@@ -900,3 +941,5 @@ class BatchRoundTripPostgresqlTest(BatchRoundTripTest):
     def test_change_type(self):
         super(BatchRoundTripPostgresqlTest, self).test_change_type()
 
+    def test_create_drop_index(self):
+        super(BatchRoundTripPostgresqlTest, self).test_create_drop_index()
