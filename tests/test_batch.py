@@ -12,7 +12,6 @@ from alembic.batch import ApplyBatchImpl
 from alembic.migration import MigrationContext
 
 
-from sqlalchemy import inspect
 from sqlalchemy import Integer, Table, Column, String, MetaData, ForeignKey, \
     UniqueConstraint, ForeignKeyConstraint, Index, Boolean, CheckConstraint, \
     Enum
@@ -1004,7 +1003,7 @@ class BatchRoundTripTest(TestBase):
         ])
 
     def test_create_drop_index(self):
-        insp = inspect(config.db)
+        insp = Inspector.from_engine(config.db)
         eq_(
             insp.get_indexes('foo'), []
         )
@@ -1021,7 +1020,7 @@ class BatchRoundTripTest(TestBase):
             {"id": 5, "data": "d5", "x": 9}
         ])
 
-        insp = inspect(config.db)
+        insp = Inspector.from_engine(config.db)
         eq_(
             [
                 dict(unique=ix['unique'],
@@ -1035,7 +1034,7 @@ class BatchRoundTripTest(TestBase):
         with self.op.batch_alter_table("foo", recreate='always') as batch_op:
             batch_op.drop_index('ix_data')
 
-        insp = inspect(config.db)
+        insp = Inspector.from_engine(config.db)
         eq_(
             insp.get_indexes('foo'), []
         )
