@@ -680,7 +680,7 @@ class CopyFromTest(TestBase):
         with self.op.batch_alter_table(
                 "foo", copy_from=self.table, recreate='always') as batch_op:
             batch_op.create_index(
-                batch_op.f('ix_data'), ['data'], unique=True)
+                'ix_data', ['data'], unique=True)
 
         context.assert_(
             'CREATE TABLE _alembic_batch_temp (id INTEGER NOT NULL, '
@@ -714,7 +714,7 @@ class CopyFromTest(TestBase):
         with self.op.batch_alter_table(
                 "foo", copy_from=self.table) as batch_op:
             batch_op.create_index(
-                batch_op.f('ix_data'), ['data'], unique=True)
+                'ix_data', ['data'], unique=True)
 
         context.assert_(
             'CREATE UNIQUE INDEX ix_data ON foo (data)'
@@ -737,7 +737,7 @@ class CopyFromTest(TestBase):
                 "foo", copy_from=self.table) as batch_op:
             batch_op.alter_column('data', type_=Integer)
             batch_op.create_index(
-                batch_op.f('ix_data'), ['data'], unique=True)
+                'ix_data', ['data'], unique=True)
 
         context.assert_(
             'CREATE TABLE _alembic_batch_temp (id INTEGER NOT NULL, '
@@ -1011,7 +1011,7 @@ class BatchRoundTripTest(TestBase):
 
         with self.op.batch_alter_table("foo", recreate='always') as batch_op:
             batch_op.create_index(
-                batch_op.f('ix_data'), ['data'], unique=True)
+                'ix_data', ['data'], unique=True)
 
         self._assert_data([
             {"id": 1, "data": "d1", "x": 5},
