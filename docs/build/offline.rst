@@ -63,7 +63,7 @@ treat a local file in the same way ``alembic_version`` works::
             current_version = open(version_file).read()
         else:
             current_version = None
-        context.configure(dialect_name=engine.name, starting_version=current_version)
+        context.configure(dialect_name=engine.name, starting_rev=current_version)
         context.run_migrations()
         end_version = context.get_revision_argument()
         if end_version and end_version != current_version:
