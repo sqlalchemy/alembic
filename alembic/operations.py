@@ -1197,6 +1197,12 @@ class Operations(object):
         See :meth:`.execute` for an example usage of
         :meth:`.inline_literal`.
 
+        The environment can also be configured to attempt to render
+        "literal" values inline automatically, for those simple types
+        that are supported by the dialect; see
+        :paramref:`.EnvironmentContext.configure.literal_binds` for this
+        more recently added feature.
+
         :param value: The value to render.  Strings, integers, and simple
          numerics should be supported.   Other types like boolean,
          dates, etc. may or may not be supported yet by various
@@ -1206,6 +1212,10 @@ class Operations(object):
          expressions, this is usually derived automatically
          from the Python type of the value itself, as well as
          based on the context in which the value is used.
+
+        .. seealso::
+
+            :paramref:`.EnvironmentContext.configure.literal_binds`
 
         """
         return impl._literal_bindparam(None, value, type_=type_)

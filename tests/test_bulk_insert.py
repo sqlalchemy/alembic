@@ -165,15 +165,21 @@ class BulkInsertTest(TestBase):
         # doesn't have an IDENTITY column
         context.assert_(
             'SET IDENTITY_INSERT ins_table ON',
+            'GO',
             "INSERT INTO ins_table (id, v1, v2) "
             "VALUES (1, 'row v1', 'row v5')",
+            'GO',
             "INSERT INTO ins_table (id, v1, v2) "
             "VALUES (2, 'row v2', 'row v6')",
+            'GO',
             "INSERT INTO ins_table (id, v1, v2) "
             "VALUES (3, 'row v3', 'row v7')",
+            'GO',
             "INSERT INTO ins_table (id, v1, v2) "
             "VALUES (4, 'row v4', 'row v8')",
-            'SET IDENTITY_INSERT ins_table OFF'
+            'GO',
+            'SET IDENTITY_INSERT ins_table OFF',
+            'GO',
         )
 
     def test_bulk_insert_from_new_table(self):

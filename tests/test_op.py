@@ -819,3 +819,41 @@ class OpTest(TestBase):
         context = op_fixture('mssql')
         op.drop_index('ik_test', tablename='t1')
         context.assert_("DROP INDEX ik_test ON t1")
+
+
+class SQLModeOpTest(TestBase):
+    @config.requirements.sqlalchemy_09
+    def test_auto_literals(self):
+        context = op_fixture(as_sql=True, literal_binds=True)
+        from sqlalchemy.sql import table, column
+        from sqlalchemy import String, Integer
+
+        account = table('account',
+                        column('name', String),
+                        column('id', Integer)
+                        )
+        op.execute(
+            account.update().
+            where(account.c.name == op.inline_literal('account 1')).
+            values({'name': op.inline_literal('account 2')})
+        )
+        op.execute(text("update table set foo=:bar").bindparams(bar='bat'))
+        context.assert_(
+            "UPDATE account SET name='account 2' "
+            "WHERE account.name = 'account 1'",
+            "update table set foo='bat'"
+        )
+
+    def test_create_table_literal_binds(self):
+        context = op_fixture(as_sql=True, literal_binds=True)
+
+        op.create_table(
+            "some_table",
+            Column('id', Integer, primary_key=True),
+            Column('st_id', Integer, ForeignKey('some_table.id'))
+        )
+
+        context.assert_(
+            "CREATE TABLE some_table (id INTEGER NOT NULL, st_id INTEGER, "
+            "PRIMARY KEY (id), FOREIGN KEY(st_id) REFERENCES some_table (id))"
+        )

@@ -3,7 +3,7 @@ import sys
 from contextlib import contextmanager
 
 from sqlalchemy import MetaData, Table, Column, String, literal_column
-from sqlalchemy import create_engine
+from sqlalchemy.engine.strategies import MockEngineStrategy
 from sqlalchemy.engine import url as sqla_url
 
 from .compat import callable, EncodedIO
@@ -333,8 +333,7 @@ class MigrationContext(object):
         def dump(construct, *multiparams, **params):
             self.impl._exec(construct)
 
-        return create_engine("%s://" % self.dialect.name,
-                             strategy="mock", executor=dump)
+        return MockEngineStrategy.MockConnection(self.dialect, dump)
 
     @property
     def bind(self):

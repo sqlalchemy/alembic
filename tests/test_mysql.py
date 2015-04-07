@@ -167,7 +167,7 @@ class MySQLOpTest(TestBase):
         context = op_fixture('mysql')
         op.drop_constraint('primary', 't1', type_='primary')
         context.assert_(
-            "ALTER TABLE t1 DROP PRIMARY KEY "
+            "ALTER TABLE t1 DROP PRIMARY KEY"
         )
 
     def test_drop_unique(self):

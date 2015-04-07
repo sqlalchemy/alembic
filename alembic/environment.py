@@ -296,6 +296,7 @@ class EnvironmentContext(object):
                   compare_type=False,
                   compare_server_default=False,
                   render_item=None,
+                  literal_binds=False,
                   upgrade_token="upgrades",
                   downgrade_token="downgrades",
                   alembic_module_prefix="op.",
@@ -365,6 +366,24 @@ class EnvironmentContext(object):
          object.
         :param output_encoding: when using ``--sql`` to generate SQL
          scripts, apply this encoding to the string output.
+        :param literal_binds: when using ``--sql`` to generate SQL
+         scripts, pass through the ``literal_binds`` flag to the compiler
+         so that any literal values that would ordinarily be bound
+         parameters are converted to plain strings.
+
+         .. warning:: Dialects can typically only handle simple datatypes
+            like strings and numbers for auto-literal generation.  Datatypes
+            like dates, intervals, and others may still require manual
+            formatting, typically using :meth:`.Operations.inline_literal`.
+
+         .. note:: the ``literal_binds`` flag is ignored on SQLAlchemy
+            versions prior to 0.8 where this feature is not supported.
+
+         .. versionadded:: 0.7.6
+
+         .. seealso::
+
+            :meth:`.Operations.inline_literal`
 
         :param starting_rev: Override the "starting revision" argument
          when using ``--sql`` mode.
@@ -700,6 +719,7 @@ class EnvironmentContext(object):
         opts['sqlalchemy_module_prefix'] = sqlalchemy_module_prefix
         opts['alembic_module_prefix'] = alembic_module_prefix
         opts['user_module_prefix'] = user_module_prefix
+        opts['literal_binds'] = literal_binds
         if render_item is not None:
             opts['render_item'] = render_item
         if compare_type is not None:

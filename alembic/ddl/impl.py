@@ -48,11 +48,21 @@ class DefaultImpl(with_metaclass(ImplMeta)):
         self.dialect = dialect
         self.connection = connection
         self.as_sql = as_sql
+        self.literal_binds = context_opts.get('literal_binds', False)
+        if self.literal_binds and not util.sqla_08:
+            util.warn("'literal_binds' flag not supported in SQLAlchemy 0.7")
+            self.literal_binds = False
+
         self.output_buffer = output_buffer
         self.memo = {}
         self.context_opts = context_opts
         if transactional_ddl is not None:
             self.transactional_ddl = transactional_ddl
+
+        if self.literal_binds:
+            if not self.as_sql:
+                raise util.CommandError(
+                    "Can't use literal_binds setting without as_sql mode")
 
     @classmethod
     def get_by_dialect(cls, dialect):
@@ -95,8 +105,15 @@ class DefaultImpl(with_metaclass(ImplMeta)):
             if multiparams or params:
                 # TODO: coverage
                 raise Exception("Execution arguments not allowed with as_sql")
+
+            if self.literal_binds and not isinstance(
+                    construct, schema.DDLElement):
+                compile_kw = dict(compile_kwargs={"literal_binds": True})
+            else:
+                compile_kw = {}
+
             self.static_output(text_type(
-                construct.compile(dialect=self.dialect)
+                construct.compile(dialect=self.dialect, **compile_kw)
             ).replace("\t", "    ").strip() + self.command_terminator)
         else:
             conn = self.connection

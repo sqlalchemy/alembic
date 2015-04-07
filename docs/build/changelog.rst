@@ -7,6 +7,24 @@ Changelog
     :version: 0.7.6
 
     .. change::
+      :tags: feature, operations
+      :tickets: 255
+
+      Added a new option
+      :paramref:`.EnvironmentContext.configure.literal_binds`, which
+      will pass the ``literal_binds`` flag into the compilation of SQL
+      constructs when using "offline" mode.  This has the effect that
+      SQL objects like inserts, updates, deletes as well as textual
+      statements sent using ``text()`` will be compiled such that the dialect
+      will attempt to render literal values "inline" automatically.
+      Only a subset of types is typically supported; the
+      :meth:`.Operations.inline_literal` construct remains as the construct
+      used to force a specific literal representation of a value.
+      The :paramref:`.EnvironmentContext.configure.literal_binds` flag
+      is added to the "offline" section of the ``env.py`` files generated
+      in new environments.
+
+    .. change::
       :tags: bug, batch
       :tickets: 289
 
