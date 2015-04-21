@@ -1357,7 +1357,7 @@ class BatchOperations(Operations):
             self.impl.table_name, column_name, schema=self.impl.schema)
 
     def create_primary_key(self, name, cols):
-        """Issue a "create priamry key" instruction using the
+        """Issue a "create primary key" instruction using the
         current batch migration context.
 
         The batch form of this call omits the ``table_name`` and ``schema``
