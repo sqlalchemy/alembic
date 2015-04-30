@@ -7,6 +7,16 @@ Changelog
     :version: 0.7.6
 
     .. change::
+      :tags: feature, autogenerate
+      :tickets: 296
+
+      Added support for type comparison functions to be not just per
+      environment, but also present on the custom types themselves, by
+      supplying a method ``compare_against_backend``.
+      Added a new documentation section :ref:`compare_types` describing
+      type comparison fully.
+
+    .. change::
       :tags: feature, operations
       :tickets: 255
 

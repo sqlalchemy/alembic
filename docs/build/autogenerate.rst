@@ -126,7 +126,7 @@ Autogenerate can **optionally detect**:
   The feature works well in most cases,
   but is off by default so that it can be tested on the target schema
   first.  It can also be customized by passing a callable here; see the
-  function's documentation for details.
+  section :ref:`compare_types` for details.
 * Change of server default.  This will occur if you set
   the :paramref:`.EnvironmentContext.configure.compare_server_default`
   parameter to ``True``, or to a custom callable function.
@@ -170,10 +170,10 @@ Autogenerate can't currently, but **will eventually detect**:
 * Sequence additions, removals - not yet implemented.
 
 
-Rendering Types
-----------------
+Comparing and Rendering Types
+------------------------------
 
-The area of autogenerate's behavior of rendering Python-based type objects
+The area of autogenerate's behavior of comparing and rendering Python-based type objects
 in migration scripts presents a challenge, in that there's
 a very wide variety of types to be rendered in scripts, including those
 part of SQLAlchemy as well as user-defined types.   A few options
@@ -343,5 +343,78 @@ The finished migration script will include our imports where the
 
   def upgrade():
       op.add_column('sometable', Column('mycolumn', types.MySpecialType()))
+
+
+.. _compare_types:
+
+Comparing Types
+^^^^^^^^^^^^^^^^
+
+The default type comparison logic will work for SQLAlchemy built in types as
+well as basic user defined types.   This logic is only enabled if the
+:paramref:`.EnvironmentContext.configure.compare_type` parameter
+is set to True::
+
+    context.configure(
+        # ...
+        compare_type = True
+    )
+
+Alternatively, the :paramref:`.EnvironmentContext.configure.compare_type`
+parameter accepts a callable function which may be used to implement custom type
+comparison logic, for cases such as where special user defined types
+are being used::
+
+    def my_compare_type(context, inspected_column,
+                metadata_column, inspected_type, metadata_type):
+        # return True if the types are different,
+        # False if not, or None to allow the default implementation
+        # to compare these types
+        return None
+
+    context.configure(
+        # ...
+        compare_type = my_compare_type
+    )
+
+Above, ``inspected_column`` is a :class:`sqlalchemy.schema.Column` as
+returned by
+:meth:`sqlalchemy.engine.reflection.Inspector.reflecttable`, whereas
+``metadata_column`` is a :class:`sqlalchemy.schema.Column` from the
+local model environment.  A return value of ``None`` indicates that default
+type comparison to proceed.
+
+Additionally, custom types that are part of imported or third party
+packages which have special behaviors such as per-dialect behavior
+should implement a method called ``compare_against_backend()``
+on their SQLAlchemy type.   If this method is present, it will be called
+where it can also return True or False to specify the types compare as
+equivalent or not; if it returns None, default type comparison logic
+will proceed::
+
+    class MySpecialType(TypeDecorator):
+
+        # ...
+
+        def compare_against_backend(self, dialect, conn_type):
+            # return True if the types are different,
+            # False if not, or None to allow the default implementation
+            # to compare these types
+            if dialect.name == 'postgresql':
+                return isinstance(conn_type, postgresql.UUID)
+            else:
+                return isinstance(conn_type, String)
+
+The order of precedence regarding the
+:paramref:`.EnvironmentContext.configure.compare_type` callable vs. the
+type itself implementing ``compare_against_backend`` is that the
+:paramref:`.EnvironmentContext.configure.compare_type` callable is favored
+first; if it returns ``None``, then the ``compare_against_backend`` method
+will be used, if present on the metadata type.  If that reutrns ``None``,
+then a basic check for type equivalence is run.
+
+.. versionadded:: 0.7.6 - added support for the ``compare_against_backend()``
+   method.
+
 
 

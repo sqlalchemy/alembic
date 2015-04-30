@@ -773,6 +773,32 @@ nullable=True))
                                            )
         assert not diff
 
+    def test_custom_type_compare(self):
+        class MyType(TypeDecorator):
+            impl = Integer
+
+            def compare_against_backend(self, dialect, conn_type):
+                return isinstance(conn_type, Integer)
+
+        diff = []
+        autogenerate.compare._compare_type(None, "sometable", "somecol",
+                                           Column("somecol", INTEGER()),
+                                           Column("somecol", MyType()),
+                                           diff, self.autogen_context
+                                           )
+        assert not diff
+
+        diff = []
+        autogenerate.compare._compare_type(None, "sometable", "somecol",
+                                           Column("somecol", String()),
+                                           Column("somecol", MyType()),
+                                           diff, self.autogen_context
+                                           )
+        eq_(
+            diff[0][0:4],
+            ('modify_type', None, 'sometable', 'somecol')
+        )
+
     def test_affinity_typedec(self):
         class MyType(TypeDecorator):
             impl = CHAR

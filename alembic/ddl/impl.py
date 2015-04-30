@@ -247,6 +247,12 @@ class DefaultImpl(with_metaclass(ImplMeta)):
         # fixed in 0.7.4
         metadata_impl.__dict__.pop('_type_affinity', None)
 
+        if hasattr(metadata_impl, "compare_against_backend"):
+            comparison = metadata_impl.compare_against_backend(
+                self.dialect, conn_type)
+            if comparison is not None:
+                return not comparison
+
         if conn_type._compare_type_affinity(
             metadata_impl
         ):

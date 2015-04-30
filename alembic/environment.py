@@ -417,37 +417,13 @@ class EnvironmentContext(object):
          operation.  Defaults to ``False`` which disables type
          comparison.  Set to
          ``True`` to turn on default type comparison, which has varied
-         accuracy depending on backend.
-
-         To customize type comparison behavior, a callable may be
-         specified which
-         can filter type comparisons during an autogenerate operation.
-         The format of this callable is::
-
-            def my_compare_type(context, inspected_column,
-                        metadata_column, inspected_type, metadata_type):
-                # return True if the types are different,
-                # False if not, or None to allow the default implementation
-                # to compare these types
-                return None
-
-            context.configure(
-                # ...
-                compare_type = my_compare_type
-            )
-
-
-         ``inspected_column`` is a :class:`sqlalchemy.schema.Column` as
-         returned by
-         :meth:`sqlalchemy.engine.reflection.Inspector.reflecttable`,
-         whereas ``metadata_column`` is a
-         :class:`sqlalchemy.schema.Column` from the local model
-         environment.
-
-         A return value of ``None`` indicates to allow default type
-         comparison to proceed.
+         accuracy depending on backend.   See :ref:`compare_types`
+         for an example as well as information on other type
+         comparison options.
 
          .. seealso::
+
+            :ref:`compare_types`
 
             :paramref:`.EnvironmentContext.configure.compare_server_default`
 
