@@ -410,7 +410,7 @@ The order of precedence regarding the
 type itself implementing ``compare_against_backend`` is that the
 :paramref:`.EnvironmentContext.configure.compare_type` callable is favored
 first; if it returns ``None``, then the ``compare_against_backend`` method
-will be used, if present on the metadata type.  If that reutrns ``None``,
+will be used, if present on the metadata type.  If that returns ``None``,
 then a basic check for type equivalence is run.
 
 .. versionadded:: 0.7.6 - added support for the ``compare_against_backend()``
