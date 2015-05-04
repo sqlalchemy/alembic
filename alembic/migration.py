@@ -670,14 +670,15 @@ class RevisionStep(MigrationStep):
         if not downrevs:
             # is a base
             return True
-        elif len(downrevs) == 1:
-            if downrevs[0] in heads:
-                return False
-            else:
-                return True
         else:
-            # is a merge point
-            return False
+            # none of our downrevs are present, so...
+            # we have to insert our version.   This is true whether
+            # or not there is only one downrev, or multiple (in the latter
+            # case, we're a merge point.)
+            if not heads.intersection(downrevs):
+                return True
+            else:
+                return False
 
     def should_merge_branches(self, heads):
         if not self.is_upgrade:

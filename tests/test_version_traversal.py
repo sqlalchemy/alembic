@@ -434,6 +434,155 @@ class BranchFrom3WayMergepointTest(MigrationTest):
         )
 
 
+class TwinMergeTest(MigrationTest):
+    """Test #297, where we have two mergepoints from the same set of
+    originating branches.
+
+    """
+    @classmethod
+    def setup_class(cls):
+        """
+
+        33e21c000cfe -> 178d4e761bbd (head),
+        2bef33cb3a58, 3904558db1c6, 968330f320d -> 33e21c000cfe (mergepoint)
+        46c99f866004 -> 18f46b42410d (head),
+        2bef33cb3a58, 3904558db1c6, 968330f320d -> 46c99f866004 (mergepoint)
+        f0fa4315825 -> 3904558db1c6 (branchpoint),
+
+        --------------------------
+
+        A -> B2 (branchpoint),
+
+        B1, B2, B3 -> C1 (mergepoint)
+        B1, B2, B3 -> C2 (mergepoint)
+
+        C1 -> D1 (head),
+
+        C2 -> D2 (head),
+
+
+        """
+        cls.env = env = staging_env()
+
+        cls.a = env.generate_revision(
+            'a', 'a'
+        )
+        cls.b1 = env.generate_revision('b1', 'b1',
+                                       head=cls.a.revision)
+        cls.b2 = env.generate_revision('b2', 'b2',
+                                       splice=True,
+                                       head=cls.a.revision)
+        cls.b3 = env.generate_revision('b3', 'b3',
+                                       splice=True,
+                                       head=cls.a.revision)
+
+        cls.c1 = env.generate_revision(
+            'c1', 'c1',
+            head=(cls.b1.revision, cls.b2.revision, cls.b3.revision))
+
+        cls.c2 = env.generate_revision(
+            'c2', 'c2',
+            splice=True,
+            head=(cls.b1.revision, cls.b2.revision, cls.b3.revision))
+
+        cls.d1 = env.generate_revision(
+            'd1', 'd1', head=cls.c1.revision)
+
+        cls.d2 = env.generate_revision(
+            'd2', 'd2', head=cls.c2.revision)
+
+    def test_upgrade(self):
+        head = HeadMaintainer(mock.Mock(), [self.a.revision])
+
+        steps = [
+            (self.up_(self.b3), ('b3',)),
+            (self.up_(self.b1), ('b1', 'b3',)),
+            (self.up_(self.b2), ('b1', 'b2', 'b3',)),
+            (self.up_(self.c2), ('c2',)),
+            (self.up_(self.d2), ('d2',)),
+            (self.up_(self.c1), ('c1', 'd2')),
+            (self.up_(self.d1), ('d1', 'd2')),
+        ]
+        for step, assert_ in steps:
+            head.update_to_step(step)
+            eq_(head.heads, set(assert_))
+
+
+class NotQuiteTwinMergeTest(MigrationTest):
+    """Test a variant of #297.
+
+    """
+    @classmethod
+    def setup_class(cls):
+        """
+        A -> B2 (branchpoint),
+
+        B1, B2 -> C1 (mergepoint)
+        B2, B3 -> C2 (mergepoint)
+
+        C1 -> D1 (head),
+
+        C2 -> D2 (head),
+
+
+        """
+        cls.env = env = staging_env()
+
+        cls.a = env.generate_revision(
+            'a', 'a'
+        )
+        cls.b1 = env.generate_revision('b1', 'b1',
+                                       head=cls.a.revision)
+        cls.b2 = env.generate_revision('b2', 'b2',
+                                       splice=True,
+                                       head=cls.a.revision)
+        cls.b3 = env.generate_revision('b3', 'b3',
+                                       splice=True,
+                                       head=cls.a.revision)
+
+        cls.c1 = env.generate_revision(
+            'c1', 'c1',
+            head=(cls.b1.revision, cls.b2.revision))
+
+        cls.c2 = env.generate_revision(
+            'c2', 'c2',
+            splice=True,
+            head=(cls.b2.revision, cls.b3.revision))
+
+        cls.d1 = env.generate_revision(
+            'd1', 'd1', head=cls.c1.revision)
+
+        cls.d2 = env.generate_revision(
+            'd2', 'd2', head=cls.c2.revision)
+
+    def test_upgrade(self):
+        head = HeadMaintainer(mock.Mock(), [self.a.revision])
+
+        """
+        upgrade a -> b2, b2
+        upgrade a -> b3, b3
+        upgrade b2, b3 -> c2, c2
+        upgrade c2 -> d2, d2
+        upgrade a -> b1, b1
+        upgrade b1, b2 -> c1, c1
+        upgrade c1 -> d1, d1
+        """
+
+        steps = [
+            (self.up_(self.b2), ('b2',)),
+            (self.up_(self.b3), ('b2', 'b3',)),
+            (self.up_(self.c2), ('c2',)),
+            (self.up_(self.d2), ('d2',)),
+
+            (self.up_(self.b1), ('b1', 'd2',)),
+            (self.up_(self.c1), ('c1', 'd2')),
+            (self.up_(self.d1), ('d1', 'd2')),
+        ]
+        for step, assert_ in steps:
+            head.update_to_step(step)
+            eq_(head.heads, set(assert_))
+
+
 class DependsOnBranchTestOne(MigrationTest):
 
     @classmethod

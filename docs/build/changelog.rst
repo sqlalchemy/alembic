@@ -7,6 +7,19 @@ Changelog
     :version: 0.7.6
 
     .. change::
+      :tags: feature, versioning
+      :tickets: 297
+
+      Fixed bug where the case of multiple mergepoints that all
+      have the identical set of ancestor revisions would fail to be
+      upgradable, producing an assertion failure.   Merge points were
+      previously assumed to always require at least an UPDATE in
+      alembic_revision from one of the previous revs to the new one,
+      however in this case, if one of the mergepoints has already
+      been reached, the remaining mergepoints have no row to UPDATE therefore
+      they must do an INSERT of their target version.
+
+    .. change::
       :tags: feature, autogenerate
       :tickets: 296
 
