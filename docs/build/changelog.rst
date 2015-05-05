@@ -5,6 +5,7 @@ Changelog
 
 .. changelog::
     :version: 0.7.6
+    :released: May 5, 2015
 
     .. change::
       :tags: feature, versioning
