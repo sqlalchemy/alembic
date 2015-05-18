@@ -818,6 +818,21 @@ unique=False, """
             "sa.ForeignKeyConstraint(['c'], ['t2.c_rem'], initially='XYZ')"
         )
 
+        fk = ForeignKeyConstraint(
+            [t1.c.c], [t2.c.c_rem],
+            initially="XYZ", ondelete="CASCADE", deferrable=True)
+        if not util.sqla_08:
+            t1.append_constraint(fk)
+        eq_ignore_whitespace(
+            re.sub(
+                r"u'", "'",
+                autogenerate.render._render_constraint(
+                    fk, self.autogen_context)
+            ),
+            "sa.ForeignKeyConstraint(['c'], ['t2.c_rem'], "
+            "ondelete='CASCADE', initially='XYZ', deferrable=True)"
+        )
+
     def test_render_fk_constraint_use_alter(self):
         m = MetaData()
         Table('t', m, Column('c', Integer))
