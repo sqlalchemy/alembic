@@ -269,6 +269,81 @@ unique=False, """
             "op.create_foreign_key('fk_a_id', 'b', 'a', ['a_id'], ['id'])"
         )
 
+    def test_add_fk_constraint_kwarg(self):
+        m = MetaData()
+        t1 = Table('t', m, Column('c', Integer))
+        t2 = Table('t2', m, Column('c_rem', Integer))
+
+        fk = ForeignKeyConstraint([t1.c.c], [t2.c.c_rem], onupdate="CASCADE")
+        if not util.sqla_08:
+            t1.append_constraint(fk)
+
+        # SQLA 0.9 generates a u'' here for remote cols while 0.8 does not,
+        # so just whack out "'u" here from the generated
+
+        eq_ignore_whitespace(
+            re.sub(
+                r"u'", "'",
+                autogenerate.render._add_fk_constraint(
+                    fk, self.autogen_context)),
+            "op.create_foreign_key(None, 't', 't2', ['c'], ['c_rem'], "
+            "onupdate='CASCADE')"
+        )
+
+        fk = ForeignKeyConstraint([t1.c.c], [t2.c.c_rem], ondelete="CASCADE")
+        if not util.sqla_08:
+            t1.append_constraint(fk)
+
+        eq_ignore_whitespace(
+            re.sub(
+                r"u'", "'",
+                autogenerate.render._add_fk_constraint(
+                    fk, self.autogen_context)),
+            "op.create_foreign_key(None, 't', 't2', ['c'], ['c_rem'], "
+            "ondelete='CASCADE')"
+        )
+
+        fk = ForeignKeyConstraint([t1.c.c], [t2.c.c_rem], deferrable=True)
+        if not util.sqla_08:
+            t1.append_constraint(fk)
+        eq_ignore_whitespace(
+            re.sub(
+                r"u'", "'",
+                autogenerate.render._add_fk_constraint(
+                    fk, self.autogen_context),
+            ),
+            "op.create_foreign_key(None, 't', 't2', ['c'], ['c_rem'], "
+            "deferrable=True)"
+        )
+
+        fk = ForeignKeyConstraint([t1.c.c], [t2.c.c_rem], initially="XYZ")
+        if not util.sqla_08:
+            t1.append_constraint(fk)
+        eq_ignore_whitespace(
+            re.sub(
+                r"u'", "'",
+                autogenerate.render._add_fk_constraint(
+                    fk, self.autogen_context)
+            ),
+            "op.create_foreign_key(None, 't', 't2', ['c'], ['c_rem'], "
+            "initially='XYZ')"
+        )
+
+        fk = ForeignKeyConstraint(
+            [t1.c.c], [t2.c.c_rem],
+            initially="XYZ", ondelete="CASCADE", deferrable=True)
+        if not util.sqla_08:
+            t1.append_constraint(fk)
+        eq_ignore_whitespace(
+            re.sub(
+                r"u'", "'",
+                autogenerate.render._add_fk_constraint(
+                    fk, self.autogen_context)
+            ),
+            "op.create_foreign_key(None, 't', 't2', ['c'], ['c_rem'], "
+            "ondelete='CASCADE', initially='XYZ', deferrable=True)"
+        )
+
     def test_add_fk_constraint_inline_colkeys(self):
         m = MetaData()
         Table('a', m, Column('id', Integer, key='aid', primary_key=True))

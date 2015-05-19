@@ -4,6 +4,18 @@ Changelog
 ==========
 
 .. changelog::
+    :version: 0.7.7
+
+    .. change::
+      :tags: bug, autogenerate
+      :tickets: 298
+
+      Fixed bug where foreign key options including "onupdate",
+      "ondelete" would not render within the ``op.create_foreign_key()``
+      directive, even though they render within a full
+      ``ForeignKeyConstraint`` directive.
+
+.. changelog::
     :version: 0.7.6
     :released: May 5, 2015
 

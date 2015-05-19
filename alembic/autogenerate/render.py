@@ -263,10 +263,10 @@ def _add_fk_constraint(constraint, autogen_context):
             "%s=%r" % ('referent_schema', target_schema)
         )
 
-    if constraint.deferrable:
-        args.append("%s=%r" % ("deferrable", str(constraint.deferrable)))
-    if constraint.initially:
-        args.append("%s=%r" % ("initially", str(constraint.initially)))
+    opts = []
+    _populate_render_fk_opts(constraint, opts)
+    args.extend(("%s=%s" % (k, v) for (k, v) in opts))
+
     return "%(prefix)screate_foreign_key(%(args)s)" % {
         'prefix': _alembic_autogenerate_prefix(autogen_context),
         'args': ", ".join(args)
@@ -562,15 +562,8 @@ def _fk_colspec(fk, metadata_schema):
     return colspec
 
 
-def _render_foreign_key(constraint, autogen_context):
-    rendered = _user_defined_render("foreign_key", constraint, autogen_context)
-    if rendered is not False:
-        return rendered
+def _populate_render_fk_opts(constraint, opts):
 
-    opts = []
-    if constraint.name:
-        opts.append(("name", repr(
-            _render_gen_name(autogen_context, constraint.name))))
     if constraint.onupdate:
         opts.append(("onupdate", repr(constraint.onupdate)))
     if constraint.ondelete:
@@ -581,6 +574,19 @@ def _render_foreign_key(constraint, autogen_context):
         opts.append(("deferrable", repr(constraint.deferrable)))
     if constraint.use_alter:
         opts.append(("use_alter", repr(constraint.use_alter)))
+
+
+def _render_foreign_key(constraint, autogen_context):
+    rendered = _user_defined_render("foreign_key", constraint, autogen_context)
+    if rendered is not False:
+        return rendered
+
+    opts = []
+    if constraint.name:
+        opts.append(("name", repr(
+            _render_gen_name(autogen_context, constraint.name))))
+
+    _populate_render_fk_opts(constraint, opts)
 
     apply_metadata_schema = constraint.parent.metadata.schema
     return "%(prefix)sForeignKeyConstraint([%(cols)s], "\
