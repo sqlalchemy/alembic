@@ -18,7 +18,11 @@ class FullEnvironmentTests(TestBase):
     @classmethod
     def setup_class(cls):
         staging_env()
-        cls.cfg = cfg = _no_sql_testing_config("mssql")
+        if util.sqla_105:
+            directives = "sqlalchemy.legacy_schema_aliasing=false"
+        else:
+            directives = ""
+        cls.cfg = cfg = _no_sql_testing_config("mssql", directives)
 
         cls.a, cls.b, cls.c = \
             three_rev_fixture(cfg)

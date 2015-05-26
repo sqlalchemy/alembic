@@ -89,6 +89,8 @@ def _get_dialect(name):
             _dialects[name] = d = dialect_mod.dialect()
             if name == 'postgresql':
                 d.implicit_returning = True
+            elif name == 'mssql':
+                d.legacy_schema_aliasing = False
             return d
 
 
