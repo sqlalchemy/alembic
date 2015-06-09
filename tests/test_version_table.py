@@ -1,5 +1,5 @@
 from alembic.testing.fixtures import TestBase
-
+from alembic.testing import mock
 from alembic.testing import config, eq_, assert_raises, assert_raises_message
 
 from sqlalchemy import Table, MetaData, Column, String
@@ -125,6 +125,23 @@ class TestMigrationContext(TestBase):
                                     'version_table': 'version_table',
                                     'as_sql': True})
         eq_(context.get_current_heads(), ('q', ))
+
+    def test_stamp_api_creates_table(self):
+        context = self.make_one(connection=self.connection)
+        assert (
+            'alembic_version'
+            not in Inspector(self.connection).get_table_names())
+
+        script = mock.Mock(_stamp_revs=lambda revision, heads: [
+            _up(None, 'a', True),
+            _up(None, 'b', True)
+        ])
+
+        context.stamp(script, 'b')
+        eq_(context.get_current_heads(), ('a', 'b'))
+        assert (
+            'alembic_version'
+            in Inspector(self.connection).get_table_names())
 
 
 class UpdateRevTest(TestBase):

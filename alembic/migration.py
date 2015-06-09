@@ -264,6 +264,8 @@ class MigrationContext(object):
 
         """
         heads = self.get_current_heads()
+        if not self.as_sql and not heads:
+            self._ensure_version_table()
         head_maintainer = HeadMaintainer(self, heads)
         for step in script_directory._stamp_revs(revision, heads):
             head_maintainer.update_to_step(step)

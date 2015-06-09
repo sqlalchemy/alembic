@@ -7,6 +7,16 @@ Changelog
     :version: 0.7.7
 
     .. change::
+      :tags: bug, environment
+      :tickets: 300
+
+      The :meth:`.MigrationContext.stamp` method, added as part of the
+      versioning refactor in 0.7 as a more granular version of
+      :func:`.command.stamp`, now includes the "create the alembic_version
+      table if not present" step in the same way as the command version,
+      which was previously omitted.
+
+    .. change::
       :tags: bug, autogenerate
       :tickets: 298
 
