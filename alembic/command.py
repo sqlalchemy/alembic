@@ -70,12 +70,15 @@ def revision(
         version_path=None, rev_id=None):
     """Create a new revision file."""
 
-    script = ScriptDirectory.from_config(config)
-    template_args = {
-        'config': config  # Let templates use config for
-                          # e.g. multiple databases
-    }
-    imports = set()
+    script_directory = ScriptDirectory.from_config(config)
+
+    command_args = dict(
+        message=message,
+        autogenerate=autogenerate,
+        sql=sql, head=head, splice=splice, branch_label=branch_label,
+        version_path=version_path, rev_id=rev_id
+    )
+    revision_context = autogen.RevisionContext(script_directory, command_args)
 
     environment = util.asbool(
         config.get_main_option("revision_environment")
@@ -89,13 +92,11 @@ def revision(
                 "Using --sql with --autogenerate does not make any sense")
 
         def retrieve_migrations(rev, context):
-            if set(script.get_revisions(rev)) != \
-                    set(script.get_revisions("heads")):
-                raise util.CommandError("Target database is not up to date.")
-            autogen._produce_migration_diffs(context, template_args, imports)
+            revision_context.run_autogenerate(rev, context)
             return []
     elif environment:
         def retrieve_migrations(rev, context):
+            revision_context.run_no_autogenerate(rev, context)
             return []
     elif sql:
         raise util.CommandError(
@@ -105,16 +106,21 @@ def revision(
     if environment:
         with EnvironmentContext(
             config,
-            script,
+            script_directory,
             fn=retrieve_migrations,
             as_sql=sql,
-            template_args=template_args,
+            revision_context=revision_context
         ):
-            script.run_env()
-    return script.generate_revision(
-        rev_id or util.rev_id(), message, refresh=True,
-        head=head, splice=splice, branch_labels=branch_label,
-        version_path=version_path, **template_args)
+            script_directory.run_env()
+
+    scripts = [
+        script for script in
+        revision_context.generate_scripts()
+    ]
+    if len(scripts) == 1:
+        return scripts[0]
+    else:
+        return scripts
 
 
 def merge(config, revisions, message=None, branch_label=None, rev_id=None):
