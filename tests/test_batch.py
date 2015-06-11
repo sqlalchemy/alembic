@@ -1,15 +1,13 @@
 from contextlib import contextmanager
 import re
 
-import io
-
 from alembic.testing import exclusions
 from alembic.testing import TestBase, eq_, config
 from alembic.testing.fixtures import op_fixture
 from alembic.testing import mock
 from alembic.operations import Operations
-from alembic.batch import ApplyBatchImpl
-from alembic.migration import MigrationContext
+from alembic.operations.batch import ApplyBatchImpl
+from alembic.runtime.migration import MigrationContext
 
 
 from sqlalchemy import Integer, Table, Column, String, MetaData, ForeignKey, \
@@ -503,7 +501,7 @@ class BatchAPITest(TestBase):
         batch = op.batch_alter_table(
             'tname', recreate='never', schema=schema).__enter__()
 
-        with mock.patch("alembic.operations.sa_schema") as mock_schema:
+        with mock.patch("alembic.operations.base.sa_schema") as mock_schema:
             yield batch
         batch.impl.flush()
         self.mock_schema = mock_schema

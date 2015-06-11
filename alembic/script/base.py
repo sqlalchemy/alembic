@@ -2,10 +2,10 @@ import datetime
 import os
 import re
 import shutil
-from . import util
-from . import compat
+from .. import util
+from ..util import compat
 from . import revision
-from . import migration
+from ..runtime import migration
 
 from contextlib import contextmanager
 

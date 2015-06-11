@@ -3,7 +3,7 @@ from sqlalchemy.ext.compiler import compiles
 from sqlalchemy import schema, text, sql
 from sqlalchemy import types as sqltypes
 
-from ..compat import string_types, text_type, with_metaclass
+from ..util.compat import string_types, text_type, with_metaclass
 from .. import util
 from . import base
 

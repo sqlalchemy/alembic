@@ -1,8 +1,9 @@
 import os
 
 from .script import ScriptDirectory
-from .environment import EnvironmentContext
-from . import util, autogenerate as autogen
+from .runtime.environment import EnvironmentContext
+from . import util
+from . import autogenerate as autogen
 
 
 def list_templates(config):

@@ -10,3 +10,4 @@ alembic.ini
 .coverage
 coverage.xml
 .tox
+*.patch

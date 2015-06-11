@@ -1,6 +1,6 @@
 from alembic.testing.fixtures import TestBase
 from alembic.testing import eq_, assert_raises_message
-from alembic.revision import RevisionMap, Revision, MultipleHeads, \
+from alembic.script.revision import RevisionMap, Revision, MultipleHeads, \
     RevisionError
 
 

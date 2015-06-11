@@ -1,4 +1,4 @@
-from .operations import Operations
+from .operations.base import Operations
 from . import util
 
 # create proxy functions for

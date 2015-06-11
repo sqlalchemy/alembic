@@ -5,13 +5,12 @@ import re
 from sqlalchemy import create_engine, text, MetaData
 
 import alembic
-from alembic.compat import configparser
-from alembic import util
-from alembic.compat import string_types, text_type
-from alembic.migration import MigrationContext
-from alembic.environment import EnvironmentContext
-from alembic.operations import Operations
-from alembic.ddl.impl import _impls
+from ..util.compat import configparser
+from .. import util
+from ..util.compat import string_types, text_type
+from ..migration import MigrationContext
+from ..environment import EnvironmentContext
+from ..operations import Operations
 from contextlib import contextmanager
 from .plugin.plugin_base import SkipTest
 from .assertions import _get_dialect, eq_

@@ -2,9 +2,9 @@ from __future__ import absolute_import
 
 
 import re
-from alembic import util
+from .. import util
 from sqlalchemy.engine import default
-from alembic.compat import text_type, py3k
+from ..util.compat import text_type, py3k
 import contextlib
 from sqlalchemy.util import decorator
 from sqlalchemy import exc as sa_exc

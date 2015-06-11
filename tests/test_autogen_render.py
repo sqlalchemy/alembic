@@ -16,7 +16,8 @@ from sqlalchemy.sql import and_, column, literal_column, false
 
 from alembic.testing.mock import patch
 
-from alembic import autogenerate, util, compat
+from alembic import autogenerate, util
+from alembic.util import compat
 from alembic.testing import eq_, eq_ignore_whitespace, config
 
 from alembic.testing.fixtures import op_fixture

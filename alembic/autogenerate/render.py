@@ -1,9 +1,9 @@
 from sqlalchemy import schema as sa_schema, types as sqltypes, sql
 import logging
-from .. import compat
+from ..util import compat
 from ..ddl.base import _table_for_constraint, _fk_spec
 import re
-from ..compat import string_types
+from ..util.compat import string_types
 
 log = logging.getLogger(__name__)
 

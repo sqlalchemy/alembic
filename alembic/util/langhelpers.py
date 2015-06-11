@@ -1,77 +1,13 @@
-import sys
-import os
 import textwrap
 import warnings
-import re
 import inspect
 import uuid
 import collections
 
-from mako.template import Template
-from sqlalchemy.engine import url
-from sqlalchemy import __version__
-
-from .compat import callable, exec_, load_module_py, load_module_pyc, \
-    binary_type, string_types, py27
-
-
-class CommandError(Exception):
-    pass
-
-
-def _safe_int(value):
-    try:
-        return int(value)
-    except:
-        return value
-_vers = tuple(
-    [_safe_int(x) for x in re.findall(r'(\d+|[abc]\d)', __version__)])
-sqla_07 = _vers > (0, 7, 2)
-sqla_079 = _vers >= (0, 7, 9)
-sqla_08 = _vers >= (0, 8, 0)
-sqla_083 = _vers >= (0, 8, 3)
-sqla_084 = _vers >= (0, 8, 4)
-sqla_09 = _vers >= (0, 9, 0)
-sqla_092 = _vers >= (0, 9, 2)
-sqla_094 = _vers >= (0, 9, 4)
-sqla_094 = _vers >= (0, 9, 4)
-sqla_099 = _vers >= (0, 9, 9)
-sqla_100 = _vers >= (1, 0, 0)
-sqla_105 = _vers >= (1, 0, 5)
-if not sqla_07:
-    raise CommandError(
-        "SQLAlchemy 0.7.3 or greater is required. ")
+from .compat import callable, exec_, string_types
 
 from sqlalchemy.util import format_argspec_plus, update_wrapper
 from sqlalchemy.util.compat import inspect_getfullargspec
-
-import logging
-log = logging.getLogger(__name__)
-
-if py27:
-    # disable "no handler found" errors
-    logging.getLogger('alembic').addHandler(logging.NullHandler())
-
-
-try:
-    import fcntl
-    import termios
-    import struct
-    ioctl = fcntl.ioctl(0, termios.TIOCGWINSZ,
-                        struct.pack('HHHH', 0, 0, 0, 0))
-    _h, TERMWIDTH, _hp, _wp = struct.unpack('HHHH', ioctl)
-    if TERMWIDTH <= 0:  # can occur if running in emacs pseudo-tty
-        TERMWIDTH = None
-except (ImportError, IOError):
-    TERMWIDTH = None
-
-
-def template_to_file(template_file, dest, output_encoding, **kw):
-    with open(dest, 'wb') as f:
-        template = Template(filename=template_file)
-        f.write(
-            template.render_unicode(**kw).encode(output_encoding)
-        )
 
 
 def create_module_class_proxy(cls, globals_, locals_):
@@ -157,133 +93,9 @@ def create_module_class_proxy(cls, globals_, locals_):
                 attr_names.add(methname)
 
 
-def write_outstream(stream, *text):
-    encoding = getattr(stream, 'encoding', 'ascii') or 'ascii'
-    for t in text:
-        if not isinstance(t, binary_type):
-            t = t.encode(encoding, 'replace')
-        t = t.decode(encoding)
-        try:
-            stream.write(t)
-        except IOError:
-            # suppress "broken pipe" errors.
-            # no known way to handle this on Python 3 however
-            # as the exception is "ignored" (noisily) in TextIOWrapper.
-            break
-
-
-def coerce_resource_to_filename(fname):
-    """Interpret a filename as either a filesystem location or as a package
-    resource.
-
-    Names that are non absolute paths and contain a colon
-    are interpreted as resources and coerced to a file location.
-
-    """
-    if not os.path.isabs(fname) and ":" in fname:
-        import pkg_resources
-        fname = pkg_resources.resource_filename(*fname.split(':'))
-    return fname
-
-
-def status(_statmsg, fn, *arg, **kw):
-    msg(_statmsg + " ...", False)
-    try:
-        ret = fn(*arg, **kw)
-        write_outstream(sys.stdout, " done\n")
-        return ret
-    except:
-        write_outstream(sys.stdout, " FAILED\n")
-        raise
-
-
-def err(message):
-    log.error(message)
-    msg("FAILED: %s" % message)
-    sys.exit(-1)
-
-
-def obfuscate_url_pw(u):
-    u = url.make_url(u)
-    if u.password:
-        u.password = 'XXXXX'
-    return str(u)
-
-
 def asbool(value):
     return value is not None and \
         value.lower() == 'true'
-
-
-def warn(msg):
-    warnings.warn(msg)
-
-
-def msg(msg, newline=True):
-    if TERMWIDTH is None:
-        write_outstream(sys.stdout, msg)
-        if newline:
-            write_outstream(sys.stdout, "\n")
-    else:
-        # left indent output lines
-        lines = textwrap.wrap(msg, TERMWIDTH)
-        if len(lines) > 1:
-            for line in lines[0:-1]:
-                write_outstream(sys.stdout, "  ", line, "\n")
-        write_outstream(sys.stdout, "  ", lines[-1], ("\n" if newline else ""))
-
-
-def load_python_file(dir_, filename):
-    """Load a file from the given path as a Python module."""
-
-    module_id = re.sub(r'\W', "_", filename)
-    path = os.path.join(dir_, filename)
-    _, ext = os.path.splitext(filename)
-    if ext == ".py":
-        if os.path.exists(path):
-            module = load_module_py(module_id, path)
-        elif os.path.exists(simple_pyc_file_from_path(path)):
-            # look for sourceless load
-            module = load_module_pyc(
-                module_id, simple_pyc_file_from_path(path))
-        else:
-            raise ImportError("Can't find Python file %s" % path)
-    elif ext in (".pyc", ".pyo"):
-        module = load_module_pyc(module_id, path)
-    del sys.modules[module_id]
-    return module
-
-
-def simple_pyc_file_from_path(path):
-    """Given a python source path, return the so-called
-    "sourceless" .pyc or .pyo path.
-
-    This just a .pyc or .pyo file where the .py file would be.
-
-    Even with PEP-3147, which normally puts .pyc/.pyo files in __pycache__,
-    this use case remains supported as a so-called "sourceless module import".
-
-    """
-    if sys.flags.optimize:
-        return path + "o"  # e.g. .pyo
-    else:
-        return path + "c"  # e.g. .pyc
-
-
-def pyc_file_from_path(path):
-    """Given a python source path, locate the .pyc.
-
-    See http://www.python.org/dev/peps/pep-3147/
-                        #detecting-pep-3147-availability
-        http://www.python.org/dev/peps/pep-3147/#file-extension-checks
-
-    """
-    import imp
-    has3147 = hasattr(imp, 'get_tag')
-    if has3147:
-        return imp.cache_from_source(path)
-    else:
-        return simple_pyc_file_from_path(path)
 
 
 def rev_id():
@@ -300,17 +112,6 @@ def to_tuple(x, default=None):
         return tuple(x)
     else:
         raise ValueError("Don't know how to turn %r into a tuple" % x)
-
-
-def format_as_comma(value):
-    if value is None:
-        return ""
-    elif isinstance(value, string_types):
-        return value
-    elif isinstance(value, collections.Iterable):
-        return ", ".join(value)
-    else:
-        raise ValueError("Don't know how to comma-format %r" % value)
 
 
 class memoized_property(object):

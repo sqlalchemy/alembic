@@ -2,7 +2,7 @@ from sqlalchemy.ext.compiler import compiles
 from sqlalchemy import types as sqltypes
 from sqlalchemy import schema
 
-from ..compat import string_types
+from ..util.compat import string_types
 from .. import util
 from .impl import DefaultImpl
 from .base import ColumnNullable, ColumnName, ColumnDefault, \

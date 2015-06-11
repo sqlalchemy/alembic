@@ -1,7 +1,7 @@
 from sqlalchemy import schema as sa_schema, types as sqltypes
 from sqlalchemy import event
 import logging
-from .. import compat
+from ..util import compat
 from sqlalchemy.util import OrderedSet
 import re
 from .render import _user_defined_render

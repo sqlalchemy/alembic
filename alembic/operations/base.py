@@ -3,9 +3,10 @@ from contextlib import contextmanager
 from sqlalchemy.types import NULLTYPE, Integer
 from sqlalchemy import schema as sa_schema
 
-from . import util, batch
-from .compat import string_types
-from .ddl import impl
+from .. import util
+from . import batch
+from ..util.compat import string_types
+from ..ddl import impl
 
 __all__ = ('Operations', 'BatchOperations')
 
@@ -58,7 +59,7 @@ class Operations(object):
     @classmethod
     @contextmanager
     def context(cls, migration_context):
-        from .op import _install_proxy, _remove_proxy
+        from ..op import _install_proxy, _remove_proxy
         op = Operations(migration_context)
         _install_proxy(op)
         yield op

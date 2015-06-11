@@ -1,6 +1,6 @@
-from .operations import Operations
+from ..operations import Operations
 from .migration import MigrationContext
-from . import util
+from .. import util
 
 
 class EnvironmentContext(object):
@@ -96,12 +96,12 @@ class EnvironmentContext(object):
         be made available as ``from alembic import context``.
 
         """
-        from .context import _install_proxy
+        from ..context import _install_proxy
         _install_proxy(self)
         return self
 
     def __exit__(self, *arg, **kw):
-        from . import context, op
+        from .. import context, op
         context._remove_proxy()
         op._remove_proxy()
 

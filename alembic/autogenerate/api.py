@@ -5,7 +5,7 @@ import logging
 import itertools
 import re
 
-from ..compat import StringIO
+from ..util.compat import StringIO
 
 from mako.pygen import PythonPrinter
 from sqlalchemy.engine.reflection import Inspector

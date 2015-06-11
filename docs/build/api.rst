@@ -56,13 +56,13 @@ current :class:`.EnvironmentContext` in use.
 In particular, the key method used within ``env.py`` is :meth:`.EnvironmentContext.configure`,
 which establishes all the details about how the database will be accessed.
 
-.. automodule:: alembic.environment
+.. automodule:: alembic.runtime.environment
     :members:
 
 The Migration Context
 =====================
 
-.. automodule:: alembic.migration
+.. automodule:: alembic.runtime.migration
     :members:
 
 The Operations Object
@@ -151,7 +151,7 @@ Revision
 The :class:`.RevisionMap` object serves as the basis for revision
 management, used exclusively by :class:`.ScriptDirectory`.
 
-.. automodule:: alembic.revision
+.. automodule:: alembic.script.revision
     :members:
 
 Autogeneration
