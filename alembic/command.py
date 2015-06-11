@@ -78,7 +78,8 @@ def revision(
         sql=sql, head=head, splice=splice, branch_label=branch_label,
         version_path=version_path, rev_id=rev_id
     )
-    revision_context = autogen.RevisionContext(script_directory, command_args)
+    revision_context = autogen.RevisionContext(
+        config, script_directory, command_args)
 
     environment = util.asbool(
         config.get_main_option("revision_environment")
@@ -109,6 +110,7 @@ def revision(
             script_directory,
             fn=retrieve_migrations,
             as_sql=sql,
+            template_args=revision_context.template_args,
             revision_context=revision_context
         ):
             script_directory.run_env()

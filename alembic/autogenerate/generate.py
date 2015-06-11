@@ -11,11 +11,14 @@ class GeneratedRevision(object):
 
         self.head = self.revision_context.command_args['head']
         self.splice = self.revision_context.command_args['splice']
-        self.branch_labels = \
-            self.revision_context.command_args['branch_labels']
+        self.branch_label = \
+            self.revision_context.command_args['branch_label']
         self.version_path = self.revision_context.command_args['version_path']
 
     def to_script(self):
+        for k, v in self.revision_context.template_args.items():
+            self.template_args.setdefault(k, v)
+
         return self.revision_context.script_directory.generate_revision(
             self.rev_id,
             self.revision_context.command_args['message'],
@@ -28,9 +31,14 @@ class GeneratedRevision(object):
 
 
 class RevisionContext(object):
-    def __init__(self, script_directory, command_args):
+    def __init__(self, config, script_directory, command_args):
+        self.config = config
         self.script_directory = script_directory
         self.command_args = command_args
+        self.template_args = {
+            'config': config  # Let templates use config for
+                              # e.g. multiple databases
+        }
         self.generated_revisions = [
             GeneratedRevision(self)
         ]
