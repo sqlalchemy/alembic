@@ -13,7 +13,8 @@ has a `declarative base <http://www.sqlalchemy.org/docs/orm/extensions/declarati
 in ``myapp.mymodel``.  This base contains a :class:`~sqlalchemy.schema.MetaData` object which
 contains :class:`~sqlalchemy.schema.Table` objects defining our database.  We make sure this
 is loaded in ``env.py`` and then passed to :meth:`.EnvironmentContext.configure` via the
-``target_metadata`` argument.   The ``env.py`` sample script already has a
+``target_metadata`` argument.   The ``env.py`` sample script used in the
+generic template already has a
 variable declaration near the top for our convenience, where we replace ``None``
 with our :class:`~sqlalchemy.schema.MetaData`.  Starting with::
 
@@ -27,6 +28,14 @@ we change to::
 
     from myapp.mymodel import Base
     target_metadata = Base.metadata
+
+.. note::
+
+  The above example refers to the **generic alembic env.py template**, e.g.
+  the one created by default when calling upon ``alembic init``, and not
+  the special-use templates such as ``multidb``.   Please consult the source
+  code and comments within the ``env.py`` script directly for specific
+  guidance on where and how the autogenerate metadata is established.
 
 If we look later in the script, down in ``run_migrations_online()``,
 we can see the directive passed to :meth:`.EnvironmentContext.configure`::
