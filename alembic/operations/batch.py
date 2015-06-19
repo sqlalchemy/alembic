@@ -4,7 +4,7 @@ from sqlalchemy import types as sqltypes
 from sqlalchemy import schema as sql_schema
 from sqlalchemy.util import OrderedDict
 from .. import util
-from ..ddl.base import _columns_for_constraint, _is_type_bound
+from ..util.sqla_compat import _columns_for_constraint, _is_type_bound
 
 
 class BatchOperationsImpl(object):
