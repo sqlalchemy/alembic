@@ -2,7 +2,6 @@ from sqlalchemy import schema as sa_schema
 from sqlalchemy.types import NULLTYPE, Integer
 from ..util.compat import string_types
 from .. import util
-from ..ddl import impl
 
 
 class SchemaObjects(object):
@@ -107,7 +106,7 @@ class SchemaObjects(object):
         )
         idx = sa_schema.Index(
             name,
-            *[impl._textual_index_column(t, n) for n in columns],
+            *[util._textual_index_column(t, n) for n in columns],
             **kw)
         return idx
 

@@ -4,9 +4,9 @@ from sqlalchemy.types import NULLTYPE
 from sqlalchemy import schema as sa_schema
 
 from .. import util
+from ..util import sqla_compat
 from . import batch
 from . import schemaobj
-from ..ddl import impl
 
 __all__ = ('Operations', 'BatchOperations')
 
@@ -1101,7 +1101,7 @@ class Operations(object):
             :paramref:`.EnvironmentContext.configure.literal_binds`
 
         """
-        return impl._literal_bindparam(None, value, type_=type_)
+        return sqla_compat._literal_bindparam(None, value, type_=type_)
 
     def execute(self, sql, execution_options=None):
         """Execute the given SQL using the current migration context.

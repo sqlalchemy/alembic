@@ -10,9 +10,15 @@ from ..util.sqla_compat import (  # noqa
     _table_for_constraint,
     _columns_for_constraint, _fk_spec, _is_type_bound, _find_columns)
 
+# referenced in this module, but note
+# also needs to be here for backwards compat
+from ..operations import (  # noqa
+    RenameTable, AddColumn, DropColumn,
+    ColumnNullable, ColumnDefault, ColumnType, ColumnName,
+    AlterColumn
+)
 
-from ..operations import RenameTable, AddColumn, DropColumn, \
-    ColumnNullable, ColumnDefault, ColumnType, ColumnName
+
 if util.sqla_09:
     from sqlalchemy.sql.elements import quoted_name
 
