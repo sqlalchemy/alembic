@@ -11,12 +11,34 @@ class AddConstraintOp(MigrateOperation):
 
 
 class DropConstraintOp(MigrateOperation):
-    def __init__(self, name, type_=None):
+    pass
+
+
+class DropConstraintByNameOp(DropConstraintOp):
+    def __init__(self, name, table_name, type_=None, schema=None):
         self.name = name
+        self.table_name = table_name
         self.type_ = type_
+        self.schema = schema
 
     def dispatch_for(self, handler):
         return handler.drop_constraint
+
+
+class AddConstraintObjOp(AddConstraintOp):
+    def __init__(self, constraint):
+        self.constraint = constraint
+
+    def dispatch_for(self, handler):
+        return handler.add_constraint_obj
+
+
+class DropConstraintObjOp(DropConstraintOp):
+    def __init__(self, constraint):
+        self.constraint = constraint
+
+    def dispatch_for(self, handler):
+        return handler.drop_constraint_obj
 
 
 class CreateUniqueConstraintOp(AddConstraintOp):
