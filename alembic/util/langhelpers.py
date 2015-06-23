@@ -204,3 +204,20 @@ def _with_legacy_names(translations):
         return decorated
 
     return decorate
+
+
+class Dispatcher(object):
+    def __init__(self):
+        self._registry = {}
+
+    def dispatch_for(self, fn, target):
+        assert isinstance(target, type)
+        assert target not in self._registry
+        self._registry[target] = fn
+
+    def dispatch(self, obj):
+        for spcls in type(obj).__mro__:
+            if spcls in self._registry:
+                return self._registry[spcls]
+        else:
+            raise ValueError("no dispatch function for object: %s" % obj)

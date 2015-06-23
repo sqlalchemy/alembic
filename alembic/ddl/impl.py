@@ -4,7 +4,9 @@ from sqlalchemy import types as sqltypes
 from ..util.compat import (
     string_types, text_type, with_metaclass
 )
+from ..util import sqla_compat
 from .. import util
+from ...operations import ops
 from . import base
 
 
@@ -19,7 +21,140 @@ class ImplMeta(type):
 _impls = {}
 
 
-class DefaultImpl(with_metaclass(ImplMeta)):
+class DefaultEmitToDB(ops.MigrationDispatch):
+    def __init__(self, impl):
+        self.impl = impl
+
+    def emit_to_db(self, operation):
+        self.impl._exec(operation)
+
+    def alter_column(self, operation, **kw):
+        if operation.has_nullable:
+            self.emit_to_db(
+                base.ColumnNullable(
+                    operation.table_name, operation.column_name,
+                    operation.modify_nullable,
+                    schema=operation.schema,
+                    existing_type=operation.existing_type,
+                    existing_server_default=operation.existing_server_default,
+                    existing_nullable=operation.existing_nullable,
+                )
+            )
+        if operation.has_server_default:
+            self.emit_to_db(
+                base.ColumnServerDefault(
+                    operation.table_name, operation.column_name,
+                    operation.modify_server_default,
+                    schema=operation.schema,
+                    existing_type=operation.existing_type,
+                    existing_server_default=operation.existing_server_default,
+                    existing_nullable=operation.existing_nullable,
+                )
+            )
+        if operation.has_type:
+            self.emit_to_db(
+                base.ColumnType(
+                    operation.table_name, operation.column_name,
+                    operation.modify_type,
+                    schema=operation.schema,
+                    existing_type=operation.existing_type,
+                    existing_server_default=operation.existing_server_default,
+                    existing_nullable=operation.existing_nullable,
+                )
+            )
+        if operation.has_name:
+            self.emit_to_db(
+                base.ColumnName(
+                    operation.table_name, operation.column_name,
+                    operation.modify_name,
+                    schema=operation.schema,
+                    existing_type=operation.existing_type,
+                    existing_server_default=operation.existing_server_default,
+                    existing_nullable=operation.existing_nullable,
+                )
+            )
+
+    def add_column(self, operation, **kw):
+        self.emit_to_db(
+            base.AddColumn(operation.element)
+        )
+
+    def drop_column(self, operation, **kw):
+        self.emit_to_db(
+            base.DropColumn(operation.element)
+        )
+
+    def add_constraint(self, operation, **kw):
+        const = operation.element
+        if const._create_rule is None or \
+                const._create_rule(self):
+            self.emit_to_db(base.AddConstraint(operation.element))
+
+    def drop_constraint(self, operation, **kw):
+        self.emit_to_db(base.DropConstraint(operation.element))
+
+    def rename_table(self, operation, **kw):
+        self.emit_to_db(
+            base.RenameTable(
+                operation.old_table_name,
+                operation.new_table_name,
+                schema=operation.schema)
+        )
+
+    def create_table(self, operation, **kw):
+        table = operation.element
+        table.dispatch.before_create(table, self.impl.connection,
+                                     checkfirst=False,
+                                     _ddl_runner=self.impl)
+        self.emit_to_db(
+            schema.CreateTable(table)
+        )
+        table.dispatch.after_create(table, self.impl.connection,
+                                    checkfirst=False,
+                                    _ddl_runner=self.impl)
+        for index in table.indexes:
+            self.emit_to_db(schema.CreateIndex(index))
+
+    def drop_table(self, operation, **kw):
+        self.emit_to_db(operation)
+
+    def create_index(self, operation, **kw):
+        self.emit_to_db(operation)
+
+    def drop_index(self, operation, **kw):
+        self.emit_to_db(operation)
+
+    def bulk_insert(self, operation, **kw):
+        table, rows, multiinsert = (
+            operation.table, operation.rows, operation.multiinsert)
+
+        if not isinstance(rows, list):
+            raise TypeError("List expected")
+        elif rows and not isinstance(rows[0], dict):
+            raise TypeError("List of dictionaries expected")
+        if self.as_sql:
+            for row in rows:
+                self._exec(table.insert(inline=True).values(**dict(
+                    (k,
+                        sqla_compat._literal_bindparam(
+                            k, v, type_=table.c[k].type)
+                        if not isinstance(
+                            v, sqla_compat._literal_bindparam) else v)
+                    for k, v in row.items()
+                )))
+        else:
+            # work around http://www.sqlalchemy.org/trac/ticket/2461
+            if not hasattr(table, '_autoincrement_column'):
+                table._autoincrement_column = None
+            if rows:
+                if multiinsert:
+                    self._exec(table.insert(inline=True), multiparams=rows)
+                else:
+                    for row in rows:
+                        self._exec(table.insert(inline=True).values(**row))
+
+
+class DefaultImpl(legacy.LegacyImpl, with_metaclass(ImplMeta)):
 
     """Provide the entrypoint for major migration operations,
     including database-specific behavioral variances.
@@ -119,118 +254,6 @@ class DefaultImpl(with_metaclass(ImplMeta)):
     def execute(self, sql, execution_options=None):
         self._exec(sql, execution_options)
 
-    def alter_column(self, table_name, column_name,
-                     nullable=None,
-                     server_default=False,
-                     name=None,
-                     type_=None,
-                     schema=None,
-                     autoincrement=None,
-                     existing_type=None,
-                     existing_server_default=None,
-                     existing_nullable=None,
-                     existing_autoincrement=None
-                     ):
-        if autoincrement is not None or existing_autoincrement is not None:
-            util.warn(
-                "autoincrement and existing_autoincrement "
-                "only make sense for MySQL")
-        if nullable is not None:
-            self._exec(base.ColumnNullable(
-                table_name, column_name,
-                nullable, schema=schema,
-                existing_type=existing_type,
-                existing_server_default=existing_server_default,
-                existing_nullable=existing_nullable,
-            ))
-        if server_default is not False:
-            self._exec(base.ColumnDefault(
-                table_name, column_name, server_default,
-                schema=schema,
-                existing_type=existing_type,
-                existing_server_default=existing_server_default,
-                existing_nullable=existing_nullable,
-            ))
-        if type_ is not None:
-            self._exec(base.ColumnType(
-                table_name, column_name, type_, schema=schema,
-                existing_type=existing_type,
-                existing_server_default=existing_server_default,
-                existing_nullable=existing_nullable,
-            ))
-        # do the new name last ;)
-        if name is not None:
-            self._exec(base.ColumnName(
-                table_name, column_name, name, schema=schema,
-                existing_type=existing_type,
-                existing_server_default=existing_server_default,
-                existing_nullable=existing_nullable,
-            ))
-
-    def add_column(self, table_name, column, schema=None):
-        self._exec(base.AddColumn(table_name, column, schema=schema))
-
-    def drop_column(self, table_name, column, schema=None, **kw):
-        self._exec(base.DropColumn(table_name, column, schema=schema))
-
-    def add_constraint(self, const):
-        if const._create_rule is None or \
-                const._create_rule(self):
-            self._exec(schema.AddConstraint(const))
-
-    def drop_constraint(self, const):
-        self._exec(schema.DropConstraint(const))
-
-    def rename_table(self, old_table_name, new_table_name, schema=None):
-        self._exec(base.RenameTable(old_table_name,
-                                    new_table_name, schema=schema))
-
-    def create_table(self, table):
-        if util.sqla_07:
-            table.dispatch.before_create(table, self.connection,
-                                         checkfirst=False,
-                                         _ddl_runner=self)
-        self._exec(schema.CreateTable(table))
-        if util.sqla_07:
-            table.dispatch.after_create(table, self.connection,
-                                        checkfirst=False,
-                                        _ddl_runner=self)
-        for index in table.indexes:
-            self._exec(schema.CreateIndex(index))
-
-    def drop_table(self, table):
-        self._exec(schema.DropTable(table))
-
-    def create_index(self, index):
-        self._exec(schema.CreateIndex(index))
-
-    def drop_index(self, index):
-        self._exec(schema.DropIndex(index))
-
-    def bulk_insert(self, table, rows, multiinsert=True):
-        if not isinstance(rows, list):
-            raise TypeError("List expected")
-        elif rows and not isinstance(rows[0], dict):
-            raise TypeError("List of dictionaries expected")
-        if self.as_sql:
-            for row in rows:
-                self._exec(table.insert(inline=True).values(**dict(
-                    (k,
-                        _literal_bindparam(k, v, type_=table.c[k].type)
-                        if not isinstance(v, _literal_bindparam) else v)
-                    for k, v in row.items()
-                )))
-        else:
-            # work around http://www.sqlalchemy.org/trac/ticket/2461
-            if not hasattr(table, '_autoincrement_column'):
-                table._autoincrement_column = None
-            if rows:
-                if multiinsert:
-                    self._exec(table.insert(inline=True), multiparams=rows)
-                else:
-                    for row in rows:
-                        self._exec(table.insert(inline=True).values(**row))
-
     def compare_type(self, inspector_column, metadata_column):
 
         conn_type = inspector_column.type
@@ -313,7 +336,6 @@ class DefaultImpl(with_metaclass(ImplMeta)):
 
         """
         self.static_output("COMMIT" + self.command_terminator)
-
 
 
 def _string_compare(t1, t2):
