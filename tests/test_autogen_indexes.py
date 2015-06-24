@@ -12,7 +12,7 @@ from alembic.testing.env import staging_env
 
 py3k = sys.version_info >= (3, )
 
-from .test_autogenerate import AutogenFixtureTest
+from ._autogen_fixtures import AutogenFixtureTest
 
 
 class NoUqReflection(object):

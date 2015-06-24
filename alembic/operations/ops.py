@@ -7,43 +7,17 @@ to_impl = util.Dispatcher()
 class MigrateOperation(object):
     """base class for migration command and organization objects."""
 
-    def dispatch_for(self, handler):
-        raise NotImplementedError()
-
 
 class AddConstraintOp(MigrateOperation):
     pass
 
 
 class DropConstraintOp(MigrateOperation):
-    pass
-
-
-class DropConstraintByNameOp(DropConstraintOp):
     def __init__(self, name, table_name, type_=None, schema=None):
         self.name = name
         self.table_name = table_name
         self.type_ = type_
         self.schema = schema
-
-    def dispatch_for(self, handler):
-        return handler.drop_constraint
-
-
-class AddConstraintObjOp(AddConstraintOp):
-    def __init__(self, constraint):
-        self.constraint = constraint
-
-    def dispatch_for(self, handler):
-        return handler.add_constraint_obj
-
-
-class DropConstraintObjOp(DropConstraintOp):
-    def __init__(self, constraint):
-        self.constraint = constraint
-
-    def dispatch_for(self, handler):
-        return handler.drop_constraint_obj
 
 
 class CreateUniqueConstraintOp(AddConstraintOp):
@@ -51,9 +25,6 @@ class CreateUniqueConstraintOp(AddConstraintOp):
         self.name = name
         self.local_cols = local_cols
         self.kw = kw
-
-    def dispatch_for(self, handler):
-        return handler.create_unique_constraint
 
 
 class CreateCheckConstraintOp(AddConstraintOp):
@@ -64,9 +35,6 @@ class CreateCheckConstraintOp(AddConstraintOp):
         self.condition = condition
         self.schema = schema
         self.kw = kw
-
-    def dispatch_for(self, handler):
-        return handler.create_check_constraint
 
 
 class CreateIndexOp(MigrateOperation):
@@ -81,18 +49,12 @@ class CreateIndexOp(MigrateOperation):
         self.quote = quote
         self.kw = kw
 
-    def dispatch_for(self, handler):
-        return handler.create_index
-
 
 class DropIndexOp(MigrateOperation):
     def __init__(self, name, table_name=None, schema=None):
         self.name = name
         self.table_name = table_name
         self.schema = schema
-
-    def dispatch_for(self, handler):
-        return handler.drop_index
 
 
 class CreateTableOp(MigrateOperation):
@@ -101,17 +63,12 @@ class CreateTableOp(MigrateOperation):
         self.columns = columns
         self.kw = kw
 
-    def dispatch_for(self, handler):
-        return handler.create_table
-
 
 class DropTableOp(MigrateOperation):
-    def __init__(self, name, **kw):
+    def __init__(self, name, schema=None, table_kw=None):
         self.name = name
-        self.kw = kw
-
-    def dispatch_for(self, handler):
-        return handler.drop_table
+        self.schema = schema
+        self.table_kw = table_kw or {}
 
 
 class AlterTableOp(MigrateOperation):
@@ -120,18 +77,12 @@ class AlterTableOp(MigrateOperation):
         self.table_name = table_name
         self.schema = schema
 
-    def dispatch_for(self, handler):
-        return handler.alter_table
-
 
 class RenameTableOp(AlterTableOp):
 
     def __init__(self, old_table_name, new_table_name, schema=None):
         super(RenameTableOp, self).__init__(old_table_name, schema=schema)
         self.new_table_name = new_table_name
-
-    def dispatch_for(self, handler):
-        return handler.rename_table
 
 
 class AlterColumnOp(AlterTableOp):
@@ -154,9 +105,6 @@ class AlterColumnOp(AlterTableOp):
     modify_type = None
     kw = None
 
-    def dispatch_for(self, handler):
-        return handler.alter_column
-
 
 class AddColumnOp(AlterTableOp):
 
@@ -177,9 +125,6 @@ class BulkInsertOp(MigrateOperation):
         self.table = table
         self.rows = rows
         self.multiinsert = multiinsert
-
-    def dispatch_for(self, handler):
-        return handler.bulk_insert
 
 
 class OpContainer(MigrateOperation):

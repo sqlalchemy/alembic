@@ -1,5 +1,5 @@
 import sys
-from alembic.testing import TestBase, config
+from alembic.testing import TestBase
 
 from sqlalchemy import MetaData, Column, Table, Integer, String, \
     ForeignKeyConstraint
@@ -7,7 +7,7 @@ from alembic.testing import eq_
 
 py3k = sys.version_info >= (3, )
 
-from .test_autogenerate import AutogenFixtureTest
+from ._autogen_fixtures import AutogenFixtureTest
 
 
 class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):

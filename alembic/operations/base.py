@@ -806,7 +806,7 @@ class Operations(object):
         self.impl.create_table(table)
         return table
 
-    def drop_table(self, name, **kw):
+    def drop_table(self, name, schema=None, **kw):
         """Issue a "drop table" instruction using the current
         migration context.
 
@@ -828,9 +828,10 @@ class Operations(object):
          :class:`sqlalchemy.schema.Table` object created for the command.
 
         """
-        self.impl.drop_table(
-            self.schema_obj.table(name, **kw)
+        op = ops.DropTableOp(
+            name, schema=schema, table_kw=kw
         )
+        self.invoke(op)
 
     def create_index(self, name, table_name, columns, schema=None,
                      unique=False, quote=None, **kw):

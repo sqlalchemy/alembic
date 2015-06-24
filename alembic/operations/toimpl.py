@@ -2,7 +2,7 @@ from . import ops
 from sqlalchemy import schema as sa_schema
 
 
-@ops.to_impl.dispatch_for(ops.AlterColumnOp, 'default')
+@ops.to_impl.dispatch_for(ops.AlterColumnOp)
 def alter_column(operations, operation):
 
     compiler = operations.impl.dialect.statement_compiler(
@@ -60,3 +60,13 @@ def alter_column(operations, operation):
         for constraint in t.constraints:
             if _count_constraint(constraint):
                 operations.impl.add_constraint(constraint)
+
+
+@ops.to_impl.dispatch_for(ops.DropTableOp)
+def drop_table(operations, operation):
+    operations.impl.drop_table(
+        operations.schema_obj.table(
+            operation.name,
+            schema=operation.schema,
+            **operation.table_kw)
+    )
