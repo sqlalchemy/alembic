@@ -151,7 +151,7 @@ class DowngradeOps(OpContainer):
     'downgrade' stream of a script."""
 
 
-class MigrationScript(OpContainer):
+class MigrationScript(MigrateOperation):
     """represents a migration script.
 
     E.g. when autogenerate encounters this object, this corresponds to the
@@ -162,4 +162,16 @@ class MigrationScript(OpContainer):
 
     """
 
+    def __init__(
+            self, rev_id, message, imports, upgrade_ops, downgrade_ops,
+            head, splice, branch_label, version_path):
+        self.rev_id = rev_id
+        self.message = message
+        self.imports = imports
+        self.head = head
+        self.splice = splice
+        self.branch_label = branch_label
+        self.version_path = version_path
+        self.upgrade_ops = upgrade_ops
+        self.downgrade_ops = downgrade_ops
 

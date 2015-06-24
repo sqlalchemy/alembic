@@ -1,33 +1,6 @@
 from .. import util
 from .api import _render_migration_diffs
-
-
-class GeneratedRevision(object):
-    def __init__(self, revision_context):
-        self.revision_context = revision_context
-        self.template_args = {}
-        self.imports = set()
-        self.rev_id = revision_context.command_args['rev_id'] or util.rev_id()
-
-        self.head = self.revision_context.command_args['head']
-        self.splice = self.revision_context.command_args['splice']
-        self.branch_label = \
-            self.revision_context.command_args['branch_label']
-        self.version_path = self.revision_context.command_args['version_path']
-
-    def to_script(self):
-        for k, v in self.revision_context.template_args.items():
-            self.template_args.setdefault(k, v)
-
-        return self.revision_context.script_directory.generate_revision(
-            self.rev_id,
-            self.revision_context.command_args['message'],
-            refresh=True,
-            head=self.head,
-            splice=self.splice,
-            branch_labels=self.branch_label,
-            version_path=self.version_path,
-            **self.template_args)
+from ..operations import ops
 
 
 class RevisionContext(object):
@@ -39,9 +12,41 @@ class RevisionContext(object):
             'config': config  # Let templates use config for
                               # e.g. multiple databases
         }
+
+        # TODO: this would somehow be streamed out
+        # from autogenerate as part of run_autogenerate
+        # and run_no_autogenerate
         self.generated_revisions = [
-            GeneratedRevision(self)
+            ops.MigrationScript(
+                rev_id=self.command_args['rev_id'] or util.rev_id(),
+                message=self.command_args['message'],
+                imports=set(),
+                upgrade_ops=ops.UpgradeOps([]),
+                downgrade_ops=ops.DowngradeOps([]),
+                head=self.command_args['head'],
+                splice=self.command_args['splice'],
+                branch_label=self.command_args['branch_label'],
+                version_path=self.command_args['version_path']
+            )
         ]
+        # not sure if template_args should be on the MigrationScript
+        # or if this represents a rendering of a MigrationScript and is
+        # separate, or something
+        self.generated_revisions[0].template_args = {}
+
+    def _to_script(self, migration_script):
+        for k, v in self.template_args.items():
+            migration_script.template_args.setdefault(k, v)
+
+        return self.script_directory.generate_revision(
+            migration_script.rev_id,
+            migration_script.message,
+            refresh=True,
+            head=migration_script.head,
+            splice=migration_script.splice,
+            branch_labels=migration_script.branch_label,
+            version_path=migration_script.version_path,
+            **migration_script.template_args)
 
     def run_autogenerate(self, rev, context):
         if self.command_args['sql']:
@@ -50,6 +55,29 @@ class RevisionContext(object):
         if set(self.script_directory.get_revisions(rev)) != \
                 set(self.script_directory.get_revisions("heads")):
             raise util.CommandError("Target database is not up to date.")
+
+        # TODO:
+        """
+        things = [
+            MigrationScript(ops=[
+                UpgradeOps(ops=[]),
+                DowngradeOps(ops=[])
+                ]),
+            MigrationScript(ops=[
+                UpgradeOps(ops=[]),
+                DowngradeOps(ops=[])
+                ]),
+            MigrationScript(ops=[
+                UpgradeOps(ops=[]),
+                DowngradeOps(ops=[])
+                ]),
+        ]
+
+        for thing in things:
+
+        """
+        # TODO: need to separate out generation of scripts and ops
+        # directives vs. rendering
         for generated_revision in self.generated_revisions:
             _render_migration_diffs(
                 context,
@@ -60,4 +88,4 @@ class RevisionContext(object):
 
     def generate_scripts(self):
         for generated_revision in self.generated_revisions:
-            yield generated_revision.to_script()
+            yield self._to_script(generated_revision)
