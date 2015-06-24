@@ -1,3 +1,8 @@
+from .. import util
+
+
+to_impl = util.Dispatcher()
+
 
 class MigrateOperation(object):
     """base class for migration command and organization objects."""
@@ -131,73 +136,26 @@ class RenameTableOp(AlterTableOp):
 
 class AlterColumnOp(AlterTableOp):
 
-    def __init__(self, table_name, column_name, schema=None):
+    def __init__(
+            self, table_name, column_name, schema=None,
+            existing_type=None,
+            existing_server_default=False,
+            existing_nullable=None
+    ):
         super(AlterColumnOp, self).__init__(table_name, schema=schema)
         self.column_name = column_name
+        self.existing_type = existing_type
+        self.existing_server_default = existing_server_default
+        self.existing_nullable = existing_nullable
 
     modify_nullable = None
     modify_server_default = False
     modify_name = None
     modify_type = None
+    kw = None
 
     def dispatch_for(self, handler):
         return handler.alter_column
-
-    @classmethod
-    def from_alter_column(
-        cls, table_name, column_name,
-        nullable=None,
-        server_default=False,
-        name=None,
-        type_=None,
-        schema=None,
-        existing_type=None,
-        existing_server_default=None,
-            existing_nullable=None):
-        """Generate an AlterColumn object from a set of 'alter_column'
-        arguments.
-
-        The 'alter_column' arguments are common throughout Alembic, both
-        because this is the legacy API for altering columns as well as that
-        it remains the primary public API from the Operations object.
-        Internally, we seek to be able to convert between these arguments
-        and distinct AlterColumnElement operations grouped together.
-
-        """
-
-        alt = AlterColumnOp(
-            table_name, column_name, schema=schema,
-            existing_type=existing_type,
-            existing_server_default=existing_server_default,
-            existing_nullable=existing_nullable
-        )
-
-        if name is not None:
-            alt.modify_name = name
-        if type_ is not None:
-            alt.modify_type = type_,
-        if server_default is not False:
-            alt.modify_server_default = server_default
-        if nullable is not None:
-            alt.modify_nullable = nullable
-
-        return alt
-
-    @property
-    def has_nullable(self):
-        return self.modify_nullable is not None
-
-    @property
-    def has_type(self):
-        return self.modify_type is not None
-
-    @property
-    def has_server_default(self):
-        return self.modify_server_default is not False
-
-    @property
-    def has_name(self):
-        return self.modify_name is not None
 
 
 class AddColumnOp(AlterTableOp):
@@ -258,10 +216,4 @@ class MigrationScript(OpContainer):
     :class:`.UpgradeOps` and a single :class:`.DowngradeOps` directive.
 
     """
-
-
-class MigrationDispatch(object):
-    def handle(self, operation, **kw):
-        fn = operation.dispatch_for(self)
-        return fn(operation, **kw)
 

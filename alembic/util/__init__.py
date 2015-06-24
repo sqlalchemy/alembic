@@ -1,6 +1,6 @@
 from .langhelpers import (  # noqa
     create_module_class_proxy, asbool, rev_id, to_tuple, memoized_property,
-    immutabledict, _with_legacy_names)
+    immutabledict, _with_legacy_names, Dispatcher)
 from .messaging import (  # noqa
     write_outstream, status, err, obfuscate_url_pw, warn, msg, format_as_comma)
 from .pyfiles import (  # noqa

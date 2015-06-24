@@ -33,8 +33,16 @@ def create_module_class_proxy(cls, globals_, locals_):
         for name in attr_names:
             del globals_[name]
 
+    def _add_proxied_method(methname):
+        if not methname.startswith('_'):
+            if callable(getattr(cls, methname)):
+                locals_[methname] = _create_op_proxy(methname)
+            else:
+                attr_names.add(methname)
+
     globals_['_install_proxy'] = _install_proxy
     globals_['_remove_proxy'] = _remove_proxy
+    globals_['_add_proxied_method'] = _add_proxied_method
 
     def _create_op_proxy(name):
         fn = getattr(cls, name)
@@ -86,11 +94,7 @@ def create_module_class_proxy(cls, globals_, locals_):
         return lcl[name]
 
     for methname in dir(cls):
-        if not methname.startswith('_'):
-            if callable(getattr(cls, methname)):
-                locals_[methname] = _create_op_proxy(methname)
-            else:
-                attr_names.add(methname)
+        _add_proxied_method(methname)
 
 
 def asbool(value):
@@ -210,14 +214,19 @@ class Dispatcher(object):
     def __init__(self):
         self._registry = {}
 
-    def dispatch_for(self, fn, target):
-        assert isinstance(target, type)
-        assert target not in self._registry
-        self._registry[target] = fn
+    def dispatch_for(self, target, qualifier='default'):
+        def decorate(fn):
+            assert isinstance(target, type)
+            assert target not in self._registry
+            self._registry[(target, qualifier)] = fn
+            return fn
+        return decorate
 
-    def dispatch(self, obj):
+    def dispatch(self, obj, qualifier='default'):
         for spcls in type(obj).__mro__:
-            if spcls in self._registry:
-                return self._registry[spcls]
+            if qualifier != 'default' and (spcls, qualifier) in self._registry:
+                return self._registry[(spcls, qualifier)]
+            elif (spcls, 'default') in self._registry:
+                return self._registry[(spcls, 'default')]
         else:
             raise ValueError("no dispatch function for object: %s" % obj)

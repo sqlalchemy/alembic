@@ -809,12 +809,6 @@ class OpTest(TestBase):
         op.drop_constraint("f1", "t1", type_="foreignkey")
         context.assert_("ALTER TABLE t1 DROP FOREIGN KEY f1")
 
-        assert_raises_message(
-            TypeError,
-            r"Unknown arguments: badarg\d, badarg\d",
-            op.alter_column, "t", "c", badarg1="x", badarg2="y"
-        )
-
     @config.requirements.fail_before_sqla_084
     def test_naming_changes_drop_idx(self):
         context = op_fixture('mssql')

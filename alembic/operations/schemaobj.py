@@ -106,7 +106,7 @@ class SchemaObjects(object):
         )
         idx = sa_schema.Index(
             name,
-            *[util._textual_index_column(t, n) for n in columns],
+            *[util.sqla_compat._textual_index_column(t, n) for n in columns],
             **kw)
         return idx
 

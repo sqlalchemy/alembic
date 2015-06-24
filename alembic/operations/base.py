@@ -7,6 +7,8 @@ from .. import util
 from ..util import sqla_compat
 from . import batch
 from . import schemaobj
+from . import ops
+from . import toimpl
 
 __all__ = ('Operations', 'BatchOperations')
 
@@ -234,18 +236,17 @@ class Operations(object):
         )
 
     @util._with_legacy_names([('name', 'new_column_name')])
-    def alter_column(self, table_name, column_name,
-                     nullable=None,
-                     server_default=False,
-                     new_column_name=None,
-                     type_=None,
-                     autoincrement=None,
-                     existing_type=None,
-                     existing_server_default=False,
-                     existing_nullable=None,
-                     existing_autoincrement=None,
-                     schema=None
-                     ):
+    def alter_column(
+        self, table_name, column_name,
+        nullable=None,
+        server_default=False,
+        new_column_name=None,
+        type_=None,
+        existing_type=None,
+        existing_server_default=False,
+        existing_nullable=None,
+        schema=None, **kw
+    ):
         """Issue an "alter column" instruction using the
         current migration context.
 
@@ -321,26 +322,30 @@ class Operations(object):
             :class:`~sqlalchemy.sql.elements.quoted_name` construct.
 
         """
-        if autoincrement is not None:
-            # TODO: or we add **kw to AlterColumnOp
-            cls = mysql.MySQLAlterColumnOp
-        else:
-            cls = ops.AlterColumnOp
 
-        op = cls.from_alter_column(
-            table_name, column_name,
-            nullable=nullable,
-            server_default=server_default,
-            new_column_name=new_column_name,
-            type_=type_,
+        alt = ops.AlterColumnOp(
+            table_name, column_name, schema=schema,
             existing_type=existing_type,
             existing_server_default=existing_server_default,
-            existing_nullable=existing_nullable,
-            schema=schema
+            existing_nullable=existing_nullable
         )
 
-        # hits a ToImpl object
-        self.invoke(op)
+        alt.kw = kw
+        if new_column_name is not None:
+            alt.modify_name = new_column_name
+        if type_ is not None:
+            alt.modify_type = type_
+        if server_default is not False:
+            alt.modify_server_default = server_default
+        if nullable is not None:
+            alt.modify_nullable = nullable
+
+        return self.invoke(alt)
+
+    def invoke(self, operation):
+        fn = ops.to_impl.dispatch(
+            operation, self.migration_context.impl.__dialect__)
+        return fn(self, operation)
 
     def f(self, name):
         """Indicate a string name that has already had a naming convention
