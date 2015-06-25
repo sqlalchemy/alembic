@@ -2,6 +2,7 @@ from sqlalchemy import schema as sa_schema, types as sqltypes
 from sqlalchemy import event
 import logging
 from ..util import compat
+from ..util import sqla_compat
 from sqlalchemy.util import OrderedSet
 import re
 from .render import _user_defined_render
@@ -250,7 +251,7 @@ class _ix_constraint_sig(_constraint_sig):
 
     @property
     def column_names(self):
-        return _get_index_column_names(self.const)
+        return sqla_compat._get_index_column_names(self.const)
 
 
 class _fk_constraint_sig(_constraint_sig):
@@ -265,13 +266,6 @@ class _fk_constraint_sig(_constraint_sig):
             self.source_schema, self.source_table, tuple(self.source_columns),
             self.target_schema, self.target_table, tuple(self.target_columns)
         )
-
-
-def _get_index_column_names(idx):
-    if compat.sqla_08:
-        return [getattr(exp, "name", None) for exp in idx.expressions]
-    else:
-        return [getattr(col, "name", None) for col in idx.columns]
 
 
 def _compare_indexes_and_uniques(schema, tname, object_filters, conn_table,

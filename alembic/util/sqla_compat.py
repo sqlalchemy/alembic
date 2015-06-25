@@ -102,6 +102,8 @@ def _textual_index_column(table, text_):
         return c
     elif isinstance(text_, TextClause):
         return _textual_index_element(table, text_)
+    elif isinstance(text_, sql.ColumnElement):
+        return text_
     else:
         raise ValueError("String or text() construct expected")
 
@@ -147,3 +149,14 @@ class _literal_bindparam(_BindParamClause):
 @compiles(_literal_bindparam)
 def _render_literal_bindparam(element, compiler, **kw):
     return compiler.render_literal_bindparam(element, **kw)
+
+
+def _get_index_expressions(idx):
+    if sqla_08:
+        return list(idx.expressions)
+    else:
+        return list(idx.columns)
+
+
+def _get_index_column_names(idx):
+    return [getattr(exp, "name", None) for exp in _get_index_expressions(idx)]

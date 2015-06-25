@@ -6,7 +6,7 @@ from .. import util
 
 class SchemaObjects(object):
 
-    def __init__(self, migration_context):
+    def __init__(self, migration_context=None):
         self.migration_context = migration_context
 
     def primary_key_constraint(self, name, table_name, cols, schema=None):
@@ -83,7 +83,8 @@ class SchemaObjects(object):
 
     def metadata(self):
         kw = {}
-        if 'target_metadata' in self.migration_context.opts:
+        if self.migration_context is not None and \
+                'target_metadata' in self.migration_context.opts:
             mt = self.migration_context.opts['target_metadata']
             if hasattr(mt, 'naming_convention'):
                 kw['naming_convention'] = mt.naming_convention

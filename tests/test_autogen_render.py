@@ -2,6 +2,7 @@ import re
 import sys
 from alembic.testing import TestBase, exclusions
 
+from alembic.operations import ops
 from sqlalchemy import MetaData, Column, Table, String, \
     Numeric, CHAR, ForeignKey, DATETIME, Integer, \
     CheckConstraint, Unicode, Enum, cast,\
@@ -77,8 +78,9 @@ class AutogenRenderTest(TestBase):
                   schema='CamelSchema'
                   )
         idx = Index('test_active_code_idx', t.c.active, t.c.code)
+        op_obj = ops.CreateIndexOp.from_index(idx)
         eq_ignore_whitespace(
-            autogenerate.render._add_index(idx, self.autogen_context),
+            autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.create_index('test_active_code_idx', 'test', "
             "['active', 'code'], unique=False, schema='CamelSchema')"
         )

@@ -116,15 +116,6 @@ def compare_metadata(context, metadata):
     return diffs
 
 
-def _render_migration_diffs(context, template_args, imports):
-
-    autogen_context = _autogen_context(context, imports)
-
-    diffs = []
-    _produce_net_changes(autogen_context, diffs)
-    compose._render_diffs(diffs, autogen_context, template_args)
-
-
 def _autogen_context(
     context, imports=None, metadata=None, include_symbol=None,
         include_object=None, include_schemas=False):

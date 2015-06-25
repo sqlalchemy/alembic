@@ -1,6 +1,7 @@
 from .. import util
 from . import api
 from . import compose
+from . import render
 from ..operations import ops
 
 
@@ -15,8 +16,13 @@ class RevisionContext(object):
         }
 
     def _to_script(self, migration_script):
+        template_args = {}
         for k, v in self.template_args.items():
             migration_script.template_args.setdefault(k, v)
+
+        render._render_migration_script(
+            migration_script.autogen_context, migration_script, template_args
+        )
 
         return self.script_directory.generate_revision(
             migration_script.rev_id,
@@ -26,7 +32,7 @@ class RevisionContext(object):
             splice=migration_script.splice,
             branch_labels=migration_script.branch_label,
             version_path=migration_script.version_path,
-            **migration_script.template_args)
+            **template_args)
 
     def run_autogenerate(self, rev, context):
         if self.command_args['sql']:
@@ -62,20 +68,19 @@ class RevisionContext(object):
         diffs = []
         api._produce_net_changes(autogen_context, diffs)
 
-        self.generated_revisions = [
-            self._default_revision()
-        ]
+        migration_script = self._default_revision()
+        migration_script.autogen_context = autogen_context
 
-        template_args = {}
-        compose._render_diffs(diffs, autogen_context, template_args)
+        compose._to_migration_script(autogen_context, migration_script, diffs)
 
-        self.generated_revisions[0].template_args = template_args
+        self.generated_revisions = [migration_script]
+
+        # DO THE HOOK HERE!!
 
     def run_no_autogenerate(self, rev, context):
         self.generated_revisions = [
             self._default_revision()
         ]
-        self.generated_revisions[0].template_args = {}
 
     def _default_revision(self):
         return ops.MigrationScript(
