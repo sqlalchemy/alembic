@@ -510,7 +510,9 @@ class Operations(object):
             **kw
         )
 
-    def create_primary_key(self, name, table_name, cols, schema=None):
+    @util._with_legacy_names([('name', 'constraint_name')])
+    def create_primary_key(
+            self, constraint_name, table_name, columns, schema=None):
         """Issue a "create primary key" instruction using the current
         migration context.
 
@@ -539,7 +541,7 @@ class Operations(object):
          apply the name to the constraint object when it is associated
          with the table.
         :param table_name: String name of the target table.
-        :param cols: a list of string column names to be applied to the
+        :param columns: a list of string column names to be applied to the
          primary key constraint.
         :param schema: Optional schema name to operate within.  To control
          quoting of the schema outside of the default behavior, use
@@ -552,10 +554,11 @@ class Operations(object):
         """
         self.impl.add_constraint(
             self.schema_obj.primary_key_constraint(
-                name, table_name, cols, schema)
+                constraint_name, table_name, columns, schema)
         )
 
-    def create_foreign_key(self, name, source, referent, local_cols,
+    @util._with_legacy_names([('name', 'constraint_name')])
+    def create_foreign_key(self, constraint_name, source, referent, local_cols,
                            remote_cols, onupdate=None, ondelete=None,
                            deferrable=None, initially=None, match=None,
                            source_schema=None, referent_schema=None,
@@ -607,7 +610,7 @@ class Operations(object):
 
         self.impl.add_constraint(
             self.schema_obj.foreign_key_constraint(
-                name, source, referent,
+                constraint_name, source, referent,
                 local_cols, remote_cols,
                 onupdate=onupdate, ondelete=ondelete,
                 deferrable=deferrable,
@@ -617,7 +620,11 @@ class Operations(object):
                 **dialect_kw)
         )
 
-    def create_unique_constraint(self, name, source, local_cols,
+    @util._with_legacy_names([
+        ('name', 'constraint_name'),
+        ('source', 'table_name')
+    ])
+    def create_unique_constraint(self, constraint_name, table_name, columns,
                                  schema=None, **kw):
         """Issue a "create unique constraint" instruction using the
         current migration context.
@@ -643,9 +650,8 @@ class Operations(object):
          ``name`` here can be ``None``, as the event listener will
          apply the name to the constraint object when it is associated
          with the table.
-        :param source: String name of the source table. Dotted schema names are
-         supported.
-        :param local_cols: a list of string column names in the
+        :param table_name: String name of the source table.
+        :param columns: a list of string column names in the
          source table.
         :param deferrable: optional bool. If set, emit DEFERRABLE or
          NOT DEFERRABLE when issuing DDL for this constraint.
@@ -663,11 +669,15 @@ class Operations(object):
 
         self.impl.add_constraint(
             self.schema_obj.unique_constraint(
-                name, source, local_cols,
+                constraint_name, table_name, columns,
                 schema=schema, **kw)
         )
 
-    def create_check_constraint(self, name, source, condition,
+    @util._with_legacy_names([
+        ('name', 'constraint_name'),
+        ('source', 'table_name')
+    ])
+    def create_check_constraint(self, constraint_name, table_name, condition,
                                 schema=None, **kw):
         """Issue a "create check constraint" instruction using the
         current migration context.
@@ -695,7 +705,7 @@ class Operations(object):
          ``name`` here can be ``None``, as the event listener will
          apply the name to the constraint object when it is associated
          with the table.
-        :param source: String name of the source table.
+        :param table_name: String name of the source table.
         :param condition: SQL expression that's the condition of the
          constraint. Can be a string or SQLAlchemy expression language
          structure.
@@ -714,10 +724,11 @@ class Operations(object):
         """
         self.impl.add_constraint(
             self.schema_obj.check_constraint(
-                name, source, condition, schema=schema, **kw)
+                constraint_name, table_name, condition, schema=schema, **kw)
         )
 
-    def create_table(self, name, *columns, **kw):
+    @util._with_legacy_names([('name', 'table_name')])
+    def create_table(self, table_name, *columns, **kw):
         """Issue a "create table" instruction using the current migration
         context.
 
@@ -779,7 +790,7 @@ class Operations(object):
 
         .. versionadded:: 0.7.0
 
-        :param name: Name of the table
+        :param table_name: Name of the table
         :param \*columns: collection of :class:`~sqlalchemy.schema.Column`
          objects within
          the table, as well as optional :class:`~sqlalchemy.schema.Constraint`
@@ -802,11 +813,12 @@ class Operations(object):
             object is returned.
 
         """
-        table = self.schema_obj.table(name, *columns, **kw)
+        table = self.schema_obj.table(table_name, *columns, **kw)
         self.impl.create_table(table)
         return table
 
-    def drop_table(self, name, schema=None, **kw):
+    @util._with_legacy_names([('name', 'table_name')])
+    def drop_table(self, table_name, schema=None, **kw):
         """Issue a "drop table" instruction using the current
         migration context.
 
@@ -815,7 +827,7 @@ class Operations(object):
 
             drop_table("accounts")
 
-        :param name: Name of the table
+        :param table_name: Name of the table
         :param schema: Optional schema name to operate within.  To control
          quoting of the schema outside of the default behavior, use
          the SQLAlchemy construct
@@ -829,11 +841,12 @@ class Operations(object):
 
         """
         op = ops.DropTableOp(
-            name, schema=schema, table_kw=kw
+            table_name, schema=schema, table_kw=kw
         )
         self.invoke(op)
 
-    def create_index(self, name, table_name, columns, schema=None,
+    @util._with_legacy_names([('name', 'index_name')])
+    def create_index(self, index_name, table_name, columns, schema=None,
                      unique=False, quote=None, **kw):
         """Issue a "create index" instruction using the current
         migration context.
@@ -856,7 +869,7 @@ class Operations(object):
            :meth:`.Operations.create_index` in
            order to produce functional expressions within CREATE INDEX.
 
-        :param name: name of the index.
+        :param index_name: name of the index.
         :param table_name: name of the owning table.
         :param columns: a list consisting of string column names and/or
          :func:`~sqlalchemy.sql.expression.text` constructs.
@@ -887,12 +900,13 @@ class Operations(object):
 
         self.impl.create_index(
             self.schema_obj.index(
-                name, table_name, columns, schema=schema,
+                index_name, table_name, columns, schema=schema,
                 unique=unique, quote=quote, **kw)
         )
 
     @util._with_legacy_names([('tablename', 'table_name')])
-    def drop_index(self, name, table_name=None, schema=None):
+    @util._with_legacy_names([('name', 'index_name')])
+    def drop_index(self, index_name, table_name=None, schema=None):
         """Issue a "drop index" instruction using the current
         migration context.
 
@@ -900,7 +914,7 @@ class Operations(object):
 
             drop_index("accounts")
 
-        :param name: name of the index.
+        :param index_name: name of the index.
         :param table_name: name of the owning table.  Some
          backends such as Microsoft SQL Server require this.
         :param schema: Optional schema name to operate within.  To control
@@ -915,7 +929,7 @@ class Operations(object):
         # need a dummy column name here since SQLAlchemy
         # 0.7.6 and further raises on Index with no columns
         self.impl.drop_index(
-            self.schema_obj.index(name, table_name, ['x'], schema=schema)
+            self.schema_obj.index(index_name, table_name, ['x'], schema=schema)
         )
 
     @util._with_legacy_names([("type", "type_")])
@@ -1220,7 +1234,7 @@ class BatchOperations(Operations):
         return super(BatchOperations, self).drop_column(
             self.impl.table_name, column_name, schema=self.impl.schema)
 
-    def create_primary_key(self, name, cols):
+    def create_primary_key(self, constraint_name, columns):
         """Issue a "create primary key" instruction using the
         current batch migration context.
 
@@ -1234,8 +1248,9 @@ class BatchOperations(Operations):
         """
         raise NotImplementedError("not yet implemented")
 
+    @util._with_legacy_names([('name', 'constraint_name')])
     def create_foreign_key(
-            self, name, referent, local_cols, remote_cols, **kw):
+            self, constraint_name, referent, local_cols, remote_cols, **kw):
         """Issue a "create foreign key" instruction using the
         current batch migration context.
 
@@ -1255,10 +1270,12 @@ class BatchOperations(Operations):
 
         """
         return super(BatchOperations, self).create_foreign_key(
-            name, self.impl.table_name, referent, local_cols, remote_cols,
+            constraint_name, self.impl.table_name, referent,
+            local_cols, remote_cols,
             source_schema=self.impl.schema, **kw)
 
-    def create_unique_constraint(self, name, local_cols, **kw):
+    @util._with_legacy_names([('name', 'constraint_name')])
+    def create_unique_constraint(self, constraint_name, local_cols, **kw):
         """Issue a "create unique constraint" instruction using the
         current batch migration context.
 
@@ -1272,9 +1289,10 @@ class BatchOperations(Operations):
         """
         kw['schema'] = self.impl.schema
         return super(BatchOperations, self).create_unique_constraint(
-            name, self.impl.table_name, local_cols, **kw)
+            constraint_name, self.impl.table_name, local_cols, **kw)
 
-    def create_check_constraint(self, name, condition, **kw):
+    @util._with_legacy_names([('name', 'constraint_name')])
+    def create_check_constraint(self, constraint_name, condition, **kw):
         """Issue a "create check constraint" instruction using the
         current batch migration context.
 
@@ -1304,14 +1322,14 @@ class BatchOperations(Operations):
             name, self.impl.table_name, type_=type_,
             schema=self.impl.schema)
 
-    def create_index(self, name, columns, **kw):
+    def create_index(self, index_name, columns, **kw):
         """Issue a "create index" instruction using the
         current batch migration context."""
 
         kw['schema'] = self.impl.schema
 
         return super(BatchOperations, self).create_index(
-            name, self.impl.table_name, columns, **kw)
+            index_name, self.impl.table_name, columns, **kw)
 
     def drop_index(self, name, **kw):
         """Issue a "drop index" instruction using the
