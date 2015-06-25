@@ -1,5 +1,6 @@
 from .. import util
-from .api import _render_migration_diffs
+from . import api
+from . import compose
 from ..operations import ops
 
 
@@ -12,27 +13,6 @@ class RevisionContext(object):
             'config': config  # Let templates use config for
                               # e.g. multiple databases
         }
-
-        # TODO: this would somehow be streamed out
-        # from autogenerate as part of run_autogenerate
-        # and run_no_autogenerate
-        self.generated_revisions = [
-            ops.MigrationScript(
-                rev_id=self.command_args['rev_id'] or util.rev_id(),
-                message=self.command_args['message'],
-                imports=set(),
-                upgrade_ops=ops.UpgradeOps([]),
-                downgrade_ops=ops.DowngradeOps([]),
-                head=self.command_args['head'],
-                splice=self.command_args['splice'],
-                branch_label=self.command_args['branch_label'],
-                version_path=self.command_args['version_path']
-            )
-        ]
-        # not sure if template_args should be on the MigrationScript
-        # or if this represents a rendering of a MigrationScript and is
-        # separate, or something
-        self.generated_revisions[0].template_args = {}
 
     def _to_script(self, migration_script):
         for k, v in self.template_args.items():
@@ -76,15 +56,39 @@ class RevisionContext(object):
         for thing in things:
 
         """
-        # TODO: need to separate out generation of scripts and ops
-        # directives vs. rendering
-        for generated_revision in self.generated_revisions:
-            _render_migration_diffs(
-                context,
-                generated_revision.template_args, generated_revision.imports)
+
+        autogen_context = api._autogen_context(context)
+
+        diffs = []
+        api._produce_net_changes(autogen_context, diffs)
+
+        self.generated_revisions = [
+            self._default_revision()
+        ]
+
+        template_args = {}
+        compose._render_diffs(diffs, autogen_context, template_args)
+
+        self.generated_revisions[0].template_args = template_args
 
     def run_no_autogenerate(self, rev, context):
-        pass
+        self.generated_revisions = [
+            self._default_revision()
+        ]
+        self.generated_revisions[0].template_args = {}
+
+    def _default_revision(self):
+        return ops.MigrationScript(
+            rev_id=self.command_args['rev_id'] or util.rev_id(),
+            message=self.command_args['message'],
+            imports=set(),
+            upgrade_ops=ops.UpgradeOps([]),
+            downgrade_ops=ops.DowngradeOps([]),
+            head=self.command_args['head'],
+            splice=self.command_args['splice'],
+            branch_label=self.command_args['branch_label'],
+            version_path=self.command_args['version_path']
+        )
 
     def generate_scripts(self):
         for generated_revision in self.generated_revisions:
