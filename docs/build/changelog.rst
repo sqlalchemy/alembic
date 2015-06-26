@@ -25,6 +25,13 @@ Changelog
       directive, even though they render within a full
       ``ForeignKeyConstraint`` directive.
 
+    .. change::
+      :tags: bug, tests
+
+      Repaired warnings that occur when running unit tests against
+      SQLAlchemy 1.0.5 or greater involving the "legacy_schema_aliasing"
+      flag.
+
 .. changelog::
     :version: 0.7.6
     :released: May 5, 2015
