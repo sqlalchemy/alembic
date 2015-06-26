@@ -496,15 +496,15 @@ class BatchAPITest(TestBase):
 
     @contextmanager
     def _fixture(self, schema=None):
-        migration_context = mock.Mock(opts={})
+        migration_context = mock.Mock(
+            opts={}, impl=mock.MagicMock(__dialect__='sqlite'))
         op = Operations(migration_context)
         batch = op.batch_alter_table(
             'tname', recreate='never', schema=schema).__enter__()
 
         mock_schema = mock.MagicMock()
         with mock.patch("alembic.operations.schemaobj.sa_schema", mock_schema):
-            with mock.patch("alembic.operations.base.sa_schema", mock_schema):
-                yield batch
+            yield batch
         batch.impl.flush()
         self.mock_schema = mock_schema
 

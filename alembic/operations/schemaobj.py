@@ -81,6 +81,26 @@ class SchemaObjects(object):
         t.append_constraint(ck)
         return ck
 
+    def generic_constraint(self, name, table_name, type_, schema=None, **kw):
+        t = self.table(table_name, schema=schema)
+        types = {
+            'foreignkey': lambda name: sa_schema.ForeignKeyConstraint(
+                [], [], name=name),
+            'primary': sa_schema.PrimaryKeyConstraint,
+            'unique': sa_schema.UniqueConstraint,
+            'check': lambda name: sa_schema.CheckConstraint("", name=name),
+            None: sa_schema.Constraint
+        }
+        try:
+            const = types[type_]
+        except KeyError:
+            raise TypeError("'type' can be one of %s" %
+                            ", ".join(sorted(repr(x) for x in types)))
+        else:
+            const = const(name=name)
+            t.append_constraint(const)
+            return const
+
     def metadata(self):
         kw = {}
         if self.migration_context is not None and \

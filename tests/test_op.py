@@ -524,7 +524,7 @@ class OpTest(TestBase):
     def test_add_foreign_key_dialect_kw(self):
         op_fixture()
         with mock.patch(
-                "alembic.operations.base.sa_schema.ForeignKeyConstraint"
+                "sqlalchemy.schema.ForeignKeyConstraint"
         ) as fkc:
             op.create_foreign_key('fk_test', 't1', 't2',
                                   ['foo', 'bar'], ['bat', 'hoho'],

@@ -1,14 +1,11 @@
 from contextlib import contextmanager
 
-from sqlalchemy import schema as sa_schema
-from sqlalchemy import sql
-
 from .. import util
 from ..util import sqla_compat
 from . import batch
 from . import schemaobj
 from . import ops
-from . import toimpl
+from . import toimpl  # noqa
 
 __all__ = ('Operations', 'BatchOperations')
 
@@ -215,6 +212,11 @@ class Operations(object):
 
         return self.migration_context
 
+    def invoke(self, operation):
+        fn = ops.to_impl.dispatch(
+            operation, self.migration_context.impl.__dialect__)
+        return fn(self, operation)
+
     def rename_table(self, old_table_name, new_table_name, schema=None):
         """Emit an ALTER TABLE to rename a table.
 
@@ -229,11 +231,12 @@ class Operations(object):
             :class:`~sqlalchemy.sql.elements.quoted_name` construct.
 
         """
-        self.impl.rename_table(
+        op = ops.RenameTableOp(
             old_table_name,
             new_table_name,
             schema=schema
         )
+        return self.invoke(op)
 
     @util._with_legacy_names([('name', 'new_column_name')])
     def alter_column(
@@ -337,11 +340,6 @@ class Operations(object):
 
         return self.invoke(alt)
 
-    def invoke(self, operation):
-        fn = ops.to_impl.dispatch(
-            operation, self.migration_context.impl.__dialect__)
-        return fn(self, operation)
-
     def f(self, name):
         """Indicate a string name that has already had a naming convention
         applied to it.
@@ -443,17 +441,10 @@ class Operations(object):
 
         """
 
-        t = self.schema_obj.table(table_name, column, schema=schema)
-        self.impl.add_column(
-            table_name,
-            column,
-            schema=schema
+        op = ops.AddColumnOp(
+            table_name, column, schema=schema
         )
-        for constraint in t.constraints:
-            if not isinstance(constraint, sa_schema.PrimaryKeyConstraint):
-                self.impl.add_constraint(constraint)
-        for index in t.indexes:
-            self.impl._exec(sa_schema.CreateIndex(index))
+        return self.invoke(op)
 
     def drop_column(self, table_name, column_name, schema=None, **kw):
         """Issue a "drop column" instruction using the current
@@ -499,7 +490,7 @@ class Operations(object):
 
         """
 
-        op = ops.DropColumnOp(table_name, column_name, schema=schema)
+        op = ops.DropColumnOp(table_name, column_name, schema=schema, **kw)
         return self.invoke(op)
 
     @util._with_legacy_names([('name', 'constraint_name')])
@@ -544,13 +535,14 @@ class Operations(object):
             :class:`~sqlalchemy.sql.elements.quoted_name` construct.
 
         """
-        self.impl.add_constraint(
-            self.schema_obj.primary_key_constraint(
-                constraint_name, table_name, columns, schema)
+        op = ops.CreatePrimaryKeyOp(
+            constraint_name, table_name, columns, schema
         )
+        return self.invoke(op)
 
     @util._with_legacy_names([('name', 'constraint_name')])
-    def create_foreign_key(self, constraint_name, source, referent, local_cols,
+    def create_foreign_key(self, constraint_name,
+                           source_table, referent_table, local_cols,
                            remote_cols, onupdate=None, ondelete=None,
                            deferrable=None, initially=None, match=None,
                            source_schema=None, referent_schema=None,
@@ -581,8 +573,8 @@ class Operations(object):
          ``name`` here can be ``None``, as the event listener will
          apply the name to the constraint object when it is associated
          with the table.
-        :param source: String name of the source table.
-        :param referent: String name of the destination table.
+        :param source_table: String name of the source table.
+        :param referent_table: String name of the destination table.
         :param local_cols: a list of string column names in the
          source table.
         :param remote_cols: a list of string column names in the
@@ -600,17 +592,18 @@ class Operations(object):
 
         """
 
-        self.impl.add_constraint(
-            self.schema_obj.foreign_key_constraint(
-                constraint_name, source, referent,
-                local_cols, remote_cols,
-                onupdate=onupdate, ondelete=ondelete,
-                deferrable=deferrable,
-                source_schema=source_schema,
-                referent_schema=referent_schema,
-                initially=initially, match=match,
-                **dialect_kw)
+        op = ops.CreateForeignKeyOp(
+            constraint_name,
+            source_table, referent_table,
+            local_cols, remote_cols,
+            onupdate=onupdate, ondelete=ondelete,
+            deferrable=deferrable,
+            source_schema=source_schema,
+            referent_schema=referent_schema,
+            initially=initially, match=match,
+            **dialect_kw
         )
+        return self.invoke(op)
 
     @util._with_legacy_names([
         ('name', 'constraint_name'),
@@ -659,11 +652,11 @@ class Operations(object):
 
         """
 
-        self.impl.add_constraint(
-            self.schema_obj.unique_constraint(
-                constraint_name, table_name, columns,
-                schema=schema, **kw)
+        op = ops.CreateUniqueConstraintOp(
+            constraint_name, table_name, columns,
+            schema=schema, **kw
         )
+        return self.invoke(op)
 
     @util._with_legacy_names([
         ('name', 'constraint_name'),
@@ -714,10 +707,10 @@ class Operations(object):
             :class:`~sqlalchemy.sql.elements.quoted_name` construct.
 
         """
-        self.impl.add_constraint(
-            self.schema_obj.check_constraint(
-                constraint_name, table_name, condition, schema=schema, **kw)
+        op = ops.CreateCheckConstraintOp(
+            constraint_name, table_name, condition, schema=schema, **kw
         )
+        return self.invoke(op)
 
     @util._with_legacy_names([('name', 'table_name')])
     def create_table(self, table_name, *columns, **kw):
@@ -888,11 +881,12 @@ class Operations(object):
             reserved word which is not known by the SQLAlchemy dialect.
 
         :param \**kw: Additional keyword arguments not mentioned above are
-            dialect specific, and passed in the form ``<dialectname>_<argname>``.
+            dialect specific, and passed in the form
+            ``<dialectname>_<argname>``.
             See the documentation regarding an individual dialect at
             :ref:`dialect_toplevel` for detail on documented arguments.
         """
-        op = ops.CreateIndex(
+        op = ops.CreateIndexOp(
             index_name, table_name, columns, schema=schema,
             unique=unique, quote=quote, **kw
         )
@@ -920,11 +914,10 @@ class Operations(object):
             :class:`~sqlalchemy.sql.elements.quoted_name` construct.
 
         """
-        # need a dummy column name here since SQLAlchemy
-        # 0.7.6 and further raises on Index with no columns
-        self.impl.drop_index(
-            self.schema_obj.index(index_name, table_name, ['x'], schema=schema)
+        op = ops.DropIndexOp(
+            index_name, table_name=table_name, schema=schema
         )
+        return self.invoke(op)
 
     @util._with_legacy_names([("type", "type_")])
     def drop_constraint(self, name, table_name, type_=None, schema=None):
@@ -944,24 +937,10 @@ class Operations(object):
 
         """
 
-        t = self.schema_obj.table(table_name, schema=schema)
-        types = {
-            'foreignkey': lambda name: sa_schema.ForeignKeyConstraint(
-                [], [], name=name),
-            'primary': sa_schema.PrimaryKeyConstraint,
-            'unique': sa_schema.UniqueConstraint,
-            'check': lambda name: sa_schema.CheckConstraint("", name=name),
-            None: sa_schema.Constraint
-        }
-        try:
-            const = types[type_]
-        except KeyError:
-            raise TypeError("'type' can be one of %s" %
-                            ", ".join(sorted(repr(x) for x in types)))
-
-        const = const(name=name)
-        t.append_constraint(const)
-        self.impl.drop_constraint(const)
+        op = ops.DropConstraintOp(
+            name, table_name, type_=type_, schema=schema
+        )
+        return self.invoke(op)
 
     def bulk_insert(self, table, rows, multiinsert=True):
         """Issue a "bulk insert" operation using the current
@@ -1046,7 +1025,11 @@ class Operations(object):
            .. versionadded:: 0.6.4
 
           """
-        self.impl.bulk_insert(table, rows, multiinsert=multiinsert)
+
+        op = ops.BulkInsertOp(
+            table, rows, multiinsert=multiinsert
+        )
+        self.invoke(op)
 
     def inline_literal(self, value, type_=None):
         """Produce an 'inline literal' expression, suitable for
@@ -1092,7 +1075,7 @@ class Operations(object):
         """
         return sqla_compat._literal_bindparam(None, value, type_=type_)
 
-    def execute(self, sql, execution_options=None):
+    def execute(self, sqltext, execution_options=None):
         """Execute the given SQL using the current migration context.
 
         In a SQL script context, the statement is emitted directly to the
@@ -1156,7 +1139,7 @@ class Operations(object):
          :meth:`sqlalchemy.engine.Connection.execution_options`.
         """
         self.migration_context.impl.execute(
-            sql,
+            sqltext,
             execution_options=execution_options)
 
     def get_bind(self):

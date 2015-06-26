@@ -14,15 +14,20 @@ class RevisionContext(object):
             'config': config  # Let templates use config for
                               # e.g. multiple databases
         }
+        self.generated_revisions = [
+            self._default_revision()
+        ]
 
     def _to_script(self, migration_script):
         template_args = {}
         for k, v in self.template_args.items():
-            migration_script.template_args.setdefault(k, v)
+            template_args.setdefault(k, v)
 
-        render._render_migration_script(
-            migration_script.autogen_context, migration_script, template_args
-        )
+        if migration_script._autogen_context is not None:
+            render._render_migration_script(
+                migration_script._autogen_context, migration_script,
+                template_args
+            )
 
         return self.script_directory.generate_revision(
             migration_script.rev_id,
@@ -42,48 +47,23 @@ class RevisionContext(object):
                 set(self.script_directory.get_revisions("heads")):
             raise util.CommandError("Target database is not up to date.")
 
-        # TODO:
-        """
-        things = [
-            MigrationScript(ops=[
-                UpgradeOps(ops=[]),
-                DowngradeOps(ops=[])
-                ]),
-            MigrationScript(ops=[
-                UpgradeOps(ops=[]),
-                DowngradeOps(ops=[])
-                ]),
-            MigrationScript(ops=[
-                UpgradeOps(ops=[]),
-                DowngradeOps(ops=[])
-                ]),
-        ]
-
-        for thing in things:
-
-        """
-
         autogen_context = api._autogen_context(context)
 
         diffs = []
         api._produce_net_changes(autogen_context, diffs)
 
-        migration_script = self._default_revision()
-        migration_script.autogen_context = autogen_context
+        migration_script = self.generated_revisions[0]
+        migration_script._autogen_context = autogen_context
 
         compose._to_migration_script(autogen_context, migration_script, diffs)
-
-        self.generated_revisions = [migration_script]
 
         # DO THE HOOK HERE!!
 
     def run_no_autogenerate(self, rev, context):
-        self.generated_revisions = [
-            self._default_revision()
-        ]
+        pass
 
     def _default_revision(self):
-        return ops.MigrationScript(
+        op = ops.MigrationScript(
             rev_id=self.command_args['rev_id'] or util.rev_id(),
             message=self.command_args['message'],
             imports=set(),
@@ -94,6 +74,8 @@ class RevisionContext(object):
             branch_label=self.command_args['branch_label'],
             version_path=self.command_args['version_path']
         )
+        op._autogen_context = None
+        return op
 
     def generate_scripts(self):
         for generated_revision in self.generated_revisions:

@@ -102,8 +102,6 @@ def _textual_index_column(table, text_):
         return c
     elif isinstance(text_, TextClause):
         return _textual_index_element(table, text_)
-    elif isinstance(text_, sql.ColumnElement):
-        return text_
     else:
         raise ValueError("String or text() construct expected")
 

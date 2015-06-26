@@ -2,6 +2,7 @@ from .. import util
 from ..util import sqla_compat
 from . import schemaobj
 from sqlalchemy.types import NULLTYPE
+from sqlalchemy import schema as sa_schema
 
 to_impl = util.Dispatcher()
 
@@ -69,6 +70,12 @@ class CreatePrimaryKeyOp(AddConstraintOp):
             *constraint.columns
         )
 
+    def to_constraint(self, migration_context=None):
+        schema_obj = schemaobj.SchemaObjects(migration_context)
+        return schema_obj.primary_key_constraint(
+            self.constraint_name, self.table_name,
+            self.columns, schema=self.schema)
+
 
 class CreateUniqueConstraintOp(AddConstraintOp):
     def __init__(
@@ -97,8 +104,8 @@ class CreateUniqueConstraintOp(AddConstraintOp):
             **kw
         )
 
-    def to_constraint(self):
-        schema_obj = schemaobj.SchemaObjects()
+    def to_constraint(self, migration_context=None):
+        schema_obj = schemaobj.SchemaObjects(migration_context)
         return schema_obj.unique_constraint(
             self.constraint_name, self.table_name, self.columns,
             schema=self.schema, **self.kw)
@@ -145,6 +152,14 @@ class CreateForeignKeyOp(AddConstraintOp):
             **kw
         )
 
+    def to_constraint(self, migration_context=None):
+        schema_obj = schemaobj.SchemaObjects(migration_context)
+        return schema_obj.foreign_key_constraint(
+            self.constraint_name,
+            self.source_table, self.referent_table,
+            self.local_cols, self.remote_cols,
+            **self.kw)
+
 
 class CreateCheckConstraintOp(AddConstraintOp):
     def __init__(
@@ -166,11 +181,17 @@ class CreateCheckConstraintOp(AddConstraintOp):
             schema=constraint_table.schema
         )
 
+    def to_constraint(self, migration_context=None):
+        schema_obj = schemaobj.SchemaObjects(migration_context)
+        return schema_obj.check_constraint(
+            self.constraint_name, self.table_name,
+            self.condition, schema=self.schema, **self.kw)
+
 
 class CreateIndexOp(MigrateOperation):
     def __init__(
             self, index_name, table_name, columns, schema=None,
-            unique=False, quote=None, **kw):
+            unique=False, quote=None, _orig_index=None, **kw):
         self.index_name = index_name
         self.table_name = table_name
         self.columns = columns
@@ -178,6 +199,7 @@ class CreateIndexOp(MigrateOperation):
         self.unique = unique
         self.quote = quote
         self.kw = kw
+        self._orig_index = _orig_index
 
     @classmethod
     def from_index(cls, index):
@@ -188,10 +210,13 @@ class CreateIndexOp(MigrateOperation):
             schema=index.table.schema,
             unique=index.unique,
             quote=index.name.quote,
+            _orig_index=index,
             **index.dialect_kwargs
         )
 
     def to_index(self, migration_context=None):
+        if self._orig_index:
+            return self._orig_index
         schema_obj = schemaobj.SchemaObjects(migration_context)
         return schema_obj.index(
             self.index_name, self.table_name, self.columns, schema=self.schema,
@@ -211,6 +236,14 @@ class DropIndexOp(MigrateOperation):
             index.table.name,
             schema=index.table.schema,
         )
+
+    def to_index(self, migration_context=None):
+        schema_obj = schemaobj.SchemaObjects(migration_context)
+
+        # need a dummy column name here since SQLAlchemy
+        # 0.7.6 and further raises on Index with no columns
+        return schema_obj.index(
+            self.index_name, self.table_name, ['x'], schema=self.schema)
 
 
 class CreateTableOp(MigrateOperation):
@@ -317,9 +350,10 @@ class AddColumnOp(AlterTableOp):
 
 class DropColumnOp(AlterTableOp):
 
-    def __init__(self, table_name, column_name, schema=None):
+    def __init__(self, table_name, column_name, schema=None, **kw):
         super(DropColumnOp, self).__init__(table_name, schema=schema)
         self.column_name = column_name
+        self.kw = kw
 
     @classmethod
     def from_column_and_tablename(cls, schema, tname, col):

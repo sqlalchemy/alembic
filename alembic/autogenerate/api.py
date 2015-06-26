@@ -174,7 +174,7 @@ def _autogen_context(
     opts = context.opts
     connection = context.bind
     return {
-        'imports': imports,
+        'imports': imports if imports is not None else set(),
         'connection': connection,
         'dialect': connection.dialect,
         'context': context,

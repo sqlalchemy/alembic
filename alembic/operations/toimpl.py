@@ -74,7 +74,9 @@ def drop_column(operations, operation):
     column = operation.to_column(operations.migration_context)
     operations.impl.drop_column(
         operation.table_name,
-        column
+        column,
+        schema=operation.schema,
+        **operation.kw
     )
 
 
@@ -84,9 +86,67 @@ def create_index(operations, operation):
     operations.impl.create_index(idx)
 
 
+@ops.to_impl.dispatch_for(ops.DropIndexOp)
+def drop_index(operations, operation):
+    operations.impl.drop_index(
+        operation.to_index(operations.migration_context)
+    )
+
+
 @ops.to_impl.dispatch_for(ops.CreateTableOp)
 def create_table(operations, operation):
     table = operation.to_table(operations.migration_context)
     operations.impl.create_table(table)
+    return table
 
 
+@ops.to_impl.dispatch_for(ops.RenameTableOp)
+def rename_table(operations, operation):
+    operations.impl.rename_table(
+        operation.table_name,
+        operation.new_table_name,
+        schema=operation.schema)
+
+
+@ops.to_impl.dispatch_for(ops.AddColumnOp)
+def add_column(operations, operation):
+    table_name = operation.table_name
+    column = operation.column
+    schema = operation.schema
+
+    t = operations.schema_obj.table(table_name, column, schema=schema)
+    operations.impl.add_column(
+        table_name,
+        column,
+        schema=schema
+    )
+    for constraint in t.constraints:
+        if not isinstance(constraint, sa_schema.PrimaryKeyConstraint):
+            operations.impl.add_constraint(constraint)
+    for index in t.indexes:
+        operations.impl.create_index(index)
+
+
+@ops.to_impl.dispatch_for(ops.AddConstraintOp)
+def create_constraint(operations, operation):
+    operations.impl.add_constraint(
+        operation.to_constraint(operations.migration_context)
+    )
+
+
+@ops.to_impl.dispatch_for(ops.DropConstraintOp)
+def drop_constraint(operations, operation):
+    operations.impl.drop_constraint(
+        operations.schema_obj.generic_constraint(
+            operation.constraint_name,
+            operation.table_name,
+            operation.constraint_type,
+            schema=operation.schema,
+        )
+    )
+
+
+@ops.to_impl.dispatch_for(ops.BulkInsertOp)
+def bulk_insert(operations, operation):
+    operations.impl.bulk_insert(
+        operation.table, operation.rows, multiinsert=operation.multiinsert)
