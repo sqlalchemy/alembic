@@ -286,7 +286,7 @@ class AlterColumnOp(AlterTableOp):
         self.modify_nullable = modify_nullable
         self.modify_server_default = modify_server_default
         self.modify_name = modify_name
-        self.modify_nullable_type = modify_type
+        self.modify_type = modify_type
         self.kw = kw
 
 

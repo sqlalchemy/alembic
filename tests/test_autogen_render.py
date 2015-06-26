@@ -833,45 +833,50 @@ unique=False, """
         )
 
     def test_render_modify_type(self):
+        op_obj = ops.AlterColumnOp(
+            "sometable", "somecolumn",
+            modify_type=CHAR(10), existing_type=CHAR(20)
+        )
         eq_ignore_whitespace(
-            autogenerate.render._modify_col(
-                "sometable", "somecolumn",
-                self.autogen_context,
-                type_=CHAR(10), existing_type=CHAR(20)),
+            autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.alter_column('sometable', 'somecolumn', "
             "existing_type=sa.CHAR(length=20), type_=sa.CHAR(length=10))"
         )
 
     def test_render_modify_type_w_schema(self):
+        op_obj = ops.AlterColumnOp(
+            "sometable", "somecolumn",
+            modify_type=CHAR(10), existing_type=CHAR(20),
+            schema='foo'
+        )
         eq_ignore_whitespace(
-            autogenerate.render._modify_col(
-                "sometable", "somecolumn",
-                self.autogen_context,
-                type_=CHAR(10), existing_type=CHAR(20),
-                schema='foo'),
+            autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.alter_column('sometable', 'somecolumn', "
             "existing_type=sa.CHAR(length=20), type_=sa.CHAR(length=10), "
             "schema='foo')"
         )
 
     def test_render_modify_nullable(self):
+        op_obj = ops.AlterColumnOp(
+            "sometable", "somecolumn",
+            existing_type=Integer(),
+            modify_nullable=True
+        )
         eq_ignore_whitespace(
-            autogenerate.render._modify_col(
-                "sometable", "somecolumn",
-                self.autogen_context,
-                existing_type=Integer(),
-                nullable=True),
+            autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.alter_column('sometable', 'somecolumn', "
             "existing_type=sa.Integer(), nullable=True)"
         )
 
     def test_render_modify_nullable_w_schema(self):
+        op_obj = ops.AlterColumnOp(
+            "sometable", "somecolumn",
+            existing_type=Integer(),
+            modify_nullable=True, schema='foo'
+        )
+
         eq_ignore_whitespace(
-            autogenerate.render._modify_col(
-                "sometable", "somecolumn",
-                self.autogen_context,
-                existing_type=Integer(),
-                nullable=True, schema='foo'),
+            autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.alter_column('sometable', 'somecolumn', "
             "existing_type=sa.Integer(), nullable=True, schema='foo')"
         )
@@ -1040,13 +1045,14 @@ unique=False, """
         )
 
     def test_render_modify_nullable_w_default(self):
+        op_obj = ops.AlterColumnOp(
+            "sometable", "somecolumn",
+            existing_type=Integer(),
+            existing_server_default="5",
+            modify_nullable=True
+        )
         eq_ignore_whitespace(
-            autogenerate.render._modify_col(
-                "sometable", "somecolumn",
-                self.autogen_context,
-                existing_type=Integer(),
-                existing_server_default="5",
-                nullable=True),
+            autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.alter_column('sometable', 'somecolumn', "
             "existing_type=sa.Integer(), nullable=True, "
             "existing_server_default='5')"
@@ -1273,13 +1279,14 @@ unique=False, """
         )
 
     def test_render_modify_reflected_int_server_default(self):
+        op_obj = ops.AlterColumnOp(
+            "sometable", "somecolumn",
+            existing_type=Integer(),
+            existing_server_default=DefaultClause(text("5")),
+            modify_nullable=True
+        )
         eq_ignore_whitespace(
-            autogenerate.render._modify_col(
-                "sometable", "somecolumn",
-                self.autogen_context,
-                existing_type=Integer(),
-                existing_server_default=DefaultClause(text("5")),
-                nullable=True),
+            autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.alter_column('sometable', 'somecolumn', "
             "existing_type=sa.Integer(), nullable=True, "
             "existing_server_default=sa.text(!U'5'))"

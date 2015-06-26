@@ -298,15 +298,19 @@ def _drop_column(autogen_context, op):
     return text
 
 
-def _modify_col(tname, cname,
-                autogen_context,
-                server_default=False,
-                type_=None,
-                nullable=None,
-                existing_type=None,
-                existing_nullable=None,
-                existing_server_default=False,
-                schema=None):
+@renderers.dispatch_for(ops.AlterColumnOp)
+def _alter_column(autogen_context, op):
+
+    tname = op.table_name
+    cname = op.column_name
+    server_default = op.modify_server_default
+    type_ = op.modify_type
+    nullable = op.modify_nullable
+    existing_type = op.existing_type
+    existing_nullable = op.existing_nullable
+    existing_server_default = op.existing_server_default
+    schema = op.schema
+
     indent = " " * 11
 
     if 'batch_prefix' in autogen_context:
@@ -346,6 +350,7 @@ def _modify_col(tname, cname,
         text += ",\n%sschema=%r" % (indent, schema)
     text += ")"
     return text
+
 
 ################################################################
 
