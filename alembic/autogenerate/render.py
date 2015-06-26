@@ -196,7 +196,7 @@ def _drop_index(autogen_context, op):
 
 @renderers.dispatch_for(ops.CreateUniqueConstraintOp)
 def _add_unique_constraint(autogen_context, op):
-    return _uq_constraint(op.to_constraint(), autogen_context, True)
+    return [_uq_constraint(op.to_constraint(), autogen_context, True)]
 
 
 @renderers.dispatch_for(ops.CreateForeignKeyOp)
@@ -215,12 +215,14 @@ def _add_fk_constraint(autogen_context, op):
         'onupdate', 'ondelete', 'initially', 'deferrable', 'use_alter'
     ):
         if k in op.kw:
-            args.append("%s=%r" % (k, op.kw[k]))
+            value = op.kw[k]
+            if value is not None:
+                args.append("%s=%r" % (k, value))
 
-    return "%(prefix)screate_foreign_key(%(args)s)" % {
+    return ["%(prefix)screate_foreign_key(%(args)s)" % {
         'prefix': _alembic_autogenerate_prefix(autogen_context),
         'args': ", ".join(args)
-    }
+    }]
 
 
 @renderers.dispatch_for(ops.CreatePrimaryKeyOp)

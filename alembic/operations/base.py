@@ -1,6 +1,5 @@
 from contextlib import contextmanager
 
-from sqlalchemy.types import NULLTYPE
 from sqlalchemy import schema as sa_schema
 
 from .. import util
@@ -327,18 +326,13 @@ class Operations(object):
             table_name, column_name, schema=schema,
             existing_type=existing_type,
             existing_server_default=existing_server_default,
-            existing_nullable=existing_nullable
+            existing_nullable=existing_nullable,
+            modify_name=new_column_name,
+            modify_type=type_,
+            modify_server_default=server_default,
+            modify_nullable=nullable,
+            **kw
         )
-
-        alt.kw = kw
-        if new_column_name is not None:
-            alt.modify_name = new_column_name
-        if type_ is not None:
-            alt.modify_type = type_
-        if server_default is not False:
-            alt.modify_server_default = server_default
-        if nullable is not None:
-            alt.modify_nullable = nullable
 
         return self.invoke(alt)
 
@@ -460,7 +454,7 @@ class Operations(object):
         for index in t.indexes:
             self.impl._exec(sa_schema.CreateIndex(index))
 
-    def drop_column(self, table_name, column_name, **kw):
+    def drop_column(self, table_name, column_name, schema=None, **kw):
         """Issue a "drop column" instruction using the current
         migration context.
 
@@ -504,11 +498,8 @@ class Operations(object):
 
         """
 
-        self.impl.drop_column(
-            table_name,
-            self.schema_obj.column(column_name, NULLTYPE),
-            **kw
-        )
+        op = ops.DropColumnOp(table_name, column_name, schema=schema)
+        return self.invoke(op)
 
     @util._with_legacy_names([('name', 'constraint_name')])
     def create_primary_key(
@@ -897,12 +888,11 @@ class Operations(object):
             See the documentation regarding an individual dialect at
             :ref:`dialect_toplevel` for detail on documented arguments.
         """
-
-        self.impl.create_index(
-            self.schema_obj.index(
-                index_name, table_name, columns, schema=schema,
-                unique=unique, quote=quote, **kw)
+        op = ops.CreateIndex(
+            index_name, table_name, columns, schema=schema,
+            unique=unique, quote=quote, **kw
         )
+        return self.invoke(op)
 
     @util._with_legacy_names([('tablename', 'table_name')])
     @util._with_legacy_names([('name', 'index_name')])

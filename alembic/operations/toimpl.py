@@ -65,8 +65,20 @@ def alter_column(operations, operation):
 @ops.to_impl.dispatch_for(ops.DropTableOp)
 def drop_table(operations, operation):
     operations.impl.drop_table(
-        operations.schema_obj.table(
-            operation.name,
-            schema=operation.schema,
-            **operation.table_kw)
+        operation.to_table(operations.migration_context)
     )
+
+
+@ops.to_impl.dispatch_for(ops.DropColumnOp)
+def drop_column(operations, operation):
+    column = operation.to_column(operations.migration_context)
+    operations.impl.drop_column(
+        operation.table_name,
+        column
+    )
+
+
+@ops.to_impl.dispatch_for(ops.CreateIndexOp)
+def create_index(operations, operation):
+    idx = operation.to_index(operations.migration_context)
+    operations.impl.create_index(idx)

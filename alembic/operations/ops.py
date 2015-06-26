@@ -1,6 +1,7 @@
 from .. import util
 from ..util import sqla_compat
 from . import schemaobj
+from sqlalchemy.types import NULLTYPE
 
 to_impl = util.Dispatcher()
 
@@ -91,8 +92,8 @@ class CreateUniqueConstraintOp(AddConstraintOp):
         return CreateUniqueConstraintOp(
             constraint.name,
             constraint_table.name,
+            [c.name for c in constraint.columns],
             schema=constraint_table.schema,
-            *constraint.columns,
             **kw
         )
 
@@ -190,8 +191,8 @@ class CreateIndexOp(MigrateOperation):
             **index.dialect_kwargs
         )
 
-    def to_index(self):
-        schema_obj = schemaobj.SchemaObjects()
+    def to_index(self, migration_context=None):
+        schema_obj = schemaobj.SchemaObjects(migration_context)
         return schema_obj.index(
             self.index_name, self.table_name, self.columns, schema=self.schema,
             unique=self.unique, quote=self.quote, **self.kw)
@@ -202,6 +203,14 @@ class DropIndexOp(MigrateOperation):
         self.index_name = index_name
         self.table_name = table_name
         self.schema = schema
+
+    @classmethod
+    def from_index(cls, index):
+        return DropIndexOp(
+            index.name,
+            index.table.name,
+            schema=index.table.schema,
+        )
 
 
 class CreateTableOp(MigrateOperation):
@@ -232,6 +241,13 @@ class DropTableOp(MigrateOperation):
     @classmethod
     def from_table(cls, table):
         return DropTableOp(table.name, schema=table.schema)
+
+    def to_table(self, migration_context):
+        schema_obj = schemaobj.SchemaObjects(migration_context)
+        return schema_obj.table(
+            self.table_name,
+            schema=self.schema,
+            **self.table_kw)
 
 
 class AlterTableOp(MigrateOperation):
@@ -281,6 +297,10 @@ class AddColumnOp(AlterTableOp):
         self.column = column
 
     @classmethod
+    def from_column(cls, col):
+        return AddColumnOp(col.table.name, col, schema=col.table.schema)
+
+    @classmethod
     def from_column_and_tablename(cls, schema, tname, col):
         return AddColumnOp(tname, col, schema=schema)
 
@@ -294,6 +314,10 @@ class DropColumnOp(AlterTableOp):
     @classmethod
     def from_column_and_tablename(cls, schema, tname, col):
         return DropColumnOp(tname, col.name, schema=schema)
+
+    def to_column(self, migration_context=None):
+        schema_obj = schemaobj.SchemaObjects(migration_context)
+        return schema_obj.column(self.column_name, NULLTYPE)
 
 
 class BulkInsertOp(MigrateOperation):
