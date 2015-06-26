@@ -1,7 +1,6 @@
 from sqlalchemy import schema as sa_schema, types as sqltypes, sql
 from ..operations import ops
 from ..util import compat
-from ..ddl.base import _table_for_constraint, _fk_spec
 import re
 from ..util.compat import string_types
 from .. import util
@@ -11,7 +10,6 @@ from ..util.compat import StringIO
 
 MAX_PYTHON_ARGS = 255
 
-# TODO: put this in sqla_compat
 try:
     from sqlalchemy.sql.naming import conv
 
@@ -41,7 +39,7 @@ def _render_migration_script(autogen_context, migration_script, template_args):
     template_args['imports'] = "\n".join(sorted(imports))
 
 
-renderers = util.Dispatcher()
+default_renderers = renderers = util.Dispatcher()
 
 
 def _render_cmd_body(op_container, autogen_context):
@@ -209,7 +207,8 @@ def _add_unique_constraint(autogen_context, op):
 def _add_fk_constraint(autogen_context, op):
 
     args = [
-        repr(_render_gen_name(autogen_context, op.constraint_name)),
+        repr(
+            _render_gen_name(autogen_context, op.constraint_name)),
         repr(_ident(op.source_table)),
         repr(_ident(op.referent_table)),
         repr([_ident(col) for col in op.local_cols]),
@@ -253,7 +252,8 @@ def _drop_constraint(autogen_context, op):
 
     text = template % {
         'prefix': _alembic_autogenerate_prefix(autogen_context),
-        'name': _render_gen_name(autogen_context, op.constraint_name),
+        'name': _render_gen_name(
+            autogen_context, op.constraint_name),
         'table_name': _ident(op.table_name),
         'type': op.constraint_type,
         'schema': (", schema='%s'" % _ident(op.schema))
@@ -358,9 +358,6 @@ def _alter_column(autogen_context, op):
     return [text]
 
 
-################################################################
-
-
 class _f_name(object):
 
     def __init__(self, prefix, name):
@@ -432,14 +429,6 @@ def _get_index_rendered_expressions(idx, autogen_context):
             repr(_ident(getattr(col, "name", None))) for col in idx.columns]
 
 
-def _render_unique_constraint(constraint, autogen_context):
-    rendered = _user_defined_render("unique", constraint, autogen_context)
-    if rendered is not False:
-        return rendered
-
-    return _uq_constraint(constraint, autogen_context, False)
-
-
 def _uq_constraint(constraint, autogen_context, alter):
     opts = []
 
@@ -458,7 +447,8 @@ def _uq_constraint(constraint, autogen_context, alter):
 
     if alter:
         args = [
-            repr(_render_gen_name(autogen_context, constraint.name))]
+            repr(_render_gen_name(
+                autogen_context, constraint.name))]
         if not has_batch:
             args += [repr(_ident(constraint.table.name))]
         args.append(repr([_ident(col.name) for col in constraint.columns]))
@@ -474,8 +464,6 @@ def _uq_constraint(constraint, autogen_context, alter):
             "prefix": _sqlalchemy_autogenerate_prefix(autogen_context),
             "args": ", ".join(args)
         }
-
-
 
 
 def _user_autogenerate_prefix(autogen_context, target):
@@ -573,14 +561,15 @@ def _repr_type(type_, autogen_context):
         return "%s%r" % (prefix, type_)
 
 
+_constraint_renderers = util.Dispatcher()
+
+
 def _render_constraint(constraint, autogen_context):
-    renderer = _constraint_renderers.get(type(constraint), None)
-    if renderer:
-        return renderer(constraint, autogen_context)
-    else:
-        return None
+    renderer = _constraint_renderers.dispatch(constraint)
+    return renderer(constraint, autogen_context)
 
 
+@_constraint_renderers.dispatch_for(sa_schema.PrimaryKeyConstraint)
 def _render_primary_key(constraint, autogen_context):
     rendered = _user_defined_render("primary_key", constraint, autogen_context)
     if rendered is not False:
@@ -620,7 +609,8 @@ def _fk_colspec(fk, metadata_schema):
         # try to resolve the remote table and adjust for column.key
         parent_metadata = fk.parent.table.metadata
         if table_fullname in parent_metadata.tables:
-            colname = _ident(parent_metadata.tables[table_fullname].c[colname].name)
+            colname = _ident(
+                parent_metadata.tables[table_fullname].c[colname].name)
 
     colspec = "%s.%s" % (table_fullname, colname)
 
@@ -641,6 +631,7 @@ def _populate_render_fk_opts(constraint, opts):
         opts.append(("use_alter", repr(constraint.use_alter)))
 
 
+@_constraint_renderers.dispatch_for(sa_schema.ForeignKeyConstraint)
 def _render_foreign_key(constraint, autogen_context):
     rendered = _user_defined_render("foreign_key", constraint, autogen_context)
     if rendered is not False:
@@ -667,6 +658,16 @@ def _render_foreign_key(constraint, autogen_context):
         }
 
 
+@_constraint_renderers.dispatch_for(sa_schema.UniqueConstraint)
+def _render_unique_constraint(constraint, autogen_context):
+    rendered = _user_defined_render("unique", constraint, autogen_context)
+    if rendered is not False:
+        return rendered
+
+    return _uq_constraint(constraint, autogen_context, False)
+
+
+@_constraint_renderers.dispatch_for(sa_schema.CheckConstraint)
 def _render_check_constraint(constraint, autogen_context):
     rendered = _user_defined_render("check", constraint, autogen_context)
     if rendered is not False:
@@ -687,7 +688,8 @@ def _render_check_constraint(constraint, autogen_context):
             (
                 "name",
                 repr(
-                    _render_gen_name(autogen_context, constraint.name))
+                    _render_gen_name(
+                        autogen_context, constraint.name))
             )
         )
     return "%(prefix)sCheckConstraint(%(sqltext)s%(opts)s)" % {
@@ -698,9 +700,5 @@ def _render_check_constraint(constraint, autogen_context):
             constraint.sqltext, autogen_context, wrap_in_text=False)
     }
 
-_constraint_renderers = {
-    sa_schema.PrimaryKeyConstraint: _render_primary_key,
-    sa_schema.ForeignKeyConstraint: _render_foreign_key,
-    sa_schema.UniqueConstraint: _render_unique_constraint,
-    sa_schema.CheckConstraint: _render_check_constraint
-}
+
+renderers = default_renderers.branch()

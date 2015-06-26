@@ -1,4 +1,5 @@
 from sqlalchemy import schema as sa_schema, types as sqltypes
+from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy import event
 import logging
 from ..util import compat
@@ -10,6 +11,47 @@ import contextlib
 from alembic.ddl.base import _fk_spec
 
 log = logging.getLogger(__name__)
+
+
+def _produce_net_changes(autogen_context, diffs):
+
+    metadata = autogen_context['metadata']
+    connection = autogen_context['connection']
+    object_filters = autogen_context.get('object_filters', ())
+    include_schemas = autogen_context.get('include_schemas', False)
+
+    inspector = Inspector.from_engine(connection)
+    conn_table_names = set()
+
+    default_schema = connection.dialect.default_schema_name
+    if include_schemas:
+        schemas = set(inspector.get_schema_names())
+        # replace default schema name with None
+        schemas.discard("information_schema")
+        # replace the "default" schema with None
+        schemas.add(None)
+        schemas.discard(default_schema)
+    else:
+        schemas = [None]
+
+    version_table_schema = autogen_context['context'].version_table_schema
+    version_table = autogen_context['context'].version_table
+
+    for s in schemas:
+        tables = set(inspector.get_table_names(schema=s))
+        if s == version_table_schema:
+            tables = tables.difference(
+                [autogen_context['context'].version_table]
+            )
+        conn_table_names.update(zip([s] * len(tables), tables))
+
+    metadata_table_names = OrderedSet(
+        [(table.schema, table.name) for table in metadata.sorted_tables]
+    ).difference([(version_table_schema, version_table)])
+
+    _compare_tables(conn_table_names, metadata_table_names,
+                    object_filters,
+                    inspector, metadata, diffs, autogen_context)
 
 
 def _run_filters(object_, name, type_, reflected, compare_to, object_filters):

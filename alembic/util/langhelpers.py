@@ -230,3 +230,11 @@ class Dispatcher(object):
                 return self._registry[(spcls, 'default')]
         else:
             raise ValueError("no dispatch function for object: %s" % obj)
+
+    def branch(self):
+        """Return a copy of this dispatcher that is independently
+        writable."""
+
+        d = Dispatcher()
+        d._registry.update(self._registry)
+        return d

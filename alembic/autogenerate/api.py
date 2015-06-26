@@ -1,18 +1,11 @@
 """Provide the 'autogenerate' feature which can produce migration operations
 automatically."""
 
-import logging
-
-from sqlalchemy.engine.reflection import Inspector
-from sqlalchemy.util import OrderedSet
-from .compare import _compare_tables
+from ..operations import ops
+from . import render
+from . import compare
 from . import compose
 from .. import util
-
-log = logging.getLogger(__name__)
-
-###################################################
-# public
 
 
 def compare_metadata(context, metadata):
@@ -98,6 +91,11 @@ def compare_metadata(context, metadata):
     :param metadata: a :class:`~sqlalchemy.schema.MetaData`
      instance.
 
+    .. seealso::
+
+        :func:`.produce_migrations` - produces a :class:`.MigrationScript`
+         structure based on metadata comparison.
+
     """
 
     autogen_context = _autogen_context(context, metadata=metadata)
@@ -111,21 +109,47 @@ def compare_metadata(context, metadata):
 
     diffs = []
 
-    _produce_net_changes(autogen_context, diffs)
+    compare._produce_net_changes(autogen_context, diffs)
 
     return diffs
+
+
+def produce_migrations(context, metadata):
+    """Produce a :class:`.MigrationScript` structure based on schema comparison.
+
+    .. versionadded:: 0.8.0
+
+    .. seealso::
+
+        :func:`.compare_metadata` - returns more fundamental "diff"
+         data from comparing a schema.
+    """
+
+    autogen_context = _autogen_context(context, metadata=metadata)
+    diffs = []
+
+    compare._produce_net_changes(autogen_context, diffs)
+
+    migration_script = ops.MigrationScript(
+        rev_id=None,
+        upgrade_ops=ops.UpgradeOps([]),
+        downgrade_ops=ops.DowngradeOps([]),
+    )
+
+    compose._to_migration_script(autogen_context, migration_script, diffs)
+
+    return migration_script
 
 
 def _render_migration_diffs(context, template_args, imports):
     """legacy, used by test_autogen_composition at the moment"""
 
-    from ..operations import ops
-    from . import render
+    migration_script = produce_migrations(context, None)
 
     autogen_context = _autogen_context(context, imports=imports)
     diffs = []
 
-    _produce_net_changes(autogen_context, diffs)
+    compare._produce_net_changes(autogen_context, diffs)
 
     migration_script = ops.MigrationScript(
         rev_id=None,
@@ -183,46 +207,4 @@ def _autogen_context(
         'object_filters': object_filters,
         'include_schemas': include_schemas
     }
-
-
-def _produce_net_changes(autogen_context, diffs):
-
-    metadata = autogen_context['metadata']
-    connection = autogen_context['connection']
-    object_filters = autogen_context.get('object_filters', ())
-    include_schemas = autogen_context.get('include_schemas', False)
-
-    inspector = Inspector.from_engine(connection)
-    conn_table_names = set()
-
-    default_schema = connection.dialect.default_schema_name
-    if include_schemas:
-        schemas = set(inspector.get_schema_names())
-        # replace default schema name with None
-        schemas.discard("information_schema")
-        # replace the "default" schema with None
-        schemas.add(None)
-        schemas.discard(default_schema)
-    else:
-        schemas = [None]
-
-    version_table_schema = autogen_context['context'].version_table_schema
-    version_table = autogen_context['context'].version_table
-
-    for s in schemas:
-        tables = set(inspector.get_table_names(schema=s))
-        if s == version_table_schema:
-            tables = tables.difference(
-                [autogen_context['context'].version_table]
-            )
-        conn_table_names.update(zip([s] * len(tables), tables))
-
-    metadata_table_names = OrderedSet(
-        [(table.schema, table.name) for table in metadata.sorted_tables]
-    ).difference([(version_table_schema, version_table)])
-
-    _compare_tables(conn_table_names, metadata_table_names,
-                    object_filters,
-                    inspector, metadata, diffs, autogen_context)
-
 
