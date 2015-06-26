@@ -33,29 +33,31 @@ def _to_updown_op(autogen_context, diffs, op_container, type_):
 
     dest = [op_container.ops]
 
-    for (schema, table), subdiffs in _group_diffs_by_table(diffs):
-        if table is not None:
+    for (schema, tablename), subdiffs in _group_diffs_by_table(diffs):
+        subdiffs = list(subdiffs)
+        if tablename is not None:
             table_ops = []
-            op = ops.ModifyTableOps(table.name, table_ops, schema=table.schema)
+            op = ops.ModifyTableOps(tablename, table_ops, schema=schema)
             dest[-1].append(op)
-            dest.append(ops)
+            dest.append(table_ops)
         for diff in subdiffs:
             _produce_command(autogen_context, diff, dest[-1], type_)
-        dest.pop(-1)
+        if tablename is not None:
+            dest.pop(-1)
 
 
-def _produce_command(autogen_context, diff, ops, updown):
+def _produce_command(autogen_context, diff, op_list, updown):
     if isinstance(diff, tuple):
-        _produce_adddrop_command(updown, diff, autogen_context)
+        _produce_adddrop_command(updown, diff, op_list, autogen_context)
     else:
-        _produce_modify_command(updown, diff, autogen_context)
+        _produce_modify_command(updown, diff, op_list, autogen_context)
 
 
-def _produce_adddrop_command(updown, diff, autogen_context):
+def _produce_adddrop_command(updown, diff, op_list, autogen_context):
     cmd_type = diff[0]
     adddrop, cmd_type = cmd_type.split("_")
 
-    cmd_args = diff[1:] + (autogen_context,)
+    cmd_args = diff[1:]
 
     _commands = {
         "table": (ops.DropTableOp.from_table, ops.CreateTableOp.from_table),
@@ -78,12 +80,12 @@ def _produce_adddrop_command(updown, diff, autogen_context):
     ) or (
         updown == "downgrade" and adddrop == "remove"
     ):
-        return cmd_callables[1](*cmd_args)
+        op_list.append(cmd_callables[1](*cmd_args))
     else:
-        return cmd_callables[0](*cmd_args)
+        op_list.append(cmd_callables[0](*cmd_args))
 
 
-def _produce_modify_command(updown, diffs, autogen_context):
+def _produce_modify_command(updown, diffs, op_list, autogen_context):
     sname, tname, cname = diffs[0][1:4]
     kw = {}
 
@@ -107,14 +109,16 @@ def _produce_modify_command(updown, diffs, autogen_context):
             kw[new_kw] = diff[-2]
             kw[old_kw] = diff[-1]
 
-    if "nullable" in kw:
+    if "modify_nullable" in kw:
         kw.pop("existing_nullable", None)
-    if "server_default" in kw:
+    if "modify_server_default" in kw:
         kw.pop("existing_server_default", None)
 
-    return ops.AlterColumnOp(
-        tname, cname, schema=sname,
-        **kw
+    op_list.append(
+        ops.AlterColumnOp(
+            tname, cname, schema=sname,
+            **kw
+        )
     )
 
 

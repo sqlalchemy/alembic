@@ -54,11 +54,14 @@ def _render_cmd_body(op_container, autogen_context):
         "please adjust! ###"
     )
 
-    for op in op_container:
-        lines = render_op(autogen_context, op)
+    if not op_container.ops:
+        printer.writeline("pass")
+    else:
+        for op in op_container.ops:
+            lines = render_op(autogen_context, op)
 
-        for line in lines:
-            printer.writeline(line)
+            for line in lines:
+                printer.writeline(line)
 
     printer.writeline("### end Alembic commands ###")
 
@@ -94,6 +97,7 @@ def _render_modify_table(autogen_context, op):
         if render_as_batch:
             del autogen_context['batch_prefix']
             lines.append("")
+        return lines
     else:
         return [
             "pass"
@@ -102,12 +106,14 @@ def _render_modify_table(autogen_context, op):
 
 @renderers.dispatch_for(ops.CreateTableOp)
 def _add_table(autogen_context, op):
+    table = op.to_table()
+
     args = [col for col in
-            [_render_column(col, autogen_context) for col in op.columns]
+            [_render_column(col, autogen_context) for col in table.columns]
             if col] + \
         sorted([rcons for rcons in
                 [_render_constraint(cons, autogen_context) for cons in
-                 op.constraints]
+                 table.constraints]
                 if rcons is not None
                 ])
 
@@ -295,7 +301,7 @@ def _drop_column(autogen_context, op):
         "cname": _ident(column_name),
         "schema": _ident(schema)
     }
-    return text
+    return [text]
 
 
 @renderers.dispatch_for(ops.AlterColumnOp)
@@ -349,7 +355,7 @@ def _alter_column(autogen_context, op):
     if schema and "batch_prefix" not in autogen_context:
         text += ",\n%sschema=%r" % (indent, schema)
     text += ")"
-    return text
+    return [text]
 
 
 ################################################################

@@ -82,3 +82,11 @@ def drop_column(operations, operation):
 def create_index(operations, operation):
     idx = operation.to_index(operations.migration_context)
     operations.impl.create_index(idx)
+
+
+@ops.to_impl.dispatch_for(ops.CreateTableOp)
+def create_table(operations, operation):
+    table = operation.to_table(operations.migration_context)
+    operations.impl.create_table(table)
+
+

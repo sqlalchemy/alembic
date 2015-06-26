@@ -214,21 +214,31 @@ class DropIndexOp(MigrateOperation):
 
 
 class CreateTableOp(MigrateOperation):
-    def __init__(self, table_name, columns, constraints, schema=None, **kw):
+    def __init__(
+            self, table_name, columns, schema=None, _orig_table=None, **kw):
         self.table_name = table_name
         self.columns = columns
-        self.constraints = constraints
         self.schema = schema
         self.kw = kw
+        self._orig_table = _orig_table
 
     @classmethod
     def from_table(cls, table):
         return CreateTableOp(
             table.name,
-            list(table.c),
-            list(table.constraints),
+            list(table.c) + list(table.constraints),
             schema=table.schema,
+            _orig_table=table,
             **table.kwargs
+        )
+
+    def to_table(self, migration_context=None):
+        if self._orig_table is not None:
+            return self._orig_table
+        schema_obj = schemaobj.SchemaObjects(migration_context)
+
+        return schema_obj.table(
+            self.table_name, *self.columns, schema=self.schema, **self.kw
         )
 
 
@@ -363,8 +373,10 @@ class MigrationScript(MigrateOperation):
     """
 
     def __init__(
-            self, rev_id, message, imports, upgrade_ops, downgrade_ops,
-            head, splice, branch_label, version_path):
+            self, rev_id, upgrade_ops, downgrade_ops,
+            message=None,
+            imports=None, head=None, splice=None,
+            branch_label=None, version_path=None):
         self.rev_id = rev_id
         self.message = message
         self.imports = imports

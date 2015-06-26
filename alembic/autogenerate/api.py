@@ -116,6 +116,31 @@ def compare_metadata(context, metadata):
     return diffs
 
 
+def _render_migration_diffs(context, template_args, imports):
+    """legacy, used by test_autogen_composition at the moment"""
+
+    from ..operations import ops
+    from . import render
+
+    autogen_context = _autogen_context(context, imports=imports)
+    diffs = []
+
+    _produce_net_changes(autogen_context, diffs)
+
+    migration_script = ops.MigrationScript(
+        rev_id=None,
+        imports=imports,
+        upgrade_ops=ops.UpgradeOps([]),
+        downgrade_ops=ops.DowngradeOps([]),
+    )
+
+    compose._to_migration_script(autogen_context, migration_script, diffs)
+
+    render._render_migration_script(
+        autogen_context, migration_script, template_args
+    )
+
+
 def _autogen_context(
     context, imports=None, metadata=None, include_symbol=None,
         include_object=None, include_schemas=False):

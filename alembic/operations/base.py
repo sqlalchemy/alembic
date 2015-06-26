@@ -1,6 +1,7 @@
 from contextlib import contextmanager
 
 from sqlalchemy import schema as sa_schema
+from sqlalchemy import sql
 
 from .. import util
 from ..util import sqla_compat
@@ -804,9 +805,12 @@ class Operations(object):
             object is returned.
 
         """
-        table = self.schema_obj.table(table_name, *columns, **kw)
-        self.impl.create_table(table)
-        return table
+        op = ops.CreateTableOp(
+            table_name,
+            columns,
+            **kw
+        )
+        return self.invoke(op)
 
     @util._with_legacy_names([('name', 'table_name')])
     def drop_table(self, table_name, schema=None, **kw):
