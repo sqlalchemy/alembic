@@ -39,3 +39,6 @@ method.
 
 .. automodule:: alembic.operations
     :members:
+
+.. automodule:: alembic.operations.ops
+	:members:

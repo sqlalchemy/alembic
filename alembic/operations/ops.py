@@ -2,9 +2,7 @@ from .. import util
 from ..util import sqla_compat
 from . import schemaobj
 from sqlalchemy.types import NULLTYPE
-from sqlalchemy import schema as sa_schema
-
-to_impl = util.Dispatcher()
+from .base import Operations
 
 
 class MigrateOperation(object):
@@ -307,6 +305,7 @@ class RenameTableOp(AlterTableOp):
         self.new_table_name = new_table_name
 
 
+@Operations.register_operation("alter_column")
 class AlterColumnOp(AlterTableOp):
 
     def __init__(
@@ -331,6 +330,109 @@ class AlterColumnOp(AlterTableOp):
         self.modify_name = modify_name
         self.modify_type = modify_type
         self.kw = kw
+
+    @classmethod
+    @util._with_legacy_names([('name', 'new_column_name')])
+    def alter_column(
+        cls, operations, table_name, column_name,
+        nullable=None,
+        server_default=False,
+        new_column_name=None,
+        type_=None,
+        existing_type=None,
+        existing_server_default=False,
+        existing_nullable=None,
+        schema=None, **kw
+    ):
+        """Issue an "alter column" instruction using the
+        current migration context.
+
+        Generally, only that aspect of the column which
+        is being changed, i.e. name, type, nullability,
+        default, needs to be specified.  Multiple changes
+        can also be specified at once and the backend should
+        "do the right thing", emitting each change either
+        separately or together as the backend allows.
+
+        MySQL has special requirements here, since MySQL
+        cannot ALTER a column without a full specification.
+        When producing MySQL-compatible migration files,
+        it is recommended that the ``existing_type``,
+        ``existing_server_default``, and ``existing_nullable``
+        parameters be present, if not being altered.
+
+        Type changes which are against the SQLAlchemy
+        "schema" types :class:`~sqlalchemy.types.Boolean`
+        and  :class:`~sqlalchemy.types.Enum` may also
+        add or drop constraints which accompany those
+        types on backends that don't support them natively.
+        The ``existing_server_default`` argument is
+        used in this case as well to remove a previous
+        constraint.
+
+        :param table_name: string name of the target table.
+        :param column_name: string name of the target column,
+         as it exists before the operation begins.
+        :param nullable: Optional; specify ``True`` or ``False``
+         to alter the column's nullability.
+        :param server_default: Optional; specify a string
+         SQL expression, :func:`~sqlalchemy.sql.expression.text`,
+         or :class:`~sqlalchemy.schema.DefaultClause` to indicate
+         an alteration to the column's default value.
+         Set to ``None`` to have the default removed.
+        :param new_column_name: Optional; specify a string name here to
+         indicate the new name within a column rename operation.
+        :param ``type_``: Optional; a :class:`~sqlalchemy.types.TypeEngine`
+         type object to specify a change to the column's type.
+         For SQLAlchemy types that also indicate a constraint (i.e.
+         :class:`~sqlalchemy.types.Boolean`, :class:`~sqlalchemy.types.Enum`),
+         the constraint is also generated.
+        :param autoincrement: set the ``AUTO_INCREMENT`` flag of the column;
+         currently understood by the MySQL dialect.
+        :param existing_type: Optional; a
+         :class:`~sqlalchemy.types.TypeEngine`
+         type object to specify the previous type.   This
+         is required for all MySQL column alter operations that
+         don't otherwise specify a new type, as well as for
+         when nullability is being changed on a SQL Server
+         column.  It is also used if the type is a so-called
+         SQLlchemy "schema" type which may define a constraint (i.e.
+         :class:`~sqlalchemy.types.Boolean`,
+         :class:`~sqlalchemy.types.Enum`),
+         so that the constraint can be dropped.
+        :param existing_server_default: Optional; The existing
+         default value of the column.   Required on MySQL if
+         an existing default is not being changed; else MySQL
+         removes the default.
+        :param existing_nullable: Optional; the existing nullability
+         of the column.  Required on MySQL if the existing nullability
+         is not being changed; else MySQL sets this to NULL.
+        :param existing_autoincrement: Optional; the existing autoincrement
+         of the column.  Used for MySQL's system of altering a column
+         that specifies ``AUTO_INCREMENT``.
+        :param schema: Optional schema name to operate within.  To control
+         quoting of the schema outside of the default behavior, use
+         the SQLAlchemy construct
+         :class:`~sqlalchemy.sql.elements.quoted_name`.
+
+         .. versionadded:: 0.7.0 'schema' can now accept a
+            :class:`~sqlalchemy.sql.elements.quoted_name` construct.
+
+        """
+
+        alt = AlterColumnOp(
+            table_name, column_name, schema=schema,
+            existing_type=existing_type,
+            existing_server_default=existing_server_default,
+            existing_nullable=existing_nullable,
+            modify_name=new_column_name,
+            modify_type=type_,
+            modify_server_default=server_default,
+            modify_nullable=nullable,
+            **kw
+        )
+
+        return operations.invoke(alt)
 
 
 class AddColumnOp(AlterTableOp):

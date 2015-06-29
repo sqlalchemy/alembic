@@ -4,8 +4,9 @@ from .. import util
 from ..util import sqla_compat
 from . import batch
 from . import schemaobj
-from . import ops
-from . import toimpl  # noqa
+from ..util.compat import exec_
+import textwrap
+import inspect
 
 __all__ = ('Operations', 'BatchOperations')
 
@@ -42,6 +43,8 @@ class Operations(object):
 
     """
 
+    _to_impl = util.Dispatcher()
+
     def __init__(self, migration_context, impl=None):
         """Construct a new :class:`.Operations`
 
@@ -56,6 +59,56 @@ class Operations(object):
             self.impl = impl
 
         self.schema_obj = schemaobj.SchemaObjects(migration_context)
+
+    @classmethod
+    def register_operation(cls, name):
+        def register(op_cls):
+
+            fn = getattr(op_cls, name)
+
+            spec = inspect.getargspec(fn)
+
+            name_args = spec[0]
+            assert name_args[0:2] == ['cls', 'operations']
+
+            name_args[0:2] = ['self']
+
+            args = inspect.formatargspec(*spec)
+            num_defaults = len(spec[3]) if spec[3] else 0
+            if num_defaults:
+                defaulted_vals = name_args[0 - num_defaults:]
+            else:
+                defaulted_vals = ()
+
+            apply_kw = inspect.formatargspec(
+                name_args, spec[1], spec[2],
+                defaulted_vals,
+                formatvalue=lambda x: '=' + x)
+
+            func_text = textwrap.dedent("""\
+            def %(name)s%(args)s:
+                %(doc)r
+                return op_cls.%(name)s%(apply_kw)s
+            """ % {
+                'name': name,
+                'args': args,
+                'apply_kw': apply_kw,
+                'doc': fn.__doc__,
+                'meth': fn.__name__
+            })
+            globals_ = {'op_cls': op_cls}
+            lcl = {}
+            exec_(func_text, globals_, lcl)
+            setattr(cls, name, lcl[name])
+            return op_cls
+        return register
+
+    @classmethod
+    def implementation_for(cls, op_cls):
+        def decorate(fn):
+            cls._to_impl.dispatch_for(op_cls)(fn)
+            return fn
+        return decorate
 
     @classmethod
     @contextmanager
@@ -213,7 +266,7 @@ class Operations(object):
         return self.migration_context
 
     def invoke(self, operation):
-        fn = ops.to_impl.dispatch(
+        fn = self._to_impl.dispatch(
             operation, self.migration_context.impl.__dialect__)
         return fn(self, operation)
 

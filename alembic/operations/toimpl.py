@@ -1,8 +1,10 @@
 from . import ops
+
+from . import Operations
 from sqlalchemy import schema as sa_schema
 
 
-@ops.to_impl.dispatch_for(ops.AlterColumnOp)
+@Operations.implementation_for(ops.AlterColumnOp)
 def alter_column(operations, operation):
 
     compiler = operations.impl.dialect.statement_compiler(
@@ -62,14 +64,14 @@ def alter_column(operations, operation):
                 operations.impl.add_constraint(constraint)
 
 
-@ops.to_impl.dispatch_for(ops.DropTableOp)
+@Operations.implementation_for(ops.DropTableOp)
 def drop_table(operations, operation):
     operations.impl.drop_table(
         operation.to_table(operations.migration_context)
     )
 
 
-@ops.to_impl.dispatch_for(ops.DropColumnOp)
+@Operations.implementation_for(ops.DropColumnOp)
 def drop_column(operations, operation):
     column = operation.to_column(operations.migration_context)
     operations.impl.drop_column(
@@ -80,27 +82,27 @@ def drop_column(operations, operation):
     )
 
 
-@ops.to_impl.dispatch_for(ops.CreateIndexOp)
+@Operations.implementation_for(ops.CreateIndexOp)
 def create_index(operations, operation):
     idx = operation.to_index(operations.migration_context)
     operations.impl.create_index(idx)
 
 
-@ops.to_impl.dispatch_for(ops.DropIndexOp)
+@Operations.implementation_for(ops.DropIndexOp)
 def drop_index(operations, operation):
     operations.impl.drop_index(
         operation.to_index(operations.migration_context)
     )
 
 
-@ops.to_impl.dispatch_for(ops.CreateTableOp)
+@Operations.implementation_for(ops.CreateTableOp)
 def create_table(operations, operation):
     table = operation.to_table(operations.migration_context)
     operations.impl.create_table(table)
     return table
 
 
-@ops.to_impl.dispatch_for(ops.RenameTableOp)
+@Operations.implementation_for(ops.RenameTableOp)
 def rename_table(operations, operation):
     operations.impl.rename_table(
         operation.table_name,
@@ -108,7 +110,7 @@ def rename_table(operations, operation):
         schema=operation.schema)
 
 
-@ops.to_impl.dispatch_for(ops.AddColumnOp)
+@Operations.implementation_for(ops.AddColumnOp)
 def add_column(operations, operation):
     table_name = operation.table_name
     column = operation.column
@@ -127,14 +129,14 @@ def add_column(operations, operation):
         operations.impl.create_index(index)
 
 
-@ops.to_impl.dispatch_for(ops.AddConstraintOp)
+@Operations.implementation_for(ops.AddConstraintOp)
 def create_constraint(operations, operation):
     operations.impl.add_constraint(
         operation.to_constraint(operations.migration_context)
     )
 
 
-@ops.to_impl.dispatch_for(ops.DropConstraintOp)
+@Operations.implementation_for(ops.DropConstraintOp)
 def drop_constraint(operations, operation):
     operations.impl.drop_constraint(
         operations.schema_obj.generic_constraint(
@@ -146,7 +148,7 @@ def drop_constraint(operations, operation):
     )
 
 
-@ops.to_impl.dispatch_for(ops.BulkInsertOp)
+@Operations.implementation_for(ops.BulkInsertOp)
 def bulk_insert(operations, operation):
     operations.impl.bulk_insert(
         operation.table, operation.rows, multiinsert=operation.multiinsert)

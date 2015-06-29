@@ -57,7 +57,7 @@ In particular, the key method used within ``env.py`` is :meth:`.EnvironmentConte
 which establishes all the details about how the database will be accessed.
 
 .. automodule:: alembic.runtime.environment
-    :members:
+    :members: Operations, BatchOperations
 
 The Migration Context
 =====================
@@ -71,6 +71,80 @@ The Operations Object
 Within migration scripts, actual database migration operations are handled
 via an instance of :class:`.Operations`.    See :ref:`ops` for an overview
 of this object.
+
+Operation Plugins
+-----------------
+
+The Operations object is extensible using a plugin system.   This system
+allows one to add new ``op.<some_operation>`` methods at runtime.  The
+steps to use this system are to first create a subclass of
+:class:`.MigrateOperation`, register it using the :meth:`.Operations.register_operation`
+class decorator, then build a default "implementation" function which is
+established using the :meth:`.Operations.implementation_for` decorator::
+
+    from alembic.operations import Operations, MigrateOperation
+
+    @Operations.register_operation("create_sequence")
+    class CreateSequenceOp(MigrateOperation):
+        """Create a SEQUENCE."""
+
+        def __init__(self, sequence_name, **kw):
+            self.sequence_name = sequence_name
+            self.kw = kw
+
+        @classmethod
+        def create_sequence(cls, operations, sequence_name, **kw):
+            """Issue a "CREATE SEQUENCE" instruction."""
+
+            op = CreateSequenceOp(sequence_name, **kw)
+            return operations.invoke(op)
+
+Above, the ``CreateSequenceOp`` class represents a new operation that will
+be available as ``op.create_sequence()``.   The reason the operation
+is represented as a stateful class is so that an operation and a specific
+set of arguments can be represented generically; the state can then correspond
+to different kinds of operations, such as invoking the instruction against
+a database, or autogenerating Python code for the operation into a
+script.
+
+In order to establish the migrate-script behavior of the new operation,
+we use the :meth:`.Operations.implementation_for` decorator::
+
+    @Operations.implementation_for(CreateSequenceOp)
+    def create_sequence(operations, operation):
+        operations.execute("CREATE SEQUENCE %s" % operation.sequence_name)
+
+Above, we use the simplest possible technique of invoking our DDL, which
+is just to call :meth:`.Operations.execute` with literal SQL.  If this is
+all a custom operation needs, then this is fine.  However, options for
+more comprehensive support include building out a custom SQL construct,
+as documented at :ref:`sqlalchemy.ext.compiles`.
+
+With the above two steps, a migration script can now use a new method
+``op.create_sequence()`` that will proxy to our object as a classmethod::
+
+    def upgrade():
+        op.create_sequence("my_sequence")
+
+The registration of new operations only needs to occur in time for the
+``env.py`` script to invoke :meth:`.MigrationContext.run_migrations`;
+within the module level of the ``env.py`` script is sufficient.
+
+
+.. versionadded:: 0.8 - the migration operations available via the
+   :class:`.Operations` class as well as the :mod:`alembic.op` namespace
+   is now extensible using a plugin system.
+
+
+Built-in Operation Plugins
+--------------------------
+
+The migration operations present on :class:`.Operations` are themselves
+delivered via plugins.  The built in plugins are listed below.
+
+.. automodule:: alembic.operations.ops
+    :members:
+
 
 Commands
 =========
