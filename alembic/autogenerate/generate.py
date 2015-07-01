@@ -1,6 +1,7 @@
 from .. import util
 from . import api
 from . import compose
+from . import compare
 from . import render
 from ..operations import ops
 
@@ -50,7 +51,7 @@ class RevisionContext(object):
         autogen_context = api._autogen_context(context)
 
         diffs = []
-        api._produce_net_changes(autogen_context, diffs)
+        compare._produce_net_changes(autogen_context, diffs)
 
         migration_script = self.generated_revisions[0]
         migration_script._autogen_context = autogen_context
