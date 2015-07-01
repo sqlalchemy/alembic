@@ -16,7 +16,7 @@ except:
     conv = None
 
 
-class Operations(object):
+class Operations(util.ModuleClsProxy):
 
     """Define high level migration operations.
 
@@ -113,11 +113,10 @@ class Operations(object):
     @classmethod
     @contextmanager
     def context(cls, migration_context):
-        from ..op import _install_proxy, _remove_proxy
         op = Operations(migration_context)
-        _install_proxy(op)
+        op._install_proxy()
         yield op
-        _remove_proxy()
+        op._remove_proxy()
 
     @contextmanager
     def batch_alter_table(

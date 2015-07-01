@@ -12,145 +12,66 @@ from sqlalchemy.util.compat import inspect_getfullargspec
 
 class _ModuleClsMeta(type):
     def __setattr__(cls, key, value):
-        cls._update_module_proxies()
         super(_ModuleClsMeta, cls).__setattr__(key, value)
+        cls._update_module_proxies(key)
 
 
 class ModuleClsProxy(with_metaclass(_ModuleClsMeta)):
-
-    _setups = collections.defaultdict(list)
-
-    @classmethod
-    def _update_module_proxies(cls):
-        pass
-
-    #def install_proxy(self):
-
-    @classmethod
-    def create_module_class_proxy(cls, globals_, locals_):
-        """Create module level proxy functions for the
-        methods on a given class.
-
-        The functions will have a compatible signature
-        as the methods.   A proxy is established
-        using the ``_install_proxy(obj)`` function,
-        and removed using ``_remove_proxy()``, both
-        installed by calling this function.
-
-        """
-
-        attr_names = set()
-        cls._setups[cls].append(
-            (globals_, locals_, attr_names)
-        )
-        cls._setup_proxy(globals_, locals_, attr_names)
-
-    @classmethod
-    def _setup_proxies(cls):
-        for globals_, locals_, attr_names in cls._setups[cls]:
-            cls._setup_proxy(globals_, locals_, attr_names)
-
-    @classmethod
-    def _setup_proxy(cls, globals_, locals_, attr_names):
-
-        def _add_proxied_method(methname):
-            if not methname.startswith('_'):
-                meth = getattr(cls, methname)
-                if callable(meth):
-                    locals_[methname] = cls._create_op_proxy(methname)
-                else:
-                    attr_names.add(methname)
-
-        for methname in set(dir(cls)).difference(attr_names):
-            _add_proxied_method(methname)
-
-    @classmethod
-    def _create_op_proxy(cls, name):
-        fn = getattr(cls, name)
-        spec = inspect.getargspec(fn)
-        if spec[0] and spec[0][0] == 'self':
-            spec[0].pop(0)
-        args = inspect.formatargspec(*spec)
-        num_defaults = 0
-        if spec[3]:
-            num_defaults += len(spec[3])
-        name_args = spec[0]
-        if num_defaults:
-            defaulted_vals = name_args[0 - num_defaults:]
-        else:
-            defaulted_vals = ()
-
-        apply_kw = inspect.formatargspec(
-            name_args, spec[1], spec[2],
-            defaulted_vals,
-            formatvalue=lambda x: '=' + x)
-
-        def _name_error(name):
-            raise NameError(
-                "Can't invoke function '%s', as the proxy object has "
-                "not yet been "
-                "established for the Alembic '%s' class.  "
-                "Try placing this code inside a callable." % (
-                    name, cls.__name__
-                ))
-        globals_['_name_error'] = _name_error
-
-        func_text = textwrap.dedent("""\
-        def %(name)s(%(args)s):
-            %(doc)r
-            try:
-                p = _proxy
-            except NameError:
-                _name_error('%(name)s')
-            return _proxy.%(name)s(%(apply_kw)s)
-            e
-        """ % {
-            'name': name,
-            'args': args[1:-1],
-            'apply_kw': apply_kw[1:-1],
-            'doc': fn.__doc__,
-        })
-        lcl = {}
-        exec_(func_text, globals_, lcl)
-        return lcl[name]
-
-
-
-def create_module_class_proxy(cls, globals_, locals_):
     """Create module level proxy functions for the
     methods on a given class.
 
     The functions will have a compatible signature
-    as the methods.   A proxy is established
-    using the ``_install_proxy(obj)`` function,
-    and removed using ``_remove_proxy()``, both
-    installed by calling this function.
+    as the methods.
 
     """
-    attr_names = set()
 
-    def _install_proxy(obj):
-        globals_['_proxy'] = obj
-        for name in attr_names:
-            globals_[name] = getattr(obj, name)
+    _setups = collections.defaultdict(lambda: (set(), []))
 
-    def _remove_proxy():
-        globals_['_proxy'] = None
-        for name in attr_names:
-            del globals_[name]
+    @classmethod
+    def _update_module_proxies(cls, name):
+        attr_names, modules = cls._setups[cls]
+        for globals_, locals_ in modules:
+            cls._add_proxied_attribute(name, globals_, locals_, attr_names)
 
-    def _add_proxied_method(methname):
+    def _install_proxy(self):
+        attr_names, modules = self._setups[self.__class__]
+        for globals_, locals_ in modules:
+            globals_['_proxy'] = self
+            for attr_name in attr_names:
+                globals_[attr_name] = getattr(self, attr_name)
+
+    def _remove_proxy(self):
+        attr_names, modules = self._setups[self.__class__]
+        for globals_, locals_ in modules:
+            globals_['_proxy'] = None
+            for attr_name in attr_names:
+                del globals_[attr_name]
+
+    @classmethod
+    def create_module_class_proxy(cls, globals_, locals_):
+        attr_names, modules = cls._setups[cls]
+        modules.append(
+            (globals_, locals_)
+        )
+        cls._setup_proxy(globals_, locals_, attr_names)
+
+    @classmethod
+    def _setup_proxy(cls, globals_, locals_, attr_names):
+        for methname in dir(cls):
+            cls._add_proxied_attribute(methname, globals_, locals_, attr_names)
+
+    @classmethod
+    def _add_proxied_attribute(cls, methname, globals_, locals_, attr_names):
         if not methname.startswith('_'):
-            if callable(getattr(cls, methname)):
-                locals_[methname] = _create_op_proxy(methname)
+            meth = getattr(cls, methname)
+            if callable(meth):
+                locals_[methname] = cls._create_method_proxy(
+                    methname, globals_, locals_)
             else:
                 attr_names.add(methname)
 
-    globals_['_install_proxy'] = _install_proxy
-    globals_['_remove_proxy'] = _remove_proxy
-    globals_['_add_proxied_method'] = _add_proxied_method
-
-    def _create_op_proxy(name):
+    @classmethod
+    def _create_method_proxy(cls, name, globals_, locals_):
         fn = getattr(cls, name)
         spec = inspect.getargspec(fn)
         if spec[0] and spec[0][0] == 'self':
@@ -198,9 +119,6 @@ def create_module_class_proxy(cls, globals_, locals_):
         lcl = {}
         exec_(func_text, globals_, lcl)
         return lcl[name]
-
-    for methname in dir(cls):
-        _add_proxied_method(methname)
 
 
 def asbool(value):
