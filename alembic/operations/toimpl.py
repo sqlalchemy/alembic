@@ -152,3 +152,11 @@ def drop_constraint(operations, operation):
 def bulk_insert(operations, operation):
     operations.impl.bulk_insert(
         operation.table, operation.rows, multiinsert=operation.multiinsert)
+
+
+@Operations.implementation_for(ops.ExecuteSQLOp)
+def execute_sql(operations, operation):
+    operations.migration_context.impl.execute(
+        operation.sqltext,
+        execution_options=operation.execution_options
+    )

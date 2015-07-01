@@ -72,6 +72,8 @@ Within migration scripts, actual database migration operations are handled
 via an instance of :class:`.Operations`.    See :ref:`ops` for an overview
 of this object.
 
+.. _operation_plugins:
+
 Operation Plugins
 -----------------
 

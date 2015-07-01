@@ -41,6 +41,10 @@ class Operations(util.ModuleClsProxy):
 
         op.alter_column("t", "c", nullable=True)
 
+    Note that as of 0.8, most of the methods on this class are produced
+    dynamically using the :meth:`.Operations.register_operation`
+    method.
+
     """
 
     _to_impl = util.Dispatcher()
@@ -61,10 +65,30 @@ class Operations(util.ModuleClsProxy):
         self.schema_obj = schemaobj.SchemaObjects(migration_context)
 
     @classmethod
-    def register_operation(cls, name):
-        def register(op_cls):
+    def register_operation(cls, name, sourcename=None):
+        """Register a new operation for this class.
 
-            fn = getattr(op_cls, name)
+        This method is normally used to add new operations
+        to the :class:`.Operations` class, and possibly the
+        :class:`.BatchOperations` class as well.   All Alembic migration
+        operations are implemented via this system, however the system
+        is also available as a public API to facilitate adding custom
+        operations.
+
+        .. seealso::
+
+            :ref:`operation_plugins`
+
+        .. versionadded:: 0.8.0
+
+        """
+        def register(op_cls):
+            if sourcename is None:
+                fn = getattr(op_cls, name)
+                source_name = fn.__name__
+            else:
+                fn = getattr(op_cls, sourcename)
+                source_name = fn.__name__
 
             spec = inspect.getargspec(fn)
 
@@ -88,9 +112,10 @@ class Operations(util.ModuleClsProxy):
             func_text = textwrap.dedent("""\
             def %(name)s%(args)s:
                 %(doc)r
-                return op_cls.%(name)s%(apply_kw)s
+                return op_cls.%(source_name)s%(apply_kw)s
             """ % {
                 'name': name,
+                'source_name': source_name,
                 'args': args,
                 'apply_kw': apply_kw,
                 'doc': fn.__doc__,
@@ -105,6 +130,16 @@ class Operations(util.ModuleClsProxy):
 
     @classmethod
     def implementation_for(cls, op_cls):
+        """Register an implementation for a given :class:`.MigrateOperation`.
+
+        This is part of the operation extensibility API.
+
+        .. seealso::
+
+            :ref:`operation_plugins` - example of use
+
+        """
+
         def decorate(fn):
             cls._to_impl.dispatch_for(op_cls)(fn)
             return fn
@@ -269,7 +304,6 @@ class Operations(util.ModuleClsProxy):
             operation, self.migration_context.impl.__dialect__)
         return fn(self, operation)
 
-
     def f(self, name):
         """Indicate a string name that has already had a naming convention
         applied to it.
@@ -361,73 +395,6 @@ class Operations(util.ModuleClsProxy):
         """
         return sqla_compat._literal_bindparam(None, value, type_=type_)
 
-    def execute(self, sqltext, execution_options=None):
-        """Execute the given SQL using the current migration context.
-
-        In a SQL script context, the statement is emitted directly to the
-        output stream.   There is *no* return result, however, as this
-        function is oriented towards generating a change script
-        that can run in "offline" mode.  For full interaction
-        with a connected database, use the "bind" available
-        from the context::
-
-            from alembic import op
-            connection = op.get_bind()
-
-        Also note that any parameterized statement here *will not work*
-        in offline mode - INSERT, UPDATE and DELETE statements which refer
-        to literal values would need to render
-        inline expressions.   For simple use cases, the
-        :meth:`.inline_literal` function can be used for **rudimentary**
-        quoting of string values.  For "bulk" inserts, consider using
-        :meth:`.bulk_insert`.
-
-        For example, to emit an UPDATE statement which is equally
-        compatible with both online and offline mode::
-
-            from sqlalchemy.sql import table, column
-            from sqlalchemy import String
-            from alembic import op
-
-            account = table('account',
-                column('name', String)
-            )
-            op.execute(
-                account.update().\\
-                    where(account.c.name==op.inline_literal('account 1')).\\
-                    values({'name':op.inline_literal('account 2')})
-                    )
-
-        Note above we also used the SQLAlchemy
-        :func:`sqlalchemy.sql.expression.table`
-        and :func:`sqlalchemy.sql.expression.column` constructs to
-        make a brief, ad-hoc table construct just for our UPDATE
-        statement.  A full :class:`~sqlalchemy.schema.Table` construct
-        of course works perfectly fine as well, though note it's a
-        recommended practice to at least ensure the definition of a
-        table is self-contained within the migration script, rather
-        than imported from a module that may break compatibility with
-        older migrations.
-
-        :param sql: Any legal SQLAlchemy expression, including:
-
-        * a string
-        * a :func:`sqlalchemy.sql.expression.text` construct.
-        * a :func:`sqlalchemy.sql.expression.insert` construct.
-        * a :func:`sqlalchemy.sql.expression.update`,
-          :func:`sqlalchemy.sql.expression.insert`,
-          or :func:`sqlalchemy.sql.expression.delete`  construct.
-        * Pretty much anything that's "executable" as described
-          in :ref:`sqlexpression_toplevel`.
-
-        :param execution_options: Optional dictionary of
-         execution options, will be passed to
-         :meth:`sqlalchemy.engine.Connection.execution_options`.
-        """
-        self.migration_context.impl.execute(
-            sqltext,
-            execution_options=execution_options)
-
     def get_bind(self):
         """Return the current 'bind'.
 
@@ -452,153 +419,13 @@ class BatchOperations(Operations):
 
         :meth:`.Operations.batch_alter_table`
 
+    Note that as of 0.8, most of the methods on this class are produced
+    dynamically using the :meth:`.Operations.register_operation`
+    method.
+
     """
 
     def _noop(self, operation):
         raise NotImplementedError(
             "The %s method does not apply to a batch table alter operation."
             % operation)
-
-    def add_column(self, column):
-        """Issue an "add column" instruction using the current
-        batch migration context.
-
-        .. seealso::
-
-            :meth:`.Operations.add_column`
-
-        """
-
-        return super(BatchOperations, self).add_column(
-            self.impl.table_name, column, schema=self.impl.schema)
-
-    def alter_column(self, column_name, **kw):
-        """Issue an "alter column" instruction using the current
-        batch migration context.
-
-        .. seealso::
-
-            :meth:`.Operations.add_column`
-
-        """
-        kw['schema'] = self.impl.schema
-        return super(BatchOperations, self).alter_column(
-            self.impl.table_name, column_name, **kw)
-
-    def drop_column(self, column_name):
-        """Issue a "drop column" instruction using the current
-        batch migration context.
-
-        .. seealso::
-
-            :meth:`.Operations.drop_column`
-
-        """
-        return super(BatchOperations, self).drop_column(
-            self.impl.table_name, column_name, schema=self.impl.schema)
-
-    def create_primary_key(self, constraint_name, columns):
-        """Issue a "create primary key" instruction using the
-        current batch migration context.
-
-        The batch form of this call omits the ``table_name`` and ``schema``
-        arguments from the call.
-
-        .. seealso::
-
-            :meth:`.Operations.create_primary_key`
-
-        """
-        raise NotImplementedError("not yet implemented")
-
-    @util._with_legacy_names([('name', 'constraint_name')])
-    def create_foreign_key(
-            self, constraint_name, referent, local_cols, remote_cols, **kw):
-        """Issue a "create foreign key" instruction using the
-        current batch migration context.
-
-        The batch form of this call omits the ``source`` and ``source_schema``
-        arguments from the call.
-
-        e.g.::
-
-            with batch_alter_table("address") as batch_op:
-                batch_op.create_foreign_key(
-                            "fk_user_address",
-                            "user", ["user_id"], ["id"])
-
-        .. seealso::
-
-            :meth:`.Operations.create_foreign_key`
-
-        """
-        return super(BatchOperations, self).create_foreign_key(
-            constraint_name, self.impl.table_name, referent,
-            local_cols, remote_cols,
-            source_schema=self.impl.schema, **kw)
-
-    @util._with_legacy_names([('name', 'constraint_name')])
-    def create_unique_constraint(self, constraint_name, local_cols, **kw):
-        """Issue a "create unique constraint" instruction using the
-        current batch migration context.
-
-        The batch form of this call omits the ``source`` and ``schema``
-        arguments from the call.
-
-        .. seealso::
-
-            :meth:`.Operations.create_unique_constraint`
-
-        """
-        kw['schema'] = self.impl.schema
-        return super(BatchOperations, self).create_unique_constraint(
-            constraint_name, self.impl.table_name, local_cols, **kw)
-
-    @util._with_legacy_names([('name', 'constraint_name')])
-    def create_check_constraint(self, constraint_name, condition, **kw):
-        """Issue a "create check constraint" instruction using the
-        current batch migration context.
-
-        The batch form of this call omits the ``source`` and ``schema``
-        arguments from the call.
-
-        .. seealso::
-
-            :meth:`.Operations.create_check_constraint`
-
-        """
-        raise NotImplementedError("not yet implemented")
-
-    def drop_constraint(self, name, type_=None):
-        """Issue a "drop constraint" instruction using the
-        current batch migration context.
-
-        The batch form of this call omits the ``table_name`` and ``schema``
-        arguments from the call.
-
-        .. seealso::
-
-            :meth:`.Operations.drop_constraint`
-
-        """
-        return super(BatchOperations, self).drop_constraint(
-            name, self.impl.table_name, type_=type_,
-            schema=self.impl.schema)
-
-    def create_index(self, index_name, columns, **kw):
-        """Issue a "create index" instruction using the
-        current batch migration context."""
-
-        kw['schema'] = self.impl.schema
-
-        return super(BatchOperations, self).create_index(
-            index_name, self.impl.table_name, columns, **kw)
-
-    def drop_index(self, name, **kw):
-        """Issue a "drop index" instruction using the
-        current batch migration context."""
-
-        kw['schema'] = self.impl.schema
-
-        return super(BatchOperations, self).drop_index(
-            name, self.impl.table_name, **kw)

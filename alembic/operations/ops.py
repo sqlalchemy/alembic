@@ -2,7 +2,7 @@ from .. import util
 from ..util import sqla_compat
 from . import schemaobj
 from sqlalchemy.types import NULLTYPE
-from .base import Operations
+from .base import Operations, BatchOperations
 
 
 class MigrateOperation(object):
@@ -10,6 +10,8 @@ class MigrateOperation(object):
 
 
 class AddConstraintOp(MigrateOperation):
+    """Represent an add constraint operation."""
+
     @classmethod
     def from_constraint(cls, constraint):
         funcs = {
@@ -23,7 +25,10 @@ class AddConstraintOp(MigrateOperation):
 
 
 @Operations.register_operation("drop_constraint")
+@BatchOperations.register_operation("drop_constraint", "batch_drop_constraint")
 class DropConstraintOp(MigrateOperation):
+    """Represent a drop constraint operation."""
+
     def __init__(self, constraint_name, table_name, type_=None, schema=None):
         self.constraint_name = constraint_name
         self.table_name = table_name
@@ -41,7 +46,7 @@ class DropConstraintOp(MigrateOperation):
         }
 
         constraint_table = sqla_compat._table_for_constraint(constraint)
-        return DropConstraintOp(
+        return cls(
             constraint.name,
             constraint_table.name,
             schema=constraint_table.schema,
@@ -68,14 +73,35 @@ class DropConstraintOp(MigrateOperation):
 
         """
 
-        op = DropConstraintOp(
-            name, table_name, type_=type_, schema=schema
+        op = cls(name, table_name, type_=type_, schema=schema)
+        return operations.invoke(op)
+
+    @classmethod
+    def batch_drop_constraint(cls, operations, name, type_=None):
+        """Issue a "drop constraint" instruction using the
+        current batch migration context.
+
+        The batch form of this call omits the ``table_name`` and ``schema``
+        arguments from the call.
+
+        .. seealso::
+
+            :meth:`.Operations.drop_constraint`
+
+        """
+        op = cls(
+            name, operations.impl.table_name,
+            type_=type_, schema=operations.impl.schema
         )
         return operations.invoke(op)
 
 
 @Operations.register_operation("create_primary_key")
+@BatchOperations.register_operation(
+    "create_primary_key", "batch_create_primary_key")
 class CreatePrimaryKeyOp(AddConstraintOp):
+    """Represent a create primary key operation."""
+
     def __init__(
             self, constraint_name, table_name, columns, schema=None, **kw):
         self.constraint_name = constraint_name
@@ -88,7 +114,7 @@ class CreatePrimaryKeyOp(AddConstraintOp):
     def from_constraint(cls, constraint):
         constraint_table = sqla_compat._table_for_constraint(constraint)
 
-        return CreatePrimaryKeyOp(
+        return cls(
             constraint.name,
             constraint_table.name,
             schema=constraint_table.schema,
@@ -145,14 +171,31 @@ class CreatePrimaryKeyOp(AddConstraintOp):
             :class:`~sqlalchemy.sql.elements.quoted_name` construct.
 
         """
-        op = CreatePrimaryKeyOp(
-            constraint_name, table_name, columns, schema
-        )
+        op = cls(constraint_name, table_name, columns, schema)
         return operations.invoke(op)
+
+    @classmethod
+    def batch_create_primary_key(cls, operations, constraint_name, columns):
+        """Issue a "create primary key" instruction using the
+        current batch migration context.
+
+        The batch form of this call omits the ``table_name`` and ``schema``
+        arguments from the call.
+
+        .. seealso::
+
+            :meth:`.Operations.create_primary_key`
+
+        """
+        raise NotImplementedError("not yet implemented")
 
 
 @Operations.register_operation("create_unique_constraint")
+@BatchOperations.register_operation(
+    "create_unique_constraint", "batch_create_unique_constraint")
 class CreateUniqueConstraintOp(AddConstraintOp):
+    """Represent a create unique constraint operation."""
+
     def __init__(
             self, constraint_name, table_name, columns, schema=None, **kw):
         self.constraint_name = constraint_name
@@ -171,7 +214,7 @@ class CreateUniqueConstraintOp(AddConstraintOp):
         if constraint.initially:
             kw['initially'] = constraint.initially
 
-        return CreateUniqueConstraintOp(
+        return cls(
             constraint.name,
             constraint_table.name,
             [c.name for c in constraint.columns],
@@ -234,15 +277,41 @@ class CreateUniqueConstraintOp(AddConstraintOp):
 
         """
 
-        op = CreateUniqueConstraintOp(
+        op = cls(
             constraint_name, table_name, columns,
             schema=schema, **kw
         )
         return operations.invoke(op)
 
+    @classmethod
+    @util._with_legacy_names([('name', 'constraint_name')])
+    def batch_create_unique_constraint(
+            cls, operations, constraint_name, columns, **kw):
+        """Issue a "create unique constraint" instruction using the
+        current batch migration context.
+
+        The batch form of this call omits the ``source`` and ``schema``
+        arguments from the call.
+
+        .. seealso::
+
+            :meth:`.Operations.create_unique_constraint`
+
+        """
+        kw['schema'] = operations.impl.schema
+        op = cls(
+            constraint_name, operations.impl.table_name, columns,
+            **kw
+        )
+        return operations.invoke(op)
+
 
 @Operations.register_operation("create_foreign_key")
+@BatchOperations.register_operation(
+    "create_foreign_key", "batch_create_foreign_key")
 class CreateForeignKeyOp(AddConstraintOp):
+    """Represent a create foreign key constraint operation."""
+
     def __init__(
             self, constraint_name, source_table, referent_table, local_cols,
             remote_cols, **kw):
@@ -274,7 +343,7 @@ class CreateForeignKeyOp(AddConstraintOp):
         kw['source_schema'] = source_schema
         kw['referent_schema'] = target_schema
 
-        return CreateForeignKeyOp(
+        return cls(
             constraint.name,
             source_table,
             target_table,
@@ -344,7 +413,7 @@ class CreateForeignKeyOp(AddConstraintOp):
 
         """
 
-        op = CreateForeignKeyOp(
+        op = cls(
             constraint_name,
             source_table, referent_table,
             local_cols, remote_cols,
@@ -357,9 +426,53 @@ class CreateForeignKeyOp(AddConstraintOp):
         )
         return operations.invoke(op)
 
+    @classmethod
+    @util._with_legacy_names([('name', 'constraint_name')])
+    def batch_create_foreign_key(
+            cls, operations, constraint_name, referent_table,
+            local_cols, remote_cols,
+            referent_schema=None,
+            onupdate=None, ondelete=None,
+            deferrable=None, initially=None, match=None,
+            **dialect_kw):
+        """Issue a "create foreign key" instruction using the
+        current batch migration context.
+
+        The batch form of this call omits the ``source`` and ``source_schema``
+        arguments from the call.
+
+        e.g.::
+
+            with batch_alter_table("address") as batch_op:
+                batch_op.create_foreign_key(
+                            "fk_user_address",
+                            "user", ["user_id"], ["id"])
+
+        .. seealso::
+
+            :meth:`.Operations.create_foreign_key`
+
+        """
+        op = cls(
+            constraint_name,
+            operations.impl.table_name, referent_table,
+            local_cols, remote_cols,
+            onupdate=onupdate, ondelete=ondelete,
+            deferrable=deferrable,
+            source_schema=operations.impl.schema,
+            referent_schema=referent_schema,
+            initially=initially, match=match,
+            **dialect_kw
+        )
+        return operations.invoke(op)
+
 
 @Operations.register_operation("create_check_constraint")
+@BatchOperations.register_operation(
+    "create_check_constraint", "batch_create_check_constraint")
 class CreateCheckConstraintOp(AddConstraintOp):
+    """Represent a create check constraint operation."""
+
     def __init__(
             self, constraint_name, table_name, condition, schema=None, **kw):
         self.constraint_name = constraint_name
@@ -372,7 +485,7 @@ class CreateCheckConstraintOp(AddConstraintOp):
     def from_constraint(cls, constraint):
         constraint_table = sqla_compat._table_for_constraint(constraint)
 
-        return CreateCheckConstraintOp(
+        return cls(
             constraint.name,
             constraint_table.name,
             constraint.condition,
@@ -437,14 +550,32 @@ class CreateCheckConstraintOp(AddConstraintOp):
             :class:`~sqlalchemy.sql.elements.quoted_name` construct.
 
         """
-        op = CreateCheckConstraintOp(
-            constraint_name, table_name, condition, schema=schema, **kw
-        )
+        op = cls(constraint_name, table_name, condition, schema=schema, **kw)
         return operations.invoke(op)
+
+    @classmethod
+    @util._with_legacy_names([('name', 'constraint_name')])
+    def batch_create_check_constraint(
+            cls, operations, constraint_name, condition, **kw):
+        """Issue a "create check constraint" instruction using the
+        current batch migration context.
+
+        The batch form of this call omits the ``source`` and ``schema``
+        arguments from the call.
+
+        .. seealso::
+
+            :meth:`.Operations.create_check_constraint`
+
+        """
+        raise NotImplementedError("not yet implemented")
 
 
 @Operations.register_operation("create_index")
+@BatchOperations.register_operation("create_index", "batch_create_index")
 class CreateIndexOp(MigrateOperation):
+    """Represent a create index operation."""
+
     def __init__(
             self, index_name, table_name, columns, schema=None,
             unique=False, quote=None, _orig_index=None, **kw):
@@ -459,7 +590,7 @@ class CreateIndexOp(MigrateOperation):
 
     @classmethod
     def from_index(cls, index):
-        return CreateIndexOp(
+        return cls(
             index.name,
             index.table.name,
             sqla_compat._get_index_expressions(index),
@@ -534,15 +665,29 @@ class CreateIndexOp(MigrateOperation):
             See the documentation regarding an individual dialect at
             :ref:`dialect_toplevel` for detail on documented arguments.
         """
-        op = CreateIndexOp(
+        op = cls(
             index_name, table_name, columns, schema=schema,
             unique=unique, quote=quote, **kw
         )
         return operations.invoke(op)
 
+    @classmethod
+    def batch_create_index(cls, operations, index_name, columns, **kw):
+        """Issue a "create index" instruction using the
+        current batch migration context."""
+
+        op = cls(
+            index_name, operations.impl.table_name, columns,
+            schema=operations.impl.schema, **kw
+        )
+        return operations.invoke(op)
+
 
 @Operations.register_operation("drop_index")
+@BatchOperations.register_operation("drop_index", "batch_drop_index")
 class DropIndexOp(MigrateOperation):
+    """Represent a drop index operation."""
+
     def __init__(self, index_name, table_name=None, schema=None):
         self.index_name = index_name
         self.table_name = table_name
@@ -550,7 +695,7 @@ class DropIndexOp(MigrateOperation):
 
     @classmethod
     def from_index(cls, index):
-        return DropIndexOp(
+        return cls(
             index.name,
             index.table.name,
             schema=index.table.schema,
@@ -587,14 +732,26 @@ class DropIndexOp(MigrateOperation):
             :class:`~sqlalchemy.sql.elements.quoted_name` construct.
 
         """
-        op = DropIndexOp(
-            index_name, table_name=table_name, schema=schema
+        op = cls(index_name, table_name=table_name, schema=schema)
+        return operations.invoke(op)
+
+    @classmethod
+    @util._with_legacy_names([('name', 'index_name')])
+    def batch_drop_index(cls, operations, index_name, **kw):
+        """Issue a "drop index" instruction using the
+        current batch migration context."""
+
+        op = cls(
+            index_name, table_name=operations.impl.table_name,
+            schema=operations.impl.schema
         )
         return operations.invoke(op)
 
 
 @Operations.register_operation("create_table")
 class CreateTableOp(MigrateOperation):
+    """Represent a create table operation."""
+
     def __init__(
             self, table_name, columns, schema=None, _orig_table=None, **kw):
         self.table_name = table_name
@@ -605,7 +762,7 @@ class CreateTableOp(MigrateOperation):
 
     @classmethod
     def from_table(cls, table):
-        return CreateTableOp(
+        return cls(
             table.name,
             list(table.c) + list(table.constraints),
             schema=table.schema,
@@ -709,16 +866,14 @@ class CreateTableOp(MigrateOperation):
             object is returned.
 
         """
-        op = CreateTableOp(
-            table_name,
-            columns,
-            **kw
-        )
+        op = cls(table_name, columns, **kw)
         return operations.invoke(op)
 
 
 @Operations.register_operation("drop_table")
 class DropTableOp(MigrateOperation):
+    """Represent a drop table operation."""
+
     def __init__(self, table_name, schema=None, table_kw=None):
         self.table_name = table_name
         self.schema = schema
@@ -726,7 +881,7 @@ class DropTableOp(MigrateOperation):
 
     @classmethod
     def from_table(cls, table):
-        return DropTableOp(table.name, schema=table.schema)
+        return cls(table.name, schema=table.schema)
 
     def to_table(self, migration_context):
         schema_obj = schemaobj.SchemaObjects(migration_context)
@@ -759,13 +914,12 @@ class DropTableOp(MigrateOperation):
          :class:`sqlalchemy.schema.Table` object created for the command.
 
         """
-        op = DropTableOp(
-            table_name, schema=schema, table_kw=kw
-        )
+        op = cls(table_name, schema=schema, table_kw=kw)
         operations.invoke(op)
 
 
 class AlterTableOp(MigrateOperation):
+    """Represent an alter table operation."""
 
     def __init__(self, table_name, schema=None):
         self.table_name = table_name
@@ -774,6 +928,7 @@ class AlterTableOp(MigrateOperation):
 
 @Operations.register_operation("rename_table")
 class RenameTableOp(AlterTableOp):
+    """Represent a rename table operation."""
 
     def __init__(self, old_table_name, new_table_name, schema=None):
         super(RenameTableOp, self).__init__(old_table_name, schema=schema)
@@ -795,16 +950,14 @@ class RenameTableOp(AlterTableOp):
             :class:`~sqlalchemy.sql.elements.quoted_name` construct.
 
         """
-        op = RenameTableOp(
-            old_table_name,
-            new_table_name,
-            schema=schema
-        )
+        op = cls(old_table_name, new_table_name, schema=schema)
         return operations.invoke(op)
 
 
 @Operations.register_operation("alter_column")
+@BatchOperations.register_operation("alter_column", "batch_alter_column")
 class AlterColumnOp(AlterTableOp):
+    """Represent an alter column operation."""
 
     def __init__(
             self, table_name, column_name, schema=None,
@@ -918,8 +1071,43 @@ class AlterColumnOp(AlterTableOp):
 
         """
 
-        alt = AlterColumnOp(
+        alt = cls(
             table_name, column_name, schema=schema,
+            existing_type=existing_type,
+            existing_server_default=existing_server_default,
+            existing_nullable=existing_nullable,
+            modify_name=new_column_name,
+            modify_type=type_,
+            modify_server_default=server_default,
+            modify_nullable=nullable,
+            **kw
+        )
+
+        return operations.invoke(alt)
+
+    @classmethod
+    def batch_alter_column(
+        cls, operations, column_name,
+        nullable=None,
+        server_default=False,
+        new_column_name=None,
+        type_=None,
+        existing_type=None,
+        existing_server_default=False,
+        existing_nullable=None,
+        **kw
+    ):
+        """Issue an "alter column" instruction using the current
+        batch migration context.
+
+        .. seealso::
+
+            :meth:`.Operations.add_column`
+
+        """
+        alt = cls(
+            operations.impl.table_name, column_name,
+            schema=operations.impl.schema,
             existing_type=existing_type,
             existing_server_default=existing_server_default,
             existing_nullable=existing_nullable,
@@ -934,7 +1122,9 @@ class AlterColumnOp(AlterTableOp):
 
 
 @Operations.register_operation("add_column")
+@BatchOperations.register_operation("add_column", "batch_add_column")
 class AddColumnOp(AlterTableOp):
+    """Represent an add column operation."""
 
     def __init__(self, table_name, column, schema=None):
         super(AddColumnOp, self).__init__(table_name, schema=schema)
@@ -942,11 +1132,11 @@ class AddColumnOp(AlterTableOp):
 
     @classmethod
     def from_column(cls, col):
-        return AddColumnOp(col.table.name, col, schema=col.table.schema)
+        return cls(col.table.name, col, schema=col.table.schema)
 
     @classmethod
     def from_column_and_tablename(cls, schema, tname, col):
-        return AddColumnOp(tname, col, schema=schema)
+        return cls(tname, col, schema=schema)
 
     @classmethod
     def add_column(cls, operations, table_name, column, schema=None):
@@ -1003,14 +1193,30 @@ class AddColumnOp(AlterTableOp):
 
         """
 
-        op = AddColumnOp(
-            table_name, column, schema=schema
+        op = cls(table_name, column, schema=schema)
+        return operations.invoke(op)
+
+    @classmethod
+    def batch_add_column(cls, operations, column):
+        """Issue an "add column" instruction using the current
+        batch migration context.
+
+        .. seealso::
+
+            :meth:`.Operations.add_column`
+
+        """
+        op = cls(
+            operations.impl.table_name, column,
+            schema=operations.impl.schema
         )
         return operations.invoke(op)
 
 
 @Operations.register_operation("drop_column")
+@BatchOperations.register_operation("drop_column", "batch_drop_column")
 class DropColumnOp(AlterTableOp):
+    """Represent a drop column operation."""
 
     def __init__(self, table_name, column_name, schema=None, **kw):
         super(DropColumnOp, self).__init__(table_name, schema=schema)
@@ -1019,7 +1225,7 @@ class DropColumnOp(AlterTableOp):
 
     @classmethod
     def from_column_and_tablename(cls, schema, tname, col):
-        return DropColumnOp(tname, col.name, schema=schema)
+        return cls(tname, col.name, schema=schema)
 
     def to_column(self, migration_context=None):
         schema_obj = schemaobj.SchemaObjects(migration_context)
@@ -1071,12 +1277,29 @@ class DropColumnOp(AlterTableOp):
 
         """
 
-        op = DropColumnOp(table_name, column_name, schema=schema, **kw)
+        op = cls(table_name, column_name, schema=schema, **kw)
+        return operations.invoke(op)
+
+    @classmethod
+    def batch_drop_column(cls, operations, column_name):
+        """Issue a "drop column" instruction using the current
+        batch migration context.
+
+        .. seealso::
+
+            :meth:`.Operations.drop_column`
+
+        """
+        op = cls(
+            operations.impl.table_name, column_name,
+            schema=operations.impl.schema)
         return operations.invoke(op)
 
 
 @Operations.register_operation("bulk_insert")
 class BulkInsertOp(MigrateOperation):
+    """Represent a bulk insert operation."""
+
     def __init__(self, table, rows, multiinsert=True):
         self.table = table
         self.rows = rows
@@ -1167,13 +1390,88 @@ class BulkInsertOp(MigrateOperation):
 
           """
 
-        op = BulkInsertOp(
-            table, rows, multiinsert=multiinsert
-        )
+        op = cls(table, rows, multiinsert=multiinsert)
         operations.invoke(op)
 
 
+@Operations.register_operation("execute")
+class ExecuteSQLOp(MigrateOperation):
+    """Represent an execute SQL operation."""
+
+    def __init__(self, sqltext, execution_options=None):
+        self.sqltext = sqltext
+        self.execution_options = execution_options
+
+    @classmethod
+    def execute(cls, operations, sqltext, execution_options=None):
+        """Execute the given SQL using the current migration context.
+
+        In a SQL script context, the statement is emitted directly to the
+        output stream.   There is *no* return result, however, as this
+        function is oriented towards generating a change script
+        that can run in "offline" mode.  For full interaction
+        with a connected database, use the "bind" available
+        from the context::
+
+            from alembic import op
+            connection = op.get_bind()
+
+        Also note that any parameterized statement here *will not work*
+        in offline mode - INSERT, UPDATE and DELETE statements which refer
+        to literal values would need to render
+        inline expressions.   For simple use cases, the
+        :meth:`.inline_literal` function can be used for **rudimentary**
+        quoting of string values.  For "bulk" inserts, consider using
+        :meth:`.bulk_insert`.
+
+        For example, to emit an UPDATE statement which is equally
+        compatible with both online and offline mode::
+
+            from sqlalchemy.sql import table, column
+            from sqlalchemy import String
+            from alembic import op
+
+            account = table('account',
+                column('name', String)
+            )
+            op.execute(
+                account.update().\\
+                    where(account.c.name==op.inline_literal('account 1')).\\
+                    values({'name':op.inline_literal('account 2')})
+                    )
+
+        Note above we also used the SQLAlchemy
+        :func:`sqlalchemy.sql.expression.table`
+        and :func:`sqlalchemy.sql.expression.column` constructs to
+        make a brief, ad-hoc table construct just for our UPDATE
+        statement.  A full :class:`~sqlalchemy.schema.Table` construct
+        of course works perfectly fine as well, though note it's a
+        recommended practice to at least ensure the definition of a
+        table is self-contained within the migration script, rather
+        than imported from a module that may break compatibility with
+        older migrations.
+
+        :param sql: Any legal SQLAlchemy expression, including:
+
+        * a string
+        * a :func:`sqlalchemy.sql.expression.text` construct.
+        * a :func:`sqlalchemy.sql.expression.insert` construct.
+        * a :func:`sqlalchemy.sql.expression.update`,
+          :func:`sqlalchemy.sql.expression.insert`,
+          or :func:`sqlalchemy.sql.expression.delete`  construct.
+        * Pretty much anything that's "executable" as described
+          in :ref:`sqlexpression_toplevel`.
+
+        :param execution_options: Optional dictionary of
+         execution options, will be passed to
+         :meth:`sqlalchemy.engine.Connection.execution_options`.
+        """
+        op = cls(sqltext, execution_options=execution_options)
+        return operations.invoke(op)
+
+
 class OpContainer(MigrateOperation):
+    """Represent a sequence of operations operation."""
     def __init__(self, ops):
         self.ops = ops
 
