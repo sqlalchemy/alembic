@@ -6,7 +6,19 @@ from .base import Operations, BatchOperations
 
 
 class MigrateOperation(object):
-    """base class for migration command and organization objects."""
+    """base class for migration command and organization objects.
+
+    This system is part of the operation extensibility API.
+
+    .. versionadded:: 0.8.0
+
+    .. seealso::
+
+        :ref:`operation_objects`
+
+        :ref:`operation_plugins`
+
+    """
 
 
 class AddConstraintOp(MigrateOperation):
@@ -674,7 +686,13 @@ class CreateIndexOp(MigrateOperation):
     @classmethod
     def batch_create_index(cls, operations, index_name, columns, **kw):
         """Issue a "create index" instruction using the
-        current batch migration context."""
+        current batch migration context.
+
+        .. seealso::
+
+            :meth:`.Operations.create_index`
+
+        """
 
         op = cls(
             index_name, operations.impl.table_name, columns,
@@ -739,7 +757,13 @@ class DropIndexOp(MigrateOperation):
     @util._with_legacy_names([('name', 'index_name')])
     def batch_drop_index(cls, operations, index_name, **kw):
         """Issue a "drop index" instruction using the
-        current batch migration context."""
+        current batch migration context.
+
+        .. seealso::
+
+            :meth:`.Operations.drop_index`
+
+        """
 
         op = cls(
             index_name, table_name=operations.impl.table_name,

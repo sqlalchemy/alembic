@@ -75,11 +75,12 @@ class Operations(util.ModuleClsProxy):
         is also available as a public API to facilitate adding custom
         operations.
 
+        .. versionadded:: 0.8.0
+
         .. seealso::
 
             :ref:`operation_plugins`
 
-        .. versionadded:: 0.8.0
 
         """
         def register(op_cls):
@@ -125,6 +126,10 @@ class Operations(util.ModuleClsProxy):
             lcl = {}
             exec_(func_text, globals_, lcl)
             setattr(cls, name, lcl[name])
+            fn.__func__.__doc__ = "This method is proxied on "\
+                "the :class:`.%s` class, via the :meth:`.%s.%s` method." % (
+                    cls.__name__, cls.__name__, name
+                )
             return op_cls
         return register
 
@@ -300,6 +305,12 @@ class Operations(util.ModuleClsProxy):
         return self.migration_context
 
     def invoke(self, operation):
+        """Given a :class:`.MigrateOperation`, invoke it in terms of
+        this :class:`.Operations` instance.
+
+        .. versionadded:: 0.8.0
+
+        """
         fn = self._to_impl.dispatch(
             operation, self.migration_context.impl.__dialect__)
         return fn(self, operation)

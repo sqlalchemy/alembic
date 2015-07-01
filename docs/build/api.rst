@@ -57,20 +57,34 @@ In particular, the key method used within ``env.py`` is :meth:`.EnvironmentConte
 which establishes all the details about how the database will be accessed.
 
 .. automodule:: alembic.runtime.environment
-    :members: Operations, BatchOperations
+    :members: EnvironmentContext
 
 The Migration Context
 =====================
 
 .. automodule:: alembic.runtime.migration
-    :members:
+    :members: MigrationContext
 
 The Operations Object
 =====================
 
 Within migration scripts, actual database migration operations are handled
-via an instance of :class:`.Operations`.    See :ref:`ops` for an overview
-of this object.
+via an instance of :class:`.Operations`.   The :class:`.Operations` class
+lists out available migration operations that are linked to a
+:class:`.MigrationContext`, which communicates instructions originated
+by the :class:`.Operations` object into SQL that is sent to a database or SQL
+output stream.
+
+Most methods on the :class:`.Operations` class are generated dynamically
+using a "plugin" system, described in the next section
+:ref:`operation_plugins`.   Additionally, when Alembic migration scripts
+actually run, the methods on the current :class:`.Operations` object are
+proxied out to the :mod:`alembic.op` module, so that they are available
+using module-style access.
+
+For an overview of how to use an :class:`.Operations` object directly
+in programs, as well as for reference to the standard operation methods
+as well as "batch" methods, see :ref:`ops`.
 
 .. _operation_plugins:
 
@@ -82,7 +96,15 @@ allows one to add new ``op.<some_operation>`` methods at runtime.  The
 steps to use this system are to first create a subclass of
 :class:`.MigrateOperation`, register it using the :meth:`.Operations.register_operation`
 class decorator, then build a default "implementation" function which is
-established using the :meth:`.Operations.implementation_for` decorator::
+established using the :meth:`.Operations.implementation_for` decorator.
+
+.. versionadded:: 0.8.0 - the :class:`.Operations` class is now an
+   open namespace that is extensible via the creation of new
+   :class:`.MigrateOperation` subclasses.
+
+Below we illustrate a very simple operation ``CreateSequenceOp`` which
+will implement a new method ``op.create_sequence()`` for use in
+migration scripts::
 
     from alembic.operations import Operations, MigrateOperation
 
@@ -138,11 +160,22 @@ within the module level of the ``env.py`` script is sufficient.
    is now extensible using a plugin system.
 
 
-Built-in Operation Plugins
+.. _operation_objects:
+
+Built-in Operation Objects
 --------------------------
 
 The migration operations present on :class:`.Operations` are themselves
-delivered via plugins.  The built in plugins are listed below.
+delivered via operation objects that represent an operation and its
+arguments.   All operations descend from the :class:`.MigrateOperation`
+class, and are registered with the :class:`.Operations` class using
+the :meth:`.Operations.register_operation` class decorator.
+
+.. seealso::
+
+    :ref:`operation_plugins`
+
+The built-in operation objects are listed below.
 
 .. automodule:: alembic.operations.ops
     :members:

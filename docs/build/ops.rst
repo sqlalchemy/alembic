@@ -18,6 +18,9 @@ Currently, ``alembic.op`` is a real Python module, populated
 with individual proxies for each method on :class:`.Operations`,
 so symbols can be imported safely from the ``alembic.op`` namespace.
 
+The :class:`.Operations` system is also fully extensible.  See
+:ref:`operation_plugins` for details on this.
+
 A key design philosophy to the :mod:`alembic.operations` methods is that
 to the greatest degree possible, they internally generate the
 appropriate SQLAlchemy metadata, typically involving
@@ -38,7 +41,5 @@ method.
 
 
 .. automodule:: alembic.operations
-    :members:
+    :members: Operations, BatchOperations
 
-.. automodule:: alembic.operations.ops
-	:members:
