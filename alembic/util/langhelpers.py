@@ -131,6 +131,17 @@ def rev_id():
     return hex(val)[2:-1]
 
 
+def to_list(x, default=None):
+    if x is None:
+        return default
+    elif isinstance(x, string_types):
+        return [x]
+    elif isinstance(x, collections.Iterable):
+        return list(x)
+    else:
+        raise ValueError("Don't know how to turn %r into a list" % x)
+
+
 def to_tuple(x, default=None):
     if x is None:
         return default

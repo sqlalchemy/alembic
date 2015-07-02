@@ -18,6 +18,8 @@ class MigrateOperation(object):
 
         :ref:`operation_plugins`
 
+        :ref:`customizing_revision`
+
     """
 
 
@@ -1496,7 +1498,7 @@ class ExecuteSQLOp(MigrateOperation):
 
 class OpContainer(MigrateOperation):
     """Represent a sequence of operations operation."""
-    def __init__(self, ops):
+    def __init__(self, ops=()):
         self.ops = ops
 
 
@@ -1511,12 +1513,24 @@ class ModifyTableOps(OpContainer):
 
 class UpgradeOps(OpContainer):
     """contains a sequence of operations that would apply to the
-    'upgrade' stream of a script."""
+    'upgrade' stream of a script.
+
+    .. seealso::
+
+        :ref:`customizing_revision`
+
+    """
 
 
 class DowngradeOps(OpContainer):
     """contains a sequence of operations that would apply to the
-    'downgrade' stream of a script."""
+    'downgrade' stream of a script.
+
+    .. seealso::
+
+        :ref:`customizing_revision`
+
+    """
 
 
 class MigrationScript(MigrateOperation):
@@ -1527,6 +1541,10 @@ class MigrationScript(MigrateOperation):
 
     A normal :class:`.MigrationScript` object would contain a single
     :class:`.UpgradeOps` and a single :class:`.DowngradeOps` directive.
+
+    .. seealso::
+
+        :ref:`customizing_revision`
 
     """
 

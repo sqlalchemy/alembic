@@ -68,7 +68,7 @@ def _render_cmd_body(op_container, autogen_context):
 
 def render_op(autogen_context, op):
     renderer = renderers.dispatch(op)
-    lines = renderer(autogen_context, op)
+    lines = util.to_list(renderer(autogen_context, op))
     return lines
 
 
@@ -130,7 +130,7 @@ def _add_table(autogen_context, op):
     for k in sorted(op.kw):
         text += ",\n%s=%r" % (k.replace(" ", "_"), op.kw[k])
     text += "\n)"
-    return [text]
+    return text
 
 
 @renderers.dispatch_for(ops.DropTableOp)
@@ -142,7 +142,7 @@ def _drop_table(autogen_context, op):
     if op.schema:
         text += ", schema=%r" % _ident(op.schema)
     text += ")"
-    return [text]
+    return text
 
 
 @renderers.dispatch_for(ops.CreateIndexOp)
@@ -175,7 +175,7 @@ def _add_index(autogen_context, op):
                  for key, val in index.kwargs.items()]))
         if len(index.kwargs) else ''
     }
-    return [text]
+    return text
 
 
 @renderers.dispatch_for(ops.DropIndexOp)
@@ -195,7 +195,7 @@ def _drop_index(autogen_context, op):
         'schema': ((", schema=%r" % _ident(op.schema))
                    if op.schema else '')
     }
-    return [text]
+    return text
 
 
 @renderers.dispatch_for(ops.CreateUniqueConstraintOp)
@@ -224,10 +224,10 @@ def _add_fk_constraint(autogen_context, op):
             if value is not None:
                 args.append("%s=%r" % (k, value))
 
-    return ["%(prefix)screate_foreign_key(%(args)s)" % {
+    return "%(prefix)screate_foreign_key(%(args)s)" % {
         'prefix': _alembic_autogenerate_prefix(autogen_context),
         'args': ", ".join(args)
-    }]
+    }
 
 
 @renderers.dispatch_for(ops.CreatePrimaryKeyOp)
@@ -259,7 +259,7 @@ def _drop_constraint(autogen_context, op):
         'schema': (", schema='%s'" % _ident(op.schema))
         if op.schema else '',
     }
-    return [text]
+    return text
 
 
 @renderers.dispatch_for(ops.AddColumnOp)
@@ -279,7 +279,7 @@ def _add_column(autogen_context, op):
         "column": _render_column(column, autogen_context),
         "schema": schema
     }
-    return [text]
+    return text
 
 
 @renderers.dispatch_for(ops.DropColumnOp)
@@ -301,7 +301,7 @@ def _drop_column(autogen_context, op):
         "cname": _ident(column_name),
         "schema": _ident(schema)
     }
-    return [text]
+    return text
 
 
 @renderers.dispatch_for(ops.AlterColumnOp)
@@ -355,7 +355,7 @@ def _alter_column(autogen_context, op):
     if schema and "batch_prefix" not in autogen_context:
         text += ",\n%sschema=%r" % (indent, schema)
     text += ")"
-    return [text]
+    return text
 
 
 class _f_name(object):

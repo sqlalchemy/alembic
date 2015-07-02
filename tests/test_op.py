@@ -852,3 +852,31 @@ class SQLModeOpTest(TestBase):
             "CREATE TABLE some_table (id INTEGER NOT NULL, st_id INTEGER, "
             "PRIMARY KEY (id), FOREIGN KEY(st_id) REFERENCES some_table (id))"
         )
+
+
+class CustomOpTest(TestBase):
+    def test_custom_op(self):
+        from alembic.operations import Operations, MigrateOperation
+
+        @Operations.register_operation("create_sequence")
+        class CreateSequenceOp(MigrateOperation):
+            """Create a SEQUENCE."""
+
+            def __init__(self, sequence_name, **kw):
+                self.sequence_name = sequence_name
+                self.kw = kw
+
+            @classmethod
+            def create_sequence(cls, operations, sequence_name, **kw):
+                """Issue a "CREATE SEQUENCE" instruction."""
+
+                op = CreateSequenceOp(sequence_name, **kw)
+                return operations.invoke(op)
+
+        @Operations.implementation_for(CreateSequenceOp)
+        def create_sequence(operations, operation):
+            operations.execute("CREATE SEQUENCE %s" % operation.sequence_name)
+
+        context = op_fixture()
+        op.create_sequence('foob')
+        context.assert_("CREATE SEQUENCE foob")

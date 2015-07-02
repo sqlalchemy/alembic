@@ -94,7 +94,7 @@ def compare_metadata(context, metadata):
     .. seealso::
 
         :func:`.produce_migrations` - produces a :class:`.MigrationScript`
-         structure based on metadata comparison.
+        structure based on metadata comparison.
 
     """
 
@@ -115,14 +115,21 @@ def compare_metadata(context, metadata):
 
 
 def produce_migrations(context, metadata):
-    """Produce a :class:`.MigrationScript` structure based on schema comparison.
+    """Produce a :class:`.MigrationScript` structure based on schema
+    comparison.
+
+    This function does essentially what :func:`.compare_metadata` does,
+    but then runs the resulting list of diffs to produce the full
+    :class:`.MigrationScript` object.   For an example of what this looks like,
+    see the example in :ref:`customizing_revision`.
 
     .. versionadded:: 0.8.0
 
     .. seealso::
 
         :func:`.compare_metadata` - returns more fundamental "diff"
-         data from comparing a schema.
+        data from comparing a schema.
+
     """
 
     autogen_context = _autogen_context(context, metadata=metadata)
@@ -139,6 +146,34 @@ def produce_migrations(context, metadata):
     compose._to_migration_script(autogen_context, migration_script, diffs)
 
     return migration_script
+
+
+def render_python_code(
+    up_or_down_op,
+    sqlalchemy_module_prefix='sa.',
+    alembic_module_prefix='op.',
+    imports=(),
+    render_item=None,
+):
+    """Render Python code given an :class:`.UpgradeOps` or
+    :class:`.DowngradeOps` object.
+
+    This is a convenience function that can be used to test the
+    autogenerate output of a user-defined :class:`.MigrationScript` structure.
+
+    """
+    autogen_context = {
+        'opts': {
+            'sqlalchemy_module_prefix': sqlalchemy_module_prefix,
+            'alembic_module_prefix': alembic_module_prefix,
+            'render_item': render_item,
+        },
+        'imports': set(imports)
+    }
+    return render._indent(render._render_cmd_body(
+        up_or_down_op, autogen_context))
+
+
 
 
 def _render_migration_diffs(context, template_args, imports):

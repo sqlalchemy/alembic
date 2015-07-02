@@ -54,14 +54,23 @@ class RevisionContext(object):
         compare._produce_net_changes(autogen_context, diffs)
 
         migration_script = self.generated_revisions[0]
-        migration_script._autogen_context = autogen_context
 
         compose._to_migration_script(autogen_context, migration_script, diffs)
 
-        # DO THE HOOK HERE!!
+        hook = context.opts.get('process_revision_directives', None)
+        if hook:
+            hook(context, rev, self.generated_revisions)
+
+        for migration_script in self.generated_revisions:
+            migration_script._autogen_context = autogen_context
 
     def run_no_autogenerate(self, rev, context):
-        pass
+        hook = context.opts.get('process_revision_directives', None)
+        if hook:
+            hook(context, rev, self.generated_revisions)
+
+        for migration_script in self.generated_revisions:
+            migration_script._autogen_context = None
 
     def _default_revision(self):
         op = ops.MigrationScript(
