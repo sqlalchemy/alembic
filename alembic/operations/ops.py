@@ -600,13 +600,12 @@ class CreateIndexOp(MigrateOperation):
 
     def __init__(
             self, index_name, table_name, columns, schema=None,
-            unique=False, quote=None, _orig_index=None, **kw):
+            unique=False, _orig_index=None, **kw):
         self.index_name = index_name
         self.table_name = table_name
         self.columns = columns
         self.schema = schema
         self.unique = unique
-        self.quote = quote
         self.kw = kw
         self._orig_index = _orig_index
 
@@ -618,9 +617,8 @@ class CreateIndexOp(MigrateOperation):
             sqla_compat._get_index_expressions(index),
             schema=index.table.schema,
             unique=index.unique,
-            quote=index.name.quote,
             _orig_index=index,
-            **index.dialect_kwargs
+            **index.kwargs
         )
 
     def to_index(self, migration_context=None):
@@ -629,14 +627,14 @@ class CreateIndexOp(MigrateOperation):
         schema_obj = schemaobj.SchemaObjects(migration_context)
         return schema_obj.index(
             self.index_name, self.table_name, self.columns, schema=self.schema,
-            unique=self.unique, quote=self.quote, **self.kw)
+            unique=self.unique, **self.kw)
 
     @classmethod
     @util._with_legacy_names([('name', 'index_name')])
     def create_index(
             cls, operations,
             index_name, table_name, columns, schema=None,
-            unique=False, quote=None, **kw):
+            unique=False, **kw):
         """Issue a "create index" instruction using the current
         migration context.
 
@@ -689,7 +687,7 @@ class CreateIndexOp(MigrateOperation):
         """
         op = cls(
             index_name, table_name, columns, schema=schema,
-            unique=unique, quote=quote, **kw
+            unique=unique, **kw
         )
         return operations.invoke(op)
 
