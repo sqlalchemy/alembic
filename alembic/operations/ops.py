@@ -209,7 +209,11 @@ class CreatePrimaryKeyOp(AddConstraintOp):
             :meth:`.Operations.create_primary_key`
 
         """
-        raise NotImplementedError("not yet implemented")
+        op = cls(
+            constraint_name, operations.impl.table_name, columns,
+            schema=operations.impl.schema
+        )
+        return operations.invoke(op)
 
 
 @Operations.register_operation("create_unique_constraint")
@@ -590,7 +594,10 @@ class CreateCheckConstraintOp(AddConstraintOp):
             :meth:`.Operations.create_check_constraint`
 
         """
-        raise NotImplementedError("not yet implemented")
+        op = cls(
+            constraint_name, operations.impl.table_name,
+            condition, schema=operations.impl.schema, **kw)
+        return operations.invoke(op)
 
 
 @Operations.register_operation("create_index")

@@ -23,7 +23,7 @@ class BatchOperationsImpl(object):
         self.recreate = recreate
         self.copy_from = copy_from
         self.table_args = table_args
-        self.table_kwargs = table_kwargs
+        self.table_kwargs = dict(table_kwargs)
         self.reflect_args = reflect_args
         self.reflect_kwargs = reflect_kwargs
         self.naming_convention = naming_convention
@@ -139,11 +139,15 @@ class ApplyBatchImpl(object):
         for idx in self.table.indexes:
             self.indexes[idx.name] = idx
 
+        for k in self.table.kwargs:
+            self.table_kwargs.setdefault(k, self.table.kwargs[k])
+
     def _transfer_elements_to_new_table(self):
         assert self.new_table is None, "Can only create new table once"
 
         m = MetaData()
         schema = self.table.schema
+
         self.new_table = new_table = Table(
             '_alembic_batch_temp', m,
             *(list(self.columns.values()) + list(self.table_args)),
@@ -264,6 +268,10 @@ class ApplyBatchImpl(object):
     def add_constraint(self, const):
         if not const.name:
             raise ValueError("Constraint must have a name")
+        if isinstance(const, sql_schema.PrimaryKeyConstraint):
+            if self.table.primary_key in self.unnamed_constraints:
+                self.unnamed_constraints.remove(self.table.primary_key)
+
         self.named_constraints[const.name] = const
 
     def drop_constraint(self, const):

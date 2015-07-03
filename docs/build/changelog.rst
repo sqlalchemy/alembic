@@ -45,6 +45,15 @@ Changelog
     :version: 0.7.7
 
     .. change::
+      :tags: feature, batch
+      :tickets: 305
+
+      Implemented support for :meth:`.BatchOperations.create_primary_key`
+      and :meth:`.BatchOperations.create_check_constraint`. Additionally,
+      table keyword arguments are copied from the original reflected table,
+      such as the "mysql_engine" keyword argument.
+
+    .. change::
       :tags: bug, environment
       :tickets: 300
 

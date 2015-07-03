@@ -12,11 +12,13 @@ class SchemaObjects(object):
     def primary_key_constraint(self, name, table_name, cols, schema=None):
         m = self.metadata()
         columns = [sa_schema.Column(n, NULLTYPE) for n in cols]
-        t1 = sa_schema.Table(table_name, m,
-                             *columns,
-                             schema=schema)
-        p = sa_schema.PrimaryKeyConstraint(*columns, name=name)
-        t1.append_constraint(p)
+        t = sa_schema.Table(
+            table_name, m,
+            *columns,
+            schema=schema)
+        p = sa_schema.PrimaryKeyConstraint(
+            *[t.c[n] for n in cols], name=name)
+        t.append_constraint(p)
         return p
 
     def foreign_key_constraint(

@@ -32,6 +32,17 @@ class SuiteRequirements(Requirements):
         )
 
     @property
+    def check_constraints_w_enforcement(self):
+        """Target database must support check constraints
+        and also enforce them."""
+
+        return exclusions.open()
+
+    @property
+    def reflects_pk_names(self):
+        return exclusions.closed()
+
+    @property
     def fail_before_sqla_079(self):
         return exclusions.fails_if(
             lambda config: not util.sqla_079,
