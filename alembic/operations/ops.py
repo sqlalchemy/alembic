@@ -22,6 +22,14 @@ class MigrateOperation(object):
 
     """
 
+    @util.memoized_property
+    def info(self):
+        """A dictionary that may be used to store arbitrary information
+        along with this :class:`.MigrateOperation` object.
+
+        """
+        return {}
+
 
 class AddConstraintOp(MigrateOperation):
     """Represent an add constraint operation."""
