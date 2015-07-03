@@ -14,12 +14,21 @@ This module produces a :class:`.Config` object and passes it to the
 appropriate function in :ref:`alembic.command.toplevel`.   Functions within
 :ref:`alembic.command.toplevel` will typically instantiate an
 :class:`.ScriptDirectory` instance, which represents the collection of
-version files, and an :class:`.EnvironmentContext`, which represents a
-configurational object passed to the environment's ``env.py`` script.
+version files, and an :class:`.EnvironmentContext`, which is a configurational
+facade passed to the environment's ``env.py`` script.
 
-Within the execution of ``env.py``, a :class:`.MigrationContext`
-object is produced when the :meth:`.EnvironmentContext.configure`
-method is called.  :class:`.MigrationContext` is the gateway to the database
+The :class:`.EnvironmentContext` object is the primary object used within
+the ``env.py`` script, whose main purpose is that of a facade for creating and using
+a :class:`.MigrationContext` object, which is the actual migration engine
+that refers to a database implementation.   The primary method called
+on this object within an ``env.py`` script is the
+:meth:`.EnvironmentContext.configure` method, which sets up the
+:class:`.MigrationContext` with database connectivity and behavioral
+configuration.  It also supplies methods for transaction demarcation and
+migration running, but these methods ultimately call upon the
+:class:`.MigrationContext` that's been configured.
+
+:class:`.MigrationContext` is the gateway to the database
 for other parts of the application, and produces a :class:`.DefaultImpl`
 object which does the actual database communication, and knows how to
 create the specific SQL text of the various DDL directives such as

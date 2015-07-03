@@ -5,16 +5,23 @@ from .. import util
 
 class EnvironmentContext(util.ModuleClsProxy):
 
-    """Represent the state made available to an ``env.py`` script.
+    """A configurational facade made available in an ``env.py`` script.
+
+    The :class:`.EnvironmentContext` acts as a *facade* to the more
+    nuts-and-bolts objects of :class:`.MigrationContext` as well as certain
+    aspects of :class:`.Config`,
+    within the context of the ``env.py`` script that is invoked by
+    most Alembic commands.
 
     :class:`.EnvironmentContext` is normally instantiated
-    by the commands present in the :mod:`alembic.command`
-    module.  From within an ``env.py`` script, the current
-    :class:`.EnvironmentContext` is available via the
-    ``alembic.context`` datamember.
+    when a command in :mod:`alembic.command` is run.  It then makes
+    itself available in the ``alembic.context`` module for the scope
+    of the command.   From within an ``env.py`` script, the current
+    :class:`.EnvironmentContext` is available by importing this module.
 
-    :class:`.EnvironmentContext` is also a Python context
-    manager, that is, is intended to be used using the
+    :class:`.EnvironmentContext` also supports programmatic usage.
+    At this level, it acts as a Python context manager, that is, is
+    intended to be used using the
     ``with:`` statement.  A typical use of :class:`.EnvironmentContext`::
 
         from alembic.config import Config
