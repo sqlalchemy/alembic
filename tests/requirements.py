@@ -41,6 +41,10 @@ class DefaultRequirements(SuiteRequirements):
         )
 
     @property
+    def check_constraints_w_enforcement(self):
+        return exclusions.fails_on("mysql")
+
+    @property
     def unnamed_constraints(self):
         """constraints without names are supported."""
         return exclusions.only_on(['sqlite'])
@@ -53,3 +57,10 @@ class DefaultRequirements(SuiteRequirements):
     @property
     def reflects_unique_constraints_unambiguously(self):
         return exclusions.fails_on("mysql")
+
+    @property
+    def reflects_pk_names(self):
+        """Target driver reflects the name of primary key constraints."""
+
+        return exclusions.fails_on_everything_except(
+            'postgresql', 'oracle', 'mssql', 'sybase')

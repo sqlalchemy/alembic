@@ -4,6 +4,7 @@ import re
 import io
 
 from alembic.testing import exclusions
+from alembic.testing import assert_raises_message
 from alembic.testing import TestBase, eq_, config
 from alembic.testing.fixtures import op_fixture
 from alembic.testing import mock
@@ -16,8 +17,9 @@ from sqlalchemy import Integer, Table, Column, String, MetaData, ForeignKey, \
     UniqueConstraint, ForeignKeyConstraint, Index, Boolean, CheckConstraint, \
     Enum
 from sqlalchemy.engine.reflection import Inspector
-from sqlalchemy.sql import column
+from sqlalchemy.sql import column, text
 from sqlalchemy.schema import CreateTable, CreateIndex
+from sqlalchemy import exc
 
 
 class BatchApplyTest(TestBase):
@@ -627,6 +629,50 @@ class BatchAPITest(TestBase):
                 self.mock_schema.UniqueConstraint())]
         )
 
+    def test_create_pk(self):
+        with self._fixture() as batch:
+            batch.create_primary_key('pk1', ['a', 'b'])
+
+        eq_(
+            self.mock_schema.Table().c.__getitem__.mock_calls,
+            [mock.call('a'), mock.call('b')]
+        )
+
+        eq_(
+            self.mock_schema.PrimaryKeyConstraint.mock_calls,
+            [
+                mock.call(
+                    self.mock_schema.Table().c.__getitem__(),
+                    self.mock_schema.Table().c.__getitem__(),
+                    name='pk1'
+                )
+            ]
+        )
+        eq_(
+            batch.impl.operations.impl.mock_calls,
+            [mock.call.add_constraint(
+                self.mock_schema.PrimaryKeyConstraint())]
+        )
+
+    def test_create_check(self):
+        expr = text("a > b")
+        with self._fixture() as batch:
+            batch.create_check_constraint('ck1', expr)
+
+        eq_(
+            self.mock_schema.CheckConstraint.mock_calls,
+            [
+                mock.call(
+                    expr, name="ck1"
+                )
+            ]
+        )
+        eq_(
+            batch.impl.operations.impl.mock_calls,
+            [mock.call.add_constraint(
+                self.mock_schema.CheckConstraint())]
+        )
+
     def test_drop_constraint(self):
         with self._fixture() as batch:
             batch.drop_constraint('uq1')
@@ -795,6 +841,25 @@ class BatchRoundTripTest(TestBase):
         context = MigrationContext.configure(self.conn)
         self.op = Operations(context)
 
+    def _no_pk_fixture(self):
+        nopk = Table(
+            'nopk', self.metadata,
+            Column('a', Integer),
+            Column('b', Integer),
+            Column('c', Integer),
+            mysql_engine='InnoDB'
+        )
+        nopk.create(self.conn)
+        self.conn.execute(
+            nopk.insert(),
+            [
+                {"a": 1, "b": 2, "c": 3},
+                {"a": 2, "b": 4, "c": 5},
+            ]
+
+        )
+        return nopk
+
     def tearDown(self):
         self.metadata.drop_all(self.conn)
         self.conn.close()
@@ -853,6 +918,32 @@ class BatchRoundTripTest(TestBase):
             {"id": 4, "x": 8},
             {"id": 5, "x": 9}
         ])
+
+    def test_add_pk_constraint(self):
+        self._no_pk_fixture()
+        with self.op.batch_alter_table("nopk", recreate="always") as batch_op:
+            batch_op.create_primary_key('newpk', ['a', 'b'])
+
+        pk_const = Inspector.from_engine(self.conn).get_pk_constraint('nopk')
+        with config.requirements.reflects_pk_names.fail_if():
+            eq_(pk_const['name'], 'newpk')
+        eq_(pk_const['constrained_columns'], ['a', 'b'])
+
+    @config.requirements.check_constraints_w_enforcement
+    def test_add_ck_constraint(self):
+        with self.op.batch_alter_table("foo", recreate="always") as batch_op:
+            batch_op.create_check_constraint("newck", text("x > 0"))
+
+        # we dont support reflection of CHECK constraints
+        # so test this by just running invalid data in
+        foo = self.metadata.tables['foo']
+
+        assert_raises_message(
+            exc.IntegrityError,
+            "newck",
+            self.conn.execute,
+            foo.insert(), {"id": 6, "data": 5, "x": -2}
+        )
 
     @config.requirements.sqlalchemy_094
     @config.requirements.unnamed_constraints

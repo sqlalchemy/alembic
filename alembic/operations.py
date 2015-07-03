@@ -67,11 +67,12 @@ class Operations(object):
     def _primary_key_constraint(self, name, table_name, cols, schema=None):
         m = self._metadata()
         columns = [sa_schema.Column(n, NULLTYPE) for n in cols]
-        t1 = sa_schema.Table(table_name, m,
-                             *columns,
-                             schema=schema)
-        p = sa_schema.PrimaryKeyConstraint(*columns, name=name)
-        t1.append_constraint(p)
+        t = sa_schema.Table(
+            table_name, m,
+            *columns,
+            schema=schema)
+        p = sa_schema.PrimaryKeyConstraint(*[t.c[n] for n in cols], name=name)
+        t.append_constraint(p)
         return p
 
     def _foreign_key_constraint(self, name, source, referent,
@@ -1356,7 +1357,7 @@ class BatchOperations(Operations):
         return super(BatchOperations, self).drop_column(
             self.impl.table_name, column_name, schema=self.impl.schema)
 
-    def create_primary_key(self, name, cols):
+    def create_primary_key(self, name, cols, **kw):
         """Issue a "create primary key" instruction using the
         current batch migration context.
 
@@ -1368,7 +1369,9 @@ class BatchOperations(Operations):
             :meth:`.Operations.create_primary_key`
 
         """
-        raise NotImplementedError("not yet implemented")
+        kw['schema'] = self.impl.schema
+        return super(BatchOperations, self).create_primary_key(
+            name, self.impl.table_name, cols, **kw)
 
     def create_foreign_key(
             self, name, referent, local_cols, remote_cols, **kw):
@@ -1422,7 +1425,9 @@ class BatchOperations(Operations):
             :meth:`.Operations.create_check_constraint`
 
         """
-        raise NotImplementedError("not yet implemented")
+        kw['schema'] = self.impl.schema
+        return super(BatchOperations, self).create_check_constraint(
+            name, self.impl.table_name, condition, **kw)
 
     def drop_constraint(self, name, type_=None):
         """Issue a "drop constraint" instruction using the
