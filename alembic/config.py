@@ -130,7 +130,7 @@ class Config(object):
         This is a utility dictionary which can include not just strings but
         engines, connections, schema objects, or anything else.
         Use this to pass objects into an env.py script, such as passing
-        a :class:`.Connection` when calling
+        a :class:`sqlalchemy.engine.base.Connection` when calling
         commands from :mod:`alembic.command` programmatically.
 
         .. versionadded:: 0.7.5
@@ -155,7 +155,7 @@ class Config(object):
 
     @util.memoized_property
     def file_config(self):
-        """Return the underlying :class:`ConfigParser` object.
+        """Return the underlying ``ConfigParser`` object.
 
         Direct access to the .ini file is available here,
         though the :meth:`.Config.get_section` and

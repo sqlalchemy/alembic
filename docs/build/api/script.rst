@@ -1,3 +1,5 @@
+.. _alembic.script.toplevel:
+
 ================
 Script Directory
 ================

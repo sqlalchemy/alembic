@@ -1,13 +1,15 @@
+.. _alembic.ddl.toplevel:
+
 =============
 DDL Internals
 =============
 
 These are some of the constructs used to generate migration
 instructions.  The APIs here build off of the :class:`sqlalchemy.schema.DDLElement`
-and :mod:`sqlalchemy.ext.compiler` systems.
+and :ref:`sqlalchemy.ext.compiler_toplevel` systems.
 
 For programmatic usage of Alembic's migration directives, the easiest
-route is to use the higher level functions given by :mod:`alembic.operations`.
+route is to use the higher level functions given by :ref:`alembic.operations.toplevel`.
 
 .. automodule:: alembic.ddl
     :members:

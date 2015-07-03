@@ -16,7 +16,7 @@ outside of this subsection, and the parameters that can be passed to
 the :meth:`.EnvironmentContext.configure` method, used when configuring
 one's ``env.py`` environment.  However, real-world applications will
 usually end up using more of the internal API, in particular being able
-to run commands programmatically, as discussed in the section :doc:`api/commands`.
+to run commands programmatically, as discussed in the section :doc:`/api/commands`.
 
 .. toctree::
    :maxdepth: 2

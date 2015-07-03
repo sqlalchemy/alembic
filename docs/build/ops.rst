@@ -21,7 +21,7 @@ so symbols can be imported safely from the ``alembic.op`` namespace.
 The :class:`.Operations` system is also fully extensible.  See
 :ref:`operation_plugins` for details on this.
 
-A key design philosophy to the :mod:`alembic.operations` methods is that
+A key design philosophy to the :ref:`alembic.operations.toplevel` methods is that
 to the greatest degree possible, they internally generate the
 appropriate SQLAlchemy metadata, typically involving
 :class:`~sqlalchemy.schema.Table` and :class:`~sqlalchemy.schema.Constraint`
@@ -39,7 +39,5 @@ circumstances they are called from an actual migration script, which
 itself would be invoked by the :meth:`.EnvironmentContext.run_migrations`
 method.
 
-
 .. automodule:: alembic.operations
-    :members: Operations, BatchOperations
-
+	:members: Operations, BatchOperations

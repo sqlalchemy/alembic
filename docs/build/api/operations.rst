@@ -1,3 +1,5 @@
+.. _alembic.operations.toplevel:
+
 =====================
 The Operations Object
 =====================
@@ -13,7 +15,7 @@ Most methods on the :class:`.Operations` class are generated dynamically
 using a "plugin" system, described in the next section
 :ref:`operation_plugins`.   Additionally, when Alembic migration scripts
 actually run, the methods on the current :class:`.Operations` object are
-proxied out to the :mod:`alembic.op` module, so that they are available
+proxied out to the ``alembic.op`` module, so that they are available
 using module-style access.
 
 For an overview of how to use an :class:`.Operations` object directly
@@ -76,7 +78,7 @@ Above, we use the simplest possible technique of invoking our DDL, which
 is just to call :meth:`.Operations.execute` with literal SQL.  If this is
 all a custom operation needs, then this is fine.  However, options for
 more comprehensive support include building out a custom SQL construct,
-as documented at :ref:`sqlalchemy.ext.compiles`.
+as documented at :ref:`sqlalchemy.ext.compiler_toplevel`.
 
 With the above two steps, a migration script can now use a new method
 ``op.create_sequence()`` that will proxy to our object as a classmethod::
@@ -90,7 +92,7 @@ within the module level of the ``env.py`` script is sufficient.
 
 
 .. versionadded:: 0.8 - the migration operations available via the
-   :class:`.Operations` class as well as the :mod:`alembic.op` namespace
+   :class:`.Operations` class as well as the ``alembic.op`` namespace
    is now extensible using a plugin system.
 
 
@@ -114,6 +116,8 @@ autogenerate system renders new migration scripts.
     :ref:`customizing_revision`
 
 The built-in operation objects are listed below.
+
+.. _alembic.operations.ops.toplevel:
 
 .. automodule:: alembic.operations.ops
     :members:

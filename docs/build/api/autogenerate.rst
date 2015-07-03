@@ -1,10 +1,12 @@
+.. _alembic.autogenerate.toplevel:
+
 ==============
 Autogeneration
 ==============
 
 The autogenerate system has two areas of API that are public:
 
-1. The ability to do a "diff" of a :class:`.MetaData` object against
+1. The ability to do a "diff" of a :class:`~sqlalchemy.schema.MetaData` object against
    a database, and receive a data structure back.  This structure
    is available either as a rudimentary list of changes, or as
    a :class:`.MigrateOperation` structure.

@@ -9,10 +9,10 @@ elements intended to convey the primary purpose of each system.
 
 .. image:: api_overview.png
 
-The script runner for Alembic is present in the :mod:`alembic.config` module.
+The script runner for Alembic is present in the :ref:`alembic.config.toplevel` module.
 This module produces a :class:`.Config` object and passes it to the
-appropriate function in :mod:`alembic.command`.   Functions within
-:mod:`alembic.command` will typically instantiate an
+appropriate function in :ref:`alembic.command.toplevel`.   Functions within
+:ref:`alembic.command.toplevel` will typically instantiate an
 :class:`.ScriptDirectory` instance, which represents the collection of
 version files, and an :class:`.EnvironmentContext`, which represents a
 configurational object passed to the environment's ``env.py`` script.
@@ -33,15 +33,15 @@ with the :class:`.ScriptDirectory`; the actual scripts themselves make use
 of the :class:`.Operations` object, which provide the end-user interface to
 specific database operations.   The :class:`.Operations` object is generated
 based on a series of "operation directive" objects that are user-extensible,
-and start out in the :mod:`alembic.operations.ops` module.
+and start out in the :ref:`alembic.operations.ops.toplevel` module.
 
 Another prominent feature of Alembic is the "autogenerate" feature, which
 produces new migration scripts that contain Python code.  The autogenerate
-feature starts in :mod:`alembic.autogenerate`, and is used exclusively
+feature starts in :ref:`alembic.autogenerate.toplevel`, and is used exclusively
 by the :func:`.alembic.command.revision` command when the ``--autogenerate``
 flag is passed.  Autogenerate refers to the :class:`.MigrationContext`
 and :class:`.DefaultImpl` in order to access database connectivity and
 access per-backend rules for autogenerate comparisons.  It also makes use
-of :mod:`alembic.operations.ops` in order to represent the operations that
+of :ref:`alembic.operations.ops.toplevel` in order to represent the operations that
 it will render into scripts.
 

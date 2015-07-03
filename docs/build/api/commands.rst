@@ -1,10 +1,12 @@
+.. _alembic.command.toplevel:
+
 =========
 Commands
 =========
 
-Alembic commands are all represented by functions in the :mod:`alembic.command`
+Alembic commands are all represented by functions in the :ref:`alembic.command.toplevel`
 package.  They all accept the same style of usage, being sent
-the :class:`~.alembic.config.Config` object as the first argument.
+the :class:`.Config` object as the first argument.
 
 Commands can be run programmatically, by first constructing a :class:`.Config`
 object, as in::
@@ -31,8 +33,6 @@ To write small API functions that make direct use of database and script directo
 information, rather than just running one of the built-in commands,
 use the :class:`.ScriptDirectory` and :class:`.MigrationContext`
 classes directly.
-
-.. currentmodule:: alembic.command
 
 .. automodule:: alembic.command
     :members:
