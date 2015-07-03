@@ -1,15 +1,20 @@
 from alembic.testing.fixtures import TestBase
-from alembic.testing import eq_, ne_, is_, assert_raises_message
+from alembic.testing import eq_, ne_, assert_raises_message
 from alembic.testing.env import clear_staging_env, staging_env, \
     _get_staging_directory, _no_sql_testing_config, env_file_fixture, \
     script_file_fixture, _testing_config, _sqlite_testing_config, \
-    three_rev_fixture, _multi_dir_testing_config
+    three_rev_fixture, _multi_dir_testing_config, write_script,\
+    _sqlite_file_db
 from alembic import command
 from alembic.script import ScriptDirectory
 from alembic.environment import EnvironmentContext
+from alembic.testing import mock
 from alembic import util
+from alembic.operations import ops
 import os
 import datetime
+import sqlalchemy as sa
+from sqlalchemy.engine.reflection import Inspector
 
 env, abc, def_ = None, None, None
 
@@ -212,6 +217,174 @@ class RevisionCommandTest(TestBase):
             command.revision,
             self.cfg, message="some message", branch_label="foobar"
         )
+
+
+class CustomizeRevisionTest(TestBase):
+    def setUp(self):
+        self.env = staging_env()
+        self.cfg = _multi_dir_testing_config()
+        self.cfg.set_main_option("revision_environment", "true")
+
+        script = ScriptDirectory.from_config(self.cfg)
+        # MARKMARK
+        self.model1 = util.rev_id()
+        self.model2 = util.rev_id()
+        self.model3 = util.rev_id()
+        for model, name in [
+            (self.model1, "model1"),
+            (self.model2, "model2"),
+            (self.model3, "model3"),
+        ]:
+            script.generate_revision(
+                model, name, refresh=True,
+                version_path=os.path.join(_get_staging_directory(), name),
+                head="base")
+
+            write_script(script, model, """\
+"%s"
+revision = '%s'
+down_revision = None
+branch_labels = ['%s']
+
+from alembic import op
+
+def upgrade():
+    pass
+
+def downgrade():
+    pass
+
+""" % (name, model, name))
+
+    def tearDown(self):
+        clear_staging_env()
+
+    def _env_fixture(self, fn, target_metadata):
+        self.engine = engine = _sqlite_file_db()
+
+        def run_env(self):
+            from alembic import context
+
+            with engine.connect() as connection:
+                context.configure(
+                    connection=connection,
+                    target_metadata=target_metadata,
+                    process_revision_directives=fn)
+                with context.begin_transaction():
+                    context.run_migrations()
+
+        return mock.patch(
+            "alembic.script.base.ScriptDirectory.run_env",
+            run_env
+        )
+
+    def test_new_locations_no_autogen(self):
+        m = sa.MetaData()
+
+        def process_revision_directives(context, rev, generate_revisions):
+            generate_revisions[:] = [
+                ops.MigrationScript(
+                    util.rev_id(),
+                    ops.UpgradeOps(),
+                    ops.DowngradeOps(),
+                    version_path=os.path.join(
+                        _get_staging_directory(), "model1"),
+                    head="model1@head"
+                ),
+                ops.MigrationScript(
+                    util.rev_id(),
+                    ops.UpgradeOps(),
+                    ops.DowngradeOps(),
+                    version_path=os.path.join(
+                        _get_staging_directory(), "model2"),
+                    head="model2@head"
+                ),
+                ops.MigrationScript(
+                    util.rev_id(),
+                    ops.UpgradeOps(),
+                    ops.DowngradeOps(),
+                    version_path=os.path.join(
+                        _get_staging_directory(), "model3"),
+                    head="model3@head"
+                ),
+            ]
+
+        with self._env_fixture(process_revision_directives, m):
+            revs = command.revision(self.cfg, message="some message")
+
+        script = ScriptDirectory.from_config(self.cfg)
+
+        for rev, model in [
+            (revs[0], "model1"),
+            (revs[1], "model2"),
+            (revs[2], "model3"),
+        ]:
+            rev_script = script.get_revision(rev.revision)
+            eq_(
+                rev_script.path,
+                os.path.abspath(os.path.join(
+                    _get_staging_directory(), model,
+                    "%s_.py" % (rev_script.revision, )
+                ))
+            )
+            assert os.path.exists(rev_script.path)
+
+    def test_autogen(self):
+        m = sa.MetaData()
+        sa.Table('t', m, sa.Column('x', sa.Integer))
+
+        def process_revision_directives(context, rev, generate_revisions):
+            existing_upgrades = generate_revisions[0].upgrade_ops
+            existing_downgrades = generate_revisions[0].downgrade_ops
+
+            # model1 will run the upgrades, e.g. create the table,
+            # model2 will run the downgrades as upgrades, e.g. drop
+            # the table again
+
+            generate_revisions[:] = [
+                ops.MigrationScript(
+                    util.rev_id(),
+                    existing_upgrades,
+                    ops.DowngradeOps(),
+                    version_path=os.path.join(
+                        _get_staging_directory(), "model1"),
+                    head="model1@head"
+                ),
+                ops.MigrationScript(
+                    util.rev_id(),
+                    existing_downgrades,
+                    ops.DowngradeOps(),
+                    version_path=os.path.join(
+                        _get_staging_directory(), "model2"),
+                    head="model2@head"
+                )
+            ]
+
+        with self._env_fixture(process_revision_directives, m):
+            command.upgrade(self.cfg, "heads")
+
+            eq_(
+                Inspector.from_engine(self.engine).get_table_names(),
+                ["alembic_version"]
+            )
+
+            command.revision(
+                self.cfg, message="some message",
+                autogenerate=True)
+
+            command.upgrade(self.cfg, "model1@head")
+
+            eq_(
+                Inspector.from_engine(self.engine).get_table_names(),
+                ["alembic_version", "t"]
+            )
+
+            command.upgrade(self.cfg, "model2@head")
+
+            eq_(
+                Inspector.from_engine(self.engine).get_table_names(),
+                ["alembic_version"]
+            )
 
 
 class MultiDirRevisionCommandTest(TestBase):

@@ -1,7 +1,9 @@
 from sqlalchemy import schema as sa_schema, types as sqltypes
+from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy import event
 import logging
-from .. import compat
+from ..util import compat
+from ..util import sqla_compat
 from sqlalchemy.util import OrderedSet
 import re
 from .render import _user_defined_render
@@ -9,6 +11,47 @@ import contextlib
 from alembic.ddl.base import _fk_spec
 
 log = logging.getLogger(__name__)
+
+
+def _produce_net_changes(autogen_context, diffs):
+
+    metadata = autogen_context['metadata']
+    connection = autogen_context['connection']
+    object_filters = autogen_context.get('object_filters', ())
+    include_schemas = autogen_context.get('include_schemas', False)
+
+    inspector = Inspector.from_engine(connection)
+    conn_table_names = set()
+
+    default_schema = connection.dialect.default_schema_name
+    if include_schemas:
+        schemas = set(inspector.get_schema_names())
+        # replace default schema name with None
+        schemas.discard("information_schema")
+        # replace the "default" schema with None
+        schemas.add(None)
+        schemas.discard(default_schema)
+    else:
+        schemas = [None]
+
+    version_table_schema = autogen_context['context'].version_table_schema
+    version_table = autogen_context['context'].version_table
+
+    for s in schemas:
+        tables = set(inspector.get_table_names(schema=s))
+        if s == version_table_schema:
+            tables = tables.difference(
+                [autogen_context['context'].version_table]
+            )
+        conn_table_names.update(zip([s] * len(tables), tables))
+
+    metadata_table_names = OrderedSet(
+        [(table.schema, table.name) for table in metadata.sorted_tables]
+    ).difference([(version_table_schema, version_table)])
+
+    _compare_tables(conn_table_names, metadata_table_names,
+                    object_filters,
+                    inspector, metadata, diffs, autogen_context)
 
 
 def _run_filters(object_, name, type_, reflected, compare_to, object_filters):
@@ -250,7 +293,7 @@ class _ix_constraint_sig(_constraint_sig):
 
     @property
     def column_names(self):
-        return _get_index_column_names(self.const)
+        return sqla_compat._get_index_column_names(self.const)
 
 
 class _fk_constraint_sig(_constraint_sig):
@@ -265,13 +308,6 @@ class _fk_constraint_sig(_constraint_sig):
             self.source_schema, self.source_table, tuple(self.source_columns),
             self.target_schema, self.target_table, tuple(self.target_columns)
         )
-
-
-def _get_index_column_names(idx):
-    if compat.sqla_08:
-        return [getattr(exp, "name", None) for exp in idx.expressions]
-    else:
-        return [getattr(col, "name", None) for col in idx.columns]
 
 
 def _compare_indexes_and_uniques(schema, tname, object_filters, conn_table,

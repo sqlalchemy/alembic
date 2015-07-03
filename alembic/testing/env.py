@@ -4,9 +4,9 @@ import os
 import shutil
 import textwrap
 
-from alembic.compat import u
-from alembic.script import Script, ScriptDirectory
-from alembic import util
+from ..util.compat import u
+from ..script import Script, ScriptDirectory
+from .. import util
 from . import engines
 from . import provision
 

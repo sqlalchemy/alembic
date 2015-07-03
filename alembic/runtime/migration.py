@@ -6,8 +6,8 @@ from sqlalchemy import MetaData, Table, Column, String, literal_column
 from sqlalchemy.engine.strategies import MockEngineStrategy
 from sqlalchemy.engine import url as sqla_url
 
-from .compat import callable, EncodedIO
-from . import ddl, util
+from ..util.compat import callable, EncodedIO
+from .. import ddl, util
 
 log = logging.getLogger(__name__)
 

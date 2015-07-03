@@ -2,7 +2,7 @@ from sqlalchemy.ext.compiler import compiles
 from sqlalchemy import types as sqltypes
 from sqlalchemy import schema
 
-from ..compat import string_types
+from ..util.compat import string_types
 from .. import util
 from .impl import DefaultImpl
 from .base import ColumnNullable, ColumnName, ColumnDefault, \
@@ -23,11 +23,12 @@ class MySQLImpl(DefaultImpl):
                      name=None,
                      type_=None,
                      schema=None,
-                     autoincrement=None,
                      existing_type=None,
                      existing_server_default=None,
                      existing_nullable=None,
-                     existing_autoincrement=None
+                     autoincrement=None,
+                     existing_autoincrement=None,
+                     **kw
                      ):
         if name is not None:
             self._exec(
@@ -284,3 +285,5 @@ def _mysql_drop_constraint(element, compiler, **kw):
         raise NotImplementedError(
             "No generic 'DROP CONSTRAINT' in MySQL - "
             "please specify constraint type")
+
+

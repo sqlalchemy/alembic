@@ -524,7 +524,8 @@ class OpTest(TestBase):
     def test_add_foreign_key_dialect_kw(self):
         op_fixture()
         with mock.patch(
-                "alembic.operations.sa_schema.ForeignKeyConstraint") as fkc:
+                "sqlalchemy.schema.ForeignKeyConstraint"
+        ) as fkc:
             op.create_foreign_key('fk_test', 't1', 't2',
                                   ['foo', 'bar'], ['bat', 'hoho'],
                                   foobar_arg='xyz')
@@ -808,12 +809,6 @@ class OpTest(TestBase):
         op.drop_constraint("f1", "t1", type_="foreignkey")
         context.assert_("ALTER TABLE t1 DROP FOREIGN KEY f1")
 
-        assert_raises_message(
-            TypeError,
-            r"Unknown arguments: badarg\d, badarg\d",
-            op.alter_column, "t", "c", badarg1="x", badarg2="y"
-        )
-
     @config.requirements.fail_before_sqla_084
     def test_naming_changes_drop_idx(self):
         context = op_fixture('mssql')
@@ -857,3 +852,31 @@ class SQLModeOpTest(TestBase):
             "CREATE TABLE some_table (id INTEGER NOT NULL, st_id INTEGER, "
             "PRIMARY KEY (id), FOREIGN KEY(st_id) REFERENCES some_table (id))"
         )
+
+
+class CustomOpTest(TestBase):
+    def test_custom_op(self):
+        from alembic.operations import Operations, MigrateOperation
+
+        @Operations.register_operation("create_sequence")
+        class CreateSequenceOp(MigrateOperation):
+            """Create a SEQUENCE."""
+
+            def __init__(self, sequence_name, **kw):
+                self.sequence_name = sequence_name
+                self.kw = kw
+
+            @classmethod
+            def create_sequence(cls, operations, sequence_name, **kw):
+                """Issue a "CREATE SEQUENCE" instruction."""
+
+                op = CreateSequenceOp(sequence_name, **kw)
+                return operations.invoke(op)
+
+        @Operations.implementation_for(CreateSequenceOp)
+        def create_sequence(operations, operation):
+            operations.execute("CREATE SEQUENCE %s" % operation.sequence_name)
+
+        context = op_fixture()
+        op.create_sequence('foob')
+        context.assert_("CREATE SEQUENCE foob")

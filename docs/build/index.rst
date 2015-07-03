@@ -6,7 +6,7 @@ Welcome to Alembic's documentation!
 with the `SQLAlchemy <http://www.sqlalchemy.org>`_ Database Toolkit for Python.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
    front
    tutorial
@@ -17,7 +17,7 @@ with the `SQLAlchemy <http://www.sqlalchemy.org>`_ Database Toolkit for Python.
    branches
    ops
    cookbook
-   api
+   api/index
    changelog
 
 Indices and tables

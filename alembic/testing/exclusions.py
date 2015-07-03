@@ -14,10 +14,11 @@ from .plugin.plugin_base import SkipTest
 from sqlalchemy.util import decorator
 from . import config
 from sqlalchemy import util
-from alembic import compat
+from ..util import compat
 import inspect
 import contextlib
 from .compat import get_url_driver_name, get_url_backend_name
+
 
 def skip_if(predicate, reason=None):
     rule = compound()

@@ -1,9 +1,9 @@
-from .operations import Operations
+from ..operations import Operations
 from .migration import MigrationContext
-from . import util
+from .. import util
 
 
-class EnvironmentContext(object):
+class EnvironmentContext(util.ModuleClsProxy):
 
     """Represent the state made available to an ``env.py`` script.
 
@@ -96,14 +96,11 @@ class EnvironmentContext(object):
         be made available as ``from alembic import context``.
 
         """
-        from .context import _install_proxy
-        _install_proxy(self)
+        self._install_proxy()
         return self
 
     def __exit__(self, *arg, **kw):
-        from . import context, op
-        context._remove_proxy()
-        op._remove_proxy()
+        self._remove_proxy()
 
     def is_offline_mode(self):
         """Return True if the current migrations environment
@@ -293,6 +290,7 @@ class EnvironmentContext(object):
                   include_symbol=None,
                   include_object=None,
                   include_schemas=False,
+                  process_revision_directives=None,
                   compare_type=False,
                   compare_server_default=False,
                   render_item=None,
@@ -656,6 +654,43 @@ class EnvironmentContext(object):
 
             :ref:`autogen_module_prefix`
 
+        :param process_revision_directives: a callable function that will
+         be passed a structure representing the end result of an autogenerate
+         or plain "revision" operation, which can be manipulated to affect
+         how the ``alembic revision`` command ultimately outputs new
+         revision scripts.   The structure of the callable is::
+
+            def process_revision_directives(context, revision, directives):
+                pass
+
+         The ``directives`` parameter is a Python list containing
+         a single :class:`.MigrationScript` directive, which represents
+         the revision file to be generated.    This list as well as its
+         contents may be freely modified to produce any set of commands.
+         The section :ref:`customizing_revision` shows an example of
+         doing this.  The ``context`` parameter is the
+         :class:`.MigrationContext` in use,
+         and ``revision`` is a tuple of revision identifiers representing the
+         current revision of the database.
+
+         The callable is invoked at all times when the ``--autogenerate``
+         option is passed to ``alembic revision``.  If ``--autogenerate``
+         is not passed, the callable is invoked only if the
+         ``revision_environment`` variable is set to True in the Alembic
+         configuration, in which case the given ``directives`` collection
+         will contain empty :class:`.UpgradeOps` and :class:`.DowngradeOps`
+         collections for ``.upgrade_ops`` and ``.downgrade_ops``.  The
+         ``--autogenerate`` option itself can be inferred by inspecting
+         ``context.config.cmd_opts.autogenerate``.
+
+
+         .. versionadded:: 0.8.0
+
+         .. seealso::
+
+             :ref:`customizing_revision`
+
+
         Parameters specific to individual backends:
 
         :param mssql_batch_separator: The "batch separator" which will
@@ -696,6 +731,8 @@ class EnvironmentContext(object):
         opts['alembic_module_prefix'] = alembic_module_prefix
         opts['user_module_prefix'] = user_module_prefix
         opts['literal_binds'] = literal_binds
+        opts['process_revision_directives'] = process_revision_directives
+
         if render_item is not None:
             opts['render_item'] = render_item
         if compare_type is not None:

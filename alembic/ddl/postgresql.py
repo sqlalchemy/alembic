@@ -1,6 +1,6 @@
 import re
 
-from .. import compat
+from ..util import compat
 from .. import util
 from .base import compiles, alter_table, format_table_name, RenameTable
 from .impl import DefaultImpl

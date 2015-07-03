@@ -3,9 +3,9 @@
 """
 from sqlalchemy.engine import url as sa_url
 from sqlalchemy import text
-from alembic import compat
-from alembic.testing import config, engines
-from alembic.testing.compat import get_url_backend_name
+from ..util import compat
+from . import config, engines
+from .compat import get_url_backend_name
 
 FOLLOWER_IDENT = None
 

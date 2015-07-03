@@ -1,15 +1,13 @@
 from contextlib import contextmanager
 import re
 
-import io
-
 from alembic.testing import exclusions
 from alembic.testing import TestBase, eq_, config
 from alembic.testing.fixtures import op_fixture
 from alembic.testing import mock
 from alembic.operations import Operations
-from alembic.batch import ApplyBatchImpl
-from alembic.migration import MigrationContext
+from alembic.operations.batch import ApplyBatchImpl
+from alembic.runtime.migration import MigrationContext
 
 
 from sqlalchemy import Integer, Table, Column, String, MetaData, ForeignKey, \
@@ -330,7 +328,7 @@ class BatchApplyTest(TestBase):
         impl = self._simple_fixture()
         col = Column('g', Integer)
         # operations.add_column produces a table
-        t = self.op._table('tname', col)  # noqa
+        t = self.op.schema_obj.table('tname', col)  # noqa
         impl.add_column('tname', col)
         new_table = self._assert_impl(impl, colnames=['id', 'x', 'y', 'g'])
         eq_(new_table.c.g.name, 'g')
@@ -420,7 +418,7 @@ class BatchApplyTest(TestBase):
     def test_add_fk(self):
         impl = self._simple_fixture()
         impl.add_column('tname', Column('user_id', Integer))
-        fk = self.op._foreign_key_constraint(
+        fk = self.op.schema_obj.foreign_key_constraint(
             'fk1', 'tname', 'user',
             ['user_id'], ['id'])
         impl.add_constraint(fk)
@@ -447,7 +445,7 @@ class BatchApplyTest(TestBase):
 
     def test_add_uq(self):
         impl = self._simple_fixture()
-        uq = self.op._unique_constraint(
+        uq = self.op.schema_obj.unique_constraint(
             'uq1', 'tname', ['y']
         )
 
@@ -459,7 +457,7 @@ class BatchApplyTest(TestBase):
     def test_drop_uq(self):
         impl = self._uq_fixture()
 
-        uq = self.op._unique_constraint(
+        uq = self.op.schema_obj.unique_constraint(
             'uq1', 'tname', ['y']
         )
         impl.drop_constraint(uq)
@@ -469,7 +467,7 @@ class BatchApplyTest(TestBase):
 
     def test_create_index(self):
         impl = self._simple_fixture()
-        ix = self.op._index('ix1', 'tname', ['y'])
+        ix = self.op.schema_obj.index('ix1', 'tname', ['y'])
 
         impl.create_index(ix)
         self._assert_impl(
@@ -479,7 +477,7 @@ class BatchApplyTest(TestBase):
     def test_drop_index(self):
         impl = self._ix_fixture()
 
-        ix = self.op._index('ix1', 'tname', ['y'])
+        ix = self.op.schema_obj.index('ix1', 'tname', ['y'])
         impl.drop_index(ix)
         self._assert_impl(
             impl, colnames=['id', 'x', 'y'],
@@ -498,12 +496,14 @@ class BatchAPITest(TestBase):
 
     @contextmanager
     def _fixture(self, schema=None):
-        migration_context = mock.Mock(opts={})
+        migration_context = mock.Mock(
+            opts={}, impl=mock.MagicMock(__dialect__='sqlite'))
         op = Operations(migration_context)
         batch = op.batch_alter_table(
             'tname', recreate='never', schema=schema).__enter__()
 
-        with mock.patch("alembic.operations.sa_schema") as mock_schema:
+        mock_schema = mock.MagicMock()
+        with mock.patch("alembic.operations.schemaobj.sa_schema", mock_schema):
             yield batch
         batch.impl.flush()
         self.mock_schema = mock_schema

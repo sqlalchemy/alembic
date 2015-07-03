@@ -4,6 +4,44 @@ Changelog
 ==========
 
 .. changelog::
+    :version: 0.8.0
+
+    .. change::
+      :tags: feature, operations
+      :tickets: 302
+
+      The internal system for Alembic operations has been reworked to now
+      build upon an extensible system of operation objects.  New operations
+      can be added to the ``op.`` namespace, including that they are
+      available in custom autogenerate schemes.
+
+      .. seealso::
+
+          :ref:`operation_plugins`
+
+    .. change::
+      :tags: feature, autogenerate
+      :tickets: 301
+
+      The internal system for autogenerate been reworked to build upon
+      the extensible system of operation objects present in
+      :ticket:`302`.  As part of this change, autogenerate now produces
+      a full object graph representing a list of migration scripts to
+      be written as well as operation objects that will render all the
+      Python code within them; a new hook
+      :paramref:`.EnvironmentContext.configure.process_revision_directives`
+      allows end-user code to fully customize what autogenerate will do,
+      including not just full manipulation of the Python steps to take
+      but also what file or files will be written and where.  It is also
+      possible to write a system that reads an autogenerate stream and
+      invokes it directly against a database without writing any files.
+
+      .. seealso::
+
+        :ref:`alembic.autogenerate.toplevel`
+
+
+.. changelog::
     :version: 0.7.7
 
     .. change::

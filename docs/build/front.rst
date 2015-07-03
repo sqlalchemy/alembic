@@ -49,25 +49,19 @@ then proceed through the usage of this command.
 Dependencies
 ------------
 
-Alembic's install process will ensure that `SQLAlchemy <http://www.sqlalchemy.org>`_
+Alembic's install process will ensure that SQLAlchemy_
 is installed, in addition to other dependencies.  Alembic will work with
-SQLAlchemy as of version **0.7.3**.   The latest version of SQLAlchemy within
-the **0.7**, **0.8**, or more recent series is strongly recommended.
+SQLAlchemy as of version **0.7.3**, however more features are available with
+newer versions such as the 0.9 or 1.0 series.
 
 Alembic supports Python versions 2.6 and above.
-
-.. versionchanged:: 0.5.0
-	Support for SQLAlchemy 0.6 has been dropped.
-
-.. versionchanged:: 0.6.0
-	Now supporting Python 2.6 and above.
 
 Community
 =========
 
 Alembic is developed by `Mike Bayer <http://techspot.zzzeek.org>`_, and is
-loosely associated with the `SQLAlchemy <http://www.sqlalchemy.org/>`_ and `Pylons <http://www.pylonsproject.org>`_
-projects.
+loosely associated with the SQLAlchemy_, `Pylons <http://www.pylonsproject.org>`_,
+and `Openstack <http://www.openstack.org>`_ projects.
 
 User issues, discussion of potential bugs and features should be posted
 to the Alembic Google Group at `sqlalchemy-alembic <https://groups.google.com/group/sqlalchemy-alembic>`_.
@@ -78,3 +72,6 @@ Bugs
 ====
 Bugs and feature enhancements to Alembic should be reported on the `Bitbucket
 issue tracker <https://bitbucket.org/zzzeek/alembic/issues?status=new&status=open>`_.
+
+
+.. _SQLAlchemy: http://www.sqlalchemy.org

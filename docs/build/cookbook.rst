@@ -193,7 +193,7 @@ Sharing a Connection with a Series of Migration Commands and Environments
 =========================================================================
 
 It is often the case that an application will need to call upon a series
-of commands within :mod:`alembic.command`, where it would be advantageous
+of commands within :ref:`alembic.command.toplevel`, where it would be advantageous
 for all operations to proceed along a single transaction.   The connectivity
 for a migration is typically solely determined within the ``env.py`` script
 of a migration environment, which is called within the scope of a command.

@@ -1,9 +1,8 @@
 #!coding: utf-8
 
-import os
-import tempfile
 
-from alembic import config, util, compat
+from alembic import config, util
+from alembic.util import compat
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
 from alembic.script import ScriptDirectory

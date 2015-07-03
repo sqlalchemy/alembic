@@ -1,4 +1,3 @@
-import re
 import sys
 
 from sqlalchemy import MetaData, Column, Table, Integer, String, Text, \
@@ -13,169 +12,12 @@ from alembic.testing import TestBase
 from alembic.testing import config
 from alembic.testing import assert_raises_message
 from alembic.testing.mock import Mock
-from alembic.testing.env import staging_env, clear_staging_env
 from alembic.testing import eq_
-from alembic.ddl.base import _fk_spec
 from alembic.util import CommandError
+from ._autogen_fixtures import \
+    AutogenTest, AutogenFixtureTest, _default_object_filters
 
 py3k = sys.version_info >= (3, )
-
-names_in_this_test = set()
-
-
-def _default_include_object(obj, name, type_, reflected, compare_to):
-    if type_ == "table":
-        return name in names_in_this_test
-    else:
-        return True
-
-_default_object_filters = [
-    _default_include_object
-]
-from sqlalchemy import event
-
-
-@event.listens_for(Table, "after_parent_attach")
-def new_table(table, parent):
-    names_in_this_test.add(table.name)
-
-
-class _ComparesFKs(object):
-    def _assert_fk_diff(
-            self, diff, type_, source_table, source_columns,
-            target_table, target_columns, name=None, conditional_name=None,
-            source_schema=None):
-        # the public API for ForeignKeyConstraint was not very rich
-        # in 0.7, 0.8, so here we use the well-known but slightly
-        # private API to get at its elements
-        (fk_source_schema, fk_source_table,
-         fk_source_columns, fk_target_schema, fk_target_table,
-         fk_target_columns) = _fk_spec(diff[1])
-
-        eq_(diff[0], type_)
-        eq_(fk_source_table, source_table)
-        eq_(fk_source_columns, source_columns)
-        eq_(fk_target_table, target_table)
-        eq_(fk_source_schema, source_schema)
-
-        eq_([elem.column.name for elem in diff[1].elements],
-            target_columns)
-        if conditional_name is not None:
-            if config.requirements.no_fk_names.enabled:
-                eq_(diff[1].name, None)
-            elif conditional_name == 'servergenerated':
-                fks = Inspector.from_engine(self.bind).\
-                    get_foreign_keys(source_table)
-                server_fk_name = fks[0]['name']
-                eq_(diff[1].name, server_fk_name)
-            else:
-                eq_(diff[1].name, conditional_name)
-        else:
-            eq_(diff[1].name, name)
-
-
-class AutogenTest(_ComparesFKs):
-
-    @classmethod
-    def _get_bind(cls):
-        return config.db
-
-    configure_opts = {}
-
-    @classmethod
-    def setup_class(cls):
-        staging_env()
-        cls.bind = cls._get_bind()
-        cls.m1 = cls._get_db_schema()
-        cls.m1.create_all(cls.bind)
-        cls.m2 = cls._get_model_schema()
-
-    @classmethod
-    def teardown_class(cls):
-        cls.m1.drop_all(cls.bind)
-        clear_staging_env()
-
-    def setUp(self):
-        self.conn = conn = self.bind.connect()
-        ctx_opts = {
-            'compare_type': True,
-            'compare_server_default': True,
-            'target_metadata': self.m2,
-            'upgrade_token': "upgrades",
-            'downgrade_token': "downgrades",
-            'alembic_module_prefix': 'op.',
-            'sqlalchemy_module_prefix': 'sa.',
-        }
-        if self.configure_opts:
-            ctx_opts.update(self.configure_opts)
-        self.context = context = MigrationContext.configure(
-            connection=conn,
-            opts=ctx_opts
-        )
-
-        connection = context.bind
-        self.autogen_context = {
-            'imports': set(),
-            'connection': connection,
-            'dialect': connection.dialect,
-            'context': context
-        }
-
-    def tearDown(self):
-        self.conn.close()
-
-
-class AutogenFixtureTest(_ComparesFKs):
-
-    def _fixture(
-            self, m1, m2, include_schemas=False,
-            opts=None, object_filters=_default_object_filters):
-        self.metadata, model_metadata = m1, m2
-        self.metadata.create_all(self.bind)
-
-        with self.bind.connect() as conn:
-            ctx_opts = {
-                'compare_type': True,
-                'compare_server_default': True,
-                'target_metadata': model_metadata,
-                'upgrade_token': "upgrades",
-                'downgrade_token': "downgrades",
-                'alembic_module_prefix': 'op.',
-                'sqlalchemy_module_prefix': 'sa.',
-            }
-            if opts:
-                ctx_opts.update(opts)
-            self.context = context = MigrationContext.configure(
-                connection=conn,
-                opts=ctx_opts
-            )
-
-            connection = context.bind
-            autogen_context = {
-                'imports': set(),
-                'connection': connection,
-                'dialect': connection.dialect,
-                'context': context
-            }
-            diffs = []
-            autogenerate._produce_net_changes(
-                connection, model_metadata, diffs,
-                autogen_context,
-                object_filters=object_filters,
-                include_schemas=include_schemas
-            )
-            return diffs
-
-    reports_unnamed_constraints = False
-
-    def setUp(self):
-        staging_env()
-        self.bind = config.db
-
-    def tearDown(self):
-        if hasattr(self, 'metadata'):
-            self.metadata.drop_all(self.bind)
-        clear_staging_env()
 
 
 class AutogenCrossSchemaTest(AutogenTest, TestBase):
@@ -221,8 +63,6 @@ class AutogenCrossSchemaTest(AutogenTest, TestBase):
         return m
 
     def test_default_schema_omitted_upgrade(self):
-        metadata = self.m2
-        connection = self.context.bind
         diffs = []
 
         def include_object(obj, name, type_, reflected, compare_to):
@@ -230,17 +70,17 @@ class AutogenCrossSchemaTest(AutogenTest, TestBase):
                 return name == "t3"
             else:
                 return True
-        autogenerate._produce_net_changes(connection, metadata, diffs,
-                                          self.autogen_context,
-                                          object_filters=[include_object],
-                                          include_schemas=True
-                                          )
+        self.autogen_context.update({
+            'object_filters': [include_object],
+            'include_schemas': True,
+            'metadata': self.m2
+        })
+        autogenerate._produce_net_changes(self.autogen_context, diffs)
+
         eq_(diffs[0][0], "add_table")
         eq_(diffs[0][1].schema, None)
 
     def test_alt_schema_included_upgrade(self):
-        metadata = self.m2
-        connection = self.context.bind
         diffs = []
 
         def include_object(obj, name, type_, reflected, compare_to):
@@ -248,17 +88,18 @@ class AutogenCrossSchemaTest(AutogenTest, TestBase):
                 return name == "t4"
             else:
                 return True
-        autogenerate._produce_net_changes(connection, metadata, diffs,
-                                          self.autogen_context,
-                                          object_filters=[include_object],
-                                          include_schemas=True
-                                          )
+
+        self.autogen_context.update({
+            'object_filters': [include_object],
+            'include_schemas': True,
+            'metadata': self.m2
+        })
+        autogenerate._produce_net_changes(self.autogen_context, diffs)
+
         eq_(diffs[0][0], "add_table")
         eq_(diffs[0][1].schema, config.test_schema)
 
     def test_default_schema_omitted_downgrade(self):
-        metadata = self.m2
-        connection = self.context.bind
         diffs = []
 
         def include_object(obj, name, type_, reflected, compare_to):
@@ -266,17 +107,17 @@ class AutogenCrossSchemaTest(AutogenTest, TestBase):
                 return name == "t1"
             else:
                 return True
-        autogenerate._produce_net_changes(connection, metadata, diffs,
-                                          self.autogen_context,
-                                          object_filters=[include_object],
-                                          include_schemas=True
-                                          )
+        self.autogen_context.update({
+            'object_filters': [include_object],
+            'include_schemas': True,
+            'metadata': self.m2
+        })
+        autogenerate._produce_net_changes(self.autogen_context, diffs)
+
         eq_(diffs[0][0], "remove_table")
         eq_(diffs[0][1].schema, None)
 
     def test_alt_schema_included_downgrade(self):
-        metadata = self.m2
-        connection = self.context.bind
         diffs = []
 
         def include_object(obj, name, type_, reflected, compare_to):
@@ -284,11 +125,12 @@ class AutogenCrossSchemaTest(AutogenTest, TestBase):
                 return name == "t2"
             else:
                 return True
-        autogenerate._produce_net_changes(connection, metadata, diffs,
-                                          self.autogen_context,
-                                          object_filters=[include_object],
-                                          include_schemas=True
-                                          )
+        self.autogen_context.update({
+            'object_filters': [include_object],
+            'include_schemas': True,
+            'metadata': self.m2
+        })
+        autogenerate._produce_net_changes(self.autogen_context, diffs)
         eq_(diffs[0][0], "remove_table")
         eq_(diffs[0][1].schema, config.test_schema)
 
@@ -426,12 +268,12 @@ class AutogenerateDiffTest(ModelOne, AutogenTest, TestBase):
         """test generation of diff rules"""
 
         metadata = self.m2
-        connection = self.context.bind
         diffs = []
+        ctx = self.autogen_context.copy()
+        ctx['metadata'] = self.m2
+        ctx['object_filters'] = _default_object_filters
         autogenerate._produce_net_changes(
-            connection, metadata, diffs,
-            self.autogen_context,
-            object_filters=_default_object_filters,
+            ctx, diffs
         )
 
         eq_(
@@ -484,228 +326,31 @@ class AutogenerateDiffTest(ModelOne, AutogenTest, TestBase):
         eq_(diffs[10][0], 'remove_column')
         eq_(diffs[10][3].name, 'pw')
 
-    def test_render_nothing(self):
-        context = MigrationContext.configure(
-            connection=self.bind.connect(),
-            opts={
-                'compare_type': True,
-                'compare_server_default': True,
-                'target_metadata': self.m1,
-                'upgrade_token': "upgrades",
-                'downgrade_token': "downgrades",
-            }
-        )
-        template_args = {}
-        autogenerate._produce_migration_diffs(context, template_args, set())
-
-        eq_(re.sub(r"u'", "'", template_args['upgrades']),
-            """### commands auto generated by Alembic - please adjust! ###
-    pass
-    ### end Alembic commands ###""")
-        eq_(re.sub(r"u'", "'", template_args['downgrades']),
-            """### commands auto generated by Alembic - please adjust! ###
-    pass
-    ### end Alembic commands ###""")
-
-    def test_render_nothing_batch(self):
-        context = MigrationContext.configure(
-            connection=self.bind.connect(),
-            opts={
-                'compare_type': True,
-                'compare_server_default': True,
-                'target_metadata': self.m1,
-                'upgrade_token': "upgrades",
-                'downgrade_token': "downgrades",
-                'alembic_module_prefix': 'op.',
-                'sqlalchemy_module_prefix': 'sa.',
-                'render_as_batch': True
-            }
-        )
-        template_args = {}
-        autogenerate._produce_migration_diffs(
-            context, template_args, set(),
-            include_symbol=lambda name, schema: False
-        )
-        eq_(re.sub(r"u'", "'", template_args['upgrades']),
-            """### commands auto generated by Alembic - please adjust! ###
-    pass
-    ### end Alembic commands ###""")
-        eq_(re.sub(r"u'", "'", template_args['downgrades']),
-            """### commands auto generated by Alembic - please adjust! ###
-    pass
-    ### end Alembic commands ###""")
-
-    def test_render_diffs_standard(self):
-        """test a full render including indentation"""
-
-        template_args = {}
-        autogenerate._produce_migration_diffs(
-            self.context, template_args, set())
-        eq_(re.sub(r"u'", "'", template_args['upgrades']),
-            """### commands auto generated by Alembic - please adjust! ###
-    op.create_table('item',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('description', sa.String(length=100), nullable=True),
-    sa.Column('order_id', sa.Integer(), nullable=True),
-    sa.CheckConstraint('len(description) > 5'),
-    sa.ForeignKeyConstraint(['order_id'], ['order.order_id'], ),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.drop_table('extra')
-    op.add_column('address', sa.Column('street', sa.String(length=50), \
-nullable=True))
-    op.create_unique_constraint('uq_email', 'address', ['email_address'])
-    op.add_column('order', sa.Column('user_id', sa.Integer(), nullable=True))
-    op.alter_column('order', 'amount',
-               existing_type=sa.NUMERIC(precision=8, scale=2),
-               type_=sa.Numeric(precision=10, scale=2),
-               nullable=True,
-               existing_server_default=sa.text('0'))
-    op.create_foreign_key(None, 'order', 'user', ['user_id'], ['id'])
-    op.alter_column('user', 'a1',
-               existing_type=sa.TEXT(),
-               server_default='x',
-               existing_nullable=True)
-    op.alter_column('user', 'name',
-               existing_type=sa.VARCHAR(length=50),
-               nullable=False)
-    op.drop_index('pw_idx', table_name='user')
-    op.drop_column('user', 'pw')
-    ### end Alembic commands ###""")
-
-        eq_(re.sub(r"u'", "'", template_args['downgrades']),
-            """### commands auto generated by Alembic - please adjust! ###
-    op.add_column('user', sa.Column('pw', sa.VARCHAR(length=50), \
-nullable=True))
-    op.create_index('pw_idx', 'user', ['pw'], unique=False)
-    op.alter_column('user', 'name',
-               existing_type=sa.VARCHAR(length=50),
-               nullable=True)
-    op.alter_column('user', 'a1',
-               existing_type=sa.TEXT(),
-               server_default=None,
-               existing_nullable=True)
-    op.drop_constraint(None, 'order', type_='foreignkey')
-    op.alter_column('order', 'amount',
-               existing_type=sa.Numeric(precision=10, scale=2),
-               type_=sa.NUMERIC(precision=8, scale=2),
-               nullable=False,
-               existing_server_default=sa.text('0'))
-    op.drop_column('order', 'user_id')
-    op.drop_constraint('uq_email', 'address', type_='unique')
-    op.drop_column('address', 'street')
-    op.create_table('extra',
-    sa.Column('x', sa.CHAR(), nullable=True),
-    sa.Column('uid', sa.INTEGER(), nullable=True),
-    sa.ForeignKeyConstraint(['uid'], ['user.id'], )
-    )
-    op.drop_table('item')
-    ### end Alembic commands ###""")
-
-    def test_render_diffs_batch(self):
-        """test a full render in batch mode including indentation"""
-
-        template_args = {}
-        self.context.opts['render_as_batch'] = True
-        autogenerate._produce_migration_diffs(
-            self.context, template_args, set())
-
-        eq_(re.sub(r"u'", "'", template_args['upgrades']),
-            """### commands auto generated by Alembic - please adjust! ###
-    op.create_table('item',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('description', sa.String(length=100), nullable=True),
-    sa.Column('order_id', sa.Integer(), nullable=True),
-    sa.CheckConstraint('len(description) > 5'),
-    sa.ForeignKeyConstraint(['order_id'], ['order.order_id'], ),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.drop_table('extra')
-    with op.batch_alter_table('address', schema=None) as batch_op:
-        batch_op.add_column(sa.Column('street', sa.String(length=50), nullable=True))
-        batch_op.create_unique_constraint('uq_email', ['email_address'])
-
-    with op.batch_alter_table('order', schema=None) as batch_op:
-        batch_op.add_column(sa.Column('user_id', sa.Integer(), nullable=True))
-        batch_op.alter_column('amount',
-               existing_type=sa.NUMERIC(precision=8, scale=2),
-               type_=sa.Numeric(precision=10, scale=2),
-               nullable=True,
-               existing_server_default=sa.text('0'))
-        batch_op.create_foreign_key(None, 'order', 'user', ['user_id'], ['id'])
-
-    with op.batch_alter_table('user', schema=None) as batch_op:
-        batch_op.alter_column('a1',
-               existing_type=sa.TEXT(),
-               server_default='x',
-               existing_nullable=True)
-        batch_op.alter_column('name',
-               existing_type=sa.VARCHAR(length=50),
-               nullable=False)
-        batch_op.drop_index('pw_idx')
-        batch_op.drop_column('pw')
-
-    ### end Alembic commands ###""")
-
-        eq_(re.sub(r"u'", "'", template_args['downgrades']),
-            """### commands auto generated by Alembic - please adjust! ###
-    with op.batch_alter_table('user', schema=None) as batch_op:
-        batch_op.add_column(sa.Column('pw', sa.VARCHAR(length=50), nullable=True))
-        batch_op.create_index('pw_idx', ['pw'], unique=False)
-        batch_op.alter_column('name',
-               existing_type=sa.VARCHAR(length=50),
-               nullable=True)
-        batch_op.alter_column('a1',
-               existing_type=sa.TEXT(),
-               server_default=None,
-               existing_nullable=True)
-
-    with op.batch_alter_table('order', schema=None) as batch_op:
-        batch_op.drop_constraint(None, type_='foreignkey')
-        batch_op.alter_column('amount',
-               existing_type=sa.Numeric(precision=10, scale=2),
-               type_=sa.NUMERIC(precision=8, scale=2),
-               nullable=False,
-               existing_server_default=sa.text('0'))
-        batch_op.drop_column('user_id')
-
-    with op.batch_alter_table('address', schema=None) as batch_op:
-        batch_op.drop_constraint('uq_email', type_='unique')
-        batch_op.drop_column('street')
-
-    op.create_table('extra',
-    sa.Column('x', sa.CHAR(), nullable=True),
-    sa.Column('uid', sa.INTEGER(), nullable=True),
-    sa.ForeignKeyConstraint(['uid'], ['user.id'], )
-    )
-    op.drop_table('item')
-    ### end Alembic commands ###""")
-
     def test_include_symbol(self):
+
+        diffs = []
+
+        def include_symbol(name, schema=None):
+            return name in ('address', 'order')
+
         context = MigrationContext.configure(
             connection=self.bind.connect(),
             opts={
                 'compare_type': True,
                 'compare_server_default': True,
                 'target_metadata': self.m2,
-                'include_symbol': lambda name, schema=None:
-                name in ('address', 'order'),
-                'upgrade_token': "upgrades",
-                'downgrade_token': "downgrades",
-                'alembic_module_prefix': 'op.',
-                'sqlalchemy_module_prefix': 'sa.',
+                'include_symbol': include_symbol,
             }
         )
-        template_args = {}
-        autogenerate._produce_migration_diffs(context, template_args, set())
-        template_args['upgrades'] = \
-            template_args['upgrades'].replace("u'", "'")
-        template_args['downgrades'] = template_args['downgrades'].\
-            replace("u'", "'")
-        assert "alter_column('user'" not in template_args['upgrades']
-        assert "alter_column('user'" not in template_args['downgrades']
-        assert "alter_column('order'" in template_args['upgrades']
-        assert "alter_column('order'" in template_args['downgrades']
+
+        diffs = autogenerate.compare_metadata(
+            context, context.opts['target_metadata'])
+
+        alter_cols = set([
+            d[2] for d in self._flatten_diffs(diffs)
+            if d[0].startswith('modify')
+        ])
+        eq_(alter_cols, set(['order']))
 
     def test_include_object(self):
         def include_object(obj, name, type_, reflected, compare_to):
@@ -732,28 +377,23 @@ nullable=True))
                 'compare_server_default': True,
                 'target_metadata': self.m2,
                 'include_object': include_object,
-                'upgrade_token': "upgrades",
-                'downgrade_token': "downgrades",
-                'alembic_module_prefix': 'op.',
-                'sqlalchemy_module_prefix': 'sa.',
             }
         )
-        template_args = {}
-        autogenerate._produce_migration_diffs(context, template_args, set())
 
-        template_args['upgrades'] = \
-            template_args['upgrades'].replace("u'", "'")
-        template_args['downgrades'] = template_args['downgrades'].\
-            replace("u'", "'")
-        assert "op.create_table('item'" not in template_args['upgrades']
-        assert "op.create_table('item'" not in template_args['downgrades']
+        diffs = autogenerate.compare_metadata(
+            context, context.opts['target_metadata'])
 
-        assert "alter_column('user'" in template_args['upgrades']
-        assert "alter_column('user'" in template_args['downgrades']
-        assert "'street'" not in template_args['upgrades']
-        assert "'street'" not in template_args['downgrades']
-        assert "alter_column('order'" in template_args['upgrades']
-        assert "alter_column('order'" in template_args['downgrades']
+        alter_cols = set([
+            d[2] for d in self._flatten_diffs(diffs)
+            if d[0].startswith('modify')
+        ]).union(
+            d[3].name for d in self._flatten_diffs(diffs)
+            if d[0] == 'add_column'
+        ).union(
+            d[1].name for d in self._flatten_diffs(diffs)
+            if d[0] == 'add_table'
+        )
+        eq_(alter_cols, set(['user_id', 'order', 'user']))
 
     def test_skip_null_type_comparison_reflected(self):
         diff = []
@@ -841,14 +481,14 @@ class AutogenerateDiffTestWSchema(ModelOne, AutogenTest, TestBase):
         """test generation of diff rules"""
 
         metadata = self.m2
-        connection = self.context.bind
         diffs = []
-        autogenerate._produce_net_changes(
-            connection, metadata, diffs,
-            self.autogen_context,
-            object_filters=_default_object_filters,
-            include_schemas=True
-        )
+
+        self.autogen_context.update({
+            'object_filters': _default_object_filters,
+            'include_schemas': True,
+            'metadata': self.m2
+        })
+        autogenerate._produce_net_changes(self.autogen_context, diffs)
 
         eq_(
             diffs[0],
@@ -901,116 +541,6 @@ class AutogenerateDiffTestWSchema(ModelOne, AutogenTest, TestBase):
         eq_(diffs[10][0], 'remove_column')
         eq_(diffs[10][3].name, 'pw')
 
-    def test_render_nothing(self):
-        context = MigrationContext.configure(
-            connection=self.bind.connect(),
-            opts={
-                'compare_type': True,
-                'compare_server_default': True,
-                'target_metadata': self.m1,
-                'upgrade_token': "upgrades",
-                'downgrade_token': "downgrades",
-                'alembic_module_prefix': 'op.',
-                'sqlalchemy_module_prefix': 'sa.',
-            }
-        )
-        template_args = {}
-        autogenerate._produce_migration_diffs(
-            context, template_args, set(),
-            include_symbol=lambda name, schema: False
-        )
-        eq_(re.sub(r"u'", "'", template_args['upgrades']),
-            """### commands auto generated by Alembic - please adjust! ###
-    pass
-    ### end Alembic commands ###""")
-        eq_(re.sub(r"u'", "'", template_args['downgrades']),
-            """### commands auto generated by Alembic - please adjust! ###
-    pass
-    ### end Alembic commands ###""")
-
-    def test_render_diffs_extras(self):
-        """test a full render including indentation (include and schema)"""
-
-        template_args = {}
-        autogenerate._produce_migration_diffs(
-            self.context, template_args, set(),
-            include_object=_default_include_object,
-            include_schemas=True
-        )
-
-        eq_(re.sub(r"u'", "'", template_args['upgrades']),
-            """### commands auto generated by Alembic - please adjust! ###
-    op.create_table('item',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('description', sa.String(length=100), nullable=True),
-    sa.Column('order_id', sa.Integer(), nullable=True),
-    sa.CheckConstraint('len(description) > 5'),
-    sa.ForeignKeyConstraint(['order_id'], ['%(schema)s.order.order_id'], ),
-    sa.PrimaryKeyConstraint('id'),
-    schema='%(schema)s'
-    )
-    op.drop_table('extra', schema='%(schema)s')
-    op.add_column('address', sa.Column('street', sa.String(length=50), \
-nullable=True), schema='%(schema)s')
-    op.create_unique_constraint('uq_email', 'address', ['email_address'], \
-schema='test_schema')
-    op.add_column('order', sa.Column('user_id', sa.Integer(), nullable=True), \
-schema='%(schema)s')
-    op.alter_column('order', 'amount',
-               existing_type=sa.NUMERIC(precision=8, scale=2),
-               type_=sa.Numeric(precision=10, scale=2),
-               nullable=True,
-               existing_server_default=sa.text('0'),
-               schema='%(schema)s')
-    op.create_foreign_key(None, 'order', 'user', ['user_id'], ['id'], \
-source_schema='%(schema)s', referent_schema='%(schema)s')
-    op.alter_column('user', 'a1',
-               existing_type=sa.TEXT(),
-               server_default='x',
-               existing_nullable=True,
-               schema='%(schema)s')
-    op.alter_column('user', 'name',
-               existing_type=sa.VARCHAR(length=50),
-               nullable=False,
-               schema='%(schema)s')
-    op.drop_index('pw_idx', table_name='user', schema='test_schema')
-    op.drop_column('user', 'pw', schema='%(schema)s')
-    ### end Alembic commands ###""" % {"schema": self.schema})
-
-        eq_(re.sub(r"u'", "'", template_args['downgrades']),
-            """### commands auto generated by Alembic - please adjust! ###
-    op.add_column('user', sa.Column('pw', sa.VARCHAR(length=50), \
-autoincrement=False, nullable=True), schema='%(schema)s')
-    op.create_index('pw_idx', 'user', ['pw'], unique=False, schema='%(schema)s')
-    op.alter_column('user', 'name',
-               existing_type=sa.VARCHAR(length=50),
-               nullable=True,
-               schema='%(schema)s')
-    op.alter_column('user', 'a1',
-               existing_type=sa.TEXT(),
-               server_default=None,
-               existing_nullable=True,
-               schema='%(schema)s')
-    op.drop_constraint(None, 'order', schema='%(schema)s', type_='foreignkey')
-    op.alter_column('order', 'amount',
-               existing_type=sa.Numeric(precision=10, scale=2),
-               type_=sa.NUMERIC(precision=8, scale=2),
-               nullable=False,
-               existing_server_default=sa.text('0'),
-               schema='%(schema)s')
-    op.drop_column('order', 'user_id', schema='%(schema)s')
-    op.drop_constraint('uq_email', 'address', schema='test_schema', type_='unique')
-    op.drop_column('address', 'street', schema='%(schema)s')
-    op.create_table('extra',
-    sa.Column('x', sa.CHAR(length=1), autoincrement=False, nullable=True),
-    sa.Column('uid', sa.INTEGER(), autoincrement=False, nullable=True),
-    sa.ForeignKeyConstraint(['uid'], ['%(schema)s.user.id'], \
-name='extra_uid_fkey'),
-    schema='%(schema)s'
-    )
-    op.drop_table('item', schema='%(schema)s')
-    ### end Alembic commands ###""" % {"schema": self.schema})
-
 
 class AutogenerateCustomCompareTypeTest(AutogenTest, TestBase):
     __only_on__ = 'sqlite'
@@ -1038,8 +568,9 @@ class AutogenerateCustomCompareTypeTest(AutogenTest, TestBase):
         self.context._user_compare_type = my_compare_type
 
         diffs = []
-        autogenerate._produce_net_changes(self.context.bind, self.m2,
-                                          diffs, self.autogen_context)
+        ctx = self.autogen_context.copy()
+        ctx['metadata'] = self.m2
+        autogenerate._produce_net_changes(ctx, diffs)
 
         first_table = self.m2.tables['sometable']
         first_column = first_table.columns['id']
@@ -1062,8 +593,10 @@ class AutogenerateCustomCompareTypeTest(AutogenTest, TestBase):
         self.context._user_compare_type = my_compare_type
 
         diffs = []
-        autogenerate._produce_net_changes(self.context.bind, self.m2,
-                                          diffs, self.autogen_context)
+        ctx = self.autogen_context.copy()
+        ctx['metadata'] = self.m2
+        diffs = []
+        autogenerate._produce_net_changes(ctx, diffs)
 
         eq_(diffs, [])
 
@@ -1072,9 +605,10 @@ class AutogenerateCustomCompareTypeTest(AutogenTest, TestBase):
         my_compare_type.return_value = True
         self.context._user_compare_type = my_compare_type
 
+        ctx = self.autogen_context.copy()
+        ctx['metadata'] = self.m2
         diffs = []
-        autogenerate._produce_net_changes(self.context.bind, self.m2,
-                                          diffs, self.autogen_context)
+        autogenerate._produce_net_changes(ctx, diffs)
 
         eq_(diffs[0][0][0], 'modify_type')
         eq_(diffs[1][0][0], 'modify_type')
@@ -1101,14 +635,10 @@ class PKConstraintUpgradesIgnoresNullableTest(AutogenTest, TestBase):
         return cls._get_db_schema()
 
     def test_no_change(self):
-        metadata = self.m2
-        connection = self.context.bind
-
         diffs = []
-
-        autogenerate._produce_net_changes(connection, metadata, diffs,
-                                          self.autogen_context
-                                          )
+        ctx = self.autogen_context.copy()
+        ctx['metadata'] = self.m2
+        autogenerate._produce_net_changes(ctx, diffs)
         eq_(diffs, [])
 
 
@@ -1143,15 +673,12 @@ class AutogenKeyTest(AutogenTest, TestBase):
     symbols = ['someothertable', 'sometable']
 
     def test_autogen(self):
-        metadata = self.m2
-        connection = self.context.bind
 
         diffs = []
 
-        autogenerate._produce_net_changes(connection, metadata, diffs,
-                                          self.autogen_context,
-                                          include_schemas=False
-                                          )
+        ctx = self.autogen_context.copy()
+        ctx['metadata'] = self.m2
+        autogenerate._produce_net_changes(ctx, diffs)
         eq_(diffs[0][0], "add_table")
         eq_(diffs[0][1].name, "sometable")
         eq_(diffs[1][0], "add_column")
@@ -1178,8 +705,10 @@ class AutogenVersionTableTest(AutogenTest, TestBase):
 
     def test_no_version_table(self):
         diffs = []
-        autogenerate._produce_net_changes(self.context.bind, self.m2,
-                                          diffs, self.autogen_context)
+        ctx = self.autogen_context.copy()
+        ctx['metadata'] = self.m2
+
+        autogenerate._produce_net_changes(ctx, diffs)
         eq_(diffs, [])
 
     def test_version_table_in_target(self):
@@ -1188,8 +717,9 @@ class AutogenVersionTableTest(AutogenTest, TestBase):
             self.version_table_name,
             self.m2, Column('x', Integer), schema=self.version_table_schema)
 
-        autogenerate._produce_net_changes(self.context.bind, self.m2,
-                                          diffs, self.autogen_context)
+        ctx = self.autogen_context.copy()
+        ctx['metadata'] = self.m2
+        autogenerate._produce_net_changes(ctx, diffs)
         eq_(diffs, [])
 
 
@@ -1239,13 +769,10 @@ class AutogenerateDiffOrderTest(AutogenTest, TestBase):
         before their parent tables
         """
 
-        metadata = self.m2
-        connection = self.context.bind
+        ctx = self.autogen_context.copy()
+        ctx['metadata'] = self.m2
         diffs = []
-
-        autogenerate._produce_net_changes(connection, metadata, diffs,
-                                          self.autogen_context
-                                          )
+        autogenerate._produce_net_changes(ctx, diffs)
 
         eq_(diffs[0][0], 'add_table')
         eq_(diffs[0][1].name, "parent")
