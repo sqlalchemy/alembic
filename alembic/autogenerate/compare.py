@@ -1,6 +1,7 @@
 from sqlalchemy import schema as sa_schema, types as sqltypes
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy import event
+from ..operations import ops
 import logging
 from ..util import compat
 from ..util import sqla_compat
@@ -13,7 +14,7 @@ from alembic.ddl.base import _fk_spec
 log = logging.getLogger(__name__)
 
 
-def _produce_net_changes(autogen_context, diffs):
+def _produce_net_changes(autogen_context, upgrade_ops):
 
     metadata = autogen_context['metadata']
     connection = autogen_context['connection']
@@ -51,7 +52,7 @@ def _produce_net_changes(autogen_context, diffs):
 
     _compare_tables(conn_table_names, metadata_table_names,
                     object_filters,
-                    inspector, metadata, diffs, autogen_context)
+                    inspector, metadata, upgrade_ops, autogen_context)
 
 
 def _run_filters(object_, name, type_, reflected, compare_to, object_filters):
@@ -64,7 +65,7 @@ def _run_filters(object_, name, type_, reflected, compare_to, object_filters):
 
 def _compare_tables(conn_table_names, metadata_table_names,
                     object_filters,
-                    inspector, metadata, diffs, autogen_context):
+                    inspector, metadata, upgrade_ops, autogen_context):
 
     default_schema = inspector.bind.dialect.default_schema_name
 
@@ -97,12 +98,14 @@ def _compare_tables(conn_table_names, metadata_table_names,
         metadata_table = tname_to_table[(s, tname)]
         if _run_filters(
                 metadata_table, tname, "table", False, None, object_filters):
-            diffs.append(("add_table", metadata_table))
+            upgrade_ops.ops.append(
+                ops.CreateTableOp.from_table(metadata_table))
             log.info("Detected added table %r", name)
             _compare_indexes_and_uniques(s, tname, object_filters,
                                          None,
                                          metadata_table,
-                                         diffs, autogen_context, inspector)
+                                         upgrade_ops,
+                                         autogen_context, inspector)
 
     removal_metadata = sa_schema.MetaData()
     for s, tname in conn_table_names.difference(metadata_table_names):
@@ -118,7 +121,9 @@ def _compare_tables(conn_table_names, metadata_table_names,
                 _compat_autogen_column_reflect(inspector))
             inspector.reflecttable(t, None)
         if _run_filters(t, tname, "table", True, None, object_filters):
-            diffs.append(("remove_table", t))
+            upgrade_ops.ops.append(
+                ops.DropTableOp.from_table(t)
+            )
             log.info("Detected removed table %r", name)
 
     existing_tables = conn_table_names.intersection(metadata_table_names)
@@ -147,18 +152,25 @@ def _compare_tables(conn_table_names, metadata_table_names,
         if _run_filters(
                 metadata_table, tname, "table", False,
                 conn_table, object_filters):
+
+            modify_table_ops = ops.ModifyTableOps(tname, [], schema=s)
             with _compare_columns(
                 s, tname, object_filters,
                 conn_table,
                 metadata_table,
-                    diffs, autogen_context, inspector):
+                    modify_table_ops, autogen_context, inspector):
                 _compare_indexes_and_uniques(s, tname, object_filters,
                                              conn_table,
                                              metadata_table,
-                                             diffs, autogen_context, inspector)
+                                             modify_table_ops,
+                                             autogen_context, inspector)
                 _compare_foreign_keys(s, tname, object_filters, conn_table,
-                                      metadata_table, diffs, autogen_context,
+                                      metadata_table,
+                                      modify_table_ops, autogen_context,
                                       inspector)
+
+            if not modify_table_ops.is_empty():
+                upgrade_ops.ops.append(modify_table_ops)
 
     # TODO:
     # table constraints
@@ -203,7 +215,7 @@ def _make_foreign_key(params, conn_table):
 
 @contextlib.contextmanager
 def _compare_columns(schema, tname, object_filters, conn_table, metadata_table,
-                     diffs, autogen_context, inspector):
+                     modify_table_ops, autogen_context, inspector):
     name = '%s.%s' % (schema, tname) if schema else tname
     metadata_cols_by_name = dict((c.name, c) for c in metadata_table.c)
     conn_col_names = dict((c.name, c) for c in conn_table.c)
@@ -212,8 +224,9 @@ def _compare_columns(schema, tname, object_filters, conn_table, metadata_table,
     for cname in metadata_col_names.difference(conn_col_names):
         if _run_filters(metadata_cols_by_name[cname], cname,
                         "column", False, None, object_filters):
-            diffs.append(
-                ("add_column", schema, tname, metadata_cols_by_name[cname])
+            modify_table_ops.ops.append(
+                ops.AddColumnOp.from_column_and_tablename(
+                    schema, tname, metadata_cols_by_name[cname])
             )
             log.info("Detected added column '%s.%s'", name, cname)
 
@@ -224,34 +237,37 @@ def _compare_columns(schema, tname, object_filters, conn_table, metadata_table,
                 metadata_col, colname, "column", False,
                 conn_col, object_filters):
             continue
-        col_diff = []
+        alter_column_op = ops.AlterColumnOp(
+            tname, cname, schema=schema)
         _compare_type(schema, tname, colname,
                       conn_col,
                       metadata_col,
-                      col_diff, autogen_context
+                      alter_column_op, autogen_context
                       )
         # work around SQLAlchemy issue #3023
         if not metadata_col.primary_key:
             _compare_nullable(schema, tname, colname,
                               conn_col,
                               metadata_col.nullable,
-                              col_diff, autogen_context
+                              alter_column_op, autogen_context
                               )
         _compare_server_default(schema, tname, colname,
                                 conn_col,
                                 metadata_col,
-                                col_diff, autogen_context
+                                alter_column_op, autogen_context
                                 )
-        if col_diff:
-            diffs.append(col_diff)
+        if alter_column_op.has_changes():
+            modify_table_ops.ops.append(alter_column_op)
 
     yield
 
     for cname in set(conn_col_names).difference(metadata_col_names):
         if _run_filters(conn_table.c[cname], cname,
                         "column", True, None, object_filters):
-            diffs.append(
-                ("remove_column", schema, tname, conn_table.c[cname])
+            modify_table_ops.ops.append(
+                ops.DropColumnOp.from_column_and_tablename(
+                    schema, tname, conn_table.c[cname]
+                )
             )
             log.info("Detected removed column '%s.%s'", name, cname)
 
@@ -311,7 +327,7 @@ class _fk_constraint_sig(_constraint_sig):
 
 
 def _compare_indexes_and_uniques(schema, tname, object_filters, conn_table,
-                                 metadata_table, diffs,
+                                 metadata_table, modify_ops,
                                  autogen_context, inspector):
 
     is_create_table = conn_table is None
@@ -413,7 +429,9 @@ def _compare_indexes_and_uniques(schema, tname, object_filters, conn_table,
         if obj.is_index:
             if _run_filters(
                     obj.const, obj.name, "index", False, None, object_filters):
-                diffs.append(("add_index", obj.const))
+                modify_ops.ops.append(
+                    ops.CreateIndexOp.from_index(obj.const)
+                )
                 log.info("Detected added index '%s' on %s",
                          obj.name, ', '.join([
                              "'%s'" % obj.column_names
@@ -429,7 +447,9 @@ def _compare_indexes_and_uniques(schema, tname, object_filters, conn_table,
             if _run_filters(
                     obj.const, obj.name,
                     "unique_constraint", False, None, object_filters):
-                diffs.append(("add_constraint", obj.const))
+                modify_ops.ops.append(
+                    ops.AddConstraintOp.from_constraint(obj.const)
+                )
                 log.info("Detected added unique constraint '%s' on %s",
                          obj.name, ', '.join([
                              "'%s'" % obj.column_names
@@ -445,14 +465,18 @@ def _compare_indexes_and_uniques(schema, tname, object_filters, conn_table,
 
             if _run_filters(
                     obj.const, obj.name, "index", True, None, object_filters):
-                diffs.append(("remove_index", obj.const))
+                modify_ops.ops.append(
+                    ops.DropIndexOp.from_index(obj.const)
+                )
                 log.info(
                     "Detected removed index '%s' on '%s'", obj.name, tname)
         else:
             if _run_filters(
                     obj.const, obj.name,
                     "unique_constraint", True, None, object_filters):
-                diffs.append(("remove_constraint", obj.const))
+                modify_ops.ops.append(
+                    ops.DropConstraintOp.from_constraint(obj.const)
+                )
                 log.info("Detected removed unique constraint '%s' on '%s'",
                          obj.name, tname
                          )
@@ -465,8 +489,12 @@ def _compare_indexes_and_uniques(schema, tname, object_filters, conn_table,
                 log.info("Detected changed index '%s' on '%s':%s",
                          old.name, tname, ', '.join(msg)
                          )
-                diffs.append(("remove_index", old.const))
-                diffs.append(("add_index", new.const))
+                modify_ops.ops.append(
+                    ops.DropIndexOp.from_index(old.const)
+                )
+                modify_ops.ops.append(
+                    ops.CreateIndexOp.from_index(new.const)
+                )
         else:
             if _run_filters(
                     new.const, new.name,
@@ -474,8 +502,12 @@ def _compare_indexes_and_uniques(schema, tname, object_filters, conn_table,
                 log.info("Detected changed unique constraint '%s' on '%s':%s",
                          old.name, tname, ', '.join(msg)
                          )
-                diffs.append(("remove_constraint", old.const))
-                diffs.append(("add_constraint", new.const))
+                modify_ops.ops.append(
+                    ops.DropConstraintOp.from_constraint(old.const)
+                )
+                modify_ops.ops.append(
+                    ops.AddConstraintOp.from_constraint(new.const)
+                )
 
     for added_name in sorted(set(metadata_names).difference(conn_names)):
         obj = metadata_names[added_name]
@@ -529,19 +561,13 @@ def _compare_indexes_and_uniques(schema, tname, object_filters, conn_table,
 
 
 def _compare_nullable(schema, tname, cname, conn_col,
-                      metadata_col_nullable, diffs,
+                      metadata_col_nullable, alter_column_op,
                       autogen_context):
     conn_col_nullable = conn_col.nullable
+    alter_column_op.existing_nullable = conn_col_nullable
+
     if conn_col_nullable is not metadata_col_nullable:
-        diffs.append(
-            ("modify_nullable", schema, tname, cname,
-                {
-                    "existing_type": conn_col.type,
-                    "existing_server_default": conn_col.server_default,
-                },
-                conn_col_nullable,
-                metadata_col_nullable),
-        )
+        alter_column_op.modify_nullable = metadata_col_nullable
         log.info("Detected %s on column '%s.%s'",
                  "NULL" if metadata_col_nullable else "NOT NULL",
                  tname,
@@ -550,10 +576,11 @@ def _compare_nullable(schema, tname, cname, conn_col,
 
 
 def _compare_type(schema, tname, cname, conn_col,
-                  metadata_col, diffs,
+                  metadata_col, alter_column_op,
                   autogen_context):
 
     conn_type = conn_col.type
+    alter_column_op.existing_type = conn_type
     metadata_type = metadata_col.type
     if conn_type._type_affinity is sqltypes.NullType:
         log.info("Couldn't determine database type "
@@ -567,16 +594,7 @@ def _compare_type(schema, tname, cname, conn_col,
     isdiff = autogen_context['context']._compare_type(conn_col, metadata_col)
 
     if isdiff:
-
-        diffs.append(
-            ("modify_type", schema, tname, cname,
-             {
-                 "existing_nullable": conn_col.nullable,
-                 "existing_server_default": conn_col.server_default,
-             },
-             conn_type,
-             metadata_type),
-        )
+        alter_column_op.modify_type = metadata_type
         log.info("Detected type change from %r to %r on '%s.%s'",
                  conn_type, metadata_type, tname, cname
                  )
@@ -606,7 +624,7 @@ def _render_server_default_for_compare(metadata_default,
 
 
 def _compare_server_default(schema, tname, cname, conn_col, metadata_col,
-                            diffs, autogen_context):
+                            alter_column_op, autogen_context):
 
     metadata_default = metadata_col.server_default
     conn_col_default = conn_col.server_default
@@ -618,22 +636,15 @@ def _compare_server_default(schema, tname, cname, conn_col, metadata_col,
     rendered_conn_default = conn_col.server_default.arg.text \
         if conn_col.server_default else None
 
+    alter_column_op.existing_server_default = rendered_conn_default
+
     isdiff = autogen_context['context']._compare_server_default(
         conn_col, metadata_col,
         rendered_metadata_default,
         rendered_conn_default
     )
     if isdiff:
-        conn_col_default = rendered_conn_default
-        diffs.append(
-            ("modify_default", schema, tname, cname,
-                {
-                    "existing_nullable": conn_col.nullable,
-                    "existing_type": conn_col.type,
-                },
-                conn_col_default,
-                metadata_default),
-        )
+        alter_column_op.modify_server_default = metadata_default
         log.info("Detected server default on column '%s.%s'",
                  tname,
                  cname
@@ -641,7 +652,8 @@ def _compare_server_default(schema, tname, cname, conn_col, metadata_col,
 
 
 def _compare_foreign_keys(schema, tname, object_filters, conn_table,
-                          metadata_table, diffs, autogen_context, inspector):
+                          metadata_table, modify_table_ops,
+                          autogen_context, inspector):
 
     # if we're doing CREATE TABLE, all FKs are created
     # inline within the table def
