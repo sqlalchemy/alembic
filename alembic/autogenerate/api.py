@@ -4,7 +4,6 @@ automatically."""
 from ..operations import ops
 from . import render
 from . import compare
-from . import compose
 from .. import util
 
 
@@ -98,20 +97,8 @@ def compare_metadata(context, metadata):
 
     """
 
-    autogen_context = _autogen_context(context, metadata=metadata)
-
-    # as_sql=True is nonsensical here. autogenerate requires a connection
-    # it can use to run queries against to get the database schema.
-    if context.as_sql:
-        raise util.CommandError(
-            "autogenerate can't use as_sql=True as it prevents querying "
-            "the database for schema information")
-
-    diffs = []
-
-    compare._produce_net_changes(autogen_context, diffs)
-
-    return diffs
+    migration_script = produce_migrations(context, metadata)
+    return migration_script.as_diffs()
 
 
 def produce_migrations(context, metadata):
@@ -133,17 +120,15 @@ def produce_migrations(context, metadata):
     """
 
     autogen_context = _autogen_context(context, metadata=metadata)
-    diffs = []
 
-    compare._produce_net_changes(autogen_context, diffs)
+    upgrade_ops = ops.UpgradeOps([])
+    compare._produce_net_changes(autogen_context, upgrade_ops)
 
     migration_script = ops.MigrationScript(
         rev_id=None,
-        upgrade_ops=ops.UpgradeOps([]),
-        downgrade_ops=ops.DowngradeOps([]),
+        upgrade_ops=upgrade_ops,
+        downgrade_ops=upgrade_ops.reverse(),
     )
-
-    compose._to_migration_script(autogen_context, migration_script, diffs)
 
     return migration_script
 
@@ -174,26 +159,19 @@ def render_python_code(
         up_or_down_op, autogen_context))
 
 
-
-
 def _render_migration_diffs(context, template_args, imports):
     """legacy, used by test_autogen_composition at the moment"""
 
-    migration_script = produce_migrations(context, None)
-
     autogen_context = _autogen_context(context, imports=imports)
-    diffs = []
 
-    compare._produce_net_changes(autogen_context, diffs)
+    upgrade_ops = ops.UpgradeOps([])
+    compare._produce_net_changes(autogen_context, upgrade_ops)
 
     migration_script = ops.MigrationScript(
         rev_id=None,
-        imports=imports,
-        upgrade_ops=ops.UpgradeOps([]),
-        downgrade_ops=ops.DowngradeOps([]),
+        upgrade_ops=upgrade_ops,
+        downgrade_ops=upgrade_ops.reverse(),
     )
-
-    compose._to_migration_script(autogen_context, migration_script, diffs)
 
     render._render_migration_script(
         autogen_context, migration_script, template_args
@@ -203,6 +181,13 @@ def _render_migration_diffs(context, template_args, imports):
 def _autogen_context(
     context, imports=None, metadata=None, include_symbol=None,
         include_object=None, include_schemas=False):
+
+    # as_sql=True is nonsensical here. autogenerate requires a connection
+    # it can use to run queries against to get the database schema.
+    if context.as_sql:
+        raise util.CommandError(
+            "autogenerate can't use as_sql=True as it prevents querying "
+            "the database for schema information")
 
     opts = context.opts
     metadata = opts['target_metadata'] if metadata is None else metadata

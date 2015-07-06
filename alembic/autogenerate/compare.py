@@ -238,7 +238,7 @@ def _compare_columns(schema, tname, object_filters, conn_table, metadata_table,
                 conn_col, object_filters):
             continue
         alter_column_op = ops.AlterColumnOp(
-            tname, cname, schema=schema)
+            tname, colname, schema=schema)
         _compare_type(schema, tname, colname,
                       conn_col,
                       metadata_col,
@@ -688,7 +688,9 @@ def _compare_foreign_keys(schema, tname, object_filters, conn_table,
         if _run_filters(
                 obj.const, obj.name, "foreign_key_constraint", False,
                 compare_to, object_filters):
-            diffs.append(('add_fk', const.const))
+            modify_table_ops.ops.append(
+                ops.CreateForeignKeyOp.from_constraint(const.const)
+            )
 
             log.info(
                 "Detected added foreign key (%s)(%s) on table %s%s",
@@ -701,7 +703,9 @@ def _compare_foreign_keys(schema, tname, object_filters, conn_table,
         if _run_filters(
                 obj.const, obj.name, "foreign_key_constraint", True,
                 compare_to, object_filters):
-            diffs.append(('remove_fk', obj.const))
+            modify_table_ops.ops.append(
+                ops.DropConstraintOp.from_constraint(obj.const)
+            )
             log.info(
                 "Detected removed foreign key (%s)(%s) on table %s%s",
                 ", ".join(obj.source_columns),
@@ -725,5 +729,3 @@ def _compare_foreign_keys(schema, tname, object_filters, conn_table,
             compare_to = conn_fks_by_name[const.name].const \
                 if const.name in conn_fks_by_name else None
             _add_fk(const, compare_to)
-
-    return diffs

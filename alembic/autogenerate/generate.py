@@ -1,6 +1,5 @@
 from .. import util
 from . import api
-from . import compose
 from . import compare
 from . import render
 from ..operations import ops
@@ -50,12 +49,9 @@ class RevisionContext(object):
 
         autogen_context = api._autogen_context(context)
 
-        diffs = []
-        compare._produce_net_changes(autogen_context, diffs)
-
         migration_script = self.generated_revisions[0]
 
-        compose._to_migration_script(autogen_context, migration_script, diffs)
+        compare._produce_net_changes(autogen_context, migration_script)
 
         hook = context.opts.get('process_revision_directives', None)
         if hook:
