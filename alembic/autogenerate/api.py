@@ -98,7 +98,7 @@ def compare_metadata(context, metadata):
     """
 
     migration_script = produce_migrations(context, metadata)
-    return migration_script.as_diffs()
+    return migration_script.upgrade_ops.as_diffs()
 
 
 def produce_migrations(context, metadata):

@@ -2,6 +2,7 @@ from sqlalchemy import MetaData, Column, Table, Integer, String, Text, \
     Numeric, CHAR, ForeignKey, Index, UniqueConstraint, CheckConstraint, text
 from sqlalchemy.engine.reflection import Inspector
 
+from alembic.operations import ops
 from alembic import autogenerate
 from alembic.migration import MigrationContext
 from alembic.testing import config
@@ -232,11 +233,11 @@ class AutogenFixtureTest(_ComparesFKs):
                 'object_filters': object_filters,
                 'include_schemas': include_schemas
             }
-            diffs = []
+            uo = ops.UpgradeOps(ops=[])
             autogenerate._produce_net_changes(
-                autogen_context, diffs
+                autogen_context, uo
             )
-            return diffs
+            return uo.as_diffs()
 
     reports_unnamed_constraints = False
 

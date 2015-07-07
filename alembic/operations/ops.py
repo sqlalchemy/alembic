@@ -51,9 +51,7 @@ class AddConstraintOp(MigrateOperation):
         return funcs[constraint.__visit_name__](constraint)
 
     def reverse(self):
-        return DropConstraintOp(
-            self.constraint_name, self.table_name, type_=self.type_,
-            schema=self.schema)
+        return DropConstraintOp.from_constraint(self.to_constraint())
 
     def to_diff_tuple(self):
         return ("add_constraint", self.to_constraint())
@@ -1164,7 +1162,7 @@ class AlterColumnOp(AlterTableOp):
         kw['modify_server_default'] = self.modify_server_default
 
         all_keys = set(m.group(1) for m in [
-            re.match(r'(?:existing_|modify_)(.+))', k)
+            re.match(r'^(?:existing_|modify_)(.+)$', k)
             for k in kw
         ] if m)
 
@@ -1720,9 +1718,11 @@ class ModifyTableOps(OpContainer):
 
     def reverse(self):
         return ModifyTableOps(
+            self.table_name,
             ops=list(reversed(
                 [op.reverse() for op in self.ops]
-            ))
+            )),
+            schema=self.schema
         )
 
 
