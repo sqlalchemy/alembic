@@ -5,6 +5,7 @@ from ..operations import ops
 from . import render
 from . import compare
 from .. import util
+from sqlalchemy.engine.reflection import Inspector
 
 
 def compare_metadata(context, metadata):
@@ -160,10 +161,10 @@ def render_python_code(
         up_or_down_op, autogen_context))
 
 
-def _render_migration_diffs(context, template_args, imports):
+def _render_migration_diffs(context, template_args):
     """legacy, used by test_autogen_composition at the moment"""
 
-    autogen_context = _autogen_context(context, imports=imports)
+    autogen_context = _autogen_context(context)
 
     upgrade_ops = ops.UpgradeOps([])
     compare._produce_net_changes(autogen_context, upgrade_ops)
@@ -230,7 +231,110 @@ def _autogen_context(
     }
 
 
+class AutogenContext(object):
+    """Maintains configuration and state that's specific to an
+    autogenerate operation."""
+
+    metadata = None
+    """The :class:`~sqlalchemy.schema.MetaData` object
+    representing the destination.
+
+    This object is the one that is passed within ``env.py``
+    to the :paramref:`.EnvironmentContext.configure.target_metadata`
+    parameter.  It represents the structure of :class:`.Table` and other
+    objects as stated in the current database model, and represents the
+    destination structure for the database being examined.
+
+    While the :class:`~sqlalchemy.schema.MetaData` object is primarily
+    known as a collection of :class:`~sqlalchemy.schema.Table` objects,
+    it also has an :attr:`~sqlalchemy.schema.MetaData.info` dictionary
+    that may be used by end-user schemes to store additional schema-level
+    objects that are to be compared in custom autogeneration schemes.
+
+    """
+
+    connection = None
+    """The :class:`~sqlalchemy.engine.base.Connection` object currently
+    connected to the database backend being compared.
+
+    This is obtained from the :attr:`.MigrationContext.bind` and is
+    utimately set up in the ``env.py`` script.
+
+    """
+
+    migration_context = None
+    """The :class:`.MigrationContext` established by the ``env.py`` script."""
+
+    def __init__(self, migration_context, metadata=None):
+
+        if migration_context.as_sql:
+            raise util.CommandError(
+                "autogenerate can't use as_sql=True as it prevents querying "
+                "the database for schema information")
+
+        opts = migration_context.opts
+        self.metadata = metadata = opts['target_metadata'] \
+            if metadata is None else metadata
+
+        if metadata is None:
+            raise util.CommandError(
+                "Can't proceed with --autogenerate option; environment "
+                "script %s does not provide "
+                "a MetaData object to the context." % (
+                    migration_context.script.env_py_location
+                ))
+
+        include_schemas = opts.get('include_schemas', False)
+
+        include_symbol = opts.get('include_symbol', None)
+        include_object = opts.get('include_object', None)
+
+        object_filters = []
+        if include_symbol:
+            def include_symbol_filter(
+                    object, name, type_, reflected, compare_to):
+                if type_ == "table":
+                    return include_symbol(name, object.schema)
+                else:
+                    return True
+            object_filters.append(include_symbol_filter)
+        if include_object:
+            object_filters.append(include_object)
+
+        self._object_filters = object_filters
+
+        self.connection = migration_context.bind
+        self.migration_context = migration_context
+        self._imports = set()
+        self._opts = opts
+        self.dialect = migration_context.dialect
+        self._include_schemas = include_schemas
+        self.inspector = Inspector.from_engine(self.connection)
+
+    def run_filters(self, object_, name, type_, reflected, compare_to):
+        """Run the context's object filters and return True if the targets
+        should be part of the autogenerate operation.
+
+        This method should be run for every kind of object encountered within
+        an autogenerate operation, giving the environment the chance
+        to filter what objects should be included in the comparison.
+        The filters here are produced directly via the
+        :paramref:`.EnvironmentContext.configure.include_object`
+        and :paramref:`.EnvironmentContext.configure.include_symbol`
+        functions, if present.
+
+        """
+        for fn in self._object_filters:
+            if not fn(object_, name, type_, reflected, compare_to):
+                return False
+        else:
+            return True
+
+
 class RevisionContext(object):
+    """Maintains configuration and state that's specific to a revision
+    file generation operation."""
+
     def __init__(self, config, script_directory, command_args):
         self.config = config
         self.script_directory = script_directory

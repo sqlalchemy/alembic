@@ -21,13 +21,10 @@ def _populate_migration_script(autogen_context, migration_script):
 
 def _produce_net_changes(autogen_context, upgrade_ops):
 
-    metadata = autogen_context['metadata']
     connection = autogen_context['connection']
-    object_filters = autogen_context.get('object_filters', ())
     include_schemas = autogen_context.get('include_schemas', False)
 
     inspector = Inspector.from_engine(connection)
-    conn_table_names = set()
 
     default_schema = connection.dialect.default_schema_name
     if include_schemas:
@@ -39,6 +36,26 @@ def _produce_net_changes(autogen_context, upgrade_ops):
         schemas.discard(default_schema)
     else:
         schemas = [None]
+
+    _autogen_for_tables(autogen_context, schemas, upgrade_ops)
+
+
+def _run_filters(object_, name, type_, reflected, compare_to, object_filters):
+    for fn in object_filters:
+        if not fn(object_, name, type_, reflected, compare_to):
+            return False
+    else:
+        return True
+
+
+def _autogen_for_tables(autogen_context, schemas, upgrade_ops):
+    connection = autogen_context['connection']
+    inspector = Inspector.from_engine(connection)
+
+    metadata = autogen_context['metadata']
+    object_filters = autogen_context.get('object_filters', ())
+
+    conn_table_names = set()
 
     version_table_schema = autogen_context['context'].version_table_schema
     version_table = autogen_context['context'].version_table
@@ -58,14 +75,6 @@ def _produce_net_changes(autogen_context, upgrade_ops):
     _compare_tables(conn_table_names, metadata_table_names,
                     object_filters,
                     inspector, metadata, upgrade_ops, autogen_context)
-
-
-def _run_filters(object_, name, type_, reflected, compare_to, object_filters):
-    for fn in object_filters:
-        if not fn(object_, name, type_, reflected, compare_to):
-            return False
-    else:
-        return True
 
 
 def _compare_tables(conn_table_names, metadata_table_names,
