@@ -136,6 +136,7 @@ def render_python_code(
     up_or_down_op,
     sqlalchemy_module_prefix='sa.',
     alembic_module_prefix='op.',
+    render_as_batch=False,
     imports=(),
     render_item=None,
 ):
@@ -151,6 +152,7 @@ def render_python_code(
             'sqlalchemy_module_prefix': sqlalchemy_module_prefix,
             'alembic_module_prefix': alembic_module_prefix,
             'render_item': render_item,
+            'render_as_batch': render_as_batch,
         },
         'imports': set(imports)
     }

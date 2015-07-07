@@ -106,11 +106,14 @@ def _compare_tables(conn_table_names, metadata_table_names,
             upgrade_ops.ops.append(
                 ops.CreateTableOp.from_table(metadata_table))
             log.info("Detected added table %r", name)
+            modify_table_ops = ops.ModifyTableOps(tname, [], schema=s)
             _compare_indexes_and_uniques(s, tname, object_filters,
                                          None,
                                          metadata_table,
-                                         upgrade_ops,
+                                         modify_table_ops,
                                          autogen_context, inspector)
+            if not modify_table_ops.is_empty():
+                upgrade_ops.ops.append(modify_table_ops)
 
     removal_metadata = sa_schema.MetaData()
     for s, tname in conn_table_names.difference(metadata_table_names):

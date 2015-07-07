@@ -326,3 +326,4 @@ name='extra_uid_fkey'),
     )
     op.drop_table('item', schema='%(schema)s')
     ### end Alembic commands ###""" % {"schema": self.schema})
+
