@@ -121,14 +121,13 @@ def produce_migrations(context, metadata):
 
     autogen_context = _autogen_context(context, metadata=metadata)
 
-    upgrade_ops = ops.UpgradeOps([])
-    compare._produce_net_changes(autogen_context, upgrade_ops)
-
     migration_script = ops.MigrationScript(
         rev_id=None,
-        upgrade_ops=upgrade_ops,
-        downgrade_ops=upgrade_ops.reverse(),
+        upgrade_ops=ops.UpgradeOps([]),
+        downgrade_ops=ops.DowngradeOps([]),
     )
+
+    compare._populate_migration_script(autogen_context, migration_script)
 
     return migration_script
 

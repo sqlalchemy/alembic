@@ -36,7 +36,7 @@ class AddConstraintOp(MigrateOperation):
     """Represent an add constraint operation."""
 
     @property
-    def type_(self):
+    def constraint_type(self):
         raise NotImplementedError()
 
     @classmethod
@@ -80,10 +80,10 @@ class DropConstraintOp(MigrateOperation):
         return AddConstraintOp.from_constraint(self._orig_constraint)
 
     def to_diff_tuple(self):
-        if self.type_ == "foreign_key_constraint":
+        if self.constraint_type == "foreignkey":
             return ("remove_fk", self.to_constraint())
         else:
-            return ("drop_constraint", self.to_constraint())
+            return ("remove_constraint", self.to_constraint())
 
     @classmethod
     def from_constraint(cls, constraint):
@@ -103,6 +103,14 @@ class DropConstraintOp(MigrateOperation):
             type_=types[constraint.__visit_name__],
             _orig_constraint=constraint
         )
+
+    def to_constraint(self):
+        if self._orig_constraint is not None:
+            return self._orig_constraint
+        else:
+            raise ValueError(
+                "constraint cannot be produced; "
+                "original constraint is not present")
 
     @classmethod
     @util._with_legacy_names([("type", "type_")])
@@ -153,7 +161,7 @@ class DropConstraintOp(MigrateOperation):
 class CreatePrimaryKeyOp(AddConstraintOp):
     """Represent a create primary key operation."""
 
-    type_ = "primary_key_constraint"
+    constraint_type = "primarykey"
 
     def __init__(
             self, constraint_name, table_name, columns,
@@ -254,7 +262,7 @@ class CreatePrimaryKeyOp(AddConstraintOp):
 class CreateUniqueConstraintOp(AddConstraintOp):
     """Represent a create unique constraint operation."""
 
-    type_ = "unique_constraint"
+    constraint_type = "unique"
 
     def __init__(
             self, constraint_name, table_name,
@@ -373,7 +381,7 @@ class CreateUniqueConstraintOp(AddConstraintOp):
 class CreateForeignKeyOp(AddConstraintOp):
     """Represent a create foreign key constraint operation."""
 
-    type_ = "foreign_key_constraint"
+    constraint_type = "foreignkey"
 
     def __init__(
             self, constraint_name, source_table, referent_table, local_cols,
@@ -539,7 +547,7 @@ class CreateForeignKeyOp(AddConstraintOp):
 class CreateCheckConstraintOp(AddConstraintOp):
     """Represent a create check constraint operation."""
 
-    type_ = "check_constraint"
+    constraint_type = "check"
 
     def __init__(
             self, constraint_name, table_name, condition, schema=None, **kw):
@@ -662,7 +670,7 @@ class CreateIndexOp(MigrateOperation):
         return DropIndexOp.from_index(self.to_index())
 
     def to_diff_tuple(self):
-        return ("add_index", self.to_constraint())
+        return ("add_index", self.to_index())
 
     @classmethod
     def from_index(cls, index):
@@ -1002,6 +1010,8 @@ class DropTableOp(MigrateOperation):
         return cls(table.name, schema=table.schema, _orig_table=table)
 
     def to_table(self, migration_context=None):
+        if self._orig_table is not None:
+            return self._orig_table
         schema_obj = schemaobj.SchemaObjects(migration_context)
         return schema_obj.table(
             self.table_name,
@@ -1157,19 +1167,24 @@ class AlterColumnOp(AlterTableOp):
         kw['existing_type'] = self.existing_type
         kw['existing_nullable'] = self.existing_nullable
         kw['existing_server_default'] = self.existing_server_default
-        kw['modify_type'] = self.modify_type
-        kw['modify_nullable'] = self.modify_nullable
-        kw['modify_server_default'] = self.modify_server_default
+        if self.modify_type is not None:
+            kw['modify_type'] = self.modify_type
+        if self.modify_nullable is not None:
+            kw['modify_nullable'] = self.modify_nullable
+        if self.modify_server_default is not False:
+            kw['modify_server_default'] = self.modify_server_default
 
+        # TODO: make this a little simpler
         all_keys = set(m.group(1) for m in [
             re.match(r'^(?:existing_|modify_)(.+)$', k)
             for k in kw
         ] if m)
 
         for k in all_keys:
-            swap = kw['existing_%s' % k]
-            kw['existing_%s' % k] = kw['modify_%s' % k]
-            kw['modify_%s' % k] = swap
+            if 'modify_%s' % k in kw:
+                swap = kw['existing_%s' % k]
+                kw['existing_%s' % k] = kw['modify_%s' % k]
+                kw['modify_%s' % k] = swap
 
         return self.__class__(
             self.table_name, self.column_name, schema=self.schema,
@@ -1736,12 +1751,14 @@ class UpgradeOps(OpContainer):
 
     """
 
+    def reverse_into(self, downgrade_ops):
+        downgrade_ops.ops[:] = list(reversed(
+            [op.reverse() for op in self.ops]
+        ))
+        return downgrade_ops
+
     def reverse(self):
-        return DowngradeOps(
-            ops=list(reversed(
-                [op.reverse() for op in self.ops]
-            ))
-        )
+        return self.reverse_into(DowngradeOps(ops=[]))
 
 
 class DowngradeOps(OpContainer):

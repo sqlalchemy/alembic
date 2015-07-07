@@ -14,6 +14,11 @@ from alembic.ddl.base import _fk_spec
 log = logging.getLogger(__name__)
 
 
+def _populate_migration_script(autogen_context, migration_script):
+    _produce_net_changes(autogen_context, migration_script.upgrade_ops)
+    migration_script.upgrade_ops.reverse_into(migration_script.downgrade_ops)
+
+
 def _produce_net_changes(autogen_context, upgrade_ops):
 
     metadata = autogen_context['metadata']
@@ -636,7 +641,7 @@ def _compare_server_default(schema, tname, cname, conn_col, metadata_col,
     rendered_conn_default = conn_col.server_default.arg.text \
         if conn_col.server_default else None
 
-    alter_column_op.existing_server_default = rendered_conn_default
+    alter_column_op.existing_server_default = conn_col_default
 
     isdiff = autogen_context['context']._compare_server_default(
         conn_col, metadata_col,
@@ -645,10 +650,9 @@ def _compare_server_default(schema, tname, cname, conn_col, metadata_col,
     )
     if isdiff:
         alter_column_op.modify_server_default = metadata_default
-        log.info("Detected server default on column '%s.%s'",
-                 tname,
-                 cname
-                 )
+        log.info(
+            "Detected server default on column '%s.%s'",
+            tname, cname)
 
 
 def _compare_foreign_keys(schema, tname, object_filters, conn_table,

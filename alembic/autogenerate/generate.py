@@ -51,7 +51,7 @@ class RevisionContext(object):
 
         migration_script = self.generated_revisions[0]
 
-        compare._produce_net_changes(autogen_context, migration_script)
+        compare._populate_migration_script(autogen_context, migration_script)
 
         hook = context.opts.get('process_revision_directives', None)
         if hook:

@@ -343,10 +343,10 @@ def _alter_column(autogen_context, op):
     if nullable is not None:
         text += ",\n%snullable=%r" % (
             indent, nullable,)
-    if existing_nullable is not None:
+    if nullable is None and existing_nullable is not None:
         text += ",\n%sexisting_nullable=%r" % (
             indent, existing_nullable)
-    if existing_server_default:
+    if server_default is False and existing_server_default:
         rendered = _render_server_default(
             existing_server_default,
             autogen_context)

@@ -8,6 +8,7 @@ from sqlalchemy.sql import table, column
 from alembic.autogenerate.compare import \
     _compare_server_default, _compare_tables, _render_server_default_for_compare
 
+from alembic.operations import ops
 from alembic import command, util
 from alembic.migration import MigrationContext
 from alembic.script import ScriptDirectory
@@ -212,9 +213,10 @@ class PostgresqlDefaultCompareTest(TestBase):
         cols = insp.get_columns(t1.name)
         insp_col = Column("somecol", cols[0]['type'],
                           server_default=text(cols[0]['default']))
-        diffs = []
+        op = ops.AlterColumnOp("test", "somecol")
         _compare_server_default(None, "test", "somecol", insp_col,
-                                t2.c.somecol, diffs, self.autogen_context)
+                                t2.c.somecol, op, self.autogen_context)
+        diffs = op.to_diff_tuple()
         eq_(bool(diffs), diff_expected)
 
     def _compare_default(
@@ -420,24 +422,28 @@ class PostgresqlDetectSerialTest(TestBase):
         self.metadata.create_all(config.db)
 
         insp = Inspector.from_engine(config.db)
-        diffs = []
+
+        uo = ops.UpgradeOps(ops=[])
         _compare_tables(
             set([(None, 't')]), set([]),
             [],
-            insp, self.metadata, diffs, self.autogen_context)
+            insp, self.metadata, uo, self.autogen_context)
+        diffs = uo.as_diffs()
         tab = diffs[0][1]
+
         eq_(_render_server_default_for_compare(
             tab.c.x.server_default, tab.c.x, self.autogen_context),
             c_expected)
 
         insp = Inspector.from_engine(config.db)
-        diffs = []
+        uo = ops.UpgradeOps(ops=[])
         m2 = MetaData()
         Table('t', m2, Column('x', BigInteger()))
         _compare_tables(
             set([(None, 't')]), set([(None, 't')]),
             [],
-            insp, m2, diffs, self.autogen_context)
+            insp, m2, uo, self.autogen_context)
+        diffs = uo.as_diffs()
         server_default = diffs[0][0][4]['existing_server_default']
         eq_(_render_server_default_for_compare(
             server_default, tab.c.x, self.autogen_context),
