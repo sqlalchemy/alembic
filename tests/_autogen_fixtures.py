@@ -191,11 +191,17 @@ class AutogenTest(_ComparesFKs):
             'imports': set(),
             'connection': connection,
             'dialect': connection.dialect,
-            'context': context
+            'context': context,
+            'metadata': self.m2,
+            'object_filters': _default_object_filters
         }
 
     def tearDown(self):
         self.conn.close()
+
+    def _update_context(self, **kw):
+        self.autogen_context.update(**kw)
+        return self.autogen_context
 
 
 class AutogenFixtureTest(_ComparesFKs):
