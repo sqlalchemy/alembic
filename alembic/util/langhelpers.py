@@ -125,7 +125,12 @@ class ModuleClsProxy(with_metaclass(_ModuleClsMeta)):
                     pos_only = spec[0]
                 for arg in pos_only:
                     if arg not in return_kw:
-                        return_args.append(args.pop(0))
+                        try:
+                            return_args.append(args.pop(0))
+                        except IndexError:
+                            raise TypeError(
+                                "missing required positional argument: %s"
+                                % arg)
                 return_args.extend(args)
 
                 return return_args, return_kw

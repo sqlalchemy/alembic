@@ -606,6 +606,36 @@ class OpTest(TestBase):
             "ALTER TABLE t1 ADD CONSTRAINT uk_test UNIQUE (foo, bar)"
         )
 
+    def test_drop_constraint_legacy_kwarg(self):
+        context = op_fixture()
+        op.drop_constraint(name='pk_name',
+                           table_name='sometable',
+                           type_='primary')
+        context.assert_(
+            "ALTER TABLE sometable DROP CONSTRAINT pk_name"
+        )
+
+    def test_create_pk_legacy_kwarg(self):
+        context = op_fixture()
+        op.create_primary_key(name=None,
+                              table_name='sometable',
+                              cols=['router_id', 'l3_agent_id'])
+        context.assert_(
+            "ALTER TABLE sometable ADD PRIMARY KEY (router_id, l3_agent_id)"
+        )
+
+    def test_legacy_kwarg_catches_arg_missing(self):
+        op_fixture()
+
+        assert_raises_message(
+            TypeError,
+            "missing required positional argument: columns",
+            op.create_primary_key,
+            name=None,
+            table_name='sometable',
+            wrong_cols=['router_id', 'l3_agent_id']
+        )
+
     def test_add_unique_constraint_schema(self):
         context = op_fixture()
         op.create_unique_constraint(

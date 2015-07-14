@@ -150,7 +150,10 @@ class CreatePrimaryKeyOp(AddConstraintOp):
             self.columns, schema=self.schema)
 
     @classmethod
-    @util._with_legacy_names([('name', 'constraint_name')])
+    @util._with_legacy_names([
+        ('name', 'constraint_name'),
+        ('cols', 'columns')
+    ])
     def create_primary_key(
             cls, operations,
             constraint_name, table_name, columns, schema=None):
