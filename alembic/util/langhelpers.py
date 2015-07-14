@@ -104,17 +104,23 @@ class ModuleClsProxy(with_metaclass(_ModuleClsMeta)):
         translations = getattr(fn, "_legacy_translations", [])
         if translations:
             outer_args = inner_args = "*args, **kw"
-            translate_str = "args, kw = _translate(%r, %r, args, kw)" % (
+            translate_str = "args, kw = _translate(%r, %r, %r, args, kw)" % (
+                fn.__name__,
                 tuple(spec),
                 translations
             )
 
-            def translate(spec, translations, args, kw):
+            def translate(fn_name, spec, translations, args, kw):
                 return_kw = {}
                 return_args = []
 
                 for oldname, newname in translations:
                     if oldname in kw:
+                        warnings.warn(
+                            "Argument %r is now named %r "
+                            "for method %s()." % (
+                                oldname, newname, fn_name
+                            ))
                         return_kw[newname] = kw.pop(oldname)
                 return_kw.update(kw)
 

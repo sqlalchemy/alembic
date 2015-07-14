@@ -596,6 +596,23 @@ class OpTest(TestBase):
             "ALTER TABLE t1 ADD CONSTRAINT uk_test UNIQUE (foo, bar)"
         )
 
+    def test_add_foreign_key_legacy_kwarg(self):
+        context = op_fixture()
+
+        op.create_foreign_key(
+            name='some_fk',
+            source='some_table',
+            referent='referred_table',
+            local_cols=['a', 'b'],
+            remote_cols=['c', 'd'],
+            ondelete='CASCADE'
+        )
+        context.assert_(
+            "ALTER TABLE some_table ADD CONSTRAINT some_fk "
+            "FOREIGN KEY(a, b) REFERENCES referred_table (c, d) "
+            "ON DELETE CASCADE"
+        )
+
     def test_add_unique_constraint_legacy_kwarg(self):
         context = op_fixture()
         op.create_unique_constraint(

@@ -391,7 +391,11 @@ class CreateForeignKeyOp(AddConstraintOp):
             **self.kw)
 
     @classmethod
-    @util._with_legacy_names([('name', 'constraint_name')])
+    @util._with_legacy_names([
+        ('name', 'constraint_name'),
+        ('source', 'source_table'),
+        ('referent', 'referent_table'),
+    ])
     def create_foreign_key(cls, operations, constraint_name,
                            source_table, referent_table, local_cols,
                            remote_cols, onupdate=None, ondelete=None,
