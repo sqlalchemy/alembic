@@ -596,9 +596,20 @@ class OpTest(TestBase):
             "ALTER TABLE t1 ADD CONSTRAINT uk_test UNIQUE (foo, bar)"
         )
 
+    def test_add_unique_constraint_legacy_kwarg(self):
+        context = op_fixture()
+        op.create_unique_constraint(
+            name='uk_test',
+            source='t1',
+            local_cols=['foo', 'bar'])
+        context.assert_(
+            "ALTER TABLE t1 ADD CONSTRAINT uk_test UNIQUE (foo, bar)"
+        )
+
     def test_add_unique_constraint_schema(self):
         context = op_fixture()
-        op.create_unique_constraint('uk_test', 't1', ['foo', 'bar'], schema='foo')
+        op.create_unique_constraint(
+            'uk_test', 't1', ['foo', 'bar'], schema='foo')
         context.assert_(
             "ALTER TABLE foo.t1 ADD CONSTRAINT uk_test UNIQUE (foo, bar)"
         )

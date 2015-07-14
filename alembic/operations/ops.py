@@ -257,7 +257,8 @@ class CreateUniqueConstraintOp(AddConstraintOp):
     @classmethod
     @util._with_legacy_names([
         ('name', 'constraint_name'),
-        ('source', 'table_name')
+        ('source', 'table_name'),
+        ('local_cols', 'columns'),
     ])
     def create_unique_constraint(
             cls, operations, constraint_name, table_name, columns,

@@ -101,9 +101,44 @@ class ModuleClsProxy(with_metaclass(_ModuleClsMeta)):
                 ))
         globals_['_name_error'] = _name_error
 
+        translations = getattr(fn, "_legacy_translations", [])
+        if translations:
+            outer_args = inner_args = "*args, **kw"
+            translate_str = "args, kw = _translate(%r, %r, args, kw)" % (
+                tuple(spec),
+                translations
+            )
+
+            def translate(spec, translations, args, kw):
+                return_kw = {}
+                return_args = []
+
+                for oldname, newname in translations:
+                    if oldname in kw:
+                        return_kw[newname] = kw.pop(oldname)
+                return_kw.update(kw)
+
+                args = list(args)
+                if spec[3]:
+                    pos_only = spec[0][:-len(spec[3])]
+                else:
+                    pos_only = spec[0]
+                for arg in pos_only:
+                    if arg not in return_kw:
+                        return_args.append(args.pop(0))
+                return_args.extend(args)
+
+                return return_args, return_kw
+            globals_['_translate'] = translate
+        else:
+            outer_args = args[1:-1]
+            inner_args = apply_kw[1:-1]
+            translate_str = ""
+
         func_text = textwrap.dedent("""\
         def %(name)s(%(args)s):
             %(doc)r
+            %(translate)s
             try:
                 p = _proxy
             except NameError:
@@ -112,13 +147,22 @@ class ModuleClsProxy(with_metaclass(_ModuleClsMeta)):
             e
         """ % {
             'name': name,
-            'args': args[1:-1],
-            'apply_kw': apply_kw[1:-1],
+            'translate': translate_str,
+            'args': outer_args,
+            'apply_kw': inner_args,
             'doc': fn.__doc__,
         })
         lcl = {}
         exec_(func_text, globals_, lcl)
         return lcl[name]
+
+
+def _with_legacy_names(translations):
+    def decorate(fn):
+        fn._legacy_translations = translations
+        return fn
+
+    return decorate
 
 
 def asbool(value):
@@ -199,50 +243,6 @@ class immutabledict(dict):
 
     def __repr__(self):
         return "immutabledict(%s)" % dict.__repr__(self)
-
-
-def _with_legacy_names(translations):
-    def decorate(fn):
-
-        spec = inspect_getfullargspec(fn)
-        metadata = dict(target='target', fn='fn')
-        metadata.update(format_argspec_plus(spec, grouped=False))
-
-        has_keywords = bool(spec[2])
-
-        if not has_keywords:
-            metadata['args'] += ", **kw"
-            metadata['apply_kw'] += ", **kw"
-
-        def go(*arg, **kw):
-            names = set(kw).difference(spec[0])
-            for oldname, newname in translations:
-                if oldname in kw:
-                    kw[newname] = kw.pop(oldname)
-                    names.discard(oldname)
-
-                    warnings.warn(
-                        "Argument '%s' is now named '%s' for function '%s'" %
-                        (oldname, newname, fn.__name__))
-            if not has_keywords and names:
-                raise TypeError("Unknown arguments: %s" % ", ".join(names))
-            return fn(*arg, **kw)
-
-        code = 'lambda %(args)s: %(target)s(%(apply_kw)s)' % (
-            metadata)
-        decorated = eval(code, {"target": go})
-        decorated.__defaults__ = getattr(fn, '__func__', fn).__defaults__
-        update_wrapper(decorated, fn)
-        if hasattr(decorated, '__wrapped__'):
-            # update_wrapper in py3k applies __wrapped__, which causes
-            # inspect.getargspec() to ignore the extra arguments on our
-            # wrapper as of Python 3.4.  We need this for the
-            # "module class proxy" thing though, so just del the __wrapped__
-            # for now. See #175 as well as bugs.python.org/issue17482
-            del decorated.__wrapped__
-        return decorated
-
-    return decorate
 
 
 class Dispatcher(object):
