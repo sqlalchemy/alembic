@@ -351,6 +351,13 @@ class CommandLine(object):
                         action="store",
                         help="Specify a revision range; "
                         "format is [start]:[end]")
+                ),
+                'edit': (
+                    "--edit",
+                    dict(
+                        action="store_true",
+                        help="Edit the latest revision"
+                    )
                 )
             }
             positional_help = {

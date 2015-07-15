@@ -353,3 +353,16 @@ def stamp(config, revision, sql=False, tag=None):
         tag=tag
     ):
         script.run_env()
+
+
+def edit(config):
+    """Edit the latest ervision"""
+
+    script = ScriptDirectory.from_config(config)
+    revisions = script.walk_revisions()
+    head = next(revisions)
+
+    try:
+        util.open_in_editor(head.path)
+    except OSError as exc:
+        raise util.CommandError('Error executing editor (%s)' % (exc,))
