@@ -118,6 +118,7 @@ class MigrationContext(object):
                   connection=None,
                   url=None,
                   dialect_name=None,
+                  dialect=None,
                   environment_context=None,
                   opts=None,
                   ):
@@ -152,7 +153,7 @@ class MigrationContext(object):
         elif dialect_name:
             url = sqla_url.make_url("%s://" % dialect_name)
             dialect = url.get_dialect()()
-        else:
+        elif not dialect:
             raise Exception("Connection, url, or dialect_name is required.")
 
         return MigrationContext(dialect, connection, opts, environment_context)

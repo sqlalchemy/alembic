@@ -14,6 +14,8 @@ from sqlalchemy.types import UserDefinedType
 from sqlalchemy.dialects import mysql, postgresql
 from sqlalchemy.engine.default import DefaultDialect
 from sqlalchemy.sql import and_, column, literal_column, false
+from alembic.migration import MigrationContext
+from alembic.autogenerate import api
 
 from alembic.testing.mock import patch
 
@@ -32,22 +34,30 @@ class AutogenRenderTest(TestBase):
 
     """test individual directives"""
 
-    @classmethod
-    def setup_class(cls):
-        cls.autogen_context = {
-            'opts': {
-                'sqlalchemy_module_prefix': 'sa.',
-                'alembic_module_prefix': 'op.',
-            },
-            'dialect': mysql.dialect()
+    def setUp(self):
+        ctx_opts = {
+            'sqlalchemy_module_prefix': 'sa.',
+            'alembic_module_prefix': 'op.',
+            'target_metadata': MetaData()
         }
-        cls.pg_autogen_context = {
-            'opts': {
-                'sqlalchemy_module_prefix': 'sa.',
-                'alembic_module_prefix': 'op.',
-            },
-            'dialect': postgresql.dialect()
-        }
+        context = MigrationContext.configure(
+            dialect_name="mysql",
+            opts=ctx_opts
+        )
+
+        self.autogen_context = api.AutogenContext(context)
+
+        context = MigrationContext.configure(
+            dialect_name="postgresql",
+            opts=ctx_opts
+        )
+        self.pg_autogen_context = api.AutogenContext(context)
+
+        context = MigrationContext.configure(
+            dialect=DefaultDialect(),
+            opts=ctx_opts
+        )
+        self.default_autogen_context = api.AutogenContext(context)
 
     def test_render_add_index(self):
         """
@@ -812,10 +822,10 @@ unique=False, """
                     return "col(%s)" % obj.name
             return "render:%s" % type_
 
-        autogen_context = {"opts": {
-            'render_item': render,
-            'alembic_module_prefix': 'sa.'
-        }}
+        self.autogen_context.opts.update(
+            render_item=render,
+            alembic_module_prefix='sa.'
+        )
 
         t = Table('t', MetaData(),
                   Column('x', Integer),
@@ -824,7 +834,7 @@ unique=False, """
                   ForeignKeyConstraint(['x'], ['y'])
                   )
         op_obj = ops.CreateTableOp.from_table(t)
-        result = autogenerate.render_op_text(autogen_context, op_obj)
+        result = autogenerate.render_op_text(self.autogen_context, op_obj)
         eq_ignore_whitespace(
             result,
             "sa.create_table('t',"
@@ -1087,28 +1097,13 @@ unique=False, """
 
     def test_repr_plain_sqla_type(self):
         type_ = Integer()
-        autogen_context = {
-            'opts': {
-                'sqlalchemy_module_prefix': 'sa.',
-                'alembic_module_prefix': 'op.',
-            },
-            'dialect': mysql.dialect()
-        }
-
         eq_ignore_whitespace(
-            autogenerate.render._repr_type(type_, autogen_context),
+            autogenerate.render._repr_type(type_, self.autogen_context),
             "sa.Integer()"
         )
 
     def test_repr_custom_type_w_sqla_prefix(self):
-        autogen_context = {
-            'opts': {
-                'sqlalchemy_module_prefix': 'sa.',
-                'alembic_module_prefix': 'op.',
-                'user_module_prefix': None
-            },
-            'dialect': mysql.dialect()
-        }
+        self.autogen_context.opts['user_module_prefix'] = None
 
         class MyType(UserDefinedType):
             pass
@@ -1118,7 +1113,7 @@ unique=False, """
         type_ = MyType()
 
         eq_ignore_whitespace(
-            autogenerate.render._repr_type(type_, autogen_context),
+            autogenerate.render._repr_type(type_, self.autogen_context),
             "sqlalchemy_util.types.MyType()"
         )
 
@@ -1129,17 +1124,10 @@ unique=False, """
                 return "MYTYPE"
 
         type_ = MyType()
-        autogen_context = {
-            'opts': {
-                'sqlalchemy_module_prefix': 'sa.',
-                'alembic_module_prefix': 'op.',
-                'user_module_prefix': None
-            },
-            'dialect': mysql.dialect()
-        }
+        self.autogen_context.opts['user_module_prefix'] = None
 
         eq_ignore_whitespace(
-            autogenerate.render._repr_type(type_, autogen_context),
+            autogenerate.render._repr_type(type_, self.autogen_context),
             "tests.test_autogen_render.MyType()"
         )
 
@@ -1152,17 +1140,11 @@ unique=False, """
                 return "MYTYPE"
 
         type_ = MyType()
-        autogen_context = {
-            'opts': {
-                'sqlalchemy_module_prefix': 'sa.',
-                'alembic_module_prefix': 'op.',
-                'user_module_prefix': 'user.',
-            },
-            'dialect': mysql.dialect()
-        }
+
+        self.autogen_context.opts['user_module_prefix'] = 'user.'
 
         eq_ignore_whitespace(
-            autogenerate.render._repr_type(type_, autogen_context),
+            autogenerate.render._repr_type(type_, self.autogen_context),
             "user.MyType()"
         )
 
@@ -1171,20 +1153,14 @@ unique=False, """
         from sqlalchemy.dialects.mysql import VARCHAR
 
         type_ = VARCHAR(20, charset='utf8', national=True)
-        autogen_context = {
-            'opts': {
-                'sqlalchemy_module_prefix': 'sa.',
-                'alembic_module_prefix': 'op.',
-                'user_module_prefix': None,
-            },
-            'imports': set(),
-            'dialect': mysql.dialect()
-        }
+
+        self.autogen_context.opts['user_module_prefix'] = None
+
         eq_ignore_whitespace(
-            autogenerate.render._repr_type(type_, autogen_context),
+            autogenerate.render._repr_type(type_, self.autogen_context),
             "mysql.VARCHAR(charset='utf8', national=True, length=20)"
         )
-        eq_(autogen_context['imports'],
+        eq_(self.autogen_context._imports,
             set(['from sqlalchemy.dialects import mysql'])
             )
 
@@ -1204,19 +1180,12 @@ unique=False, """
         )
 
     def test_render_server_default_native_boolean(self):
-        autogen_context = {
-            'opts': {
-                'sqlalchemy_module_prefix': 'sa.',
-                'alembic_module_prefix': 'op.',
-            },
-            'dialect': postgresql.dialect()
-        }
         c = Column(
             'updated_at', Boolean(),
             server_default=false(),
             nullable=False)
         result = autogenerate.render._render_column(
-            c, autogen_context,
+            c, self.autogen_context,
         )
         eq_ignore_whitespace(
             result,
@@ -1231,17 +1200,10 @@ unique=False, """
             'updated_at', Boolean(),
             server_default=false(),
             nullable=False)
-        dialect = DefaultDialect()
-        autogen_context = {
-            'opts': {
-                'sqlalchemy_module_prefix': 'sa.',
-                'alembic_module_prefix': 'op.',
-            },
-            'dialect': dialect
-        }
+# MARKMARK
 
         result = autogenerate.render._render_column(
-            c, autogen_context
+            c, self.default_autogen_context
         )
         eq_ignore_whitespace(
             result,
@@ -1296,16 +1258,6 @@ unique=False, """
 class RenderNamingConventionTest(TestBase):
     __requires__ = ('sqlalchemy_094',)
 
-    @classmethod
-    def setup_class(cls):
-        cls.autogen_context = {
-            'opts': {
-                'sqlalchemy_module_prefix': 'sa.',
-                'alembic_module_prefix': 'op.',
-            },
-            'dialect': postgresql.dialect()
-        }
-
     def setUp(self):
 
         convention = {
@@ -1321,6 +1273,17 @@ class RenderNamingConventionTest(TestBase):
         self.metadata = MetaData(
             naming_convention=convention
         )
+
+        ctx_opts = {
+            'sqlalchemy_module_prefix': 'sa.',
+            'alembic_module_prefix': 'op.',
+            'target_metadata': MetaData()
+        }
+        context = MigrationContext.configure(
+            dialect_name="postgresql",
+            opts=ctx_opts
+        )
+        self.autogen_context = api.AutogenContext(context)
 
     def test_schema_type_boolean(self):
         t = Table('t', self.metadata, Column('c', Boolean(name='xyz')))

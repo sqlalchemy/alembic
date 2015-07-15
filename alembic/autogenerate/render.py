@@ -30,8 +30,8 @@ def _indent(text):
 
 
 def _render_migration_script(autogen_context, migration_script, template_args):
-    opts = autogen_context['opts']
-    imports = autogen_context['imports']
+    opts = autogen_context.opts
+    imports = autogen_context._imports
     template_args[opts['upgrade_token']] = _indent(_render_cmd_body(
         migration_script.upgrade_ops, autogen_context))
     template_args[opts['downgrade_token']] = _indent(_render_cmd_body(
@@ -78,23 +78,26 @@ def render_op_text(autogen_context, op):
 
 @renderers.dispatch_for(ops.ModifyTableOps)
 def _render_modify_table(autogen_context, op):
-    opts = autogen_context['opts']
+    opts = autogen_context.opts
     render_as_batch = opts.get('render_as_batch', False)
 
     if op.ops:
         lines = []
         if render_as_batch:
-            lines.append(
-                "with op.batch_alter_table(%r, schema=%r) as batch_op:"
-                % (op.table_name, op.schema)
-            )
-            autogen_context['batch_prefix'] = 'batch_op.'
-        for t_op in op.ops:
-            t_lines = render_op(autogen_context, t_op)
-            lines.extend(t_lines)
-        if render_as_batch:
-            del autogen_context['batch_prefix']
-            lines.append("")
+            with autogen_context._within_batch():
+                lines.append(
+                    "with op.batch_alter_table(%r, schema=%r) as batch_op:"
+                    % (op.table_name, op.schema)
+                )
+                for t_op in op.ops:
+                    t_lines = render_op(autogen_context, t_op)
+                    lines.extend(t_lines)
+                lines.append("")
+        else:
+            for t_op in op.ops:
+                t_lines = render_op(autogen_context, t_op)
+                lines.extend(t_lines)
+
         return lines
     else:
         return [
@@ -149,7 +152,7 @@ def _drop_table(autogen_context, op):
 def _add_index(autogen_context, op):
     index = op.to_index()
 
-    has_batch = 'batch_prefix' in autogen_context
+    has_batch = autogen_context._has_batch
 
     if has_batch:
         tmpl = "%(prefix)screate_index(%(name)r, [%(columns)s], "\
@@ -180,7 +183,7 @@ def _add_index(autogen_context, op):
 
 @renderers.dispatch_for(ops.DropIndexOp)
 def _drop_index(autogen_context, op):
-    has_batch = 'batch_prefix' in autogen_context
+    has_batch = autogen_context._has_batch
 
     if has_batch:
         tmpl = "%(prefix)sdrop_index(%(name)r)"
@@ -243,7 +246,7 @@ def _add_check_constraint(constraint, autogen_context):
 @renderers.dispatch_for(ops.DropConstraintOp)
 def _drop_constraint(autogen_context, op):
 
-    if 'batch_prefix' in autogen_context:
+    if autogen_context._has_batch:
         template = "%(prefix)sdrop_constraint"\
             "(%(name)r, type_=%(type)r)"
     else:
@@ -266,7 +269,7 @@ def _drop_constraint(autogen_context, op):
 def _add_column(autogen_context, op):
 
     schema, tname, column = op.schema, op.table_name, op.column
-    if 'batch_prefix' in autogen_context:
+    if autogen_context._has_batch:
         template = "%(prefix)sadd_column(%(column)s)"
     else:
         template = "%(prefix)sadd_column(%(tname)r, %(column)s"
@@ -287,7 +290,7 @@ def _drop_column(autogen_context, op):
 
     schema, tname, column_name = op.schema, op.table_name, op.column_name
 
-    if 'batch_prefix' in autogen_context:
+    if autogen_context._has_batch:
         template = "%(prefix)sdrop_column(%(cname)r)"
     else:
         template = "%(prefix)sdrop_column(%(tname)r, %(cname)r"
@@ -319,7 +322,7 @@ def _alter_column(autogen_context, op):
 
     indent = " " * 11
 
-    if 'batch_prefix' in autogen_context:
+    if autogen_context._has_batch:
         template = "%(prefix)salter_column(%(cname)r"
     else:
         template = "%(prefix)salter_column(%(tname)r, %(cname)r"
@@ -352,7 +355,7 @@ def _alter_column(autogen_context, op):
             autogen_context)
         text += ",\n%sexisting_server_default=%s" % (
             indent, rendered)
-    if schema and "batch_prefix" not in autogen_context:
+    if schema and not autogen_context._has_batch:
         text += ",\n%sschema=%r" % (indent, schema)
     text += ")"
     return text
@@ -409,7 +412,7 @@ def _render_potential_expr(value, autogen_context, wrap_in_text=True):
         return template % {
             "prefix": _sqlalchemy_autogenerate_prefix(autogen_context),
             "sql": compat.text_type(
-                value.compile(dialect=autogen_context['dialect'],
+                value.compile(dialect=autogen_context.dialect,
                               **compile_kw)
             )
         }
@@ -432,7 +435,7 @@ def _get_index_rendered_expressions(idx, autogen_context):
 def _uq_constraint(constraint, autogen_context, alter):
     opts = []
 
-    has_batch = 'batch_prefix' in autogen_context
+    has_batch = autogen_context._has_batch
 
     if constraint.deferrable:
         opts.append(("deferrable", str(constraint.deferrable)))
@@ -467,7 +470,7 @@ def _uq_constraint(constraint, autogen_context, alter):
 
 
 def _user_autogenerate_prefix(autogen_context, target):
-    prefix = autogen_context['opts']['user_module_prefix']
+    prefix = autogen_context.opts['user_module_prefix']
     if prefix is None:
         return "%s." % target.__module__
     else:
@@ -475,20 +478,19 @@ def _user_autogenerate_prefix(autogen_context, target):
 
 
 def _sqlalchemy_autogenerate_prefix(autogen_context):
-    return autogen_context['opts']['sqlalchemy_module_prefix'] or ''
+    return autogen_context.opts['sqlalchemy_module_prefix'] or ''
 
 
 def _alembic_autogenerate_prefix(autogen_context):
-    if 'batch_prefix' in autogen_context:
-        return autogen_context['batch_prefix']
+    if autogen_context._has_batch:
+        return 'batch_op.'
     else:
-        return autogen_context['opts']['alembic_module_prefix'] or ''
+        return autogen_context.opts['alembic_module_prefix'] or ''
 
 
 def _user_defined_render(type_, object_, autogen_context):
-    if 'opts' in autogen_context and \
-            'render_item' in autogen_context['opts']:
-        render = autogen_context['opts']['render_item']
+    if 'render_item' in autogen_context.opts:
+        render = autogen_context.opts['render_item']
         if render:
             rendered = render(type_, object_, autogen_context)
             if rendered is not False:
@@ -547,7 +549,7 @@ def _repr_type(type_, autogen_context):
         return rendered
 
     mod = type(type_).__module__
-    imports = autogen_context.get('imports', None)
+    imports = autogen_context._imports
     if mod.startswith("sqlalchemy.dialects"):
         dname = re.match(r"sqlalchemy\.dialects\.(\w+)", mod).group(1)
         if imports is not None:

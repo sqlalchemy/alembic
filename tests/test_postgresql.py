@@ -12,6 +12,7 @@ from alembic.operations import ops
 from alembic import command, util
 from alembic.migration import MigrationContext
 from alembic.script import ScriptDirectory
+from alembic.autogenerate import api
 
 from alembic.testing import eq_, provide_metadata
 from alembic.testing.env import staging_env, clear_staging_env, \
@@ -163,33 +164,21 @@ class PostgresqlDefaultCompareTest(TestBase):
     def setup_class(cls):
         cls.bind = config.db
         staging_env()
-        context = MigrationContext.configure(
+        cls.migration_context = MigrationContext.configure(
             connection=cls.bind.connect(),
             opts={
                 'compare_type': True,
                 'compare_server_default': True
             }
         )
-        connection = context.bind
-        cls.autogen_context = {
-            'imports': set(),
-            'connection': connection,
-            'dialect': connection.dialect,
-            'context': context,
-            'opts': {
-                'compare_type': True,
-                'compare_server_default': True,
-                'alembic_module_prefix': 'op.',
-                'sqlalchemy_module_prefix': 'sa.',
-            }
-        }
+
+    def setUp(self):
+        self.metadata = MetaData(self.bind)
+        self.autogen_context = api.AutogenContext(self.migration_context)
 
     @classmethod
     def teardown_class(cls):
         clear_staging_env()
-
-    def setUp(self):
-        self.metadata = MetaData(self.bind)
 
     def tearDown(self):
         self.metadata.drop_all()
@@ -227,7 +216,7 @@ class PostgresqlDefaultCompareTest(TestBase):
         t1.create(self.bind, checkfirst=True)
         insp = Inspector.from_engine(self.bind)
         cols = insp.get_columns(t1.name)
-        ctx = self.autogen_context['context']
+        ctx = self.autogen_context.migration_context
 
         return ctx.impl.compare_server_default(
             None,
@@ -387,26 +376,16 @@ class PostgresqlDetectSerialTest(TestBase):
         cls.bind = config.db
         cls.conn = cls.bind.connect()
         staging_env()
-        context = MigrationContext.configure(
+        cls.migration_context = MigrationContext.configure(
             connection=cls.conn,
             opts={
                 'compare_type': True,
                 'compare_server_default': True
             }
         )
-        connection = context.bind
-        cls.autogen_context = {
-            'imports': set(),
-            'connection': connection,
-            'dialect': connection.dialect,
-            'context': context,
-            'opts': {
-                'compare_type': True,
-                'compare_server_default': True,
-                'alembic_module_prefix': 'op.',
-                'sqlalchemy_module_prefix': 'sa.',
-            }
-        }
+
+    def setUp(self):
+        self.autogen_context = api.AutogenContext(self.migration_context)
 
     @classmethod
     def teardown_class(cls):
@@ -426,7 +405,6 @@ class PostgresqlDetectSerialTest(TestBase):
         uo = ops.UpgradeOps(ops=[])
         _compare_tables(
             set([(None, 't')]), set([]),
-            [],
             insp, self.metadata, uo, self.autogen_context)
         diffs = uo.as_diffs()
         tab = diffs[0][1]
@@ -441,7 +419,6 @@ class PostgresqlDetectSerialTest(TestBase):
         Table('t', m2, Column('x', BigInteger()))
         _compare_tables(
             set([(None, 't')]), set([(None, 't')]),
-            [],
             insp, m2, uo, self.autogen_context)
         diffs = uo.as_diffs()
         server_default = diffs[0][0][4]['existing_server_default']

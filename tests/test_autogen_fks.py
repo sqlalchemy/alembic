@@ -351,7 +351,7 @@ class IncludeHooksTest(AutogenFixtureTest, TestBase):
                 type_ == 'foreign_key_constraint'
                 and reflected and name == 'fk1')
 
-        diffs = self._fixture(m1, m2, object_filters=[include_object])
+        diffs = self._fixture(m1, m2, object_filters=include_object)
 
         self._assert_fk_diff(
             diffs[0], "remove_fk",
@@ -390,7 +390,7 @@ class IncludeHooksTest(AutogenFixtureTest, TestBase):
                 type_ == 'foreign_key_constraint'
                 and not reflected and name == 'fk1')
 
-        diffs = self._fixture(m1, m2, object_filters=[include_object])
+        diffs = self._fixture(m1, m2, object_filters=include_object)
 
         self._assert_fk_diff(
             diffs[0], "add_fk",
@@ -456,7 +456,7 @@ class IncludeHooksTest(AutogenFixtureTest, TestBase):
                 and name == 'fk1'
             )
 
-        diffs = self._fixture(m1, m2, object_filters=[include_object])
+        diffs = self._fixture(m1, m2, object_filters=include_object)
 
         self._assert_fk_diff(
             diffs[0], "remove_fk",

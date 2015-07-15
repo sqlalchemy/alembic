@@ -233,3 +233,5 @@ Which produces::
         op.create_sequence('my_seq', **{})
         ### end Alembic commands ###
 
+
+.. autoclass:: alembic.autogenerate.api.AutogenContext
