@@ -130,6 +130,8 @@ class Operations(util.ModuleClsProxy):
                 "the :class:`.%s` class, via the :meth:`.%s.%s` method." % (
                     cls.__name__, cls.__name__, name
                 )
+            if hasattr(fn, '_legacy_translations'):
+                lcl[name]._legacy_translations = fn._legacy_translations
             return op_cls
         return register
 
