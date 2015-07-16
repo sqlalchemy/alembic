@@ -798,7 +798,7 @@ class IncludeHooksTest(AutogenFixtureTest, TestBase):
                 isinstance(object_, Index) and
                 type_ == 'index' and reflected and name == 'ix1')
 
-        diffs = self._fixture(m1, m2, object_filters=[include_object])
+        diffs = self._fixture(m1, m2, object_filters=include_object)
 
         eq_(diffs[0][0], 'remove_index')
         eq_(diffs[0][1].name, 'ix2')
@@ -825,7 +825,7 @@ class IncludeHooksTest(AutogenFixtureTest, TestBase):
                 isinstance(object_, UniqueConstraint) and
                 type_ == 'unique_constraint' and reflected and name == 'uq1')
 
-        diffs = self._fixture(m1, m2, object_filters=[include_object])
+        diffs = self._fixture(m1, m2, object_filters=include_object)
 
         eq_(diffs[0][0], 'remove_constraint')
         eq_(diffs[0][1].name, 'uq2')
@@ -846,7 +846,7 @@ class IncludeHooksTest(AutogenFixtureTest, TestBase):
                 isinstance(object_, Index) and
                 type_ == 'index' and not reflected and name == 'ix1')
 
-        diffs = self._fixture(m1, m2, object_filters=[include_object])
+        diffs = self._fixture(m1, m2, object_filters=include_object)
 
         eq_(diffs[0][0], 'add_index')
         eq_(diffs[0][1].name, 'ix2')
@@ -871,7 +871,7 @@ class IncludeHooksTest(AutogenFixtureTest, TestBase):
                 type_ == 'unique_constraint' and
                 not reflected and name == 'uq1')
 
-        diffs = self._fixture(m1, m2, object_filters=[include_object])
+        diffs = self._fixture(m1, m2, object_filters=include_object)
 
         eq_(diffs[0][0], 'add_constraint')
         eq_(diffs[0][1].name, 'uq2')
@@ -899,7 +899,7 @@ class IncludeHooksTest(AutogenFixtureTest, TestBase):
                 type_ == 'index' and not reflected and name == 'ix1'
                 and isinstance(compare_to, Index))
 
-        diffs = self._fixture(m1, m2, object_filters=[include_object])
+        diffs = self._fixture(m1, m2, object_filters=include_object)
 
         eq_(diffs[0][0], 'remove_index')
         eq_(diffs[0][1].name, 'ix2')
@@ -935,7 +935,7 @@ class IncludeHooksTest(AutogenFixtureTest, TestBase):
                 not reflected and name == 'uq1'
                 and isinstance(compare_to, UniqueConstraint))
 
-        diffs = self._fixture(m1, m2, object_filters=[include_object])
+        diffs = self._fixture(m1, m2, object_filters=include_object)
 
         eq_(diffs[0][0], 'remove_constraint')
         eq_(diffs[0][1].name, 'uq2')

@@ -2,12 +2,14 @@ from sqlalchemy import MetaData, Column, Table, Integer, String, Text, \
     Numeric, CHAR, ForeignKey, Index, UniqueConstraint, CheckConstraint, text
 from sqlalchemy.engine.reflection import Inspector
 
+from alembic.operations import ops
 from alembic import autogenerate
 from alembic.migration import MigrationContext
 from alembic.testing import config
 from alembic.testing.env import staging_env, clear_staging_env
 from alembic.testing import eq_
 from alembic.ddl.base import _fk_spec
+from alembic.autogenerate import api
 
 names_in_this_test = set()
 
@@ -25,9 +27,7 @@ def _default_include_object(obj, name, type_, reflected, compare_to):
     else:
         return True
 
-_default_object_filters = [
-    _default_include_object
-]
+_default_object_filters = _default_include_object
 
 
 class ModelOne(object):
@@ -177,6 +177,7 @@ class AutogenTest(_ComparesFKs):
             'downgrade_token': "downgrades",
             'alembic_module_prefix': 'op.',
             'sqlalchemy_module_prefix': 'sa.',
+            'include_object': _default_object_filters
         }
         if self.configure_opts:
             ctx_opts.update(self.configure_opts)
@@ -185,16 +186,17 @@ class AutogenTest(_ComparesFKs):
             opts=ctx_opts
         )
 
-        connection = context.bind
-        self.autogen_context = {
-            'imports': set(),
-            'connection': connection,
-            'dialect': connection.dialect,
-            'context': context
-        }
+        self.autogen_context = api.AutogenContext(context, self.m2)
 
     def tearDown(self):
         self.conn.close()
+
+    def _update_context(self, object_filters=None, include_schemas=None):
+        if include_schemas is not None:
+            self.autogen_context.opts['include_schemas'] = include_schemas
+        if object_filters is not None:
+            self.autogen_context._object_filters = [object_filters]
+        return self.autogen_context
 
 
 class AutogenFixtureTest(_ComparesFKs):
@@ -214,6 +216,8 @@ class AutogenFixtureTest(_ComparesFKs):
                 'downgrade_token': "downgrades",
                 'alembic_module_prefix': 'op.',
                 'sqlalchemy_module_prefix': 'sa.',
+                'include_object': object_filters,
+                'include_schemas': include_schemas
             }
             if opts:
                 ctx_opts.update(opts)
@@ -222,21 +226,12 @@ class AutogenFixtureTest(_ComparesFKs):
                 opts=ctx_opts
             )
 
-            connection = context.bind
-            autogen_context = {
-                'imports': set(),
-                'connection': connection,
-                'dialect': connection.dialect,
-                'context': context,
-                'metadata': model_metadata,
-                'object_filters': object_filters,
-                'include_schemas': include_schemas
-            }
-            diffs = []
+            autogen_context = api.AutogenContext(context, model_metadata)
+            uo = ops.UpgradeOps(ops=[])
             autogenerate._produce_net_changes(
-                autogen_context, diffs
+                autogen_context, uo
             )
-            return diffs
+            return uo.as_diffs()
 
     reports_unnamed_constraints = False
 

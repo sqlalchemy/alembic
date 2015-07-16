@@ -4,8 +4,9 @@ automatically."""
 from ..operations import ops
 from . import render
 from . import compare
-from . import compose
 from .. import util
+from sqlalchemy.engine.reflection import Inspector
+import contextlib
 
 
 def compare_metadata(context, metadata):
@@ -98,20 +99,8 @@ def compare_metadata(context, metadata):
 
     """
 
-    autogen_context = _autogen_context(context, metadata=metadata)
-
-    # as_sql=True is nonsensical here. autogenerate requires a connection
-    # it can use to run queries against to get the database schema.
-    if context.as_sql:
-        raise util.CommandError(
-            "autogenerate can't use as_sql=True as it prevents querying "
-            "the database for schema information")
-
-    diffs = []
-
-    compare._produce_net_changes(autogen_context, diffs)
-
-    return diffs
+    migration_script = produce_migrations(context, metadata)
+    return migration_script.upgrade_ops.as_diffs()
 
 
 def produce_migrations(context, metadata):
@@ -132,10 +121,7 @@ def produce_migrations(context, metadata):
 
     """
 
-    autogen_context = _autogen_context(context, metadata=metadata)
-    diffs = []
-
-    compare._produce_net_changes(autogen_context, diffs)
+    autogen_context = AutogenContext(context, metadata=metadata)
 
     migration_script = ops.MigrationScript(
         rev_id=None,
@@ -143,7 +129,7 @@ def produce_migrations(context, metadata):
         downgrade_ops=ops.DowngradeOps([]),
     )
 
-    compose._to_migration_script(autogen_context, migration_script, diffs)
+    compare._populate_migration_script(autogen_context, migration_script)
 
     return migration_script
 
@@ -152,6 +138,7 @@ def render_python_code(
     up_or_down_op,
     sqlalchemy_module_prefix='sa.',
     alembic_module_prefix='op.',
+    render_as_batch=False,
     imports=(),
     render_item=None,
 ):
@@ -162,84 +149,239 @@ def render_python_code(
     autogenerate output of a user-defined :class:`.MigrationScript` structure.
 
     """
-    autogen_context = {
-        'opts': {
-            'sqlalchemy_module_prefix': sqlalchemy_module_prefix,
-            'alembic_module_prefix': alembic_module_prefix,
-            'render_item': render_item,
-        },
-        'imports': set(imports)
+    opts = {
+        'sqlalchemy_module_prefix': sqlalchemy_module_prefix,
+        'alembic_module_prefix': alembic_module_prefix,
+        'render_item': render_item,
+        'render_as_batch': render_as_batch,
     }
+
+    autogen_context = AutogenContext(None, opts=opts)
+    autogen_context.imports = set(imports)
     return render._indent(render._render_cmd_body(
         up_or_down_op, autogen_context))
 
 
-
-
-def _render_migration_diffs(context, template_args, imports):
+def _render_migration_diffs(context, template_args):
     """legacy, used by test_autogen_composition at the moment"""
 
-    migration_script = produce_migrations(context, None)
+    autogen_context = AutogenContext(context)
 
-    autogen_context = _autogen_context(context, imports=imports)
-    diffs = []
-
-    compare._produce_net_changes(autogen_context, diffs)
+    upgrade_ops = ops.UpgradeOps([])
+    compare._produce_net_changes(autogen_context, upgrade_ops)
 
     migration_script = ops.MigrationScript(
         rev_id=None,
-        imports=imports,
-        upgrade_ops=ops.UpgradeOps([]),
-        downgrade_ops=ops.DowngradeOps([]),
+        upgrade_ops=upgrade_ops,
+        downgrade_ops=upgrade_ops.reverse(),
     )
-
-    compose._to_migration_script(autogen_context, migration_script, diffs)
 
     render._render_migration_script(
         autogen_context, migration_script, template_args
     )
 
 
-def _autogen_context(
-    context, imports=None, metadata=None, include_symbol=None,
-        include_object=None, include_schemas=False):
+class AutogenContext(object):
+    """Maintains configuration and state that's specific to an
+    autogenerate operation."""
 
-    opts = context.opts
-    metadata = opts['target_metadata'] if metadata is None else metadata
-    include_schemas = opts.get('include_schemas', include_schemas)
+    metadata = None
+    """The :class:`~sqlalchemy.schema.MetaData` object
+    representing the destination.
 
-    include_symbol = opts.get('include_symbol', include_symbol)
-    include_object = opts.get('include_object', include_object)
+    This object is the one that is passed within ``env.py``
+    to the :paramref:`.EnvironmentContext.configure.target_metadata`
+    parameter.  It represents the structure of :class:`.Table` and other
+    objects as stated in the current database model, and represents the
+    destination structure for the database being examined.
 
-    object_filters = []
-    if include_symbol:
-        def include_symbol_filter(object, name, type_, reflected, compare_to):
-            if type_ == "table":
-                return include_symbol(name, object.schema)
-            else:
-                return True
-        object_filters.append(include_symbol_filter)
-    if include_object:
-        object_filters.append(include_object)
+    While the :class:`~sqlalchemy.schema.MetaData` object is primarily
+    known as a collection of :class:`~sqlalchemy.schema.Table` objects,
+    it also has an :attr:`~sqlalchemy.schema.MetaData.info` dictionary
+    that may be used by end-user schemes to store additional schema-level
+    objects that are to be compared in custom autogeneration schemes.
 
-    if metadata is None:
-        raise util.CommandError(
-            "Can't proceed with --autogenerate option; environment "
-            "script %s does not provide "
-            "a MetaData object to the context." % (
-                context.script.env_py_location
-            ))
+    """
 
-    opts = context.opts
-    connection = context.bind
-    return {
-        'imports': imports if imports is not None else set(),
-        'connection': connection,
-        'dialect': connection.dialect,
-        'context': context,
-        'opts': opts,
-        'metadata': metadata,
-        'object_filters': object_filters,
-        'include_schemas': include_schemas
-    }
+    connection = None
+    """The :class:`~sqlalchemy.engine.base.Connection` object currently
+    connected to the database backend being compared.
 
+    This is obtained from the :attr:`.MigrationContext.bind` and is
+    utimately set up in the ``env.py`` script.
+
+    """
+
+    dialect = None
+    """The :class:`~sqlalchemy.engine.Dialect` object currently in use.
+
+    This is normally obtained from the
+    :attr:`~sqlalchemy.engine.base.Connection.dialect` attribute.
+
+    """
+
+    migration_context = None
+    """The :class:`.MigrationContext` established by the ``env.py`` script."""
+
+    def __init__(self, migration_context, metadata=None, opts=None):
+
+        if migration_context is not None and migration_context.as_sql:
+            raise util.CommandError(
+                "autogenerate can't use as_sql=True as it prevents querying "
+                "the database for schema information")
+
+        if opts is None:
+            opts = migration_context.opts
+        self.metadata = metadata = opts.get('target_metadata', None) \
+            if metadata is None else metadata
+
+        if metadata is None and \
+                migration_context is not None and \
+                migration_context.script is not None:
+            raise util.CommandError(
+                "Can't proceed with --autogenerate option; environment "
+                "script %s does not provide "
+                "a MetaData object to the context." % (
+                    migration_context.script.env_py_location
+                ))
+
+        include_symbol = opts.get('include_symbol', None)
+        include_object = opts.get('include_object', None)
+
+        object_filters = []
+        if include_symbol:
+            def include_symbol_filter(
+                    object, name, type_, reflected, compare_to):
+                if type_ == "table":
+                    return include_symbol(name, object.schema)
+                else:
+                    return True
+            object_filters.append(include_symbol_filter)
+        if include_object:
+            object_filters.append(include_object)
+
+        self._object_filters = object_filters
+
+        self.migration_context = migration_context
+        if self.migration_context is not None:
+            self.connection = self.migration_context.bind
+            self.dialect = self.migration_context.dialect
+
+        self._imports = set()
+        self.opts = opts
+        self._has_batch = False
+
+    @util.memoized_property
+    def inspector(self):
+        return Inspector.from_engine(self.connection)
+
+    @contextlib.contextmanager
+    def _within_batch(self):
+        self._has_batch = True
+        yield
+        self._has_batch = False
+
+    def run_filters(self, object_, name, type_, reflected, compare_to):
+        """Run the context's object filters and return True if the targets
+        should be part of the autogenerate operation.
+
+        This method should be run for every kind of object encountered within
+        an autogenerate operation, giving the environment the chance
+        to filter what objects should be included in the comparison.
+        The filters here are produced directly via the
+        :paramref:`.EnvironmentContext.configure.include_object`
+        and :paramref:`.EnvironmentContext.configure.include_symbol`
+        functions, if present.
+
+        """
+        for fn in self._object_filters:
+            if not fn(object_, name, type_, reflected, compare_to):
+                return False
+        else:
+            return True
+
+
+class RevisionContext(object):
+    """Maintains configuration and state that's specific to a revision
+    file generation operation."""
+
+    def __init__(self, config, script_directory, command_args):
+        self.config = config
+        self.script_directory = script_directory
+        self.command_args = command_args
+        self.template_args = {
+            'config': config  # Let templates use config for
+                              # e.g. multiple databases
+        }
+        self.generated_revisions = [
+            self._default_revision()
+        ]
+
+    def _to_script(self, migration_script):
+        template_args = {}
+        for k, v in self.template_args.items():
+            template_args.setdefault(k, v)
+
+        if migration_script._autogen_context is not None:
+            render._render_migration_script(
+                migration_script._autogen_context, migration_script,
+                template_args
+            )
+
+        return self.script_directory.generate_revision(
+            migration_script.rev_id,
+            migration_script.message,
+            refresh=True,
+            head=migration_script.head,
+            splice=migration_script.splice,
+            branch_labels=migration_script.branch_label,
+            version_path=migration_script.version_path,
+            **template_args)
+
+    def run_autogenerate(self, rev, context):
+        if self.command_args['sql']:
+            raise util.CommandError(
+                "Using --sql with --autogenerate does not make any sense")
+        if set(self.script_directory.get_revisions(rev)) != \
+                set(self.script_directory.get_revisions("heads")):
+            raise util.CommandError("Target database is not up to date.")
+
+        autogen_context = AutogenContext(context)
+
+        migration_script = self.generated_revisions[0]
+
+        compare._populate_migration_script(autogen_context, migration_script)
+
+        hook = context.opts.get('process_revision_directives', None)
+        if hook:
+            hook(context, rev, self.generated_revisions)
+
+        for migration_script in self.generated_revisions:
+            migration_script._autogen_context = autogen_context
+
+    def run_no_autogenerate(self, rev, context):
+        hook = context.opts.get('process_revision_directives', None)
+        if hook:
+            hook(context, rev, self.generated_revisions)
+
+        for migration_script in self.generated_revisions:
+            migration_script._autogen_context = None
+
+    def _default_revision(self):
+        op = ops.MigrationScript(
+            rev_id=self.command_args['rev_id'] or util.rev_id(),
+            message=self.command_args['message'],
+            imports=set(),
+            upgrade_ops=ops.UpgradeOps([]),
+            downgrade_ops=ops.DowngradeOps([]),
+            head=self.command_args['head'],
+            splice=self.command_args['splice'],
+            branch_label=self.command_args['branch_label'],
+            version_path=self.command_args['version_path']
+        )
+        op._autogen_context = None
+        return op
+
+    def generate_scripts(self):
+        for generated_revision in self.generated_revisions:
+            yield self._to_script(generated_revision)

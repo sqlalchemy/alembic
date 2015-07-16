@@ -27,7 +27,7 @@ Changelog
 
     .. change::
       :tags: feature, autogenerate
-      :tickets: 301
+      :tickets: 301, 306
 
       The internal system for autogenerate been reworked to build upon
       the extensible system of operation objects present in
@@ -38,9 +38,12 @@ Changelog
       :paramref:`.EnvironmentContext.configure.process_revision_directives`
       allows end-user code to fully customize what autogenerate will do,
       including not just full manipulation of the Python steps to take
-      but also what file or files will be written and where.  It is also
-      possible to write a system that reads an autogenerate stream and
-      invokes it directly against a database without writing any files.
+      but also what file or files will be written and where.  Additionally,
+      autogenerate is now extensible as far as database objects compared
+      and rendered into scripts; any new operation directive can also be
+      registered into a series of hooks that allow custom database/model
+      comparison functions to run as well as to render new operation
+      directives into autogenerate scripts.
 
       .. seealso::
 
