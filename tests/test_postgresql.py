@@ -203,8 +203,10 @@ class PostgresqlDefaultCompareTest(TestBase):
         insp_col = Column("somecol", cols[0]['type'],
                           server_default=text(cols[0]['default']))
         op = ops.AlterColumnOp("test", "somecol")
-        _compare_server_default(None, "test", "somecol", insp_col,
-                                t2.c.somecol, op, self.autogen_context)
+        _compare_server_default(
+            self.autogen_context, op,
+            None, "test", "somecol", insp_col, t2.c.somecol)
+
         diffs = op.to_diff_tuple()
         eq_(bool(diffs), diff_expected)
 

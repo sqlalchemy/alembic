@@ -3,6 +3,7 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy import event
 from ..operations import ops
 import logging
+from .. import util
 from ..util import compat
 from ..util import sqla_compat
 from sqlalchemy.util import OrderedSet
@@ -17,6 +18,9 @@ log = logging.getLogger(__name__)
 def _populate_migration_script(autogen_context, migration_script):
     _produce_net_changes(autogen_context, migration_script.upgrade_ops)
     migration_script.upgrade_ops.reverse_into(migration_script.downgrade_ops)
+
+
+comparators = util.Dispatcher(uselist=True)
 
 
 def _produce_net_changes(autogen_context, upgrade_ops):
@@ -37,10 +41,13 @@ def _produce_net_changes(autogen_context, upgrade_ops):
     else:
         schemas = [None]
 
-    _autogen_for_tables(autogen_context, schemas, upgrade_ops)
+    comparators.dispatch("schema", autogen_context.dialect.name)(
+        autogen_context, upgrade_ops, schemas
+    )
 
 
-def _autogen_for_tables(autogen_context, schemas, upgrade_ops):
+@comparators.dispatch_for("schema")
+def _autogen_for_tables(autogen_context, upgrade_ops, schemas):
     inspector = autogen_context.inspector
 
     metadata = autogen_context.metadata
@@ -105,11 +112,11 @@ def _compare_tables(conn_table_names, metadata_table_names,
                 ops.CreateTableOp.from_table(metadata_table))
             log.info("Detected added table %r", name)
             modify_table_ops = ops.ModifyTableOps(tname, [], schema=s)
-            _compare_indexes_and_uniques(s, tname,
-                                         None,
-                                         metadata_table,
-                                         modify_table_ops,
-                                         autogen_context, inspector)
+
+            comparators.dispatch("table")(
+                autogen_context, modify_table_ops,
+                s, tname, None, metadata_table
+            )
             if not modify_table_ops.is_empty():
                 upgrade_ops.ops.append(modify_table_ops)
 
@@ -165,22 +172,14 @@ def _compare_tables(conn_table_names, metadata_table_names,
                 conn_table,
                 metadata_table,
                     modify_table_ops, autogen_context, inspector):
-                _compare_indexes_and_uniques(s, tname,
-                                             conn_table,
-                                             metadata_table,
-                                             modify_table_ops,
-                                             autogen_context, inspector)
-                _compare_foreign_keys(s, tname, conn_table,
-                                      metadata_table,
-                                      modify_table_ops, autogen_context,
-                                      inspector)
+
+                comparators.dispatch("table")(
+                    autogen_context, modify_table_ops,
+                    s, tname, conn_table, metadata_table
+                )
 
             if not modify_table_ops.is_empty():
                 upgrade_ops.ops.append(modify_table_ops)
-
-    # TODO:
-    # table constraints
-    # sequences
 
 
 def _make_index(params, conn_table):
@@ -246,23 +245,12 @@ def _compare_columns(schema, tname, conn_table, metadata_table,
             continue
         alter_column_op = ops.AlterColumnOp(
             tname, colname, schema=schema)
-        _compare_type(schema, tname, colname,
-                      conn_col,
-                      metadata_col,
-                      alter_column_op, autogen_context
-                      )
-        # work around SQLAlchemy issue #3023
-        if not metadata_col.primary_key:
-            _compare_nullable(schema, tname, colname,
-                              conn_col,
-                              metadata_col.nullable,
-                              alter_column_op, autogen_context
-                              )
-        _compare_server_default(schema, tname, colname,
-                                conn_col,
-                                metadata_col,
-                                alter_column_op, autogen_context
-                                )
+
+        comparators.dispatch("column")(
+            autogen_context, alter_column_op,
+            schema, tname, colname, conn_col, metadata_col
+        )
+
         if alter_column_op.has_changes():
             modify_table_ops.ops.append(alter_column_op)
 
@@ -334,10 +322,12 @@ class _fk_constraint_sig(_constraint_sig):
         )
 
 
-def _compare_indexes_and_uniques(schema, tname, conn_table,
-                                 metadata_table, modify_ops,
-                                 autogen_context, inspector):
+@comparators.dispatch_for("table")
+def _compare_indexes_and_uniques(
+        autogen_context, modify_ops, schema, tname, conn_table,
+        metadata_table):
 
+    inspector = autogen_context.inspector
     is_create_table = conn_table is None
 
     # 1a. get raw indexes and unique constraints from metadata ...
@@ -568,9 +558,16 @@ def _compare_indexes_and_uniques(schema, tname, conn_table,
             obj_added(unnamed_metadata_uniques[uq_sig])
 
 
-def _compare_nullable(schema, tname, cname, conn_col,
-                      metadata_col_nullable, alter_column_op,
-                      autogen_context):
+@comparators.dispatch_for("column")
+def _compare_nullable(
+    autogen_context, alter_column_op, schema, tname, cname, conn_col,
+        metadata_col):
+
+    # work around SQLAlchemy issue #3023
+    if metadata_col.primary_key:
+        return
+
+    metadata_col_nullable = metadata_col.nullable
     conn_col_nullable = conn_col.nullable
     alter_column_op.existing_nullable = conn_col_nullable
 
@@ -583,9 +580,10 @@ def _compare_nullable(schema, tname, cname, conn_col,
                  )
 
 
-def _compare_type(schema, tname, cname, conn_col,
-                  metadata_col, alter_column_op,
-                  autogen_context):
+@comparators.dispatch_for("column")
+def _compare_type(
+    autogen_context, alter_column_op, schema, tname, cname, conn_col,
+        metadata_col):
 
     conn_type = conn_col.type
     alter_column_op.existing_type = conn_type
@@ -632,8 +630,10 @@ def _render_server_default_for_compare(metadata_default,
         return None
 
 
-def _compare_server_default(schema, tname, cname, conn_col, metadata_col,
-                            alter_column_op, autogen_context):
+@comparators.dispatch_for("column")
+def _compare_server_default(
+    autogen_context, alter_column_op, schema, tname, cname,
+        conn_col, metadata_col):
 
     metadata_default = metadata_col.server_default
     conn_col_default = conn_col.server_default
@@ -659,15 +659,17 @@ def _compare_server_default(schema, tname, cname, conn_col, metadata_col,
             tname, cname)
 
 
-def _compare_foreign_keys(schema, tname, conn_table,
-                          metadata_table, modify_table_ops,
-                          autogen_context, inspector):
+@comparators.dispatch_for("table")
+def _compare_foreign_keys(
+    autogen_context, modify_table_ops, schema, tname, conn_table,
+        metadata_table):
 
     # if we're doing CREATE TABLE, all FKs are created
     # inline within the table def
     if conn_table is None:
         return
 
+    inspector = autogen_context.inspector
     metadata_fks = set(
         fk for fk in metadata_table.constraints
         if isinstance(fk, sa_schema.ForeignKeyConstraint)

@@ -4,7 +4,8 @@
 Autogeneration
 ==============
 
-The autogenerate system has two areas of API that are public:
+The autogeneration system has a wide degree of public API, including
+the following areas:
 
 1. The ability to do a "diff" of a :class:`~sqlalchemy.schema.MetaData` object against
    a database, and receive a data structure back.  This structure
@@ -15,8 +16,21 @@ The autogenerate system has two areas of API that are public:
    revision scripts, including support for multiple revision scripts
    generated in one pass.
 
+3. The ability to add new operation directives to autogeneration, including
+   custom schema/model comparison functions and revision script rendering.
+
 Getting Diffs
 ==============
+
+The simplest API autogenerate provides is the "schema comparison" API;
+these are simple functions that will run all registered "comparison" functions
+between a :class:`~sqlalchemy.schema.MetaData` object and a database
+backend to produce a structure showing how they differ.   The two
+functions provided are :func:`.compare_metadata`, which is more of the
+"legacy" function that produces diff tuples, and :func:`.produce_migrations`,
+which produces a structure consisting of operation directives detailed in
+:ref:`alembic.operations.toplevel`.
+
 
 .. autofunction:: alembic.autogenerate.compare_metadata
 
@@ -184,6 +198,8 @@ to whatever is in this list.
 
 .. autofunction:: alembic.autogenerate.render_python_code
 
+.. _autogen_custom_ops:
+
 Autogenerating Custom Operation Directives
 ==========================================
 
@@ -192,16 +208,180 @@ subclasses of :class:`.MigrateOperation` in order to add new ``op.``
 directives.  In the preceding section :ref:`customizing_revision`, we
 also learned that these same :class:`.MigrateOperation` structures are at
 the base of how the autogenerate system knows what Python code to render.
-How to connect these two systems, so that our own custom operation
-directives can be used?  First off, we'd probably be implementing
-a :paramref:`.EnvironmentContext.configure.process_revision_directives`
-plugin as described previously, so that we can add our own directives
-to the autogenerate stream.  What if we wanted to add our ``CreateSequenceOp``
-to the autogenerate structure?  We basically need to define an autogenerate
-renderer for it, as follows::
+Using this knowledge, we can create additional functions that plug into
+the autogenerate system so that our new operations can be generated
+into migration scripts when ``alembic revision --autogenerate`` is run.
 
-    # note: this is a continuation of the example from the
-    # "Operation Plugins" section
+The following sections will detail an example of this using the
+the ``CreateSequenceOp`` and ``DropSequenceOp`` directives
+we created in :ref:`operation_plugins`, which correspond to the
+SQLAlchemy :class:`~sqlalchemy.schema.Sequence` construct.
+
+.. versionadded:: 0.8.0 - custom operations can be added to the
+   autogenerate system to support new kinds of database objects.
+
+Tracking our Object with the Model
+----------------------------------
+
+The basic job of an autogenerate comparison function is to inspect
+a series of objects in the database and compare them against a series
+of objects defined in our model.  By "in our model", we mean anything
+defined in Python code that we want to track, however most commonly
+we're talking about a series of :class:`~sqlalchemy.schema.Table`
+objects present in a :class:`~sqlalchemy.schema.MetaData` collection.
+
+Let's propose a simple way of seeing what :class:`~sqlalchemy.schema.Sequence`
+objects we want to ensure exist in the database when autogenerate
+runs.  While these objects do have some integrations with
+:class:`~sqlalchemy.schema.Table` and :class:`~sqlalchemy.schema.MetaData`
+already, let's assume they don't, as the example here intends to illustrate
+how we would do this for most any kind of custom construct.   We
+associate the object with the :attr:`~sqlalchemy.schema.MetaData.info`
+collection of :class:`~sqlalchemy.schema.MetaData`, which is a dictionary
+we can use for anything, which we also know will be passed to the autogenerate
+process::
+
+    from sqlalchemy.schema import Sequence
+
+    def add_sequence_to_model(sequence, metadata):
+        metadata.info.setdefault("sequences", set()).add(
+            (sequence.schema, sequence.name)
+        )
+
+    my_seq = Sequence("my_sequence")
+    add_sequence_to_model(my_seq, model_metadata)
+
+The :attr:`~sqlalchemy.schema.MetaData.info`
+dictionary is a good place to put things that we want our autogeneration
+routines to be able to locate, which can include any object such as
+custom DDL objects representing views, triggers, special constraints,
+or anything else we want to support.
+
+
+Registering a Comparison Function
+---------------------------------
+
+We now need to register a comparison hook, which will be used
+to compare the database to our model and produce ``CreateSequenceOp``
+and ``DropSequenceOp`` directives to be included in our migration
+script.  Note that we are assuming a
+Postgresql backend::
+
+    from alembic.autogenerate import comparators
+
+    @comparators.dispatch_for("schema")
+    def compare_sequences(autogen_context, upgrade_ops, schemas):
+        all_conn_sequences = set()
+
+        for sch in schemas:
+
+            all_conn_sequences.update([
+                (sch, row[0]) for row in
+                autogen_context.connection.execute(
+                    "SELECT relname FROM pg_class c join "
+                    "pg_namespace n on n.oid=c.relnamespace where "
+                    "relkind='S' and n.nspname=%(nspname)s",
+
+                    # note that we consider a schema of 'None' in our
+                    # model to be the "default" name in the PG database;
+                    # this usually is the name 'public'
+                    nspname=autogen_context.dialect.default_schema_name
+                    if sch is None else sch
+                )
+            ])
+
+        # get the collection of Sequence objects we're storing with
+        # our MetaData
+        metadata_sequences = autogen_context.metadata.info.setdefault(
+            "sequences", set())
+
+        # for new names, produce CreateSequenceOp directives
+        for sch, name in metadata_sequences.difference(all_conn_sequences):
+            upgrade_ops.ops.append(
+                CreateSequenceOp(name, schema=sch)
+            )
+
+        # for names that are going away, produce DropSequenceOp
+        # directives
+        for sch, name in all_conn_sequences.difference(metadata_sequences):
+            upgrade_ops.ops.append(
+                DropSequenceOp(name, schema=sch)
+            )
+
+Above, we've built a new function ``compare_sequences()`` and registered
+it as a "schema" level comparison function with autogenerate.   The
+job that it performs is that it compares the list of sequence names
+present in each database schema with that of a list of sequence names
+that we are maintaining in our :class:`~sqlalchemy.schema.MetaData` object.
+
+When autogenerate completes, it will have a series of
+``CreateSequenceOp`` and ``DropSequenceOp`` directives in the list of
+"upgrade" operations;  the list of "downgrade" operations is generated
+directly from these using the
+``CreateSequenceOp.reverse()`` and ``DropSequenceOp.reverse()`` methods
+that we've implemented on these objects.
+
+The registration of our function at the scope of "schema" means our
+autogenerate comparison function is called outside of the context
+of any specific table or column.  The three available scopes
+are "schema", "table", and "column", summarized as follows:
+
+* **Schema level** - these hooks are passed a :class:`.AutogenContext`,
+  an :class:`.UpgradeOps` collection, and a collection of string schema
+  names to be operated upon. If the
+  :class:`.UpgradeOps` collection contains changes after all
+  hooks are run, it is included in the migration script:
+
+  ::
+
+        @comparators.dispatch_for("schema")
+        def compare_schema_level(autogen_context, upgrade_ops, schemas):
+            pass
+
+* **Table level** - these hooks are passed a :class:`.AutogenContext`,
+  a :class:`.ModifyTableOps` collection, a schema name, table name,
+  a :class:`~sqlalchemy.schema.Table` reflected from the database if any
+  or ``None``, and a :class:`~sqlalchemy.schema.Table` present in the
+  local :class:`~sqlalchemy.schema.MetaData`.  If the
+  :class:`.ModifyTableOps` collection contains changes after all
+  hooks are run, it is included in the migration script:
+
+  ::
+
+        @comparators.dispatch_for("table")
+        def compare_table_level(autogen_context, modify_ops,
+            schemaname, tablename, conn_table, metadata_table):
+            pass
+
+* **Column level** - these hooks are passed a :class:`.AutogenContext`,
+  an :class:`.AlterColumnOp` object, a schema name, table name,
+  column name, a :class:`~sqlalchemy.schema.Column` reflected from the
+  database and a :class:`~sqlalchemy.schema.Column` present in the
+  local table.  If the :class:`.AlterColumnOp` contains changes after
+  all hooks are run, it is included in the migration script;
+  a "change" is considered to be present if any of the ``modify_`` attributes
+  are set to a non-default value, or there are any keys
+  in the ``.kw`` collection with the prefix ``"modify_"``:
+
+  ::
+
+        @comparators.dispatch_for("column")
+        def compare_column_level(autogen_context, alter_column_op,
+            schemaname, tname, cname, conn_col, metadata_col):
+            pass
+
+The :class:`.AutogenContext` passed to these hooks is documented below.
+
+.. autoclass:: alembic.autogenerate.api.AutogenContext
+    :members:
+
+Creating a Render Function
+--------------------------
+
+The second autogenerate integration hook is to provide a "render" function;
+since the autogenerate
+system renders Python code, we need to build a function that renders
+the correct "op" instructions for our directive::
 
     from alembic.autogenerate import renderers
 
@@ -209,29 +389,52 @@ renderer for it, as follows::
     def render_create_sequence(autogen_context, op):
         return "op.create_sequence(%r, **%r)" % (
             op.sequence_name,
-            op.kw
+            {"schema": op.schema}
         )
 
-With our render function established, we can our ``CreateSequenceOp``
-generated in an autogenerate context using the :func:`.render_python_code`
-debugging function in conjunction with an :class:`.UpgradeOps` structure::
 
-    from alembic.operations import ops
-    from alembic.autogenerate import render_python_code
+    @renderers.dispatch_for(DropSequenceOp)
+    def render_drop_sequence(autogen_context, op):
+        return "op.drop_sequence(%r, **%r)" % (
+            op.sequence_name,
+            {"schema": op.schema}
+        )
 
-    upgrade_ops = ops.UpgradeOps(
-        ops=[
-            CreateSequenceOp("my_seq")
-        ]
-    )
+The above functions will render Python code corresponding to the
+presence of ``CreateSequenceOp`` and ``DropSequenceOp`` instructions
+in the list that our comparison function generates.
 
-    print(render_python_code(upgrade_ops))
+Running It
+----------
 
-Which produces::
+All the above code can be organized however the developer sees fit;
+the only thing that needs to make it work is that when the
+Alembic environment ``env.py`` is invoked, it either imports modules
+which contain all the above routines, or they are locally present,
+or some combination thereof.
 
-    ### commands auto generated by Alembic - please adjust! ###
-        op.create_sequence('my_seq', **{})
+If we then have code in our model (which of course also needs to be invoked
+when ``env.py`` runs!) like this::
+
+    from sqlalchemy.schema import Sequence
+
+    my_seq_1 = Sequence("my_sequence_1")
+    add_sequence_to_model(my_seq_1, target_metadata)
+
+When we first run ``alembic revision --autogenerate``, we'll see this
+in our migration file::
+
+    def upgrade():
+        ### commands auto generated by Alembic - please adjust! ###
+        op.create_sequence('my_sequence_1', **{'schema': None})
         ### end Alembic commands ###
 
 
-.. autoclass:: alembic.autogenerate.api.AutogenContext
+    def downgrade():
+        ### commands auto generated by Alembic - please adjust! ###
+        op.drop_sequence('my_sequence_1', **{'schema': None})
+        ### end Alembic commands ###
+
+These are our custom directives that will invoke when ``alembic upgrade``
+or ``alembic downgrade`` is run.
+

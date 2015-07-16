@@ -263,7 +263,6 @@ class Dispatcher(object):
 
     def dispatch_for(self, target, qualifier='default'):
         def decorate(fn):
-            assert isinstance(target, type)
             if self.uselist:
                 assert target not in self._registry
                 self._registry.setdefault((target, qualifier), []).append(fn)
@@ -274,7 +273,15 @@ class Dispatcher(object):
         return decorate
 
     def dispatch(self, obj, qualifier='default'):
-        for spcls in type(obj).__mro__:
+
+        if isinstance(obj, string_types):
+            targets = [obj]
+        elif isinstance(obj, type):
+            targets = obj.__mro__
+        else:
+            targets = type(obj).__mro__
+
+        for spcls in targets:
             if qualifier != 'default' and (spcls, qualifier) in self._registry:
                 return self._fn_or_list(self._registry[(spcls, qualifier)])
             elif (spcls, 'default') in self._registry:

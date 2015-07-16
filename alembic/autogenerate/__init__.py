@@ -3,5 +3,5 @@ from .api import ( # noqa
     produce_migrations, render_python_code,
     RevisionContext
     )
-from .compare import _produce_net_changes  # noqa
+from .compare import _produce_net_changes, comparators  # noqa
 from .render import render_op_text, renderers  # noqa
