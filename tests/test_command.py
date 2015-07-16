@@ -5,13 +5,8 @@ from alembic.testing.fixtures import TestBase, capture_context_buffer
 from alembic.testing.env import staging_env, _sqlite_testing_config, \
     three_rev_fixture, clear_staging_env, _no_sql_testing_config, \
     _sqlite_file_db, write_script, env_file_fixture
-from alembic.testing import eq_, assert_raises_message
+from alembic.testing import eq_, assert_raises_message, mock
 from alembic import util
-
-try:
-    from mock import patch
-except ImportError:
-    from unittest.mock import patch
 
 
 class HistoryTest(TestBase):
@@ -396,12 +391,12 @@ class EditTest(TestBase):
             EditTest.c
         )
 
-        with patch('alembic.command.editor.edit') as edit:
+        with mock.patch('alembic.command.editor.edit') as edit:
             command.edit(self.cfg)
             edit.assert_called_with(expected_call_arg)
 
     def test_edit_with_missing_editor(self):
-        with patch('alembic.command.editor.edit') as edit:
+        with mock.patch('alembic.command.editor.edit') as edit:
             edit.side_effect = OSError('file not found')
             assert_raises_message(
                 util.CommandError,
