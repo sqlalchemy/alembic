@@ -7,6 +7,12 @@ Changelog
     :version: 0.8.0
 
     .. change::
+      :tags: feature, tests
+
+      The default test runner via "python setup.py test" is now py.test.
+      nose still works via run_tests.py.
+
+    .. change::
       :tags: feature, operations
       :tickets: 302
 
