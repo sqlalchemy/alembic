@@ -351,7 +351,7 @@ class CommandLine(object):
                         action="store",
                         help="Specify a revision range; "
                         "format is [start]:[end]")
-                ),
+                )
             }
             positional_help = {
                 'directory': "location of scripts directory",

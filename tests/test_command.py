@@ -1,5 +1,4 @@
 from alembic import command
-from mock import patch
 from io import TextIOWrapper, BytesIO
 from alembic.script import ScriptDirectory
 from alembic.testing.fixtures import TestBase, capture_context_buffer
@@ -8,6 +7,11 @@ from alembic.testing.env import staging_env, _sqlite_testing_config, \
     _sqlite_file_db, write_script, env_file_fixture
 from alembic.testing import eq_, assert_raises_message
 from alembic import util
+
+try:
+    from mock import patch
+except ImportError:
+    from unittest.mock import patch
 
 
 class HistoryTest(TestBase):
@@ -386,36 +390,21 @@ class EditTest(TestBase):
     def teardown_class(cls):
         clear_staging_env()
 
-    def test_edit_with_user_editor(self):
+    def test_edit_latest(self):
         expected_call_arg = '%s/scripts/versions/%s_revision_c.py' % (
             EditTest.cfg.config_args['here'],
             EditTest.c
         )
 
-        with patch('alembic.util.os_helpers.check_call') as check_call, \
-                patch('alembic.util.os_helpers.exists') as exists:
-            exists.side_effect = lambda fname: fname == '/usr/bin/vim'
+        with patch('alembic.command.editor.edit') as edit:
             command.edit(self.cfg)
-            check_call.assert_called_with(['/usr/bin/vim', expected_call_arg])
-
-    def test_edit_with_default_editor(self):
-        expected_call_arg = '%s/scripts/versions/%s_revision_c.py' % (
-            EditTest.cfg.config_args['here'],
-            EditTest.c
-        )
-
-        with patch('alembic.util.os_helpers.check_call') as check_call, \
-                patch('alembic.util.os_helpers.exists') as exists:
-            exists.side_effect = lambda fname: fname == '/usr/bin/vim'
-            command.edit(self.cfg)
-            check_call.assert_called_with(['/usr/bin/vim', expected_call_arg])
+            edit.assert_called_with(expected_call_arg)
 
     def test_edit_with_missing_editor(self):
-        with patch('alembic.util.os_helpers.check_call'), \
-                patch('alembic.util.os_helpers.exists') as exists:
-            exists.return_value = False
+        with patch('alembic.command.editor.edit') as edit:
+            edit.side_effect = OSError('file not found')
             assert_raises_message(
                 util.CommandError,
-                'EDITOR',
+                'file not found',
                 command.edit,
                 self.cfg)

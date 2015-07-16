@@ -13,6 +13,7 @@ readme = os.path.join(os.path.dirname(__file__), 'README.rst')
 requires = [
     'SQLAlchemy>=0.7.6',
     'Mako',
+    'python-editor',
 ]
 
 # Hack to prevent "TypeError: 'NoneType' object is not callable" error

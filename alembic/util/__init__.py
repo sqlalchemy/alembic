@@ -9,8 +9,6 @@ from .pyfiles import (  # noqa
 from .sqla_compat import (  # noqa
     sqla_07, sqla_079, sqla_08, sqla_083, sqla_084, sqla_09, sqla_092,
     sqla_094, sqla_094, sqla_099, sqla_100, sqla_105)
-from .os_helpers import ( # noqa
-    open_in_editor)
 
 
 class CommandError(Exception):
