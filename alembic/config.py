@@ -352,13 +352,6 @@ class CommandLine(object):
                         help="Specify a revision range; "
                         "format is [start]:[end]")
                 ),
-                'edit': (
-                    "--edit",
-                    dict(
-                        action="store_true",
-                        help="Edit the latest revision"
-                    )
-                )
             }
             positional_help = {
                 'directory': "location of scripts directory",
