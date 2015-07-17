@@ -1185,7 +1185,7 @@ unique=False, """
             server_default=false(),
             nullable=False)
         result = autogenerate.render._render_column(
-            c, self.autogen_context,
+            c, self.pg_autogen_context,
         )
         eq_ignore_whitespace(
             result,
@@ -1200,7 +1200,6 @@ unique=False, """
             'updated_at', Boolean(),
             server_default=false(),
             nullable=False)
-# MARKMARK
 
         result = autogenerate.render._render_column(
             c, self.default_autogen_context
