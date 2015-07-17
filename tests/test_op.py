@@ -7,10 +7,11 @@ from sqlalchemy import event
 
 from alembic import op
 from alembic.testing.fixtures import op_fixture
-from alembic.testing import eq_, assert_raises_message
+from alembic.testing import eq_, assert_raises_message, is_
 from alembic.testing import mock
 from alembic.testing.fixtures import TestBase
 from alembic.testing import config
+from alembic.operations import schemaobj, ops
 
 
 @event.listens_for(Table, "after_parent_attach")
@@ -938,3 +939,62 @@ class CustomOpTest(TestBase):
         context = op_fixture()
         op.create_sequence('foob')
         context.assert_("CREATE SEQUENCE foob")
+
+
+class EnsureOrigObjectFromToTest(TestBase):
+    """the to_XYZ and from_XYZ methods are used heavily in autogenerate.
+
+    It's critical that these methods, at least the "drop" form,
+    always return the *same* object if available so that all the info
+    passed into to_XYZ is maintained in the from_XYZ.
+
+
+    """
+
+    def test_drop_index(self):
+        schema_obj = schemaobj.SchemaObjects()
+        idx = schema_obj.index('x', 'y', ['z'])
+        op = ops.DropIndexOp.from_index(idx)
+        is_(
+            op.to_index(), idx
+        )
+
+    def test_create_index(self):
+        schema_obj = schemaobj.SchemaObjects()
+        idx = schema_obj.index('x', 'y', ['z'])
+        op = ops.CreateIndexOp.from_index(idx)
+        is_(
+            op.to_index(), idx
+        )
+
+    def test_drop_table(self):
+        schema_obj = schemaobj.SchemaObjects()
+        table = schema_obj.table('x', Column('q', Integer))
+        op = ops.DropTableOp.from_table(table)
+        is_(
+            op.to_table(), table
+        )
+
+    def test_create_table(self):
+        schema_obj = schemaobj.SchemaObjects()
+        table = schema_obj.table('x', Column('q', Integer))
+        op = ops.CreateTableOp.from_table(table)
+        is_(
+            op.to_table(), table
+        )
+
+    def test_drop_unique_constraint(self):
+        schema_obj = schemaobj.SchemaObjects()
+        const = schema_obj.unique_constraint('x', 'foobar', ['a'])
+        op = ops.DropConstraintOp.from_constraint(const)
+        is_(
+            op.to_constraint(), const
+        )
+
+    def test_drop_constraint_not_available(self):
+        op = ops.DropConstraintOp('x', 'y', type_='unique')
+        assert_raises_message(
+            ValueError,
+            "constraint cannot be produced",
+            op.to_constraint
+        )

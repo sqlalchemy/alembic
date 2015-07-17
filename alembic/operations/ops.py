@@ -812,6 +812,9 @@ class DropIndexOp(MigrateOperation):
         )
 
     def to_index(self, migration_context=None):
+        if self._orig_index is not None:
+            return self._orig_index
+
         schema_obj = schemaobj.SchemaObjects(migration_context)
 
         # need a dummy column name here since SQLAlchemy
