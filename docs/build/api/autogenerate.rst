@@ -4,6 +4,13 @@
 Autogeneration
 ==============
 
+.. note:: this section discusses the **internal API of Alembic**
+   as regards the autogeneration feature of the ``alembic revision``
+   command.
+   This section is only useful for developers who wish to extend the
+   capabilities of Alembic.  For general documentation on the autogenerate
+   feature, please see :doc:`/autogenerate`.
+
 The autogeneration system has a wide degree of public API, including
 the following areas:
 

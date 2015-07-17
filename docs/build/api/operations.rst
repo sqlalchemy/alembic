@@ -4,6 +4,12 @@
 Operation Directives
 =====================
 
+.. note:: this section discusses the **internal API of Alembic** as regards
+   the internal system of defining migration operation directives.
+   This section is only useful for developers who wish to extend the
+   capabilities of Alembic.  For end-user guidance on Alembic migration
+   operations, please see :ref:`ops`.
+
 Within migration scripts, actual database migration operations are handled
 via an instance of :class:`.Operations`.   The :class:`.Operations` class
 lists out available migration operations that are linked to a

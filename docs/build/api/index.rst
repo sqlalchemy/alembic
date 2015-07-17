@@ -22,8 +22,7 @@ to run commands programmatically, as discussed in the section :doc:`/api/command
    :maxdepth: 2
 
    overview
-   environment
-   migration
+   runtime
    config
    commands
    operations

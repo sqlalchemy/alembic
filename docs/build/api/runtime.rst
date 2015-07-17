@@ -1,6 +1,14 @@
 .. _alembic.runtime.environment.toplevel:
 
 =======================
+Runtime Objects
+=======================
+
+The "runtime" of Alembic involves the :class:`.EnvironmentContext`
+and :class:`.MigrationContext` objects.   These are the objects that are
+in play once the ``env.py`` script is loaded up by a command and
+a migration operation proceeds.
+
 The Environment Context
 =======================
 
@@ -17,3 +25,15 @@ which establishes all the details about how the database will be accessed.
 
 .. automodule:: alembic.runtime.environment
     :members: EnvironmentContext
+
+.. _alembic.runtime.migration.toplevel:
+
+The Migration Context
+=====================
+
+The :class:`.MigrationContext` handles the actual work to be performed
+against a database backend as migration operations proceed.  It is generally
+not exposed to the end-user.
+
+.. automodule:: alembic.runtime.migration
+    :members: MigrationContext

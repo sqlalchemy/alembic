@@ -2,6 +2,12 @@
 Overview
 ========
 
+.. note:: this section is a technical overview of the
+   **internal API of Alembic**.
+   This section is only useful for developers who wish to extend the
+   capabilities of Alembic; for regular users, reading this section
+   is **not necessary**.
+
 A visualization of the primary features of Alembic's internals is presented
 in the following figure.   The module and class boxes do not list out
 all the operations provided by each unit; only a small set of representative

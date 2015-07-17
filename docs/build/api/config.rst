@@ -4,6 +4,12 @@
 Configuration
 ==============
 
+.. note:: this section discusses the **internal API of Alembic** as
+   regards internal configuration constructs.
+   This section is only useful for developers who wish to extend the
+   capabilities of Alembic.  For documentation on configuration of
+   an Alembic environment, please see :doc:`/tutorial`.
+
 The :class:`.Config` object represents the configuration
 passed to the Alembic environment.  From an API usage perspective,
 it is needed for the following use cases:

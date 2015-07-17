@@ -4,6 +4,12 @@
 Commands
 =========
 
+.. note:: this section discusses the **internal API of Alembic**
+   as regards its command invocation system.
+   This section is only useful for developers who wish to extend the
+   capabilities of Alembic.  For documentation on using Alembic commands,
+   please see :doc:`/tutorial`.
+
 Alembic commands are all represented by functions in the :ref:`alembic.command.toplevel`
 package.  They all accept the same style of usage, being sent
 the :class:`.Config` object as the first argument.
