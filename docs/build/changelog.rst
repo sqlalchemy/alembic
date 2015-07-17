@@ -7,6 +7,57 @@ Changelog
     :version: 0.8.0
 
     .. change::
+      :tags: change, operations
+
+      A range of positional argument names have been changed to be
+      clearer and more consistent across methods within the
+      :class:`.Operations` namespace.   The most prevalent form of name change
+      is that the descriptive names ``constraint_name`` and ``table_name``
+      are now used where previously the name ``name`` would be used.
+      This is in support of the newly modularized and extensible system of
+      operation objects in :mod:`alembic.operations.ops`.
+      An argument translation layer is in place
+      across the ``alembic.op`` namespace that will ensure that named
+      argument calling styles that use the old names will continue to
+      function by transparently translating to the new names,
+      also emitting a warning.   This, along with the fact that these
+      arguments are positional in any case and aren't normally
+      passed with an explicit name, should ensure that the
+      overwhelming majority of applications should be unaffected by this
+      change.   The *only* applications that are impacted are those that:
+
+      1. use the :class:`.Operations` object directly in some way, rather
+         than calling upon the ``alembic.op`` namespace, and
+
+      2. invoke the methods on :class:`.Operations` using named keyword
+         arguments for positional arguments like ``table_name``,
+         ``constraint_name``, etc., which commonly were named ``name``
+         as of 0.7.6.
+
+      3. any application that is using named keyword arguments in place
+         of positional argument for the recently added
+         :class:`.BatchOperations` object may also be affected.
+
+      The naming changes are documented as "versionchanged" for 0.8.0:
+
+      * :meth:`.BatchOperations.create_check_constraint`
+      * :meth:`.BatchOperations.create_foreign_key`
+      * :meth:`.BatchOperations.create_index`
+      * :meth:`.BatchOperations.create_unique_constraint`
+      * :meth:`.BatchOperations.drop_constraint`
+      * :meth:`.BatchOperations.drop_index`
+      * :meth:`.Operations.create_check_constraint`
+      * :meth:`.Operations.create_foreign_key`
+      * :meth:`.Operations.create_primary_key`
+      * :meth:`.Operations.create_index`
+      * :meth:`.Operations.create_table`
+      * :meth:`.Operations.create_unique_constraint`
+      * :meth:`.Operations.drop_constraint`
+      * :meth:`.Operations.drop_index`
+      * :meth:`.Operations.drop_table`
+
+
+    .. change::
       :tags: feature, tests
 
       The default test runner via "python setup.py test" is now py.test.
