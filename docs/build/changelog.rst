@@ -5,6 +5,7 @@ Changelog
 
 .. changelog::
     :version: 0.7.7
+    :released: July 22, 2015
 
     .. change::
       :tags: bug, versioning
