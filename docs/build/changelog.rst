@@ -105,6 +105,15 @@ Changelog
     :version: 0.7.7
 
     .. change::
+      :tags: bug, versioning
+      :tickets: 310
+
+      Fixed critical issue where a complex series of branches/merges would
+      bog down the iteration algorithm working over redundant nodes for
+      millions of cycles.   An internal adjustment has been
+      made so that duplicate nodes are skipped within this iteration.
+
+    .. change::
       :tags: feature, batch
       :tickets: 305
 

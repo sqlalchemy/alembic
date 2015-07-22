@@ -544,17 +544,24 @@ class RevisionMap(object):
         if map_ is None:
             map_ = self._revision_map
 
+        seen = set()
         todo = collections.deque()
         for target in targets:
+
             todo.append(target)
             if check:
                 per_target = set()
+
             while todo:
                 rev = todo.pop()
-                todo.extend(
-                    map_[rev_id] for rev_id in fn(rev))
                 if check:
                     per_target.add(rev)
+
+                if rev in seen:
+                    continue
+                seen.add(rev)
+                todo.extend(
+                    map_[rev_id] for rev_id in fn(rev))
                 yield rev
             if check and per_target.intersection(targets).difference([target]):
                 raise RevisionError(
@@ -569,7 +576,6 @@ class RevisionMap(object):
         across branches as a whole.
 
         """
-
         requested_lowers = self.get_revisions(lower)
 
         # some complexity to accommodate an iteration where some
@@ -727,6 +733,20 @@ class Revision(object):
         self.dependencies = tuple_rev_as_scalar(dependencies)
         self._orig_branch_labels = util.to_tuple(branch_labels, default=())
         self.branch_labels = set(self._orig_branch_labels)
+
+    def __repr__(self):
+        args = [
+            repr(self.revision),
+            repr(self.down_revision)
+        ]
+        if self.dependencies:
+            args.append("dependencies=%r" % self.dependencies)
+        if self.branch_labels:
+            args.append("branch_labels=%r" % self.branch_labels)
+        return "%s(%s)" % (
+            self.__class__.__name__,
+            ", ".join(args)
+        )
 
     def add_nextrev(self, revision):
         self._all_nextrev = self._all_nextrev.union([revision.revision])
