@@ -261,3 +261,516 @@ Then in ``env.py``::
 
 .. versionadded:: 0.7.5 Added :attr:`.Config.attributes`.
 
+.. _replaceable_objects:
+
+Replaceable Objects
+===================
+
+This recipe proposes a hypothetical way of dealing with
+what we might call a *replaceable* schema object.  A replaceable object
+is a schema object that needs to be created and dropped all at once.
+Examples of such objects include views, stored procedures, and triggers.
+
+Replaceable objects present a problem in that in order to make incremental
+changes to them, we have to refer to the whole definition at once.
+If we need to add a new column to a view, for example, we have to drop
+it entirely and recreate it fresh with the extra column added, referring to
+the whole structure; but to make it even tougher, if we wish to support
+downgrade operarations in our migration scripts,
+we need to refer to the *previous* version of that
+construct fully, and we'd much rather not have to type out the whole
+definition in multiple places.
+
+This recipe proposes that we may refer to the older version of a
+replaceable construct by directly naming the migration version in
+which it was created, and having a migration refer to that previous
+file as migrations run.   We will also demonstrate how to integrate this
+logic within the :ref:`operation_plugins` feature introduced in
+Alembic 0.8.  It may be very helpful to review
+this section first to get an overview of this API.
+
+The Replaceable Object Structure
+--------------------------------
+
+We first need to devise a simple format that represents the "CREATE XYZ" /
+"DROP XYZ" aspect of what it is we're building.  We will work with an object
+that represents a textual definition; while a SQL view is an object that we can define
+using a `table-metadata-like system <https://bitbucket.org/zzzeek/sqlalchemy/wiki/UsageRecipes/Views>`_,
+this is not so much the case for things like stored procedures, where
+we pretty much need to have a full string definition written down somewhere.
+We'll use a simple value object called ``ReplaceableObject`` that can
+represent any named set of SQL text to send to a "CREATE" statement of
+some kind::
+
+    class ReplaceableObject(object):
+        def __init__(self, name, sqltext):
+            self.name = name
+            self.sqltext = sqltext
+
+Using this object in a migration script, assuming a Postgresql-style
+syntax, looks like::
+
+    customer_view = ReplaceableObject(
+        "customer_view",
+        "SELECT name, order_count FROM customer WHERE order_count > 0"
+    )
+
+    add_customer_sp = ReplaceableObject(
+        "add_customer_sp(name varchar, order_count integer)",
+        """
+        RETURNS integer AS $$
+        BEGIN
+            insert into customer (name, order_count)
+            VALUES (in_name, in_order_count);
+        END;
+        $$ LANGUAGE plpgsql;
+        """
+    )
+
+The ``ReplaceableObject`` class is only one very simplistic way to do this.
+The structure of how we represent our schema objects
+is not too important for the purposes of this example; we can just
+as well put strings inside of tuples or dictionaries, as well as
+that we could define any kind of series of fields and class structures we want.
+The only important part is that below we will illustrate how organize the
+code that can consume the structure we create here.
+
+Create Operations for the Target Objects
+----------------------------------------
+
+We'll use the :class:`.Operations` extension API to make new operations
+for create, drop, and replace of views and stored procedures.  Using this
+API is also optional; we can just as well make any kind of Python
+function that we would invoke from our migration scripts.
+However, using this API gives us operations
+built directly into the Alembic ``op.*`` namespace very nicely.
+
+The most intricate class is below.  This is the base of our "replaceable"
+operation, which includes not just a base operation for emitting
+CREATE and DROP instructions on a ``ReplaceableObject``, it also assumes
+a certain model of "reversibility" which makes use of references to
+other migration files in order to refer to the "previous" version
+of an object::
+
+    from alembic.operations import Operations, MigrateOperation
+
+    class ReversibleOp(MigrateOperation):
+        def __init__(self, target):
+            self.target = target
+
+        @classmethod
+        def invoke_for_target(cls, operations, target):
+            op = cls(target)
+            return operations.invoke(op)
+
+        def reverse(self):
+            raise NotImplementedError()
+
+        @classmethod
+        def _get_object_from_version(cls, operations, ident):
+            version, objname = ident.split(".")
+
+            module = operations.get_context().script.get_revision(version).module
+            obj = getattr(module, objname)
+            return obj
+
+        @classmethod
+        def replace(cls, operations, target, replaces=None, replace_with=None):
+
+            if replaces:
+                old_obj = cls._get_object_from_version(operations, replaces)
+                drop_old = cls(old_obj).reverse()
+                create_new = cls(target)
+            elif replace_with:
+                old_obj = cls._get_object_from_version(operations, replace_with)
+                drop_old = cls(target).reverse()
+                create_new = cls(old_obj)
+            else:
+                raise TypeError("replaces or replace_with is required")
+
+            operations.invoke(drop_old)
+            operations.invoke(create_new)
+
+The workings of this class should become clear as we walk through the
+example.   To create usable operations from this base, we will build
+a series of stub classes and use :meth:`.Operations.register_operation`
+to make them part of the ``op.*`` namespace::
+
+    @Operations.register_operation("create_view", "invoke_for_target")
+    @Operations.register_operation("replace_view", "replace")
+    class CreateViewOp(ReversibleOp):
+        def reverse(self):
+            return DropViewOp(self.target)
+
+
+    @Operations.register_operation("drop_view", "invoke_for_target")
+    class DropViewOp(ReversibleOp):
+        def reverse(self):
+            return CreateViewOp(self.view)
+
+
+    @Operations.register_operation("create_sp", "invoke_for_target")
+    @Operations.register_operation("replace_sp", "replace")
+    class CreateSPOp(ReversibleOp):
+        def reverse(self):
+            return DropSPOp(self.target)
+
+
+    @Operations.register_operation("drop_sp", "invoke_for_target")
+    class DropSPOp(ReversibleOp):
+        def reverse(self):
+            return CreateSPOp(self.target)
+
+To actually run the SQL like "CREATE VIEW" and "DROP SEQUENCE", we'll provide
+implementations using :meth:`.Operations.implementation_for`
+that run straight into :meth:`.Operations.execute`::
+
+    @Operations.implementation_for(CreateViewOp)
+    def create_view(operations, operation):
+        operations.execute("CREATE VIEW %s AS %s" % (
+            operation.target.name,
+            operation.target.sqltext
+        ))
+
+
+    @Operations.implementation_for(DropViewOp)
+    def drop_view(operations, operation):
+        operations.execute("DROP VIEW %s" % operation.target.name)
+
+
+    @Operations.implementation_for(CreateSPOp)
+    def create_sp(operations, operation):
+        operations.execute(
+            "CREATE FUNCTION %s %s" % (
+                operation.target.name, operation.target.sqltext
+            )
+        )
+
+
+    @Operations.implementation_for(DropSPOp)
+    def drop_sp(operations, operation):
+        operations.execute("DROP FUNCTION %s" % operation.target.name)
+
+All of the above code can be present anywhere within an application's
+source tree; the only requirement is that when the ``env.py`` script is
+invoked, it includes imports that ultimately call upon these classes
+as well as the :meth:`.Operations.register_operation` and
+:meth:`.Operations.implementation_for` sequences.
+
+Create Initial Migrations
+-------------------------
+
+We can now illustrate how these objects look during use.  For the first step,
+we'll create a new migration to create a "customer" table::
+
+    $ alembic revision -m "create table"
+
+We build the first revision as follows::
+
+    """create table
+
+    Revision ID: 3ab8b2dfb055
+    Revises:
+    Create Date: 2015-07-27 16:22:44.918507
+
+    """
+
+    # revision identifiers, used by Alembic.
+    revision = '3ab8b2dfb055'
+    down_revision = None
+    branch_labels = None
+    depends_on = None
+
+    from alembic import op
+    import sqlalchemy as sa
+
+
+    def upgrade():
+        op.create_table(
+            "customer",
+            sa.Column('id', sa.Integer, primary_key=True),
+            sa.Column('name', sa.String),
+            sa.Column('order_count', sa.Integer),
+        )
+
+
+    def downgrade():
+        op.drop_table('customer')
+
+For the second migration, we will create a view and a stored procedure
+which act upon this table::
+
+    $ alembic revision -m "create views/sp"
+
+This migration will use the new directives::
+
+    """create views/sp
+
+    Revision ID: 28af9800143f
+    Revises: 3ab8b2dfb055
+    Create Date: 2015-07-27 16:24:03.589867
+
+    """
+
+    # revision identifiers, used by Alembic.
+    revision = '28af9800143f'
+    down_revision = '3ab8b2dfb055'
+    branch_labels = None
+    depends_on = None
+
+    from alembic import op
+    import sqlalchemy as sa
+
+    from foo import ReplaceableObject
+
+    customer_view = ReplaceableObject(
+        "customer_view",
+        "SELECT name, order_count FROM customer WHERE order_count > 0"
+    )
+
+    add_customer_sp = ReplaceableObject(
+        "add_customer_sp(name varchar, order_count integer)",
+        """
+        RETURNS integer AS $$
+        BEGIN
+            insert into customer (name, order_count)
+            VALUES (in_name, in_order_count);
+        END;
+        $$ LANGUAGE plpgsql;
+        """
+    )
+
+
+    def upgrade():
+        op.create_view(customer_view)
+        op.create_sp(add_customer_sp)
+
+
+    def downgrade():
+        op.drop_view(customer_view)
+        op.drop_sp(add_customer_sp)
+
+
+We see the use of our new ``create_view()``, ``create_sp()``,
+``drop_view()``, and ``drop_sp()`` directives.  Running these to "head"
+we get the following (this includes an edited view of SQL emitted)::
+
+    $ alembic upgrade 28af9800143
+    INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+    INFO  [alembic.runtime.migration] Will assume transactional DDL.
+    INFO  [sqlalchemy.engine.base.Engine] BEGIN (implicit)
+    INFO  [sqlalchemy.engine.base.Engine] select relname from pg_class c join pg_namespace n on n.oid=c.relnamespace where pg_catalog.pg_table_is_visible(c.oid) and relname=%(name)s
+    INFO  [sqlalchemy.engine.base.Engine] {'name': u'alembic_version'}
+    INFO  [sqlalchemy.engine.base.Engine] SELECT alembic_version.version_num
+    FROM alembic_version
+    INFO  [sqlalchemy.engine.base.Engine] {}
+    INFO  [sqlalchemy.engine.base.Engine] select relname from pg_class c join pg_namespace n on n.oid=c.relnamespace where pg_catalog.pg_table_is_visible(c.oid) and relname=%(name)s
+    INFO  [sqlalchemy.engine.base.Engine] {'name': u'alembic_version'}
+    INFO  [alembic.runtime.migration] Running upgrade  -> 3ab8b2dfb055, create table
+    INFO  [sqlalchemy.engine.base.Engine]
+    CREATE TABLE customer (
+        id SERIAL NOT NULL,
+        name VARCHAR,
+        order_count INTEGER,
+        PRIMARY KEY (id)
+    )
+
+
+    INFO  [sqlalchemy.engine.base.Engine] {}
+    INFO  [sqlalchemy.engine.base.Engine] INSERT INTO alembic_version (version_num) VALUES ('3ab8b2dfb055')
+    INFO  [sqlalchemy.engine.base.Engine] {}
+    INFO  [alembic.runtime.migration] Running upgrade 3ab8b2dfb055 -> 28af9800143f, create views/sp
+    INFO  [sqlalchemy.engine.base.Engine] CREATE VIEW customer_view AS SELECT name, order_count FROM customer WHERE order_count > 0
+    INFO  [sqlalchemy.engine.base.Engine] {}
+    INFO  [sqlalchemy.engine.base.Engine] CREATE FUNCTION add_customer_sp(name varchar, order_count integer)
+        RETURNS integer AS $$
+        BEGIN
+            insert into customer (name, order_count)
+            VALUES (in_name, in_order_count);
+        END;
+        $$ LANGUAGE plpgsql;
+
+    INFO  [sqlalchemy.engine.base.Engine] {}
+    INFO  [sqlalchemy.engine.base.Engine] UPDATE alembic_version SET version_num='28af9800143f' WHERE alembic_version.version_num = '3ab8b2dfb055'
+    INFO  [sqlalchemy.engine.base.Engine] {}
+    INFO  [sqlalchemy.engine.base.Engine] COMMIT
+
+We see that our CREATE TABLE proceeded as well as the CREATE VIEW and CREATE
+FUNCTION operations produced by our new directives.
+
+
+Create Revision Migrations
+--------------------------
+
+Finally, we can illustrate how we would "revise" these objects.
+Let's consider we added a new column ``email`` to our ``customer`` table::
+
+    $ alembic revision -m "add email col"
+
+The migration is::
+
+    """add email col
+
+    Revision ID: 191a2d20b025
+    Revises: 28af9800143f
+    Create Date: 2015-07-27 16:25:59.277326
+
+    """
+
+    # revision identifiers, used by Alembic.
+    revision = '191a2d20b025'
+    down_revision = '28af9800143f'
+    branch_labels = None
+    depends_on = None
+
+    from alembic import op
+    import sqlalchemy as sa
+
+
+    def upgrade():
+        op.add_column("customer", sa.Column("email", sa.String()))
+
+
+    def downgrade():
+        op.drop_column("customer", "email")
+
+
+We now need to recreate the ``customer_view`` view and the
+``add_customer_sp`` function.   To include downgrade capability, we will
+need to refer to the **previous** version of the construct; the
+``replace_view()`` and ``replace_sp()`` operations we've created make
+this possible, by allowing us to refer to a specific, previous revision.
+the ``replaces`` and ``replace_with`` arguments accept a dot-separated
+string, which refers to a revision number and an object name, such
+as ``"28af9800143f.customer_view"``.  The ``ReversibleOp`` class makes use
+of the :meth:`.Operations.get_context` method to locate the version file
+we refer to::
+
+    $ alembic revision -m "update views/sp"
+
+The migration::
+
+    """update views/sp
+
+    Revision ID: 199028bf9856
+    Revises: 191a2d20b025
+    Create Date: 2015-07-27 16:26:31.344504
+
+    """
+
+    # revision identifiers, used by Alembic.
+    revision = '199028bf9856'
+    down_revision = '191a2d20b025'
+    branch_labels = None
+    depends_on = None
+
+    from alembic import op
+    import sqlalchemy as sa
+
+    from foo import ReplaceableObject
+
+    customer_view = ReplaceableObject(
+        "customer_view",
+        "SELECT name, order_count, email "
+        "FROM customer WHERE order_count > 0"
+    )
+
+    add_customer_sp = ReplaceableObject(
+        "add_customer_sp(name varchar, order_count integer, email varchar)",
+        """
+        RETURNS integer AS $$
+        BEGIN
+            insert into customer (name, order_count, email)
+            VALUES (in_name, in_order_count, email);
+        END;
+        $$ LANGUAGE plpgsql;
+        """
+    )
+
+
+    def upgrade():
+        op.replace_view(customer_view, replaces="28af9800143f.customer_view")
+        op.replace_sp(add_customer_sp, replaces="28af9800143f.add_customer_sp")
+
+
+    def downgrade():
+        op.replace_view(customer_view, replace_with="28af9800143f.customer_view")
+        op.replace_sp(add_customer_sp, replace_with="28af9800143f.add_customer_sp")
+
+Above, instead of using ``create_view()``, ``create_sp()``,
+``drop_view()``, and ``drop_sp()`` methods, we now use ``replace_view()`` and
+``replace_sp()``.  The replace operation we've built always runs a DROP *and*
+a CREATE.  Running an upgrade to head we see::
+
+    $ alembic upgrade head
+    INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+    INFO  [alembic.runtime.migration] Will assume transactional DDL.
+    INFO  [sqlalchemy.engine.base.Engine] BEGIN (implicit)
+    INFO  [sqlalchemy.engine.base.Engine] select relname from pg_class c join pg_namespace n on n.oid=c.relnamespace where pg_catalog.pg_table_is_visible(c.oid) and relname=%(name)s
+    INFO  [sqlalchemy.engine.base.Engine] {'name': u'alembic_version'}
+    INFO  [sqlalchemy.engine.base.Engine] SELECT alembic_version.version_num
+    FROM alembic_version
+    INFO  [sqlalchemy.engine.base.Engine] {}
+    INFO  [alembic.runtime.migration] Running upgrade 28af9800143f -> 191a2d20b025, add email col
+    INFO  [sqlalchemy.engine.base.Engine] ALTER TABLE customer ADD COLUMN email VARCHAR
+    INFO  [sqlalchemy.engine.base.Engine] {}
+    INFO  [sqlalchemy.engine.base.Engine] UPDATE alembic_version SET version_num='191a2d20b025' WHERE alembic_version.version_num = '28af9800143f'
+    INFO  [sqlalchemy.engine.base.Engine] {}
+    INFO  [alembic.runtime.migration] Running upgrade 191a2d20b025 -> 199028bf9856, update views/sp
+    INFO  [sqlalchemy.engine.base.Engine] DROP VIEW customer_view
+    INFO  [sqlalchemy.engine.base.Engine] {}
+    INFO  [sqlalchemy.engine.base.Engine] CREATE VIEW customer_view AS SELECT name, order_count, email FROM customer WHERE order_count > 0
+    INFO  [sqlalchemy.engine.base.Engine] {}
+    INFO  [sqlalchemy.engine.base.Engine] DROP FUNCTION add_customer_sp(name varchar, order_count integer)
+    INFO  [sqlalchemy.engine.base.Engine] {}
+    INFO  [sqlalchemy.engine.base.Engine] CREATE FUNCTION add_customer_sp(name varchar, order_count integer, email varchar)
+        RETURNS integer AS $$
+        BEGIN
+            insert into customer (name, order_count, email)
+            VALUES (in_name, in_order_count, email);
+        END;
+        $$ LANGUAGE plpgsql;
+
+    INFO  [sqlalchemy.engine.base.Engine] {}
+    INFO  [sqlalchemy.engine.base.Engine] UPDATE alembic_version SET version_num='199028bf9856' WHERE alembic_version.version_num = '191a2d20b025'
+    INFO  [sqlalchemy.engine.base.Engine] {}
+    INFO  [sqlalchemy.engine.base.Engine] COMMIT
+
+After adding our new ``email`` column, we see that both ``customer_view``
+and ``add_customer_sp()`` are dropped before the new version is created.
+If we downgrade back to the old version, we see the old version of these
+recreated again within the downgrade for this migration::
+
+    $ alembic downgrade 28af9800143
+    INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+    INFO  [alembic.runtime.migration] Will assume transactional DDL.
+    INFO  [sqlalchemy.engine.base.Engine] BEGIN (implicit)
+    INFO  [sqlalchemy.engine.base.Engine] select relname from pg_class c join pg_namespace n on n.oid=c.relnamespace where pg_catalog.pg_table_is_visible(c.oid) and relname=%(name)s
+    INFO  [sqlalchemy.engine.base.Engine] {'name': u'alembic_version'}
+    INFO  [sqlalchemy.engine.base.Engine] SELECT alembic_version.version_num
+    FROM alembic_version
+    INFO  [sqlalchemy.engine.base.Engine] {}
+    INFO  [alembic.runtime.migration] Running downgrade 199028bf9856 -> 191a2d20b025, update views/sp
+    INFO  [sqlalchemy.engine.base.Engine] DROP VIEW customer_view
+    INFO  [sqlalchemy.engine.base.Engine] {}
+    INFO  [sqlalchemy.engine.base.Engine] CREATE VIEW customer_view AS SELECT name, order_count FROM customer WHERE order_count > 0
+    INFO  [sqlalchemy.engine.base.Engine] {}
+    INFO  [sqlalchemy.engine.base.Engine] DROP FUNCTION add_customer_sp(name varchar, order_count integer, email varchar)
+    INFO  [sqlalchemy.engine.base.Engine] {}
+    INFO  [sqlalchemy.engine.base.Engine] CREATE FUNCTION add_customer_sp(name varchar, order_count integer)
+        RETURNS integer AS $$
+        BEGIN
+            insert into customer (name, order_count)
+            VALUES (in_name, in_order_count);
+        END;
+        $$ LANGUAGE plpgsql;
+
+    INFO  [sqlalchemy.engine.base.Engine] {}
+    INFO  [sqlalchemy.engine.base.Engine] UPDATE alembic_version SET version_num='191a2d20b025' WHERE alembic_version.version_num = '199028bf9856'
+    INFO  [sqlalchemy.engine.base.Engine] {}
+    INFO  [alembic.runtime.migration] Running downgrade 191a2d20b025 -> 28af9800143f, add email col
+    INFO  [sqlalchemy.engine.base.Engine] ALTER TABLE customer DROP COLUMN email
+    INFO  [sqlalchemy.engine.base.Engine] {}
+    INFO  [sqlalchemy.engine.base.Engine] UPDATE alembic_version SET version_num='28af9800143f' WHERE alembic_version.version_num = '191a2d20b025'
+    INFO  [sqlalchemy.engine.base.Engine] {}
+    INFO  [sqlalchemy.engine.base.Engine] COMMIT
