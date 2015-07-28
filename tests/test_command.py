@@ -218,6 +218,55 @@ finally:
         command.upgrade(self.cfg, "heads")
         command.revision(self.cfg, autogenerate=True)
 
+    def test_create_rev_depends_on(self):
+        self._env_fixture()
+        command.revision(self.cfg)
+        rev2 = command.revision(self.cfg)
+        rev3 = command.revision(self.cfg, depends_on=rev2.revision)
+        eq_(
+            rev3._resolved_dependencies, (rev2.revision, )
+        )
+
+        rev4 = command.revision(
+            self.cfg, depends_on=[rev2.revision, rev3.revision])
+        eq_(
+            rev4._resolved_dependencies, (rev2.revision, rev3.revision)
+        )
+
+    def test_create_rev_depends_on_branch_label(self):
+        self._env_fixture()
+        command.revision(self.cfg)
+        rev2 = command.revision(self.cfg, branch_label='foobar')
+        rev3 = command.revision(self.cfg, depends_on='foobar')
+        eq_(
+            rev3.dependencies, 'foobar'
+        )
+        eq_(
+            rev3._resolved_dependencies, (rev2.revision, )
+        )
+
+    def test_create_rev_depends_on_partial_revid(self):
+        self._env_fixture()
+        command.revision(self.cfg)
+        rev2 = command.revision(self.cfg)
+        assert len(rev2.revision) > 7
+        rev3 = command.revision(self.cfg, depends_on=rev2.revision[0:4])
+        eq_(
+            rev3.dependencies, rev2.revision
+        )
+        eq_(
+            rev3._resolved_dependencies, (rev2.revision, )
+        )
+
+    def test_create_rev_invalid_depends_on(self):
+        self._env_fixture()
+        command.revision(self.cfg)
+        assert_raises_message(
+            util.CommandError,
+            "Can't locate revision identified by 'invalid'",
+            command.revision, self.cfg, depends_on='invalid'
+        )
+
     def test_create_rev_autogenerate_db_not_up_to_date_post_merge(self):
         self._env_fixture()
         command.revision(self.cfg)

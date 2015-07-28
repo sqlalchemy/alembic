@@ -7,6 +7,19 @@ Changelog
     :version: 0.8.0
 
     .. change::
+      :tags: feature, commands
+      :tickets: 311
+
+      Added new multiple-capable argument ``--depends-on`` to the
+      ``alembic revision`` command, allowing ``depends_on`` to be
+      established at the command line level rather than having to edit
+      the file after the fact. ``depends_on`` identifiers may also be
+      specified as branch names at the command line or directly within
+      the migration file. The values may be specified as partial
+      revision numbers from the command line which will be resolved to
+      full revision numbers in the output file.
+
+    .. change::
       :tags: change, operations
 
       A range of positional argument names have been changed to be

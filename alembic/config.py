@@ -292,6 +292,14 @@ class CommandLine(object):
                         "'head' to splice onto"
                     )
                 ),
+                'depends_on': (
+                    "--depends-on",
+                    dict(
+                        action="append",
+                        help="Specify one or more revision identifiers "
+                        "which this revision should depend on."
+                    )
+                ),
                 'rev_id': (
                     "--rev-id",
                     dict(

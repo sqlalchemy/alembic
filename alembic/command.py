@@ -68,7 +68,7 @@ def init(config, directory, template='generic'):
 def revision(
         config, message=None, autogenerate=False, sql=False,
         head="head", splice=False, branch_label=None,
-        version_path=None, rev_id=None):
+        version_path=None, rev_id=None, depends_on=None):
     """Create a new revision file."""
 
     script_directory = ScriptDirectory.from_config(config)
@@ -77,7 +77,7 @@ def revision(
         message=message,
         autogenerate=autogenerate,
         sql=sql, head=head, splice=splice, branch_label=branch_label,
-        version_path=version_path, rev_id=rev_id
+        version_path=version_path, rev_id=rev_id, depends_on=depends_on
     )
     revision_context = autogen.RevisionContext(
         config, script_directory, command_args)

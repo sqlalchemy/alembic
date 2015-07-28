@@ -843,7 +843,7 @@ class MultipleBaseCrossDependencyTestTwo(DownIterateTest):
                 Revision('b1', 'a1'),
                 Revision('c1', 'b1'),
 
-                Revision('base2', (), dependencies='base1', branch_labels='b_2'),
+                Revision('base2', (), dependencies='b_1', branch_labels='b_2'),
                 Revision('a2', 'base2'),
                 Revision('b2', 'a2'),
                 Revision('c2', 'b2'),
@@ -941,3 +941,28 @@ class LargeMapTest(DownIterateTest):
             remaining = set(revs[idx + 1:])
             if remaining:
                 assert remaining.intersection(ancestors)
+
+
+class DepResolutionFailedTest(DownIterateTest):
+    def setUp(self):
+        self.map = RevisionMap(
+            lambda: [
+                Revision('base1', ()),
+                Revision('a1', 'base1'),
+                Revision('a2', 'base1'),
+                Revision('b1', 'a1'),
+                Revision('c1', 'b1'),
+            ]
+        )
+        # intentionally make a broken map
+        self.map._revision_map['fake'] = self.map._revision_map['a2']
+        self.map._revision_map['b1'].dependencies = 'fake'
+        self.map._revision_map['b1']._resolved_dependencies = ('fake', )
+
+    def test_failure_message(self):
+        iter_ = self.map.iterate_revisions("c1", "base1")
+        assert_raises_message(
+            RevisionError,
+            "Dependency resolution failed;",
+            list, iter_
+        )

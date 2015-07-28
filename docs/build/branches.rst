@@ -1,4 +1,4 @@
-.. _branches:
+f.. _branches:
 
 Working with Branches
 =====================
@@ -663,14 +663,13 @@ a revision file to refer to another as a "dependency", very similar to
 an entry in ``down_revision`` from a graph perspective, but different
 from a semantic perspective.
 
-First we will build out our new revision on the ``networking`` branch
-in the usual way::
+To use ``depends_on``, we can specify it as part of our ``alembic revision``
+command::
 
-    $ alembic revision -m "add ip account table" --head=networking@head
+    $ alembic revision -m "add ip account table" --head=networking@head  --depends-on=55af2cb1c267
       Generating /path/to/foo/model/networking/2a95102259be_add_ip_account_table.py ... done
 
-Next, we'll add an explicit dependency inside the file, by placing the
-directive ``depends_on='55af2cb1c267'`` underneath the other directives::
+Within our migration file, we'll see this new directive present::
 
     # revision identifiers, used by Alembic.
     revision = '2a95102259be'
@@ -678,9 +677,18 @@ directive ``depends_on='55af2cb1c267'`` underneath the other directives::
     branch_labels = None
     depends_on='55af2cb1c267'
 
-Currently, ``depends_on`` needs to be a real revision number, not a partial
-number or branch name.   It can of course refer to a tuple of any number
-of dependent revisions::
+``depends_on`` may be either a real revision number or a branch
+name.  When specified at the command line, a resolution from a
+partial revision number will work as well.   It can refer
+to any number of dependent revisions as well; for example, if we were
+to run the command::
+
+    $ alembic revision -m "add ip account table" \\
+        --head=networking@head  \\
+        --depends-on=55af2cb1c267 --depends-on=d747a --depends-on=fa445
+      Generating /path/to/foo/model/networking/2a95102259be_add_ip_account_table.py ... done
+
+We'd see inside the file::
 
     # revision identifiers, used by Alembic.
     revision = '2a95102259be'
@@ -688,6 +696,15 @@ of dependent revisions::
     branch_labels = None
     depends_on = ('55af2cb1c267', 'd747a8a8879', 'fa4456a9201')
 
+We also can of course add or alter this value within the file manually after
+it is generated, rather than using the ``--depends-on`` argument.
+
+.. versionadded:: 0.8 The ``depends_on`` attribute may be set directly
+   from the ``alembic revision`` command, rather than editing the file
+   directly.  ``depends_on`` identifiers may also be specified as
+   branch names at the command line or directly within the migration file.
+   The values may be specified as partial revision numbers from the command
+   line which will be resolved to full revision numbers in the output file.
 
 We can see the effect this directive has when we view the history
 of the ``networking`` branch in terms of "heads", e.g., all the revisions that

@@ -123,7 +123,8 @@ class ScriptDirectory(object):
     @contextmanager
     def _catch_revision_errors(
             self,
-            ancestor=None, multiple_heads=None, start=None, end=None):
+            ancestor=None, multiple_heads=None, start=None, end=None,
+            resolution=None):
         try:
             yield
         except revision.RangeNotAncestorError as rna:
@@ -151,6 +152,12 @@ class ScriptDirectory(object):
                 "heads": util.format_as_comma(mh.heads)
             }
             compat.raise_from_cause(util.CommandError(multiple_heads))
+        except revision.ResolutionError as re:
+            if resolution is None:
+                resolution = "Can't locate revision identified by '%s'" % (
+                    re.argument
+                )
+            compat.raise_from_cause(util.CommandError(resolution))
         except revision.RevisionError as err:
             compat.raise_from_cause(util.CommandError(err.args[0]))
 
@@ -488,6 +495,19 @@ class ScriptDirectory(object):
                         "Revision %s is not a head revision; please specify "
                         "--splice to create a new branch from this revision"
                         % head.revision)
+
+        if depends_on:
+            with self._catch_revision_errors():
+                depends_on = [
+                    dep
+                    if dep in rev.branch_labels  # maintain branch labels
+                    else rev.revision  # resolve partial revision identifiers
+                    for rev in [
+                        self.revision_map.get_revision(dep)
+                        for dep in util.to_list(depends_on)
+                    ]
+
+                ]
 
         self._generate_template(
             os.path.join(self.dir, "script.py.mako"),

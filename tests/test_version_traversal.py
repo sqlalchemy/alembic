@@ -692,6 +692,49 @@ class DependsOnBranchTestTwo(MigrationTest):
         )
 
 
+class DependsOnBranchLabelTest(MigrationTest):
+    @classmethod
+    def setup_class(cls):
+        cls.env = env = staging_env()
+        cls.a1 = env.generate_revision(
+            util.rev_id(), '->a1',
+            branch_labels=['lib1'])
+        cls.b1 = env.generate_revision(util.rev_id(), 'a1->b1')
+        cls.c1 = env.generate_revision(
+            util.rev_id(), 'b1->c1',
+            branch_labels=['c1lib'])
+
+        cls.a2 = env.generate_revision(util.rev_id(), '->a2', head=())
+        cls.b2 = env.generate_revision(
+            util.rev_id(), 'a2->b2', head=cls.a2.revision)
+        cls.c2 = env.generate_revision(
+            util.rev_id(), 'b2->c2', head=cls.b2.revision,
+            depends_on=['c1lib'])
+
+        cls.d1 = env.generate_revision(
+            util.rev_id(), 'c1->d1',
+            head=cls.c1.revision)
+        cls.e1 = env.generate_revision(
+            util.rev_id(), 'd1->e1',
+            head=cls.d1.revision)
+        cls.f1 = env.generate_revision(
+            util.rev_id(), 'e1->f1',
+            head=cls.e1.revision)
+
+    def test_upgrade_path(self):
+        self._assert_upgrade(
+            self.c2.revision, self.a2.revision,
+            [
+                self.up_(self.a1),
+                self.up_(self.b1),
+                self.up_(self.c1),
+                self.up_(self.b2),
+                self.up_(self.c2),
+            ],
+            set([self.c2.revision, ])
+        )
+
+
 class ForestTest(MigrationTest):
 
     @classmethod

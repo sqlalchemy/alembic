@@ -336,6 +336,7 @@ class RevisionContext(object):
             splice=migration_script.splice,
             branch_labels=migration_script.branch_label,
             version_path=migration_script.version_path,
+            depends_on=migration_script.depends_on,
             **template_args)
 
     def run_autogenerate(self, rev, context):
@@ -377,7 +378,8 @@ class RevisionContext(object):
             head=self.command_args['head'],
             splice=self.command_args['splice'],
             branch_label=self.command_args['branch_label'],
-            version_path=self.command_args['version_path']
+            version_path=self.command_args['version_path'],
+            depends_on=self.command_args['depends_on']
         )
         op._autogen_context = None
         return op

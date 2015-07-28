@@ -1896,7 +1896,7 @@ class MigrationScript(MigrateOperation):
             self, rev_id, upgrade_ops, downgrade_ops,
             message=None,
             imports=None, head=None, splice=None,
-            branch_label=None, version_path=None):
+            branch_label=None, version_path=None, depends_on=None):
         self.rev_id = rev_id
         self.message = message
         self.imports = imports
@@ -1904,5 +1904,6 @@ class MigrationScript(MigrateOperation):
         self.splice = splice
         self.branch_label = branch_label
         self.version_path = version_path
+        self.depends_on = depends_on
         self.upgrade_ops = upgrade_ops
         self.downgrade_ops = downgrade_ops
