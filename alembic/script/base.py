@@ -502,8 +502,8 @@ class ScriptDirectory(object):
                     dep
                     if dep in rev.branch_labels  # maintain branch labels
                     else rev.revision  # resolve partial revision identifiers
-                    for rev in [
-                        self.revision_map.get_revision(dep)
+                    for rev, dep in [
+                        (self.revision_map.get_revision(dep), dep)
                         for dep in util.to_list(depends_on)
                     ]
 
