@@ -15,6 +15,7 @@ readme = os.path.join(os.path.dirname(__file__), 'README.rst')
 requires = [
     'SQLAlchemy>=0.7.6',
     'Mako',
+    'python-editor>=0.3',
 ]
 
 try:

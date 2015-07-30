@@ -5,7 +5,7 @@ from alembic.testing.fixtures import TestBase, capture_context_buffer
 from alembic.testing.env import staging_env, _sqlite_testing_config, \
     three_rev_fixture, clear_staging_env, _no_sql_testing_config, \
     _sqlite_file_db, write_script, env_file_fixture
-from alembic.testing import eq_, assert_raises_message
+from alembic.testing import eq_, assert_raises_message, mock
 from alembic import util
 
 
@@ -420,3 +420,35 @@ down_revision = '%s'
             self.bind.scalar("select version_num from alembic_version"),
             self.a
         )
+
+
+class EditTest(TestBase):
+
+    @classmethod
+    def setup_class(cls):
+        cls.env = staging_env()
+        cls.cfg = _sqlite_testing_config()
+        cls.a, cls.b, cls.c = three_rev_fixture(cls.cfg)
+
+    @classmethod
+    def teardown_class(cls):
+        clear_staging_env()
+
+    def test_edit_latest(self):
+        expected_call_arg = '%s/scripts/versions/%s_revision_c.py' % (
+            EditTest.cfg.config_args['here'],
+            EditTest.c
+        )
+
+        with mock.patch('alembic.command.editor.edit') as edit:
+            command.edit(self.cfg)
+            edit.assert_called_with(expected_call_arg)
+
+    def test_edit_with_missing_editor(self):
+        with mock.patch('alembic.command.editor.edit') as edit:
+            edit.side_effect = OSError('file not found')
+            assert_raises_message(
+                util.CommandError,
+                'file not found',
+                command.edit,
+                self.cfg)

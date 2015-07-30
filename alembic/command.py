@@ -5,6 +5,8 @@ from .runtime.environment import EnvironmentContext
 from . import util
 from . import autogenerate as autogen
 
+import editor
+
 
 def list_templates(config):
     """List available templates"""
@@ -353,3 +355,16 @@ def stamp(config, revision, sql=False, tag=None):
         tag=tag
     ):
         script.run_env()
+
+
+def edit(config):
+    """Edit the latest ervision"""
+
+    script = ScriptDirectory.from_config(config)
+    revisions = script.walk_revisions()
+    head = next(revisions)
+
+    try:
+        editor.edit(head.path)
+    except Exception as exc:
+        raise util.CommandError('Error executing editor (%s)' % (exc,))
