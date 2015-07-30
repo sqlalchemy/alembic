@@ -434,21 +434,59 @@ class EditTest(TestBase):
     def teardown_class(cls):
         clear_staging_env()
 
-    def test_edit_latest(self):
+    def setUp(self):
+        command.stamp(self.cfg, "base")
+
+    def test_edit_head(self):
         expected_call_arg = '%s/scripts/versions/%s_revision_c.py' % (
             EditTest.cfg.config_args['here'],
             EditTest.c
         )
 
-        with mock.patch('alembic.command.editor.edit') as edit:
-            command.edit(self.cfg)
+        with mock.patch('alembic.util.edit') as edit:
+            command.edit(self.cfg, "head")
+            edit.assert_called_with(expected_call_arg)
+
+    def test_edit_b(self):
+        expected_call_arg = '%s/scripts/versions/%s_revision_b.py' % (
+            EditTest.cfg.config_args['here'],
+            EditTest.b
+        )
+
+        with mock.patch('alembic.util.edit') as edit:
+            command.edit(self.cfg, self.b[0:3])
             edit.assert_called_with(expected_call_arg)
 
     def test_edit_with_missing_editor(self):
-        with mock.patch('alembic.command.editor.edit') as edit:
-            edit.side_effect = OSError('file not found')
+        with mock.patch('editor.edit') as edit_mock:
+            edit_mock.side_effect = OSError("file not found")
             assert_raises_message(
                 util.CommandError,
                 'file not found',
-                command.edit,
-                self.cfg)
+                util.edit,
+                "/not/a/file.txt")
+
+    def test_edit_no_revs(self):
+        assert_raises_message(
+            util.CommandError,
+            "No revision files indicated by symbol 'base'",
+            command.edit,
+            self.cfg, "base")
+
+    def test_edit_no_current(self):
+        assert_raises_message(
+            util.CommandError,
+            "No current revisions",
+            command.edit,
+            self.cfg, "current")
+
+    def test_edit_current(self):
+        expected_call_arg = '%s/scripts/versions/%s_revision_b.py' % (
+            EditTest.cfg.config_args['here'],
+            EditTest.b
+        )
+
+        command.stamp(self.cfg, self.b)
+        with mock.patch('alembic.util.edit') as edit:
+            command.edit(self.cfg, "current")
+            edit.assert_called_with(expected_call_arg)

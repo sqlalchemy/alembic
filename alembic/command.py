@@ -5,8 +5,6 @@ from .runtime.environment import EnvironmentContext
 from . import util
 from . import autogenerate as autogen
 
-import editor
-
 
 def list_templates(config):
     """List available templates"""
@@ -357,14 +355,29 @@ def stamp(config, revision, sql=False, tag=None):
         script.run_env()
 
 
-def edit(config):
-    """Edit the latest ervision"""
+def edit(config, rev):
+    """Edit revision script(s) using $EDITOR"""
 
     script = ScriptDirectory.from_config(config)
-    revisions = script.walk_revisions()
-    head = next(revisions)
 
-    try:
-        editor.edit(head.path)
-    except Exception as exc:
-        raise util.CommandError('Error executing editor (%s)' % (exc,))
+    if rev == "current":
+        def edit_current(rev, context):
+            if not rev:
+                raise util.CommandError("No current revisions")
+            for sc in script.get_revisions(rev):
+                util.edit(sc.path)
+            return []
+        with EnvironmentContext(
+            config,
+            script,
+            fn=edit_current
+        ):
+            script.run_env()
+    else:
+        revs = script.get_revisions(rev)
+        if not revs:
+            raise util.CommandError(
+                "No revision files indicated by symbol '%s'" % rev)
+        for sc in revs:
+            util.edit(sc.path)
+

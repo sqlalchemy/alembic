@@ -59,6 +59,17 @@ def pyc_file_from_path(path):
         return simple_pyc_file_from_path(path)
 
 
+def edit(path):
+    """Given a source path, run the EDITOR for it"""
+
+    import editor
+    from . import CommandError
+    try:
+        editor.edit(path)
+    except Exception as exc:
+        raise CommandError('Error executing editor (%s)' % (exc,))
+
+
 def load_python_file(dir_, filename):
     """Load a file from the given path as a Python module."""
 

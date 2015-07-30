@@ -8,6 +8,17 @@ Changelog
 
     .. change::
       :tags: feature, commands
+      :pullreq: bitbucket:46
+
+      Added new command ``alembic edit``.  This command takes the same
+      arguments as ``alembic show``, however runs the target script
+      file within $EDITOR.  Makes use of the ``python-editor`` library
+      in order to facilitate the handling of $EDITOR with reasonable
+      default behaviors across platforms.  Pull request courtesy
+      Michel Albert.
+
+    .. change::
+      :tags: feature, commands
       :tickets: 311
 
       Added new multiple-capable argument ``--depends-on`` to the
