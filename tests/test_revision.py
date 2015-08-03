@@ -94,6 +94,23 @@ class APITest(TestBase):
         )
         eq_(map_.get_revision('base'), None)
 
+    def test_iterate_tolerates_dupe_targets(self):
+        map_ = RevisionMap(
+            lambda: [
+                Revision('a', ()),
+                Revision('b', ('a',)),
+                Revision('c', ('b',)),
+            ]
+        )
+
+        eq_(
+            [
+                r.revision for r in
+                map_._iterate_revisions(('c', 'c'), 'a')
+            ],
+            ['c', 'b', 'a']
+        )
+
 
 class DownIterateTest(TestBase):
     def _assert_iteration(

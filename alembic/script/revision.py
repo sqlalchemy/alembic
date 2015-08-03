@@ -618,7 +618,8 @@ class RevisionMap(object):
         limit_to_lower_branch = \
             isinstance(lower, compat.string_types) and lower.endswith('@base')
 
-        uppers = self.get_revisions(upper)
+        uppers = util.dedupe_tuple(self.get_revisions(upper))
+
         if not uppers and not requested_lowers:
             raise StopIteration()
 

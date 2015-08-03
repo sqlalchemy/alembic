@@ -124,6 +124,15 @@ Changelog
 
         :ref:`alembic.autogenerate.toplevel`
 
+    .. change::
+      :tags: bug, versioning
+      :tickets: 314
+
+      Fixed bug where in the erroneous case that alembic_version contains
+      duplicate revisions, some commands would fail to process the
+      version history correctly and end up with a KeyError.   The fix
+      allows the versioning logic to proceed, however a clear error is
+      emitted later when attempting to update the alembic_version table.
 
 .. changelog::
     :version: 0.7.7

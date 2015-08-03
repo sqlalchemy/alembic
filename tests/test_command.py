@@ -184,6 +184,20 @@ finally:
             command.revision, self.cfg, autogenerate=True
         )
 
+    def test_err_correctly_raised_on_dupe_rows(self):
+        self._env_fixture()
+        command.revision(self.cfg)
+        r2 = command.revision(self.cfg)
+        db = _sqlite_file_db()
+        command.upgrade(self.cfg, "head")
+        db.execute("insert into alembic_version values ('%s')" % r2.revision)
+        assert_raises_message(
+            util.CommandError,
+            "Online migration expected to match one row when "
+            "updating .* in 'alembic_version'; 2 found",
+            command.downgrade, self.cfg, "-1"
+        )
+
     def test_create_rev_plain_need_to_select_head(self):
         self._env_fixture()
         command.revision(self.cfg)

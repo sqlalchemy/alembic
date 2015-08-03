@@ -1,5 +1,5 @@
 from .langhelpers import (  # noqa
-    asbool, rev_id, to_tuple, to_list, memoized_property,
+    asbool, rev_id, to_tuple, to_list, memoized_property, dedupe_tuple,
     immutabledict, _with_legacy_names, Dispatcher, ModuleClsProxy)
 from .messaging import (  # noqa
     write_outstream, status, err, obfuscate_url_pw, warn, msg, format_as_comma)

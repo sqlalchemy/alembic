@@ -208,6 +208,24 @@ def to_tuple(x, default=None):
         raise ValueError("Don't know how to turn %r into a tuple" % x)
 
 
+def unique_list(seq, hashfunc=None):
+    seen = set()
+    seen_add = seen.add
+    if not hashfunc:
+        return [x for x in seq
+                if x not in seen
+                and not seen_add(x)]
+    else:
+        return [x for x in seq
+                if hashfunc(x) not in seen
+                and not seen_add(hashfunc(x))]
+
+
+def dedupe_tuple(tup):
+    return tuple(unique_list(tup))
+
+
+
 class memoized_property(object):
 
     """A read-only @property that is only evaluated once."""
