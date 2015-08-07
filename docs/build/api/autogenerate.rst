@@ -205,6 +205,81 @@ to whatever is in this list.
 
 .. autofunction:: alembic.autogenerate.render_python_code
 
+.. _autogen_rewriter:
+
+Fine-Grained Autogenerate Generation with Rewriters
+---------------------------------------------------
+
+The preceding example illustrated how we can make a simple change to the
+structure of the operation directives to produce new autogenerate output.
+For the case where we want to affect very specific parts of the autogenerate
+stream, we can make a function for
+:paramref:`.EnvironmentContext.configure.process_revision_directives`
+which traverses through the whole :class:`.MigrationScript` structure, locates
+the elements we care about and modifies them in-place as needed.  However,
+to reduce the boilerplate associated with this task, we can use the
+:class:`.Rewriter` object to make this easier.  :class:`.Rewriter` gives
+us an object that we can pass directly to
+:paramref:`.EnvironmentContext.configure.process_revision_directives` which
+we can also attach handler functions onto, keyed to specific types of
+constructs.
+
+Below is an example where we rewrite :class:`.ops.AddColumnOp` directives;
+based on whether or not the new column is "nullable", we either return
+the existing directive, or we return the existing directive with
+the nullable flag changed, inside of a list with a second directive
+to alter the nullable flag in a second step::
+
+    # ... fragmented env.py script ....
+
+    from alembic.autogenerate import rewriter
+    from alembic import ops
+
+    writer = rewriter.Rewriter()
+
+    @writer.rewrites(ops.AddColumnOp)
+    def add_column(context, revision, op):
+        if op.column.nullable:
+            return op
+        else:
+            op.column.nullable = True
+            return [
+                op,
+                ops.AlterColumnOp(
+                    op.table_name,
+                    op.column_name,
+                    modify_nullable=False,
+                    existing_type=op.column.type,
+                )
+            ]
+
+    # ... later ...
+
+    def run_migrations_online():
+        # ...
+
+        with connectable.connect() as connection:
+            context.configure(
+                connection=connection,
+                target_metadata=target_metadata,
+                process_revision_directives=writer
+            )
+
+            with context.begin_transaction():
+                context.run_migrations()
+
+Above, in a full :class:`.ops.MigrationScript` structure, the
+:class:`.AddColumn` directives would be present within
+the paths ``MigrationScript->UpgradeOps->ModifyTableOps``
+and ``MigrationScript->DowngradeOps->ModifyTableOps``.   The
+:class:`.Rewriter` handles traversing into these structures as well
+as rewriting them as needed so that we only need to code for the specific
+object we care about.
+
+
+.. autoclass:: alembic.autogenerate.rewriter.Rewriter
+    :members:
+
 .. _autogen_custom_ops:
 
 Autogenerating Custom Operation Directives

@@ -1,5 +1,5 @@
 from alembic.testing.fixtures import TestBase
-from alembic.testing import eq_, ne_, assert_raises_message
+from alembic.testing import eq_, ne_, assert_raises_message, is_
 from alembic.testing.env import clear_staging_env, staging_env, \
     _get_staging_directory, _no_sql_testing_config, env_file_fixture, \
     script_file_fixture, _testing_config, _sqlite_testing_config, \
@@ -11,6 +11,7 @@ from alembic.environment import EnvironmentContext
 from alembic.testing import mock
 from alembic import util
 from alembic.operations import ops
+from alembic import autogenerate
 import os
 import datetime
 import sqlalchemy as sa
@@ -385,6 +386,150 @@ def downgrade():
                 Inspector.from_engine(self.engine).get_table_names(),
                 ["alembic_version"]
             )
+
+
+class RewriterTest(TestBase):
+    def test_all_traverse(self):
+        writer = autogenerate.Rewriter()
+
+        mocker = mock.Mock(side_effect=lambda context, revision, op: op)
+        writer.rewrites(ops.MigrateOperation)(mocker)
+
+        addcolop = ops.AddColumnOp(
+            't1', sa.Column('x', sa.Integer())
+        )
+
+        directives = [
+            ops.MigrationScript(
+                util.rev_id(),
+                ops.UpgradeOps(ops=[
+                    ops.ModifyTableOps('t1', ops=[
+                        addcolop
+                    ])
+                ]),
+                ops.DowngradeOps(ops=[
+                ]),
+            )
+        ]
+
+        ctx, rev = mock.Mock(), mock.Mock()
+        writer(ctx, rev, directives)
+        eq_(
+            mocker.mock_calls,
+            [
+                mock.call(ctx, rev, directives[0]),
+                mock.call(ctx, rev, directives[0].upgrade_ops),
+                mock.call(ctx, rev, directives[0].upgrade_ops.ops[0]),
+                mock.call(ctx, rev, addcolop),
+                mock.call(ctx, rev, directives[0].downgrade_ops),
+            ]
+        )
+
+    def test_double_migrate_table(self):
+        writer = autogenerate.Rewriter()
+
+        idx_ops = []
+
+        @writer.rewrites(ops.ModifyTableOps)
+        def second_table(context, revision, op):
+            return [
+                op,
+                ops.ModifyTableOps('t2', ops=[
+                    ops.AddColumnOp('t2', sa.Column('x', sa.Integer()))
+                ])
+            ]
+
+        @writer.rewrites(ops.AddColumnOp)
+        def add_column(context, revision, op):
+            idx_op = ops.CreateIndexOp('ixt', op.table_name, [op.column.name])
+            idx_ops.append(idx_op)
+            return [
+                op,
+                idx_op
+            ]
+
+        directives = [
+            ops.MigrationScript(
+                util.rev_id(),
+                ops.UpgradeOps(ops=[
+                    ops.ModifyTableOps('t1', ops=[
+                        ops.AddColumnOp('t1', sa.Column('x', sa.Integer()))
+                    ])
+                ]),
+                ops.DowngradeOps(ops=[]),
+            )
+        ]
+
+        ctx, rev = mock.Mock(), mock.Mock()
+        writer(ctx, rev, directives)
+        eq_(
+            [d.table_name for d in directives[0].upgrade_ops.ops],
+            ['t1', 't2']
+        )
+        is_(
+            directives[0].upgrade_ops.ops[0].ops[1],
+            idx_ops[0]
+        )
+        is_(
+            directives[0].upgrade_ops.ops[1].ops[1],
+            idx_ops[1]
+        )
+
+    def test_chained_ops(self):
+        writer1 = autogenerate.Rewriter()
+        writer2 = autogenerate.Rewriter()
+
+        @writer1.rewrites(ops.AddColumnOp)
+        def add_column_nullable(context, revision, op):
+            if op.column.nullable:
+                return op
+            else:
+                op.column.nullable = True
+                return [
+                    op,
+                    ops.AlterColumnOp(
+                        op.table_name,
+                        op.column.name,
+                        modify_nullable=False,
+                        existing_type=op.column.type,
+                    )
+                ]
+
+        @writer2.rewrites(ops.AddColumnOp)
+        def add_column_idx(context, revision, op):
+            idx_op = ops.CreateIndexOp('ixt', op.table_name, [op.column.name])
+            return [
+                op,
+                idx_op
+            ]
+
+        directives = [
+            ops.MigrationScript(
+                util.rev_id(),
+                ops.UpgradeOps(ops=[
+                    ops.ModifyTableOps('t1', ops=[
+                        ops.AddColumnOp(
+                            't1', sa.Column('x', sa.Integer(), nullable=False))
+                    ])
+                ]),
+                ops.DowngradeOps(ops=[]),
+            )
+        ]
+
+        ctx, rev = mock.Mock(), mock.Mock()
+        writer1.chain(writer2)(ctx, rev, directives)
+
+        eq_(
+            autogenerate.render_python_code(directives[0].upgrade_ops),
+            "### commands auto generated by Alembic - please adjust! ###\n"
+            "    op.add_column('t1', "
+            "sa.Column('x', sa.Integer(), nullable=True))\n"
+            "    op.create_index('ixt', 't1', ['x'], unique=False)\n"
+            "    op.alter_column('t1', 'x',\n"
+            "               existing_type=sa.Integer(),\n"
+            "               nullable=False)\n"
+            "    ### end Alembic commands ###"
+        )
 
 
 class MultiDirRevisionCommandTest(TestBase):

@@ -194,7 +194,7 @@ def to_list(x, default=None):
     elif isinstance(x, collections.Iterable):
         return list(x)
     else:
-        raise ValueError("Don't know how to turn %r into a list" % x)
+        return [x]
 
 
 def to_tuple(x, default=None):
@@ -205,7 +205,7 @@ def to_tuple(x, default=None):
     elif isinstance(x, collections.Iterable):
         return tuple(x)
     else:
-        raise ValueError("Don't know how to turn %r into a tuple" % x)
+        return (x, )
 
 
 def unique_list(seq, hashfunc=None):
@@ -282,10 +282,9 @@ class Dispatcher(object):
     def dispatch_for(self, target, qualifier='default'):
         def decorate(fn):
             if self.uselist:
-                assert target not in self._registry
                 self._registry.setdefault((target, qualifier), []).append(fn)
             else:
-                assert target not in self._registry
+                assert (target, qualifier) not in self._registry
                 self._registry[(target, qualifier)] = fn
             return fn
         return decorate
@@ -301,9 +300,11 @@ class Dispatcher(object):
 
         for spcls in targets:
             if qualifier != 'default' and (spcls, qualifier) in self._registry:
-                return self._fn_or_list(self._registry[(spcls, qualifier)])
+                return self._fn_or_list(
+                    self._registry[(spcls, qualifier)])
             elif (spcls, 'default') in self._registry:
-                return self._fn_or_list(self._registry[(spcls, 'default')])
+                return self._fn_or_list(
+                    self._registry[(spcls, 'default')])
         else:
             raise ValueError("no dispatch function for object: %s" % obj)
 

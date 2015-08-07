@@ -690,12 +690,18 @@ class EnvironmentContext(util.ModuleClsProxy):
          ``--autogenerate`` option itself can be inferred by inspecting
          ``context.config.cmd_opts.autogenerate``.
 
+         The callable function may optionally be an instance of
+         a :class:`.Rewriter` object.  This is a helper object that
+         assists in the production of autogenerate-stream rewriter functions.
+
 
          .. versionadded:: 0.8.0
 
          .. seealso::
 
              :ref:`customizing_revision`
+
+             :ref:`autogen_rewriter`
 
 
         Parameters specific to individual backends:
