@@ -988,6 +988,7 @@ class OrigObjectTest(TestBase):
         self.table = t
         self.fk = fk
         self.ck = CheckConstraint(t.c.x > 5)
+        t.append_constraint(self.ck)
         self.uq = UniqueConstraint(q.c.t_id)
         self.pk = t.primary_key
 
