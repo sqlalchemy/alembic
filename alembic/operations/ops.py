@@ -179,11 +179,12 @@ class CreatePrimaryKeyOp(AddConstraintOp):
 
     def __init__(
             self, constraint_name, table_name, columns,
-            schema=None, **kw):
+            schema=None, _orig_constraint=None, **kw):
         self.constraint_name = constraint_name
         self.table_name = table_name
         self.columns = columns
         self.schema = schema
+        self._orig_constraint = _orig_constraint
         self.kw = kw
 
     @classmethod
@@ -193,11 +194,15 @@ class CreatePrimaryKeyOp(AddConstraintOp):
         return cls(
             constraint.name,
             constraint_table.name,
+            constraint.columns,
             schema=constraint_table.schema,
-            *constraint.columns
+            _orig_constraint=constraint
         )
 
     def to_constraint(self, migration_context=None):
+        if self._orig_constraint is not None:
+            return self._orig_constraint
+
         schema_obj = schemaobj.SchemaObjects(migration_context)
         return schema_obj.primary_key_constraint(
             self.constraint_name, self.table_name,
@@ -289,11 +294,12 @@ class CreateUniqueConstraintOp(AddConstraintOp):
 
     def __init__(
             self, constraint_name, table_name,
-            columns, schema=None, **kw):
+            columns, schema=None, _orig_constraint=None, **kw):
         self.constraint_name = constraint_name
         self.table_name = table_name
         self.columns = columns
         self.schema = schema
+        self._orig_constraint = _orig_constraint
         self.kw = kw
 
     @classmethod
@@ -311,10 +317,14 @@ class CreateUniqueConstraintOp(AddConstraintOp):
             constraint_table.name,
             [c.name for c in constraint.columns],
             schema=constraint_table.schema,
+            _orig_constraint=constraint,
             **kw
         )
 
     def to_constraint(self, migration_context=None):
+        if self._orig_constraint is not None:
+            return self._orig_constraint
+
         schema_obj = schemaobj.SchemaObjects(migration_context)
         return schema_obj.unique_constraint(
             self.constraint_name, self.table_name, self.columns,
@@ -421,12 +431,13 @@ class CreateForeignKeyOp(AddConstraintOp):
 
     def __init__(
             self, constraint_name, source_table, referent_table, local_cols,
-            remote_cols, **kw):
+            remote_cols, _orig_constraint=None, **kw):
         self.constraint_name = constraint_name
         self.source_table = source_table
         self.referent_table = referent_table
         self.local_cols = local_cols
         self.remote_cols = remote_cols
+        self._orig_constraint = _orig_constraint
         self.kw = kw
 
     def to_diff_tuple(self):
@@ -459,10 +470,13 @@ class CreateForeignKeyOp(AddConstraintOp):
             target_table,
             source_columns,
             target_columns,
+            _orig_constraint=constraint,
             **kw
         )
 
     def to_constraint(self, migration_context=None):
+        if self._orig_constraint is not None:
+            return self._orig_constraint
         schema_obj = schemaobj.SchemaObjects(migration_context)
         return schema_obj.foreign_key_constraint(
             self.constraint_name,
@@ -606,11 +620,13 @@ class CreateCheckConstraintOp(AddConstraintOp):
     constraint_type = "check"
 
     def __init__(
-            self, constraint_name, table_name, condition, schema=None, **kw):
+            self, constraint_name, table_name,
+            condition, schema=None, _orig_constraint=None, **kw):
         self.constraint_name = constraint_name
         self.table_name = table_name
         self.condition = condition
         self.schema = schema
+        self._orig_constraint = _orig_constraint
         self.kw = kw
 
     @classmethod
@@ -620,11 +636,14 @@ class CreateCheckConstraintOp(AddConstraintOp):
         return cls(
             constraint.name,
             constraint_table.name,
-            constraint.condition,
+            constraint.sqltext,
             schema=constraint_table.schema,
+            _orig_constraint=constraint
         )
 
     def to_constraint(self, migration_context=None):
+        if self._orig_constraint is not None:
+            return self._orig_constraint
         schema_obj = schemaobj.SchemaObjects(migration_context)
         return schema_obj.check_constraint(
             self.constraint_name, self.table_name,
@@ -1444,6 +1463,9 @@ class AddColumnOp(AlterTableOp):
     def to_diff_tuple(self):
         return ("add_column", self.schema, self.table_name, self.column)
 
+    def to_column(self):
+        return self.column
+
     @classmethod
     def from_column(cls, col):
         return cls(col.table.name, col, schema=col.table.schema)
@@ -1558,6 +1580,8 @@ class DropColumnOp(AlterTableOp):
         return cls(tname, col.name, schema=schema, _orig_column=col)
 
     def to_column(self, migration_context=None):
+        if self._orig_column is not None:
+            return self._orig_column
         schema_obj = schemaobj.SchemaObjects(migration_context)
         return schema_obj.column(self.column_name, NULLTYPE)
 

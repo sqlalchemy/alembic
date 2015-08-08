@@ -25,6 +25,10 @@ if not util.sqla_094:
         """Assert a is b, with repr messaging on failure."""
         assert a is b, msg or "%r is not %r" % (a, b)
 
+    def is_not_(a, b, msg=None):
+        """Assert a is not b, with repr messaging on failure."""
+        assert a is not b, msg or "%r is %r" % (a, b)
+
     def assert_raises(except_cls, callable_, *args, **kw):
         try:
             callable_(*args, **kw)
@@ -45,7 +49,7 @@ if not util.sqla_094:
             print(text_type(e).encode('utf-8'))
 
 else:
-    from sqlalchemy.testing.assertions import eq_, ne_, is_, \
+    from sqlalchemy.testing.assertions import eq_, ne_, is_, is_not_, \
         assert_raises_message, assert_raises
 
 
