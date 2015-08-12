@@ -77,6 +77,25 @@ class AutogenRenderTest(TestBase):
             "['active', 'code'], unique=False)"
         )
 
+    def test_render_add_index_batch(self):
+        """
+        autogenerate.render._add_index
+        """
+        m = MetaData()
+        t = Table('test', m,
+                  Column('id', Integer, primary_key=True),
+                  Column('active', Boolean()),
+                  Column('code', String(255)),
+                  )
+        idx = Index('test_active_code_idx', t.c.active, t.c.code)
+        op_obj = ops.CreateIndexOp.from_index(idx)
+        with self.autogen_context._within_batch():
+            eq_ignore_whitespace(
+                autogenerate.render_op_text(self.autogen_context, op_obj),
+                "batch_op.create_index('test_active_code_idx', "
+                "['active', 'code'], unique=False)"
+            )
+
     def test_render_add_index_schema(self):
         """
         autogenerate.render._add_index using schema
@@ -95,6 +114,26 @@ class AutogenRenderTest(TestBase):
             "op.create_index('test_active_code_idx', 'test', "
             "['active', 'code'], unique=False, schema='CamelSchema')"
         )
+
+    def test_render_add_index_schema_batch(self):
+        """
+        autogenerate.render._add_index using schema
+        """
+        m = MetaData()
+        t = Table('test', m,
+                  Column('id', Integer, primary_key=True),
+                  Column('active', Boolean()),
+                  Column('code', String(255)),
+                  schema='CamelSchema'
+                  )
+        idx = Index('test_active_code_idx', t.c.active, t.c.code)
+        op_obj = ops.CreateIndexOp.from_index(idx)
+        with self.autogen_context._within_batch():
+            eq_ignore_whitespace(
+                autogenerate.render_op_text(self.autogen_context, op_obj),
+                "batch_op.create_index('test_active_code_idx', "
+                "['active', 'code'], unique=False)"
+            )
 
     def test_render_add_index_pg_where(self):
         autogen_context = self.pg_autogen_context
@@ -191,6 +230,24 @@ unique=False, """
             "op.drop_index('test_active_code_idx', table_name='test')"
         )
 
+    def test_drop_index_batch(self):
+        """
+        autogenerate.render._drop_index
+        """
+        m = MetaData()
+        t = Table('test', m,
+                  Column('id', Integer, primary_key=True),
+                  Column('active', Boolean()),
+                  Column('code', String(255)),
+                  )
+        idx = Index('test_active_code_idx', t.c.active, t.c.code)
+        op_obj = ops.DropIndexOp.from_index(idx)
+        with self.autogen_context._within_batch():
+            eq_ignore_whitespace(
+                autogenerate.render_op_text(self.autogen_context, op_obj),
+                "batch_op.drop_index('test_active_code_idx')"
+            )
+
     def test_drop_index_schema(self):
         """
         autogenerate.render._drop_index using schema
@@ -210,6 +267,25 @@ unique=False, """
             "table_name='test', schema='CamelSchema')"
         )
 
+    def test_drop_index_schema_batch(self):
+        """
+        autogenerate.render._drop_index using schema
+        """
+        m = MetaData()
+        t = Table('test', m,
+                  Column('id', Integer, primary_key=True),
+                  Column('active', Boolean()),
+                  Column('code', String(255)),
+                  schema='CamelSchema'
+                  )
+        idx = Index('test_active_code_idx', t.c.active, t.c.code)
+        op_obj = ops.DropIndexOp.from_index(idx)
+        with self.autogen_context._within_batch():
+            eq_ignore_whitespace(
+                autogenerate.render_op_text(self.autogen_context, op_obj),
+                "batch_op.drop_index('test_active_code_idx')"
+            )
+
     def test_add_unique_constraint(self):
         """
         autogenerate.render._add_unique_constraint
@@ -226,6 +302,24 @@ unique=False, """
             autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.create_unique_constraint('uq_test_code', 'test', ['code'])"
         )
+
+    def test_add_unique_constraint_batch(self):
+        """
+        autogenerate.render._add_unique_constraint
+        """
+        m = MetaData()
+        t = Table('test', m,
+                  Column('id', Integer, primary_key=True),
+                  Column('active', Boolean()),
+                  Column('code', String(255)),
+                  )
+        uq = UniqueConstraint(t.c.code, name='uq_test_code')
+        op_obj = ops.AddConstraintOp.from_constraint(uq)
+        with self.autogen_context._within_batch():
+            eq_ignore_whitespace(
+                autogenerate.render_op_text(self.autogen_context, op_obj),
+                "batch_op.create_unique_constraint('uq_test_code', ['code'])"
+            )
 
     def test_add_unique_constraint_schema(self):
         """
@@ -245,6 +339,26 @@ unique=False, """
             "op.create_unique_constraint('uq_test_code', 'test', "
             "['code'], schema='CamelSchema')"
         )
+
+    def test_add_unique_constraint_schema_batch(self):
+        """
+        autogenerate.render._add_unique_constraint using schema
+        """
+        m = MetaData()
+        t = Table('test', m,
+                  Column('id', Integer, primary_key=True),
+                  Column('active', Boolean()),
+                  Column('code', String(255)),
+                  schema='CamelSchema'
+                  )
+        uq = UniqueConstraint(t.c.code, name='uq_test_code')
+        op_obj = ops.AddConstraintOp.from_constraint(uq)
+        with self.autogen_context._within_batch():
+            eq_ignore_whitespace(
+                autogenerate.render_op_text(self.autogen_context, op_obj),
+                "batch_op.create_unique_constraint('uq_test_code', "
+                "['code'])"
+            )
 
     def test_drop_unique_constraint(self):
         """
@@ -293,6 +407,19 @@ unique=False, """
             autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.create_foreign_key('fk_a_id', 'b', 'a', ['a_id'], ['id'])"
         )
+
+    def test_add_fk_constraint_batch(self):
+        m = MetaData()
+        Table('a', m, Column('id', Integer, primary_key=True))
+        b = Table('b', m, Column('a_id', Integer, ForeignKey('a.id')))
+        fk = ForeignKeyConstraint(['a_id'], ['a.id'], name='fk_a_id')
+        b.append_constraint(fk)
+        op_obj = ops.AddConstraintOp.from_constraint(fk)
+        with self.autogen_context._within_batch():
+            eq_ignore_whitespace(
+                autogenerate.render_op_text(self.autogen_context, op_obj),
+                "batch_op.create_foreign_key('fk_a_id', 'a', ['a_id'], ['id'])"
+            )
 
     def test_add_fk_constraint_kwarg(self):
         m = MetaData()
@@ -453,6 +580,26 @@ unique=False, """
             "referent_schema='CamelSchemaTwo')"
         )
 
+    def test_add_fk_constraint_schema_batch(self):
+        m = MetaData()
+        Table(
+            'a', m, Column('id', Integer, primary_key=True),
+            schema="CamelSchemaTwo")
+        b = Table(
+            'b', m, Column('a_id', Integer, ForeignKey('a.id')),
+            schema="CamelSchemaOne")
+        fk = ForeignKeyConstraint(
+            ["a_id"],
+            ["CamelSchemaTwo.a.id"], name='fk_a_id')
+        b.append_constraint(fk)
+        op_obj = ops.AddConstraintOp.from_constraint(fk)
+        with self.autogen_context._within_batch():
+            eq_ignore_whitespace(
+                autogenerate.render_op_text(self.autogen_context, op_obj),
+                "batch_op.create_foreign_key('fk_a_id', 'a', ['a_id'], ['id'],"
+                " referent_schema='CamelSchemaTwo')"
+            )
+
     def test_drop_fk_constraint(self):
         m = MetaData()
         Table('a', m, Column('id', Integer, primary_key=True))
@@ -464,6 +611,19 @@ unique=False, """
             autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.drop_constraint('fk_a_id', 'b', type_='foreignkey')"
         )
+
+    def test_drop_fk_constraint_batch(self):
+        m = MetaData()
+        Table('a', m, Column('id', Integer, primary_key=True))
+        b = Table('b', m, Column('a_id', Integer, ForeignKey('a.id')))
+        fk = ForeignKeyConstraint(['a_id'], ['a.id'], name='fk_a_id')
+        b.append_constraint(fk)
+        op_obj = ops.DropConstraintOp.from_constraint(fk)
+        with self.autogen_context._within_batch():
+            eq_ignore_whitespace(
+                autogenerate.render_op_text(self.autogen_context, op_obj),
+                "batch_op.drop_constraint('fk_a_id', type_='foreignkey')"
+            )
 
     def test_drop_fk_constraint_schema(self):
         m = MetaData()
@@ -484,6 +644,26 @@ unique=False, """
             "op.drop_constraint('fk_a_id', 'b', schema='CamelSchemaOne', "
             "type_='foreignkey')"
         )
+
+    def test_drop_fk_constraint_batch_schema(self):
+        m = MetaData()
+        Table(
+            'a', m, Column('id', Integer, primary_key=True),
+            schema="CamelSchemaTwo")
+        b = Table(
+            'b', m, Column('a_id', Integer, ForeignKey('a.id')),
+            schema="CamelSchemaOne")
+        fk = ForeignKeyConstraint(
+            ["a_id"],
+            ["CamelSchemaTwo.a.id"], name='fk_a_id')
+        b.append_constraint(fk)
+        op_obj = ops.DropConstraintOp.from_constraint(fk)
+
+        with self.autogen_context._within_batch():
+            eq_ignore_whitespace(
+                autogenerate.render_op_text(self.autogen_context, op_obj),
+                "batch_op.drop_constraint('fk_a_id', type_='foreignkey')"
+            )
 
     def test_render_table_upgrade(self):
         m = MetaData()

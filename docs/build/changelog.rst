@@ -7,6 +7,14 @@ Changelog
     :version: 0.8.0
 
     .. change::
+      :tags: bug, batch
+      :tickets: 315
+
+      Fixed bug in batch mode where the ``batch_op.create_foreign_key()``
+      directive would be incorrectly rendered with the source table and
+      schema names in the argument list.
+
+    .. change::
       :tags: feature, commands
       :pullreq: bitbucket:46
 

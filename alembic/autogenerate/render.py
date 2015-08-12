@@ -212,16 +212,29 @@ def _add_fk_constraint(autogen_context, op):
     args = [
         repr(
             _render_gen_name(autogen_context, op.constraint_name)),
-        repr(_ident(op.source_table)),
-        repr(_ident(op.referent_table)),
-        repr([_ident(col) for col in op.local_cols]),
-        repr([_ident(col) for col in op.remote_cols])
     ]
+    if not autogen_context._has_batch:
+        args.append(
+            repr(_ident(op.source_table))
+        )
 
-    for k in (
-        'source_schema', 'referent_schema',
-        'onupdate', 'ondelete', 'initially', 'deferrable', 'use_alter'
-    ):
+    args.extend(
+        [
+            repr(_ident(op.referent_table)),
+            repr([_ident(col) for col in op.local_cols]),
+            repr([_ident(col) for col in op.remote_cols])
+        ]
+    )
+
+    kwargs = [
+        'referent_schema',
+        'onupdate', 'ondelete', 'initially',
+        'deferrable', 'use_alter'
+    ]
+    if not autogen_context._has_batch:
+        kwargs.insert(0, 'source_schema')
+
+    for k in kwargs:
         if k in op.kw:
             value = op.kw[k]
             if value is not None:

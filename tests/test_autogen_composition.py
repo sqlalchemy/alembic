@@ -156,7 +156,7 @@ nullable=True))
                type_=sa.Numeric(precision=10, scale=2),
                nullable=True,
                existing_server_default=sa.text('0'))
-        batch_op.create_foreign_key(None, 'order', 'user', ['user_id'], ['id'])
+        batch_op.create_foreign_key(None, 'user', ['user_id'], ['id'])
 
     with op.batch_alter_table('user', schema=None) as batch_op:
         batch_op.alter_column('a1',
