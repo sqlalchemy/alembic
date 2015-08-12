@@ -5,6 +5,7 @@ Changelog
 
 .. changelog::
     :version: 0.8.0
+    :released: August 12, 2015
 
     .. change::
       :tags: bug, batch
