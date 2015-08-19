@@ -55,6 +55,20 @@ class DefaultRequirements(SuiteRequirements):
         return exclusions.fails_on('sqlite')
 
     @property
+    def reflects_fk_options(self):
+        return exclusions.only_on(['postgresql', 'mysql'])
+
+    @property
+    def fk_initially(self):
+        """backend supports INITIALLY option in foreign keys"""
+        return exclusions.only_on(['postgresql'])
+
+    @property
+    def fk_deferrable(self):
+        """backend supports DEFERRABLE option in foreign keys"""
+        return exclusions.only_on(['postgresql'])
+
+    @property
     def reflects_unique_constraints_unambiguously(self):
         return exclusions.fails_on("mysql")
 

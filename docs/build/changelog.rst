@@ -4,6 +4,25 @@ Changelog
 ==========
 
 .. changelog::
+    :version: 0.8.1
+
+    .. change::
+      :tags: feature, autogenerate
+      :tickets: 317
+
+      Implemented support for autogenerate detection of changes in the
+      ``ondelete``, ``onupdate``, ``initially`` and ``deferrable``
+      attributes of :class:`.ForeignKeyConstraint` objects on
+      SQLAlchemy backends that support these on reflection
+      (as of SQLAlchemy 1.0.8 currently Postgresql for all four,
+      MySQL for ``ondelete`` and  ``onupdate`` only).   A constraint object
+      that modifies these values will be reported as a "diff" and come out
+      as a drop/create of the constraint with the modified values.
+      The fields are ignored for backends which don't reflect these
+      attributes (as of SQLA 1.0.8 this includes SQLite, Oracle, SQL Server,
+      others).
+
+.. changelog::
     :version: 0.8.0
     :released: August 12, 2015
 

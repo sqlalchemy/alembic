@@ -459,7 +459,9 @@ class CreateForeignKeyOp(AddConstraintOp):
 
         source_schema, source_table, \
             source_columns, target_schema, \
-            target_table, target_columns = sqla_compat._fk_spec(constraint)
+            target_table, target_columns,\
+            onupdate, ondelete, deferrable, initially \
+            = sqla_compat._fk_spec(constraint)
 
         kw['source_schema'] = source_schema
         kw['referent_schema'] = target_schema

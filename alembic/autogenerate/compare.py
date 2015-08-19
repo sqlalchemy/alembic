@@ -204,13 +204,15 @@ def _make_foreign_key(params, conn_table):
     if params['referred_schema']:
         tname = "%s.%s" % (params['referred_schema'], tname)
 
+    options = params.get('options', {})
+
     const = sa_schema.ForeignKeyConstraint(
         [conn_table.c[cname] for cname in params['constrained_columns']],
         ["%s.%s" % (tname, n) for n in params['referred_columns']],
-        onupdate=params.get('onupdate'),
-        ondelete=params.get('ondelete'),
-        deferrable=params.get('deferrable'),
-        initially=params.get('initially'),
+        onupdate=options.get('onupdate'),
+        ondelete=options.get('ondelete'),
+        deferrable=options.get('deferrable'),
+        initially=options.get('initially'),
         name=params['name']
     )
     # needed by 0.7
@@ -309,17 +311,31 @@ class _ix_constraint_sig(_constraint_sig):
 
 
 class _fk_constraint_sig(_constraint_sig):
-    def __init__(self, const):
+    def __init__(self, const, include_options=False):
         self.const = const
         self.name = const.name
-        self.source_schema, self.source_table, \
-            self.source_columns, self.target_schema, self.target_table, \
-            self.target_columns = _fk_spec(const)
+
+        (
+            self.source_schema, self.source_table,
+            self.source_columns, self.target_schema, self.target_table,
+            self.target_columns,
+            onupdate, ondelete,
+            deferrable, initially) = _fk_spec(const)
 
         self.sig = (
             self.source_schema, self.source_table, tuple(self.source_columns),
             self.target_schema, self.target_table, tuple(self.target_columns)
         )
+        if include_options:
+            self.sig += (
+                onupdate.lower() if onupdate else None,
+                ondelete.lower() if ondelete else None,
+                # convert initially + deferrable into one three-state value
+                "initially_deferrable"
+                if initially and initially.lower() == "deferred"
+                else "deferrable" if deferrable
+                else "not deferrable"
+            )
 
 
 @comparators.dispatch_for("table")
@@ -674,11 +690,23 @@ def _compare_foreign_keys(
         fk for fk in metadata_table.constraints
         if isinstance(fk, sa_schema.ForeignKeyConstraint)
     )
-    metadata_fks = set(_fk_constraint_sig(fk) for fk in metadata_fks)
 
     conn_fks = inspector.get_foreign_keys(tname, schema=schema)
-    conn_fks = set(_fk_constraint_sig(_make_foreign_key(const, conn_table))
-                   for const in conn_fks)
+
+    backend_reflects_fk_options = conn_fks and 'options' in conn_fks[0]
+
+    metadata_fks = set(
+        _fk_constraint_sig(fk, include_options=backend_reflects_fk_options)
+        for fk in metadata_fks
+    )
+
+    conn_fks = set(
+        _fk_constraint_sig(
+            _make_foreign_key(const, conn_table),
+            include_options=backend_reflects_fk_options
+        )
+        for const in conn_fks
+    )
 
     conn_fks_by_sig = dict(
         (c.sig, c) for c in conn_fks

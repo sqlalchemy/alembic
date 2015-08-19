@@ -64,10 +64,14 @@ def _fk_spec(constraint):
     target_schema = constraint.elements[0].column.table.schema
     target_table = constraint.elements[0].column.table.name
     target_columns = [element.column.name for element in constraint.elements]
-
+    ondelete = constraint.ondelete
+    onupdate = constraint.onupdate
+    deferrable = constraint.deferrable
+    initially = constraint.initially
     return (
         source_schema, source_table,
-        source_columns, target_schema, target_table, target_columns)
+        source_columns, target_schema, target_table, target_columns,
+        onupdate, ondelete, deferrable, initially)
 
 
 def _is_type_bound(constraint):

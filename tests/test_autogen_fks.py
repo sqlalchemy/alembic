@@ -1,5 +1,5 @@
 import sys
-from alembic.testing import TestBase
+from alembic.testing import TestBase, config
 
 from sqlalchemy import MetaData, Column, Table, Integer, String, \
     ForeignKeyConstraint
@@ -469,3 +469,343 @@ class IncludeHooksTest(AutogenFixtureTest, TestBase):
             name='fk2'
         )
         eq_(len(diffs), 2)
+
+
+class AutogenerateFKOptionsTest(AutogenFixtureTest, TestBase):
+    __backend__ = True
+
+    def _fk_opts_fixture(self, old_opts, new_opts):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table('table', m1,
+              Column('id', Integer, primary_key=True),
+              Column('test', String(10)),
+              mysql_engine='InnoDB')
+
+        Table('user', m1,
+              Column('id', Integer, primary_key=True),
+              Column('name', String(50), nullable=False),
+              Column('tid', Integer),
+              ForeignKeyConstraint(['tid'], ['table.id'], **old_opts),
+              mysql_engine='InnoDB')
+
+        Table('table', m2,
+              Column('id', Integer, primary_key=True),
+              Column('test', String(10)),
+              mysql_engine='InnoDB')
+
+        Table('user', m2,
+              Column('id', Integer, primary_key=True),
+              Column('name', String(50), nullable=False),
+              Column('tid', Integer),
+              ForeignKeyConstraint(['tid'], ['table.id'], **new_opts),
+              mysql_engine='InnoDB')
+
+        return self._fixture(m1, m2)
+
+    def _expect_opts_supported(self, deferrable=False, initially=False):
+        if not config.requirements.reflects_fk_options.enabled:
+            return False
+
+        if deferrable and not config.requirements.fk_deferrable.enabled:
+            return False
+
+        if initially and not config.requirements.fk_initially.enabled:
+            return False
+
+        return True
+
+    def test_add_ondelete(self):
+        diffs = self._fk_opts_fixture(
+            {}, {"ondelete": "cascade"}
+        )
+
+        if self._expect_opts_supported():
+            self._assert_fk_diff(
+                diffs[0], "remove_fk",
+                "user", ["tid"],
+                "table", ["id"],
+                ondelete=None,
+                conditional_name="servergenerated"
+            )
+
+            self._assert_fk_diff(
+                diffs[1], "add_fk",
+                "user", ["tid"],
+                "table", ["id"],
+                ondelete="cascade"
+            )
+        else:
+            eq_(diffs, [])
+
+    def test_remove_ondelete(self):
+        diffs = self._fk_opts_fixture(
+            {"ondelete": "cascade"}, {}
+        )
+
+        if self._expect_opts_supported():
+            self._assert_fk_diff(
+                diffs[0], "remove_fk",
+                "user", ["tid"],
+                "table", ["id"],
+                ondelete="CASCADE",
+                conditional_name="servergenerated"
+            )
+
+            self._assert_fk_diff(
+                diffs[1], "add_fk",
+                "user", ["tid"],
+                "table", ["id"],
+                ondelete=None
+            )
+        else:
+            eq_(diffs, [])
+
+    def test_nochange_ondelete(self):
+        """test case sensitivity"""
+        diffs = self._fk_opts_fixture(
+            {"ondelete": "caSCAde"}, {"ondelete": "CasCade"}
+        )
+        eq_(diffs, [])
+
+    def test_add_onupdate(self):
+        diffs = self._fk_opts_fixture(
+            {}, {"onupdate": "cascade"}
+        )
+
+        if self._expect_opts_supported():
+            self._assert_fk_diff(
+                diffs[0], "remove_fk",
+                "user", ["tid"],
+                "table", ["id"],
+                onupdate=None,
+                conditional_name="servergenerated"
+            )
+
+            self._assert_fk_diff(
+                diffs[1], "add_fk",
+                "user", ["tid"],
+                "table", ["id"],
+                onupdate="cascade"
+            )
+        else:
+            eq_(diffs, [])
+
+    def test_remove_onupdate(self):
+        diffs = self._fk_opts_fixture(
+            {"onupdate": "cascade"}, {}
+        )
+
+        if self._expect_opts_supported():
+            self._assert_fk_diff(
+                diffs[0], "remove_fk",
+                "user", ["tid"],
+                "table", ["id"],
+                onupdate="CASCADE",
+                conditional_name="servergenerated"
+            )
+
+            self._assert_fk_diff(
+                diffs[1], "add_fk",
+                "user", ["tid"],
+                "table", ["id"],
+                onupdate=None
+            )
+        else:
+            eq_(diffs, [])
+
+    def test_nochange_onupdate(self):
+        """test case sensitivity"""
+        diffs = self._fk_opts_fixture(
+            {"onupdate": "caSCAde"}, {"onupdate": "CasCade"}
+        )
+        eq_(diffs, [])
+
+    def test_ondelete_onupdate_combo(self):
+        diffs = self._fk_opts_fixture(
+            {"onupdate": "cascade", "ondelete": "set null"},
+            {"onupdate": "restrict", "ondelete": "restrict"}
+        )
+
+        if self._expect_opts_supported():
+            self._assert_fk_diff(
+                diffs[0], "remove_fk",
+                "user", ["tid"],
+                "table", ["id"],
+                onupdate="CASCADE",
+                ondelete="SET NULL",
+                conditional_name="servergenerated"
+            )
+
+            self._assert_fk_diff(
+                diffs[1], "add_fk",
+                "user", ["tid"],
+                "table", ["id"],
+                onupdate="restrict",
+                ondelete="restrict"
+            )
+        else:
+            eq_(diffs, [])
+
+    @config.requirements.fk_initially
+    def test_add_initially_deferred(self):
+        diffs = self._fk_opts_fixture(
+            {}, {"initially": "deferred"}
+        )
+
+        self._assert_fk_diff(
+            diffs[0], "remove_fk",
+            "user", ["tid"],
+            "table", ["id"],
+            initially=None,
+            conditional_name="servergenerated"
+        )
+
+        self._assert_fk_diff(
+            diffs[1], "add_fk",
+            "user", ["tid"],
+            "table", ["id"],
+            initially="deferred"
+        )
+
+    @config.requirements.fk_initially
+    def test_remove_initially_deferred(self):
+        diffs = self._fk_opts_fixture(
+            {"initially": "deferred"}, {}
+        )
+
+        self._assert_fk_diff(
+            diffs[0], "remove_fk",
+            "user", ["tid"],
+            "table", ["id"],
+            initially="DEFERRED",
+            deferrable=True,
+            conditional_name="servergenerated"
+        )
+
+        self._assert_fk_diff(
+            diffs[1], "add_fk",
+            "user", ["tid"],
+            "table", ["id"],
+            initially=None
+        )
+
+    @config.requirements.fk_deferrable
+    @config.requirements.fk_initially
+    def test_add_initially_immediate_plus_deferrable(self):
+        diffs = self._fk_opts_fixture(
+            {}, {"initially": "immediate", "deferrable": True}
+        )
+
+        self._assert_fk_diff(
+            diffs[0], "remove_fk",
+            "user", ["tid"],
+            "table", ["id"],
+            initially=None,
+            conditional_name="servergenerated"
+        )
+
+        self._assert_fk_diff(
+            diffs[1], "add_fk",
+            "user", ["tid"],
+            "table", ["id"],
+            initially="immediate",
+            deferrable=True
+        )
+
+    @config.requirements.fk_deferrable
+    @config.requirements.fk_initially
+    def test_remove_initially_immediate_plus_deferrable(self):
+        diffs = self._fk_opts_fixture(
+            {"initially": "immediate", "deferrable": True}, {}
+        )
+
+        self._assert_fk_diff(
+            diffs[0], "remove_fk",
+            "user", ["tid"],
+            "table", ["id"],
+            initially=None,  # immediate is the default
+            deferrable=True,
+            conditional_name="servergenerated"
+        )
+
+        self._assert_fk_diff(
+            diffs[1], "add_fk",
+            "user", ["tid"],
+            "table", ["id"],
+            initially=None,
+            deferrable=None
+        )
+
+    @config.requirements.fk_initially
+    @config.requirements.fk_deferrable
+    def test_add_initially_deferrable_nochange_one(self):
+        diffs = self._fk_opts_fixture(
+            {"deferrable": True, "initially": "immediate"},
+            {"deferrable": True, "initially": "immediate"}
+        )
+
+        eq_(diffs, [])
+
+    @config.requirements.fk_initially
+    @config.requirements.fk_deferrable
+    def test_add_initially_deferrable_nochange_two(self):
+        diffs = self._fk_opts_fixture(
+            {"deferrable": True, "initially": "deferred"},
+            {"deferrable": True, "initially": "deferred"}
+        )
+
+        eq_(diffs, [])
+
+    @config.requirements.fk_initially
+    @config.requirements.fk_deferrable
+    def test_add_initially_deferrable_nochange_three(self):
+        diffs = self._fk_opts_fixture(
+            {"deferrable": None, "initially": "deferred"},
+            {"deferrable": None, "initially": "deferred"}
+        )
+
+        eq_(diffs, [])
+
+    @config.requirements.fk_deferrable
+    def test_add_deferrable(self):
+        diffs = self._fk_opts_fixture(
+            {}, {"deferrable": True}
+        )
+
+        self._assert_fk_diff(
+            diffs[0], "remove_fk",
+            "user", ["tid"],
+            "table", ["id"],
+            deferrable=None,
+            conditional_name="servergenerated"
+        )
+
+        self._assert_fk_diff(
+            diffs[1], "add_fk",
+            "user", ["tid"],
+            "table", ["id"],
+            deferrable=True
+        )
+
+    @config.requirements.fk_deferrable
+    def test_remove_deferrable(self):
+        diffs = self._fk_opts_fixture(
+            {"deferrable": True}, {}
+        )
+
+        self._assert_fk_diff(
+            diffs[0], "remove_fk",
+            "user", ["tid"],
+            "table", ["id"],
+            deferrable=True,
+            conditional_name="servergenerated"
+        )
+
+        self._assert_fk_diff(
+            diffs[1], "add_fk",
+            "user", ["tid"],
+            "table", ["id"],
+            deferrable=None
+        )

@@ -43,6 +43,10 @@ class SuiteRequirements(Requirements):
         return exclusions.closed()
 
     @property
+    def reflects_fk_options(self):
+        return exclusions.closed()
+
+    @property
     def fail_before_sqla_079(self):
         return exclusions.fails_if(
             lambda config: not util.sqla_079,

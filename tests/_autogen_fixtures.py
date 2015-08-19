@@ -108,19 +108,26 @@ class _ComparesFKs(object):
     def _assert_fk_diff(
             self, diff, type_, source_table, source_columns,
             target_table, target_columns, name=None, conditional_name=None,
-            source_schema=None):
+            source_schema=None, onupdate=None, ondelete=None,
+            initially=None, deferrable=None):
         # the public API for ForeignKeyConstraint was not very rich
         # in 0.7, 0.8, so here we use the well-known but slightly
         # private API to get at its elements
         (fk_source_schema, fk_source_table,
          fk_source_columns, fk_target_schema, fk_target_table,
-         fk_target_columns) = _fk_spec(diff[1])
+         fk_target_columns,
+         fk_onupdate, fk_ondelete, fk_deferrable, fk_initially
+         ) = _fk_spec(diff[1])
 
         eq_(diff[0], type_)
         eq_(fk_source_table, source_table)
         eq_(fk_source_columns, source_columns)
         eq_(fk_target_table, target_table)
         eq_(fk_source_schema, source_schema)
+        eq_(fk_onupdate, onupdate)
+        eq_(fk_ondelete, ondelete)
+        eq_(fk_initially, initially)
+        eq_(fk_deferrable, deferrable)
 
         eq_([elem.column.name for elem in diff[1].elements],
             target_columns)
