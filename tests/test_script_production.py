@@ -4,7 +4,7 @@ from alembic.testing.env import clear_staging_env, staging_env, \
     _get_staging_directory, _no_sql_testing_config, env_file_fixture, \
     script_file_fixture, _testing_config, _sqlite_testing_config, \
     three_rev_fixture, _multi_dir_testing_config, write_script,\
-    _sqlite_file_db
+    _sqlite_file_db, _multidb_testing_config
 from alembic import command
 from alembic.script import ScriptDirectory
 from alembic.environment import EnvironmentContext
@@ -227,7 +227,6 @@ class CustomizeRevisionTest(TestBase):
         self.cfg.set_main_option("revision_environment", "true")
 
         script = ScriptDirectory.from_config(self.cfg)
-        # MARKMARK
         self.model1 = util.rev_id()
         self.model2 = util.rev_id()
         self.model3 = util.rev_id()
@@ -353,7 +352,7 @@ def downgrade():
                 ),
                 ops.MigrationScript(
                     util.rev_id(),
-                    existing_downgrades,
+                    ops.UpgradeOps(ops=existing_downgrades.ops),
                     ops.DowngradeOps(),
                     version_path=os.path.join(
                         _get_staging_directory(), "model2"),
@@ -385,6 +384,170 @@ def downgrade():
             eq_(
                 Inspector.from_engine(self.engine).get_table_names(),
                 ["alembic_version"]
+            )
+
+
+class ScriptAccessorTest(TestBase):
+    def test_upgrade_downgrade_ops_list_accessors(self):
+        u1 = ops.UpgradeOps(ops=[])
+        d1 = ops.DowngradeOps(ops=[])
+        m1 = ops.MigrationScript(
+            "somerev", u1, d1
+        )
+        is_(
+            m1.upgrade_ops, u1
+        )
+        is_(
+            m1.downgrade_ops, d1
+        )
+        u2 = ops.UpgradeOps(ops=[])
+        d2 = ops.DowngradeOps(ops=[])
+        m1._upgrade_ops.append(u2)
+        m1._downgrade_ops.append(d2)
+
+        assert_raises_message(
+            ValueError,
+            "This MigrationScript instance has a multiple-entry list for "
+            "UpgradeOps; please use the upgrade_ops_list attribute.",
+            getattr, m1, "upgrade_ops"
+        )
+        assert_raises_message(
+            ValueError,
+            "This MigrationScript instance has a multiple-entry list for "
+            "DowngradeOps; please use the downgrade_ops_list attribute.",
+            getattr, m1, "downgrade_ops"
+        )
+        eq_(m1.upgrade_ops_list, [u1, u2])
+        eq_(m1.downgrade_ops_list, [d1, d2])
+
+
+class ImportsTest(TestBase):
+    def setUp(self):
+        self.env = staging_env()
+        self.cfg = _sqlite_testing_config()
+
+    def tearDown(self):
+        clear_staging_env()
+
+    def _env_fixture(self, target_metadata):
+        self.engine = engine = _sqlite_file_db()
+
+        def run_env(self):
+            from alembic import context
+
+            with engine.connect() as connection:
+                context.configure(
+                    connection=connection,
+                    target_metadata=target_metadata)
+                with context.begin_transaction():
+                    context.run_migrations()
+
+        return mock.patch(
+            "alembic.script.base.ScriptDirectory.run_env",
+            run_env
+        )
+
+    def test_imports_in_script(self):
+        from sqlalchemy import MetaData, Table, Column
+        from sqlalchemy.dialects.mysql import VARCHAR
+
+        type_ = VARCHAR(20, charset='utf8', national=True)
+
+        m = MetaData()
+
+        Table(
+            't', m,
+            Column('x', type_)
+        )
+
+        with self._env_fixture(m):
+            rev = command.revision(
+                self.cfg, message="some message",
+                autogenerate=True)
+
+        with open(rev.path) as file_:
+            assert "from sqlalchemy.dialects import mysql" in file_.read()
+
+
+class MultiContextTest(TestBase):
+    """test the multidb template for autogenerate front-to-back"""
+
+    def setUp(self):
+        self.engine1 = _sqlite_file_db(tempname='eng1.db')
+        self.engine2 = _sqlite_file_db(tempname='eng2.db')
+        self.engine3 = _sqlite_file_db(tempname='eng3.db')
+
+        self.env = staging_env(template="multidb")
+        self.cfg = _multidb_testing_config({
+            "engine1": self.engine1,
+            "engine2": self.engine2,
+            "engine3": self.engine3
+        })
+
+    def _write_metadata(self, meta):
+        path = os.path.join(_get_staging_directory(), 'scripts', 'env.py')
+        with open(path) as env_:
+            existing_env = env_.read()
+        existing_env = existing_env.replace(
+            "target_metadata = {}",
+            meta)
+        with open(path, "w") as env_:
+            env_.write(existing_env)
+
+    def tearDown(self):
+        clear_staging_env()
+
+    def test_autogen(self):
+        self._write_metadata(
+            """
+import sqlalchemy as sa
+
+m1 = sa.MetaData()
+m2 = sa.MetaData()
+m3 = sa.MetaData()
+target_metadata = {"engine1": m1, "engine2": m2, "engine3": m3}
+
+sa.Table('e1t1', m1, sa.Column('x', sa.Integer))
+sa.Table('e2t1', m2, sa.Column('y', sa.Integer))
+sa.Table('e3t1', m3, sa.Column('z', sa.Integer))
+
+"""
+        )
+
+        rev = command.revision(
+            self.cfg, message="some message",
+            autogenerate=True
+        )
+        with mock.patch.object(rev.module, "op") as op_mock:
+            rev.module.upgrade_engine1()
+            eq_(
+                op_mock.mock_calls[-1],
+                mock.call.create_table('e1t1', mock.ANY)
+            )
+            rev.module.upgrade_engine2()
+            eq_(
+                op_mock.mock_calls[-1],
+                mock.call.create_table('e2t1', mock.ANY)
+            )
+            rev.module.upgrade_engine3()
+            eq_(
+                op_mock.mock_calls[-1],
+                mock.call.create_table('e3t1', mock.ANY)
+            )
+            rev.module.downgrade_engine1()
+            eq_(
+                op_mock.mock_calls[-1],
+                mock.call.drop_table('e1t1')
+            )
+            rev.module.downgrade_engine2()
+            eq_(
+                op_mock.mock_calls[-1],
+                mock.call.drop_table('e2t1')
+            )
+            rev.module.downgrade_engine3()
+            eq_(
+                op_mock.mock_calls[-1],
+                mock.call.drop_table('e3t1')
             )
 
 

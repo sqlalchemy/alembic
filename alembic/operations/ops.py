@@ -1875,6 +1875,10 @@ class UpgradeOps(OpContainer):
 
     """
 
+    def __init__(self, ops=(), upgrade_token="upgrades"):
+        super(UpgradeOps, self).__init__(ops=ops)
+        self.upgrade_token = upgrade_token
+
     def reverse_into(self, downgrade_ops):
         downgrade_ops.ops[:] = list(reversed(
             [op.reverse() for op in self.ops]
@@ -1895,6 +1899,10 @@ class DowngradeOps(OpContainer):
 
     """
 
+    def __init__(self, ops=(), downgrade_token="downgrades"):
+        super(DowngradeOps, self).__init__(ops=ops)
+        self.downgrade_token = downgrade_token
+
     def reverse(self):
         return UpgradeOps(
             ops=list(reversed(
@@ -1911,6 +1919,20 @@ class MigrationScript(MigrateOperation):
 
     A normal :class:`.MigrationScript` object would contain a single
     :class:`.UpgradeOps` and a single :class:`.DowngradeOps` directive.
+    These are accessible via the ``.upgrade_ops`` and ``.downgrade_ops``
+    attributes.
+
+    In the case of an autogenerate operation that runs multiple times,
+    such as the multiple database example in the "multidb" template,
+    the ``.upgrade_ops`` and ``.downgrade_ops`` attributes are disabled,
+    and instead these objects should be accessed via the ``.upgrade_ops_list``
+    and ``.downgrade_ops_list`` list-based attributes.  These latter
+    attributes are always available at the very least as single-element lists.
+
+    .. versionchanged:: 0.8.1 the ``.upgrade_ops`` and ``.downgrade_ops``
+       attributes should be accessed via the ``.upgrade_ops_list``
+       and ``.downgrade_ops_list`` attributes if multiple autogenerate
+       passes proceed on the same :class:`.MigrationScript` object.
 
     .. seealso::
 
@@ -1921,7 +1943,7 @@ class MigrationScript(MigrateOperation):
     def __init__(
             self, rev_id, upgrade_ops, downgrade_ops,
             message=None,
-            imports=None, head=None, splice=None,
+            imports=set(), head=None, splice=None,
             branch_label=None, version_path=None, depends_on=None):
         self.rev_id = rev_id
         self.message = message
@@ -1933,3 +1955,78 @@ class MigrationScript(MigrateOperation):
         self.depends_on = depends_on
         self.upgrade_ops = upgrade_ops
         self.downgrade_ops = downgrade_ops
+
+    @property
+    def upgrade_ops(self):
+        """An instance of :class:`.UpgradeOps`.
+
+        .. seealso::
+
+            :attr:`.MigrationScript.upgrade_ops_list`
+        """
+        if len(self._upgrade_ops) > 1:
+            raise ValueError(
+                "This MigrationScript instance has a multiple-entry "
+                "list for UpgradeOps; please use the "
+                "upgrade_ops_list attribute.")
+        elif not self._upgrade_ops:
+            return None
+        else:
+            return self._upgrade_ops[0]
+
+    @upgrade_ops.setter
+    def upgrade_ops(self, upgrade_ops):
+        self._upgrade_ops = util.to_list(upgrade_ops)
+        for elem in self._upgrade_ops:
+            assert isinstance(elem, UpgradeOps)
+
+    @property
+    def downgrade_ops(self):
+        """An instance of :class:`.DowngradeOps`.
+
+        .. seealso::
+
+            :attr:`.MigrationScript.downgrade_ops_list`
+        """
+        if len(self._downgrade_ops) > 1:
+            raise ValueError(
+                "This MigrationScript instance has a multiple-entry "
+                "list for DowngradeOps; please use the "
+                "downgrade_ops_list attribute.")
+        elif not self._downgrade_ops:
+            return None
+        else:
+            return self._downgrade_ops[0]
+
+    @downgrade_ops.setter
+    def downgrade_ops(self, downgrade_ops):
+        self._downgrade_ops = util.to_list(downgrade_ops)
+        for elem in self._downgrade_ops:
+            assert isinstance(elem, DowngradeOps)
+
+    @property
+    def upgrade_ops_list(self):
+        """A list of :class:`.UpgradeOps` instances.
+
+        This is used in place of the :attr:`.MigrationScript.upgrade_ops`
+        attribute when dealing with a revision operation that does
+        multiple autogenerate passes.
+
+        .. versionadded:: 0.8.1
+
+        """
+        return self._upgrade_ops
+
+    @property
+    def downgrade_ops_list(self):
+        """A list of :class:`.DowngradeOps` instances.
+
+        This is used in place of the :attr:`.MigrationScript.downgrade_ops`
+        attribute when dealing with a revision operation that does
+        multiple autogenerate passes.
+
+        .. versionadded:: 0.8.1
+
+        """
+        return self._downgrade_ops
+

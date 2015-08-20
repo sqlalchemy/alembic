@@ -45,6 +45,7 @@ changelog_render_pullreq = {
     "github": "https://github.com/zzzeek/alembic/pull/%s",
 }
 
+autodoc_default_flags = ["members"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

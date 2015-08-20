@@ -7,6 +7,31 @@ Changelog
     :version: 0.8.1
 
     .. change::
+      :tags: bug, autogenerate
+      :tickets: 318
+
+      Fixed a regression 0.8 whereby the "multidb" environment template
+      failed to produce independent migration script segments for the
+      output template.  This was due to the reorganization of the script
+      rendering system for 0.8.  To accommodate this change, the
+      :class:`.MigrationScript` structure will in the case of multiple
+      calls to :meth:`.MigrationContext.run_migrations` produce lists
+      for the :attr:`.MigrationScript.upgrade_ops` and
+      :attr:`.MigrationScript.downgrade_ops` attributes; each :class:`.UpgradeOps`
+      and :class:`.DowngradeOps` instance keeps track of its own
+      ``upgrade_token`` and ``downgrade_token``, and each are rendered
+      individually.
+
+      .. seealso::
+
+        :ref:`autogen_customizing_multiengine_revision` - additional detail
+        on the workings of the
+        :paramref:`.EnvironmentContext.configure.process_revision_directives`
+        parameter when multiple calls to :meth:`.MigrationContext.run_migrations`
+        are made.
+
+
+    .. change::
       :tags: feature, autogenerate
       :tickets: 317
 

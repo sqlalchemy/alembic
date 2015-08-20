@@ -176,7 +176,7 @@ def _render_migration_diffs(context, template_args):
         downgrade_ops=upgrade_ops.reverse(),
     )
 
-    render._render_migration_script(
+    render._render_python_into_templatevars(
         autogen_context, migration_script, template_args
     )
 
@@ -223,15 +223,19 @@ class AutogenContext(object):
     migration_context = None
     """The :class:`.MigrationContext` established by the ``env.py`` script."""
 
-    def __init__(self, migration_context, metadata=None, opts=None):
+    def __init__(
+            self, migration_context, metadata=None,
+            opts=None, autogenerate=True):
 
-        if migration_context is not None and migration_context.as_sql:
+        if autogenerate and \
+                migration_context is not None and migration_context.as_sql:
             raise util.CommandError(
                 "autogenerate can't use as_sql=True as it prevents querying "
                 "the database for schema information")
 
         if opts is None:
             opts = migration_context.opts
+
         self.metadata = metadata = opts.get('target_metadata', None) \
             if metadata is None else metadata
 
@@ -322,10 +326,14 @@ class RevisionContext(object):
         for k, v in self.template_args.items():
             template_args.setdefault(k, v)
 
-        if migration_script._autogen_context is not None:
-            render._render_migration_script(
-                migration_script._autogen_context, migration_script,
-                template_args
+        if getattr(migration_script, '_needs_render', False):
+            autogen_context = self._last_autogen_context
+
+            autogen_context._imports = set()
+            if migration_script.imports:
+                autogen_context._imports.union_update(migration_script.imports)
+            render._render_python_into_templatevars(
+                autogen_context, migration_script, template_args
             )
 
         return self.script_directory.generate_revision(
@@ -339,40 +347,57 @@ class RevisionContext(object):
             depends_on=migration_script.depends_on,
             **template_args)
 
-    def run_autogenerate(self, rev, context):
-        if self.command_args['sql']:
-            raise util.CommandError(
-                "Using --sql with --autogenerate does not make any sense")
-        if set(self.script_directory.get_revisions(rev)) != \
-                set(self.script_directory.get_revisions("heads")):
-            raise util.CommandError("Target database is not up to date.")
+    def run_autogenerate(self, rev, migration_context):
+        self._run_environment(rev, migration_context, True)
 
-        autogen_context = AutogenContext(context)
+    def run_no_autogenerate(self, rev, migration_context):
+        self._run_environment(rev, migration_context, False)
 
-        migration_script = self.generated_revisions[0]
+    def _run_environment(self, rev, migration_context, autogenerate):
+        if autogenerate:
+            if self.command_args['sql']:
+                raise util.CommandError(
+                    "Using --sql with --autogenerate does not make any sense")
+            if set(self.script_directory.get_revisions(rev)) != \
+                    set(self.script_directory.get_revisions("heads")):
+                raise util.CommandError("Target database is not up to date.")
 
-        compare._populate_migration_script(autogen_context, migration_script)
+        upgrade_token = migration_context.opts['upgrade_token']
+        downgrade_token = migration_context.opts['downgrade_token']
 
-        hook = context.opts.get('process_revision_directives', None)
+        migration_script = self.generated_revisions[-1]
+        if not getattr(migration_script, '_needs_render', False):
+            migration_script.upgrade_ops_list[-1].upgrade_token = upgrade_token
+            migration_script.downgrade_ops_list[-1].downgrade_token = \
+                downgrade_token
+            migration_script._needs_render = True
+        else:
+            pass
+            migration_script._upgrade_ops.append(
+                ops.UpgradeOps([], upgrade_token=upgrade_token)
+            )
+            migration_script._downgrade_ops.append(
+                ops.DowngradeOps([], downgrade_token=downgrade_token)
+            )
+
+        self._last_autogen_context = autogen_context = \
+            AutogenContext(migration_context, autogenerate=autogenerate)
+
+        if autogenerate:
+            compare._populate_migration_script(
+                autogen_context, migration_script)
+
+        hook = migration_context.opts['process_revision_directives']
         if hook:
-            hook(context, rev, self.generated_revisions)
+            hook(migration_context, rev, self.generated_revisions)
 
         for migration_script in self.generated_revisions:
-            migration_script._autogen_context = autogen_context
-
-    def run_no_autogenerate(self, rev, context):
-        hook = context.opts.get('process_revision_directives', None)
-        if hook:
-            hook(context, rev, self.generated_revisions)
-
-        for migration_script in self.generated_revisions:
-            migration_script._autogen_context = None
+            migration_script._needs_render = True
 
     def _default_revision(self):
         op = ops.MigrationScript(
             rev_id=self.command_args['rev_id'] or util.rev_id(),
             message=self.command_args['message'],
-            imports=set(),
             upgrade_ops=ops.UpgradeOps([]),
             downgrade_ops=ops.DowngradeOps([]),
             head=self.command_args['head'],
@@ -381,7 +406,6 @@ class RevisionContext(object):
             version_path=self.command_args['version_path'],
             depends_on=self.command_args['depends_on']
         )
-        op._autogen_context = None
         return op
 
     def generate_scripts(self):

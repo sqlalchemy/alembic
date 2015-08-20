@@ -29,13 +29,17 @@ def _indent(text):
     return text
 
 
-def _render_migration_script(autogen_context, migration_script, template_args):
-    opts = autogen_context.opts
+def _render_python_into_templatevars(
+        autogen_context, migration_script, template_args):
     imports = autogen_context._imports
-    template_args[opts['upgrade_token']] = _indent(_render_cmd_body(
-        migration_script.upgrade_ops, autogen_context))
-    template_args[opts['downgrade_token']] = _indent(_render_cmd_body(
-        migration_script.downgrade_ops, autogen_context))
+
+    for upgrade_ops, downgrade_ops in zip(
+            migration_script.upgrade_ops_list,
+            migration_script.downgrade_ops_list):
+        template_args[upgrade_ops.upgrade_token] = _indent(
+            _render_cmd_body(upgrade_ops, autogen_context))
+        template_args[downgrade_ops.downgrade_token] = _indent(
+            _render_cmd_body(downgrade_ops, autogen_context))
     template_args['imports'] = "\n".join(sorted(imports))
 
 

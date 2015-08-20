@@ -131,7 +131,7 @@ finally:
 
     def test_create_rev_autogen_db_not_up_to_date(self):
         self._env_fixture()
-        command.revision(self.cfg)
+        assert command.revision(self.cfg)
         assert_raises_message(
             util.CommandError,
             "Target database is not up to date.",

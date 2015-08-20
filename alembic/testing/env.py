@@ -25,7 +25,7 @@ def staging_env(create=True, template="generic", sourceless=False):
         path = os.path.join(_get_staging_directory(), 'scripts')
         if os.path.exists(path):
             shutil.rmtree(path)
-        command.init(cfg, path)
+        command.init(cfg, path, template=template)
         if sourceless:
             try:
                 # do an import so that a .pyc/.pyo is generated.
@@ -71,9 +71,9 @@ config = context.config
         f.write(txt)
 
 
-def _sqlite_file_db():
+def _sqlite_file_db(tempname="foo.db"):
     dir_ = os.path.join(_get_staging_directory(), 'scripts')
-    url = "sqlite:///%s/foo.db" % dir_
+    url = "sqlite:///%s/%s" % (dir_, tempname)
     return engines.testing_engine(url=url)
 
 
@@ -111,6 +111,8 @@ keys = generic
 format = %%(levelname)-5.5s [%%(name)s] %%(message)s
 datefmt = %%H:%%M:%%S
     """ % (dir_, url, "true" if sourceless else "false"))
+
+
 
 
 def _multi_dir_testing_config(sourceless=False):
@@ -294,3 +296,52 @@ def downgrade():
 
 """ % (c, b))
     return a, b, c
+
+
+def _multidb_testing_config(engines):
+    """alembic.ini fixture to work exactly with the 'multidb' template"""
+
+    dir_ = os.path.join(_get_staging_directory(), 'scripts')
+
+    databases = ", ".join(
+        engines.keys()
+    )
+    engines = "\n\n".join(
+        "[%s]\n"
+        "sqlalchemy.url = %s" % (key, value.url)
+        for key, value in engines.items()
+    )
+
+    return _write_config_file("""
+[alembic]
+script_location = %s
+sourceless = false
+
+databases = %s
+
+%s
+[loggers]
+keys = root
+
+[handlers]
+keys = console
+
+[logger_root]
+level = WARN
+handlers = console
+qualname =
+
+[handler_console]
+class = StreamHandler
+args = (sys.stderr,)
+level = NOTSET
+formatter = generic
+
+[formatters]
+keys = generic
+
+[formatter_generic]
+format = %%(levelname)-5.5s [%%(name)s] %%(message)s
+datefmt = %%H:%%M:%%S
+    """ % (dir_, databases, engines)
+    )

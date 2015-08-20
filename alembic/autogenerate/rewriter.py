@@ -105,16 +105,24 @@ class Rewriter(object):
 
     @_traverse.dispatch_for(ops.MigrationScript)
     def _traverse_script(self, context, revision, directive):
-        ret = self._traverse_for(context, revision, directive.upgrade_ops)
-        if len(ret) != 1:
-            raise ValueError(
-                "Can only return single object for UpgradeOps traverse")
-        directive.upgrade_ops = ret[0]
-        ret = self._traverse_for(context, revision, directive.downgrade_ops)
-        if len(ret) != 1:
-            raise ValueError(
-                "Can only return single object for DowngradeOps traverse")
-        directive.downgrade_ops = ret[0]
+        upgrade_ops_list = []
+        for upgrade_ops in directive.upgrade_ops_list:
+            ret = self._traverse_for(context, revision, directive.upgrade_ops)
+            if len(ret) != 1:
+                raise ValueError(
+                    "Can only return single object for UpgradeOps traverse")
+            upgrade_ops_list.append(ret[0])
+        directive.upgrade_ops = upgrade_ops_list
+
+        downgrade_ops_list = []
+        for downgrade_ops in directive.downgrade_ops_list:
+            ret = self._traverse_for(
+                context, revision, directive.downgrade_ops)
+            if len(ret) != 1:
+                raise ValueError(
+                    "Can only return single object for DowngradeOps traverse")
+            downgrade_ops_list.append(ret[0])
+        directive.downgrade_ops = downgrade_ops_list
 
     @_traverse.dispatch_for(ops.OpContainer)
     def _traverse_op_container(self, context, revision, directive):
