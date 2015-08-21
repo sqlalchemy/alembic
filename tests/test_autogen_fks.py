@@ -473,6 +473,7 @@ class IncludeHooksTest(AutogenFixtureTest, TestBase):
 
 class AutogenerateFKOptionsTest(AutogenFixtureTest, TestBase):
     __backend__ = True
+    __requires__ = ('sqlalchemy_09', )
 
     def _fk_opts_fixture(self, old_opts, new_opts):
         m1 = MetaData()
