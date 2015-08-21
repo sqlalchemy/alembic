@@ -7,6 +7,16 @@ Changelog
     :version: 0.8.1
 
     .. change::
+      :tags: feature, autogenerate
+
+      A custom :paramref:`.EnvironmentContext.configure.process_revision_directives`
+      hook can now generate op directives within the :class:`.UpgradeOps`
+      and :class:`.DowngradeOps` containers that will be generated as Python
+      code even when the ``--autogenerate`` flag is False; provided that
+      ``revision_environment=True``, the full render operation will be run
+      even in "offline" mode.
+
+    .. change::
       :tags: bug, autogenerate
 
       Repaired the render operation for the :class:`.ops.AlterColumnOp` object

@@ -697,6 +697,15 @@ class EnvironmentContext(util.ModuleClsProxy):
 
          .. versionadded:: 0.8.0
 
+         .. versionchanged:: 0.8.1 - The
+            :paramref:`.EnvironmentContext.configure.process_revision_directives`
+            hook can append op directives into :class:`.UpgradeOps` and
+            :class:`.DowngradeOps` which will be rendered in Python regardless
+            of whether the ``--autogenerate`` option is in use or not;
+            the ``revision_environment`` configuration variable should be
+            set to "true" in the config to enable this.
+
+
          .. seealso::
 
              :ref:`customizing_revision`

@@ -329,6 +329,26 @@ def downgrade():
             )
             assert os.path.exists(rev_script.path)
 
+    def test_renders_added_directives_no_autogen(self):
+        m = sa.MetaData()
+
+        def process_revision_directives(context, rev, generate_revisions):
+            generate_revisions[0].upgrade_ops.ops.append(
+                ops.CreateIndexOp("some_index", "some_table", ["a", "b"])
+            )
+
+        with self._env_fixture(process_revision_directives, m):
+            rev = command.revision(
+                self.cfg, message="some message", head="model1@head", sql=True)
+
+        with mock.patch.object(rev.module, "op") as op_mock:
+            rev.module.upgrade()
+        eq_(
+            op_mock.mock_calls,
+            [mock.call.create_index(
+                'some_index', 'some_table', ['a', 'b'], unique=False)]
+        )
+
     def test_autogen(self):
         m = sa.MetaData()
         sa.Table('t', m, sa.Column('x', sa.Integer))

@@ -372,7 +372,6 @@ class RevisionContext(object):
                 downgrade_token
             migration_script._needs_render = True
         else:
-            pass
             migration_script._upgrade_ops.append(
                 ops.UpgradeOps([], upgrade_token=upgrade_token)
             )
