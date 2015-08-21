@@ -8,6 +8,12 @@ Changelog
 
     .. change::
       :tags: bug, autogenerate
+
+      Repaired the render operation for the :class:`.ops.AlterColumnOp` object
+      to succeed when the "existing_type" field was not present.
+
+    .. change::
+      :tags: bug, autogenerate
       :tickets: 318
 
       Fixed a regression 0.8 whereby the "multidb" environment template

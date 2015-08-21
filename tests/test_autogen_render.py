@@ -1058,6 +1058,16 @@ unique=False, """
             "existing_type=sa.Integer(), nullable=True)"
         )
 
+    def test_render_modify_nullable_no_existing_type(self):
+        op_obj = ops.AlterColumnOp(
+            "sometable", "somecolumn",
+            modify_nullable=True
+        )
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.alter_column('sometable', 'somecolumn', nullable=True)"
+        )
+
     def test_render_modify_nullable_w_schema(self):
         op_obj = ops.AlterColumnOp(
             "sometable", "somecolumn",

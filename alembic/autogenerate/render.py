@@ -349,9 +349,10 @@ def _alter_column(autogen_context, op):
             autogen_context),
         'tname': tname,
         'cname': cname}
-    text += ",\n%sexisting_type=%s" % (
-        indent,
-        _repr_type(existing_type, autogen_context))
+    if existing_type is not None:
+        text += ",\n%sexisting_type=%s" % (
+            indent,
+            _repr_type(existing_type, autogen_context))
     if server_default is not False:
         rendered = _render_server_default(
             server_default, autogen_context)
