@@ -774,3 +774,38 @@ recreated again within the downgrade for this migration::
     INFO  [sqlalchemy.engine.base.Engine] UPDATE alembic_version SET version_num='28af9800143f' WHERE alembic_version.version_num = '191a2d20b025'
     INFO  [sqlalchemy.engine.base.Engine] {}
     INFO  [sqlalchemy.engine.base.Engine] COMMIT
+
+Don't Generate Empty Migrations with Autogenerate
+=================================================
+
+A common request is to have the ``alembic revision --autogenerate`` command not
+actually generate a revision file if no changes to the schema is detected.  Using
+the :paramref:`.EnvironmentContext.configure.process_revision_directives`
+hook, this is straightforward; place a ``process_revision_directives``
+hook in :meth:`.MigrationContext.configure` which removes the
+single :class:`.MigrationScript` directive if it is empty of
+any operations::
+
+
+    def run_migrations_online():
+
+        # ...
+
+        def process_revision_directives(context, revision, directives):
+            if config.cmd_opts.autogenerate:
+                script = directives[0]
+                if script.upgrade_ops.is_empty():
+                    directives[:] = []
+
+
+        # connectable = ...
+
+        with connectable.connect() as connection:
+            context.configure(
+                connection=connection,
+                target_metadata=target_metadata,
+                process_revision_directives=process_revision_directives
+            )
+
+            with context.begin_transaction():
+                context.run_migrations()
