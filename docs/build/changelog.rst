@@ -5,6 +5,7 @@ Changelog
 
 .. changelog::
     :version: 0.8.1
+    :released: August 22, 2015
 
     .. change::
       :tags: feature, autogenerate
