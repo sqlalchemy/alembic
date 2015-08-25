@@ -1,5 +1,5 @@
 import sys
-from alembic.testing import TestBase, config
+from alembic.testing import TestBase, config, mock
 
 from sqlalchemy import MetaData, Column, Table, Integer, String, \
     ForeignKeyConstraint
@@ -622,6 +622,94 @@ class AutogenerateFKOptionsTest(AutogenFixtureTest, TestBase):
             {"onupdate": "caSCAde"}, {"onupdate": "CasCade"}
         )
         eq_(diffs, [])
+
+    def test_nochange_ondelete_restrict(self):
+        """test the RESTRICT option which MySQL doesn't report on"""
+
+        diffs = self._fk_opts_fixture(
+            {"ondelete": "restrict"}, {"ondelete": "restrict"}
+        )
+        eq_(diffs, [])
+
+    def test_nochange_onupdate_restrict(self):
+        """test the RESTRICT option which MySQL doesn't report on"""
+
+        diffs = self._fk_opts_fixture(
+            {"onupdate": "restrict"}, {"onupdate": "restrict"}
+        )
+        eq_(diffs, [])
+
+    def test_nochange_ondelete_noaction(self):
+        """test the NO ACTION option which generally comes back as None"""
+
+        diffs = self._fk_opts_fixture(
+            {"ondelete": "no action"}, {"ondelete": "no action"}
+        )
+        eq_(diffs, [])
+
+    def test_nochange_onupdate_noaction(self):
+        """test the NO ACTION option which generally comes back as None"""
+
+        diffs = self._fk_opts_fixture(
+            {"onupdate": "no action"}, {"onupdate": "no action"}
+        )
+        eq_(diffs, [])
+
+    def test_change_ondelete_from_restrict(self):
+        """test the RESTRICT option which MySQL doesn't report on"""
+
+        # note that this is impossible to detect if we change
+        # from RESTRICT to NO ACTION on MySQL.
+        diffs = self._fk_opts_fixture(
+            {"ondelete": "restrict"}, {"ondelete": "cascade"}
+        )
+        if self._expect_opts_supported():
+            self._assert_fk_diff(
+                diffs[0], "remove_fk",
+                "user", ["tid"],
+                "table", ["id"],
+                onupdate=None,
+                ondelete=mock.ANY,  # MySQL reports None, PG reports RESTRICT
+                conditional_name="servergenerated"
+            )
+
+            self._assert_fk_diff(
+                diffs[1], "add_fk",
+                "user", ["tid"],
+                "table", ["id"],
+                onupdate=None,
+                ondelete="cascade"
+            )
+        else:
+            eq_(diffs, [])
+
+    def test_change_onupdate_from_restrict(self):
+        """test the RESTRICT option which MySQL doesn't report on"""
+
+        # note that this is impossible to detect if we change
+        # from RESTRICT to NO ACTION on MySQL.
+        diffs = self._fk_opts_fixture(
+            {"onupdate": "restrict"}, {"onupdate": "cascade"}
+        )
+        if self._expect_opts_supported():
+            self._assert_fk_diff(
+                diffs[0], "remove_fk",
+                "user", ["tid"],
+                "table", ["id"],
+                onupdate=mock.ANY,  # MySQL reports None, PG reports RESTRICT
+                ondelete=None,
+                conditional_name="servergenerated"
+            )
+
+            self._assert_fk_diff(
+                diffs[1], "add_fk",
+                "user", ["tid"],
+                "table", ["id"],
+                onupdate="cascade",
+                ondelete=None
+            )
+        else:
+            eq_(diffs, [])
 
     def test_ondelete_onupdate_combo(self):
         diffs = self._fk_opts_fixture(

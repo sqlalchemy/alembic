@@ -331,8 +331,12 @@ class _fk_constraint_sig(_constraint_sig):
         )
         if include_options:
             self.sig += (
-                onupdate.lower() if onupdate else None,
-                ondelete.lower() if ondelete else None,
+                (None if onupdate.lower() == 'no action'
+                    else onupdate.lower())
+                if onupdate else None,
+                (None if ondelete.lower() == 'no action'
+                    else ondelete.lower())
+                if ondelete else None,
                 # convert initially + deferrable into one three-state value
                 "initially_deferrable"
                 if initially and initially.lower() == "deferred"
@@ -698,17 +702,23 @@ def _compare_foreign_keys(
 
     backend_reflects_fk_options = conn_fks and 'options' in conn_fks[0]
 
+    conn_fks = set(_make_foreign_key(const, conn_table) for const in conn_fks)
+
+    # give the dialect a chance to correct the FKs to match more
+    # closely
+    autogen_context.migration_context.impl.\
+        correct_for_autogen_foreignkeys(
+            conn_fks, metadata_fks,
+        )
+
     metadata_fks = set(
         _fk_constraint_sig(fk, include_options=backend_reflects_fk_options)
         for fk in metadata_fks
     )
 
     conn_fks = set(
-        _fk_constraint_sig(
-            _make_foreign_key(const, conn_table),
-            include_options=backend_reflects_fk_options
-        )
-        for const in conn_fks
+        _fk_constraint_sig(fk, include_options=backend_reflects_fk_options)
+        for fk in conn_fks
     )
 
     conn_fks_by_sig = dict(

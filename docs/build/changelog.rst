@@ -4,6 +4,21 @@ Changelog
 ==========
 
 .. changelog::
+    :version: 0.8.2
+
+    .. change::
+      :tags: bug, autogenerate
+      :tickets: 321
+
+      Added workaround in new foreign key option detection feature for
+      MySQL's consideration of the "RESTRICT" option being the default,
+      for which no value is reported from the database; the MySQL impl now
+      corrects for when the model reports RESTRICT but the database reports
+      nothing.   A similar rule is in the default FK comparison to accommodate
+      for the default "NO ACTION" setting being present in the model but not
+      necessarily reported by the database, or vice versa.
+
+.. changelog::
     :version: 0.8.1
     :released: August 22, 2015
 

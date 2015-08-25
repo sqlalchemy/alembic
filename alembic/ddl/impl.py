@@ -280,6 +280,9 @@ class DefaultImpl(with_metaclass(ImplMeta)):
                     inspector, table, column_info)
             return adapt
 
+    def correct_for_autogen_foreignkeys(self, conn_fks, metadata_fks):
+        pass
+
     def autogen_column_reflect(self, inspector, table, column_info):
         """A hook that is attached to the 'column_reflect' event for when
         a Table is reflected from the database during the autogenerate
