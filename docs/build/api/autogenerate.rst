@@ -233,7 +233,7 @@ to alter the nullable flag in a second step::
     # ... fragmented env.py script ....
 
     from alembic.autogenerate import rewriter
-    from alembic import ops
+    from alembic.operations import ops
 
     writer = rewriter.Rewriter()
 
@@ -247,7 +247,7 @@ to alter the nullable flag in a second step::
                 op,
                 ops.AlterColumnOp(
                     op.table_name,
-                    op.column_name,
+                    op.column.name,
                     modify_nullable=False,
                     existing_type=op.column.type,
                 )
