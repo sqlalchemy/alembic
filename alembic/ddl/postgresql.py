@@ -47,7 +47,8 @@ class PostgresqlImpl(DefaultImpl):
                 not isinstance(inspector_column.type, Numeric):
                 # don't single quote if the column type is float/numeric,
                 # otherwise a comparison such as SELECT 5 = '5.0' will fail
-            rendered_metadata_default = "'%s'" % rendered_metadata_default
+            rendered_metadata_default = re.sub(
+                r"^u?'?|'?$", "'", rendered_metadata_default)
 
         return not self.connection.scalar(
             "SELECT %s = %s" % (

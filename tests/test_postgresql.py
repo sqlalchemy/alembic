@@ -331,6 +331,21 @@ class PostgresqlDefaultCompareTest(TestBase):
             diff_expected=False
         )
 
+    def test_compare_unicode_literal(self):
+        self._compare_default_roundtrip(
+            String(),
+            u'im a default'
+        )
+
+    # TOOD: will need to actually eval() the repr() and
+    # spend more effort figuring out exactly the kind of expression
+    # to use
+    def _TODO_test_compare_character_str_w_singlequote(self):
+        self._compare_default_roundtrip(
+            String(),
+            "hel''lo",
+        )
+
     def test_compare_character_str(self):
         self._compare_default_roundtrip(
             String(),

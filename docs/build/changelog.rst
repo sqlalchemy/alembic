@@ -4,6 +4,21 @@ Changelog
 ==========
 
 .. changelog::
+    :version: 0.8.3
+
+    .. change::
+      :tags: bug, autogenerate, postgresql
+      :tickets: 324
+
+      Fixed issue in PG server default comparison where model-side defaults
+      configured with Python unicode literals would leak the "u" character
+      from a ``repr()`` into the SQL used for comparison, creating an invalid
+      SQL expression, as the server-side comparison feature in PG currently
+      repurposes the autogenerate Python rendering feature to get a quoted
+      version of a plain string default.
+
+
+.. changelog::
     :version: 0.8.2
     :released: August 25, 2015
 
