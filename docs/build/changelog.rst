@@ -7,6 +7,14 @@ Changelog
     :version: 0.8.3
 
     .. change::
+      :tags: bug, tests
+      :pullreq: bitbucket:47
+
+      Added "pytest-xdist" as a tox dependency, so that the -n flag
+      in the test command works if this is not already installed.
+      Pull request courtesy Julien Danjou.
+
+    .. change::
       :tags: bug, autogenerate, postgresql
       :tickets: 324
 
