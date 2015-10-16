@@ -992,14 +992,23 @@ unique=False, """
 
     def test_render_custom(self):
 
+        class MySpecialType(Integer):
+            pass
+
         def render(type_, obj, context):
             if type_ == "foreign_key":
                 return None
             if type_ == "column":
                 if obj.name == "y":
                     return None
+                elif obj.name == "q":
+                    return False
                 else:
                     return "col(%s)" % obj.name
+            if type_ == "type" and isinstance(obj, MySpecialType):
+                context.imports.add("from mypackage import MySpecialType")
+                return "MySpecialType()"
+
             return "render:%s" % type_
 
         self.autogen_context.opts.update(
@@ -1010,6 +1019,7 @@ unique=False, """
         t = Table('t', MetaData(),
                   Column('x', Integer),
                   Column('y', Integer),
+                  Column('q', MySpecialType()),
                   PrimaryKeyConstraint('x'),
                   ForeignKeyConstraint(['x'], ['y'])
                   )
@@ -1019,7 +1029,12 @@ unique=False, """
             result,
             "sa.create_table('t',"
             "col(x),"
+            "sa.Column('q', MySpecialType(), nullable=True),"
             "render:primary_key)"
+        )
+        eq_(
+            self.autogen_context.imports,
+            set(['from mypackage import MySpecialType'])
         )
 
     def test_render_modify_type(self):
@@ -1350,7 +1365,7 @@ unique=False, """
             autogenerate.render._repr_type(type_, self.autogen_context),
             "mysql.VARCHAR(charset='utf8', national=True, length=20)"
         )
-        eq_(self.autogen_context._imports,
+        eq_(self.autogen_context.imports,
             set(['from sqlalchemy.dialects import mysql'])
             )
 

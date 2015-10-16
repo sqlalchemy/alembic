@@ -31,7 +31,7 @@ def _indent(text):
 
 def _render_python_into_templatevars(
         autogen_context, migration_script, template_args):
-    imports = autogen_context._imports
+    imports = autogen_context.imports
 
     for upgrade_ops, downgrade_ops in zip(
             migration_script.upgrade_ops_list,
@@ -567,7 +567,7 @@ def _repr_type(type_, autogen_context):
         return rendered
 
     mod = type(type_).__module__
-    imports = autogen_context._imports
+    imports = autogen_context.imports
     if mod.startswith("sqlalchemy.dialects"):
         dname = re.match(r"sqlalchemy\.dialects\.(\w+)", mod).group(1)
         if imports is not None:

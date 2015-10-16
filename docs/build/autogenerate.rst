@@ -326,8 +326,8 @@ In the above example, we'd ensure our ``MySpecialType`` includes an appropriate
 ``__repr__()`` method, which is invoked when we call it against ``"%r"``.
 
 The callable we use for :paramref:`.EnvironmentContext.configure.render_item`
-can also add imports to our migration script.  The ``autogen_context`` passed in
-contains an entry called ``autogen_context['imports']``, which is a Python
+can also add imports to our migration script.  The :class:`.AutogenContext` passed in
+contains a datamember called :attr:`.AutogenContext.imports`, which is a Python
 ``set()`` for which we can add new imports.  For example, if ``MySpecialType``
 were in a module called ``mymodel.types``, we can add the import for it
 as we encounter the type::
@@ -337,11 +337,18 @@ as we encounter the type::
 
         if type_ == 'type' and isinstance(obj, MySpecialType):
             # add import for this type
-            autogen_context['imports'].add("from mymodel import types")
+            autogen_context.imports.add("from mymodel import types")
             return "types.%r" % obj
 
         # default rendering for other objects
         return False
+
+.. versionchanged:: 0.8 The ``autogen_context`` data member passed to
+   the ``render_item`` callable is now an instance of :class:`.AutogenContext`.
+
+.. versionchanged:: 0.8.3 The "imports" data member of the autogen context
+   is restored to the new :class:`.AutogenContext` object as
+   :attr:`.AutogenContext.imports`.
 
 The finished migration script will include our imports where the
 ``${imports}`` expression is used, producing output such as::

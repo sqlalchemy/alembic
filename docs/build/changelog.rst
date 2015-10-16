@@ -7,6 +7,16 @@ Changelog
     :version: 0.8.3
 
     .. change::
+      :tags: bug, autogenerate
+      :tickets: 332
+
+      Fixed an 0.8 regression whereby the "imports" dictionary member of
+      the autogen context was removed; this collection is documented in the
+      "render custom type" documentation as a place to add new imports.
+      The member is now known as
+      :attr:`.AutogenContext.imports` and the documentation is repaired.
+
+    .. change::
       :tags: bug, batch
       :tickets: 333
 

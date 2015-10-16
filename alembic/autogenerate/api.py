@@ -220,6 +220,22 @@ class AutogenContext(object):
 
     """
 
+    imports = None
+    """A ``set()`` which contains string Python import directives.
+
+    The directives are to be rendered into the ``${imports}`` section
+    of a script template.  The set is normally empty and can be modified
+    within hooks such as the :paramref:`.EnvironmentContext.configure.render_item`
+    hook.
+
+    .. versionadded:: 0.8.3
+
+    .. seealso::
+
+        :ref:`autogen_render_types`
+
+    """
+
     migration_context = None
     """The :class:`.MigrationContext` established by the ``env.py`` script."""
 
@@ -271,7 +287,7 @@ class AutogenContext(object):
             self.connection = self.migration_context.bind
             self.dialect = self.migration_context.dialect
 
-        self._imports = set()
+        self.imports = set()
         self.opts = opts
         self._has_batch = False
 
@@ -329,9 +345,11 @@ class RevisionContext(object):
         if getattr(migration_script, '_needs_render', False):
             autogen_context = self._last_autogen_context
 
-            autogen_context._imports = set()
+            # clear out existing imports if we are doing multiple
+            # renders
+            autogen_context.imports = set()
             if migration_script.imports:
-                autogen_context._imports.union_update(migration_script.imports)
+                autogen_context.imports.union_update(migration_script.imports)
             render._render_python_into_templatevars(
                 autogen_context, migration_script, template_args
             )
