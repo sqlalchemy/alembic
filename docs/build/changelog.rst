@@ -5,6 +5,7 @@ Changelog
 
 .. changelog::
     :version: 0.8.3
+    :released: October 16, 2015
 
     .. change::
       :tags: bug, autogenerate
