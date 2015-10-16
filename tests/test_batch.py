@@ -895,11 +895,14 @@ class BatchRoundTripTest(TestBase):
 
         insp = Inspector.from_engine(config.db)
         eq_(
-            sorted(insp.get_indexes('t_w_ix'), key=lambda idx: idx['name']),
-            [
-                {'unique': 0, 'name': 'ix_data', 'column_names': ['data']},
-                {'unique': 0, 'name': 'ix_thing', 'column_names': ['thing']}
-            ]
+            set(
+                (ix['name'], tuple(ix['column_names'])) for ix in
+                insp.get_indexes('t_w_ix')
+            ),
+            set([
+                ('ix_data', ('data',)),
+                ('ix_thing', ('thing', ))
+            ])
         )
 
     def test_fk_points_to_me_auto(self):
