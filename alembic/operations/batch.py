@@ -128,6 +128,7 @@ class ApplyBatchImpl(object):
         self.named_constraints = {}
         self.unnamed_constraints = []
         self.indexes = {}
+        self.new_indexes = {}
         for const in self.table.constraints:
             if _is_type_bound(const):
                 continue
@@ -167,11 +168,18 @@ class ApplyBatchImpl(object):
                 self._setup_referent(m, const)
             new_table.append_constraint(const_copy)
 
-        for index in self.indexes.values():
-            Index(index.name,
-                  unique=index.unique,
-                  *[new_table.c[col] for col in index.columns.keys()],
-                  **index.kwargs)
+    def _gather_indexes_from_both_tables(self):
+        idx = []
+        idx.extend(self.indexes.values())
+        for index in self.new_indexes.values():
+            idx.append(
+                Index(
+                    index.name,
+                    unique=index.unique,
+                    *[self.new_table.c[col] for col in index.columns.keys()],
+                    **index.kwargs)
+            )
+        return idx
 
     def _setup_referent(self, metadata, constraint):
         spec = constraint.elements[0]._get_colspec()
@@ -227,6 +235,12 @@ class ApplyBatchImpl(object):
                 self.table.name,
                 schema=self.table.schema
             )
+            self.new_table.name = self.table.name
+            try:
+                for idx in self._gather_indexes_from_both_tables():
+                    op_impl.create_index(idx)
+            finally:
+                self.new_table.name = "_alembic_batch_temp"
 
     def alter_column(self, table_name, column_name,
                      nullable=None,
@@ -283,7 +297,7 @@ class ApplyBatchImpl(object):
             raise ValueError("No such constraint: '%s'" % const.name)
 
     def create_index(self, idx):
-        self.indexes[idx.name] = idx
+        self.new_indexes[idx.name] = idx
 
     def drop_index(self, idx):
         try:

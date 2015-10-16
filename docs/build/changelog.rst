@@ -7,6 +7,19 @@ Changelog
     :version: 0.8.3
 
     .. change::
+      :tags: bug, batch
+      :tickets: 333
+
+      Fixed bug in batch mode where a table that had pre-existing indexes
+      would create the same index on the new table with the same name,
+      which on SQLite produces a naming conflict as index names are in a
+      global namespace on that backend.   Batch mode now defers the production
+      of both existing and new indexes until after the entire table transfer
+      operation is complete, which also means those indexes no longer take
+      effect during the INSERT from SELECT section as well; the indexes
+      are applied in a single step afterwards.
+
+    .. change::
       :tags: bug, tests
       :pullreq: bitbucket:47
 

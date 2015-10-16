@@ -180,8 +180,12 @@ class BatchApplyTest(TestBase):
         create_stmt = re.sub(r'[\n\t]', '', create_stmt)
 
         idx_stmt = ""
-        for idx in impl.new_table.indexes:
+        for idx in impl.indexes.values():
             idx_stmt += str(CreateIndex(idx).compile(dialect=context.dialect))
+        for idx in impl.new_indexes.values():
+            impl.new_table.name = impl.table.name
+            idx_stmt += str(CreateIndex(idx).compile(dialect=context.dialect))
+            impl.new_table.name = '_alembic_batch_temp'
         idx_stmt = re.sub(r'[\n\t]', '', idx_stmt)
 
         if ddl_contains:
@@ -192,8 +196,6 @@ class BatchApplyTest(TestBase):
         expected = [
             create_stmt,
         ]
-        if impl.new_table.indexes:
-            expected.append(idx_stmt)
 
         if schema:
             args = {"schema": "%s." % schema}
@@ -225,6 +227,8 @@ class BatchApplyTest(TestBase):
             'ALTER TABLE %(schema)s_alembic_batch_temp '
             'RENAME TO %(schema)stname' % args
         ])
+        if idx_stmt:
+            expected.append(idx_stmt)
         context.assert_(*expected)
         return impl.new_table
 
@@ -731,11 +735,11 @@ class CopyFromTest(TestBase):
             'CREATE TABLE _alembic_batch_temp (id INTEGER NOT NULL, '
             'data VARCHAR(50), '
             'x INTEGER, PRIMARY KEY (id))',
-            'CREATE UNIQUE INDEX ix_data ON _alembic_batch_temp (data)',
             'INSERT INTO _alembic_batch_temp (id, data, x) '
             'SELECT foo.id, foo.data, foo.x FROM foo',
             'DROP TABLE foo',
-            'ALTER TABLE _alembic_batch_temp RENAME TO foo'
+            'ALTER TABLE _alembic_batch_temp RENAME TO foo',
+            'CREATE UNIQUE INDEX ix_data ON foo (data)',
         )
 
         context.clear_assertions()
@@ -787,11 +791,11 @@ class CopyFromTest(TestBase):
         context.assert_(
             'CREATE TABLE _alembic_batch_temp (id INTEGER NOT NULL, '
             'data INTEGER, x INTEGER, PRIMARY KEY (id))',
-            'CREATE UNIQUE INDEX ix_data ON _alembic_batch_temp (data)',
             'INSERT INTO _alembic_batch_temp (id, data, x) SELECT foo.id, '
             'CAST(foo.data AS INTEGER) AS anon_1, foo.x FROM foo',
             'DROP TABLE foo',
-            'ALTER TABLE _alembic_batch_temp RENAME TO foo'
+            'ALTER TABLE _alembic_batch_temp RENAME TO foo',
+            'CREATE UNIQUE INDEX ix_data ON foo (data)',
         )
 
         context.clear_assertions()
@@ -860,6 +864,17 @@ class BatchRoundTripTest(TestBase):
         )
         return nopk
 
+    def _table_w_index_fixture(self):
+        t = Table(
+            't_w_ix', self.metadata,
+            Column('id', Integer, primary_key=True),
+            Column('thing', Integer),
+            Column('data', String(20)),
+        )
+        Index('ix_thing', t.c.thing)
+        t.create(self.conn)
+        return t
+
     def tearDown(self):
         self.metadata.drop_all(self.conn)
         self.conn.close()
@@ -869,6 +884,22 @@ class BatchRoundTripTest(TestBase):
             [dict(row) for row
              in self.conn.execute("select * from %s" % tablename)],
             data
+        )
+
+    def test_ix_existing(self):
+        self._table_w_index_fixture()
+
+        with self.op.batch_alter_table("t_w_ix") as batch_op:
+            batch_op.alter_column('data', type_=String(30))
+            batch_op.create_index("ix_data", ["data"])
+
+        insp = Inspector.from_engine(config.db)
+        eq_(
+            sorted(insp.get_indexes('t_w_ix'), key=lambda idx: idx['name']),
+            [
+                {'unique': 0, 'name': 'ix_data', 'column_names': ['data']},
+                {'unique': 0, 'name': 'ix_thing', 'column_names': ['thing']}
+            ]
         )
 
     def test_fk_points_to_me_auto(self):
