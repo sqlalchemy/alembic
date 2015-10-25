@@ -605,7 +605,7 @@ def _render_primary_key(constraint, autogen_context):
     return "%(prefix)sPrimaryKeyConstraint(%(args)s)" % {
         "prefix": _sqlalchemy_autogenerate_prefix(autogen_context),
         "args": ", ".join(
-            [repr(c.key) for c in constraint.columns] +
+            [repr(c.name) for c in constraint.columns] +
             ["%s=%s" % (kwname, val) for kwname, val in opts]
         ),
     }
