@@ -721,4 +721,14 @@ def _render_check_constraint(constraint, autogen_context):
     }
 
 
+@renderers.dispatch_for(ops.ExecuteSQLOp)
+def _execute_sql(autogen_context, op):
+    if not isinstance(op.sqltext, string_types):
+        raise NotImplementedError(
+            "Autogenerate rendering of SQL Expression language constructs "
+            "not supported here; please use a plain SQL string"
+        )
+    return 'op.execute(%r)' % op.sqltext
+
+
 renderers = default_renderers.branch()
