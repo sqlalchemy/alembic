@@ -154,7 +154,7 @@ class AutogenRenderTest(TestBase):
                 autogenerate.render_op_text(autogen_context, op_obj),
                 """op.create_index('foo_idx', 't', \
 ['x', 'y'], unique=False, """
-                """postgresql_where=sa.text(!U"t.y = 'something'"))"""
+                """postgresql_where=sa.text(!U"y = 'something'"))"""
             )
         else:
             eq_ignore_whitespace(
@@ -178,7 +178,7 @@ unique=False, """
         eq_ignore_whitespace(
             autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.create_index('test_lower_code_idx', 'test', "
-            "[sa.text(!U'lower(test.code)')], unique=False)"
+            "[sa.text(!U'lower(code)')], unique=False)"
         )
 
     @config.requirements.fail_before_sqla_080
@@ -210,7 +210,7 @@ unique=False, """
         eq_ignore_whitespace(
             autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.create_index('test_desc_code_idx', 'test', "
-            "[sa.text(!U'test.code DESC')], unique=False)"
+            "[sa.text(!U'code DESC')], unique=False)"
         )
 
     def test_drop_index(self):

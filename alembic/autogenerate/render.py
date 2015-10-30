@@ -418,7 +418,8 @@ def _ident(name):
 def _render_potential_expr(value, autogen_context, wrap_in_text=True):
     if isinstance(value, sql.ClauseElement):
         if compat.sqla_08:
-            compile_kw = dict(compile_kwargs={'literal_binds': True})
+            compile_kw = dict(compile_kwargs={
+                'literal_binds': True, "include_table": False})
         else:
             compile_kw = {}
 

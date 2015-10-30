@@ -4,6 +4,18 @@ Changelog
 ==========
 
 .. changelog::
+    :version: 0.8.4
+
+    .. change::
+      :tags: bug, autogenerate
+      :tickets: 337
+
+      Adjusted the rendering for index expressions such that a :class:`.Column`
+      object present in the source :class:`.Index` will not be rendered
+      as table-qualified; e.g. the column name will be rendered alone.
+      Table-qualified names here were failing on systems such as Postgresql.
+
+.. changelog::
     :version: 0.8.3
     :released: October 16, 2015
 
