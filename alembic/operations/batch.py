@@ -265,7 +265,7 @@ class ApplyBatchImpl(object):
         if nullable is not None:
             existing.nullable = nullable
         if server_default is not False:
-            existing.server_default = server_default
+            sql_schema.DefaultClause(server_default)._set_parent(existing)
         if autoincrement is not None:
             existing.autoincrement = bool(autoincrement)
 

@@ -7,6 +7,13 @@ Changelog
     :version: 0.8.4
 
     .. change::
+      :tags: bug, batch
+      :tickets: 338
+
+      Fixed bug where the ``server_default`` parameter of ``alter_column()``
+      would not function correctly in batch mode.
+
+    .. change::
       :tags: bug, autogenerate
       :tickets: 337
 

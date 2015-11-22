@@ -339,6 +339,15 @@ class BatchApplyTest(TestBase):
         new_table = self._assert_impl(impl, colnames=['id', 'x', 'y', 'g'])
         eq_(new_table.c.g.name, 'g')
 
+    def test_add_server_default(self):
+        impl = self._simple_fixture()
+        impl.alter_column('tname', 'y', server_default="10")
+        new_table = self._assert_impl(
+            impl, ddl_contains="DEFAULT '10'")
+        eq_(
+            new_table.c.y.server_default.arg, "10"
+        )
+
     def test_rename_col_pk(self):
         impl = self._simple_fixture()
         impl.alter_column('tname', 'id', name='foobar')
