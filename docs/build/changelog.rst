@@ -7,6 +7,15 @@ Changelog
     :version: 0.8.4
 
     .. change::
+      :tags: bug, autogenerate
+      :tickets: 341
+
+      Added a type-level comparator that distinguishes :class:`.Integer`,
+      :class:`.BigInteger`, and :class:`.SmallInteger` types and
+      dialect-specific types; these all have "Integer" affinity so previously
+      all compared as the same.
+
+    .. change::
       :tags: bug, batch
       :tickets: 338
 

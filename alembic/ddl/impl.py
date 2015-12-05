@@ -337,7 +337,21 @@ def _numeric_compare(t1, t2):
             t1.scale is not None and
             t1.scale != t2.scale
         )
+
+
+def _integer_compare(t1, t2):
+    t1_small_or_big = (
+        'S' if isinstance(t1, sqltypes.SmallInteger)
+        else 'B' if isinstance(t1, sqltypes.BigInteger) else 'I'
+    )
+    t2_small_or_big = (
+        'S' if isinstance(t2, sqltypes.SmallInteger)
+        else 'B' if isinstance(t2, sqltypes.BigInteger) else 'I'
+    )
+    return t1_small_or_big != t2_small_or_big
+
 _type_comparators = {
     sqltypes.String: _string_compare,
-    sqltypes.Numeric: _numeric_compare
+    sqltypes.Numeric: _numeric_compare,
+    sqltypes.Integer: _integer_compare
 }
