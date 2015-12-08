@@ -197,8 +197,17 @@ class Config(object):
 
         This overrides whatever was in the .ini file.
 
+        :param name: name of the value
+
+        :param value: the value.  Note that this value is passed to
+         ``ConfigParser.set``, which supports variable interpolation using
+         pyformat (e.g. ``%(some_value)s``).   A raw percent sign not part of
+         an interpolation symbol must therefore be escaped, e.g. ``%%``.
+         The given value may refer to another value already in the file
+         using the interpolation format.
+
         """
-        self.file_config.set(self.config_ini_section, name, value)
+        self.set_section_option(self.config_ini_section, name, value)
 
     def remove_main_option(self, name):
         self.file_config.remove_option(self.config_ini_section, name)
@@ -210,7 +219,19 @@ class Config(object):
         The value here will override whatever was in the .ini
         file.
 
+        :param section: name of the section
+
+        :param name: name of the value
+
+        :param value: the value.  Note that this value is passed to
+         ``ConfigParser.set``, which supports variable interpolation using
+         pyformat (e.g. ``%(some_value)s``).   A raw percent sign not part of
+         an interpolation symbol must therefore be escaped, e.g. ``%%``.
+         The given value may refer to another value already in the file
+         using the interpolation format.
+
         """
+
         if not self.file_config.has_section(section):
             self.file_config.add_section(section)
         self.file_config.set(section, name, value)

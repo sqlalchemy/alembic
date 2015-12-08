@@ -49,6 +49,29 @@ class ConfigTest(TestBase):
         cfg.set_section_option("foo", "echo", "True")
         eq_(cfg.get_section_option("foo", "echo"), "True")
 
+    def test_config_set_main_option_percent(self):
+        cfg = config.Config()
+        cfg.set_main_option("foob", "a %% percent")
+
+        eq_(cfg.get_main_option("foob"), "a % percent")
+
+    def test_config_set_section_option_percent(self):
+        cfg = config.Config()
+        cfg.set_section_option("some_section", "foob", "a %% percent")
+
+        eq_(cfg.get_section_option("some_section", "foob"), "a % percent")
+
+    def test_config_set_section_option_interpolation(self):
+        cfg = config.Config()
+        cfg.set_section_option("some_section", "foob", "foob_value")
+
+        cfg.set_section_option(
+            "some_section", "bar", "bar with %(foob)s")
+
+        eq_(
+            cfg.get_section_option("some_section", "bar"),
+            "bar with foob_value")
+
     def test_standalone_op(self):
         eng, buf = capture_db()
 
