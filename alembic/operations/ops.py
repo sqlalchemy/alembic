@@ -1345,9 +1345,9 @@ class AlterColumnOp(AlterTableOp):
         and  :class:`~sqlalchemy.types.Enum` may also
         add or drop constraints which accompany those
         types on backends that don't support them natively.
-        The ``existing_server_default`` argument is
-        used in this case as well to remove a previous
-        constraint.
+        The ``existing_type`` argument is
+        used in this case to identify and remove a previous
+        constraint that was bound to the type object.
 
         :param table_name: string name of the target table.
         :param column_name: string name of the target column,
