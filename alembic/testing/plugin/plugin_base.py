@@ -137,7 +137,6 @@ def restore_important_follower_config(dict_):
     This invokes in the follower process.
 
     """
-    global db_opts, include_tags, exclude_tags
     db_opts.update(dict_['memoized_config']['db_opts'])
     include_tags.update(dict_['memoized_config']['include_tags'])
     exclude_tags.update(dict_['memoized_config']['exclude_tags'])
