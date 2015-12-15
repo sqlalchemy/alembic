@@ -182,8 +182,7 @@ def asbool(value):
 
 
 def rev_id():
-    val = int(uuid.uuid4()) % 100000000000000
-    return hex(val)[2:-1]
+    return uuid.uuid4().hex[-12:]
 
 
 def to_list(x, default=None):
