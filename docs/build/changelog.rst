@@ -7,6 +7,16 @@ Changelog
     :version: 0.8.4
 
     .. change::
+      :tags: feature, autogenerate
+      :pullreq: github:20
+
+      Added an autogenerate renderer for the :class:`.ExecuteSQLOp` operation
+      object; only renders if given a plain SQL string, otherwise raises
+      NotImplementedError.  Can be of help with custom autogenerate
+      sequences that includes straight SQL execution.  Pull request courtesy
+      Jacob Magnusson.
+
+    .. change::
       :tags: bug, batch
       :tickets: 345
 

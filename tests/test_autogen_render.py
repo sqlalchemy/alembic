@@ -1,6 +1,6 @@
 import re
 import sys
-from alembic.testing import TestBase, exclusions
+from alembic.testing import TestBase, exclusions, assert_raises
 
 from alembic.operations import ops
 from sqlalchemy import MetaData, Column, Table, String, \
@@ -13,7 +13,7 @@ from sqlalchemy.types import TIMESTAMP
 from sqlalchemy.types import UserDefinedType
 from sqlalchemy.dialects import mysql, postgresql
 from sqlalchemy.engine.default import DefaultDialect
-from sqlalchemy.sql import and_, column, literal_column, false
+from sqlalchemy.sql import and_, column, literal_column, false, table
 from alembic.migration import MigrationContext
 from alembic.autogenerate import api
 
@@ -1456,6 +1456,21 @@ unique=False, """
             "op.alter_column('sometable', 'somecolumn', "
             "existing_type=sa.Integer(), nullable=True, "
             "existing_server_default=sa.text(!U'5'))"
+        )
+
+    def test_render_executesql_plaintext(self):
+        op_obj = ops.ExecuteSQLOp("drop table foo")
+        eq_(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.execute('drop table foo')"
+        )
+
+    def test_render_executesql_sqlexpr_notimplemented(self):
+        sql = table('x', column('q')).insert()
+        op_obj = ops.ExecuteSQLOp(sql)
+        assert_raises(
+            NotImplementedError,
+            autogenerate.render_op_text, self.autogen_context, op_obj
         )
 
 
