@@ -5,6 +5,7 @@ Changelog
 
 .. changelog::
     :version: 0.8.4
+    :released: December 15, 2015
 
     .. change::
       :tags: feature, versioning
