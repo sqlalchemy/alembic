@@ -4,7 +4,8 @@ from sqlalchemy import types as sqltypes
 from sqlalchemy import schema as sql_schema
 from sqlalchemy.util import OrderedDict
 from .. import util
-from ..util.sqla_compat import _columns_for_constraint, _is_type_bound
+from ..util.sqla_compat import _columns_for_constraint, \
+    _is_type_bound, _fk_is_self_referential
 
 
 class BatchOperationsImpl(object):
@@ -163,7 +164,24 @@ class ApplyBatchImpl(object):
 
             if not const_columns.issubset(self.column_transfers):
                 continue
-            const_copy = const.copy(schema=schema, target_table=new_table)
+
+            if isinstance(const, ForeignKeyConstraint):
+                if _fk_is_self_referential(const):
+                    # for self-referential constraint, refer to the
+                    # *original* table name, and not _alembic_batch_temp.
+                    # This is consistent with how we're handling
+                    # FK constraints from other tables; we assume SQLite
+                    # no foreign keys just keeps the names unchanged, so
+                    # when we rename back, they match again.
+                    const_copy = const.copy(
+                        schema=schema, target_table=self.table)
+                else:
+                    # "target_table" for ForeignKeyConstraint.copy() is
+                    # only used if the FK is detected as being
+                    # self-referential, which we are handling above.
+                    const_copy = const.copy(schema=schema)
+            else:
+                const_copy = const.copy(schema=schema, target_table=new_table)
             if isinstance(const, ForeignKeyConstraint):
                 self._setup_referent(m, const)
             new_table.append_constraint(const_copy)
@@ -189,6 +207,7 @@ class ApplyBatchImpl(object):
             referent_schema = parts[0]
         else:
             referent_schema = None
+
         if tname != '_alembic_batch_temp':
             key = sql_schema._get_table_key(tname, referent_schema)
             if key in metadata.tables:

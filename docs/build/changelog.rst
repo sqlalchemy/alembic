@@ -7,6 +7,21 @@ Changelog
     :version: 0.8.4
 
     .. change::
+      :tags: bug, batch
+      :tickets: 345
+
+      Batch mode generates a FOREIGN KEY constraint that is self-referential
+      using the ultimate table name, rather than ``_alembic_batch_temp``.
+      When the table is renamed from ``_alembic_batch_temp`` back to the
+      original name, the FK now points to the right name.  This
+      will **not** work if referential integrity is being enforced (eg. SQLite
+      "PRAGMA FOREIGN_KEYS=ON") since the original table is dropped and
+      the new table then renamed to that name, however this is now consistent
+      with how foreign key constraints on **other** tables already operate
+      with batch mode; these don't support batch mode if referential integrity
+      is enabled in any case.
+
+    .. change::
       :tags: bug, autogenerate
       :tickets: 341
 

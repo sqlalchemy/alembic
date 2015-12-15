@@ -854,6 +854,14 @@ class BatchRoundTripTest(TestBase):
         context = MigrationContext.configure(self.conn)
         self.op = Operations(context)
 
+    @contextmanager
+    def _sqlite_referential_integrity(self):
+        self.conn.execute("PRAGMA foreign_keys=ON")
+        try:
+            yield
+        finally:
+            self.conn.execute("PRAGMA foreign_keys=OFF")
+
     def _no_pk_fixture(self):
         nopk = Table(
             'nopk', self.metadata,
@@ -924,6 +932,14 @@ class BatchRoundTripTest(TestBase):
     def test_fk_points_to_me_recreate(self):
         self._test_fk_points_to_me("always")
 
+    @exclusions.only_on("sqlite")
+    @exclusions.fails(
+        "intentionally asserting that this "
+        "doesn't work w/ pragma foreign keys")
+    def test_fk_points_to_me_sqlite_refinteg(self):
+        with self._sqlite_referential_integrity():
+            self._test_fk_points_to_me("auto")
+
     def _test_fk_points_to_me(self, recreate):
         bar = Table(
             'bar', self.metadata,
@@ -937,6 +953,55 @@ class BatchRoundTripTest(TestBase):
         with self.op.batch_alter_table("foo", recreate=recreate) as batch_op:
             batch_op.alter_column(
                 'data', new_column_name='newdata', existing_type=String(50))
+
+        insp = Inspector.from_engine(self.conn)
+        eq_(
+            [(key['referred_table'],
+             key['referred_columns'], key['constrained_columns'])
+             for key in insp.get_foreign_keys('bar')],
+            [('foo', ['id'], ['foo_id'])]
+        )
+
+    def test_selfref_fk_auto(self):
+        self._test_selfref_fk("auto")
+
+    @config.requirements.no_referential_integrity
+    def test_selfref_fk_recreate(self):
+        self._test_selfref_fk("always")
+
+    @exclusions.only_on("sqlite")
+    @exclusions.fails(
+        "intentionally asserting that this "
+        "doesn't work w/ pragma foreign keys")
+    def test_selfref_fk_sqlite_refinteg(self):
+        with self._sqlite_referential_integrity():
+            self._test_selfref_fk("auto")
+
+    def _test_selfref_fk(self, recreate):
+        bar = Table(
+            'bar', self.metadata,
+            Column('id', Integer, primary_key=True),
+            Column('bar_id', Integer, ForeignKey('bar.id')),
+            Column('data', String(50)),
+            mysql_engine='InnoDB'
+        )
+        bar.create(self.conn)
+        self.conn.execute(bar.insert(), {'id': 1, 'data': 'x', 'bar_id': None})
+        self.conn.execute(bar.insert(), {'id': 2, 'data': 'y', 'bar_id': 1})
+
+        with self.op.batch_alter_table("bar", recreate=recreate) as batch_op:
+            batch_op.alter_column(
+                'data', new_column_name='newdata', existing_type=String(50))
+
+        insp = Inspector.from_engine(self.conn)
+
+        insp = Inspector.from_engine(self.conn)
+        eq_(
+            [(key['referred_table'],
+             key['referred_columns'], key['constrained_columns'])
+             for key in insp.get_foreign_keys('bar')],
+            [('bar', ['id'], ['bar_id'])]
+        )
 
     def test_change_type(self):
         with self.op.batch_alter_table("foo") as batch_op:
