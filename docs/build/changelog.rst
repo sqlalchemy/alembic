@@ -7,6 +7,16 @@ Changelog
     :version: 0.8.4
 
     .. change::
+      :tags: feature, versioning
+      :pullreq: bitbucket:51
+
+      A major improvement to the hash id generation function, which for some
+      reason used an awkward arithmetic formula against uuid4() that produced
+      values that tended to start with the digits 1-4.  Replaced with a
+      simple substring approach which provides an even distribution.  Pull
+      request courtesy Antti Haapala.
+
+    .. change::
       :tags: feature, autogenerate
       :pullreq: github:20
 
