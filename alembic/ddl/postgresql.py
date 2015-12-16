@@ -80,9 +80,8 @@ class PostgresqlImpl(DefaultImpl):
                         log.info(
                             "Detected sequence named '%s' as "
                             "owned by integer column '%s(%s)', "
-                            "assuming SERIAL and omitting" % (
-                                seqname, table.name, colname
-                            ))
+                            "assuming SERIAL and omitting",
+                            seqname, table.name, colname)
                         # sequence, and the owner is this column,
                         # its a SERIAL - whack it!
                         del column_info['default']
