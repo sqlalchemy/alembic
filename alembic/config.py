@@ -43,6 +43,14 @@ class Config(object):
         alembic_cfg.set_main_option("url", "postgresql://foo/bar")
         alembic_cfg.set_section_option("mysection", "foo", "bar")
 
+    .. warning::
+
+       When using programmatic configuration, make sure the
+       ``env.py`` file in use is compatible with the target configuration;
+       including that the call to Python ``logging.fileConfig()`` is
+       omitted if the programmatic configuration doesn't actually include
+       logging directives.
+
     For passing non-string values to environments, such as connections and
     engines, use the :attr:`.Config.attributes` dictionary::
 
