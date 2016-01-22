@@ -4,6 +4,30 @@ Changelog
 ==========
 
 .. changelog::
+    :version: 0.8.5
+
+    .. change::
+      :tags: bug, batch
+      :tickets: 354
+
+      Repaired batch migration support for "schema" types which generate
+      constraints, in particular the ``Boolean`` datatype which generates
+      a CHECK constraint.  Previously, an alter column operation with this
+      type would fail to correctly accommodate for the CHECK constraint
+      on change both from and to this type.  In the former case the operation
+      would fail entirely, in the latter, the CHECK constraint would
+      not get generated.  Both of these issues are repaired.
+
+    .. change::
+      :tags: bug, mysql
+      :tickets: 355
+
+      Changing a schema type such as ``Boolean`` to a non-schema type would
+      emit a drop constraint operation which emits ``NotImplementedError`` for
+      the MySQL dialect.  This drop constraint operation is now skipped when
+      the constraint originates from a schema type.
+
+.. changelog::
     :version: 0.8.4
     :released: December 15, 2015
 

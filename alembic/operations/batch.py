@@ -4,6 +4,8 @@ from sqlalchemy import types as sqltypes
 from sqlalchemy import schema as sql_schema
 from sqlalchemy.util import OrderedDict
 from .. import util
+if util.sqla_08:
+    from sqlalchemy.events import SchemaEventTarget
 from ..util.sqla_compat import _columns_for_constraint, \
     _is_type_bound, _fk_is_self_referential
 
@@ -125,6 +127,10 @@ class ApplyBatchImpl(object):
         for c in self.table.c:
             c_copy = c.copy(schema=schema)
             c_copy.unique = c_copy.index = False
+            # ensure that the type object was copied,
+            # as we may need to modify it in-place
+            if isinstance(c.type, SchemaEventTarget):
+                assert c_copy.type is not c.type
             self.columns[c.name] = c_copy
         self.named_constraints = {}
         self.unnamed_constraints = []
@@ -133,7 +139,7 @@ class ApplyBatchImpl(object):
         for const in self.table.constraints:
             if _is_type_bound(const):
                 continue
-            if const.name:
+            elif const.name:
                 self.named_constraints[const.name] = const
             else:
                 self.unnamed_constraints.append(const)
@@ -279,7 +285,22 @@ class ApplyBatchImpl(object):
 
         if type_ is not None:
             type_ = sqltypes.to_instance(type_)
+            # old type is being discarded so turn off eventing
+            # rules. Alternatively we can
+            # erase the events set up by this type, but this is simpler.
+            # we also ignore the drop_constraint that will come here from
+            # Operations.implementation_for(alter_column)
+            if isinstance(existing.type, SchemaEventTarget):
+                existing.type._create_events = \
+                    existing.type.create_constraint = False
+
             existing.type = type_
+
+            # we *dont* however set events for the new type, because
+            # alter_column is invoked from
+            # Operations.implementation_for(alter_column) which already
+            # will emit an add_constraint()
+
             existing_transfer["expr"] = cast(existing_transfer["expr"], type_)
         if nullable is not None:
             existing.nullable = nullable
@@ -313,6 +334,12 @@ class ApplyBatchImpl(object):
         try:
             del self.named_constraints[const.name]
         except KeyError:
+            if const._type_bound:
+                # type-bound constraints are only included in the new
+                # table via their type object in any case, so ignore the
+                # drop_constraint() that comes here via the
+                # Operations.implementation_for(alter_column)
+                return
             raise ValueError("No such constraint: '%s'" % const.name)
 
     def create_index(self, idx):

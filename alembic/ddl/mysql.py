@@ -74,6 +74,12 @@ class MySQLImpl(DefaultImpl):
                 )
             )
 
+    def drop_constraint(self, const):
+        if isinstance(const, schema.CheckConstraint) and const._type_bound:
+            return
+
+        super(MySQLImpl, self).drop_constraint(const)
+
     def compare_server_default(self, inspector_column,
                                metadata_column,
                                rendered_metadata_default,

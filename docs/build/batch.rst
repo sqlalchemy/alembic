@@ -192,6 +192,23 @@ them directly, which can be via the
         ):
         batch_op.add_column(Column('foo', Integer))
 
+Changing the Type of Boolean, Enum and other implicit CHECK datatypes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The SQLAlchemy types :class:`~sqlalchemy.types.Boolean` and
+:class:`~sqlalchemy.types.Enum` are part of a category of types known as
+"schema" types; this style of type creates other structures along with the
+type itself, most commonly (but not always) a CHECK constraint.
+
+Alembic handles dropping and creating the CHECK constraints here automatically,
+including in the case of batch mode.  When changing the type of an existing
+column, what's necessary is that the existing type be specified fully::
+
+  with self.op.batch_alter_table("some_table"):
+      batch_op.alter_column(
+          'q', type_=Integer,
+          existing_type=Boolean(create_constraint=True, constraint_name="ck1"))
+
 Including CHECK constraints
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -205,6 +222,10 @@ recreated table::
         batch_op.add_column(Column('foo', Integer))
         batch_op.drop_column('bar')
 
+Note this only includes CHECK constraints that are explicitly stated
+as part of the table definition, not the CHECK constraints that are generated
+by datatypes such as :class:`~sqlalchemy.types.Boolean` or
+:class:`~sqlalchemy.types.Enum`.
 
 Dealing with Referencing Foreign Keys
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

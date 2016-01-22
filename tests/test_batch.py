@@ -258,6 +258,18 @@ class BatchApplyTest(TestBase):
                 if isinstance(const, CheckConstraint)]),
             1)
 
+    def test_change_type_schematype_to_non(self):
+        impl = self._boolean_fixture()
+        impl.alter_column('tname', 'flag', type_=Integer)
+        new_table = self._assert_impl(
+            impl, colnames=['id', 'flag'],
+            ddl_not_contains="CHECK")
+        assert new_table.c.flag.type._type_affinity is Integer
+
+        # NOTE: we can't do test_change_type_non_to_schematype
+        # at this level because the "add_constraint" part of this
+        # comes from toimpl.py, which we aren't testing here
+
     def test_rename_col_boolean_no_ck(self):
         impl = self._boolean_no_ck_fixture()
         impl.alter_column('tname', 'flag', name='bflag')
@@ -733,6 +745,48 @@ class CopyFromTest(TestBase):
             'ALTER TABLE _alembic_batch_temp RENAME TO foo'
         )
 
+    def test_change_type_from_schematype(self):
+        context = self._fixture()
+        self.table.append_column(
+            Column('y', Boolean(
+                create_constraint=True, name="ck1")))
+
+        with self.op.batch_alter_table(
+                "foo", copy_from=self.table) as batch_op:
+            batch_op.alter_column(
+                'y', type_=Integer,
+                existing_type=Boolean(
+                    create_constraint=True, name="ck1"))
+        context.assert_(
+            'CREATE TABLE _alembic_batch_temp (id INTEGER NOT NULL, '
+            'data VARCHAR(50), x INTEGER, y INTEGER, PRIMARY KEY (id))',
+            'INSERT INTO _alembic_batch_temp (id, data, x, y) SELECT foo.id, '
+            'foo.data, foo.x, CAST(foo.y AS INTEGER) AS anon_1 FROM foo',
+            'DROP TABLE foo',
+            'ALTER TABLE _alembic_batch_temp RENAME TO foo'
+        )
+
+    def test_change_type_to_schematype(self):
+        context = self._fixture()
+        self.table.append_column(
+            Column('y', Integer))
+
+        with self.op.batch_alter_table(
+                "foo", copy_from=self.table) as batch_op:
+            batch_op.alter_column(
+                'y', existing_type=Integer,
+                type_=Boolean(
+                    create_constraint=True, name="ck1"))
+        context.assert_(
+            'CREATE TABLE _alembic_batch_temp (id INTEGER NOT NULL, '
+            'data VARCHAR(50), x INTEGER, y BOOLEAN, PRIMARY KEY (id), '
+            'CONSTRAINT ck1 CHECK (y IN (0, 1)))',
+            'INSERT INTO _alembic_batch_temp (id, data, x, y) SELECT foo.id, '
+            'foo.data, foo.x, CAST(foo.y AS BOOLEAN) AS anon_1 FROM foo',
+            'DROP TABLE foo',
+            'ALTER TABLE _alembic_batch_temp RENAME TO foo'
+        )
+
     def test_create_drop_index_w_always(self):
         context = self._fixture()
         with self.op.batch_alter_table(
@@ -891,6 +945,69 @@ class BatchRoundTripTest(TestBase):
         Index('ix_thing', t.c.thing)
         t.create(self.conn)
         return t
+
+    def _boolean_fixture(self):
+        t = Table(
+            'hasbool', self.metadata,
+            Column('x', Boolean(create_constraint=True, name='ck1')),
+            Column('y', Integer)
+        )
+        t.create(self.conn)
+
+    def _int_to_boolean_fixture(self):
+        t = Table(
+            'hasbool', self.metadata,
+            Column('x', Integer)
+        )
+        t.create(self.conn)
+
+    def test_change_type_boolean_to_int(self):
+        self._boolean_fixture()
+        with self.op.batch_alter_table(
+                "hasbool"
+        ) as batch_op:
+            batch_op.alter_column(
+                'x', type_=Integer, existing_type=Boolean(
+                    create_constraint=True, name='ck1'))
+        insp = Inspector.from_engine(config.db)
+
+        eq_(
+            [c['type']._type_affinity for c in insp.get_columns('hasbool')
+             if c['name'] == 'x'],
+            [Integer]
+        )
+
+    def test_drop_col_schematype(self):
+        self._boolean_fixture()
+        with self.op.batch_alter_table(
+                "hasbool"
+        ) as batch_op:
+            batch_op.drop_column('x')
+        insp = Inspector.from_engine(config.db)
+
+        assert 'x' not in (c['name'] for c in insp.get_columns('hasbool'))
+
+    def test_change_type_int_to_boolean(self):
+        self._int_to_boolean_fixture()
+        with self.op.batch_alter_table(
+                "hasbool"
+        ) as batch_op:
+            batch_op.alter_column(
+                'x', type_=Boolean(create_constraint=True, name='ck1'))
+        insp = Inspector.from_engine(config.db)
+
+        if exclusions.against(config, "sqlite"):
+            eq_(
+                [c['type']._type_affinity for
+                 c in insp.get_columns('hasbool') if c['name'] == 'x'],
+                [Boolean]
+            )
+        elif exclusions.against(config, "mysql"):
+            eq_(
+                [c['type']._type_affinity for
+                 c in insp.get_columns('hasbool') if c['name'] == 'x'],
+                [Integer]
+            )
 
     def tearDown(self):
         self.metadata.drop_all(self.conn)
@@ -1267,3 +1384,13 @@ class BatchRoundTripPostgresqlTest(BatchRoundTripTest):
 
     def test_create_drop_index(self):
         super(BatchRoundTripPostgresqlTest, self).test_create_drop_index()
+
+    @exclusions.fails()
+    def test_change_type_int_to_boolean(self):
+        super(BatchRoundTripPostgresqlTest, self).\
+            test_change_type_int_to_boolean()
+
+    @exclusions.fails()
+    def test_change_type_boolean_to_int(self):
+        super(BatchRoundTripPostgresqlTest, self).\
+            test_change_type_boolean_to_int()
