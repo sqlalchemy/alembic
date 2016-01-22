@@ -334,7 +334,7 @@ class ApplyBatchImpl(object):
         try:
             del self.named_constraints[const.name]
         except KeyError:
-            if const._type_bound:
+            if _is_type_bound(const):
                 # type-bound constraints are only included in the new
                 # table via their type object in any case, so ignore the
                 # drop_constraint() that comes here via the
