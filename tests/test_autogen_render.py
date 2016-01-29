@@ -882,6 +882,18 @@ unique=False, """
             "sa.Column('x', sa.Boolean(), nullable=True))"
         )
 
+    def test_render_pk_with_col_name_vs_col_key(self):
+        m = MetaData()
+        t1 = Table('t1', m, Column('x', Integer, key='y', primary_key=True))
+
+        op_obj = ops.CreateTableOp.from_table(t1)
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.create_table('t1',"
+            "sa.Column('x', sa.Integer(), nullable=False),"
+            "sa.PrimaryKeyConstraint('x'))"
+        )
+
     def test_render_empty_pk_vs_nonempty_pk(self):
         m = MetaData()
         t1 = Table('t1', m, Column('x', Integer))
