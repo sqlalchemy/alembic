@@ -7,6 +7,15 @@ Changelog
     :version: 0.8.5
 
     .. change::
+      :tags: bug, autogenerate
+      :tickets: 335
+      :pullreq: bitbucket:49
+
+      Fixed bug where the columns rendered in a ``PrimaryKeyConstraint``
+      in autogenerate would inappropriately render the "key" of the
+      column, not the name.  Pull request courtesy Jesse Dhillon.
+
+    .. change::
       :tags: bug, batch
       :tickets: 354
 
