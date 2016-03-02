@@ -395,7 +395,7 @@ class Operations(util.ModuleClsProxy):
          numerics should be supported.   Other types like boolean,
          dates, etc. may or may not be supported yet by various
          backends.
-        :param ``type_``: optional - a :class:`sqlalchemy.types.TypeEngine`
+        :param type_: optional - a :class:`sqlalchemy.types.TypeEngine`
          subclass stating the type of this value.  In SQLAlchemy
          expressions, this is usually derived automatically
          from the Python type of the value itself, as well as
