@@ -48,7 +48,6 @@ file_config = None
 
 
 logging = None
-db_opts = {}
 include_tags = set()
 exclude_tags = set()
 options = None
@@ -72,8 +71,6 @@ def setup_options(make_option):
                 help="Drop all tables in the target database first")
     make_option("--backend-only", action="store_true", dest="backend_only",
                 help="Run only tests marked with __backend__")
-    make_option("--mockpool", action="store_true", dest="mockpool",
-                help="Use mock pool (asserts only one connection used)")
     make_option("--low-connections", action="store_true",
                 dest="low_connections",
                 help="Use a low number of distinct connections - "
@@ -95,8 +92,6 @@ def setup_options(make_option):
     make_option("--exclude-tag", action="callback", callback=_exclude_tag,
                 type="string",
                 help="Exclude tests with tag <tag>")
-    make_option("--serverside", action="store_true",
-                help="Turn on server side cursors for PG")
     make_option("--mysql-engine", action="store",
                 dest="mysql_engine", default=None,
                 help="Use the specified MySQL storage engine for all tables, "
@@ -125,7 +120,6 @@ def memoize_important_follower_config(dict_):
 
     """
     dict_['memoized_config'] = {
-        'db_opts': db_opts,
         'include_tags': include_tags,
         'exclude_tags': exclude_tags
     }
@@ -137,7 +131,6 @@ def restore_important_follower_config(dict_):
     This invokes in the follower process.
 
     """
-    db_opts.update(dict_['memoized_config']['db_opts'])
     include_tags.update(dict_['memoized_config']['include_tags'])
     exclude_tags.update(dict_['memoized_config']['exclude_tags'])
 
@@ -228,11 +221,6 @@ def _setup_options(opt, file_config):
     options = opt
 
 
-@pre
-def _server_side_cursors(options, file_config):
-    if options.serverside:
-        db_opts['server_side_cursors'] = True
-
 
 @pre
 def _monkeypatch_cdecimal(options, file_config):
@@ -267,17 +255,10 @@ def _engine_uri(options, file_config):
 
     for db_url in db_urls:
         cfg = provision.setup_config(
-            db_url, db_opts, options, file_config, provision.FOLLOWER_IDENT)
+            db_url, options, file_config, provision.FOLLOWER_IDENT)
 
         if not config._current:
             cfg.set_as_current(cfg)
-
-
-@post
-def _engine_pool(options, file_config):
-    if options.mockpool:
-        from sqlalchemy import pool
-        db_opts['poolclass'] = pool.AssertionPool
 
 
 @post
