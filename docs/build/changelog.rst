@@ -4,6 +4,17 @@ Changelog
 ==========
 
 .. changelog::
+    :version: 0.8.6
+
+    .. change::
+      :tags: bug, batch, mssql
+      :pullreq: bitbucket:53
+
+      Fixed bug where SQL Server arguments for drop_column() would not
+      be propagated when running under a batch block.  Pull request
+      courtesy Michal Petrucha.
+
+.. changelog::
     :version: 0.8.5
     :released: March 9, 2016
 
