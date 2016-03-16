@@ -7,6 +7,15 @@ Changelog
     :version: 0.8.6
 
     .. change::
+      :tags: bug, batch
+      :tickets: 361
+      :pullreq: bitbucket:55
+
+      Fixed bug introduced by the fix for :ticket:`338` in version 0.8.4
+      where a server default could no longer be dropped in batch mode.
+      Pull request courtesy Martin Domke.
+
+    .. change::
       :tags: bug, batch, mssql
       :pullreq: bitbucket:53
 

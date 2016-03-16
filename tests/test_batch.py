@@ -369,7 +369,7 @@ class BatchApplyTest(TestBase):
             new_table.c.y.server_default.arg, "10"
         )
 
-    def test_change_server_default(self):
+    def test_drop_server_default(self):
         impl = self._server_default_fixture()
         impl.alter_column('tname', 'thing', server_default=None)
         new_table = self._assert_impl(
