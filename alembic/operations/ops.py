@@ -1637,7 +1637,7 @@ class DropColumnOp(AlterTableOp):
         return operations.invoke(op)
 
     @classmethod
-    def batch_drop_column(cls, operations, column_name):
+    def batch_drop_column(cls, operations, column_name, **kw):
         """Issue a "drop column" instruction using the current
         batch migration context.
 
@@ -1648,7 +1648,7 @@ class DropColumnOp(AlterTableOp):
         """
         op = cls(
             operations.impl.table_name, column_name,
-            schema=operations.impl.schema)
+            schema=operations.impl.schema, **kw)
         return operations.invoke(op)
 
 

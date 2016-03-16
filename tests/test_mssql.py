@@ -109,6 +109,15 @@ class OpTest(TestBase):
             "exec('alter table t1 drop constraint ' + @const_name)")
         context.assert_contains("ALTER TABLE t1 DROP COLUMN c1")
 
+    def test_drop_column_w_default_in_batch(self):
+        context = op_fixture('mssql')
+        with op.batch_alter_table('t1', schema=None) as batch_op:
+            batch_op.drop_column('c1', mssql_drop_default=True)
+            batch_op.drop_column('c2', mssql_drop_default=True)
+        context.assert_contains(
+            "exec('alter table t1 drop constraint ' + @const_name)")
+        context.assert_contains("ALTER TABLE t1 DROP COLUMN c1")
+
     def test_alter_column_drop_default(self):
         context = op_fixture('mssql')
         op.alter_column("t", "c", server_default=None)
@@ -133,6 +142,15 @@ class OpTest(TestBase):
             "exec('alter table t1 drop constraint ' + @const_name)")
         context.assert_contains("ALTER TABLE t1 DROP COLUMN c1")
 
+    def test_drop_column_w_check_in_batch(self):
+        context = op_fixture('mssql')
+        with op.batch_alter_table('t1', schema=None) as batch_op:
+            batch_op.drop_column('c1', mssql_drop_check=True)
+            batch_op.drop_column('c2', mssql_drop_check=True)
+        context.assert_contains(
+            "exec('alter table t1 drop constraint ' + @const_name)")
+        context.assert_contains("ALTER TABLE t1 DROP COLUMN c1")
+
     def test_drop_column_w_check_quoting(self):
         context = op_fixture('mssql')
         op.drop_column('table', 'column', mssql_drop_check=True)
@@ -150,6 +168,14 @@ class OpTest(TestBase):
     def test_drop_column_w_fk(self):
         context = op_fixture('mssql')
         op.drop_column('t1', 'c1', mssql_drop_foreign_key=True)
+        context.assert_contains(
+            "exec('alter table t1 drop constraint ' + @const_name)")
+        context.assert_contains("ALTER TABLE t1 DROP COLUMN c1")
+
+    def test_drop_column_w_fk_in_batch(self):
+        context = op_fixture('mssql')
+        with op.batch_alter_table('t1', schema=None) as batch_op:
+            batch_op.drop_column('c1', mssql_drop_foreign_key=True)
         context.assert_contains(
             "exec('alter table t1 drop constraint ' + @const_name)")
         context.assert_contains("ALTER TABLE t1 DROP COLUMN c1")
