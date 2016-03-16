@@ -42,13 +42,11 @@ class FullEnvironmentTests(TestBase):
             ['COMMIT;', 'GO']
         )
 
-    @config.requirements.sqlalchemy_08
     def test_batch_separator_default(self):
         with capture_context_buffer() as buf:
             command.upgrade(self.cfg, self.a, sql=True)
         assert "GO" in buf.getvalue()
 
-    @config.requirements.sqlalchemy_08
     def test_batch_separator_custom(self):
         with capture_context_buffer(mssql_batch_separator="BYE") as buf:
             command.upgrade(self.cfg, self.a, sql=True)
@@ -111,6 +109,7 @@ class OpTest(TestBase):
             "exec('alter table t1 drop constraint ' + @const_name)")
         context.assert_contains("ALTER TABLE t1 DROP COLUMN c1")
 
+    @config.requirements.sqlalchemy_08
     def test_drop_column_w_default_in_batch(self):
         context = op_fixture('mssql')
         with op.batch_alter_table('t1', schema=None) as batch_op:
@@ -144,6 +143,7 @@ class OpTest(TestBase):
             "exec('alter table t1 drop constraint ' + @const_name)")
         context.assert_contains("ALTER TABLE t1 DROP COLUMN c1")
 
+    @config.requirements.sqlalchemy_08
     def test_drop_column_w_check_in_batch(self):
         context = op_fixture('mssql')
         with op.batch_alter_table('t1', schema=None) as batch_op:
@@ -174,6 +174,7 @@ class OpTest(TestBase):
             "exec('alter table t1 drop constraint ' + @const_name)")
         context.assert_contains("ALTER TABLE t1 DROP COLUMN c1")
 
+    @config.requirements.sqlalchemy_08
     def test_drop_column_w_fk_in_batch(self):
         context = op_fixture('mssql')
         with op.batch_alter_table('t1', schema=None) as batch_op:
