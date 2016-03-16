@@ -161,6 +161,15 @@ class BatchApplyTest(TestBase):
         )
         return ApplyBatchImpl(t, table_args, table_kwargs)
 
+    def _server_default_fixture(self, table_args=(), table_kwargs={}):
+        m = MetaData()
+        t = Table(
+            'tname', m,
+            Column('id', Integer, primary_key=True),
+            Column('thing', String(), server_default='')
+        )
+        return ApplyBatchImpl(t, table_args, table_kwargs)
+
     def _assert_impl(self, impl, colnames=None,
                      ddl_contains=None, ddl_not_contains=None,
                      dialect='default', schema=None):
@@ -359,6 +368,13 @@ class BatchApplyTest(TestBase):
         eq_(
             new_table.c.y.server_default.arg, "10"
         )
+
+    def test_change_server_default(self):
+        impl = self._server_default_fixture()
+        impl.alter_column('tname', 'thing', server_default=None)
+        new_table = self._assert_impl(
+            impl, colnames=['id', 'thing'], ddl_not_contains="DEFAULT")
+        eq_(new_table.c.thing.server_default, None)
 
     def test_rename_col_pk(self):
         impl = self._simple_fixture()
