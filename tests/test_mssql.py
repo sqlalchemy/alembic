@@ -42,11 +42,13 @@ class FullEnvironmentTests(TestBase):
             ['COMMIT;', 'GO']
         )
 
+    @config.requirements.sqlalchemy_08
     def test_batch_separator_default(self):
         with capture_context_buffer() as buf:
             command.upgrade(self.cfg, self.a, sql=True)
         assert "GO" in buf.getvalue()
 
+    @config.requirements.sqlalchemy_08
     def test_batch_separator_custom(self):
         with capture_context_buffer(mssql_batch_separator="BYE") as buf:
             command.upgrade(self.cfg, self.a, sql=True)
