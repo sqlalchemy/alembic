@@ -37,8 +37,12 @@ class PostgresqlImpl(DefaultImpl):
 
         conn_col_default = rendered_inspector_default
 
+        defaults_equal = conn_col_default == rendered_metadata_default
+        if defaults_equal:
+            return False
+
         if None in (conn_col_default, rendered_metadata_default):
-            return conn_col_default != rendered_metadata_default
+            return not defaults_equal
 
         if metadata_column.server_default is not None and \
             isinstance(metadata_column.server_default.arg,

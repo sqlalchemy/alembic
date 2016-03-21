@@ -1,7 +1,7 @@
 
 from sqlalchemy import DateTime, MetaData, Table, Column, text, Integer, \
     String, Interval, Sequence, Numeric, BigInteger, Float, Numeric
-from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlalchemy.engine.reflection import Inspector
 from alembic.operations import Operations
 from sqlalchemy.sql import table, column
@@ -232,6 +232,13 @@ class PostgresqlDefaultCompareTest(TestBase):
         self._compare_default_roundtrip(
             Interval,
             "14 days"
+        )
+
+    @config.requirements.postgresql_uuid_ossp
+    def test_compare_uuid_text(self):
+        self._compare_default_roundtrip(
+            UUID,
+            text("uuid_generate_v4()")
         )
 
     def test_compare_interval_text(self):

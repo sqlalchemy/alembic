@@ -7,6 +7,15 @@ Changelog
     :version: 0.8.6
 
     .. change::
+      :tags: bug, postgresql
+      :tickets: 365
+
+      Added a fix to Postgresql server default comparison which first checks
+      if the text of the default is identical to the original, before attempting
+      to actually run the default.  This accomodates for default-generation
+      functions that generate a new value each time such as a uuid function.
+
+    .. change::
       :tags: bug, batch
       :tickets: 361
       :pullreq: bitbucket:55

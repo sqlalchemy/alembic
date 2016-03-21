@@ -78,3 +78,16 @@ class DefaultRequirements(SuiteRequirements):
 
         return exclusions.fails_on_everything_except(
             'postgresql', 'oracle', 'mssql', 'sybase')
+
+    @property
+    def postgresql_uuid_ossp(self):
+        def check_uuid_ossp(config):
+            if not exclusions.against(config, "postgresql"):
+                return False
+            try:
+                config.db.execute("SELECT uuid_generate_v4()")
+                return True
+            except:
+                return False
+
+        return exclusions.only_if(check_uuid_ossp)
