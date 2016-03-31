@@ -420,7 +420,7 @@ def fails_on(db, reason=None):
 def fails_on_everything_except(*dbs):
     return succeeds_if(
         OrPredicate([
-            SpecPredicate(db) for db in dbs
+            Predicate.as_predicate(db) for db in dbs
         ])
     )
 

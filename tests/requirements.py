@@ -77,7 +77,11 @@ class DefaultRequirements(SuiteRequirements):
         """Target driver reflects the name of primary key constraints."""
 
         return exclusions.fails_on_everything_except(
-            'postgresql', 'oracle', 'mssql', 'sybase')
+            'postgresql', 'oracle', 'mssql', 'sybase',
+            lambda config: (
+                util.sqla_110 and exclusions.against(config, "sqlite")
+            )
+        )
 
     @property
     def postgresql_uuid_ossp(self):
