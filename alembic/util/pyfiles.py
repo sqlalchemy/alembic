@@ -3,14 +3,27 @@ import os
 import re
 from .compat import load_module_py, load_module_pyc
 from mako.template import Template
+from mako import exceptions
+import tempfile
+from .exc import CommandError
 
 
 def template_to_file(template_file, dest, output_encoding, **kw):
-    with open(dest, 'wb') as f:
-        template = Template(filename=template_file)
-        f.write(
-            template.render_unicode(**kw).encode(output_encoding)
-        )
+    template = Template(filename=template_file)
+    try:
+        output = template.render_unicode(**kw).encode(output_encoding)
+    except:
+        with tempfile.NamedTemporaryFile(suffix='.txt', delete=False) as ntf:
+            ntf.write(
+                exceptions.text_error_template().
+                render_unicode().encode(output_encoding))
+            fname = ntf.name
+        raise CommandError(
+            "Template rendering failed; see %s for a "
+            "template-oriented traceback." % fname)
+    else:
+        with open(dest, 'wb') as f:
+            f.write(output)
 
 
 def coerce_resource_to_filename(fname):
@@ -63,7 +76,6 @@ def edit(path):
     """Given a source path, run the EDITOR for it"""
 
     import editor
-    from . import CommandError
     try:
         editor.edit(path)
     except Exception as exc:

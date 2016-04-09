@@ -7,6 +7,15 @@ Changelog
     :version: 0.8.6
 
     .. change::
+      :tags: bug, commands
+      :tickets: 367
+
+      Errors which occur within the Mako render step are now intercepted
+      and raised as CommandErrors like other failure cases; the Mako
+      exception itself is written using template-line formatting to
+      a temporary file which is named in the exception message.
+
+    .. change::
       :tags: bug, postgresql
       :tickets: 365
 

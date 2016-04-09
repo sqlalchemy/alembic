@@ -16,6 +16,8 @@ import os
 import datetime
 import sqlalchemy as sa
 from sqlalchemy.engine.reflection import Inspector
+from alembic.util import CommandError
+import re
 
 env, abc, def_ = None, None, None
 
@@ -218,6 +220,8 @@ class RevisionCommandTest(TestBase):
             command.revision,
             self.cfg, message="some message", branch_label="foobar"
         )
+
+
 
 
 class CustomizeRevisionTest(TestBase):
@@ -812,3 +816,24 @@ down_revision = ${repr(down_revision)}
         with open(rev.path) as f:
             text = f.read()
         assert "somearg: somevalue" in text
+
+    def test_bad_render(self):
+        env_file_fixture("""
+context.configure(dialect_name='sqlite', template_args={"somearg":"somevalue"})
+""")
+        script_file_fixture("""
+    <% z = x + y %>
+""")
+
+        try:
+            command.revision(self.cfg, message="some rev")
+        except CommandError as ce:
+            m = re.match(
+                r"^Template rendering failed; see (.+?) "
+                "for a template-oriented",
+                str(ce)
+            )
+            assert m, "Command error did not produce a file"
+            contents = open(m.group(1)).read()
+            os.remove(m.group(1))
+            assert "<% z = x + y %>" in contents
