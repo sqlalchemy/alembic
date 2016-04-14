@@ -5,6 +5,7 @@ Changelog
 
 .. changelog::
     :version: 0.8.6
+    :released: April 14, 2016
 
     .. change::
       :tags: bug, commands
