@@ -1,4 +1,4 @@
-f.. _branches:
+.. _branches:
 
 Working with Branches
 =====================
