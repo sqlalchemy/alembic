@@ -7,11 +7,10 @@ Alembic.
 
 .. note::
 
-    This is a new section where we hope to start cataloguing various "how-tos"
+    This is a new section where we catalogue various "how-tos"
     we come up with based on user requests.  It is often the case that users
     will request a feature only to learn that simple customization can
-    provide the same thing.   There's only one recipe at the moment but
-    we hope to get more soon!
+    provide the same thing.
 
 .. _building_uptodate:
 
