@@ -1,5 +1,5 @@
-from sqlalchemy import Table, MetaData, Index, select, Column, \
-    ForeignKeyConstraint, cast
+ffrom sqlalchemy import Table, MetaData, Index, select, Column, \
+    ForeignKeyConstraint, cast, CheckConstraint
 from sqlalchemy import types as sqltypes
 from sqlalchemy import schema as sql_schema
 from sqlalchemy.util import OrderedDict
@@ -63,6 +63,7 @@ class BatchOperationsImpl(object):
 
             if self.copy_from is not None:
                 existing_table = self.copy_from
+                reflected = False
             else:
                 existing_table = Table(
                     self.table_name, m1,
@@ -70,9 +71,10 @@ class BatchOperationsImpl(object):
                     autoload=True,
                     autoload_with=self.operations.get_bind(),
                     *self.reflect_args, **self.reflect_kwargs)
+                reflected = True
 
             batch_impl = ApplyBatchImpl(
-                existing_table, self.table_args, self.table_kwargs)
+                existing_table, self.table_args, self.table_kwargs, reflected)
             for opname, arg, kw in self.batch:
                 fn = getattr(batch_impl, opname)
                 fn(*arg, **kw)
@@ -111,7 +113,7 @@ class BatchOperationsImpl(object):
 
 
 class ApplyBatchImpl(object):
-    def __init__(self, table, table_args, table_kwargs):
+    def __init__(self, table, table_args, table_kwargs, reflected):
         self.table = table  # this is a Table object
         self.table_args = table_args
         self.table_kwargs = table_kwargs
@@ -119,6 +121,7 @@ class ApplyBatchImpl(object):
         self.column_transfers = OrderedDict(
             (c.name, {'expr': c}) for c in self.table.c
         )
+        self.reflected = reflected
         self._grab_table_elements()
 
     def _grab_table_elements(self):
@@ -139,6 +142,10 @@ class ApplyBatchImpl(object):
         for const in self.table.constraints:
             if _is_type_bound(const):
                 continue
+            elif self.reflected and isinstance(const, CheckConstraint):
+                # TODO: we are skipping reflected CheckConstraint because
+                # we have no way to determine _is_type_bound() for these.
+                pass
             elif const.name:
                 self.named_constraints[const.name] = const
             else:

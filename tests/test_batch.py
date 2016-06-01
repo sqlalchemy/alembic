@@ -34,7 +34,7 @@ class BatchApplyTest(TestBase):
             Column('x', String(10)),
             Column('y', Integer)
         )
-        return ApplyBatchImpl(t, table_args, table_kwargs)
+        return ApplyBatchImpl(t, table_args, table_kwargs, False)
 
     def _uq_fixture(self, table_args=(), table_kwargs={}):
         m = MetaData()
@@ -45,7 +45,7 @@ class BatchApplyTest(TestBase):
             Column('y', Integer),
             UniqueConstraint('y', name='uq1')
         )
-        return ApplyBatchImpl(t, table_args, table_kwargs)
+        return ApplyBatchImpl(t, table_args, table_kwargs, False)
 
     def _ix_fixture(self, table_args=(), table_kwargs={}):
         m = MetaData()
@@ -56,7 +56,7 @@ class BatchApplyTest(TestBase):
             Column('y', Integer),
             Index('ix1', 'y')
         )
-        return ApplyBatchImpl(t, table_args, table_kwargs)
+        return ApplyBatchImpl(t, table_args, table_kwargs, False)
 
     def _literal_ck_fixture(
             self, copy_from=None, table_args=(), table_kwargs={}):
@@ -70,7 +70,7 @@ class BatchApplyTest(TestBase):
                 Column('email', String()),
                 CheckConstraint("email LIKE '%@%'")
             )
-        return ApplyBatchImpl(t, table_args, table_kwargs)
+        return ApplyBatchImpl(t, table_args, table_kwargs, False)
 
     def _sql_ck_fixture(self, table_args=(), table_kwargs={}):
         m = MetaData()
@@ -80,7 +80,7 @@ class BatchApplyTest(TestBase):
             Column('email', String())
         )
         t.append_constraint(CheckConstraint(t.c.email.like('%@%')))
-        return ApplyBatchImpl(t, table_args, table_kwargs)
+        return ApplyBatchImpl(t, table_args, table_kwargs, False)
 
     def _fk_fixture(self, table_args=(), table_kwargs={}):
         m = MetaData()
@@ -90,7 +90,7 @@ class BatchApplyTest(TestBase):
             Column('email', String()),
             Column('user_id', Integer, ForeignKey('user.id'))
         )
-        return ApplyBatchImpl(t, table_args, table_kwargs)
+        return ApplyBatchImpl(t, table_args, table_kwargs, False)
 
     def _multi_fk_fixture(self, table_args=(), table_kwargs={}, schema=None):
         m = MetaData()
@@ -112,7 +112,7 @@ class BatchApplyTest(TestBase):
                 ['%suser.id' % schemaarg, '%suser.id_version' % schemaarg]),
             schema=schema
         )
-        return ApplyBatchImpl(t, table_args, table_kwargs)
+        return ApplyBatchImpl(t, table_args, table_kwargs, False)
 
     def _named_fk_fixture(self, table_args=(), table_kwargs={}):
         m = MetaData()
@@ -122,7 +122,7 @@ class BatchApplyTest(TestBase):
             Column('email', String()),
             Column('user_id', Integer, ForeignKey('user.id', name='ufk'))
         )
-        return ApplyBatchImpl(t, table_args, table_kwargs)
+        return ApplyBatchImpl(t, table_args, table_kwargs, False)
 
     def _selfref_fk_fixture(self, table_args=(), table_kwargs={}):
         m = MetaData()
@@ -132,7 +132,7 @@ class BatchApplyTest(TestBase):
             Column('parent_id', Integer, ForeignKey('tname.id')),
             Column('data', String)
         )
-        return ApplyBatchImpl(t, table_args, table_kwargs)
+        return ApplyBatchImpl(t, table_args, table_kwargs, False)
 
     def _boolean_fixture(self, table_args=(), table_kwargs={}):
         m = MetaData()
@@ -141,7 +141,7 @@ class BatchApplyTest(TestBase):
             Column('id', Integer, primary_key=True),
             Column('flag', Boolean)
         )
-        return ApplyBatchImpl(t, table_args, table_kwargs)
+        return ApplyBatchImpl(t, table_args, table_kwargs, False)
 
     def _boolean_no_ck_fixture(self, table_args=(), table_kwargs={}):
         m = MetaData()
@@ -150,7 +150,7 @@ class BatchApplyTest(TestBase):
             Column('id', Integer, primary_key=True),
             Column('flag', Boolean(create_constraint=False))
         )
-        return ApplyBatchImpl(t, table_args, table_kwargs)
+        return ApplyBatchImpl(t, table_args, table_kwargs, False)
 
     def _enum_fixture(self, table_args=(), table_kwargs={}):
         m = MetaData()
@@ -159,7 +159,7 @@ class BatchApplyTest(TestBase):
             Column('id', Integer, primary_key=True),
             Column('thing', Enum('a', 'b', 'c'))
         )
-        return ApplyBatchImpl(t, table_args, table_kwargs)
+        return ApplyBatchImpl(t, table_args, table_kwargs, False)
 
     def _server_default_fixture(self, table_args=(), table_kwargs={}):
         m = MetaData()
@@ -168,7 +168,7 @@ class BatchApplyTest(TestBase):
             Column('id', Integer, primary_key=True),
             Column('thing', String(), server_default='')
         )
-        return ApplyBatchImpl(t, table_args, table_kwargs)
+        return ApplyBatchImpl(t, table_args, table_kwargs, False)
 
     def _assert_impl(self, impl, colnames=None,
                      ddl_contains=None, ddl_not_contains=None,

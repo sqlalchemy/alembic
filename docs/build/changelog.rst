@@ -4,6 +4,18 @@ Changelog
 ==========
 
 .. changelog::
+    :version: 0.8.7
+
+    .. change::
+      :tags: bug, batch
+
+      Small adjustment made to the batch handling for reflected CHECK
+      constraints to accommodate for SQLAlchemy 1.1 now reflecting these.
+      Batch mode still does not support CHECK constraints from the reflected
+      table as these can't be easily differentiated from the ones created
+      by types such as Boolean.
+
+.. changelog::
     :version: 0.8.6
     :released: April 14, 2016
 
