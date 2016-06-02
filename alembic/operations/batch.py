@@ -1,4 +1,4 @@
-ffrom sqlalchemy import Table, MetaData, Index, select, Column, \
+from sqlalchemy import Table, MetaData, Index, select, Column, \
     ForeignKeyConstraint, cast, CheckConstraint
 from sqlalchemy import types as sqltypes
 from sqlalchemy import schema as sql_schema
