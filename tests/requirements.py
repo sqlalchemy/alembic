@@ -56,7 +56,10 @@ class DefaultRequirements(SuiteRequirements):
 
     @property
     def reflects_fk_options(self):
-        return exclusions.only_on(['postgresql', 'mysql'])
+        return exclusions.only_on([
+            'postgresql', 'mysql',
+            lambda config: util.sqla_110 and
+            exclusions.against(config, 'sqlite')])
 
     @property
     def fk_initially(self):

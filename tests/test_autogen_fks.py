@@ -542,7 +542,7 @@ class AutogenerateFKOptionsTest(AutogenFixtureTest, TestBase):
 
     def test_remove_ondelete(self):
         diffs = self._fk_opts_fixture(
-            {"ondelete": "cascade"}, {}
+            {"ondelete": "CASCADE"}, {}
         )
 
         if self._expect_opts_supported():
@@ -595,7 +595,7 @@ class AutogenerateFKOptionsTest(AutogenFixtureTest, TestBase):
 
     def test_remove_onupdate(self):
         diffs = self._fk_opts_fixture(
-            {"onupdate": "cascade"}, {}
+            {"onupdate": "CASCADE"}, {}
         )
 
         if self._expect_opts_supported():
@@ -713,8 +713,8 @@ class AutogenerateFKOptionsTest(AutogenFixtureTest, TestBase):
 
     def test_ondelete_onupdate_combo(self):
         diffs = self._fk_opts_fixture(
-            {"onupdate": "cascade", "ondelete": "set null"},
-            {"onupdate": "restrict", "ondelete": "restrict"}
+            {"onupdate": "CASCADE", "ondelete": "SET NULL"},
+            {"onupdate": "RESTRICT", "ondelete": "RESTRICT"}
         )
 
         if self._expect_opts_supported():
@@ -731,8 +731,8 @@ class AutogenerateFKOptionsTest(AutogenFixtureTest, TestBase):
                 diffs[1], "add_fk",
                 "user", ["tid"],
                 "table", ["id"],
-                onupdate="restrict",
-                ondelete="restrict"
+                onupdate="RESTRICT",
+                ondelete="RESTRICT"
             )
         else:
             eq_(diffs, [])
