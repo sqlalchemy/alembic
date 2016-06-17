@@ -630,6 +630,16 @@ class CompareTypeSpecificityTest(TestBase):
         is_(impl.compare_type(Column('x', t5), Column('x', t2)), True)
         is_(impl.compare_type(Column('x', t1), Column('x', t4)), True)
 
+    def test_datetime(self):
+        t1 = DateTime()
+        t2 = DateTime(timezone=False)
+        t3 = DateTime(timezone=True)
+
+        impl = self._fixture()
+        is_(impl.compare_type(Column('x', t1), Column('x', t2)), False)
+        is_(impl.compare_type(Column('x', t1), Column('x', t3)), True)
+        is_(impl.compare_type(Column('x', t2), Column('x', t3)), True)
+
 
 class AutogenerateCustomCompareTypeTest(AutogenTest, TestBase):
     __only_on__ = 'sqlite'

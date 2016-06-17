@@ -350,8 +350,16 @@ def _integer_compare(t1, t2):
     )
     return t1_small_or_big != t2_small_or_big
 
+
+def _datetime_compare(t1, t2):
+    return (
+        t1.timezone != t2.timezone
+    )
+
+
 _type_comparators = {
     sqltypes.String: _string_compare,
     sqltypes.Numeric: _numeric_compare,
-    sqltypes.Integer: _integer_compare
+    sqltypes.Integer: _integer_compare,
+    sqltypes.DateTime: _datetime_compare,
 }

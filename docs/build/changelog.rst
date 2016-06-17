@@ -15,6 +15,13 @@ Changelog
       :paramref:`.op.alter_column.postgresql_using`
       parameter.  Pull request courtesy Frazer McLean.
 
+    .. change:
+      :tags: feature, autogenerate
+
+      Autogenerate with type comparison enabled will pick up on the timezone
+      setting changing between DateTime types.   Pull request courtesy
+      David Szotten.
+
 .. changelog::
     :version: 0.8.7
     :released: July 26, 2016
