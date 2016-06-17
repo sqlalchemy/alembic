@@ -59,6 +59,13 @@ class PostgresqlOpTest(TestBase):
             "CREATE INDEX geocoded ON locations (coordinates) "
             "WHERE locations.coordinates != Null")
 
+    def test_alter_column_type_using(self):
+        context = op_fixture('postgresql')
+        op.alter_column("t", "c", type_=Integer, postgresql_using='c::integer')
+        context.assert_(
+            'ALTER TABLE t ALTER COLUMN c TYPE INTEGER USING c::integer'
+        )
+
 
 class PGOfflineEnumTest(TestBase):
 
@@ -518,5 +525,3 @@ class PostgresqlDetectSerialTest(TestBase):
             None,
             Column('x', Integer, autoincrement=False, primary_key=True)
         )
-
-

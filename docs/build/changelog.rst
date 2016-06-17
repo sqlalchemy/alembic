@@ -6,6 +6,15 @@ Changelog
 .. changelog::
     :version: 0.8.8
 
+    .. change::
+      :tags: feature, operations, postgresql
+      :tickets: 292
+
+      Added support for the USING clause to the ALTER COLUMN operation
+      for Postgresql.  Support is via the
+      :paramref:`.op.alter_column.postgresql_using`
+      parameter.  Pull request courtesy Frazer McLean.
+
 .. changelog::
     :version: 0.8.7
     :released: July 26, 2016

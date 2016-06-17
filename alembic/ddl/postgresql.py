@@ -2,10 +2,12 @@ import re
 
 from ..util import compat
 from .. import util
-from .base import compiles, alter_table, format_table_name, RenameTable
+from .base import compiles, alter_column, alter_table, format_table_name, \
+    format_type, AlterColumn, RenameTable
 from .impl import DefaultImpl
 from sqlalchemy.dialects.postgresql import INTEGER, BIGINT
 from sqlalchemy import text, Numeric, Column
+from sqlalchemy import types as sqltypes
 
 if compat.sqla_08:
     from sqlalchemy.sql.expression import UnaryExpression
@@ -60,6 +62,49 @@ class PostgresqlImpl(DefaultImpl):
                 rendered_metadata_default
             )
         )
+
+    def alter_column(self, table_name, column_name,
+                     nullable=None,
+                     server_default=False,
+                     name=None,
+                     type_=None,
+                     schema=None,
+                     autoincrement=None,
+                     existing_type=None,
+                     existing_server_default=None,
+                     existing_nullable=None,
+                     existing_autoincrement=None,
+                     **kw
+                     ):
+
+        using = kw.pop('postgresql_using', None)
+
+        if using is not None and type_ is None:
+            raise util.CommandError(
+                "postgresql_using must be used with the type_ parameter")
+
+        if type_ is not None:
+            self._exec(PostgresqlColumnType(
+                table_name, column_name, type_, schema=schema,
+                using=using, existing_type=existing_type,
+                existing_server_default=existing_server_default,
+                existing_nullable=existing_nullable,
+            ))
+
+        super(PostgresqlImpl, self).alter_column(
+            table_name, column_name,
+            nullable=nullable,
+            server_default=server_default,
+            name=name,
+            schema=schema,
+            autoincrement=autoincrement,
+            existing_type=existing_type,
+            existing_server_default=existing_server_default,
+            existing_nullable=existing_nullable,
+            existing_autoincrement=existing_autoincrement,
+            **kw)
+
+
 
     def autogen_column_reflect(self, inspector, table, column_info):
         if column_info.get('default') and \
@@ -125,9 +170,28 @@ class PostgresqlImpl(DefaultImpl):
                     metadata_indexes.discard(idx)
 
 
+class PostgresqlColumnType(AlterColumn):
+
+    def __init__(self, name, column_name, type_, **kw):
+        using = kw.pop('using', None)
+        super(PostgresqlColumnType, self).__init__(name, column_name, **kw)
+        self.type_ = sqltypes.to_instance(type_)
+        self.using = using
+
+
 @compiles(RenameTable, "postgresql")
 def visit_rename_table(element, compiler, **kw):
     return "%s RENAME TO %s" % (
         alter_table(compiler, element.table_name, element.schema),
         format_table_name(compiler, element.new_table_name, None)
+    )
+
+
+@compiles(PostgresqlColumnType, "postgresql")
+def visit_column_type(element, compiler, **kw):
+    return "%s %s %s %s" % (
+        alter_table(compiler, element.table_name, element.schema),
+        alter_column(compiler, element.column_name),
+        "TYPE %s" % format_type(compiler, element.type_),
+        "USING %s" % element.using if element.using else ""
     )
