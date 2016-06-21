@@ -2,15 +2,15 @@
 Cookbook
 ========
 
-A collection of "How-Tos", highlighting various ways to extend
+A collection of "How-Tos" highlighting popular ways to extend
 Alembic.
 
 .. note::
 
     This is a new section where we catalogue various "how-tos"
-    we come up with based on user requests.  It is often the case that users
-    will request a feature only to learn that simple customization can
-    provide the same thing.
+    based on user requests.  It is often the case that users
+    will request a feature only to learn it can be provided with
+    a simple customization.
 
 .. _building_uptodate:
 
@@ -808,3 +808,25 @@ any operations::
 
             with context.begin_transaction():
                 context.run_migrations()
+
+Don't emit CREATE TABLE statements for Views
+============================================
+
+It is sometimes convenient to create :class:`~sqlalchemy.schema.Table` instances for views
+so that they can be queried using normal SQLAlchemy techniques. Unfortunately this
+causes Alembic to treat them as tables in need of creation and to generate spurious
+``create_table()`` operations. This is easily fixable by flagging such Tables and using the
+:paramref:`~.EnvironmentContext.configure.include_object` hook to exclude them::
+
+    my_view = Table('my_view', metadata, autoload=True, info=dict(is_view=True))    # Flag this as a view
+
+Then define ``include_object`` as::
+
+    def include_object(object, name, type_, reflected, compare_to):
+        """
+        Exclude views from Alembic's consideration.
+        """
+
+        return not object.info.get('is_view', False)
+
+Finally, in ``env.py`` pass your ``include_object`` as a keyword argument to :meth:`.EnvironmentContext.configure`.
