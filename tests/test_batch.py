@@ -1268,7 +1268,11 @@ class BatchRoundTripTest(TestBase):
         bar.create(self.conn)
         self.conn.execute(bar.insert(), {'id': 1, 'flag': True})
         self.conn.execute(bar.insert(), {'id': 2, 'flag': False})
-        self.conn.execute(bar.insert(), {'id': 3, 'flag': 5})
+        self.conn.execute(
+            # override Boolean type which as of 1.1 coerces numerics
+            # to 1/0
+            text("insert into bar (id, flag) values (:id, :flag)"),
+            {'id': 3, 'flag': 5})
 
         with self.op.batch_alter_table(
             "bar",
