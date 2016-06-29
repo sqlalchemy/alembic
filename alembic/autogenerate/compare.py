@@ -39,8 +39,8 @@ def _produce_net_changes(autogen_context, upgrade_ops):
         # replace default schema name with None
         schemas.discard("information_schema")
         # replace the "default" schema with None
-        schemas.add(None)
         schemas.discard(default_schema)
+        schemas.add(None)
     else:
         schemas = [None]
 

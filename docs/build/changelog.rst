@@ -7,6 +7,14 @@ Changelog
     :version: 0.8.7
 
     .. change::
+      :tags: bug, autogenerate
+
+      Fixed bug in autogen where if the DB connection sends the default
+      schema as "None", this "None" would be removed from the list of
+      schemas to check if include_schemas were set.  This could possibly
+      impact using include_schemas with SQLite.
+
+    .. change::
       :tags: bug, batch
 
       Small adjustment made to the batch handling for reflected CHECK

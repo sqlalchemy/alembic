@@ -14,7 +14,7 @@ from alembic.migration import MigrationContext
 from alembic.testing import TestBase
 from alembic.testing import config
 from alembic.testing import assert_raises_message
-from alembic.testing.mock import Mock
+from alembic.testing.mock import Mock, patch
 from alembic.testing import eq_, is_, is_not_
 from alembic.util import CommandError
 from ._autogen_fixtures import AutogenTest, AutogenFixtureTest
@@ -186,6 +186,35 @@ class AutogenDefaultSchemaTest(AutogenFixtureTest, TestBase):
         eq_(diffs[0][0], "add_table")
         eq_(diffs[0][1].schema, default_schema)
         eq_(diffs[0][1].c.keys(), ['x'])
+
+
+class AutogenDefaultSchemaIsNoneTest(AutogenFixtureTest, TestBase):
+    __only_on__ = 'sqlite'
+
+    def setUp(self):
+        super(AutogenDefaultSchemaIsNoneTest, self).setUp()
+
+        # prerequisite
+        eq_(self.bind.dialect.default_schema_name, None)
+
+    def test_no_default_schema(self):
+
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table('a', m1, Column('x', String(50)))
+        Table('a', m2, Column('x', String(50)))
+
+        def _include_object(obj, name, type_, reflected, compare_to):
+            if type_ == "table":
+                return name in 'a' and obj.schema != 'main'
+            else:
+                return True
+
+        diffs = self._fixture(
+            m1, m2, include_schemas=True,
+            object_filters=_include_object)
+        eq_(len(diffs), 0)
 
 
 class ModelOne(object):
