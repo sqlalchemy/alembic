@@ -8,6 +8,15 @@ Changelog
 
     .. change::
       :tags: bug, versioning
+      :tickets: 377
+
+      Fixed bug where a downgrade to a version that is also a dependency
+      to a different branch would fail, as the system attempted to treat
+      this as an "unmerge" of a merge point, when in fact it doesn't have
+      the other side of the merge point available for update.
+
+    .. change::
+      :tags: bug, versioning
       :tickets: 378
 
       Fixed bug where the "alembic current" command wouldn't show a revision

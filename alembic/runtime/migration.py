@@ -521,16 +521,16 @@ class MigrationStep(object):
     def short_log(self):
         return "%s %s -> %s" % (
             self.name,
-            util.format_as_comma(self.from_revisions),
-            util.format_as_comma(self.to_revisions)
+            util.format_as_comma(self.from_revisions_no_deps),
+            util.format_as_comma(self.to_revisions_no_deps)
         )
 
     def __str__(self):
         if self.doc:
             return "%s %s -> %s, %s" % (
                 self.name,
-                util.format_as_comma(self.from_revisions),
-                util.format_as_comma(self.to_revisions),
+                util.format_as_comma(self.from_revisions_no_deps),
+                util.format_as_comma(self.to_revisions_no_deps),
                 self.doc
             )
         else:
@@ -546,6 +546,11 @@ class RevisionStep(MigrationStep):
             self.migration_fn = revision.module.upgrade
         else:
             self.migration_fn = revision.module.downgrade
+
+    def __repr__(self):
+        return "RevisionStep(%r, is_upgrade=%r)" % (
+            self.revision.revision, self.is_upgrade
+        )
 
     def __eq__(self, other):
         return isinstance(other, RevisionStep) and \
@@ -564,6 +569,13 @@ class RevisionStep(MigrationStep):
             return (self.revision.revision, )
 
     @property
+    def from_revisions_no_deps(self):
+        if self.is_upgrade:
+            return self.revision._versioned_down_revisions
+        else:
+            return (self.revision.revision, )
+
+    @property
     def to_revisions(self):
         if self.is_upgrade:
             return (self.revision.revision, )
@@ -571,10 +583,22 @@ class RevisionStep(MigrationStep):
             return self.revision._all_down_revisions
 
     @property
+    def to_revisions_no_deps(self):
+        if self.is_upgrade:
+            return (self.revision.revision, )
+        else:
+            return self.revision._versioned_down_revisions
+
+    @property
     def _has_scalar_down_revision(self):
         return len(self.revision._all_down_revisions) == 1
 
     def should_delete_branch(self, heads):
+        """A delete is when we are a. in a downgrade and b.
+        we are going to the "base" or we are going to a version that
+        is implied as a dependency on another version that is remaining.
+
+        """
         if not self.is_downgrade:
             return False
 
@@ -582,45 +606,15 @@ class RevisionStep(MigrationStep):
             return False
 
         downrevs = self.revision._all_down_revisions
+
         if not downrevs:
             # is a base
             return True
-        elif len(downrevs) == 1:
-            downrev = self.revision_map.get_revision(downrevs[0])
-
-            if not downrev._is_real_branch_point:
-                return False
-
-            descendants = set(
-                r.revision for r in self.revision_map._get_descendant_nodes(
-                    self.revision_map.get_revisions(downrev._all_nextrev),
-                    check=False
-                )
-            )
-
-            # the downrev is a branchpoint, and other members or descendants
-            # of the branch are still in heads; so delete this branch.
-            # the reason this occurs is because traversal tries to stay
-            # fully on one branch down to the branchpoint before starting
-            # the other; so if we have a->b->(c1->d1->e1, c2->d2->e2),
-            # on a downgrade from the top we may go e1, d1, c1, now heads
-            # are at c1 and e2, with the current method, we don't know that
-            # "e2" is important unless we get all descendants of c1/c2
-
-            if len(descendants.intersection(heads).difference(
-                    [self.revision.revision])):
-
-            # TODO: this doesn't work; make sure tests are here to ensure
-            # this fails
-            #if len(downrev._all_nextrev.intersection(heads).difference(
-            #        [self.revision.revision])):
-
-                return True
-            else:
-                return False
         else:
-            # is a merge point
-            return False
+            # determine what the ultimate "to_revisions" for an
+            # unmerge would be.  If there are none, then we're a delete.
+            to_revisions = self._unmerge_to_revisions(heads)
+            return not to_revisions
 
     def merge_branch_idents(self, heads):
         other_heads = set(heads).difference(self.from_revisions)
@@ -644,7 +638,7 @@ class RevisionStep(MigrationStep):
             self.to_revisions[0]
         )
 
-    def unmerge_branch_idents(self, heads):
+    def _unmerge_to_revisions(self, heads):
         other_heads = set(heads).difference([self.revision.revision])
         if other_heads:
             ancestors = set(
@@ -654,9 +648,12 @@ class RevisionStep(MigrationStep):
                     check=False
                 )
             )
-            to_revisions = list(set(self.to_revisions).difference(ancestors))
+            return list(set(self.to_revisions).difference(ancestors))
         else:
-            to_revisions = self.to_revisions
+            return self.to_revisions
+
+    def unmerge_branch_idents(self, heads):
+        to_revisions = self._unmerge_to_revisions(heads)
 
         return (
             # update from rev, update to rev, insert revs
@@ -755,6 +752,14 @@ class StampStep(MigrationStep):
 
     @property
     def to_revisions(self):
+        return self.to_
+
+    @property
+    def from_revisions_no_deps(self):
+        return self.from_
+
+    @property
+    def to_revisions_no_deps(self):
         return self.to_
 
     @property

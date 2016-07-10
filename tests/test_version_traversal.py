@@ -408,7 +408,6 @@ class BranchFrom3WayMergepointTest(MigrationTest):
         )
 
     def test_mergepoint_to_only_one_side_downgrade(self):
-
         self._assert_downgrade(
             self.b1.revision,
             (self.d3.revision, self.d2.revision, self.d1.revision),
@@ -629,29 +628,56 @@ class DependsOnBranchTestTwo(MigrationTest):
 
     @classmethod
     def setup_class(cls):
+        """
+        a1 ---+
+              |
+        a2 ---+--> amerge
+              |
+        a3 ---+
+         ^
+         |
+         +---------------------------+
+                                     |
+        b1 ---+                      |
+              +--> bmerge        overmerge / d1
+        b2 ---+                     |  |
+         ^                          |  |
+         |                          |  |
+         +--------------------------+  |
+                                       |
+         +-----------------------------+
+         |
+         v
+        c1 ---+
+              |
+        c2 ---+--> cmerge
+              |
+        c3 ---+
+
+        """
         cls.env = env = staging_env()
-        cls.a1 = env.generate_revision(util.rev_id(), '->a1', head='base')
-        cls.a2 = env.generate_revision(util.rev_id(), '->a2', head='base')
-        cls.a3 = env.generate_revision(util.rev_id(), '->a3', head='base')
-        cls.amerge = env.generate_revision(util.rev_id(), 'amerge', head=[
+        cls.a1 = env.generate_revision("a1", '->a1', head='base')
+        cls.a2 = env.generate_revision("a2", '->a2', head='base')
+        cls.a3 = env.generate_revision("a3", '->a3', head='base')
+        cls.amerge = env.generate_revision("amerge", 'amerge', head=[
             cls.a1.revision, cls.a2.revision, cls.a3.revision
         ])
 
-        cls.b1 = env.generate_revision(util.rev_id(), '->b1', head='base')
-        cls.b2 = env.generate_revision(util.rev_id(), '->b2', head='base')
-        cls.bmerge = env.generate_revision(util.rev_id(), 'bmerge', head=[
+        cls.b1 = env.generate_revision("b1", '->b1', head='base')
+        cls.b2 = env.generate_revision("b2", '->b2', head='base')
+        cls.bmerge = env.generate_revision("bmerge", 'bmerge', head=[
             cls.b1.revision, cls.b2.revision
         ])
 
-        cls.c1 = env.generate_revision(util.rev_id(), '->c1', head='base')
-        cls.c2 = env.generate_revision(util.rev_id(), '->c2', head='base')
-        cls.c3 = env.generate_revision(util.rev_id(), '->c3', head='base')
-        cls.cmerge = env.generate_revision(util.rev_id(), 'cmerge', head=[
+        cls.c1 = env.generate_revision("c1", '->c1', head='base')
+        cls.c2 = env.generate_revision("c2", '->c2', head='base')
+        cls.c3 = env.generate_revision("c3", '->c3', head='base')
+        cls.cmerge = env.generate_revision("cmerge", 'cmerge', head=[
             cls.c1.revision, cls.c2.revision, cls.c3.revision
         ])
 
         cls.d1 = env.generate_revision(
-            util.rev_id(), 'overmerge',
+            "d1", 'o',
             head="base",
             depends_on=[
                 cls.a3.revision, cls.b2.revision, cls.c1.revision
@@ -672,23 +698,83 @@ class DependsOnBranchTestTwo(MigrationTest):
             self.b2.revision, heads,
             [self.down_(self.bmerge), self.down_(self.d1)],
             set([
-                self.amerge.revision, self.b2.revision,
-                self.b1.revision, self.cmerge.revision])
+                self.amerge.revision,
+                self.b1.revision, self.cmerge.revision, self.b2.revision])
         )
 
+        # start with those heads..
         heads = [
-            self.amerge.revision, self.b2.revision,
+            self.amerge.revision, self.d1.revision,
             self.b1.revision, self.cmerge.revision]
+
+        # downgrade d1...
+        self._assert_downgrade(
+            "d1@base", heads,
+            [self.down_(self.d1)],
+
+            # b2 has to be INSERTed, because it was implied by d1
+            set([
+                self.amerge.revision, self.b1.revision,
+                self.b2.revision, self.cmerge.revision])
+        )
+
+        # start with those heads ...
+        heads = [
+            self.amerge.revision, self.b1.revision,
+            self.b2.revision, self.cmerge.revision
+        ]
+
         self._assert_downgrade(
             "base", heads,
             [
                 self.down_(self.amerge), self.down_(self.a1),
                 self.down_(self.a2), self.down_(self.a3),
-                self.down_(self.b2), self.down_(self.b1),
+                self.down_(self.b1), self.down_(self.b2),
                 self.down_(self.cmerge), self.down_(self.c1),
                 self.down_(self.c2), self.down_(self.c3)
             ],
             set([])
+        )
+
+
+class DependsOnBranchTestThree(MigrationTest):
+
+    @classmethod
+    def setup_class(cls):
+        """
+        issue #377
+
+        <base> -> a1 --+--> a2 -------> a3
+                       |     ^          |
+                       |     |   +------+
+                       |     |   |
+                       |     +---|------+
+                       |         |      |
+                       |         v      |
+                       +-------> b1 --> b2 --> b3
+
+        """
+        cls.env = env = staging_env()
+        cls.a1 = env.generate_revision("a1", '->a1', head='base')
+        cls.a2 = env.generate_revision("a2", '->a2')
+
+        cls.b1 = env.generate_revision("b1", '->b1', head='base')
+        cls.b2 = env.generate_revision("b2", '->b2', depends_on='a2', head='b1')
+        cls.b3 = env.generate_revision("b3", '->b3', head='b2')
+
+        cls.a3 = env.generate_revision("a3", '->a3', head='a2', depends_on='b1')
+
+    def test_downgrade_over_crisscross(self):
+        # this state was not possible prior to
+        # #377.  a3 would be considered half of a merge point
+        # between a3 and b2, and the head would be forced down
+        # to b1.   In this test however, we're not allowed to remove
+        # b2 because a2 is dependent on it, hence we add the ability
+        # to remove half of a merge point.
+        self._assert_downgrade(
+            'b1', ['a3', 'b2'],
+            [self.down_(self.a3), self.down_(self.b2)],
+            set(['a2', 'b1'])
         )
 
 
@@ -731,7 +817,7 @@ class DependsOnBranchLabelTest(MigrationTest):
                 self.up_(self.b2),
                 self.up_(self.c2),
             ],
-            set([self.c2.revision, ])
+            set([self.c2.revision])
         )
 
 
