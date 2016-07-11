@@ -191,6 +191,16 @@ class ScriptDirectory(object):
         with self._catch_revision_errors():
             return self.revision_map.get_revisions(id_)
 
+    def get_all_current(self, id_):
+        with self._catch_revision_errors():
+            top_revs = set(self.revision_map.get_revisions(id_))
+            top_revs.update(
+                self.revision_map._get_ancestor_nodes(
+                    list(top_revs), include_dependencies=True)
+            )
+            top_revs = self.revision_map._filter_into_branch_heads(top_revs)
+            return top_revs
+
     def get_revision(self, id_):
         """Return the :class:`.Script` instance with the given rev id.
 
@@ -665,11 +675,11 @@ class Script(revision.Revision):
                 " (head)" if self._is_real_head else "",
                 " (effective head)" if self.is_head and
                     not self._is_real_head else ""
-                )
+            )
         if tree_indicators:
             text += "%s%s" % (
                 " (branchpoint)" if self.is_branch_point else "",
-                " (mergepoint)" if self.is_merge_point else "",
+                " (mergepoint)" if self.is_merge_point else ""
             )
         if include_doc:
             text += ", %s" % self.doc

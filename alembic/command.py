@@ -316,8 +316,9 @@ def current(config, verbose=False, head_only=False):
                 "Current revision(s) for %s:",
                 util.obfuscate_url_pw(context.connection.engine.url)
             )
-        for rev in script.get_revisions(rev):
+        for rev in script.get_all_current(rev):
             config.print_stdout(rev.cmd_format(verbose))
+
         return []
 
     with EnvironmentContext(

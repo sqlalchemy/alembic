@@ -375,6 +375,17 @@ class RevisionMap(object):
                     (revision.revision, check_branch), resolved_id)
         return revision
 
+    def _filter_into_branch_heads(self, targets):
+        targets = set(targets)
+
+        for rev in list(targets):
+            if targets.intersection(
+                self._get_descendant_nodes(
+                    [rev], include_dependencies=False)).\
+                    difference([rev]):
+                targets.discard(rev)
+        return targets
+
     def filter_for_lineage(
             self, targets, check_against, include_dependencies=False):
         id_, branch_label = self._resolve_revision_number(check_against)

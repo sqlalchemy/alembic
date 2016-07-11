@@ -8,6 +8,16 @@ Changelog
 
     .. change::
       :tags: bug, versioning
+      :tickets: 378
+
+      Fixed bug where the "alembic current" command wouldn't show a revision
+      as a current head if it were also a dependency of a version in a
+      different branch that's also applied.   Extra logic is added to
+      extract "implied" versions of different branches from the top-level
+      versions listed in the alembic_version table.
+
+    .. change::
+      :tags: bug, versioning
 
       Fixed bug where a repr() or str() of a Script object would fail
       if the script had multiple dependencies.
