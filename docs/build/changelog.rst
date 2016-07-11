@@ -7,6 +7,12 @@ Changelog
     :version: 0.8.7
 
     .. change::
+      :tags: bug, versioning
+
+      Fixed bug where a repr() or str() of a Script object would fail
+      if the script had multiple dependencies.
+
+    .. change::
       :tags: bug, autogenerate
 
       Fixed bug in autogen where if the DB connection sends the default

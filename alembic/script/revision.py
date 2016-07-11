@@ -780,9 +780,9 @@ class Revision(object):
             repr(self.down_revision)
         ]
         if self.dependencies:
-            args.append("dependencies=%r" % self.dependencies)
+            args.append("dependencies=%r" % (self.dependencies,))
         if self.branch_labels:
-            args.append("branch_labels=%r" % self.branch_labels)
+            args.append("branch_labels=%r" % (self.branch_labels,))
         return "%s(%s)" % (
             self.__class__.__name__,
             ", ".join(args)

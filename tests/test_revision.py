@@ -111,6 +111,17 @@ class APITest(TestBase):
             ['c', 'b', 'a']
         )
 
+    def test_repr_revs(self):
+        map_ = RevisionMap(
+            lambda: [
+                Revision('a', ()),
+                Revision('b', ('a',)),
+                Revision('c', (), dependencies=('a', 'b')),
+            ]
+        )
+        c = map_._revision_map['c']
+        eq_(repr(c), "Revision('c', None, dependencies=('a', 'b'))")
+
 
 class DownIterateTest(TestBase):
     def _assert_iteration(
