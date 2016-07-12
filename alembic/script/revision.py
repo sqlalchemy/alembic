@@ -197,10 +197,9 @@ class RevisionMap(object):
 
     def _add_depends_on(self, revision, map_):
         if revision.dependencies:
-            revision._resolved_dependencies = tuple(
-                map_[dep].revision for dep
-                in util.to_tuple(revision.dependencies)
-            )
+            deps = [map_[dep] for dep in util.to_tuple(revision.dependencies)]
+            revision._resolved_dependencies = tuple([d.revision for d in deps])
+
 
     def add_revision(self, revision, _replace=False):
         """add a single revision to an existing map.
@@ -528,7 +527,7 @@ class RevisionMap(object):
 
     def iterate_revisions(
             self, upper, lower, implicit_base=False, inclusive=False,
-            assert_relative_length=True):
+            assert_relative_length=True, select_for_downgrade=False):
         """Iterate through script revisions, starting at the given
         upper revision identifier and ending at the lower.
 
@@ -556,15 +555,25 @@ class RevisionMap(object):
             return relative_lower
 
         return self._iterate_revisions(
-            upper, lower, inclusive=inclusive, implicit_base=implicit_base)
+            upper, lower, inclusive=inclusive, implicit_base=implicit_base,
+            select_for_downgrade=select_for_downgrade)
 
     def _get_descendant_nodes(
-            self, targets, map_=None, check=False, include_dependencies=True):
+            self, targets, map_=None, check=False,
+            omit_immediate_dependencies=False, include_dependencies=True):
 
-        if include_dependencies:
-            fn = lambda rev: rev._all_nextrev
+        if omit_immediate_dependencies:
+            def fn(rev):
+                if rev not in targets:
+                    return rev._all_nextrev
+                else:
+                    return rev.nextrev
+        elif include_dependencies:
+            def fn(rev):
+                return rev._all_nextrev
         else:
-            fn = lambda rev: rev.nextrev
+            def fn(rev):
+                return rev.nextrev
 
         return self._iterate_related_revisions(
             fn, targets, map_=map_, check=check
@@ -574,9 +583,11 @@ class RevisionMap(object):
             self, targets, map_=None, check=False, include_dependencies=True):
 
         if include_dependencies:
-            fn = lambda rev: rev._all_down_revisions
+            def fn(rev):
+                return rev._all_down_revisions
         else:
-            fn = lambda rev: rev._versioned_down_revisions
+            def fn(rev):
+                return rev._versioned_down_revisions
 
         return self._iterate_related_revisions(
             fn, targets, map_=map_, check=check
@@ -605,19 +616,28 @@ class RevisionMap(object):
                 todo.extend(
                     map_[rev_id] for rev_id in fn(rev))
                 yield rev
-            if check and per_target.intersection(targets).difference([target]):
-                raise RevisionError(
-                    "Requested revision %s overlaps with "
-                    "other requested revisions" % target.revision)
+            if check:
+                overlaps = per_target.intersection(targets).\
+                    difference([target])
+                if overlaps:
+                    raise RevisionError(
+                        "Requested revision %s overlaps with "
+                        "other requested revisions %s" % (
+                            target.revision,
+                            ", ".join(r.revision for r in overlaps)
+                        )
+                    )
 
     def _iterate_revisions(
-            self, upper, lower, inclusive=True, implicit_base=False):
+            self, upper, lower, inclusive=True, implicit_base=False,
+            select_for_downgrade=False):
         """iterate revisions from upper to lower.
 
         The traversal is depth-first within branches, and breadth-first
         across branches as a whole.
 
         """
+
         requested_lowers = self.get_revisions(lower)
 
         # some complexity to accommodate an iteration where some
@@ -668,7 +688,12 @@ class RevisionMap(object):
         total_space = set(
             rev.revision for rev in upper_ancestors).intersection(
             rev.revision for rev
-            in self._get_descendant_nodes(lowers, check=True)
+            in self._get_descendant_nodes(
+                lowers, check=True,
+                omit_immediate_dependencies=(
+                    select_for_downgrade and requested_lowers
+                )
+            )
         )
 
         if not total_space:
@@ -688,7 +713,9 @@ class RevisionMap(object):
         #assert not branch_todo.intersection(uppers)
 
         todo = collections.deque(
-            r for r in uppers if r.revision in total_space)
+            r for r in uppers
+            if r.revision in total_space
+        )
 
         # iterate for total_space being emptied out
         total_space_modified = True

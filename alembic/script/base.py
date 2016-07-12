@@ -329,7 +329,7 @@ class ScriptDirectory(object):
                 ancestor="Destination %(end)s is not a valid downgrade "
                 "target from current head(s)", end=destination):
             revs = self.revision_map.iterate_revisions(
-                current_rev, destination)
+                current_rev, destination, select_for_downgrade=True)
             return [
                 migration.MigrationStep.downgrade_from_script(
                     self.revision_map, script)

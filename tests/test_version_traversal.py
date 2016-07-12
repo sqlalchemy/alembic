@@ -696,10 +696,10 @@ class DependsOnBranchTestTwo(MigrationTest):
 
         self._assert_downgrade(
             self.b2.revision, heads,
-            [self.down_(self.bmerge), self.down_(self.d1)],
+            [self.down_(self.bmerge)],
             set([
                 self.amerge.revision,
-                self.b1.revision, self.cmerge.revision, self.b2.revision])
+                self.b1.revision, self.cmerge.revision, self.d1.revision])
         )
 
         # start with those heads..
@@ -773,8 +773,8 @@ class DependsOnBranchTestThree(MigrationTest):
         # to remove half of a merge point.
         self._assert_downgrade(
             'b1', ['a3', 'b2'],
-            [self.down_(self.a3), self.down_(self.b2)],
-            set(['a2', 'b1'])
+            [self.down_(self.b2)],
+            set(['a3'])  # we have b1 also, which is implied by a3
         )
 
 

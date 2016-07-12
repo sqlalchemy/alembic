@@ -8,6 +8,19 @@ Changelog
 
     .. change::
       :tags: bug, versioning
+      :tickets: 379
+
+      Adjusted the version traversal on downgrade
+      such that we can downgrade to a version that is a dependency for
+      a version in a different branch, *without* needing to remove that
+      dependent version as well.  Previously, the target version would be
+      seen as a "merge point" for it's normal up-revision as well as the
+      dependency.  This integrates with the changes for :ticket:`377`
+      and :ticket:`378` to improve treatment of branches with dependencies
+      overall.
+
+    .. change::
+      :tags: bug, versioning
       :tickets: 377
 
       Fixed bug where a downgrade to a version that is also a dependency

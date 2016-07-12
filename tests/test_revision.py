@@ -126,7 +126,7 @@ class APITest(TestBase):
 class DownIterateTest(TestBase):
     def _assert_iteration(
             self, upper, lower, assertion, inclusive=True, map_=None,
-            implicit_base=False):
+            implicit_base=False, select_for_downgrade=False):
         if map_ is None:
             map_ = self.map
         eq_(
@@ -134,7 +134,8 @@ class DownIterateTest(TestBase):
                 rev.revision for rev in
                 map_.iterate_revisions(
                     upper, lower,
-                    inclusive=inclusive, implicit_base=implicit_base
+                    inclusive=inclusive, implicit_base=implicit_base,
+                    select_for_downgrade=select_for_downgrade
                 )
             ],
             assertion
@@ -788,6 +789,23 @@ class MultipleBaseTest(DownIterateTest):
 
 class MultipleBaseCrossDependencyTestOne(DownIterateTest):
     def setUp(self):
+        """
+
+        base1 -----> a1a  -> b1a
+              +----> a1b  -> b1b
+                              |
+                  +-----------+
+                  |
+                  v
+        base3 -> a3 -> b3
+                  ^
+                  |
+                  +-----------+
+                              |
+        base2 -> a2 -> b2 -> c2 -> d2
+
+
+        """
         self.map = RevisionMap(
             lambda: [
                 Revision('base1', (), branch_labels='b_1'),
@@ -822,28 +840,66 @@ class MultipleBaseCrossDependencyTestOne(DownIterateTest):
             ]
         )
 
-    def test_we_need_head2(self):
+    def test_heads_to_base_downgrade(self):
+        self._assert_iteration(
+            "heads", "base",
+            [
+
+                'b1a', 'a1a', 'b1b', 'a1b', 'd2', 'c2', 'b2', 'a2', 'base2',
+                'b3', 'a3', 'base3',
+                'base1'
+            ],
+            select_for_downgrade=True
+        )
+
+    def test_we_need_head2_upgrade(self):
         # the 2 branch relies on the 3 branch
         self._assert_iteration(
             "b_2@head", "base",
             ['d2', 'c2', 'b2', 'a2', 'base2', 'a3', 'base3']
         )
 
-    def test_we_need_head3(self):
+    def test_we_need_head2_downgrade(self):
+        # the 2 branch relies on the 3 branch, but
+        # on the downgrade side, don't need to touch the 3 branch
+        self._assert_iteration(
+            "b_2@head", "b_2@base",
+            ['d2', 'c2', 'b2', 'a2', 'base2'],
+            select_for_downgrade=True
+        )
+
+    def test_we_need_head3_upgrade(self):
         # the 3 branch can be upgraded alone.
         self._assert_iteration(
             "b_3@head", "base",
             ['b3', 'a3', 'base3']
         )
 
-    def test_we_need_head1(self):
+    def test_we_need_head3_downgrade(self):
+        # the 3 branch can be upgraded alone.
+        self._assert_iteration(
+            "b_3@head", "base",
+            ['b3', 'a3', 'base3'],
+            select_for_downgrade=True
+        )
+
+    def test_we_need_head1_upgrade(self):
         # the 1 branch relies on the 3 branch
         self._assert_iteration(
             "b1b@head", "base",
             ['b1b', 'a1b', 'base1', 'a3', 'base3']
         )
 
-    def test_we_need_base2(self):
+    def test_we_need_head1_downgrade(self):
+        # going down we don't need a3-> base3, as long
+        # as we are limiting the base target
+        self._assert_iteration(
+            "b1b@head", "b1b@base",
+            ['b1b', 'a1b', 'base1'],
+            select_for_downgrade=True
+        )
+
+    def test_we_need_base2_upgrade(self):
         # consider a downgrade to b_2@base - we
         # want to run through all the "2"s alone, and we're done.
         self._assert_iteration(
@@ -851,14 +907,30 @@ class MultipleBaseCrossDependencyTestOne(DownIterateTest):
             ['d2', 'c2', 'b2', 'a2', 'base2']
         )
 
-    def test_we_need_base3(self):
+    def test_we_need_base2_downgrade(self):
+        # consider a downgrade to b_2@base - we
+        # want to run through all the "2"s alone, and we're done.
+        self._assert_iteration(
+            "heads", "b_2@base",
+            ['d2', 'c2', 'b2', 'a2', 'base2'],
+            select_for_downgrade=True
+        )
+
+    def test_we_need_base3_upgrade(self):
+        self._assert_iteration(
+            "heads", "b_3@base",
+            ['b1b', 'd2', 'c2', 'b3', 'a3', 'base3']
+        )
+
+    def test_we_need_base3_downgrade(self):
         # consider a downgrade to b_3@base - due to the a3 dependency, we
         # need to downgrade everything dependent on a3
         # as well, which means b1b and c2.  Then we can downgrade
         # the 3s.
         self._assert_iteration(
             "heads", "b_3@base",
-            ['b1b', 'd2', 'c2', 'b3', 'a3', 'base3']
+            ['b1b', 'd2', 'c2', 'b3', 'a3', 'base3'],
+            select_for_downgrade=True
         )
 
 
