@@ -8,6 +8,17 @@ Changelog
 
     .. change::
       :tags: bug, versioning
+      :tickets: 336
+
+      Fixed bug where upgrading to the head of a branch which is already
+      present would fail, only if that head were also the dependency
+      of a different branch that is also upgraded, as the revision system
+      would see this as trying to go in the wrong direction.   The check
+      here has been refined to distinguish between same-branch revisions
+      out of order vs. movement along sibling branches.
+
+    .. change::
+      :tags: bug, versioning
       :tickets: 379
 
       Adjusted the version traversal on downgrade

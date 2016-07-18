@@ -852,6 +852,20 @@ class MultipleBaseCrossDependencyTestOne(DownIterateTest):
             select_for_downgrade=True
         )
 
+    def test_same_branch_wrong_direction(self):
+        assert_raises_message(
+            RevisionError,
+            r"Revision d2 is not an ancestor of revision b2",
+            list,
+            self.map._iterate_revisions('b2', 'd2')
+        )
+
+    def test_different_branch_not_wrong_direction(self):
+        self._assert_iteration(
+            "b3", "d2",
+            []
+        )
+
     def test_we_need_head2_upgrade(self):
         # the 2 branch relies on the 3 branch
         self._assert_iteration(

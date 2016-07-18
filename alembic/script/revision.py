@@ -697,7 +697,26 @@ class RevisionMap(object):
         )
 
         if not total_space:
-            raise RangeNotAncestorError(lower, upper)
+            # no nodes.  determine if this is an invalid range
+            # or not.
+            start_from = set(requested_lowers)
+            start_from.update(
+                self._get_ancestor_nodes(
+                    list(start_from), include_dependencies=True)
+            )
+
+            # determine all the current branch points represented
+            # by requested_lowers
+            start_from = self._filter_into_branch_heads(start_from)
+
+            # if the requested start is one of those branch points,
+            # then just return empty set
+            if start_from.intersection(upper_ancestors):
+                raise StopIteration()
+            else:
+                # otherwise, they requested nodes out of
+                # order
+                raise RangeNotAncestorError(lower, upper)
 
         # organize branch points to be consumed separately from
         # member nodes
