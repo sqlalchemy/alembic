@@ -191,11 +191,19 @@ unique=False, """
         )
         idx = Index('test_lower_code_idx', cast(t.c.code, String))
         op_obj = ops.CreateIndexOp.from_index(idx)
-        eq_ignore_whitespace(
-            autogenerate.render_op_text(self.autogen_context, op_obj),
-            "op.create_index('test_lower_code_idx', 'test', "
-            "[sa.text(!U'CAST(test.code AS CHAR)')], unique=False)"
-        )
+
+        if config.requirements.sqlalchemy_110.enabled:
+            eq_ignore_whitespace(
+                autogenerate.render_op_text(self.autogen_context, op_obj),
+                "op.create_index('test_lower_code_idx', 'test', "
+                "[sa.text(!U'CAST(code AS CHAR)')], unique=False)"
+            )
+        else:
+            eq_ignore_whitespace(
+                autogenerate.render_op_text(self.autogen_context, op_obj),
+                "op.create_index('test_lower_code_idx', 'test', "
+                "[sa.text(!U'CAST(test.code AS CHAR)')], unique=False)"
+            )
 
     @config.requirements.fail_before_sqla_080
     def test_render_add_index_desc(self):
