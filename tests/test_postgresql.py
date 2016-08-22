@@ -19,8 +19,45 @@ from alembic.testing.env import staging_env, clear_staging_env, \
     _no_sql_testing_config, write_script
 from alembic.testing.fixtures import capture_context_buffer
 from alembic.testing.fixtures import TestBase
-
+from alembic.testing.fixtures import op_fixture
 from alembic.testing import config
+from alembic import op
+
+
+class PostgresqlOpTest(TestBase):
+
+    def test_rename_table_postgresql(self):
+        context = op_fixture("postgresql")
+        op.rename_table('t1', 't2')
+        context.assert_("ALTER TABLE t1 RENAME TO t2")
+
+    def test_rename_table_schema_postgresql(self):
+        context = op_fixture("postgresql")
+        op.rename_table('t1', 't2', schema="foo")
+        context.assert_("ALTER TABLE foo.t1 RENAME TO t2")
+
+    @config.requirements.fail_before_sqla_080
+    def test_create_index_postgresql_expressions(self):
+        context = op_fixture("postgresql")
+        op.create_index(
+            'geocoded',
+            'locations',
+            [text('lower(coordinates)')],
+            postgresql_where=text("locations.coordinates != Null"))
+        context.assert_(
+            "CREATE INDEX geocoded ON locations (lower(coordinates)) "
+            "WHERE locations.coordinates != Null")
+
+    def test_create_index_postgresql_where(self):
+        context = op_fixture("postgresql")
+        op.create_index(
+            'geocoded',
+            'locations',
+            ['coordinates'],
+            postgresql_where=text("locations.coordinates != Null"))
+        context.assert_(
+            "CREATE INDEX geocoded ON locations (coordinates) "
+            "WHERE locations.coordinates != Null")
 
 
 class PGOfflineEnumTest(TestBase):
