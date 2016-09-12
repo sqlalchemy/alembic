@@ -7,6 +7,13 @@ Changelog
     :version: 0.8.8
 
     .. change::
+       :tags: autogenerate
+
+       The imports in the default script.py.mako are now at the top
+       so that flake8 editors don't complain by default.  PR courtesy
+       Guilherme Mansur.
+
+    .. change::
       :tags: feature, operations, postgresql
       :tickets: 292
 
