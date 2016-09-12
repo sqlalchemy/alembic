@@ -22,7 +22,7 @@ Changelog
       :paramref:`.op.alter_column.postgresql_using`
       parameter.  Pull request courtesy Frazer McLean.
 
-    .. change:
+    .. change::
       :tags: feature, autogenerate
 
       Autogenerate with type comparison enabled will pick up on the timezone
