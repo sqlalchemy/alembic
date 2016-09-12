@@ -5,6 +5,7 @@ Changelog
 
 .. changelog::
     :version: 0.8.8
+    :released: September 12, 2016
 
     .. change::
        :tags: autogenerate
