@@ -4,6 +4,15 @@ Changelog
 ==========
 
 .. changelog::
+    :version: 0.8.9
+
+    .. change::
+      :tags: bug, versioning
+
+      Fixed bug where the "base" specifier, as in "base:head", could not
+      be used explicitly when ``--sql`` mode was present.
+
+.. changelog::
     :version: 0.8.8
     :released: September 12, 2016
 

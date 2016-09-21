@@ -434,6 +434,24 @@ class UpgradeDowngradeStampTest(TestBase):
         assert "DROP STEP 2" in buf.getvalue()
         assert "DROP STEP 1" not in buf.getvalue()
 
+    def test_none_to_head_sql(self):
+        with capture_context_buffer() as buf:
+            command.upgrade(self.cfg, "head", sql=True)
+        assert "CREATE TABLE alembic_version" in buf.getvalue()
+        assert "UPDATE alembic_version" in buf.getvalue()
+        assert "CREATE STEP 1" in buf.getvalue()
+        assert "CREATE STEP 2" in buf.getvalue()
+        assert "CREATE STEP 3" in buf.getvalue()
+
+    def test_base_to_head_sql(self):
+        with capture_context_buffer() as buf:
+            command.upgrade(self.cfg, "base:head", sql=True)
+        assert "CREATE TABLE alembic_version" in buf.getvalue()
+        assert "UPDATE alembic_version" in buf.getvalue()
+        assert "CREATE STEP 1" in buf.getvalue()
+        assert "CREATE STEP 2" in buf.getvalue()
+        assert "CREATE STEP 3" in buf.getvalue()
+
     def test_sql_stamp_from_rev(self):
         with capture_context_buffer() as buf:
             command.stamp(self.cfg, "%s:head" % self.a, sql=True)

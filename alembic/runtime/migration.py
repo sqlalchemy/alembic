@@ -230,7 +230,9 @@ class MigrationContext(object):
         """
         if self.as_sql:
             start_from_rev = self._start_from_rev
-            if start_from_rev is not None and self.script:
+            if start_from_rev == 'base':
+                start_from_rev = None
+            elif start_from_rev is not None and self.script:
                 start_from_rev = \
                     self.script.get_revision(start_from_rev).revision
 
