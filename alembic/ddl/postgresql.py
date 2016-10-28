@@ -162,7 +162,9 @@ class PostgresqlImpl(DefaultImpl):
             else:
                 exprs = idx.columns
             for expr in exprs:
-                if not isinstance(expr, (Column, UnaryExpression)):
+                while isinstance(expr, UnaryExpression):
+                    expr = expr.element
+                if not isinstance(expr, Column):
                     util.warn(
                         "autogenerate skipping functional index %s; "
                         "not supported by SQLAlchemy reflection" % idx.name
