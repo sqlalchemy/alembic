@@ -5,7 +5,8 @@ from sqlalchemy import MetaData, Column, Table, Integer, String, Text, \
     TypeDecorator, CheckConstraint, text, PrimaryKeyConstraint, \
     ForeignKeyConstraint, VARCHAR, DECIMAL, DateTime, BigInteger, BIGINT, \
     SmallInteger
-from sqlalchemy.types import NULLTYPE
+from sqlalchemy.dialects import sqlite
+from sqlalchemy.types import NULLTYPE, VARBINARY
 from sqlalchemy.engine.reflection import Inspector
 
 from alembic.operations import ops
@@ -591,6 +592,26 @@ class CompareTypeSpecificityTest(TestBase):
 
         return impl.DefaultImpl(
             default.DefaultDialect(), None, False, True, None, {})
+
+    def test_typedec_to_nonstandard(self):
+
+        class PasswordType(TypeDecorator):
+            impl = VARBINARY
+
+            def copy(self, **kw):
+                return PasswordType(self.impl.length)
+
+            def load_dialect_impl(self, dialect):
+                if dialect.name == 'default':
+                    impl = sqlite.NUMERIC(self.length)
+                else:
+                    impl = VARBINARY(self.length)
+                return dialect.type_descriptor(impl)
+
+        impl = self._fixture()
+        impl.compare_type(
+            Column('x', sqlite.NUMERIC(50)),
+            Column('x', PasswordType(50)))
 
     def test_string(self):
         t1 = String(30)

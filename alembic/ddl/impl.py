@@ -256,7 +256,7 @@ class DefaultImpl(with_metaclass(ImplMeta)):
         ):
             comparator = _type_comparators.get(conn_type._type_affinity, None)
 
-            return comparator and comparator(metadata_type, conn_type)
+            return comparator and comparator(metadata_impl, conn_type)
         else:
             return True
 

@@ -7,6 +7,15 @@ Changelog
     :version: 0.8.9
 
     .. change::
+      :tags: bug, autogenerate
+      :tickets: 395
+
+      Fixed bug where usage of a custom TypeDecorator which returns a
+      per-dialect type via :meth:`.TypeDecorator.load_dialect_impl` that differs
+      significantly from the default "impl" for the type decorator would fail
+      to compare correctly during autogenerate.
+
+    .. change::
       :tags: bug, autogenerate, postgresql
       :tickets: 392
 
