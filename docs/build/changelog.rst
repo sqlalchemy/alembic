@@ -6,6 +6,14 @@ Changelog
 .. changelog::
     :version: 0.8.9
 
+    .. change::  393
+      :tags: bug, autogenerate
+      :tickets: 393
+
+      Adjustment to the "please adjust!" comment in the script.py.mako
+      template so that the generated comment starts with a single pound
+      sign, appeasing flake8.
+
     .. change::
       :tags: bug, autogenerate
       :tickets: 395
