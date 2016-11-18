@@ -1,5 +1,5 @@
 from alembic.testing.fixtures import TestBase
-from alembic.testing import eq_, ne_, assert_raises_message, is_
+from alembic.testing import eq_, ne_, assert_raises_message, is_, assertions
 from alembic.testing.env import clear_staging_env, staging_env, \
     _get_staging_directory, _no_sql_testing_config, env_file_fixture, \
     script_file_fixture, _testing_config, _sqlite_testing_config, \
@@ -837,3 +837,63 @@ context.configure(dialect_name='sqlite', template_args={"somearg":"somevalue"})
             contents = open(m.group(1)).read()
             os.remove(m.group(1))
             assert "<% z = x + y %>" in contents
+
+
+class DuplicateVersionLocationsTest(TestBase):
+
+    def setUp(self):
+        self.env = staging_env()
+        self.cfg = _multi_dir_testing_config(
+            # this is a duplicate of one of the paths
+            # already present in this fixture
+            extra_version_location='%(here)s/model1'
+        )
+
+        script = ScriptDirectory.from_config(self.cfg)
+        self.model1 = util.rev_id()
+        self.model2 = util.rev_id()
+        self.model3 = util.rev_id()
+        for model, name in [
+            (self.model1, "model1"),
+            (self.model2, "model2"),
+            (self.model3, "model3"),
+        ]:
+            script.generate_revision(
+                model, name, refresh=True,
+                version_path=os.path.join(_get_staging_directory(), name),
+                head="base")
+            write_script(script, model, """\
+"%s"
+revision = '%s'
+down_revision = None
+branch_labels = ['%s']
+
+from alembic import op
+
+def upgrade():
+    pass
+
+def downgrade():
+    pass
+
+""" % (name, model, name))
+
+    def tearDown(self):
+        clear_staging_env()
+
+    def test_env_emits_warning(self):
+        with assertions.expect_warnings(
+            "File %s loaded twice! ignoring. "
+            "Please ensure version_locations is unique" % (
+                os.path.realpath(os.path.join(
+                _get_staging_directory(),
+                "model1",
+                "%s_model1.py" % self.model1
+                )))
+        ):
+            script = ScriptDirectory.from_config(self.cfg)
+            script.revision_map.heads
+            eq_(
+                [rev.revision for rev in script.walk_revisions()],
+                [self.model1, self.model2, self.model3]
+            )

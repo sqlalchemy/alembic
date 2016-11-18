@@ -7,6 +7,15 @@ Changelog
     :version: 0.8.9
 
     .. change::
+      :tags: bug, revisioning
+
+      Added an additional check when reading in revision files to detect
+      if the same file is being read twice; this can occur if the same directory
+      or a symlink equivalent is present more than once in version_locations.
+      A warning is now emitted and the file is skipped.  Pull request courtesy
+      Jiri Kuncar.
+
+    .. change::
       :tags: bug, autogenerate
       :tickets: 395
 

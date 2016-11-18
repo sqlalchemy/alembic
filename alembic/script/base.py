@@ -82,8 +82,17 @@ class ScriptDirectory(object):
         else:
             paths = [self.versions]
 
+        dupes = set()
         for vers in paths:
             for file_ in os.listdir(vers):
+                path = os.path.realpath(os.path.join(vers, file_))
+                if path in dupes:
+                    util.warn(
+                        "File %s loaded twice! ignoring. Please ensure "
+                        "version_locations is unique." % path
+                    )
+                    continue
+                dupes.add(path)
                 script = Script._from_filename(self, vers, file_)
                 if script is None:
                     continue
