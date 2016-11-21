@@ -7,6 +7,14 @@ Changelog
     :version: 0.8.9
 
     .. change::
+      :tags: bug, autogenerate
+      :tickets: 393
+
+      Continued pep8 improvements by adding appropriate whitespace in
+      the base template for generated migrations.  Pull request courtesy
+      Markus Mattes.
+
+    .. change::
       :tags: bug, revisioning
 
       Added an additional check when reading in revision files to detect

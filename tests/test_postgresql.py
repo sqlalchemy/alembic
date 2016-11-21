@@ -90,10 +90,12 @@ from alembic import op
 from sqlalchemy.dialects.postgresql import ENUM
 from sqlalchemy import Column
 
+
 def upgrade():
     op.create_table("sometable",
         Column("data", ENUM("one", "two", "three", name="pgenum"))
     )
+
 
 def downgrade():
     op.drop_table("sometable")
@@ -108,12 +110,14 @@ from alembic import op
 from sqlalchemy.dialects.postgresql import ENUM
 from sqlalchemy import Column
 
+
 def upgrade():
     enum = ENUM("one", "two", "three", name="pgenum", create_type=False)
     enum.create(op.get_bind(), checkfirst=False)
     op.create_table("sometable",
         Column("data", enum)
     )
+
 
 def downgrade():
     op.drop_table("sometable")

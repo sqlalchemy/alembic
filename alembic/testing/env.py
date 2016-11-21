@@ -257,8 +257,10 @@ down_revision = None
 
 from alembic import op
 
+
 def upgrade():
     op.execute("CREATE STEP 1")
+
 
 def downgrade():
     op.execute("DROP STEP 1")
@@ -273,8 +275,10 @@ down_revision = '%s'
 
 from alembic import op
 
+
 def upgrade():
     op.execute("CREATE STEP 2")
+
 
 def downgrade():
     op.execute("DROP STEP 2")
@@ -289,8 +293,10 @@ down_revision = '%s'
 
 from alembic import op
 
+
 def upgrade():
     op.execute("CREATE STEP 3")
+
 
 def downgrade():
     op.execute("DROP STEP 3")

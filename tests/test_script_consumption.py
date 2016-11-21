@@ -47,8 +47,10 @@ class ApplyVersionsFunctionalTest(TestBase):
 
     from alembic import op
 
+
     def upgrade():
         op.execute("CREATE TABLE foo(id integer)")
+
 
     def downgrade():
         op.execute("DROP TABLE foo")
@@ -62,8 +64,10 @@ class ApplyVersionsFunctionalTest(TestBase):
 
     from alembic import op
 
+
     def upgrade():
         op.execute("CREATE TABLE bar(id integer)")
+
 
     def downgrade():
         op.execute("DROP TABLE bar")
@@ -77,8 +81,10 @@ class ApplyVersionsFunctionalTest(TestBase):
 
     from alembic import op
 
+
     def upgrade():
         op.execute("CREATE TABLE bat(id integer)")
+
 
     def downgrade():
         op.execute("DROP TABLE bat")
@@ -221,8 +227,10 @@ class VersionNameTemplateTest(TestBase):
 
     from alembic import op
 
+
     def upgrade():
         op.execute("CREATE TABLE foo(id integer)")
+
 
     def downgrade():
         op.execute("DROP TABLE foo")
@@ -244,8 +252,10 @@ class VersionNameTemplateTest(TestBase):
 
     from alembic import op
 
+
     def upgrade():
         op.execute("CREATE TABLE foo(id integer)")
+
 
     def downgrade():
         op.execute("DROP TABLE foo")
@@ -270,11 +280,14 @@ down_revision = None
 
 from alembic import op
 
+
 def upgrade():
     op.execute("CREATE TABLE foo(id integer)")
 
+
 def downgrade():
     op.execute("DROP TABLE foo")
+
 """)
         pyc_path = util.pyc_file_from_path(path)
         if os.access(pyc_path, os.F_OK):
@@ -350,8 +363,10 @@ class SourcelessNeedsFlagTest(TestBase):
 
     from alembic import op
 
+
     def upgrade():
         op.execute("CREATE TABLE foo(id integer)")
+
 
     def downgrade():
         op.execute("DROP TABLE foo")

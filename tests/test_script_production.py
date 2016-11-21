@@ -201,7 +201,7 @@ class RevisionCommandTest(TestBase):
             file_.write(
                 "<%text>#</%text> ${message}\n"
                 "revision = ${repr(up_revision)}\n"
-                "down_revision = ${repr(down_revision)}\n"
+                "down_revision = ${repr(down_revision)}\n\n"
                 "def upgrade():\n"
                 "    ${upgrades if upgrades else 'pass'}\n\n"
                 "def downgrade():\n"
@@ -252,8 +252,10 @@ branch_labels = ['%s']
 
 from alembic import op
 
+
 def upgrade():
     pass
+
 
 def downgrade():
     pass
@@ -870,8 +872,10 @@ branch_labels = ['%s']
 
 from alembic import op
 
+
 def upgrade():
     pass
+
 
 def downgrade():
     pass
