@@ -301,6 +301,10 @@ class ApplyBatchImpl(object):
                 existing.type._create_events = \
                     existing.type.create_constraint = False
 
+            if existing.type._type_affinity is not type_._type_affinity:
+                existing_transfer["expr"] = cast(
+                    existing_transfer["expr"], type_)
+
             existing.type = type_
 
             # we *dont* however set events for the new type, because
@@ -308,7 +312,6 @@ class ApplyBatchImpl(object):
             # Operations.implementation_for(alter_column) which already
             # will emit an add_constraint()
 
-            existing_transfer["expr"] = cast(existing_transfer["expr"], type_)
         if nullable is not None:
             existing.nullable = nullable
         if server_default is not False:

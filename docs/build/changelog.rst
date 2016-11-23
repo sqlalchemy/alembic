@@ -7,6 +7,16 @@ Changelog
     :version: 0.8.9
 
     .. change::
+      :tags: bug, batch
+      :tickets: 391
+
+      Batch mode will not use CAST() to copy data if type_ is given, however
+      the basic type affinity matches that of the existing type.  This to
+      avoid SQLite's CAST of TIMESTAMP which results in truncation of the
+      data, in those cases where the user needs to add redundant type_ for
+      other reasons.
+
+    .. change::
       :tags: bug, autogenerate
       :tickets: 393
 
