@@ -301,7 +301,7 @@ def downgrade():
             Script._from_path, script, path)
 
 
-class IgnoreInitTest(TestBase):
+class IgnoreFilesTest(TestBase):
     sourceless = False
 
     def setUp(self):
@@ -312,12 +312,11 @@ class IgnoreInitTest(TestBase):
     def tearDown(self):
         clear_staging_env()
 
-    def _test_ignore_init_py(self, ext):
-        """test that __init__.py is ignored."""
+    def _test_ignore_file_py(self, fname):
 
         command.revision(self.cfg, message="some rev")
         script = ScriptDirectory.from_config(self.cfg)
-        path = os.path.join(script.versions, "__init__.%s" % ext)
+        path = os.path.join(script.versions, fname)
         with open(path, 'w') as f:
             f.write(
                 "crap, crap -> crap"
@@ -326,20 +325,42 @@ class IgnoreInitTest(TestBase):
 
         script.get_revision('head')
 
-    def test_ignore_py(self):
+    def _test_ignore_init_py(self, ext):
+        """test that __init__.py is ignored."""
+
+        self._test_ignore_file_py("__init__.%s" % ext)
+
+    def _test_ignore_dot_hash_py(self, ext):
+        """test that .#test.py is ignored."""
+
+        self._test_ignore_file_py(".#test.%s" % ext)
+
+    def test_ignore_init_py(self):
         self._test_ignore_init_py("py")
 
-    def test_ignore_pyc(self):
+    def test_ignore_init_pyc(self):
         self._test_ignore_init_py("pyc")
 
-    def test_ignore_pyx(self):
+    def test_ignore_init_pyx(self):
         self._test_ignore_init_py("pyx")
 
-    def test_ignore_pyo(self):
+    def test_ignore_init_pyo(self):
         self._test_ignore_init_py("pyo")
 
+    def test_ignore_dot_hash_py(self):
+        self._test_ignore_dot_hash_py("py")
 
-class SourcelessIgnoreInitTest(IgnoreInitTest):
+    def test_ignore_dot_hash_pyc(self):
+        self._test_ignore_dot_hash_py("pyc")
+
+    def test_ignore_dot_hash_pyx(self):
+        self._test_ignore_dot_hash_py("pyx")
+
+    def test_ignore_dot_hash_pyo(self):
+        self._test_ignore_dot_hash_py("pyo")
+
+
+class SourcelessIgnoreFilesTest(IgnoreFilesTest):
     sourceless = True
 
 

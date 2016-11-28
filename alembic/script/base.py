@@ -9,8 +9,8 @@ from ..runtime import migration
 
 from contextlib import contextmanager
 
-_sourceless_rev_file = re.compile(r'(?!__init__)(.*\.py)(c|o)?$')
-_only_source_rev_file = re.compile(r'(?!__init__)(.*\.py)$')
+_sourceless_rev_file = re.compile(r'(?!\.\#|__init__)(.*\.py)(c|o)?$')
+_only_source_rev_file = re.compile(r'(?!\.\#|__init__)(.*\.py)$')
 _legacy_rev = re.compile(r'([a-f0-9]+)\.py$')
 _mod_def_re = re.compile(r'(upgrade|downgrade)_([a-z0-9]+)')
 _slug_re = re.compile(r'\w+')
