@@ -4,6 +4,9 @@ Changelog
 ==========
 
 .. changelog::
+    :version: 0.8.10
+
+.. changelog::
     :version: 0.8.9
     :released: November 28, 2016
 
