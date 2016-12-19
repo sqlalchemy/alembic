@@ -6,6 +6,14 @@ Changelog
 .. changelog::
     :version: 0.8.10
 
+    .. change:: 402
+      :tags: bug, batch
+      :tickets: 402
+
+      Fixed bug where doing ``batch_op.drop_constraint()`` against the
+      primary key constraint would fail to remove the "primary_key" flag
+      from the column, resulting in the constraint being recreated.
+
     .. change:: 356
       :tags: bug, versioning
       :tickets: 356

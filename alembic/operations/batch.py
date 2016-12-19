@@ -1,5 +1,5 @@
 from sqlalchemy import Table, MetaData, Index, select, Column, \
-    ForeignKeyConstraint, cast, CheckConstraint
+    ForeignKeyConstraint, PrimaryKeyConstraint, cast, CheckConstraint
 from sqlalchemy import types as sqltypes
 from sqlalchemy import schema as sql_schema
 from sqlalchemy.util import OrderedDict
@@ -345,7 +345,7 @@ class ApplyBatchImpl(object):
         if not const.name:
             raise ValueError("Constraint must have a name")
         try:
-            del self.named_constraints[const.name]
+            const = self.named_constraints.pop(const.name)
         except KeyError:
             if _is_type_bound(const):
                 # type-bound constraints are only included in the new
@@ -354,6 +354,10 @@ class ApplyBatchImpl(object):
                 # Operations.implementation_for(alter_column)
                 return
             raise ValueError("No such constraint: '%s'" % const.name)
+        else:
+            if isinstance(const, PrimaryKeyConstraint):
+                for col in const.columns:
+                    self.columns[col.name].primary_key = False
 
     def create_index(self, idx):
         self.new_indexes[idx.name] = idx

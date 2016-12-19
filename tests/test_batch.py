@@ -13,7 +13,7 @@ from alembic.runtime.migration import MigrationContext
 
 from sqlalchemy import Integer, Table, Column, String, MetaData, ForeignKey, \
     UniqueConstraint, ForeignKeyConstraint, Index, Boolean, CheckConstraint, \
-    Enum, DateTime
+    Enum, DateTime, PrimaryKeyConstraint
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.sql import column, text, select
 from sqlalchemy.schema import CreateTable, CreateIndex
@@ -57,6 +57,17 @@ class BatchApplyTest(TestBase):
             Index('ix1', 'y')
         )
         return ApplyBatchImpl(t, table_args, table_kwargs, False)
+
+    def _pk_fixture(self):
+        m = MetaData()
+        t = Table(
+            'tname', m,
+            Column('id', Integer),
+            Column('x', String()),
+            Column('y', Integer),
+            PrimaryKeyConstraint('id', name="mypk")
+        )
+        return ApplyBatchImpl(t, (), {}, False)
 
     def _literal_ck_fixture(
             self, copy_from=None, table_args=(), table_kwargs={}):
@@ -533,6 +544,14 @@ class BatchApplyTest(TestBase):
             impl, ddl_contains="ENGINE=InnoDB",
             dialect='mysql'
         )
+
+    def test_drop_pk(self):
+        impl = self._pk_fixture()
+        pk = self.op.schema_obj.primary_key_constraint("mypk", "tname", ["id"])
+        impl.drop_constraint(pk)
+        new_table = self._assert_impl(impl)
+        assert not new_table.c.id.primary_key
+        assert not len(new_table.primary_key)
 
 
 class BatchAPITest(TestBase):
