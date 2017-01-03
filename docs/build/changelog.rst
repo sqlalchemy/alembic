@@ -14,6 +14,16 @@ Changelog
       primary key constraint would fail to remove the "primary_key" flag
       from the column, resulting in the constraint being recreated.
 
+    .. change:: update_uq_dedupe
+      :tags: bug, autogenerate, oracle
+
+      Adjusted the logic originally added for :ticket:`276` that detects MySQL
+      unique constraints which are actually unique indexes to be generalized
+      for any dialect that has this behavior, for SQLAlchemy version 1.0 and
+      greater.  This is to allow for upcoming SQLAlchemy support for unique
+      constraint reflection for Oracle, which also has no dedicated concept of
+      "unique constraint" and instead establishes a unique index.
+
     .. change:: 356
       :tags: bug, versioning
       :tickets: 356

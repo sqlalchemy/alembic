@@ -195,11 +195,14 @@ def _make_index(params, conn_table):
 
 
 def _make_unique_constraint(params, conn_table):
-    # TODO: add .info such as 'duplicates_index'
-    return sa_schema.UniqueConstraint(
+    uq = sa_schema.UniqueConstraint(
         *[conn_table.c[cname] for cname in params['column_names']],
         name=params['name']
     )
+    if 'duplicates_index' in params:
+        uq.info['duplicates_index'] = params['duplicates_index']
+
+    return uq
 
 
 def _make_foreign_key(params, conn_table):
@@ -364,6 +367,8 @@ def _compare_indexes_and_uniques(
 
     supports_unique_constraints = False
 
+    unique_constraints_duplicate_unique_indexes = False
+
     if conn_table is not None:
         # 1b. ... and from connection, if the table exists
         if hasattr(inspector, "get_unique_constraints"):
@@ -378,6 +383,10 @@ def _compare_indexes_and_uniques(
                 # method in SQLAlchemy due to the cache decorator
                 # not being present
                 pass
+            else:
+                for uq in conn_uniques:
+                    if uq.get('duplicates_index'):
+                        unique_constraints_duplicate_unique_indexes = True
         try:
             conn_indexes = inspector.get_indexes(tname, schema=schema)
         except NotImplementedError:
@@ -388,6 +397,16 @@ def _compare_indexes_and_uniques(
         conn_uniques = set(_make_unique_constraint(uq_def, conn_table)
                            for uq_def in conn_uniques)
         conn_indexes = set(_make_index(ix, conn_table) for ix in conn_indexes)
+
+    # 2a. if the dialect dupes unique indexes as unique constraints
+    # (mysql and oracle), correct for that
+
+    if unique_constraints_duplicate_unique_indexes:
+        _correct_for_uq_duplicates_uix(
+            conn_uniques, conn_indexes,
+            metadata_unique_constraints,
+            metadata_indexes
+        )
 
     # 3. give the dialect a chance to omit indexes and constraints that
     # we know are either added implicitly by the DB or that the DB
@@ -584,6 +603,48 @@ def _compare_indexes_and_uniques(
     for uq_sig in unnamed_metadata_uniques:
         if uq_sig not in conn_uniques_by_sig:
             obj_added(unnamed_metadata_uniques[uq_sig])
+
+
+def _correct_for_uq_duplicates_uix(
+    conn_unique_constraints,
+        conn_indexes,
+        metadata_unique_constraints,
+        metadata_indexes):
+
+    # dedupe unique indexes vs. constraints, since MySQL / Oracle
+    # doesn't really have unique constraints as a separate construct.
+    # but look in the metadata and try to maintain constructs
+    # that already seem to be defined one way or the other
+    # on that side.  This logic was formerly local to MySQL dialect,
+    # generalized to Oracle and others. See #276
+    metadata_uq_names = set([
+        cons.name for cons in metadata_unique_constraints
+        if cons.name is not None])
+
+    unnamed_metadata_uqs = set([
+        _uq_constraint_sig(cons).sig
+        for cons in metadata_unique_constraints
+        if cons.name is None
+    ])
+
+    metadata_ix_names = set([
+        cons.name for cons in metadata_indexes if cons.unique])
+    conn_ix_names = dict(
+        (cons.name, cons) for cons in conn_indexes if cons.unique
+    )
+
+    uqs_dupe_indexes = dict(
+        (cons.name, cons) for cons in conn_unique_constraints
+        if cons.info['duplicates_index']
+    )
+    for overlap in uqs_dupe_indexes:
+        if overlap not in metadata_uq_names:
+            if _uq_constraint_sig(uqs_dupe_indexes[overlap]).sig \
+                    not in unnamed_metadata_uqs:
+
+                conn_unique_constraints.discard(uqs_dupe_indexes[overlap])
+        elif overlap not in metadata_ix_names:
+            conn_indexes.discard(conn_ix_names[overlap])
 
 
 @comparators.dispatch_for("column")

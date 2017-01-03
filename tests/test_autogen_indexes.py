@@ -712,6 +712,12 @@ class MySQLUniqueIndexTest(AutogenerateUniqueIndexTest):
             assert False, "unexpected success"
 
 
+class OracleUniqueIndexTest(AutogenerateUniqueIndexTest):
+    reports_unnamed_constraints = True
+    reports_unique_constraints_as_indexes = True
+    __only_on__ = "oracle"
+
+
 class NoUqReflectionIndexTest(NoUqReflection, AutogenerateUniqueIndexTest):
     reports_unique_constraints = False
     __only_on__ = 'sqlite'
