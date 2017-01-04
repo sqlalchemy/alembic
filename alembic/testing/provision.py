@@ -275,9 +275,14 @@ def _oracle_drop_db(cfg, eng, ident):
         _ora_drop_ignore(conn, "%s_ts2" % ident)
 
 
-def reap_oracle_dbs(eng):
+def reap_oracle_dbs(eng, idents_file):
     log.info("Reaping Oracle dbs...")
     with eng.connect() as conn:
+        with open(idents_file) as file_:
+            idents = set(line.strip() for line in file_)
+
+        log.info("identifiers in file: %s", ", ".join(idents))
+
         to_reap = conn.execute(
             "select u.username from all_users u where username "
             "like 'TEST_%' and not exists (select username "
@@ -287,7 +292,7 @@ def reap_oracle_dbs(eng):
         for name in all_names:
             if name.endswith("_ts1") or name.endswith("_ts2"):
                 continue
-            else:
+            elif name in idents:
                 to_drop.add(name)
                 if "%s_ts1" % name in all_names:
                     to_drop.add("%s_ts1" % name)

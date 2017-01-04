@@ -19,10 +19,25 @@ class SuiteRequirements(Requirements):
 
     @property
     def unique_constraint_reflection(self):
+        def doesnt_have_check_uq_constraints(config):
+            if not util.sqla_084:
+                return True
+            from sqlalchemy import inspect
+            insp = inspect(config.db)
+            try:
+                insp.get_unique_constraints('x')
+            except NotImplementedError:
+                return True
+            except TypeError:
+                return True
+            except Exception:
+                pass
+            return False
+
         return exclusions.skip_if(
             lambda config: not util.sqla_084,
             "SQLAlchemy 0.8.4 or greater required"
-        )
+        ) + exclusions.skip_if(doesnt_have_check_uq_constraints)
 
     @property
     def foreign_key_match(self):
