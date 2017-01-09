@@ -55,6 +55,12 @@ class DefaultRequirements(SuiteRequirements):
         return exclusions.fails_on('sqlite')
 
     @property
+    def no_name_normalize(self):
+        return exclusions.skip_if(
+            lambda config: config.db.dialect.requires_name_normalize
+        )
+
+    @property
     def reflects_fk_options(self):
         return exclusions.only_on([
             'postgresql', 'mysql',
@@ -70,6 +76,16 @@ class DefaultRequirements(SuiteRequirements):
     def fk_deferrable(self):
         """backend supports DEFERRABLE option in foreign keys"""
         return exclusions.only_on(['postgresql'])
+
+    @property
+    def flexible_fk_cascades(self):
+        """target database must support ON UPDATE/DELETE..CASCADE with the
+        full range of keywords (e.g. NO ACTION, etc.)"""
+
+        return exclusions.skip_if(
+            ['oracle'],
+            'target backend has poor FK cascade syntax'
+        )
 
     @property
     def reflects_unique_constraints_unambiguously(self):

@@ -17,7 +17,7 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
         m1 = MetaData()
         m2 = MetaData()
 
-        Table('table', m1,
+        Table('some_table', m1,
               Column('test', String(10), primary_key=True),
               mysql_engine='InnoDB')
 
@@ -26,10 +26,10 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
               Column('name', String(50), nullable=False),
               Column('a1', String(10), server_default="x"),
               Column('test2', String(10)),
-              ForeignKeyConstraint(['test2'], ['table.test']),
+              ForeignKeyConstraint(['test2'], ['some_table.test']),
               mysql_engine='InnoDB')
 
-        Table('table', m2,
+        Table('some_table', m2,
               Column('test', String(10), primary_key=True),
               mysql_engine='InnoDB')
 
@@ -46,7 +46,7 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
         self._assert_fk_diff(
             diffs[0], "remove_fk",
             "user", ['test2'],
-            'table', ['test'],
+            'some_table', ['test'],
             conditional_name="servergenerated"
         )
 
@@ -54,7 +54,7 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
         m1 = MetaData()
         m2 = MetaData()
 
-        Table('table', m1,
+        Table('some_table', m1,
               Column('id', Integer, primary_key=True),
               Column('test', String(10)),
               mysql_engine='InnoDB')
@@ -66,7 +66,7 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
               Column('test2', String(10)),
               mysql_engine='InnoDB')
 
-        Table('table', m2,
+        Table('some_table', m2,
               Column('id', Integer, primary_key=True),
               Column('test', String(10)),
               mysql_engine='InnoDB')
@@ -76,7 +76,7 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
               Column('name', String(50), nullable=False),
               Column('a1', String(10), server_default="x"),
               Column('test2', String(10)),
-              ForeignKeyConstraint(['test2'], ['table.test']),
+              ForeignKeyConstraint(['test2'], ['some_table.test']),
               mysql_engine='InnoDB')
 
         diffs = self._fixture(m1, m2)
@@ -84,14 +84,14 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
         self._assert_fk_diff(
             diffs[0], "add_fk",
             "user", ["test2"],
-            "table", ["test"]
+            "some_table", ["test"]
         )
 
     def test_no_change(self):
         m1 = MetaData()
         m2 = MetaData()
 
-        Table('table', m1,
+        Table('some_table', m1,
               Column('id', Integer, primary_key=True),
               Column('test', String(10)),
               mysql_engine='InnoDB')
@@ -101,10 +101,10 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
               Column('name', String(50), nullable=False),
               Column('a1', String(10), server_default="x"),
               Column('test2', Integer),
-              ForeignKeyConstraint(['test2'], ['table.id']),
+              ForeignKeyConstraint(['test2'], ['some_table.id']),
               mysql_engine='InnoDB')
 
-        Table('table', m2,
+        Table('some_table', m2,
               Column('id', Integer, primary_key=True),
               Column('test', String(10)),
               mysql_engine='InnoDB')
@@ -114,7 +114,7 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
               Column('name', String(50), nullable=False),
               Column('a1', String(10), server_default="x"),
               Column('test2', Integer),
-              ForeignKeyConstraint(['test2'], ['table.id']),
+              ForeignKeyConstraint(['test2'], ['some_table.id']),
               mysql_engine='InnoDB')
 
         diffs = self._fixture(m1, m2)
@@ -125,7 +125,7 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
         m1 = MetaData()
         m2 = MetaData()
 
-        Table('table', m1,
+        Table('some_table', m1,
               Column('id_1', String(10), primary_key=True),
               Column('id_2', String(10), primary_key=True),
               mysql_engine='InnoDB')
@@ -137,10 +137,10 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
               Column('other_id_1', String(10)),
               Column('other_id_2', String(10)),
               ForeignKeyConstraint(['other_id_1', 'other_id_2'],
-                                   ['table.id_1', 'table.id_2']),
+                                   ['some_table.id_1', 'some_table.id_2']),
               mysql_engine='InnoDB')
 
-        Table('table', m2,
+        Table('some_table', m2,
               Column('id_1', String(10), primary_key=True),
               Column('id_2', String(10), primary_key=True),
               mysql_engine='InnoDB'
@@ -153,7 +153,7 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
               Column('other_id_1', String(10)),
               Column('other_id_2', String(10)),
               ForeignKeyConstraint(['other_id_1', 'other_id_2'],
-                                   ['table.id_1', 'table.id_2']),
+                                   ['some_table.id_1', 'some_table.id_2']),
               mysql_engine='InnoDB')
 
         diffs = self._fixture(m1, m2)
@@ -164,7 +164,7 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
         m1 = MetaData()
         m2 = MetaData()
 
-        Table('table', m1,
+        Table('some_table', m1,
               Column('id_1', String(10), primary_key=True),
               Column('id_2', String(10), primary_key=True),
               mysql_engine='InnoDB')
@@ -177,7 +177,7 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
               Column('other_id_2', String(10)),
               mysql_engine='InnoDB')
 
-        Table('table', m2,
+        Table('some_table', m2,
               Column('id_1', String(10), primary_key=True),
               Column('id_2', String(10), primary_key=True),
               mysql_engine='InnoDB')
@@ -189,7 +189,7 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
               Column('other_id_1', String(10)),
               Column('other_id_2', String(10)),
               ForeignKeyConstraint(['other_id_1', 'other_id_2'],
-                                   ['table.id_1', 'table.id_2'],
+                                   ['some_table.id_1', 'some_table.id_2'],
                                    name='fk_test_name'),
               mysql_engine='InnoDB')
 
@@ -198,15 +198,16 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
         self._assert_fk_diff(
             diffs[0], "add_fk",
             "user", ['other_id_1', 'other_id_2'],
-            'table', ['id_1', 'id_2'],
+            'some_table', ['id_1', 'id_2'],
             name="fk_test_name"
         )
 
+    @config.requirements.no_name_normalize
     def test_remove_composite_fk(self):
         m1 = MetaData()
         m2 = MetaData()
 
-        Table('table', m1,
+        Table('some_table', m1,
               Column('id_1', String(10), primary_key=True),
               Column('id_2', String(10), primary_key=True),
               mysql_engine='InnoDB')
@@ -218,11 +219,11 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
               Column('other_id_1', String(10)),
               Column('other_id_2', String(10)),
               ForeignKeyConstraint(['other_id_1', 'other_id_2'],
-                                   ['table.id_1', 'table.id_2'],
+                                   ['some_table.id_1', 'some_table.id_2'],
                                    name='fk_test_name'),
               mysql_engine='InnoDB')
 
-        Table('table', m2,
+        Table('some_table', m2,
               Column('id_1', String(10), primary_key=True),
               Column('id_2', String(10), primary_key=True),
               mysql_engine='InnoDB')
@@ -240,7 +241,7 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
         self._assert_fk_diff(
             diffs[0], "remove_fk",
             "user", ['other_id_1', 'other_id_2'],
-            "table", ['id_1', 'id_2'],
+            "some_table", ['id_1', 'id_2'],
             conditional_name="fk_test_name"
         )
 
@@ -248,7 +249,7 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
         m1 = MetaData()
         m2 = MetaData()
 
-        Table('table', m1,
+        Table('some_table', m1,
               Column('id_1', String(10), primary_key=True),
               Column('id_2', String(10), primary_key=True),
               mysql_engine='InnoDB')
@@ -259,7 +260,7 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
               Column('other_id_2', String(10)),
               mysql_engine='InnoDB')
 
-        Table('table', m2,
+        Table('some_table', m2,
               Column('id_1', String(10), key='tid1', primary_key=True),
               Column('id_2', String(10), key='tid2', primary_key=True),
               mysql_engine='InnoDB')
@@ -269,7 +270,7 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
               Column('other_id_1', String(10), key='oid1'),
               Column('other_id_2', String(10), key='oid2'),
               ForeignKeyConstraint(['oid1', 'oid2'],
-                                   ['table.tid1', 'table.tid2'],
+                                   ['some_table.tid1', 'some_table.tid2'],
                                    name='fk_test_name'),
               mysql_engine='InnoDB')
 
@@ -278,7 +279,7 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
         self._assert_fk_diff(
             diffs[0], "add_fk",
             "user", ['other_id_1', 'other_id_2'],
-            'table', ['id_1', 'id_2'],
+            'some_table', ['id_1', 'id_2'],
             name="fk_test_name"
         )
 
@@ -286,7 +287,7 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
         m1 = MetaData()
         m2 = MetaData()
 
-        Table('table', m1,
+        Table('some_table', m1,
               Column('id_1', String(10), primary_key=True),
               Column('id_2', String(10), primary_key=True),
               mysql_engine='InnoDB')
@@ -296,10 +297,10 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
               Column('other_id_1', String(10)),
               Column('other_id_2', String(10)),
               ForeignKeyConstraint(['other_id_1', 'other_id_2'],
-                                   ['table.id_1', 'table.id_2']),
+                                   ['some_table.id_1', 'some_table.id_2']),
               mysql_engine='InnoDB')
 
-        Table('table', m2,
+        Table('some_table', m2,
               Column('id_1', String(10), key='tid1', primary_key=True),
               Column('id_2', String(10), key='tid2', primary_key=True),
               mysql_engine='InnoDB')
@@ -309,7 +310,7 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
               Column('other_id_1', String(10), key='oid1'),
               Column('other_id_2', String(10), key='oid2'),
               ForeignKeyConstraint(['oid1', 'oid2'],
-                                   ['table.tid1', 'table.tid2']),
+                                   ['some_table.tid1', 'some_table.tid2']),
               mysql_engine='InnoDB')
 
         diffs = self._fixture(m1, m2)
@@ -321,6 +322,7 @@ class IncludeHooksTest(AutogenFixtureTest, TestBase):
     __backend__ = True
     __requires__ = 'fk_names',
 
+    @config.requirements.no_name_normalize
     def test_remove_connection_fk(self):
         m1 = MetaData()
         m2 = MetaData()
@@ -399,6 +401,7 @@ class IncludeHooksTest(AutogenFixtureTest, TestBase):
         )
         eq_(len(diffs), 1)
 
+    @config.requirements.no_name_normalize
     def test_change_fk(self):
         m1 = MetaData()
         m2 = MetaData()
@@ -473,13 +476,13 @@ class IncludeHooksTest(AutogenFixtureTest, TestBase):
 
 class AutogenerateFKOptionsTest(AutogenFixtureTest, TestBase):
     __backend__ = True
-    __requires__ = ('sqlalchemy_09', )
+    __requires__ = ('sqlalchemy_09', 'flexible_fk_cascades')
 
     def _fk_opts_fixture(self, old_opts, new_opts):
         m1 = MetaData()
         m2 = MetaData()
 
-        Table('table', m1,
+        Table('some_table', m1,
               Column('id', Integer, primary_key=True),
               Column('test', String(10)),
               mysql_engine='InnoDB')
@@ -488,10 +491,10 @@ class AutogenerateFKOptionsTest(AutogenFixtureTest, TestBase):
               Column('id', Integer, primary_key=True),
               Column('name', String(50), nullable=False),
               Column('tid', Integer),
-              ForeignKeyConstraint(['tid'], ['table.id'], **old_opts),
+              ForeignKeyConstraint(['tid'], ['some_table.id'], **old_opts),
               mysql_engine='InnoDB')
 
-        Table('table', m2,
+        Table('some_table', m2,
               Column('id', Integer, primary_key=True),
               Column('test', String(10)),
               mysql_engine='InnoDB')
@@ -500,7 +503,7 @@ class AutogenerateFKOptionsTest(AutogenFixtureTest, TestBase):
               Column('id', Integer, primary_key=True),
               Column('name', String(50), nullable=False),
               Column('tid', Integer),
-              ForeignKeyConstraint(['tid'], ['table.id'], **new_opts),
+              ForeignKeyConstraint(['tid'], ['some_table.id'], **new_opts),
               mysql_engine='InnoDB')
 
         return self._fixture(m1, m2)
@@ -526,7 +529,7 @@ class AutogenerateFKOptionsTest(AutogenFixtureTest, TestBase):
             self._assert_fk_diff(
                 diffs[0], "remove_fk",
                 "user", ["tid"],
-                "table", ["id"],
+                "some_table", ["id"],
                 ondelete=None,
                 conditional_name="servergenerated"
             )
@@ -534,7 +537,7 @@ class AutogenerateFKOptionsTest(AutogenFixtureTest, TestBase):
             self._assert_fk_diff(
                 diffs[1], "add_fk",
                 "user", ["tid"],
-                "table", ["id"],
+                "some_table", ["id"],
                 ondelete="cascade"
             )
         else:
@@ -549,7 +552,7 @@ class AutogenerateFKOptionsTest(AutogenFixtureTest, TestBase):
             self._assert_fk_diff(
                 diffs[0], "remove_fk",
                 "user", ["tid"],
-                "table", ["id"],
+                "some_table", ["id"],
                 ondelete="CASCADE",
                 conditional_name="servergenerated"
             )
@@ -557,7 +560,7 @@ class AutogenerateFKOptionsTest(AutogenFixtureTest, TestBase):
             self._assert_fk_diff(
                 diffs[1], "add_fk",
                 "user", ["tid"],
-                "table", ["id"],
+                "some_table", ["id"],
                 ondelete=None
             )
         else:
@@ -579,7 +582,7 @@ class AutogenerateFKOptionsTest(AutogenFixtureTest, TestBase):
             self._assert_fk_diff(
                 diffs[0], "remove_fk",
                 "user", ["tid"],
-                "table", ["id"],
+                "some_table", ["id"],
                 onupdate=None,
                 conditional_name="servergenerated"
             )
@@ -587,7 +590,7 @@ class AutogenerateFKOptionsTest(AutogenFixtureTest, TestBase):
             self._assert_fk_diff(
                 diffs[1], "add_fk",
                 "user", ["tid"],
-                "table", ["id"],
+                "some_table", ["id"],
                 onupdate="cascade"
             )
         else:
@@ -602,7 +605,7 @@ class AutogenerateFKOptionsTest(AutogenFixtureTest, TestBase):
             self._assert_fk_diff(
                 diffs[0], "remove_fk",
                 "user", ["tid"],
-                "table", ["id"],
+                "some_table", ["id"],
                 onupdate="CASCADE",
                 conditional_name="servergenerated"
             )
@@ -610,7 +613,7 @@ class AutogenerateFKOptionsTest(AutogenFixtureTest, TestBase):
             self._assert_fk_diff(
                 diffs[1], "add_fk",
                 "user", ["tid"],
-                "table", ["id"],
+                "some_table", ["id"],
                 onupdate=None
             )
         else:
@@ -667,7 +670,7 @@ class AutogenerateFKOptionsTest(AutogenFixtureTest, TestBase):
             self._assert_fk_diff(
                 diffs[0], "remove_fk",
                 "user", ["tid"],
-                "table", ["id"],
+                "some_table", ["id"],
                 onupdate=None,
                 ondelete=mock.ANY,  # MySQL reports None, PG reports RESTRICT
                 conditional_name="servergenerated"
@@ -676,7 +679,7 @@ class AutogenerateFKOptionsTest(AutogenFixtureTest, TestBase):
             self._assert_fk_diff(
                 diffs[1], "add_fk",
                 "user", ["tid"],
-                "table", ["id"],
+                "some_table", ["id"],
                 onupdate=None,
                 ondelete="cascade"
             )
@@ -695,7 +698,7 @@ class AutogenerateFKOptionsTest(AutogenFixtureTest, TestBase):
             self._assert_fk_diff(
                 diffs[0], "remove_fk",
                 "user", ["tid"],
-                "table", ["id"],
+                "some_table", ["id"],
                 onupdate=mock.ANY,  # MySQL reports None, PG reports RESTRICT
                 ondelete=None,
                 conditional_name="servergenerated"
@@ -704,7 +707,7 @@ class AutogenerateFKOptionsTest(AutogenFixtureTest, TestBase):
             self._assert_fk_diff(
                 diffs[1], "add_fk",
                 "user", ["tid"],
-                "table", ["id"],
+                "some_table", ["id"],
                 onupdate="cascade",
                 ondelete=None
             )
@@ -721,7 +724,7 @@ class AutogenerateFKOptionsTest(AutogenFixtureTest, TestBase):
             self._assert_fk_diff(
                 diffs[0], "remove_fk",
                 "user", ["tid"],
-                "table", ["id"],
+                "some_table", ["id"],
                 onupdate="CASCADE",
                 ondelete="SET NULL",
                 conditional_name="servergenerated"
@@ -730,7 +733,7 @@ class AutogenerateFKOptionsTest(AutogenFixtureTest, TestBase):
             self._assert_fk_diff(
                 diffs[1], "add_fk",
                 "user", ["tid"],
-                "table", ["id"],
+                "some_table", ["id"],
                 onupdate="RESTRICT",
                 ondelete="RESTRICT"
             )
@@ -746,7 +749,7 @@ class AutogenerateFKOptionsTest(AutogenFixtureTest, TestBase):
         self._assert_fk_diff(
             diffs[0], "remove_fk",
             "user", ["tid"],
-            "table", ["id"],
+            "some_table", ["id"],
             initially=None,
             conditional_name="servergenerated"
         )
@@ -754,7 +757,7 @@ class AutogenerateFKOptionsTest(AutogenFixtureTest, TestBase):
         self._assert_fk_diff(
             diffs[1], "add_fk",
             "user", ["tid"],
-            "table", ["id"],
+            "some_table", ["id"],
             initially="deferred"
         )
 
@@ -767,7 +770,7 @@ class AutogenerateFKOptionsTest(AutogenFixtureTest, TestBase):
         self._assert_fk_diff(
             diffs[0], "remove_fk",
             "user", ["tid"],
-            "table", ["id"],
+            "some_table", ["id"],
             initially="DEFERRED",
             deferrable=True,
             conditional_name="servergenerated"
@@ -776,7 +779,7 @@ class AutogenerateFKOptionsTest(AutogenFixtureTest, TestBase):
         self._assert_fk_diff(
             diffs[1], "add_fk",
             "user", ["tid"],
-            "table", ["id"],
+            "some_table", ["id"],
             initially=None
         )
 
@@ -790,7 +793,7 @@ class AutogenerateFKOptionsTest(AutogenFixtureTest, TestBase):
         self._assert_fk_diff(
             diffs[0], "remove_fk",
             "user", ["tid"],
-            "table", ["id"],
+            "some_table", ["id"],
             initially=None,
             conditional_name="servergenerated"
         )
@@ -798,7 +801,7 @@ class AutogenerateFKOptionsTest(AutogenFixtureTest, TestBase):
         self._assert_fk_diff(
             diffs[1], "add_fk",
             "user", ["tid"],
-            "table", ["id"],
+            "some_table", ["id"],
             initially="immediate",
             deferrable=True
         )
@@ -813,7 +816,7 @@ class AutogenerateFKOptionsTest(AutogenFixtureTest, TestBase):
         self._assert_fk_diff(
             diffs[0], "remove_fk",
             "user", ["tid"],
-            "table", ["id"],
+            "some_table", ["id"],
             initially=None,  # immediate is the default
             deferrable=True,
             conditional_name="servergenerated"
@@ -822,7 +825,7 @@ class AutogenerateFKOptionsTest(AutogenFixtureTest, TestBase):
         self._assert_fk_diff(
             diffs[1], "add_fk",
             "user", ["tid"],
-            "table", ["id"],
+            "some_table", ["id"],
             initially=None,
             deferrable=None
         )
@@ -866,7 +869,7 @@ class AutogenerateFKOptionsTest(AutogenFixtureTest, TestBase):
         self._assert_fk_diff(
             diffs[0], "remove_fk",
             "user", ["tid"],
-            "table", ["id"],
+            "some_table", ["id"],
             deferrable=None,
             conditional_name="servergenerated"
         )
@@ -874,7 +877,7 @@ class AutogenerateFKOptionsTest(AutogenFixtureTest, TestBase):
         self._assert_fk_diff(
             diffs[1], "add_fk",
             "user", ["tid"],
-            "table", ["id"],
+            "some_table", ["id"],
             deferrable=True
         )
 
@@ -887,7 +890,7 @@ class AutogenerateFKOptionsTest(AutogenFixtureTest, TestBase):
         self._assert_fk_diff(
             diffs[0], "remove_fk",
             "user", ["tid"],
-            "table", ["id"],
+            "some_table", ["id"],
             deferrable=True,
             conditional_name="servergenerated"
         )
@@ -895,6 +898,6 @@ class AutogenerateFKOptionsTest(AutogenFixtureTest, TestBase):
         self._assert_fk_diff(
             diffs[1], "add_fk",
             "user", ["tid"],
-            "table", ["id"],
+            "some_table", ["id"],
             deferrable=None
         )

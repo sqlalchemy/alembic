@@ -22,7 +22,8 @@ try:
     # honor it unless nose is imported too...
     from nose import SkipTest
 except ImportError:
-    from _pytest.runner import Skipped as SkipTest
+    from pytest import skip
+    SkipTest = skip.Exception
 
 import sys
 import re
@@ -75,6 +76,9 @@ def setup_options(make_option):
                 dest="low_connections",
                 help="Use a low number of distinct connections - "
                 "i.e. for Oracle TNS")
+    make_option("--write-idents", type="string", dest="write_idents",
+                help="write out generated follower idents to <file>, "
+                "when -n<num> is used")
     make_option("--reversetop", action="store_true",
                 dest="reversetop", default=False,
                 help="Use a random-ordering set implementation in the ORM "

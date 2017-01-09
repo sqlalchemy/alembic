@@ -373,6 +373,11 @@ def _compare_indexes_and_uniques(
                 supports_unique_constraints = True
             except NotImplementedError:
                 pass
+            except TypeError:
+                # number of arguments is off for the base
+                # method in SQLAlchemy due to the cache decorator
+                # not being present
+                pass
         try:
             conn_indexes = inspector.get_indexes(tname, schema=schema)
         except NotImplementedError:
