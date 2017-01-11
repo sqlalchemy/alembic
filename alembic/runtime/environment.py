@@ -405,6 +405,16 @@ class EnvironmentContext(util.ModuleClsProxy):
          The default is ``'alembic_version'``.
         :param version_table_schema: Optional schema to place version
          table within.
+        :param version_table_pk: boolean, whether the Alembic version table
+         should use a primary key constraint for the "value" column; this
+         only takes effect when the table is first created.
+         Defaults to True; setting to False should not be necessary and is
+         here for backwards compatibility reasons.
+
+         .. versionadded:: 0.8.10  Added the
+            :paramref:`.EnvironmentContext.configure.version_table_pk`
+            flag and additionally established that the Alembic version table
+            has a primary key constraint by default.
 
         Parameters specific to the autogenerate feature, when
         ``alembic revision`` is run with the ``--autogenerate`` feature:

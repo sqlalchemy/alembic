@@ -6,6 +6,19 @@ Changelog
 .. changelog::
     :version: 0.8.10
 
+    .. change:: 406
+      :tags: bug, versioning
+      :tickets: 406
+
+      The alembic_version table, when initially created, now establishes a
+      primary key constraint on the "version_num" column, to suit database
+      engines that don't support tables without primary keys.   This behavior
+      can be controlled using the parameter
+      :paramref:`.EnvironmentContext.configure.version_table_pk`.  Note that
+      this change only applies to the initial creation of the alembic_version
+      table; it does not impact any existing alembic_version table already
+      present.
+
     .. change:: 402
       :tags: bug, batch
       :tickets: 402
