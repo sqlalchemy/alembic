@@ -35,8 +35,8 @@ class TestMigrationContext(TestBase):
         self.transaction = self.connection.begin()
 
     def tearDown(self):
-        version_table.drop(self.connection, checkfirst=True)
         self.transaction.rollback()
+        version_table.drop(self.connection, checkfirst=True)
         self.connection.close()
 
     def make_one(self, **kwargs):
