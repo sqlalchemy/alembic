@@ -5,6 +5,7 @@ Changelog
 
 .. changelog::
     :version: 0.8.10
+    :released: January 17, 2017
 
     .. change:: 406
       :tags: bug, versioning
