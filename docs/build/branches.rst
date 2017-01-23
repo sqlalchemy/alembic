@@ -509,6 +509,13 @@ before the head::
 Working with Multiple Bases
 ---------------------------
 
+.. note::  The multiple base feature is intended to allow for multiple Alembic
+   versioning lineages which **share the same alembic_version table**.  This is
+   so that individual revisions within the lineages can have cross-dependencies
+   on each other.   For the simpler case where one project has multiple,
+   **completely independent** revision lineages that refer to **separate**
+   alembic_version tables, see the example in :ref:`multiple_environments`.
+
 We've seen in the previous section that ``alembic upgrade`` is fine
 if we have multiple heads, ``alembic revision`` allows us to tell it which
 "head" we'd like to associate our new revision file with, and branch labels

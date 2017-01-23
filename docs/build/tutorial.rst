@@ -186,7 +186,10 @@ with the path to the Alembic script location.
 This file contains the following features:
 
 * ``[alembic]`` - this is the section read by Alembic to determine configuration.  Alembic
-  itself does not directly read any other areas of the file.
+  itself does not directly read any other areas of the file.    The name "alembic" can
+  be customized using the ``--name`` commandline flag; see :ref:`multiple_environments`
+  for a basic example of this.
+
 * ``script_location`` - this is the location of the Alembic environment.   It is normally
   specified as a filesystem location, either relative or absolute.  If the location is
   a relative path, it's interpreted as relative to the current directory.

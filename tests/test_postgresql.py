@@ -66,6 +66,12 @@ class PostgresqlOpTest(TestBase):
             'ALTER TABLE t ALTER COLUMN c TYPE INTEGER USING c::integer'
         )
 
+    def test_col_w_pk_is_serial(self):
+        context = op_fixture("postgresql")
+        op.add_column("some_table", Column('q', Integer, primary_key=True))
+        context.assert_(
+            'ALTER TABLE some_table ADD COLUMN q SERIAL NOT NULL'
+        )
 
 class PGOfflineEnumTest(TestBase):
 
