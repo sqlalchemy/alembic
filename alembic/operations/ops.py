@@ -1399,7 +1399,9 @@ class AlterColumnOp(AlterTableOp):
 
         :param postgresql_using: String argument which will indicate a
          SQL expression to render within the Postgresql-specific USING clause
-         within ALTER COLUMN.
+         within ALTER COLUMN.    This string is taken directly as raw SQL which
+         must explicitly include any necessary quoting or escaping of tokens
+         within the expression.
 
          .. versionadded:: 0.8.8
 
