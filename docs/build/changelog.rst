@@ -16,6 +16,16 @@ Changelog
       for the inner type as well as the outer type.  Pull request courtesy
       Paul Brackin.
 
+    .. change:: process_revision_directives_command
+      :tags: feature, autogenerate
+
+      Added a keyword argument ``process_revision_directives`` to the
+      :func:`.command.revision` API call.  This function acts in the
+      same role as the environment-level call, and allows API use of the
+      command to drop in an ad-hoc directive process function.  This
+      function can be used among other things to place a complete
+      :class:`.MigrationScript` structure in place.
+
     .. change:: fk_schema_compare
       :tags: bug, operations
 

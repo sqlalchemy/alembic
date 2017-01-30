@@ -255,7 +255,7 @@ class AutogenContext(object):
         self.metadata = metadata = opts.get('target_metadata', None) \
             if metadata is None else metadata
 
-        if metadata is None and \
+        if autogenerate and metadata is None and \
                 migration_context is not None and \
                 migration_context.script is not None:
             raise util.CommandError(
@@ -325,10 +325,12 @@ class RevisionContext(object):
     """Maintains configuration and state that's specific to a revision
     file generation operation."""
 
-    def __init__(self, config, script_directory, command_args):
+    def __init__(self, config, script_directory, command_args,
+                 process_revision_directives=None):
         self.config = config
         self.script_directory = script_directory
         self.command_args = command_args
+        self.process_revision_directives = process_revision_directives
         self.template_args = {
             'config': config  # Let templates use config for
                               # e.g. multiple databases
@@ -403,6 +405,10 @@ class RevisionContext(object):
         if autogenerate:
             compare._populate_migration_script(
                 autogen_context, migration_script)
+
+        if self.process_revision_directives:
+            self.process_revision_directives(
+                migration_context, rev, self.generated_revisions)
 
         hook = migration_context.opts['process_revision_directives']
         if hook:

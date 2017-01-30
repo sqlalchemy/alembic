@@ -1,6 +1,7 @@
 from alembic import command
 from io import TextIOWrapper, BytesIO
 from alembic.script import ScriptDirectory
+from alembic import config
 from alembic.testing.fixtures import TestBase, capture_context_buffer
 from alembic.testing.env import staging_env, _sqlite_testing_config, \
     three_rev_fixture, clear_staging_env, _no_sql_testing_config, \
@@ -603,3 +604,45 @@ class EditTest(TestBase):
         with mock.patch('alembic.util.edit') as edit:
             command.edit(self.cfg, "current")
             edit.assert_called_with(expected_call_arg)
+
+
+class CommandLineTest(TestBase):
+    @classmethod
+    def setup_class(cls):
+        cls.env = staging_env()
+        cls.cfg = _sqlite_testing_config()
+        cls.a, cls.b, cls.c = three_rev_fixture(cls.cfg)
+
+    def test_run_cmd_args_missing(self):
+        canary = mock.Mock()
+
+        orig_revision = command.revision
+
+        # the command function has "process_revision_directives"
+        # however the ArgumentParser does not.  ensure things work
+        def revision(
+            config, message=None, autogenerate=False, sql=False,
+            head="head", splice=False, branch_label=None,
+            version_path=None, rev_id=None, depends_on=None,
+            process_revision_directives=None
+        ):
+            canary(
+                config, message=message
+            )
+
+        revision.__module__ = 'alembic.command'
+
+        # CommandLine() pulls the function into the ArgumentParser
+        # and needs the full signature, so we can't patch the "revision"
+        # command normally as ArgumentParser gives us no way to get to it.
+        config.command.revision = revision
+        try:
+            commandline = config.CommandLine()
+            options = commandline.parser.parse_args(["revision", "-m", "foo"])
+            commandline.run_cmd(self.cfg, options)
+        finally:
+            config.command.revision = orig_revision
+        eq_(
+            canary.mock_calls,
+            [mock.call(self.cfg, message="foo")]
+        )
