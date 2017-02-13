@@ -1438,7 +1438,7 @@ class AlterColumnOp(AlterTableOp):
 
         .. seealso::
 
-            :meth:`.Operations.add_column`
+            :meth:`.Operations.alter_column`
 
         """
         alt = cls(
