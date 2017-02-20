@@ -29,7 +29,7 @@ class SchemaObjects(object):
         referent_schema=None, initially=None,
             match=None, **dialect_kw):
         m = self.metadata()
-        if source == referent:
+        if source == referent and source_schema == referent_schema:
             t1_cols = local_cols + remote_cols
         else:
             t1_cols = local_cols

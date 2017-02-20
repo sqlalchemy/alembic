@@ -438,6 +438,16 @@ class OpTest(TestBase):
             "REFERENCES bar2.t2 (bat, hoho)"
         )
 
+    def test_add_foreign_key_schema_same_tablename(self):
+        context = op_fixture()
+        op.create_foreign_key('fk_test', 't1', 't1',
+                              ['foo', 'bar'], ['bat', 'hoho'],
+                              source_schema='foo2', referent_schema='bar2')
+        context.assert_(
+            "ALTER TABLE foo2.t1 ADD CONSTRAINT fk_test FOREIGN KEY(foo, bar) "
+            "REFERENCES bar2.t1 (bat, hoho)"
+        )
+
     def test_add_foreign_key_onupdate(self):
         context = op_fixture()
         op.create_foreign_key('fk_test', 't1', 't2',

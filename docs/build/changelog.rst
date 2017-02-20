@@ -7,6 +7,14 @@ Changelog
     :version: 0.8.11
     :released:
 
+    .. change:: fk_schema_compare
+      :tags: bug, operations
+
+      Fixed bug in :func:`.ops.create_foreign_key` where the internal table
+      representation would not be created properly if the foriegn key referred
+      to a table in a different schema of the same name.  Pull request
+      courtesy Konstantin Lebedev.
+
 .. changelog::
     :version: 0.8.10
     :released: January 17, 2017
