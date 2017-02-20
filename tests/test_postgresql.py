@@ -1,7 +1,7 @@
 
 from sqlalchemy import DateTime, MetaData, Table, Column, text, Integer, \
     String, Interval, Sequence, Numeric, BigInteger, Float, Numeric
-from sqlalchemy.dialects.postgresql import ARRAY, UUID
+from sqlalchemy.dialects.postgresql import ARRAY, UUID, BYTEA
 from sqlalchemy.engine.reflection import Inspector
 from alembic.operations import Operations
 from sqlalchemy.sql import table, column
@@ -602,3 +602,45 @@ unique=False, """
             'nullable=False)'
         )
 
+    @config.requirements.sqlalchemy_09
+    def test_array_type(self):
+
+        eq_ignore_whitespace(
+            autogenerate.render._repr_type(
+                ARRAY(Integer), self.autogen_context),
+            "postgresql.ARRAY(sa.Integer())"
+        )
+
+        eq_ignore_whitespace(
+            autogenerate.render._repr_type(
+                ARRAY(DateTime(timezone=True)), self.autogen_context),
+            "postgresql.ARRAY(sa.DateTime(timezone=True))"
+        )
+
+        eq_ignore_whitespace(
+            autogenerate.render._repr_type(
+                ARRAY(BYTEA, as_tuple=True, dimensions=2),
+                self.autogen_context),
+            "postgresql.ARRAY(postgresql.BYTEA(), as_tuple=True, dimensions=2)"
+        )
+
+        assert 'from sqlalchemy.dialects import postgresql' in \
+            self.autogen_context.imports
+
+    @config.requirements.sqlalchemy_09
+    def test_array_type_user_defined_inner(self):
+        def repr_type(typestring, object_, autogen_context):
+            if typestring == 'type' and isinstance(object_, String):
+                return "foobar.MYVARCHAR"
+            else:
+                return False
+
+        self.autogen_context.opts.update(
+            render_item=repr_type
+        )
+
+        eq_ignore_whitespace(
+            autogenerate.render._repr_type(
+                ARRAY(String), self.autogen_context),
+            "postgresql.ARRAY(foobar.MYVARCHAR)"
+        )

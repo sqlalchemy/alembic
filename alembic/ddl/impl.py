@@ -320,6 +320,9 @@ class DefaultImpl(with_metaclass(ImplMeta)):
         """
         self.static_output("COMMIT" + self.command_terminator)
 
+    def render_type(self, type_obj, autogen_context):
+        return False
+
 
 def _string_compare(t1, t2):
     return \

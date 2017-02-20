@@ -566,13 +566,20 @@ def _repr_type(type_, autogen_context):
     if rendered is not False:
         return rendered
 
+    if hasattr(autogen_context.migration_context, 'impl'):
+        impl_rt = autogen_context.migration_context.impl.render_type(
+            type_, autogen_context)
+
     mod = type(type_).__module__
     imports = autogen_context.imports
     if mod.startswith("sqlalchemy.dialects"):
         dname = re.match(r"sqlalchemy\.dialects\.(\w+)", mod).group(1)
         if imports is not None:
             imports.add("from sqlalchemy.dialects import %s" % dname)
-        return "%s.%r" % (dname, type_)
+        if impl_rt:
+            return impl_rt
+        else:
+            return "%s.%r" % (dname, type_)
     elif mod.startswith("sqlalchemy."):
         prefix = _sqlalchemy_autogenerate_prefix(autogen_context)
         return "%s%r" % (prefix, type_)

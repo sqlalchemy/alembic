@@ -7,6 +7,15 @@ Changelog
     :version: 0.9.0
     :released:
 
+    .. change:: 85
+      :tags: bug, postgresql
+      :tickets: 85
+
+      Fixed bug where Postgresql ARRAY type would not render the import prefix
+      for the inner type; additionally, user-defined renderers take place
+      for the inner type as well as the outer type.  Pull request courtesy
+      Paul Brackin.
+
     .. change:: fk_schema_compare
       :tags: bug, operations
 

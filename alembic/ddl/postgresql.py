@@ -6,6 +6,7 @@ from .base import compiles, alter_column, alter_table, format_table_name, \
     format_type, AlterColumn, RenameTable
 from .impl import DefaultImpl
 from sqlalchemy.dialects.postgresql import INTEGER, BIGINT
+from ..autogenerate import render
 from sqlalchemy import text, Numeric, Column
 from sqlalchemy import types as sqltypes
 
@@ -105,7 +106,6 @@ class PostgresqlImpl(DefaultImpl):
             **kw)
 
 
-
     def autogen_column_reflect(self, inspector, table, column_info):
         if column_info.get('default') and \
                 isinstance(column_info['type'], (INTEGER, BIGINT)):
@@ -170,6 +170,18 @@ class PostgresqlImpl(DefaultImpl):
                         "not supported by SQLAlchemy reflection" % idx.name
                     )
                     metadata_indexes.discard(idx)
+
+    def render_type(self, type_, autogen_context):
+        if hasattr(self, '_render_%s_type' % type_.__visit_name__):
+            meth = getattr(self, '_render_%s_type' % type_.__visit_name__)
+            return meth(type_, autogen_context)
+
+        return False
+
+    def _render_ARRAY_type(self, type_, autogen_context):
+        sub_type = render._repr_type(type_.item_type, autogen_context)
+        outer_type = repr(type_).replace(repr(type_.item_type), sub_type)
+        return "%s.%s" % ("postgresql", outer_type)
 
 
 class PostgresqlColumnType(AlterColumn):
