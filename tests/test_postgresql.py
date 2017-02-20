@@ -79,6 +79,39 @@ class PostgresqlOpTest(TestBase):
             'ALTER TABLE some_table ADD COLUMN q SERIAL NOT NULL'
         )
 
+    @config.requirements.fail_before_sqla_100
+    def test_create_exclude_constraint(self):
+        context = op_fixture("postgresql")
+        op.create_exclude_constraint(
+            "ex1", "t1", ('x', '>'), where='x > 5', using="gist")
+        context.assert_(
+            "ALTER TABLE t1 ADD CONSTRAINT ex1 EXCLUDE USING gist (x WITH >) "
+            "WHERE (x > 5)"
+        )
+
+    @config.requirements.fail_before_sqla_100
+    def test_create_exclude_constraint_quoted_literal(self):
+        context = op_fixture("postgresql")
+        op.create_exclude_constraint(
+            "ex1", "SomeTable", ('"SomeColumn"', '>'),
+            where='"SomeColumn" > 5', using="gist")
+        context.assert_(
+            'ALTER TABLE "SomeTable" ADD CONSTRAINT ex1 EXCLUDE USING gist '
+            '("SomeColumn" WITH >) WHERE ("SomeColumn" > 5)'
+        )
+
+    @config.requirements.fail_before_sqla_100
+    def test_create_exclude_constraint_quoted_column(self):
+        context = op_fixture("postgresql")
+        op.create_exclude_constraint(
+            "ex1", "SomeTable", (column("SomeColumn"), '>'),
+            where=column("SomeColumn") > 5, using="gist")
+        context.assert_(
+            'ALTER TABLE "SomeTable" ADD CONSTRAINT ex1 EXCLUDE '
+            'USING gist ("SomeColumn" WITH >) WHERE ("SomeColumn" > 5)'
+        )
+
+
 class PGOfflineEnumTest(TestBase):
 
     def setUp(self):
@@ -572,7 +605,7 @@ class PostgresqlAutogenRenderTest(TestBase):
 
         op_obj = ops.CreateIndexOp.from_index(idx)
 
-        if compat.sqla_08:
+        if util.sqla_08:
             eq_ignore_whitespace(
                 autogenerate.render_op_text(autogen_context, op_obj),
                 """op.create_index('foo_idx', 't', \
@@ -643,4 +676,59 @@ unique=False, """
             autogenerate.render._repr_type(
                 ARRAY(String), self.autogen_context),
             "postgresql.ARRAY(foobar.MYVARCHAR)"
+        )
+
+    @config.requirements.fail_before_sqla_100
+    def test_add_exclude_constraint(self):
+        from sqlalchemy.dialects.postgresql import ExcludeConstraint
+
+        autogen_context = self.autogen_context
+
+        m = MetaData()
+        t = Table('t', m,
+                  Column('x', String),
+                  Column('y', String)
+                  )
+
+        op_obj = ops.AddConstraintOp.from_constraint(ExcludeConstraint(
+            (t.c.x, ">"),
+            where=t.c.x != 2,
+            using="gist",
+            name="t_excl_x"
+        ))
+
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(autogen_context, op_obj),
+            "op.create_exclude_constraint('t_excl_x', 't', ('x', '>'), "
+            "where=sa.text(!U'x != 2'), using='gist')"
+        )
+
+    @config.requirements.fail_before_sqla_100
+    def test_inline_exclude_constraint(self):
+        from sqlalchemy.dialects.postgresql import ExcludeConstraint
+
+        autogen_context = self.autogen_context
+
+        m = MetaData()
+        t = Table(
+            't', m,
+            Column('x', String),
+            Column('y', String),
+            ExcludeConstraint(
+                ('x', ">"),
+                using="gist",
+                where='x != 2',
+                name="t_excl_x"
+            )
+        )
+
+        op_obj = ops.CreateTableOp.from_table(t)
+
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(autogen_context, op_obj),
+            "op.create_table('t',sa.Column('x', sa.String(), nullable=True),"
+            "sa.Column('y', sa.String(), nullable=True),"
+            "postgresql.ExcludeConstraint((!U'x', '>'), "
+            "where=sa.text(!U'x != 2'), using='gist', name='t_excl_x')"
+            ")"
         )

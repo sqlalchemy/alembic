@@ -35,20 +35,23 @@ class MigrateOperation(object):
 class AddConstraintOp(MigrateOperation):
     """Represent an add constraint operation."""
 
+    add_constraint_ops = util.Dispatcher()
+
     @property
     def constraint_type(self):
         raise NotImplementedError()
 
     @classmethod
+    def register_add_constraint(cls, type_):
+        def go(klass):
+            cls.add_constraint_ops.dispatch_for(type_)(klass.from_constraint)
+            return klass
+        return go
+
+    @classmethod
     def from_constraint(cls, constraint):
-        funcs = {
-            "unique_constraint": CreateUniqueConstraintOp.from_constraint,
-            "foreign_key_constraint": CreateForeignKeyOp.from_constraint,
-            "primary_key_constraint": CreatePrimaryKeyOp.from_constraint,
-            "check_constraint": CreateCheckConstraintOp.from_constraint,
-            "column_check_constraint": CreateCheckConstraintOp.from_constraint,
-        }
-        return funcs[constraint.__visit_name__](constraint)
+        return cls.add_constraint_ops.dispatch(
+            constraint.__visit_name__)(constraint)
 
     def reverse(self):
         return DropConstraintOp.from_constraint(self.to_constraint())
@@ -172,6 +175,7 @@ class DropConstraintOp(MigrateOperation):
 @Operations.register_operation("create_primary_key")
 @BatchOperations.register_operation(
     "create_primary_key", "batch_create_primary_key")
+@AddConstraintOp.register_add_constraint("primary_key_constraint")
 class CreatePrimaryKeyOp(AddConstraintOp):
     """Represent a create primary key operation."""
 
@@ -287,6 +291,7 @@ class CreatePrimaryKeyOp(AddConstraintOp):
 @Operations.register_operation("create_unique_constraint")
 @BatchOperations.register_operation(
     "create_unique_constraint", "batch_create_unique_constraint")
+@AddConstraintOp.register_add_constraint("unique_constraint")
 class CreateUniqueConstraintOp(AddConstraintOp):
     """Represent a create unique constraint operation."""
 
@@ -424,6 +429,7 @@ class CreateUniqueConstraintOp(AddConstraintOp):
 @Operations.register_operation("create_foreign_key")
 @BatchOperations.register_operation(
     "create_foreign_key", "batch_create_foreign_key")
+@AddConstraintOp.register_add_constraint("foreign_key_constraint")
 class CreateForeignKeyOp(AddConstraintOp):
     """Represent a create foreign key constraint operation."""
 
@@ -616,6 +622,8 @@ class CreateForeignKeyOp(AddConstraintOp):
 @Operations.register_operation("create_check_constraint")
 @BatchOperations.register_operation(
     "create_check_constraint", "batch_create_check_constraint")
+@AddConstraintOp.register_add_constraint("check_constraint")
+@AddConstraintOp.register_add_constraint("column_check_constraint")
 class CreateCheckConstraintOp(AddConstraintOp):
     """Represent a create check constraint operation."""
 

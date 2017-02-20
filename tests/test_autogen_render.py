@@ -1,6 +1,7 @@
 import re
 import sys
 from alembic.testing import TestBase, exclusions, assert_raises
+from alembic.testing import assertions
 
 from alembic.operations import ops
 from sqlalchemy import MetaData, Column, Table, String, \
@@ -708,6 +709,30 @@ class AutogenRenderTest(TestBase):
             "sa.PrimaryKeyConstraint('id'),"
             "schema=%r)" % compat.ue('\u0411\u0435\u0437')
         )
+
+    @config.requirements.sqlalchemy_09
+    def test_render_table_w_unsupported_constraint(self):
+        from sqlalchemy.sql.schema import ColumnCollectionConstraint
+
+        class SomeCustomConstraint(ColumnCollectionConstraint):
+            __visit_name__ = 'some_custom'
+
+        m = MetaData()
+
+        t = Table(
+            't', m, Column('id', Integer),
+            SomeCustomConstraint('id'),
+        )
+        op_obj = ops.CreateTableOp.from_table(t)
+        with assertions.expect_warnings(
+                "No renderer is established for object SomeCustomConstraint"):
+            eq_ignore_whitespace(
+                autogenerate.render_op_text(self.autogen_context, op_obj),
+                "op.create_table('t',"
+                "sa.Column('id', sa.Integer(), nullable=True),"
+                "[Unknown Python object "
+                "SomeCustomConstraint(Column('id', Integer(), table=<t>))])"
+            )
 
     @patch("alembic.autogenerate.render.MAX_PYTHON_ARGS", 3)
     def test_render_table_max_cols(self):

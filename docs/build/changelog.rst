@@ -26,6 +26,21 @@ Changelog
       function can be used among other things to place a complete
       :class:`.MigrationScript` structure in place.
 
+    .. change:: 412
+      :tags: feature, postgresql
+      :tickets: 412
+
+      Added support for Postgresql EXCLUDE constraints, including the
+      operation directive :meth:`.Operations.create_exclude_constraints`
+      as well as autogenerate render support for the ``ExcludeConstraint``
+      object as present in a ``Table``.  Autogenerate detection for an EXCLUDE
+      constraint added or removed to/from an existing table is **not**
+      implemented as the SQLAlchemy Postgresql dialect does not yet support
+      reflection of EXCLUDE constraints.
+
+      Additionally, unknown constraint types now warn when
+      encountered within an autogenerate action rather than raise.
+
     .. change:: fk_schema_compare
       :tags: bug, operations
 

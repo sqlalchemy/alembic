@@ -398,7 +398,7 @@ def _ident(name):
     """
     if name is None:
         return name
-    elif compat.sqla_09 and isinstance(name, sql.elements.quoted_name):
+    elif util.sqla_09 and isinstance(name, sql.elements.quoted_name):
         if compat.py2k:
             # the attempt to encode to ascii here isn't super ideal,
             # however we are trying to cut down on an explosion of
@@ -416,7 +416,7 @@ def _ident(name):
 
 def _render_potential_expr(value, autogen_context, wrap_in_text=True):
     if isinstance(value, sql.ClauseElement):
-        if compat.sqla_08:
+        if util.sqla_08:
             compile_kw = dict(compile_kwargs={
                 'literal_binds': True, "include_table": False})
         else:
@@ -440,7 +440,7 @@ def _render_potential_expr(value, autogen_context, wrap_in_text=True):
 
 
 def _get_index_rendered_expressions(idx, autogen_context):
-    if compat.sqla_08:
+    if util.sqla_08:
         return [repr(_ident(getattr(exp, "name", None)))
                 if isinstance(exp, sa_schema.Column)
                 else _render_potential_expr(exp, autogen_context)
@@ -592,8 +592,13 @@ _constraint_renderers = util.Dispatcher()
 
 
 def _render_constraint(constraint, autogen_context):
-    renderer = _constraint_renderers.dispatch(constraint)
-    return renderer(constraint, autogen_context)
+    try:
+        renderer = _constraint_renderers.dispatch(constraint)
+    except ValueError:
+        util.warn("No renderer is established for object %r" % constraint)
+        return "[Unknown Python object %r]" % constraint
+    else:
+        return renderer(constraint, autogen_context)
 
 
 @_constraint_renderers.dispatch_for(sa_schema.PrimaryKeyConstraint)
