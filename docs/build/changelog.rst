@@ -4,7 +4,7 @@ Changelog
 ==========
 
 .. changelog::
-    :version: 0.8.11
+    :version: 0.9.0
     :released:
 
     .. change:: fk_schema_compare
