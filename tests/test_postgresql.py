@@ -27,7 +27,7 @@ from alembic.testing import eq_ignore_whitespace
 from alembic import autogenerate
 from sqlalchemy import Index
 from sqlalchemy import Boolean
-from sqlalchemy import false
+from sqlalchemy.sql import false
 
 
 class PostgresqlOpTest(TestBase):
