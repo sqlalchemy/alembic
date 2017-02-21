@@ -22,6 +22,12 @@ from alembic.testing.fixtures import TestBase
 from alembic.testing.fixtures import op_fixture
 from alembic.testing import config
 from alembic import op
+from alembic.util import compat
+from alembic.testing import eq_ignore_whitespace
+from alembic import autogenerate
+from sqlalchemy import Index
+from sqlalchemy import Boolean
+from sqlalchemy import false
 
 
 class PostgresqlOpTest(TestBase):
@@ -535,3 +541,64 @@ class PostgresqlDetectSerialTest(TestBase):
             None,
             Column('x', Integer, autoincrement=False, primary_key=True)
         )
+
+
+class PostgresqlAutogenRenderTest(TestBase):
+
+    def setUp(self):
+        ctx_opts = {
+            'sqlalchemy_module_prefix': 'sa.',
+            'alembic_module_prefix': 'op.',
+            'target_metadata': MetaData()
+        }
+        context = MigrationContext.configure(
+            dialect_name="postgresql",
+            opts=ctx_opts
+        )
+
+        self.autogen_context = api.AutogenContext(context)
+
+    def test_render_add_index_pg_where(self):
+        autogen_context = self.autogen_context
+
+        m = MetaData()
+        t = Table('t', m,
+                  Column('x', String),
+                  Column('y', String)
+                  )
+
+        idx = Index('foo_idx', t.c.x, t.c.y,
+                    postgresql_where=(t.c.y == 'something'))
+
+        op_obj = ops.CreateIndexOp.from_index(idx)
+
+        if compat.sqla_08:
+            eq_ignore_whitespace(
+                autogenerate.render_op_text(autogen_context, op_obj),
+                """op.create_index('foo_idx', 't', \
+['x', 'y'], unique=False, """
+                """postgresql_where=sa.text(!U"y = 'something'"))"""
+            )
+        else:
+            eq_ignore_whitespace(
+                autogenerate.render_op_text(autogen_context, op_obj),
+                """op.create_index('foo_idx', 't', ['x', 'y'], \
+unique=False, """
+                """postgresql_where=sa.text(!U't.y = %(y_1)s'))"""
+            )
+
+    def test_render_server_default_native_boolean(self):
+        c = Column(
+            'updated_at', Boolean(),
+            server_default=false(),
+            nullable=False)
+        result = autogenerate.render._render_column(
+            c, self.autogen_context,
+        )
+        eq_ignore_whitespace(
+            result,
+            'sa.Column(\'updated_at\', sa.Boolean(), '
+            'server_default=sa.text(!U\'false\'), '
+            'nullable=False)'
+        )
+

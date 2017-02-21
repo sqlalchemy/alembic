@@ -11,7 +11,6 @@ from sqlalchemy import MetaData, Column, Table, String, \
 
 from sqlalchemy.types import TIMESTAMP
 from sqlalchemy.types import UserDefinedType
-from sqlalchemy.dialects import mysql, postgresql
 from sqlalchemy.engine.default import DefaultDialect
 from sqlalchemy.sql import and_, column, literal_column, false, table
 from alembic.migration import MigrationContext
@@ -41,23 +40,11 @@ class AutogenRenderTest(TestBase):
             'target_metadata': MetaData()
         }
         context = MigrationContext.configure(
-            dialect_name="mysql",
+            dialect=DefaultDialect(),
             opts=ctx_opts
         )
 
         self.autogen_context = api.AutogenContext(context)
-
-        context = MigrationContext.configure(
-            dialect_name="postgresql",
-            opts=ctx_opts
-        )
-        self.pg_autogen_context = api.AutogenContext(context)
-
-        context = MigrationContext.configure(
-            dialect=DefaultDialect(),
-            opts=ctx_opts
-        )
-        self.default_autogen_context = api.AutogenContext(context)
 
     def test_render_add_index(self):
         """
@@ -135,35 +122,6 @@ class AutogenRenderTest(TestBase):
                 "['active', 'code'], unique=False)"
             )
 
-    def test_render_add_index_pg_where(self):
-        autogen_context = self.pg_autogen_context
-
-        m = MetaData()
-        t = Table('t', m,
-                  Column('x', String),
-                  Column('y', String)
-                  )
-
-        idx = Index('foo_idx', t.c.x, t.c.y,
-                    postgresql_where=(t.c.y == 'something'))
-
-        op_obj = ops.CreateIndexOp.from_index(idx)
-
-        if compat.sqla_08:
-            eq_ignore_whitespace(
-                autogenerate.render_op_text(autogen_context, op_obj),
-                """op.create_index('foo_idx', 't', \
-['x', 'y'], unique=False, """
-                """postgresql_where=sa.text(!U"y = 'something'"))"""
-            )
-        else:
-            eq_ignore_whitespace(
-                autogenerate.render_op_text(autogen_context, op_obj),
-                """op.create_index('foo_idx', 't', ['x', 'y'], \
-unique=False, """
-                """postgresql_where=sa.text(!U't.y = %(y_1)s'))"""
-            )
-
     @config.requirements.fail_before_sqla_080
     def test_render_add_index_func(self):
         m = MetaData()
@@ -196,13 +154,13 @@ unique=False, """
             eq_ignore_whitespace(
                 autogenerate.render_op_text(self.autogen_context, op_obj),
                 "op.create_index('test_lower_code_idx', 'test', "
-                "[sa.text(!U'CAST(code AS CHAR)')], unique=False)"
+                "[sa.text(!U'CAST(code AS VARCHAR)')], unique=False)"
             )
         else:
             eq_ignore_whitespace(
                 autogenerate.render_op_text(self.autogen_context, op_obj),
                 "op.create_index('test_lower_code_idx', 'test', "
-                "[sa.text(!U'CAST(test.code AS CHAR)')], unique=False)"
+                "[sa.text(!U'CAST(test.code AS VARCHAR)')], unique=False)"
             )
 
     @config.requirements.fail_before_sqla_080
@@ -1404,21 +1362,6 @@ unique=False, """
             'nullable=False)'
         )
 
-    def test_render_server_default_native_boolean(self):
-        c = Column(
-            'updated_at', Boolean(),
-            server_default=false(),
-            nullable=False)
-        result = autogenerate.render._render_column(
-            c, self.pg_autogen_context,
-        )
-        eq_ignore_whitespace(
-            result,
-            'sa.Column(\'updated_at\', sa.Boolean(), '
-            'server_default=sa.text(!U\'false\'), '
-            'nullable=False)'
-        )
-
     @config.requirements.fail_before_sqla_09
     def test_render_server_default_non_native_boolean(self):
         c = Column(
@@ -1427,7 +1370,7 @@ unique=False, """
             nullable=False)
 
         result = autogenerate.render._render_column(
-            c, self.default_autogen_context
+            c, self.autogen_context
         )
         eq_ignore_whitespace(
             result,
