@@ -160,7 +160,7 @@ class AutogenRenderTest(TestBase):
             eq_ignore_whitespace(
                 autogenerate.render_op_text(self.autogen_context, op_obj),
                 "op.create_index('test_lower_code_idx', 'test', "
-                "[sa.text(!U'CAST(test.code AS VARCHAR)')], unique=False)"
+                "[sa.text(!U'CAST(code AS VARCHAR)')], unique=False)"
             )
 
     @config.requirements.fail_before_sqla_080
