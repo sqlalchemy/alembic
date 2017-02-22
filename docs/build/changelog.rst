@@ -24,6 +24,15 @@ Changelog
       flag does **not** support alteration of a column's "autoincrement" status,
       as this is not portable across backends.
 
+    .. change:: 411
+      :tags: bug, postgresql
+      :tickets: 411
+
+      Fixed bug where Postgresql JSON/JSONB types rendered on SQLAlchemy
+      1.1 would render the "astext_type" argument which defaults to
+      the ``Text()`` type without the module prefix, similarly to the
+      issue with ARRAY fixed in :ticket:`85`.
+
     .. change:: 85
       :tags: bug, postgresql
       :tickets: 85

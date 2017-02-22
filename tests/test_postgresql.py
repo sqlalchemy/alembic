@@ -30,6 +30,10 @@ from sqlalchemy import Boolean
 from sqlalchemy.sql import false
 
 
+if util.sqla_09:
+    from sqlalchemy.dialects.postgresql import JSON, JSONB
+
+
 class PostgresqlOpTest(TestBase):
 
     def test_rename_table_postgresql(self):
@@ -732,3 +736,33 @@ unique=False, """
             "where=sa.text(!U'x != 2'), using='gist', name='t_excl_x')"
             ")"
         )
+
+    @config.requirements.sqlalchemy_09
+    def test_json_type(self):
+        if config.requirements.sqlalchemy_110.enabled:
+            eq_ignore_whitespace(
+                autogenerate.render._repr_type(
+                    JSON(), self.autogen_context),
+                "postgresql.JSON(astext_type=sa.Text())"
+            )
+        else:
+            eq_ignore_whitespace(
+                autogenerate.render._repr_type(
+                    JSON(), self.autogen_context),
+                "postgresql.JSON()"
+            )
+
+    @config.requirements.sqlalchemy_09
+    def test_jsonb_type(self):
+        if config.requirements.sqlalchemy_110.enabled:
+            eq_ignore_whitespace(
+                autogenerate.render._repr_type(
+                    JSONB(), self.autogen_context),
+                "postgresql.JSONB(astext_type=sa.Text())"
+            )
+        else:
+            eq_ignore_whitespace(
+                autogenerate.render._repr_type(
+                    JSONB(), self.autogen_context),
+                "postgresql.JSONB()"
+            )
