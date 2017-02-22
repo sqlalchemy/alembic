@@ -210,7 +210,8 @@ class AutogenFixtureTest(_ComparesFKs):
 
     def _fixture(
             self, m1, m2, include_schemas=False,
-            opts=None, object_filters=_default_object_filters):
+            opts=None, object_filters=_default_object_filters,
+            return_ops=False):
         self.metadata, model_metadata = m1, m2
         self.metadata.create_all(self.bind)
 
@@ -238,7 +239,11 @@ class AutogenFixtureTest(_ComparesFKs):
             autogenerate._produce_net_changes(
                 autogen_context, uo
             )
-            return uo.as_diffs()
+
+            if return_ops:
+                return uo
+            else:
+                return uo.as_diffs()
 
     reports_unnamed_constraints = False
 

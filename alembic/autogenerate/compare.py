@@ -670,6 +670,19 @@ def _compare_nullable(
 
 
 @comparators.dispatch_for("column")
+def _setup_autoincrement(
+    autogen_context, alter_column_op, schema, tname, cname, conn_col,
+        metadata_col):
+
+    if metadata_col.table._autoincrement_column is metadata_col:
+        alter_column_op.kw['autoincrement'] = True
+    elif util.sqla_110 and metadata_col.autoincrement is True:
+        alter_column_op.kw['autoincrement'] = True
+    elif metadata_col.autoincrement is False:
+        alter_column_op.kw['autoincrement'] = False
+
+
+@comparators.dispatch_for("column")
 def _compare_type(
     autogen_context, alter_column_op, schema, tname, cname, conn_col,
         metadata_col):

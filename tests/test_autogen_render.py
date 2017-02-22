@@ -4,7 +4,7 @@ from alembic.testing import TestBase, exclusions, assert_raises
 
 from alembic.operations import ops
 from sqlalchemy import MetaData, Column, Table, String, \
-    Numeric, CHAR, ForeignKey, DATETIME, Integer, \
+    Numeric, CHAR, ForeignKey, DATETIME, Integer, BigInteger, \
     CheckConstraint, Unicode, Enum, cast,\
     UniqueConstraint, Boolean, ForeignKeyConstraint,\
     PrimaryKeyConstraint, Index, func, text, DefaultClause
@@ -1072,6 +1072,19 @@ class AutogenRenderTest(TestBase):
             autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.alter_column('sometable', 'somecolumn', "
             "existing_type=sa.Integer(), nullable=True, schema='foo')"
+        )
+
+    def test_render_modify_type_w_autoincrement(self):
+        op_obj = ops.AlterColumnOp(
+            "sometable", "somecolumn",
+            modify_type=Integer(), existing_type=BigInteger(),
+            autoincrement=True
+        )
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.alter_column('sometable', 'somecolumn', "
+            "existing_type=sa.BigInteger(), type_=sa.Integer(), "
+            "autoincrement=True)"
         )
 
     def test_render_fk_constraint_kwarg(self):

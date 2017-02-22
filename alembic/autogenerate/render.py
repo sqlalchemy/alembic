@@ -331,6 +331,7 @@ def _alter_column(autogen_context, op):
     server_default = op.modify_server_default
     type_ = op.modify_type
     nullable = op.modify_nullable
+    autoincrement = op.kw.get('autoincrement', None)
     existing_type = op.existing_type
     existing_nullable = op.existing_nullable
     existing_server_default = op.existing_server_default
@@ -366,6 +367,9 @@ def _alter_column(autogen_context, op):
     if nullable is None and existing_nullable is not None:
         text += ",\n%sexisting_nullable=%r" % (
             indent, existing_nullable)
+    if autoincrement is not None:
+        text += ",\n%sautoincrement=%r" % (
+            indent, autoincrement)
     if server_default is False and existing_server_default:
         rendered = _render_server_default(
             existing_server_default,

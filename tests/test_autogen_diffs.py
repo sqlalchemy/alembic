@@ -754,9 +754,10 @@ class PKConstraintUpgradesIgnoresNullableTest(AutogenTest, TestBase):
         return cls._get_db_schema()
 
     def test_no_change(self):
-        diffs = []
+        uo = ops.UpgradeOps(ops=[])
         ctx = self.autogen_context
-        autogenerate._produce_net_changes(ctx, diffs)
+        autogenerate._produce_net_changes(ctx, uo)
+        diffs = uo.as_diffs()
         eq_(diffs, [])
 
 
@@ -1203,3 +1204,174 @@ class OrigObjectTest(TestBase):
         is_(op.to_index(), self.ix)
         is_(op.reverse().to_index(), self.ix)
 
+
+class AutoincrementTest(AutogenFixtureTest, TestBase):
+    __backend__ = True
+    __requires__ = 'integer_subtype_comparisons',
+
+    def test_alter_column_autoincrement_none(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table('a', m1, Column('x', Integer, nullable=False))
+        Table('a', m2, Column('x', Integer, nullable=True))
+
+        ops = self._fixture(m1, m2, return_ops=True)
+        assert 'autoincrement' not in ops.ops[0].ops[0].kw
+
+    def test_alter_column_autoincrement_pk_false(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table(
+            'a', m1,
+            Column('x', Integer, primary_key=True, autoincrement=False))
+        Table(
+            'a', m2,
+            Column('x', BigInteger, primary_key=True, autoincrement=False))
+
+        ops = self._fixture(m1, m2, return_ops=True)
+        is_(ops.ops[0].ops[0].kw['autoincrement'], False)
+
+    def test_alter_column_autoincrement_pk_implicit_true(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table(
+            'a', m1,
+            Column('x', Integer, primary_key=True))
+        Table(
+            'a', m2,
+            Column('x', BigInteger, primary_key=True))
+
+        ops = self._fixture(m1, m2, return_ops=True)
+        is_(ops.ops[0].ops[0].kw['autoincrement'], True)
+
+    def test_alter_column_autoincrement_pk_explicit_true(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table(
+            'a', m1,
+            Column('x', Integer, primary_key=True, autoincrement=True))
+        Table(
+            'a', m2,
+            Column('x', BigInteger, primary_key=True, autoincrement=True))
+
+        ops = self._fixture(m1, m2, return_ops=True)
+        is_(ops.ops[0].ops[0].kw['autoincrement'], True)
+
+    def test_alter_column_autoincrement_nonpk_false(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table(
+            'a', m1,
+            Column('id', Integer, primary_key=True),
+            Column('x', Integer, autoincrement=False)
+        )
+        Table(
+            'a', m2,
+            Column('id', Integer, primary_key=True),
+            Column('x', BigInteger, autoincrement=False)
+        )
+
+        ops = self._fixture(m1, m2, return_ops=True)
+        is_(ops.ops[0].ops[0].kw['autoincrement'], False)
+
+    def test_alter_column_autoincrement_nonpk_implicit_false(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table(
+            'a', m1,
+            Column('id', Integer, primary_key=True),
+            Column('x', Integer)
+        )
+        Table(
+            'a', m2,
+            Column('id', Integer, primary_key=True),
+            Column('x', BigInteger)
+        )
+
+        ops = self._fixture(m1, m2, return_ops=True)
+        assert 'autoincrement' not in ops.ops[0].ops[0].kw
+
+    @config.requirements.fail_before_sqla_110
+    def test_alter_column_autoincrement_nonpk_explicit_true(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table(
+            'a', m1,
+            Column('id', Integer, primary_key=True),
+            Column('x', Integer, autoincrement=True)
+        )
+        Table(
+            'a', m2,
+            Column('id', Integer, primary_key=True),
+            Column('x', BigInteger, autoincrement=True)
+        )
+
+        ops = self._fixture(m1, m2, return_ops=True)
+        is_(ops.ops[0].ops[0].kw['autoincrement'], True)
+
+    def test_alter_column_autoincrement_compositepk_false(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table(
+            'a', m1,
+            Column('id', Integer, primary_key=True),
+            Column('x', Integer, primary_key=True, autoincrement=False)
+        )
+        Table(
+            'a', m2,
+            Column('id', Integer, primary_key=True),
+            Column('x', BigInteger, primary_key=True, autoincrement=False)
+        )
+
+        ops = self._fixture(m1, m2, return_ops=True)
+        is_(ops.ops[0].ops[0].kw['autoincrement'], False)
+
+    def test_alter_column_autoincrement_compositepk_implicit_false(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table(
+            'a', m1,
+            Column('id', Integer, primary_key=True),
+            Column('x', Integer, primary_key=True)
+        )
+        Table(
+            'a', m2,
+            Column('id', Integer, primary_key=True),
+            Column('x', BigInteger, primary_key=True)
+        )
+
+        ops = self._fixture(m1, m2, return_ops=True)
+        assert 'autoincrement' not in ops.ops[0].ops[0].kw
+
+    @config.requirements.autoincrement_on_composite_pk
+    def test_alter_column_autoincrement_compositepk_explicit_true(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table(
+            'a', m1,
+            Column('id', Integer, primary_key=True, autoincrement=False),
+            Column('x', Integer, primary_key=True, autoincrement=True),
+            # on SQLA 1.0 and earlier, this being present
+            # trips the "add KEY for the primary key" so that the
+            # AUTO_INCREMENT keyword is accepted by MySQL.  SQLA 1.1 and
+            # greater the columns are just reorganized.
+            mysql_engine='InnoDB'
+        )
+        Table(
+            'a', m2,
+            Column('id', Integer, primary_key=True, autoincrement=False),
+            Column('x', BigInteger, primary_key=True, autoincrement=True)
+        )
+
+        ops = self._fixture(m1, m2, return_ops=True)
+        is_(ops.ops[0].ops[0].kw['autoincrement'], True)

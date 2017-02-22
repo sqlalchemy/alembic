@@ -114,3 +114,12 @@ class DefaultRequirements(SuiteRequirements):
                 return False
 
         return exclusions.only_if(check_uuid_ossp)
+
+    @property
+    def autoincrement_on_composite_pk(self):
+        return exclusions.skip_if(["sqlite"], "not supported by database")
+
+    @property
+    def integer_subtype_comparisons(self):
+        """if a compare of Integer and BigInteger is supported yet."""
+        return exclusions.skip_if(["oracle"], "not supported by alembic impl")

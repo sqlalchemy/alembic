@@ -104,6 +104,13 @@ class SuiteRequirements(Requirements):
         )
 
     @property
+    def fail_before_sqla_110(self):
+        return exclusions.fails_if(
+            lambda config: not util.sqla_110,
+            "SQLAlchemy 1.1.0 or greater required"
+        )
+
+    @property
     def sqlalchemy_08(self):
 
         return exclusions.skip_if(

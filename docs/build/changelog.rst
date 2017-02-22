@@ -7,6 +7,23 @@ Changelog
     :version: 0.9.0
     :released:
 
+    .. change:: 413
+      :tags: bug, autogenerate, mysql
+      :tickets: 413
+
+      The ``autoincrement=True`` flag is now rendered within the
+      :meth:`.Operations.alter_column` operation if the source column indicates
+      that this flag should be set to True.  The behavior is sensitive to
+      the SQLAlchemy version in place, as the "auto" default option is new
+      in SQLAlchemy 1.1.  When the source column indicates autoincrement
+      as True or "auto", the flag will render as True if the original column
+      contextually indicates that it should have "autoincrement" keywords,
+      and when the source column explcitly sets it to False, this is also
+      rendered.  The behavior is intended to preserve the AUTO_INCREMENT flag
+      on MySQL as the column is fully recreated on this backend.  Note that this
+      flag does **not** support alteration of a column's "autoincrement" status,
+      as this is not portable across backends.
+
     .. change:: 85
       :tags: bug, postgresql
       :tickets: 85
