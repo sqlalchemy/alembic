@@ -174,8 +174,10 @@ Autogenerate **can not detect**:
 
 Autogenerate can't currently, but **will eventually detect**:
 
-* Some free-standing constraint additions and removals,
-  like CHECK, PRIMARY KEY - these are not fully implemented.
+* Some free-standing constraint additions and removals may not be supported,
+  including PRIMARY KEY, EXCLUDE, CHECK; these are not necessarily implemented
+  within the autogenerate detection system and also may not be supported by
+  the supporting SQLAlchemy dialect.
 * Sequence additions, removals - not yet implemented.
 
 

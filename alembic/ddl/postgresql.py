@@ -8,14 +8,26 @@ from .impl import DefaultImpl
 from sqlalchemy.dialects.postgresql import INTEGER, BIGINT
 from ..autogenerate import render
 from sqlalchemy import text, Numeric, Column
+from sqlalchemy.types import NULLTYPE
 from sqlalchemy import types as sqltypes
 
-if compat.sqla_08:
+from ..operations.base import Operations
+from ..operations.base import BatchOperations
+from ..operations import ops
+from ..util import sqla_compat
+from ..operations import schemaobj
+from ..autogenerate import render
+
+import logging
+
+if util.sqla_08:
     from sqlalchemy.sql.expression import UnaryExpression
 else:
     from sqlalchemy.sql.expression import _UnaryExpression as UnaryExpression
 
-import logging
+if util.sqla_100:
+    from sqlalchemy.dialects.postgresql import ExcludeConstraint
+
 
 log = logging.getLogger(__name__)
 
@@ -105,7 +117,6 @@ class PostgresqlImpl(DefaultImpl):
             existing_autoincrement=existing_autoincrement,
             **kw)
 
-
     def autogen_column_reflect(self, inspector, table, column_info):
         if column_info.get('default') and \
                 isinstance(column_info['type'], (INTEGER, BIGINT)):
@@ -157,7 +168,7 @@ class PostgresqlImpl(DefaultImpl):
         for idx in list(metadata_indexes):
             if idx.name in conn_indexes_by_name:
                 continue
-            if compat.sqla_08:
+            if util.sqla_08:
                 exprs = idx.expressions
             else:
                 exprs = idx.columns
@@ -209,3 +220,214 @@ def visit_column_type(element, compiler, **kw):
         "TYPE %s" % format_type(compiler, element.type_),
         "USING %s" % element.using if element.using else ""
     )
+
+
+@Operations.register_operation("create_exclude_constraint")
+@BatchOperations.register_operation(
+    "create_exclude_constraint", "batch_create_exclude_constraint")
+@ops.AddConstraintOp.register_add_constraint("exclude_constraint")
+class CreateExcludeConstraintOp(ops.AddConstraintOp):
+    """Represent a create exclude constraint operation."""
+
+    constraint_type = "exclude"
+
+    def __init__(
+            self, constraint_name, table_name,
+            elements, where=None, schema=None,
+            _orig_constraint=None, **kw):
+        self.constraint_name = constraint_name
+        self.table_name = table_name
+        self.elements = elements
+        self.where = where
+        self.schema = schema
+        self._orig_constraint = _orig_constraint
+        self.kw = kw
+
+    @classmethod
+    def from_constraint(cls, constraint):
+        constraint_table = sqla_compat._table_for_constraint(constraint)
+
+        return cls(
+            constraint.name,
+            constraint_table.name,
+            [(expr, op) for expr, name, op in constraint._render_exprs],
+            where=constraint.where,
+            schema=constraint_table.schema,
+            _orig_constraint=constraint,
+            deferrable=constraint.deferrable,
+            initially=constraint.initially,
+            using=constraint.using
+        )
+
+    def to_constraint(self, migration_context=None):
+        if not util.sqla_100:
+            raise NotImplementedError(
+                "ExcludeConstraint not supported until SQLAlchemy 1.0")
+        if self._orig_constraint is not None:
+            return self._orig_constraint
+        schema_obj = schemaobj.SchemaObjects(migration_context)
+        t = schema_obj.table(self.table_name, schema=self.schema)
+        excl = ExcludeConstraint(
+            *self.elements,
+            name=self.constraint_name,
+            where=self.where,
+            **self.kw
+        )
+        for expr, name, oper in excl._render_exprs:
+            t.append_column(Column(name, NULLTYPE))
+        t.append_constraint(excl)
+        return excl
+
+    @classmethod
+    def create_exclude_constraint(
+            cls, operations,
+            constraint_name, table_name, *elements, **kw):
+        """Issue an alter to create an EXCLUDE constraint using the
+        current migration context.
+
+        .. note::  This method is Postgresql specific, and additionally
+           requires at least SQLAlchemy 1.0.
+
+        e.g.::
+
+            from alembic import op
+
+            op.create_exclude_constraint(
+                "user_excl",
+                "user",
+
+                ("period", '&&'),
+                ("group", '='),
+                where=("group != 'some group'")
+
+            )
+
+        Note that the expressions work the same way as that of
+        the ``ExcludeConstraint`` object itself; if plain strings are
+        passed, quoting rules must be applied manually.
+
+        :param name: Name of the constraint.
+        :param table_name: String name of the source table.
+        :param elements: exclude conditions.
+        :param where: SQL expression or SQL string with optional WHERE
+         clause.
+        :param deferrable: optional bool. If set, emit DEFERRABLE or
+         NOT DEFERRABLE when issuing DDL for this constraint.
+        :param initially: optional string. If set, emit INITIALLY <value>
+         when issuing DDL for this constraint.
+        :param schema: Optional schema name to operate within.
+
+        .. versionadded:: 0.9.0
+
+        """
+        op = cls(constraint_name, table_name, elements, **kw)
+        return operations.invoke(op)
+
+    @classmethod
+    def batch_create_exclude_constraint(
+            cls, operations, constraint_name, *elements, **kw):
+        """Issue a "create exclude constraint" instruction using the
+        current batch migration context.
+
+        .. note::  This method is Postgresql specific, and additionally
+           requires at least SQLAlchemy 1.0.
+
+        .. versionadded:: 0.9.0
+
+        .. seealso::
+
+            :meth:`.Operations.create_exclude_constraint`
+
+        """
+        kw['schema'] = operations.impl.schema
+        op = cls(constraint_name, operations.impl.table_name, elements, **kw)
+        return operations.invoke(op)
+
+
+@render.renderers.dispatch_for(CreateExcludeConstraintOp)
+def _add_exclude_constraint(autogen_context, op):
+    return _exclude_constraint(
+        op.to_constraint(),
+        autogen_context,
+        alter=True
+    )
+
+if util.sqla_100:
+    @render._constraint_renderers.dispatch_for(ExcludeConstraint)
+    def _render_inline_exclude_constraint(constraint, autogen_context):
+        rendered = render._user_defined_render(
+            "exclude", constraint, autogen_context)
+        if rendered is not False:
+            return rendered
+
+        return _exclude_constraint(constraint, autogen_context, False)
+
+
+def _postgresql_autogenerate_prefix(autogen_context):
+
+    imports = autogen_context.imports
+    if imports is not None:
+        imports.add("from sqlalchemy.dialects import postgresql")
+    return "postgresql."
+
+
+def _exclude_constraint(constraint, autogen_context, alter):
+    opts = []
+
+    has_batch = autogen_context._has_batch
+
+    if constraint.deferrable:
+        opts.append(("deferrable", str(constraint.deferrable)))
+    if constraint.initially:
+        opts.append(("initially", str(constraint.initially)))
+    if constraint.using:
+        opts.append(("using", str(constraint.using)))
+    if not has_batch and alter and constraint.table.schema:
+        opts.append(("schema", render._ident(constraint.table.schema)))
+    if not alter and constraint.name:
+        opts.append(
+            ("name",
+             render._render_gen_name(autogen_context, constraint.name)))
+
+    if alter:
+        args = [
+            repr(render._render_gen_name(
+                autogen_context, constraint.name))]
+        if not has_batch:
+            args += [repr(render._ident(constraint.table.name))]
+        args.extend([
+            "(%s, %r)" % (
+                render._render_potential_expr(
+                    sqltext, autogen_context, wrap_in_text=False),
+                opstring
+            )
+            for sqltext, name, opstring in constraint._render_exprs
+        ])
+        if constraint.where is not None:
+            args.append(
+                "where=%s" % render._render_potential_expr(
+                    constraint.where, autogen_context)
+            )
+        args.extend(["%s=%r" % (k, v) for k, v in opts])
+        return "%(prefix)screate_exclude_constraint(%(args)s)" % {
+            'prefix': render._alembic_autogenerate_prefix(autogen_context),
+            'args': ", ".join(args)
+        }
+    else:
+        args = [
+            "(%s, %r)" % (
+                render._render_potential_expr(
+                    sqltext, autogen_context, wrap_in_text=False),
+                opstring
+            ) for sqltext, name, opstring in constraint._render_exprs
+        ]
+        if constraint.where is not None:
+            args.append(
+                "where=%s" % render._render_potential_expr(
+                    constraint.where, autogen_context)
+            )
+        args.extend(["%s=%r" % (k, v) for k, v in opts])
+        return "%(prefix)sExcludeConstraint(%(args)s)" % {
+            "prefix": _postgresql_autogenerate_prefix(autogen_context),
+            "args": ", ".join(args)
+        }
