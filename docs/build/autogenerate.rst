@@ -180,6 +180,30 @@ Autogenerate can't currently, but **will eventually detect**:
   the supporting SQLAlchemy dialect.
 * Sequence additions, removals - not yet implemented.
 
+Autogenerating Multiple MetaData collections
+--------------------------------------------
+
+The ``target_metadata`` collection may also be defined as a sequence
+if an application has multiple :class:`~sqlalchemy.schema.MetaData`
+collections involved::
+
+    from myapp.mymodel1 import Model1Base
+    from myapp.mymodel2 import Model2Base
+    target_metadata = [Model1Base.metadata, Model2Base.metadata]
+
+The sequence of :class:`~sqlalchemy.schema.MetaData` collections will be
+consulted in order during the autogenerate process.  Note that each
+:class:`~sqlalchemy.schema.MetaData` must contain **unique** table keys
+(e.g. the "key" is the combination of the table's name and schema);
+if two :class:`~sqlalchemy.schema.MetaData` objects contain a table
+with the same schema/name combination, an error is raised.
+
+.. versionchanged:: 0.9.0 the
+  :paramref:`.EnvironmentContext.configure.target_metadata`
+  parameter may now be passed a sequence of
+  :class:`~sqlalchemy.schema.MetaData` objects to support
+  autogeneration of multiple :class:`~sqlalchemy.schema.MetaData`
+  collections.
 
 Comparing and Rendering Types
 ------------------------------

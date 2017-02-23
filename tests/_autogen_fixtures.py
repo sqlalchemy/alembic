@@ -10,10 +10,10 @@ from alembic.testing.env import staging_env, clear_staging_env
 from alembic.testing import eq_
 from alembic.ddl.base import _fk_spec
 from alembic.autogenerate import api
+from alembic import util
+from sqlalchemy import event
 
 names_in_this_test = set()
-
-from sqlalchemy import event
 
 
 @event.listens_for(Table, "after_parent_attach")
@@ -213,7 +213,8 @@ class AutogenFixtureTest(_ComparesFKs):
             opts=None, object_filters=_default_object_filters,
             return_ops=False):
         self.metadata, model_metadata = m1, m2
-        self.metadata.create_all(self.bind)
+        for m in util.to_list(self.metadata):
+            m.create_all(self.bind)
 
         with self.bind.connect() as conn:
             ctx_opts = {
@@ -253,6 +254,7 @@ class AutogenFixtureTest(_ComparesFKs):
 
     def tearDown(self):
         if hasattr(self, 'metadata'):
-            self.metadata.drop_all(self.bind)
+            for m in util.to_list(self.metadata):
+                m.drop_all(self.bind)
         clear_staging_env()
 

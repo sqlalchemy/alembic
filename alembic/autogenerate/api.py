@@ -261,7 +261,7 @@ class AutogenContext(object):
             raise util.CommandError(
                 "Can't proceed with --autogenerate option; environment "
                 "script %s does not provide "
-                "a MetaData object to the context." % (
+                "a MetaData object or sequence of objects to the context." % (
                     migration_context.script.env_py_location
                 ))
 
@@ -319,6 +319,50 @@ class AutogenContext(object):
                 return False
         else:
             return True
+
+    @util.memoized_property
+    def sorted_tables(self):
+        """Return an aggregate of the :attr:`.MetaData.sorted_tables` collection(s).
+
+        For a sequence of :class:`.MetaData` objects, this
+        concatenates the :attr:`.MetaData.sorted_tables` collection
+        for each individual :class:`.MetaData`  in the order of the
+        sequence.  It does **not** collate the sorted tables collections.
+
+        .. versionadded:: 0.9.0
+
+        """
+        result = []
+        for m in util.to_list(self.metadata):
+            result.extend(m.sorted_tables)
+        return result
+
+    @util.memoized_property
+    def table_key_to_table(self):
+        """Return an aggregate  of the :attr:`.MetaData.tables` dictionaries.
+
+        The :attr:`.MetaData.tables` collection is a dictionary of table key
+        to :class:`.Table`; this method aggregates the dictionary across
+        multiple :class:`.MetaData` objects into one dictionary.
+
+        Duplicate table keys are **not** supported; if two :class:`.MetaData`
+        objects contain the same table key, an exception is raised.
+
+        .. versionadded:: 0.9.0
+
+        """
+        result = {}
+        for m in util.to_list(self.metadata):
+            intersect = set(result).intersection(set(m.tables))
+            if intersect:
+                raise ValueError(
+                    "Duplicate table keys across multiple "
+                    "MetaData objects: %s" %
+                    (", ".join('"%s"' % key for key in sorted(intersect)))
+                )
+
+            result.update(m.tables)
+        return result
 
 
 class RevisionContext(object):

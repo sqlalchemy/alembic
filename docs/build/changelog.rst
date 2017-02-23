@@ -7,6 +7,16 @@ Changelog
     :version: 0.9.0
     :released:
 
+    .. change:: 38
+      :tags: feature, autogenerate
+      :tickets: 38
+
+      The :paramref:`.EnvironmentContext.configure.target_metadata` parameter
+      may now be optionally specified as a sequence of :class:`.MetaData`
+      objects instead of a single :class:`.MetaData` object.  The
+      autogenerate process will process the sequence of :class:`.MetaData`
+      objects in order.
+
     .. change:: 369
       :tags: bug, commands
       :tickets: 369

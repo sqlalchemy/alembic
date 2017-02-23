@@ -517,6 +517,8 @@ class PostgresqlDetectSerialTest(TestBase):
     def _expect_default(self, c_expected, col, seq=None):
         Table('t', self.metadata, col)
 
+        self.autogen_context.metadata = self.metadata
+
         if seq:
             seq._set_metadata(self.metadata)
         self.metadata.create_all(config.db)
@@ -526,7 +528,7 @@ class PostgresqlDetectSerialTest(TestBase):
         uo = ops.UpgradeOps(ops=[])
         _compare_tables(
             set([(None, 't')]), set([]),
-            insp, self.metadata, uo, self.autogen_context)
+            insp, uo, self.autogen_context)
         diffs = uo.as_diffs()
         tab = diffs[0][1]
 
@@ -538,9 +540,10 @@ class PostgresqlDetectSerialTest(TestBase):
         uo = ops.UpgradeOps(ops=[])
         m2 = MetaData()
         Table('t', m2, Column('x', BigInteger()))
+        self.autogen_context.metadata = m2
         _compare_tables(
             set([(None, 't')]), set([(None, 't')]),
-            insp, m2, uo, self.autogen_context)
+            insp, uo, self.autogen_context)
         diffs = uo.as_diffs()
         server_default = diffs[0][0][4]['existing_server_default']
         eq_(_render_server_default_for_compare(

@@ -420,12 +420,20 @@ class EnvironmentContext(util.ModuleClsProxy):
         ``alembic revision`` is run with the ``--autogenerate`` feature:
 
         :param target_metadata: a :class:`sqlalchemy.schema.MetaData`
-         object that
-         will be consulted during autogeneration.  The tables present
+         object, or a sequence of :class:`~sqlalchemy.schema.MetaData`
+         objects, that will be consulted during autogeneration.
+         The tables present in each :class:`~sqlalchemy.schema.MetaData`
          will be compared against
          what is locally available on the target
          :class:`~sqlalchemy.engine.Connection`
          to produce candidate upgrade/downgrade operations.
+
+         .. versionchanged:: 0.9.0 the
+            :paramref:`.EnvironmentContext.configure.target_metadata`
+            parameter may now be passed a sequence of
+            :class:`~sqlalchemy.schema.MetaData` objects to support
+            autogeneration of multiple :class:`~sqlalchemy.schema.MetaData`
+            collections.
 
         :param compare_type: Indicates type comparison behavior during
          an autogenerate

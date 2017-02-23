@@ -53,8 +53,6 @@ def _produce_net_changes(autogen_context, upgrade_ops):
 def _autogen_for_tables(autogen_context, upgrade_ops, schemas):
     inspector = autogen_context.inspector
 
-    metadata = autogen_context.metadata
-
     conn_table_names = set()
 
     version_table_schema = \
@@ -70,15 +68,15 @@ def _autogen_for_tables(autogen_context, upgrade_ops, schemas):
         conn_table_names.update(zip([s] * len(tables), tables))
 
     metadata_table_names = OrderedSet(
-        [(table.schema, table.name) for table in metadata.sorted_tables]
+        [(table.schema, table.name) for table in autogen_context.sorted_tables]
     ).difference([(version_table_schema, version_table)])
 
     _compare_tables(conn_table_names, metadata_table_names,
-                    inspector, metadata, upgrade_ops, autogen_context)
+                    inspector, upgrade_ops, autogen_context)
 
 
 def _compare_tables(conn_table_names, metadata_table_names,
-                    inspector, metadata, upgrade_ops, autogen_context):
+                    inspector, upgrade_ops, autogen_context):
 
     default_schema = inspector.bind.dialect.default_schema_name
 
@@ -98,7 +96,8 @@ def _compare_tables(conn_table_names, metadata_table_names,
     tname_to_table = dict(
         (
             no_dflt_schema,
-            metadata.tables[sa_schema._get_table_key(tname, schema)]
+            autogen_context.table_key_to_table[
+                sa_schema._get_table_key(tname, schema)]
         )
         for no_dflt_schema, (schema, tname) in zip(
             metadata_table_names_no_dflt_schema,
