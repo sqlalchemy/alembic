@@ -11,7 +11,9 @@ from alembic.testing.env import clear_staging_env, staging_env, \
     three_rev_fixture, _no_sql_testing_config
 from alembic.testing import eq_, assert_raises_message
 from alembic.testing.fixtures import TestBase, capture_context_buffer
-
+from alembic.environment import EnvironmentContext
+from contextlib import contextmanager
+from alembic.testing import mock
 
 class ApplyVersionsFunctionalTest(TestBase):
     __only_on__ = 'sqlite'
@@ -131,7 +133,7 @@ class SourcelessApplyVersionsTest(ApplyVersionsFunctionalTest):
     sourceless = True
 
 
-class TransactionalDDLTest(TestBase):
+class OfflineTransactionalDDLTest(TestBase):
     def setUp(self):
         self.env = staging_env()
         self.cfg = cfg = _no_sql_testing_config()
@@ -168,6 +170,116 @@ class TransactionalDDLTest(TestBase):
             (r"BEGIN;.*?%s.*?COMMIT;.*$" % self.c),
 
             buf.getvalue(), re.S)
+
+
+class OnlineTransactionalDDLTest(TestBase):
+    def tearDown(self):
+        clear_staging_env()
+
+    def _opened_transaction_fixture(self):
+        self.env = staging_env()
+        self.cfg = _sqlite_testing_config()
+
+        script = ScriptDirectory.from_config(self.cfg)
+        a = util.rev_id()
+        b = util.rev_id()
+        c = util.rev_id()
+        script.generate_revision(a, "revision a", refresh=True)
+        write_script(script, a, """
+"rev a"
+
+revision = '%s'
+down_revision = None
+
+def upgrade():
+    pass
+
+def downgrade():
+    pass
+
+""" % (a, ))
+        script.generate_revision(b, "revision b", refresh=True)
+        write_script(script, b, """
+"rev b"
+revision = '%s'
+down_revision = '%s'
+
+from alembic import op
+
+
+def upgrade():
+    conn = op.get_bind()
+    trans = conn.begin()
+
+
+def downgrade():
+    pass
+
+""" % (b, a))
+        script.generate_revision(c, "revision c", refresh=True)
+        write_script(script, c, """
+"rev c"
+revision = '%s'
+down_revision = '%s'
+
+from alembic import op
+
+
+def upgrade():
+    pass
+
+
+def downgrade():
+    pass
+
+""" % (c, b))
+        return a, b, c
+
+    @contextmanager
+    def _patch_environment(self, transactional_ddl, transaction_per_migration):
+        conf = EnvironmentContext.configure
+
+        def configure(*arg, **opt):
+            opt.update(
+                transactional_ddl=transactional_ddl,
+                transaction_per_migration=transaction_per_migration)
+            return conf(*arg, **opt)
+
+        with mock.patch.object(EnvironmentContext, "configure", configure):
+            yield
+
+    def test_raise_when_rev_leaves_open_transaction(self):
+        a, b, c = self._opened_transaction_fixture()
+
+        with self._patch_environment(
+                transactional_ddl=False, transaction_per_migration=False):
+            assert_raises_message(
+                util.CommandError,
+                r'Migration "upgrade .*, rev b" has left an uncommitted '
+                r'transaction opened; transactional_ddl is False so Alembic '
+                r'is not committing transactions',
+                command.upgrade, self.cfg, c
+            )
+
+    def test_raise_when_rev_leaves_open_transaction_tpm(self):
+        a, b, c = self._opened_transaction_fixture()
+
+        with self._patch_environment(
+                transactional_ddl=False, transaction_per_migration=True):
+            assert_raises_message(
+                util.CommandError,
+                r'Migration "upgrade .*, rev b" has left an uncommitted '
+                r'transaction opened; transactional_ddl is False so Alembic '
+                r'is not committing transactions',
+                command.upgrade, self.cfg, c
+            )
+
+    def test_noerr_rev_leaves_open_transaction_transactional_ddl(self):
+        a, b, c = self._opened_transaction_fixture()
+
+        with self._patch_environment(
+                transactional_ddl=True, transaction_per_migration=False):
+            command.upgrade(self.cfg, c)
 
 
 class EncodingTest(TestBase):

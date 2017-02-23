@@ -7,6 +7,17 @@ Changelog
     :version: 0.9.0
     :released:
 
+    .. change:: 369
+      :tags: bug, commands
+      :tickets: 369
+
+      A :class:`.CommandError` is now raised when a migration file opens
+      a database transaction and does not close/commit/rollback, when
+      the backend database or environment options also specify transactional_ddl
+      is False.   When transactional_ddl is not in use, Alembic doesn't
+      close any transaction so a transaction opened by a migration file
+      will cause the following migrations to fail to apply.
+
     .. change:: 413
       :tags: bug, autogenerate, mysql
       :tickets: 413

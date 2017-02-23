@@ -67,7 +67,6 @@ class MigrationContext(object):
         self.script = opts.get('script')
         as_sql = opts.get('as_sql', False)
         transactional_ddl = opts.get("transactional_ddl")
-
         self._transaction_per_migration = opts.get(
             "transaction_per_migration", False)
 
@@ -326,6 +325,14 @@ class MigrationContext(object):
                 # and row-targeted updates and deletes, it's simpler for now
                 # just to run the operations on every version
                 head_maintainer.update_to_step(step)
+
+            if not self.as_sql and not self.impl.transactional_ddl and \
+                    self.connection.in_transaction():
+                raise util.CommandError(
+                    "Migration \"%s\" has left an uncommitted "
+                    "transaction opened; transactional_ddl is False so "
+                    "Alembic is not committing transactions"
+                    % step)
 
         if self.as_sql and not head_maintainer.heads:
             self._version.drop(self.connection)
