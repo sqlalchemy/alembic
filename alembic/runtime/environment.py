@@ -730,6 +730,8 @@ class EnvironmentContext(util.ModuleClsProxy):
 
              :ref:`autogen_rewriter`
 
+             :paramref:`.command.revision.process_revision_directives`
+
 
         Parameters specific to individual backends:
 

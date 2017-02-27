@@ -68,7 +68,9 @@ Changelog
 
       Added a keyword argument ``process_revision_directives`` to the
       :func:`.command.revision` API call.  This function acts in the
-      same role as the environment-level call, and allows API use of the
+      same role as the environment-level
+      :paramref:`.EnvironmentContext.configure.process_revision_directives`,
+      and allows API use of the
       command to drop in an ad-hoc directive process function.  This
       function can be used among other things to place a complete
       :class:`.MigrationScript` structure in place.
