@@ -5,7 +5,7 @@ Changelog
 
 .. changelog::
     :version: 0.9.0
-    :released:
+    :released: February 28, 2017
 
     .. change:: 38
       :tags: feature, autogenerate
