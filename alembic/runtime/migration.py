@@ -308,6 +308,9 @@ class MigrationContext(object):
 
         head_maintainer = HeadMaintainer(self, heads)
 
+        starting_in_transaction = not self.as_sql and \
+            self.connection.in_transaction()
+
         for step in self._migrations_fn(heads, self):
             with self.begin_transaction(_per_migration=True):
                 if self.as_sql and not head_maintainer.heads:
@@ -326,7 +329,8 @@ class MigrationContext(object):
                 # just to run the operations on every version
                 head_maintainer.update_to_step(step)
 
-            if not self.as_sql and not self.impl.transactional_ddl and \
+            if not starting_in_transaction and not self.as_sql and \
+                    not self.impl.transactional_ddl and \
                     self.connection.in_transaction():
                 raise util.CommandError(
                     "Migration \"%s\" has left an uncommitted "

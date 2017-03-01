@@ -7,6 +7,15 @@ Changelog
     :version: 0.9.1
     :released:
 
+    .. change:: 417
+      :tags: bug, commands
+      :tickets: 417, 369
+
+      An adjustment to the bug fix for :ticket:`369` to accommodate for
+      env.py scripts that use an enclosing transaction distinct from the
+      one that the context provides, so that the check for "didn't commit
+      the transaction" doesn't trigger in this scenario.
+
 .. changelog::
     :version: 0.9.0
     :released: February 28, 2017

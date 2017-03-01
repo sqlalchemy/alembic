@@ -8,7 +8,7 @@ from alembic.util import compat
 from alembic.script import ScriptDirectory, Script
 from alembic.testing.env import clear_staging_env, staging_env, \
     _sqlite_testing_config, write_script, _sqlite_file_db, \
-    three_rev_fixture, _no_sql_testing_config
+    three_rev_fixture, _no_sql_testing_config, env_file_fixture
 from alembic.testing import eq_, assert_raises_message
 from alembic.testing.fixtures import TestBase, capture_context_buffer
 from alembic.environment import EnvironmentContext
@@ -280,6 +280,35 @@ def downgrade():
         with self._patch_environment(
                 transactional_ddl=True, transaction_per_migration=False):
             command.upgrade(self.cfg, c)
+
+    def test_noerr_transaction_opened_externally(self):
+        a, b, c = self._opened_transaction_fixture()
+
+        env_file_fixture("""
+from sqlalchemy import engine_from_config, pool
+
+def run_migrations_online():
+    connectable = engine_from_config(
+        config.get_section(config.config_ini_section),
+        prefix='sqlalchemy.',
+        poolclass=pool.NullPool)
+
+    with connectable.connect() as connection:
+        with connection.begin() as real_trans:
+            context.configure(
+                connection=connection,
+                transactional_ddl=False,
+                transaction_per_migration=False
+            )
+
+            with context.begin_transaction():
+                context.run_migrations()
+
+run_migrations_online()
+
+""")
+
+        command.stamp(self.cfg, c)
 
 
 class EncodingTest(TestBase):
