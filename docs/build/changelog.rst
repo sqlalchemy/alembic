@@ -5,7 +5,7 @@ Changelog
 
 .. changelog::
     :version: 0.9.1
-    :released:
+    :released: March 1, 2017
 
     .. change:: 417
       :tags: bug, commands
