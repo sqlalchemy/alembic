@@ -6,6 +6,7 @@ from sqlalchemy import MetaData, Table, Column, String, literal_column,\
     PrimaryKeyConstraint
 from sqlalchemy.engine.strategies import MockEngineStrategy
 from sqlalchemy.engine import url as sqla_url
+from sqlalchemy.engine import Connection
 
 from ..util.compat import callable, EncodedIO
 from .. import ddl, util
@@ -152,6 +153,11 @@ class MigrationContext(object):
             opts = {}
 
         if connection:
+            if not isinstance(connection, Connection):
+                util.warn(
+                    "'connection' argument to configure() is expected "
+                    "to be a sqlalchemy.engine.Connection instance, "
+                    "got %r" % connection)
             dialect = connection.dialect
         elif url:
             url = sqla_url.make_url(url)
@@ -309,7 +315,7 @@ class MigrationContext(object):
         head_maintainer = HeadMaintainer(self, heads)
 
         starting_in_transaction = not self.as_sql and \
-            self.connection.in_transaction()
+            self._in_connection_transaction()
 
         for step in self._migrations_fn(heads, self):
             with self.begin_transaction(_per_migration=True):
@@ -330,8 +336,8 @@ class MigrationContext(object):
                 head_maintainer.update_to_step(step)
 
             if not starting_in_transaction and not self.as_sql and \
-                    not self.impl.transactional_ddl and \
-                    self.connection.in_transaction():
+                not self.impl.transactional_ddl and \
+                    self._in_connection_transaction():
                 raise util.CommandError(
                     "Migration \"%s\" has left an uncommitted "
                     "transaction opened; transactional_ddl is False so "
@@ -340,6 +346,14 @@ class MigrationContext(object):
 
         if self.as_sql and not head_maintainer.heads:
             self._version.drop(self.connection)
+
+    def _in_connection_transaction(self):
+        try:
+            meth = self.connection.in_transaction
+        except AttributeError:
+            return False
+        else:
+            return meth()
 
     def execute(self, sql, execution_options=None):
         """Execute a SQL construct or string statement.

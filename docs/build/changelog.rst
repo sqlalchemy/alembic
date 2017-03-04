@@ -7,6 +7,19 @@ Changelog
     :version: 0.9.2
     :released:
 
+    .. change:: 419
+      :tags: bug environment
+      :tickets: 419
+
+      A warning is emitted when an object that's not a
+      :class:`~sqlalchemy.engine.Connection` is passed to
+      :meth:`.EnvironmentContext.configure`.  For the case of a
+      :class:`~sqlalchemy.engine.Engine` passed, the check for "in transaction"
+      introduced in version 0.9.0 has been relaxed to work in the case of an
+      attribute error, as some users appear to be passing an
+      :class:`~sqlalchemy.engine.Engine` and not a
+      :class:`~sqlalchemy.engine.Connection`.
+
 .. changelog::
     :version: 0.9.1
     :released: March 1, 2017
