@@ -979,3 +979,27 @@ class IncludeHooksTest(AutogenFixtureTest, TestBase):
         eq_(diffs[1][0], 'add_constraint')
         eq_(diffs[1][1].name, 'uq2')
         eq_(len(diffs), 2)
+
+
+class TruncatedIdxTest(AutogenFixtureTest, TestBase):
+    __requires__ = ('sqlalchemy_09', )
+
+    def setUp(self):
+        self.bind = engines.testing_engine()
+        self.bind.dialect.max_identifier_length = 30
+
+    def test_idx_matches_long(self):
+        from alembic.operations.base import conv
+
+        m1 = MetaData()
+        Table(
+            'q', m1,
+            Column('id', Integer, primary_key=True),
+            Column('data', Integer),
+            Index(
+                conv("idx_q_table_this_is_more_than_thirty_characters"),
+                "data")
+        )
+
+        diffs = self._fixture(m1, m1)
+        eq_(diffs, [])

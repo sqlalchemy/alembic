@@ -7,6 +7,17 @@ Changelog
     :version: 0.9.2
     :released:
 
+    .. change:: 421
+      :tags: bug, autogenerate
+      :tickets: 421
+
+      The autogenerate compare scheme now takes into account the name truncation
+      rules applied by SQLAlchemy's DDL compiler to the names of the
+      :class:`.Index` object, when these names are dynamically truncated
+      due to a too-long identifier name.   As the identifier truncation is
+      deterministic, applying the same rule to the metadata name allows
+      correct comparison to the database-derived name.
+
     .. change:: 419
       :tags: bug environment
       :tickets: 419
