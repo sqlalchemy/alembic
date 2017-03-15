@@ -12,3 +12,5 @@
 .versionadded > p > span, .versionchanged > p > span, .deprecated > p > span{
 	font-style: italic;
 }
+
+@import url("site_custom_css.css");
