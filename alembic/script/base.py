@@ -1,4 +1,5 @@
 import datetime
+from dateutil import tz
 import os
 import re
 import shutil
@@ -42,7 +43,8 @@ class ScriptDirectory(object):
     def __init__(self, dir, file_template=_default_file_template,
                  truncate_slug_length=40,
                  version_locations=None,
-                 sourceless=False, output_encoding="utf-8"):
+                 sourceless=False, output_encoding="utf-8",
+                 timezone=None):
         self.dir = dir
         self.file_template = file_template
         self.version_locations = version_locations
@@ -50,6 +52,7 @@ class ScriptDirectory(object):
         self.sourceless = sourceless
         self.output_encoding = output_encoding
         self.revision_map = revision.RevisionMap(self._load_revisions)
+        self.timezone = timezone
 
         if not os.access(dir, os.F_OK):
             raise util.CommandError("Path doesn't exist: %r.  Please use "
@@ -118,6 +121,7 @@ class ScriptDirectory(object):
         version_locations = config.get_main_option("version_locations")
         if version_locations:
             version_locations = _split_on_space_comma.split(version_locations)
+
         return ScriptDirectory(
             util.coerce_resource_to_filename(script_location),
             file_template=config.get_main_option(
@@ -126,7 +130,8 @@ class ScriptDirectory(object):
             truncate_slug_length=truncate_slug_length,
             sourceless=config.get_main_option("sourceless") == "true",
             output_encoding=config.get_main_option("output_encoding", "utf-8"),
-            version_locations=version_locations
+            version_locations=version_locations,
+            timezone=config.get_main_option("timezone")
         )
 
     @contextmanager
@@ -440,6 +445,18 @@ class ScriptDirectory(object):
                 "Creating directory %s" % path,
                 os.makedirs, path)
 
+    def _generate_create_date(self):
+        if self.timezone is not None:
+            tzinfo = tz.gettz(self.timezone.upper())
+            if tzinfo is None:
+                raise util.CommandError(
+                    "Can't locate timezone: %s" % self.timezone)
+            create_date = datetime.datetime.utcnow().replace(
+                tzinfo=tz.tzutc()).astimezone(tzinfo)
+        else:
+            create_date = datetime.datetime.now()
+        return create_date
+
     def generate_revision(
             self, revid, message, head=None,
             refresh=False, splice=False, branch_labels=None,
@@ -478,7 +495,7 @@ class ScriptDirectory(object):
         if len(set(heads)) != len(heads):
             raise util.CommandError("Duplicate head revisions specified")
 
-        create_date = datetime.datetime.now()
+        create_date = self._generate_create_date()
 
         if version_path is None:
             if len(self._version_locations) > 1:

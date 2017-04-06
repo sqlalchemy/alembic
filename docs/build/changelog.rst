@@ -7,6 +7,16 @@ Changelog
     :version: 0.9.2
     :released:
 
+    .. change:: 425
+      :tags: feature, commands
+      :tickets: 425
+
+      Added a new configuration option ``timezone``, a string timezone name
+      that will be applied to the create date timestamp rendered
+      inside the revision file as made availble to the ``file_template`` used
+      to generate the revision filename.  Note this change adds the
+      ``python-dateutil`` package as a dependency.
+
     .. change:: 421
       :tags: bug, autogenerate
       :tickets: 421

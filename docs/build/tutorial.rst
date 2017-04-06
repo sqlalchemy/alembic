@@ -119,6 +119,12 @@ The file generated with the "generic" configuration looks like::
     # template used to generate migration files
     # file_template = %%(rev)s_%%(slug)s
 
+    # timezone to use when rendering the date
+    # within the migration file as well as the filename.
+    # string value is passed to dateutil.tz.gettz()
+    # leave blank for localtime
+    # timezone =
+
     # max length of characters to apply to the
     # "slug" field
     #truncate_slug_length = 40
@@ -212,8 +218,23 @@ This file contains the following features:
     * ``%%(rev)s`` - revision id
     * ``%%(slug)s`` - a truncated string derived from the revision message
     * ``%%(year)d``, ``%%(month).2d``, ``%%(day).2d``, ``%%(hour).2d``,
-      ``%%(minute).2d``, ``%%(second).2d`` - components of the create date
-      as returned by ``datetime.datetime.now()``
+      ``%%(minute).2d``, ``%%(second).2d`` - components of the create date,
+      by default ``datetime.datetime.now()`` unless the ``timezone``
+      configuration option is also used.
+
+* ``timezone`` - an optional timezone name (e.g. ``UTC``, ``EST5EDT``, etc.)
+  that will be applied to the timestamp which renders inside the migration
+  file's comment as well as within the filename.  If ``timezone`` is specified,
+  the create date object is no longer derived from ``datetime.datetime.now()``
+  and is instead generated as::
+
+      datetime.datetime.utcnow().replace(
+            tzinfo=dateutil.tz.tzutc()
+      ).astimezone(
+          dateutil.tz.gettz(<timezone>)
+      )
+
+  .. versionadded:: 0.9.2
 
 * ``truncate_slug_length`` - defaults to 40, the max number of characters
   to include in the "slug" field.

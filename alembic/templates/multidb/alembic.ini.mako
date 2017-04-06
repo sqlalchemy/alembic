@@ -7,6 +7,12 @@ script_location = ${script_location}
 # template used to generate migration files
 # file_template = %%(rev)s_%%(slug)s
 
+# timezone to use when rendering the date
+# within the migration file as well as the filename.
+# string value is passed to dateutil.tz.gettz()
+# leave blank for localtime
+# timezone =
+
 # max length of characters to apply to the
 # "slug" field
 #truncate_slug_length = 40

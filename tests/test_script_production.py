@@ -18,6 +18,7 @@ import sqlalchemy as sa
 from sqlalchemy.engine.reflection import Inspector
 from alembic.util import CommandError
 import re
+from dateutil import tz
 
 env, abc, def_ = None, None, None
 
@@ -151,6 +152,72 @@ class ScriptNamingTest(TestBase):
             os.path.abspath(
                 "%s/versions/12345_this_is_a_"
                 "message_2012_7_25_15_8_5.py" % _get_staging_directory())
+        )
+
+    def _test_tz(self, timezone_arg, given, expected):
+        script = ScriptDirectory(
+            _get_staging_directory(),
+            file_template="%(rev)s_%(slug)s_"
+            "%(year)s_%(month)s_"
+            "%(day)s_%(hour)s_"
+            "%(minute)s_%(second)s",
+            timezone=timezone_arg
+        )
+
+        with mock.patch(
+                "alembic.script.base.datetime",
+                mock.Mock(
+                    datetime=mock.Mock(
+                        utcnow=lambda: given,
+                        now=lambda: given
+                    )
+                )
+        ):
+            create_date = script._generate_create_date()
+        eq_(
+            create_date,
+            expected
+        )
+
+    def test_custom_tz(self):
+        self._test_tz(
+            'EST5EDT',
+            datetime.datetime(2012, 7, 25, 15, 8, 5),
+            datetime.datetime(
+                2012, 7, 25, 11, 8, 5, tzinfo=tz.gettz('EST5EDT'))
+        )
+
+    def test_custom_tz_lowercase(self):
+        self._test_tz(
+            'est5edt',
+            datetime.datetime(2012, 7, 25, 15, 8, 5),
+            datetime.datetime(
+                2012, 7, 25, 11, 8, 5, tzinfo=tz.gettz('EST5EDT'))
+        )
+
+    def test_custom_tz_utc(self):
+        self._test_tz(
+            'utc',
+            datetime.datetime(2012, 7, 25, 15, 8, 5),
+            datetime.datetime(
+                2012, 7, 25, 15, 8, 5, tzinfo=tz.gettz('UTC'))
+        )
+
+    def test_default_tz(self):
+        self._test_tz(
+            None,
+            datetime.datetime(2012, 7, 25, 15, 8, 5),
+            datetime.datetime(2012, 7, 25, 15, 8, 5)
+        )
+
+    def test_tz_cant_locate(self):
+        assert_raises_message(
+            CommandError,
+            "Can't locate timezone: fake",
+            self._test_tz,
+            "fake",
+            datetime.datetime(2012, 7, 25, 15, 8, 5),
+            datetime.datetime(2012, 7, 25, 15, 8, 5)
         )
 
 
