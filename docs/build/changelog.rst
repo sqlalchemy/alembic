@@ -5,7 +5,7 @@ Changelog
 
 .. changelog::
     :version: 0.9.2
-    :released:
+    :released: May 18, 2017
 
     .. change:: 429
       :tags: bug, mssql
