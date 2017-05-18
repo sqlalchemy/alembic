@@ -7,6 +7,14 @@ Changelog
     :version: 0.9.2
     :released:
 
+    .. change:: 429
+      :tags: bug, mssql
+      :tickets: 429
+
+      Repaired :meth:`.Operations.rename_table` for SQL Server when the
+      target table is in a remote schema, the schema name is omitted from
+      the "new name" argument.
+
     .. change:: 425
       :tags: feature, commands
       :tickets: 425

@@ -229,5 +229,5 @@ def visit_column_type(element, compiler, **kw):
 def visit_rename_table(element, compiler, **kw):
     return "EXEC sp_rename '%s', %s" % (
         format_table_name(compiler, element.table_name, element.schema),
-        format_table_name(compiler, element.new_table_name, element.schema)
+        format_table_name(compiler, element.new_table_name, None)
     )

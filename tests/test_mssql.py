@@ -252,10 +252,30 @@ class OpTest(TestBase):
         op.rename_table('t1', 't2')
         context.assert_contains("EXEC sp_rename 't1', t2")
 
-    # TODO: when we add schema support
-    # def test_alter_column_rename_mssql_schema(self):
-    #    context = op_fixture('mssql')
-    #    op.alter_column("t", "c", name="x", schema="y")
-    #    context.assert_(
-    #        "EXEC sp_rename 'y.t.c', 'x', 'COLUMN'"
-    #    )
+    def test_rename_table_schema(self):
+        context = op_fixture('mssql')
+        op.rename_table('t1', 't2', schema="foobar")
+        context.assert_contains("EXEC sp_rename 'foobar.t1', t2")
+
+    def test_rename_table_casesens(self):
+        context = op_fixture('mssql')
+        op.rename_table('TeeOne', 'TeeTwo')
+        # yup, ran this in SQL Server 2014, the two levels of quoting
+        # seems to be understood.  Can't do the two levels on the
+        # target name though !
+        context.assert_contains("EXEC sp_rename '[TeeOne]', [TeeTwo]")
+
+    def test_rename_table_schema_casesens(self):
+        context = op_fixture('mssql')
+        op.rename_table('TeeOne', 'TeeTwo', schema="FooBar")
+        # yup, ran this in SQL Server 2014, the two levels of quoting
+        # seems to be understood.  Can't do the two levels on the
+        # target name though !
+        context.assert_contains("EXEC sp_rename '[FooBar].[TeeOne]', [TeeTwo]")
+
+    def test_alter_column_rename_mssql_schema(self):
+        context = op_fixture('mssql')
+        op.alter_column("t", "c", name="x", schema="y")
+        context.assert_(
+            "EXEC sp_rename 'y.t.c', x, 'COLUMN'"
+        )
