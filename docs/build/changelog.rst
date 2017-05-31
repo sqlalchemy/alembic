@@ -7,6 +7,14 @@ Changelog
     :version: 0.9.3
     :released:
 
+    .. change:: 431
+      :tags: bug, tests
+      :tickets: 431
+
+      Fixed unit tests to run correctly under the SQLAlchemy 1.0.x series
+      prior to version 1.0.10 where a particular bug involving Postgresql
+      exclude constraints was fixed.
+
 .. changelog::
     :version: 0.9.2
     :released: May 18, 2017

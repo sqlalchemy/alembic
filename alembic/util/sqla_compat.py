@@ -28,6 +28,7 @@ sqla_094 = _vers >= (0, 9, 4)
 sqla_099 = _vers >= (0, 9, 9)
 sqla_100 = _vers >= (1, 0, 0)
 sqla_105 = _vers >= (1, 0, 5)
+sqla_1010 = _vers >= (1, 0, 10)
 sqla_110 = _vers >= (1, 1, 0)
 
 if sqla_08:

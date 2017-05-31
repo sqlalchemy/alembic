@@ -104,7 +104,7 @@ class PostgresqlOpTest(TestBase):
             '("SomeColumn" WITH >) WHERE ("SomeColumn" > 5)'
         )
 
-    @config.requirements.fail_before_sqla_100
+    @config.requirements.fail_before_sqla_1010
     def test_create_exclude_constraint_quoted_column(self):
         context = op_fixture("postgresql")
         op.create_exclude_constraint(
