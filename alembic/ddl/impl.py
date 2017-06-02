@@ -240,6 +240,8 @@ class DefaultImpl(with_metaclass(ImplMeta)):
         metadata_type = metadata_column.type
 
         metadata_impl = metadata_type.dialect_impl(self.dialect)
+        if isinstance(metadata_impl, sqltypes.Variant):
+            metadata_impl = metadata_impl.impl.dialect_impl(self.dialect)
 
         # work around SQLAlchemy bug "stale value for type affinity"
         # fixed in 0.7.4

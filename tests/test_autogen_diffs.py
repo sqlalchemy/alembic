@@ -662,6 +662,46 @@ class CompareTypeSpecificityTest(TestBase):
         is_(impl.compare_type(Column('x', t2), Column('x', t3)), True)
 
 
+class AutogenerateVariantCompareTest(AutogenTest, TestBase):
+    __backend__ = True
+
+    # 1.0.13 and lower fail on Postgresql due to variant / bigserial issue
+    # #3739
+
+    __requires__ = ('sqlalchemy_1014', )
+
+    @classmethod
+    def _get_db_schema(cls):
+        m = MetaData()
+
+        Table('sometable', m,
+              Column(
+                  'id',
+                  BigInteger().with_variant(Integer, "sqlite"),
+                  primary_key=True),
+              Column('value', String(50)))
+        return m
+
+    @classmethod
+    def _get_model_schema(cls):
+        m = MetaData()
+
+        Table('sometable', m,
+              Column(
+                  'id',
+                  BigInteger().with_variant(Integer, "sqlite"),
+                  primary_key=True),
+              Column('value', String(50)))
+        return m
+
+    def test_variant_no_issue(self):
+        uo = ops.UpgradeOps(ops=[])
+        autogenerate._produce_net_changes(self.autogen_context, uo)
+
+        diffs = uo.as_diffs()
+        eq_(diffs, [])
+
+
 class AutogenerateCustomCompareTypeTest(AutogenTest, TestBase):
     __only_on__ = 'sqlite'
 

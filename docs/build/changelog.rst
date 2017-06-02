@@ -7,6 +7,15 @@ Changelog
     :version: 0.9.3
     :released:
 
+    .. change:: 433
+      :tags: bug, autogenerate
+      :tickets: 433
+
+      Fixed bug where autogen comparison of a :class:`.Variant` datatype
+      would not compare to the dialect level type for the "default"
+      implementation of the :class:`.Variant`, returning the type as changed
+      between database and table metadata.
+
     .. change:: 431
       :tags: bug, tests
       :tickets: 431
