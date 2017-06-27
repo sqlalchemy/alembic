@@ -2,6 +2,7 @@
 
 import os
 import re
+import textwrap
 
 from alembic import command, util
 from alembic.util import compat
@@ -131,6 +132,87 @@ class ApplyVersionsFunctionalTest(TestBase):
 
 class SourcelessApplyVersionsTest(ApplyVersionsFunctionalTest):
     sourceless = True
+
+
+class CallbackEnvironmentTest(ApplyVersionsFunctionalTest):
+    exp_kwargs = frozenset(('ctx', 'heads', 'run_args', 'step'))
+
+    @staticmethod
+    def _env_file_fixture():
+        env_file_fixture(textwrap.dedent("""\
+            import alembic
+            from alembic import context
+            from sqlalchemy import engine_from_config, pool
+
+            config = context.config
+
+            target_metadata = None
+
+            def run_migrations_offline():
+                url = config.get_main_option('sqlalchemy.url')
+                context.configure(
+                    url=url, target_metadata=target_metadata,
+                    on_version_apply=alembic.mock_event_listener,
+                    literal_binds=True)
+
+                with context.begin_transaction():
+                    context.run_migrations()
+
+            def run_migrations_online():
+                connectable = engine_from_config(
+                    config.get_section(config.config_ini_section),
+                    prefix='sqlalchemy.',
+                    poolclass=pool.NullPool)
+                with connectable.connect() as connection:
+                    context.configure(
+                        connection=connection,
+                        on_version_apply=alembic.mock_event_listener,
+                        target_metadata=target_metadata,
+                    )
+                    with context.begin_transaction():
+                        context.run_migrations()
+
+            if context.is_offline_mode():
+                run_migrations_offline()
+            else:
+                run_migrations_online()
+            """))
+
+    def test_steps(self):
+        import alembic
+        alembic.mock_event_listener = None
+        self._env_file_fixture()
+        with mock.patch('alembic.mock_event_listener', mock.Mock()) as mymock:
+            super(CallbackEnvironmentTest, self).test_steps()
+        calls = mymock.call_args_list
+        assert calls
+        for call in calls:
+            args, kw = call
+            assert not args
+            assert set(kw.keys()) >= self.exp_kwargs
+            assert kw['run_args'] == {}
+            assert hasattr(kw['ctx'], 'get_current_revision')
+
+            step = kw['step']
+            assert isinstance(getattr(step, 'is_upgrade', None), bool)
+            assert isinstance(getattr(step, 'is_stamp', None), bool)
+            assert isinstance(getattr(step, 'is_migration', None), bool)
+            assert isinstance(getattr(step, 'up_revision_id', None),
+                              compat.string_types)
+            assert isinstance(getattr(step, 'up_revision', None), Script)
+            for revtype in 'down', 'source', 'destination':
+                revs = getattr(step, '%s_revisions' % revtype)
+                assert isinstance(revs, tuple)
+                for rev in revs:
+                    assert isinstance(rev, Script)
+                revids = getattr(step, '%s_revision_ids' % revtype)
+                for revid in revids:
+                    assert isinstance(revid, compat.string_types)
+
+            heads = kw['heads']
+            assert hasattr(heads, '__iter__')
+            for h in heads:
+                assert h is None or isinstance(h, compat.string_types)
 
 
 class OfflineTransactionalDDLTest(TestBase):

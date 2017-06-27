@@ -70,6 +70,7 @@ class MigrationContext(object):
         transactional_ddl = opts.get("transactional_ddl")
         self._transaction_per_migration = opts.get(
             "transaction_per_migration", False)
+        self.on_version_apply_callbacks = opts.get('on_version_apply', ())
 
         if as_sql:
             self.connection = self._stdout_connection(connection)
@@ -334,6 +335,11 @@ class MigrationContext(object):
                 # and row-targeted updates and deletes, it's simpler for now
                 # just to run the operations on every version
                 head_maintainer.update_to_step(step)
+                for callback in self.on_version_apply_callbacks:
+                    callback(ctx=self,
+                             step=step.info,
+                             heads=set(head_maintainer.heads),
+                             run_args=kw)
 
             if not starting_in_transaction and not self.as_sql and \
                 not self.impl.transactional_ddl and \
@@ -532,6 +538,95 @@ class HeadMaintainer(object):
             from_, to_ = step.update_version_num(self.heads)
             log.debug("update %s to %s", from_, to_)
             self._update_version(from_, to_)
+
+
+class MigrationInfo(object):
+    """Exposes information about a migration step to a callback listener.
+
+    The :class:`.MigrationInfo` object is available exclusively for the
+    benefit of the :paramref:`.EnvironmentContext.on_version_apply`
+    callback hook.
+
+    .. versionadded:: 0.9.3
+
+    """
+
+    is_upgrade = None
+    """True/False: indicates whether this operation ascends or descends the
+    version tree."""
+
+    is_stamp = None
+    """True/False: indicates whether this operation is a stamp (i.e. whether
+    it results in any actual database operations)."""
+
+    up_revision_id = None
+    """Version string corresponding to :attr:`.Revision.revision`."""
+
+    down_revision_ids = None
+    """Tuple of strings representing the base revisions of this migration step.
+
+    If empty, this represents a root revision; otherwise, the first item
+    corresponds to :attr:`.Revision.down_revision`, and the rest are inferred
+    from dependencies.
+    """
+
+    revision_map = None
+    """The revision map inside of which this operation occurs."""
+
+    def __init__(self, revision_map, is_upgrade, is_stamp, up_revision,
+                 down_revisions):
+        self.revision_map = revision_map
+        self.is_upgrade = is_upgrade
+        self.is_stamp = is_stamp
+        self.up_revision_id = up_revision
+        self.down_revision_ids = util.to_tuple(down_revisions)
+
+    @property
+    def is_migration(self):
+        """True/False: indicates whether this operation is a migration.
+
+        At present this is true if and only the migration is not a stamp.
+        If other operation types are added in the future, both this attribute
+        and :attr:`~.MigrationInfo.is_stamp` will be false.
+        """
+        return not self.is_stamp
+
+    @property
+    def source_revision_ids(self):
+        """Active revisions before this migration step is applied."""
+        revs = self.down_revision_ids if self.is_upgrade \
+            else self.up_revision_id
+        return util.to_tuple(revs, default=())
+
+    @property
+    def destination_revision_ids(self):
+        """Active revisions after this migration step is applied."""
+        revs = self.up_revision_id if self.is_upgrade \
+            else self.down_revision_ids
+        return util.to_tuple(revs, default=())
+
+    @property
+    def up_revision(self):
+        """Get :attr:`~MigrationInfo.up_revision_id` as a :class:`.Revision`."""
+        return self.revision_map.get_revision(self.up_revision_id)
+
+    @property
+    def down_revisions(self):
+        """Get :attr:`~MigrationInfo.down_revision_ids` as a tuple of
+        :class:`Revisions <.Revision>`."""
+        return self.revision_map.get_revisions(self.down_revision_ids)
+
+    @property
+    def source_revisions(self):
+        """Get :attr:`~MigrationInfo.source_revision_ids` as a tuple of
+        :class:`Revisions <.Revision>`."""
+        return self.revision_map.get_revisions(self.source_revision_ids)
+
+    @property
+    def destination_revisions(self):
+        """Get :attr:`~MigrationInfo.destination_revision_ids` as a tuple of
+        :class:`Revisions <.Revision>`."""
+        return self.revision_map.get_revisions(self.destination_revision_ids)
 
 
 class MigrationStep(object):
@@ -759,14 +854,22 @@ class RevisionStep(MigrationStep):
     def insert_version_num(self):
         return self.revision.revision
 
+    @property
+    def info(self):
+        return MigrationInfo(revision_map=self.revision_map,
+                             up_revision=self.revision.revision,
+                             down_revisions=self.revision._all_down_revisions,
+                             is_upgrade=self.is_upgrade, is_stamp=False)
+
 
 class StampStep(MigrationStep):
-    def __init__(self, from_, to_, is_upgrade, branch_move):
+    def __init__(self, from_, to_, is_upgrade, branch_move, revision_map=None):
         self.from_ = util.to_tuple(from_, default=())
         self.to_ = util.to_tuple(to_, default=())
         self.is_upgrade = is_upgrade
         self.branch_move = branch_move
         self.migration_fn = self.stamp_revision
+        self.revision_map = revision_map
 
     doc = None
 
@@ -836,3 +939,10 @@ class StampStep(MigrationStep):
 
     def should_unmerge_branches(self, heads):
         return len(self.to_) > 1
+
+    @property
+    def info(self):
+        up, down = (self.to_, self.from_) if self.is_upgrade \
+            else (self.from_, self.to_)
+        return MigrationInfo(self.revision_map, up, down, self.is_upgrade,
+                             True)

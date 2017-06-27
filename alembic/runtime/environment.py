@@ -307,6 +307,7 @@ class EnvironmentContext(util.ModuleClsProxy):
                   alembic_module_prefix="op.",
                   sqlalchemy_module_prefix="sa.",
                   user_module_prefix=None,
+                  on_version_apply=None,
                   **kw
                   ):
         """Configure a :class:`.MigrationContext` within this
@@ -415,6 +416,24 @@ class EnvironmentContext(util.ModuleClsProxy):
             :paramref:`.EnvironmentContext.configure.version_table_pk`
             flag and additionally established that the Alembic version table
             has a primary key constraint by default.
+
+        :param on_version_apply: a callable or collection of callables to be
+            run for each migration step.
+            The callables will be run in the order they are given, once for
+            each migration step, after the respective operation has been
+            applied but before its transaction is finalized.
+            Each callable accepts no positional arguments and the following
+            keyword arguments:
+
+            * ``ctx``: the :class:`.MigrationContext` running the migration,
+            * ``step``: a :class:`.MigrationInfo` representing the
+              step currently being applied,
+            * ``heads``: a collection of version strings representing the
+              current heads,
+            * ``run_args``: the ``**kwargs`` passed to :meth:`.run_migrations`.
+
+            .. versionadded:: 0.9.3
+
 
         Parameters specific to the autogenerate feature, when
         ``alembic revision`` is run with the ``--autogenerate`` feature:
@@ -732,7 +751,6 @@ class EnvironmentContext(util.ModuleClsProxy):
 
              :paramref:`.command.revision.process_revision_directives`
 
-
         Parameters specific to individual backends:
 
         :param mssql_batch_separator: The "batch separator" which will
@@ -774,6 +792,7 @@ class EnvironmentContext(util.ModuleClsProxy):
         opts['user_module_prefix'] = user_module_prefix
         opts['literal_binds'] = literal_binds
         opts['process_revision_directives'] = process_revision_directives
+        opts['on_version_apply'] = util.to_tuple(on_version_apply, default=())
 
         if render_item is not None:
             opts['render_item'] = render_item

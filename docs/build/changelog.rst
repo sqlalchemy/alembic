@@ -7,6 +7,14 @@ Changelog
     :version: 0.9.3
     :released:
 
+    .. change::
+      :tags: feature, runtime
+
+      Added a new callback hook :paramref:`.EnvironmentContext.on_version_apply`,
+      which allows user-defined code to be invoked each time an individual
+      upgrade, downgrade, or stamp operation proceeds against a database.
+      Pull request courtesy John Passaro.
+
     .. change:: 433
       :tags: bug, autogenerate
       :tickets: 433

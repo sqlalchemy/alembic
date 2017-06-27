@@ -370,7 +370,8 @@ class ScriptDirectory(object):
                     # dest is 'base'.  Return a "delete branch" migration
                     # for all applicable heads.
                     steps.extend([
-                        migration.StampStep(head.revision, None, False, True)
+                        migration.StampStep(head.revision, None, False, True,
+                                            self.revision_map)
                         for head in filtered_heads
                     ])
                     continue
@@ -390,7 +391,8 @@ class ScriptDirectory(object):
                     assert not ancestors.intersection(filtered_heads)
                     todo_heads = [head.revision for head in filtered_heads]
                     step = migration.StampStep(
-                        todo_heads, dest.revision, False, False)
+                        todo_heads, dest.revision, False, False,
+                        self.revision_map)
                     steps.append(step)
                     continue
                 elif ancestors.intersection(filtered_heads):
@@ -398,13 +400,15 @@ class ScriptDirectory(object):
                     # we can treat them as a "merge", single step.
                     todo_heads = [head.revision for head in filtered_heads]
                     step = migration.StampStep(
-                        todo_heads, dest.revision, True, False)
+                        todo_heads, dest.revision, True, False,
+                        self.revision_map)
                     steps.append(step)
                     continue
                 else:
                     # destination is in a branch not represented,
                     # treat it as new branch
-                    step = migration.StampStep((), dest.revision, True, True)
+                    step = migration.StampStep((), dest.revision, True, True,
+                                               self.revision_map)
                     steps.append(step)
                     continue
             return steps

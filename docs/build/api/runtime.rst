@@ -33,7 +33,8 @@ The Migration Context
 
 The :class:`.MigrationContext` handles the actual work to be performed
 against a database backend as migration operations proceed.  It is generally
-not exposed to the end-user.
+not exposed to the end-user, except when the
+:paramref:`~.EnvironmentContext.configure.on_version_apply` callback hook is used.
 
 .. automodule:: alembic.runtime.migration
     :members: MigrationContext
