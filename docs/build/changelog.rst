@@ -10,7 +10,8 @@ Changelog
     .. change::
       :tags: feature, runtime
 
-      Added a new callback hook :paramref:`.EnvironmentContext.on_version_apply`,
+      Added a new callback hook 
+      :paramref:`.EnvironmentContext.configure.on_version_apply`,
       which allows user-defined code to be invoked each time an individual
       upgrade, downgrade, or stamp operation proceeds against a database.
       Pull request courtesy John Passaro.

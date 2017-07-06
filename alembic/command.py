@@ -226,7 +226,7 @@ def upgrade(config, revision, sql=False, tag=None):
     :param sql: if True, use ``--sql`` mode
 
     :param tag: an arbitrary "tag" that can be intercepted by custom
-     ``env.py`` scripts via the :class:`.EnvironmentContext.get_tag_argument`
+     ``env.py`` scripts via the :meth:`.EnvironmentContext.get_tag_argument`
      method.
 
     """
@@ -264,7 +264,7 @@ def downgrade(config, revision, sql=False, tag=None):
     :param sql: if True, use ``--sql`` mode
 
     :param tag: an arbitrary "tag" that can be intercepted by custom
-     ``env.py`` scripts via the :class:`.EnvironmentContext.get_tag_argument`
+     ``env.py`` scripts via the :meth:`.EnvironmentContext.get_tag_argument`
      method.
 
     """

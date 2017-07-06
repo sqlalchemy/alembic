@@ -149,6 +149,7 @@ within the module level of the ``env.py`` script is sufficient.
 
 
 .. _operation_objects:
+.. _alembic.operations.ops.toplevel:
 
 Built-in Operation Objects
 ==============================
@@ -168,8 +169,6 @@ autogenerate system renders new migration scripts.
     :ref:`customizing_revision`
 
 The built-in operation objects are listed below.
-
-.. _alembic.operations.ops.toplevel:
 
 .. automodule:: alembic.operations.ops
     :members:

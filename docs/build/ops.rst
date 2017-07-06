@@ -39,5 +39,8 @@ circumstances they are called from an actual migration script, which
 itself would be invoked by the :meth:`.EnvironmentContext.run_migrations`
 method.
 
-.. automodule:: alembic.operations
-	:members: Operations, BatchOperations
+.. module:: alembic.operations
+
+.. autoclass:: Operations
+
+.. autoclass:: BatchOperations
