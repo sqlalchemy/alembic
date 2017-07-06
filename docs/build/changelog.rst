@@ -5,7 +5,7 @@ Changelog
 
 .. changelog::
     :version: 0.9.3
-    :released:
+    :released: July 6, 2017
 
     .. change::
       :tags: feature, runtime
