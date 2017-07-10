@@ -6,6 +6,16 @@ Changelog
 .. changelog::
     :version: 0.9.4
 
+    .. change::
+      :tags: bug, runtime
+
+      Added an additional attribute to the new
+      :paramref:`.EnvironmentContext.configure.on_version_apply` API,
+      :attr:`.MigrationInfo.up_revision_ids`, to accommodate for the uncommon
+      case of the ``alembic stamp`` command being used to move from multiple
+      branches down to a common branchpoint; there will be multiple
+      "up" revisions in this one case.
+
 .. changelog::
     :version: 0.9.3
     :released: July 6, 2017
@@ -13,7 +23,7 @@ Changelog
     .. change::
       :tags: feature, runtime
 
-      Added a new callback hook 
+      Added a new callback hook
       :paramref:`.EnvironmentContext.configure.on_version_apply`,
       which allows user-defined code to be invoked each time an individual
       upgrade, downgrade, or stamp operation proceeds against a database.

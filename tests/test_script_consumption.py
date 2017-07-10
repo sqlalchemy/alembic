@@ -36,6 +36,7 @@ class ApplyVersionsFunctionalTest(TestBase):
         self._test_004_downgrade()
         self._test_005_upgrade()
         self._test_006_upgrade_again()
+        self._test_007_stamp_upgrade()
 
     def _test_001_revisions(self):
         self.a = a = util.rev_id()
@@ -129,6 +130,13 @@ class ApplyVersionsFunctionalTest(TestBase):
         assert db.dialect.has_table(db.connect(), 'bar')
         assert not db.dialect.has_table(db.connect(), 'bat')
 
+    def _test_007_stamp_upgrade(self):
+        command.stamp(self.cfg, self.c)
+        db = self.bind
+        assert db.dialect.has_table(db.connect(), 'foo')
+        assert db.dialect.has_table(db.connect(), 'bar')
+        assert not db.dialect.has_table(db.connect(), 'bat')
+
 
 class SourcelessApplyVersionsTest(ApplyVersionsFunctionalTest):
     sourceless = True
@@ -194,13 +202,13 @@ class CallbackEnvironmentTest(ApplyVersionsFunctionalTest):
             assert hasattr(kw['ctx'], 'get_current_revision')
 
             step = kw['step']
-            assert isinstance(getattr(step, 'is_upgrade', None), bool)
-            assert isinstance(getattr(step, 'is_stamp', None), bool)
-            assert isinstance(getattr(step, 'is_migration', None), bool)
-            assert isinstance(getattr(step, 'up_revision_id', None),
-                              compat.string_types)
-            assert isinstance(getattr(step, 'up_revision', None), Script)
-            for revtype in 'down', 'source', 'destination':
+            assert isinstance(step.is_upgrade, bool)
+            assert isinstance(step.is_stamp, bool)
+            assert isinstance(step.is_migration, bool)
+            assert isinstance(step.up_revision_id, compat.string_types)
+            assert isinstance(step.up_revision, Script)
+
+            for revtype in 'up', 'down', 'source', 'destination':
                 revs = getattr(step, '%s_revisions' % revtype)
                 assert isinstance(revs, tuple)
                 for rev in revs:
