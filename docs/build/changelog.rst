@@ -4,6 +4,9 @@ Changelog
 ==========
 
 .. changelog::
+    :version: 0.9.4
+
+.. changelog::
     :version: 0.9.3
     :released: July 6, 2017
 
