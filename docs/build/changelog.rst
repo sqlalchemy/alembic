@@ -5,6 +5,7 @@ Changelog
 
 .. changelog::
     :version: 0.9.4
+    :released: July 31, 2017
 
     .. change::
       :tags: bug, runtime
