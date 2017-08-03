@@ -69,6 +69,27 @@ class PostgresqlOpTest(TestBase):
             "CREATE INDEX geocoded ON locations (coordinates) "
             "WHERE locations.coordinates != Null")
 
+    @config.requirements.fail_before_sqla_110
+    def test_create_index_postgresql_concurrently(self):
+        context = op_fixture("postgresql")
+        op.create_index(
+            'geocoded',
+            'locations',
+            ['coordinates'],
+            postgresql_concurrently=True)
+        context.assert_(
+            "CREATE INDEX CONCURRENTLY geocoded ON locations (coordinates)")
+
+    @config.requirements.fail_before_sqla_110
+    def test_drop_index_postgresql_concurrently(self):
+        context = op_fixture("postgresql")
+        op.drop_index(
+            'geocoded',
+            'locations',
+            postgresql_concurrently=True)
+        context.assert_(
+            "DROP INDEX CONCURRENTLY geocoded")
+
     def test_alter_column_type_using(self):
         context = op_fixture('postgresql')
         op.alter_column("t", "c", type_=Integer, postgresql_using='c::integer')

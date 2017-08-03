@@ -880,11 +880,13 @@ class DropIndexOp(MigrateOperation):
     """Represent a drop index operation."""
 
     def __init__(
-            self, index_name, table_name=None, schema=None, _orig_index=None):
+            self, index_name, table_name=None,
+            schema=None, _orig_index=None, **kw):
         self.index_name = index_name
         self.table_name = table_name
         self.schema = schema
         self._orig_index = _orig_index
+        self.kw = kw
 
     def to_diff_tuple(self):
         return ("remove_index", self.to_index())
@@ -902,7 +904,8 @@ class DropIndexOp(MigrateOperation):
             index.name,
             index.table.name,
             schema=index.table.schema,
-            _orig_index=index
+            _orig_index=index,
+            **index.kwargs
         )
 
     def to_index(self, migration_context=None):
@@ -914,14 +917,16 @@ class DropIndexOp(MigrateOperation):
         # need a dummy column name here since SQLAlchemy
         # 0.7.6 and further raises on Index with no columns
         return schema_obj.index(
-            self.index_name, self.table_name, ['x'], schema=self.schema)
+            self.index_name, self.table_name, ['x'],
+            schema=self.schema, **self.kw)
 
     @classmethod
     @util._with_legacy_names([
         ('name', 'index_name'),
         ('tablename', 'table_name')
     ])
-    def drop_index(cls, operations, index_name, table_name=None, schema=None):
+    def drop_index(cls, operations, index_name,
+                   table_name=None, schema=None, **kw):
         """Issue a "drop index" instruction using the current
         migration context.
 
@@ -940,13 +945,22 @@ class DropIndexOp(MigrateOperation):
          .. versionadded:: 0.7.0 'schema' can now accept a
             :class:`~sqlalchemy.sql.elements.quoted_name` construct.
 
+        :param \**kw: Additional keyword arguments not mentioned above are
+            dialect specific, and passed in the form
+            ``<dialectname>_<argname>``.
+            See the documentation regarding an individual dialect at
+            :ref:`dialect_toplevel` for detail on documented arguments.
+
+            .. versionadded:: 0.9.5 Support for dialect-specific keyword
+               arguments for DROP INDEX
+
         .. versionchanged:: 0.8.0 The following positional argument names
            have been changed:
 
            * name -> index_name
 
         """
-        op = cls(index_name, table_name=table_name, schema=schema)
+        op = cls(index_name, table_name=table_name, schema=schema, **kw)
         return operations.invoke(op)
 
     @classmethod
@@ -968,7 +982,7 @@ class DropIndexOp(MigrateOperation):
 
         op = cls(
             index_name, table_name=operations.impl.table_name,
-            schema=operations.impl.schema
+            schema=operations.impl.schema, **kw
         )
         return operations.invoke(op)
 
