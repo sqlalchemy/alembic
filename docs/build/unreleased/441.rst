@@ -1,0 +1,7 @@
+.. change::
+    :tags: bug, commands
+    :tickets: 441
+
+    A :class:`.CommandError` is raised if the "--rev-id" passed to the
+    :func:`.revision` command contains dashes or at-signs, as this interferes
+    with the command notation used to locate revisions.

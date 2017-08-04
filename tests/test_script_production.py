@@ -255,6 +255,35 @@ class RevisionCommandTest(TestBase):
             self.cfg, message="some message", head=self.b
         )
 
+    def test_illegal_revision_chars(self):
+        assert_raises_message(
+            util.CommandError,
+            r"Character\(s\) '-' not allowed in "
+            "revision identifier 'no-dashes'",
+            command.revision,
+            self.cfg, message="some message", rev_id="no-dashes"
+        )
+
+        assert not os.path.exists(
+            os.path.join(
+                self.env.dir, "versions", "no-dashes_some_message.py"))
+
+        assert_raises_message(
+            util.CommandError,
+            r"Character\(s\) '@' not allowed in "
+            "revision identifier 'no@atsigns'",
+            command.revision,
+            self.cfg, message="some message", rev_id="no@atsigns"
+        )
+
+        assert_raises_message(
+            util.CommandError,
+            r"Character\(s\) '-, @' not allowed in revision "
+            "identifier 'no@atsigns-ordashes'",
+            command.revision,
+            self.cfg, message="some message", rev_id="no@atsigns-ordashes"
+        )
+
     def test_create_script_branches(self):
         rev = command.revision(
             self.cfg, message="some message", branch_label="foobar")

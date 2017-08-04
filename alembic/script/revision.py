@@ -6,6 +6,7 @@ from sqlalchemy import util as sqlautil
 from ..util import compat
 
 _relative_destination = re.compile(r'(?:(.+?)@)?(\w+)?((?:\+|-)\d+)')
+_revision_illegal_chars = ['@', '-']
 
 
 class RevisionError(Exception):
@@ -821,9 +822,21 @@ class Revision(object):
     """Optional string/tuple of symbolic names to apply to this
     revision's branch"""
 
+    @classmethod
+    def verify_rev_id(cls, revision):
+        illegal_chars = set(revision).intersection(_revision_illegal_chars)
+        if illegal_chars:
+            raise RevisionError(
+                "Character(s) '%s' not allowed in revision identifier '%s'" % (
+                    ", ".join(sorted(illegal_chars)),
+                    revision
+                )
+            )
+
     def __init__(
             self, revision, down_revision,
             dependencies=None, branch_labels=None):
+        self.verify_rev_id(revision)
         self.revision = revision
         self.down_revision = tuple_rev_as_scalar(down_revision)
         self.dependencies = tuple_rev_as_scalar(dependencies)
