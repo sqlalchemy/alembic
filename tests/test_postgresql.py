@@ -69,7 +69,7 @@ class PostgresqlOpTest(TestBase):
             "CREATE INDEX geocoded ON locations (coordinates) "
             "WHERE locations.coordinates != Null")
 
-    @config.requirements.fail_before_sqla_110
+    # should fail with SQLAlchemy < 1.1
     def test_create_index_postgresql_concurrently(self):
         context = op_fixture("postgresql")
         op.create_index(
@@ -80,7 +80,7 @@ class PostgresqlOpTest(TestBase):
         context.assert_(
             "CREATE INDEX CONCURRENTLY geocoded ON locations (coordinates)")
 
-    @config.requirements.fail_before_sqla_110
+    # should fail with SQLAlchemy < 1.1
     def test_drop_index_postgresql_concurrently(self):
         context = op_fixture("postgresql")
         op.drop_index(
