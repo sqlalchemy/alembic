@@ -203,6 +203,14 @@ class ScriptNamingTest(TestBase):
                 2012, 7, 25, 15, 8, 5, tzinfo=tz.gettz('UTC'))
         )
 
+    def test_custom_tzdata_tz(self):
+        self._test_tz(
+            'Europe/Berlin',
+            datetime.datetime(2012, 7, 25, 15, 8, 5),
+            datetime.datetime(
+                2012, 7, 25, 17, 8, 5, tzinfo=tz.gettz('Europe/Berlin'))
+        )
+
     def test_default_tz(self):
         self._test_tz(
             None,

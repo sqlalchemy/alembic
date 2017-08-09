@@ -1,0 +1,10 @@
+.. change::
+    :tags: bug, commands
+
+    Fixed bug in timezone feature introduced in
+    :ticket:`425` when the creation
+    date in a revision file is calculated, to
+    accommodate for timezone names that contain
+    mixed-case characters in their name as opposed
+    to all uppercase.  Pull request courtesy Nils
+    Philippsen.

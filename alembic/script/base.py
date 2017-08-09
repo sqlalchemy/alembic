@@ -451,7 +451,11 @@ class ScriptDirectory(object):
 
     def _generate_create_date(self):
         if self.timezone is not None:
-            tzinfo = tz.gettz(self.timezone.upper())
+            # First, assume correct capitalization
+            tzinfo = tz.gettz(self.timezone)
+            if tzinfo is None:
+                # Fall back to uppercase
+                tzinfo = tz.gettz(self.timezone.upper())
             if tzinfo is None:
                 raise util.CommandError(
                     "Can't locate timezone: %s" % self.timezone)
