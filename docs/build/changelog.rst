@@ -5,7 +5,34 @@ Changelog
 
 .. changelog::
     :version: 0.9.5
-    :include_notes_from: unreleased
+    :released: August 9, 2017
+
+    .. change::
+        :tags: bug, commands
+        :tickets: 441
+
+        A :class:`.CommandError` is raised if the "--rev-id" passed to the
+        :func:`.revision` command contains dashes or at-signs, as this interferes
+        with the command notation used to locate revisions.
+
+    .. change::
+        :tags: bug, postgresql
+        :tickets: 424
+
+        Added support for the dialect-specific keyword arguments
+        to :meth:`.Operations.drop_index`.   This includes support for
+        ``postgresql_concurrently`` and others.
+
+    .. change::
+        :tags: bug, commands
+
+        Fixed bug in timezone feature introduced in
+        :ticket:`425` when the creation
+        date in a revision file is calculated, to
+        accommodate for timezone names that contain
+        mixed-case characters in their name as opposed
+        to all uppercase.  Pull request courtesy Nils
+        Philippsen.
 
 .. changelog::
     :version: 0.9.4

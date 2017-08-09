@@ -1,7 +1,0 @@
-.. change::
-    :tags: bug, postgresql
-    :tickets: 424
-
-    Added support for the dialect-specific keyword arguments
-    to :meth:`.Operations.drop_index`.   This includes support for
-    ``postgresql_concurrently`` and others.
