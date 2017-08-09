@@ -89,7 +89,7 @@ class DefaultRequirements(SuiteRequirements):
 
     @property
     def reflects_unique_constraints_unambiguously(self):
-        return exclusions.fails_on("mysql")
+        return exclusions.fails_on("mysql", "oracle")
 
     @property
     def reflects_pk_names(self):

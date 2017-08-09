@@ -16,6 +16,7 @@ from alembic.testing.env import _no_sql_testing_config, clear_staging_env,\
 
 
 class FileConfigTest(TestBase):
+
     def test_config_args(self):
         cfg = _write_config_file("""
 [alembic]
