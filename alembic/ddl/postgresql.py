@@ -16,7 +16,6 @@ from ..operations.base import BatchOperations
 from ..operations import ops
 from ..util import sqla_compat
 from ..operations import schemaobj
-from ..autogenerate import render
 
 import logging
 
@@ -183,39 +182,28 @@ class PostgresqlImpl(DefaultImpl):
                     metadata_indexes.discard(idx)
 
     def render_type(self, type_, autogen_context):
+        mod = type(type_).__module__
+        if not mod.startswith("sqlalchemy.dialects.postgresql"):
+            return False
+
         if hasattr(self, '_render_%s_type' % type_.__visit_name__):
             meth = getattr(self, '_render_%s_type' % type_.__visit_name__)
             return meth(type_, autogen_context)
 
         return False
 
-    def _render_type_w_subtype(self, type_, autogen_context, attrname, regexp):
-        outer_repr = repr(type_)
-        inner_type = getattr(type_, attrname, None)
-        if inner_type is None:
-            return False
-
-        inner_repr = repr(inner_type)
-
-        inner_repr = re.sub(r'([\(\)])', r'\\\1', inner_repr)
-        sub_type = render._repr_type(getattr(type_, attrname), autogen_context)
-        outer_type = re.sub(
-            regexp + inner_repr,
-            r"\1%s" % sub_type, outer_repr)
-        return "%s.%s" % ("postgresql", outer_type)
-
     def _render_ARRAY_type(self, type_, autogen_context):
-        return self._render_type_w_subtype(
+        return render._render_type_w_subtype(
             type_, autogen_context, 'item_type', r'(.+?\()'
         )
 
     def _render_JSON_type(self, type_, autogen_context):
-        return self._render_type_w_subtype(
+        return render._render_type_w_subtype(
             type_, autogen_context, 'astext_type', r'(.+?\(.*astext_type=)'
         )
 
     def _render_JSONB_type(self, type_, autogen_context):
-        return self._render_type_w_subtype(
+        return render._render_type_w_subtype(
             type_, autogen_context, 'astext_type', r'(.+?\(.*astext_type=)'
         )
 

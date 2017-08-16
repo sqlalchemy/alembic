@@ -573,6 +573,8 @@ def _repr_type(type_, autogen_context):
     if hasattr(autogen_context.migration_context, 'impl'):
         impl_rt = autogen_context.migration_context.impl.render_type(
             type_, autogen_context)
+    else:
+        impl_rt = None
 
     mod = type(type_).__module__
     imports = autogen_context.imports
@@ -585,12 +587,46 @@ def _repr_type(type_, autogen_context):
         else:
             return "%s.%r" % (dname, type_)
     elif mod.startswith("sqlalchemy."):
-        prefix = _sqlalchemy_autogenerate_prefix(autogen_context)
-        return "%s%r" % (prefix, type_)
+        if '_render_%s_type' % type_.__visit_name__ in globals():
+            fn = globals()['_render_%s_type' % type_.__visit_name__]
+            return fn(type_, autogen_context)
+        else:
+            prefix = _sqlalchemy_autogenerate_prefix(autogen_context)
+            return "%s%r" % (prefix, type_)
     else:
         prefix = _user_autogenerate_prefix(autogen_context, type_)
         return "%s%r" % (prefix, type_)
 
+
+def _render_ARRAY_type(type_, autogen_context):
+    return _render_type_w_subtype(
+        type_, autogen_context, 'item_type', r'(.+?\()'
+    )
+
+
+def _render_type_w_subtype(type_, autogen_context, attrname, regexp):
+    outer_repr = repr(type_)
+    inner_type = getattr(type_, attrname, None)
+    if inner_type is None:
+        return False
+
+    inner_repr = repr(inner_type)
+
+    inner_repr = re.sub(r'([\(\)])', r'\\\1', inner_repr)
+    sub_type = _repr_type(getattr(type_, attrname), autogen_context)
+    outer_type = re.sub(
+        regexp + inner_repr,
+        r"\1%s" % sub_type, outer_repr)
+
+    mod = type(type_).__module__
+    if mod.startswith("sqlalchemy.dialects"):
+        dname = re.match(r"sqlalchemy\.dialects\.(\w+)", mod).group(1)
+        return "%s.%s" % (dname, outer_type)
+    elif mod.startswith("sqlalchemy"):
+        prefix = _sqlalchemy_autogenerate_prefix(autogen_context)
+        return "%s%s" % (prefix, outer_type)
+    else:
+        return None
 
 _constraint_renderers = util.Dispatcher()
 

@@ -3,6 +3,7 @@ from sqlalchemy import DateTime, MetaData, Table, Column, text, Integer, \
     String, Interval, Sequence, Numeric, BigInteger, Float, Numeric
 from sqlalchemy.dialects.postgresql import ARRAY, UUID, BYTEA
 from sqlalchemy.engine.reflection import Inspector
+from sqlalchemy import types
 from alembic.operations import Operations
 from sqlalchemy.sql import table, column
 from alembic.autogenerate.compare import \
@@ -664,7 +665,7 @@ unique=False, """
         )
 
     @config.requirements.sqlalchemy_09
-    def test_array_type(self):
+    def test_postgresql_array_type(self):
 
         eq_ignore_whitespace(
             autogenerate.render._repr_type(
@@ -683,6 +684,34 @@ unique=False, """
                 ARRAY(BYTEA, as_tuple=True, dimensions=2),
                 self.autogen_context),
             "postgresql.ARRAY(postgresql.BYTEA(), as_tuple=True, dimensions=2)"
+        )
+
+        assert 'from sqlalchemy.dialects import postgresql' in \
+            self.autogen_context.imports
+
+    @config.requirements.sqlalchemy_110
+    def test_generic_array_type(self):
+
+        eq_ignore_whitespace(
+            autogenerate.render._repr_type(
+                types.ARRAY(Integer), self.autogen_context),
+            "sa.ARRAY(sa.Integer())"
+        )
+
+        eq_ignore_whitespace(
+            autogenerate.render._repr_type(
+                types.ARRAY(DateTime(timezone=True)), self.autogen_context),
+            "sa.ARRAY(sa.DateTime(timezone=True))"
+        )
+
+        assert 'from sqlalchemy.dialects import postgresql' not in \
+            self.autogen_context.imports
+
+        eq_ignore_whitespace(
+            autogenerate.render._repr_type(
+                types.ARRAY(BYTEA, as_tuple=True, dimensions=2),
+                self.autogen_context),
+            "sa.ARRAY(postgresql.BYTEA(), as_tuple=True, dimensions=2)"
         )
 
         assert 'from sqlalchemy.dialects import postgresql' in \

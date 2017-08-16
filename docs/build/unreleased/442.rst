@@ -1,0 +1,10 @@
+.. change::
+    :tags: bug, autogenerate
+    :tickets: 442
+
+    Fixed bug expanding upon the fix for
+    :ticket:`85` which adds the correct module import to the
+    "inner" type for an ``ARRAY`` type, the fix now accommodates for the
+    generic ``sqlalchemy.types.ARRAY`` type added in SQLAlchemy 1.1,
+    rendering the inner type correctly regardless of whether or not the
+    Postgresql dialect is present.
