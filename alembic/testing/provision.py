@@ -2,14 +2,17 @@
    this should be removable when Alembic targets SQLAlchemy 1.0.0
 """
 from sqlalchemy.engine import url as sa_url
+from sqlalchemy import create_engine
 from sqlalchemy import text
 from sqlalchemy import exc
 from ..util import compat
 from . import config, engines
 from .compat import get_url_backend_name
+import collections
 import os
 import time
 import logging
+
 log = logging.getLogger(__name__)
 
 FOLLOWER_IDENT = None
@@ -62,6 +65,7 @@ def setup_config(db_url, options, file_config, follower_ident):
     eng = engines.testing_engine(db_url, db_opts)
     _post_configure_engine(db_url, eng, follower_ident)
     eng.connect().close()
+
     cfg = config.Config.register(eng, db_opts, options, file_config)
     if follower_ident:
         _configure_follower(cfg, follower_ident)
@@ -275,36 +279,47 @@ def _oracle_drop_db(cfg, eng, ident):
         _ora_drop_ignore(conn, "%s_ts2" % ident)
 
 
-def reap_oracle_dbs(eng, idents_file):
+def reap_oracle_dbs(idents_file):
     log.info("Reaping Oracle dbs...")
-    with eng.connect() as conn:
-        with open(idents_file) as file_:
-            idents = set(line.strip() for line in file_)
 
-        log.info("identifiers in file: %s", ", ".join(idents))
+    urls = collections.defaultdict(list)
+    with open(idents_file) as file_:
+        for line in file_:
+            line = line.strip()
+            db_name, db_url = line.split(" ")
+            urls[db_url].append(db_name)
 
-        to_reap = conn.execute(
-            "select u.username from all_users u where username "
-            "like 'TEST_%' and not exists (select username "
-            "from v$session where username=u.username)")
-        all_names = set([username.lower() for (username, ) in to_reap])
-        to_drop = set()
-        for name in all_names:
-            if name.endswith("_ts1") or name.endswith("_ts2"):
-                continue
-            elif name in idents:
-                to_drop.add(name)
-                if "%s_ts1" % name in all_names:
-                    to_drop.add("%s_ts1" % name)
-                if "%s_ts2" % name in all_names:
-                    to_drop.add("%s_ts2" % name)
+    for url in urls:
+        idents = urls[url]
+        log.info("db reaper connecting to %r", url)
+        eng = create_engine(url)
+        with eng.connect() as conn:
 
-        dropped = total = 0
-        for total, username in enumerate(to_drop, 1):
-            if _ora_drop_ignore(conn, username):
-                dropped += 1
-        log.info(
-            "Dropped %d out of %d stale databases detected", dropped, total)
+            log.info("identifiers in file: %s", ", ".join(idents))
+
+            to_reap = conn.execute(
+                "select u.username from all_users u where username "
+                "like 'TEST_%' and not exists (select username "
+                "from v$session where username=u.username)")
+            all_names = {username.lower() for (username, ) in to_reap}
+            to_drop = set()
+            for name in all_names:
+                if name.endswith("_ts1") or name.endswith("_ts2"):
+                    continue
+                elif name in idents:
+                    to_drop.add(name)
+                    if "%s_ts1" % name in all_names:
+                        to_drop.add("%s_ts1" % name)
+                    if "%s_ts2" % name in all_names:
+                        to_drop.add("%s_ts2" % name)
+
+            dropped = total = 0
+            for total, username in enumerate(to_drop, 1):
+                if _ora_drop_ignore(conn, username):
+                    dropped += 1
+            log.info(
+                "Dropped %d out of %d stale databases detected",
+                dropped, total)
 
 
 @_follower_url_from_main.for_db("oracle")

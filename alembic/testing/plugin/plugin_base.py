@@ -258,6 +258,11 @@ def _engine_uri(options, file_config):
         db_urls.append(file_config.get('db', 'default'))
 
     for db_url in db_urls:
+
+        if options.write_idents and provision.FOLLOWER_IDENT: # != 'master':
+            with open(options.write_idents, "a") as file_:
+                file_.write(provision.FOLLOWER_IDENT + " " + db_url + "\n")
+
         cfg = provision.setup_config(
             db_url, options, file_config, provision.FOLLOWER_IDENT)
 
@@ -406,12 +411,14 @@ def want_method(cls, fn):
 def generate_sub_tests(cls, module):
     if getattr(cls, '__backend__', False):
         for cfg in _possible_configs_for_cls(cls):
-            name = "%s_%s_%s" % (cls.__name__, cfg.db.name, cfg.db.driver)
+            orig_name = cls.__name__
+            name = "%s_%s" % (cls.__name__, cfg.name)
             subcls = type(
                 name,
                 (cls, ),
                 {
-                    "__only_on__": ("%s+%s" % (cfg.db.name, cfg.db.driver)),
+                    "_sa_orig_cls_name": orig_name,
+                    "__only_on_config__": cfg
                 }
             )
             setattr(module, name, subcls)
@@ -463,6 +470,9 @@ def _possible_configs_for_cls(cls, reasons=None):
         for config_obj in list(all_configs):
             if not spec(config_obj):
                 all_configs.remove(config_obj)
+
+    if getattr(cls, '__only_on_config__', None):
+        all_configs.intersection_update([cls.__only_on_config__])
 
     if hasattr(cls, '__requires__'):
         requirements = config.requirements
