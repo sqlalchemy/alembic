@@ -217,6 +217,7 @@ class MySQLOpTest(TestBase):
 
 class MySQLDefaultCompareTest(TestBase):
     __only_on__ = 'mysql'
+    __backend__ = True
 
     @classmethod
     def setup_class(cls):

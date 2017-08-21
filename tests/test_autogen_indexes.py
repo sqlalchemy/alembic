@@ -561,6 +561,7 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestBase):
 class PGUniqueIndexTest(AutogenerateUniqueIndexTest):
     reports_unnamed_constraints = True
     __only_on__ = "postgresql"
+    __backend__ = True
 
     def test_idx_added_schema(self):
         m1 = MetaData()
@@ -701,6 +702,7 @@ class MySQLUniqueIndexTest(AutogenerateUniqueIndexTest):
     reports_unnamed_constraints = True
     reports_unique_constraints_as_indexes = True
     __only_on__ = 'mysql'
+    __backend__ = True
 
     def test_removed_idx_index_named_as_column(self):
         try:
@@ -716,7 +718,7 @@ class OracleUniqueIndexTest(AutogenerateUniqueIndexTest):
     reports_unnamed_constraints = True
     reports_unique_constraints_as_indexes = True
     __only_on__ = "oracle"
-
+    __backend__ = True
 
 class NoUqReflectionIndexTest(NoUqReflection, AutogenerateUniqueIndexTest):
     reports_unique_constraints = False

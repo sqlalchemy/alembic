@@ -232,6 +232,7 @@ def downgrade():
 
 class PostgresqlInlineLiteralTest(TestBase):
     __only_on__ = 'postgresql'
+    __backend__ = True
 
     @classmethod
     def setup_class(cls):
@@ -278,6 +279,8 @@ class PostgresqlInlineLiteralTest(TestBase):
 
 class PostgresqlDefaultCompareTest(TestBase):
     __only_on__ = 'postgresql'
+    __backend__ = True
+
 
     @classmethod
     def setup_class(cls):
@@ -513,6 +516,7 @@ class PostgresqlDefaultCompareTest(TestBase):
 
 class PostgresqlDetectSerialTest(TestBase):
     __only_on__ = 'postgresql'
+    __backend__ = True
 
     @classmethod
     def setup_class(cls):
