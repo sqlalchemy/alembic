@@ -63,7 +63,7 @@ def setup_options(make_option):
     make_option("--db", action="append", type="string", dest="db",
                 help="Use prefab database uri. Multiple OK, "
                 "first one is run by default.")
-    make_option('--dbs', action='callback', callback=_list_dbs,
+    make_option('--dbs', action='callback', zeroarg_callback=_list_dbs,
                 help="List available prefab dbs")
     make_option("--dburi", action="append", type="string", dest="dburi",
                 help="Database uri.  Multiple OK, "
@@ -72,6 +72,9 @@ def setup_options(make_option):
                 help="Drop all tables in the target database first")
     make_option("--backend-only", action="store_true", dest="backend_only",
                 help="Run only tests marked with __backend__")
+    make_option("--postgresql-templatedb", type="string",
+                help="name of template database to use for Postgresql "
+                     "CREATE DATABASE (defaults to current database)")
     make_option("--low-connections", action="store_true",
                 dest="low_connections",
                 help="Use a low number of distinct connections - "
