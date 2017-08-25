@@ -638,6 +638,13 @@ class CompareTypeSpecificityTest(TestBase):
         is_(impl.compare_type(Column('x', t3), Column('x', t2)), True)
         is_(impl.compare_type(Column('x', t3), Column('x', t4)), True)
 
+    def test_numeric_noprecision(self):
+        t1 = Numeric()
+        t2 = Numeric(scale=5)
+
+        impl = self._fixture()
+        is_(impl.compare_type(Column('x', t1), Column('x', t2)), False)
+
     def test_integer(self):
         t1 = Integer()
         t2 = SmallInteger()

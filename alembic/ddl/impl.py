@@ -333,15 +333,14 @@ def _string_compare(t1, t2):
 
 
 def _numeric_compare(t1, t2):
-    return \
-        (
-            t1.precision is not None and
-            t1.precision != t2.precision
-        ) or \
-        (
-            t1.scale is not None and
-            t1.scale != t2.scale
-        )
+    return (
+        t1.precision is not None and
+        t1.precision != t2.precision
+    ) or (
+        t1.precision is not None and
+        t1.scale is not None and
+        t1.scale != t2.scale
+    )
 
 
 def _integer_compare(t1, t2):
