@@ -89,7 +89,8 @@ def capture_context_buffer(**kw):
 
 def op_fixture(
         dialect='default', as_sql=False,
-        naming_convention=None, literal_binds=False):
+        naming_convention=None, literal_binds=False,
+        native_boolean=None):
 
     opts = {}
     if naming_convention:
@@ -143,6 +144,8 @@ def op_fixture(
     if literal_binds:
         opts['literal_binds'] = literal_binds
     ctx_dialect = _get_dialect(dialect)
+    if native_boolean is not None:
+        ctx_dialect.supports_native_boolean = native_boolean
     if not as_sql:
         def execute(stmt, *multiparam, **param):
             if isinstance(stmt, string_types):

@@ -340,7 +340,7 @@ class OpTest(TestBase):
         )
 
     def test_alter_column_schema_type_unnamed(self):
-        context = op_fixture('mssql')
+        context = op_fixture('mssql', native_boolean=False)
         op.alter_column("t", "c", type_=Boolean())
         context.assert_(
             'ALTER TABLE t ALTER COLUMN c BIT',
@@ -348,7 +348,7 @@ class OpTest(TestBase):
         )
 
     def test_alter_column_schema_schema_type_unnamed(self):
-        context = op_fixture('mssql')
+        context = op_fixture('mssql', native_boolean=False)
         op.alter_column("t", "c", type_=Boolean(), schema='foo')
         context.assert_(
             'ALTER TABLE foo.t ALTER COLUMN c BIT',
@@ -356,7 +356,7 @@ class OpTest(TestBase):
         )
 
     def test_alter_column_schema_type_named(self):
-        context = op_fixture('mssql')
+        context = op_fixture('mssql', native_boolean=False)
         op.alter_column("t", "c", type_=Boolean(name="xyz"))
         context.assert_(
             'ALTER TABLE t ALTER COLUMN c BIT',
@@ -364,7 +364,7 @@ class OpTest(TestBase):
         )
 
     def test_alter_column_schema_schema_type_named(self):
-        context = op_fixture('mssql')
+        context = op_fixture('mssql', native_boolean=False)
         op.alter_column("t", "c", type_=Boolean(name="xyz"), schema='foo')
         context.assert_(
             'ALTER TABLE foo.t ALTER COLUMN c BIT',
@@ -372,7 +372,7 @@ class OpTest(TestBase):
         )
 
     def test_alter_column_schema_type_existing_type(self):
-        context = op_fixture('mssql')
+        context = op_fixture('mssql', native_boolean=False)
         op.alter_column(
             "t", "c", type_=String(10), existing_type=Boolean(name="xyz"))
         context.assert_(
@@ -381,7 +381,7 @@ class OpTest(TestBase):
         )
 
     def test_alter_column_schema_schema_type_existing_type(self):
-        context = op_fixture('mssql')
+        context = op_fixture('mssql', native_boolean=False)
         op.alter_column("t", "c", type_=String(10),
                         existing_type=Boolean(name="xyz"), schema='foo')
         context.assert_(

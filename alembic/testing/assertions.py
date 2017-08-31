@@ -78,7 +78,7 @@ def assert_compiled(element, assert_string, dialect=None):
     )
 
 
-_dialects = {}
+_dialect_mods = {}
 
 
 def _get_dialect(name):
@@ -86,16 +86,17 @@ def _get_dialect(name):
         return default.DefaultDialect()
     else:
         try:
-            return _dialects[name]
+            dialect_mod = _dialect_mods[name]
         except KeyError:
             dialect_mod = getattr(
                 __import__('sqlalchemy.dialects.%s' % name).dialects, name)
-            _dialects[name] = d = dialect_mod.dialect()
-            if name == 'postgresql':
-                d.implicit_returning = True
-            elif name == 'mssql':
-                d.legacy_schema_aliasing = False
-            return d
+            _dialect_mods[name] = dialect_mod
+        d = dialect_mod.dialect()
+        if name == 'postgresql':
+            d.implicit_returning = True
+        elif name == 'mssql':
+            d.legacy_schema_aliasing = False
+        return d
 
 
 def expect_warnings(*messages, **kw):
