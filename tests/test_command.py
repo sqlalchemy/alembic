@@ -30,22 +30,58 @@ class HistoryTest(_BufMixin, TestBase):
         cls.env = staging_env()
         cls.cfg = _sqlite_testing_config()
         cls.a, cls.b, cls.c = three_rev_fixture(cls.cfg)
+        cls._setup_env_file()
 
     @classmethod
     def teardown_class(cls):
         clear_staging_env()
 
-    def _eq_cmd_output(self, buf, expected):
+    def teardown(self):
+        self.cfg.set_main_option("revision_environment", "false")
+
+    @classmethod
+    def _setup_env_file(self):
+        env_file_fixture(r"""
+
+from sqlalchemy import MetaData, engine_from_config
+target_metadata = MetaData()
+
+engine = engine_from_config(
+    config.get_section(config.config_ini_section),
+    prefix='sqlalchemy.')
+
+connection = engine.connect()
+
+context.configure(
+    connection=connection, target_metadata=target_metadata
+)
+
+try:
+    with context.begin_transaction():
+        config.stdout.write(u"environment included OK\n")
+        context.run_migrations()
+finally:
+    connection.close()
+
+""")
+
+    def _eq_cmd_output(self, buf, expected, env_token=False):
         script = ScriptDirectory.from_config(self.cfg)
 
         # test default encode/decode behavior as well,
         # rev B has a non-ascii char in it + a coding header.
+
+        assert_lines = [
+            script.get_revision(rev).log_entry
+            for rev in expected
+        ]
+        if env_token:
+            assert_lines.insert(0, "environment included OK")
+
         eq_(
             buf.getvalue().decode("ascii", 'replace').strip(),
-            "\n".join([
-                script.get_revision(rev).log_entry
-                for rev in expected
-            ]).encode("ascii", "replace").decode("ascii").strip()
+            "\n".join(assert_lines).
+            encode("ascii", "replace").decode("ascii").strip()
         )
 
     def test_history_full(self):
@@ -53,10 +89,22 @@ class HistoryTest(_BufMixin, TestBase):
         command.history(self.cfg, verbose=True)
         self._eq_cmd_output(buf, [self.c, self.b, self.a])
 
+    def test_history_full_environment(self):
+        self.cfg.stdout = buf = self._buf_fixture()
+        self.cfg.set_main_option("revision_environment", "true")
+        command.history(self.cfg, verbose=True)
+        self._eq_cmd_output(buf, [self.c, self.b, self.a], env_token=True)
+
     def test_history_num_range(self):
         self.cfg.stdout = buf = self._buf_fixture()
         command.history(self.cfg, "%s:%s" % (self.a, self.b), verbose=True)
         self._eq_cmd_output(buf, [self.b, self.a])
+
+    def test_history_num_range_environment(self):
+        self.cfg.stdout = buf = self._buf_fixture()
+        self.cfg.set_main_option("revision_environment", "true")
+        command.history(self.cfg, "%s:%s" % (self.a, self.b), verbose=True)
+        self._eq_cmd_output(buf, [self.b, self.a], env_token=True)
 
     def test_history_base_to_num(self):
         self.cfg.stdout = buf = self._buf_fixture()
@@ -67,6 +115,12 @@ class HistoryTest(_BufMixin, TestBase):
         self.cfg.stdout = buf = self._buf_fixture()
         command.history(self.cfg, "%s:" % (self.a), verbose=True)
         self._eq_cmd_output(buf, [self.c, self.b, self.a])
+
+    def test_history_num_to_head_environment(self):
+        self.cfg.stdout = buf = self._buf_fixture()
+        self.cfg.set_main_option("revision_environment", "true")
+        command.history(self.cfg, "%s:" % (self.a), verbose=True)
+        self._eq_cmd_output(buf, [self.c, self.b, self.a], env_token=True)
 
     def test_history_num_plus_relative(self):
         self.cfg.stdout = buf = self._buf_fixture()
@@ -87,13 +141,19 @@ class HistoryTest(_BufMixin, TestBase):
         command.stamp(self.cfg, self.b)
         self.cfg.stdout = buf = self._buf_fixture()
         command.history(self.cfg, "current:", verbose=True)
-        self._eq_cmd_output(buf, [self.c, self.b])
+        self._eq_cmd_output(buf, [self.c, self.b], env_token=True)
 
     def test_history_current_to_head_as_base(self):
         command.stamp(self.cfg, "base")
         self.cfg.stdout = buf = self._buf_fixture()
         command.history(self.cfg, "current:", verbose=True)
-        self._eq_cmd_output(buf, [self.c, self.b, self.a])
+        self._eq_cmd_output(buf, [self.c, self.b, self.a], env_token=True)
+
+    def test_history_include_env(self):
+        self.cfg.stdout = buf = self._buf_fixture()
+        self.cfg.set_main_option("revision_environment", "true")
+        command.history(self.cfg, verbose=True)
+        self._eq_cmd_output(buf, [self.c, self.b, self.a], env_token=True)
 
 
 class CurrentTest(_BufMixin, TestBase):

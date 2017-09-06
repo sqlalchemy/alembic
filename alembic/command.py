@@ -342,6 +342,10 @@ def history(config, rev_range=None, verbose=False):
     else:
         base = head = None
 
+    environment = util.asbool(
+        config.get_main_option("revision_environment")
+    )
+
     def _display_history(config, script, base, head):
         for sc in script.walk_revisions(
                 base=base or "base",
@@ -357,6 +361,8 @@ def history(config, rev_range=None, verbose=False):
                 _display_history(config, script, base, rev)
             elif base is None:
                 _display_history(config, script, rev, head)
+            else:
+                _display_history(config, script, base, head)
             return []
 
         with EnvironmentContext(
@@ -370,6 +376,8 @@ def history(config, rev_range=None, verbose=False):
         _display_history_w_current(config, script, head=head)
     elif head == "current":
         _display_history_w_current(config, script, base=base)
+    elif environment:
+        _display_history_w_current(config, script, base, head)
     else:
         _display_history(config, script, base, head)
 

@@ -246,9 +246,14 @@ This file contains the following features:
   a file that can be customized by the developer. A multiple
   database configuration may respond to multiple keys here, or may reference other sections
   of the file.
+
 * ``revision_environment`` - this is a flag which when set to the value 'true', will indicate
   that the migration environment script ``env.py`` should be run unconditionally when
-  generating new revision files
+  generating new revision files, as well as when running the ``alembic history``
+  command.
+
+  .. versionchanged:: 0.9.6 the ``alembic history`` command uses the environment
+     unconditionally when ``revision_environment`` is set to true.
 
 * ``sourceless`` - when set to 'true', revision files that only exist as .pyc
   or .pyo files in the versions directory will be used as versions, allowing
