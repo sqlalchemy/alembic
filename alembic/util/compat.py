@@ -8,12 +8,14 @@ py27 = sys.version_info >= (2, 7)
 py2k = sys.version_info < (3, 0)
 py3k = sys.version_info >= (3, 0)
 py33 = sys.version_info >= (3, 3)
+py35 = sys.version_info >= (3, 5)
+py36 = sys.version_info >= (3, 6)
 
 if py3k:
     from io import StringIO
 else:
     # accepts strings
-    from StringIO import StringIO
+    from StringIO import StringIO  # noqa
 
 if py3k:
     import builtins as compat_builtins
@@ -50,40 +52,100 @@ if py3k:
     from configparser import ConfigParser as SafeConfigParser
     import configparser
 else:
-    from ConfigParser import SafeConfigParser
-    import ConfigParser as configparser
+    from ConfigParser import SafeConfigParser  # noqa
+    import ConfigParser as configparser  # noqa
 
 if py2k:
     from mako.util import parse_encoding
 
-if py33:
-    from importlib import machinery
+if py35:
+    import importlib.util
+    import importlib.machinery
 
     def load_module_py(module_id, path):
-        return machinery.SourceFileLoader(
-            module_id, path).load_module(module_id)
+        spec = importlib.util.spec_from_file_location(module_id, path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
 
     def load_module_pyc(module_id, path):
-        return machinery.SourcelessFileLoader(
+        spec = importlib.util.spec_from_file_location(module_id, path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+elif py33:
+    import importlib.machinery
+
+    def load_module_py(module_id, path):
+        module = importlib.machinery.SourceFileLoader(
             module_id, path).load_module(module_id)
+        del sys.modules[module_id]
+        return module
+
+    def load_module_pyc(module_id, path):
+        module = importlib.machinery.SourcelessFileLoader(
+            module_id, path).load_module(module_id)
+        del sys.modules[module_id]
+        return module
+
+if py33:
+    def get_bytecode_suffixes():
+        try:
+            return importlib.machinery.BYTECODE_SUFFIXES
+        except AttributeError:
+            return importlib.machinery.DEBUG_BYTECODE_SUFFIXES
+
+    def get_current_bytecode_suffixes():
+        if py35:
+            suffixes = importlib.machinery.BYTECODE_SUFFIXES
+        elif py33:
+            if sys.flags.optimize:
+                suffixes = importlib.machinery.OPTIMIZED_BYTECODE_SUFFIXES
+            else:
+                suffixes = importlib.machinery.BYTECODE_SUFFIXES
+        else:
+            if sys.flags.optimize:
+                suffixes = [".pyo"]
+            else:
+                suffixes = [".pyc"]
+
+        return suffixes
+
+    def has_pep3147():
+        # http://www.python.org/dev/peps/pep-3147/#detecting-pep-3147-availability
+
+        import imp
+        return hasattr(imp, 'get_tag')
 
 else:
     import imp
 
-    def load_module_py(module_id, path):
+    def load_module_py(module_id, path):  # noqa
         with open(path, 'rb') as fp:
             mod = imp.load_source(module_id, path, fp)
             if py2k:
                 source_encoding = parse_encoding(fp)
                 if source_encoding:
                     mod._alembic_source_encoding = source_encoding
+            del sys.modules[module_id]
             return mod
 
-    def load_module_pyc(module_id, path):
+    def load_module_pyc(module_id, path):  # noqa
         with open(path, 'rb') as fp:
             mod = imp.load_compiled(module_id, path, fp)
             # no source encoding here
+            del sys.modules[module_id]
             return mod
+
+    def get_current_bytecode_suffixes():
+        if sys.flags.optimize:
+            return [".pyo"]  # e.g. .pyo
+        else:
+            return [".pyc"]  # e.g. .pyc
+
+    def has_pep3147():
+        return False
 
 try:
     exec_ = getattr(compat_builtins, 'exec')

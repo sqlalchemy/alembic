@@ -16,6 +16,7 @@ from alembic.environment import EnvironmentContext
 from contextlib import contextmanager
 from alembic.testing import mock
 
+
 class ApplyVersionsFunctionalTest(TestBase):
     __only_on__ = 'sqlite'
 
@@ -138,8 +139,22 @@ class ApplyVersionsFunctionalTest(TestBase):
         assert not db.dialect.has_table(db.connect(), 'bat')
 
 
-class SourcelessApplyVersionsTest(ApplyVersionsFunctionalTest):
-    sourceless = True
+class SimpleSourcelessApplyVersionsTest(ApplyVersionsFunctionalTest):
+    sourceless = "simple"
+
+
+class NewFangledSourcelessEnvOnlyApplyVersionsTest(
+        ApplyVersionsFunctionalTest):
+    sourceless = "pep3147_envonly"
+
+    __requires__ = "pep3147",
+
+
+class NewFangledSourcelessEverythingApplyVersionsTest(
+        ApplyVersionsFunctionalTest):
+    sourceless = "pep3147_everything"
+
+    __requires__ = "pep3147",
 
 
 class CallbackEnvironmentTest(ApplyVersionsFunctionalTest):
@@ -591,8 +606,20 @@ class IgnoreFilesTest(TestBase):
         self._test_ignore_dot_hash_py("pyo")
 
 
-class SourcelessIgnoreFilesTest(IgnoreFilesTest):
-    sourceless = True
+class SimpleSourcelessIgnoreFilesTest(IgnoreFilesTest):
+    sourceless = "simple"
+
+
+class NewFangledEnvOnlySourcelessIgnoreFilesTest(IgnoreFilesTest):
+    sourceless = "pep3147_envonly"
+
+    __requires__ = "pep3147",
+
+
+class NewFangledEverythingSourcelessIgnoreFilesTest(IgnoreFilesTest):
+    sourceless = "pep3147_everything"
+
+    __requires__ = "pep3147",
 
 
 class SourcelessNeedsFlagTest(TestBase):

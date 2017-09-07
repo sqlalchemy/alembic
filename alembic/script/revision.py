@@ -348,6 +348,9 @@ class RevisionMap(object):
         try:
             revision = self._revision_map[resolved_id]
         except KeyError:
+            # break out to avoid misleading py3k stack traces
+            revision = False
+        if revision is False:
             # do a partial lookup
             revs = [x for x in self._revision_map
                     if x and x.startswith(resolved_id)]

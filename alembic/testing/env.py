@@ -4,7 +4,7 @@ import os
 import shutil
 import textwrap
 
-from ..util.compat import u
+from ..util.compat import u, has_pep3147, get_current_bytecode_suffixes
 from ..script import Script, ScriptDirectory
 from .. import util
 from . import engines
@@ -37,7 +37,12 @@ def staging_env(create=True, template="generic", sourceless=False):
                 # generate .pyc/.pyo without importing but not really
                 # worth it.
                 pass
-            make_sourceless(os.path.join(path, "env.py"))
+            assert sourceless in (
+                "pep3147_envonly", "simple", "pep3147_everything"), sourceless
+            make_sourceless(
+                os.path.join(path, "env.py"),
+                "pep3147" if "pep3147" in sourceless else "simple"
+            )
 
     sc = script.ScriptDirectory.from_config(cfg)
     return sc
@@ -64,7 +69,7 @@ config = context.config
 
     path = os.path.join(dir_, "env.py")
     pyc_path = util.pyc_file_from_path(path)
-    if os.access(pyc_path, os.F_OK):
+    if pyc_path:
         os.unlink(pyc_path)
 
     with open(path, 'w') as f:
@@ -111,8 +116,6 @@ keys = generic
 format = %%(levelname)-5.5s [%%(name)s] %%(message)s
 datefmt = %%H:%%M:%%S
     """ % (dir_, url, "true" if sourceless else "false"))
-
-
 
 
 def _multi_dir_testing_config(sourceless=False, extra_version_location=''):
@@ -215,7 +218,7 @@ def write_script(
     with open(path, 'wb') as fp:
         fp.write(content)
     pyc_path = util.pyc_file_from_path(path)
-    if os.access(pyc_path, os.F_OK):
+    if pyc_path:
         os.unlink(pyc_path)
     script = Script._from_path(scriptdir, path)
     old = scriptdir.revision_map.get_revision(script.revision)
@@ -225,21 +228,32 @@ def write_script(
     scriptdir.revision_map.add_revision(script, _replace=True)
 
     if sourceless:
-        make_sourceless(path)
+        make_sourceless(
+            path,
+            "pep3147" if sourceless == "pep3147_everything" else "simple"
+        )
 
 
-def make_sourceless(path):
-    # note that if -O is set, you'd see pyo files here,
-    # the pyc util function looks at sys.flags.optimize to handle this
-    pyc_path = util.pyc_file_from_path(path)
+def make_sourceless(path, style):
+
+    import py_compile
+    py_compile.compile(path)
+
+    if style == "simple" and has_pep3147():
+        pyc_path = util.pyc_file_from_path(path)
+        suffix = get_current_bytecode_suffixes()[0]
+        filepath, ext = os.path.splitext(path)
+        simple_pyc_path = filepath + suffix
+        shutil.move(pyc_path, simple_pyc_path)
+        pyc_path = simple_pyc_path
+    elif style == "pep3147" and not has_pep3147():
+        raise NotImplementedError()
+    else:
+        assert style in ("pep3147", "simple")
+        pyc_path = util.pyc_file_from_path(path)
+
     assert os.access(pyc_path, os.F_OK)
 
-    # look for a non-pep3147 path here.
-    # if not present, need to copy from __pycache__
-    simple_pyc_path = util.simple_pyc_file_from_path(path)
-
-    if not os.access(simple_pyc_path, os.F_OK):
-        shutil.copyfile(pyc_path, simple_pyc_path)
     os.unlink(path)
 
 

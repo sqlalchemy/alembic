@@ -87,7 +87,7 @@ class ScriptDirectory(object):
 
         dupes = set()
         for vers in paths:
-            for file_ in os.listdir(vers):
+            for file_ in Script._list_py_dir(self, vers):
                 path = os.path.realpath(os.path.join(vers, file_))
                 if path in dupes:
                     util.warn(
@@ -749,6 +749,29 @@ class Script(revision.Revision):
     def _from_path(cls, scriptdir, path):
         dir_, filename = os.path.split(path)
         return cls._from_filename(scriptdir, dir_, filename)
+
+    @classmethod
+    def _list_py_dir(cls, scriptdir, path):
+        if scriptdir.sourceless:
+            # read files in version path, e.g. pyc or pyo files
+            # in the immediate path
+            paths = os.listdir(path)
+
+            names = set(fname.split(".")[0] for fname in paths)
+
+            # look for __pycache__
+            if os.path.exists(os.path.join(path, '__pycache__')):
+                # add all files from __pycache__ whose filename is not
+                # already in the names we got from the version directory.
+                # add as relative paths including __pycache__ token
+                paths.extend(
+                    os.path.join('__pycache__', pyc)
+                    for pyc in os.listdir(os.path.join(path, '__pycache__'))
+                    if pyc.split(".")[0] not in names
+                )
+            return paths
+        else:
+            return os.listdir(path)
 
     @classmethod
     def _from_filename(cls, scriptdir, dir_, filename):

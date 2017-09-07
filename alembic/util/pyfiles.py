@@ -1,7 +1,8 @@
 import sys
 import os
 import re
-from .compat import load_module_py, load_module_pyc
+from .compat import load_module_py, load_module_pyc, \
+    get_current_bytecode_suffixes, has_pep3147
 from mako.template import Template
 from mako import exceptions
 import tempfile
@@ -40,36 +41,23 @@ def coerce_resource_to_filename(fname):
     return fname
 
 
-def simple_pyc_file_from_path(path):
-    """Given a python source path, return the so-called
-    "sourceless" .pyc or .pyo path.
-
-    This just a .pyc or .pyo file where the .py file would be.
-
-    Even with PEP-3147, which normally puts .pyc/.pyo files in __pycache__,
-    this use case remains supported as a so-called "sourceless module import".
-
-    """
-    if sys.flags.optimize:
-        return path + "o"  # e.g. .pyo
-    else:
-        return path + "c"  # e.g. .pyc
-
-
 def pyc_file_from_path(path):
     """Given a python source path, locate the .pyc.
 
-    See http://www.python.org/dev/peps/pep-3147/
-                        #detecting-pep-3147-availability
-        http://www.python.org/dev/peps/pep-3147/#file-extension-checks
-
     """
-    import imp
-    has3147 = hasattr(imp, 'get_tag')
-    if has3147:
-        return imp.cache_from_source(path)
+
+    if has_pep3147():
+        import imp
+        candidate = imp.cache_from_source(path)
+        if os.path.exists(candidate):
+            return candidate
+
+    filepath, ext = os.path.splitext(path)
+    for ext in get_current_bytecode_suffixes():
+        if os.path.exists(filepath + ext):
+            return filepath + ext
     else:
-        return simple_pyc_file_from_path(path)
+        return None
 
 
 def edit(path):
@@ -91,13 +79,12 @@ def load_python_file(dir_, filename):
     if ext == ".py":
         if os.path.exists(path):
             module = load_module_py(module_id, path)
-        elif os.path.exists(simple_pyc_file_from_path(path)):
-            # look for sourceless load
-            module = load_module_pyc(
-                module_id, simple_pyc_file_from_path(path))
         else:
-            raise ImportError("Can't find Python file %s" % path)
+            pyc_path = pyc_file_from_path(path)
+            if pyc_path is None:
+                raise ImportError("Can't find Python file %s" % path)
+            else:
+                module = load_module_pyc(module_id, pyc_path)
     elif ext in (".pyc", ".pyo"):
         module = load_module_pyc(module_id, path)
-    del sys.modules[module_id]
     return module

@@ -171,3 +171,11 @@ class SuiteRequirements(Requirements):
             lambda config: not util.sqla_110,
             "SQLAlchemy 1.1.0 or greater required"
         )
+
+    @property
+    def pep3147(self):
+
+        return exclusions.only_if(
+            lambda config: util.compat.has_pep3147()
+        )
+
