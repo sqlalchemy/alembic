@@ -6,7 +6,7 @@ from sqlalchemy import util as sqlautil
 from ..util import compat
 
 _relative_destination = re.compile(r'(?:(.+?)@)?(\w+)?((?:\+|-)\d+)')
-_revision_illegal_chars = ['@', '-']
+_revision_illegal_chars = ['@', '-', '+']
 
 
 class RevisionError(Exception):

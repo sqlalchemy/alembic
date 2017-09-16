@@ -292,6 +292,14 @@ class RevisionCommandTest(TestBase):
             self.cfg, message="some message", rev_id="no@atsigns-ordashes"
         )
 
+        assert_raises_message(
+            util.CommandError,
+            r"Character\(s\) '\+' not allowed in revision "
+            r"identifier 'no\+plussignseither'",
+            command.revision,
+            self.cfg, message="some message", rev_id="no+plussignseither"
+        )
+
     def test_create_script_branches(self):
         rev = command.revision(
             self.cfg, message="some message", branch_label="foobar")
