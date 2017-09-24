@@ -31,7 +31,7 @@ db_names = config.get_main_option('databases')
 # target_metadata = {
 #       'engine1':mymodel.metadata1,
 #       'engine2':mymodel.metadata2
-#}
+# }
 target_metadata = {}
 
 # other values from the config, defined by the needs of env.py,
