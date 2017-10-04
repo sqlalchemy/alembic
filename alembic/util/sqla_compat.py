@@ -180,3 +180,14 @@ def _get_index_final_name(dialect, idx):
         return dialect.ddl_compiler(dialect, None)._prepared_index_name(idx)
     else:
         return idx.name
+
+
+def _is_mariadb(mysql_dialect):
+    return 'MariaDB' in mysql_dialect.server_version_info
+
+
+def _mariadb_normalized_version_info(mysql_dialect):
+    if len(mysql_dialect.server_version_info) > 5:
+        return mysql_dialect.server_version_info[3:]
+    else:
+        return mysql_dialect.server_version_info

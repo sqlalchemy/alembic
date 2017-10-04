@@ -1,0 +1,7 @@
+.. change::
+    :tags: bug, mysql
+    :tickets: 455
+
+    Fixed bug where server default comparison of CURRENT_TIMESTAMP would fail
+    on MariaDB 10.2 due to a change in how the function is
+    represented by the database during reflection.

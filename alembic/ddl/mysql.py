@@ -11,6 +11,7 @@ from .base import ColumnNullable, ColumnName, ColumnDefault, \
 from .base import alter_table
 from ..autogenerate import compare
 from ..util.sqla_compat import _is_type_bound, sqla_100
+import re
 
 
 class MySQLImpl(DefaultImpl):
@@ -94,6 +95,16 @@ class MySQLImpl(DefaultImpl):
                 not rendered_metadata_default and \
                 rendered_inspector_default == "'0'":
             return False
+        elif rendered_inspector_default and rendered_metadata_default:
+            # adjust for "function()" vs. "FUNCTION"
+            return (
+                re.sub(
+                    r'(.*)(\(\))?$', '\1',
+                    rendered_inspector_default.lower()) !=
+                re.sub(
+                    r'(.*)(\(\))?$', '\1',
+                    rendered_metadata_default.lower())
+            )
         else:
             return rendered_inspector_default != rendered_metadata_default
 

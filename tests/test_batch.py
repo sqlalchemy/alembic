@@ -1438,6 +1438,10 @@ class BatchRoundTripMySQLTest(BatchRoundTripTest):
     def test_create_drop_index(self):
         super(BatchRoundTripMySQLTest, self).test_create_drop_index()
 
+    @exclusions.fails_if(config.requirements._mariadb_102)
+    def test_rename_column_boolean(self):
+        super(BatchRoundTripMySQLTest, self).test_rename_column_boolean()
+
 
 class BatchRoundTripPostgresqlTest(BatchRoundTripTest):
     __only_on__ = "postgresql"

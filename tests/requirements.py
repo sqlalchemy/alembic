@@ -1,6 +1,7 @@
 from alembic.testing.requirements import SuiteRequirements
 from alembic.testing import exclusions
 from alembic import util
+from alembic.util import sqla_compat
 
 
 class DefaultRequirements(SuiteRequirements):
@@ -123,3 +124,16 @@ class DefaultRequirements(SuiteRequirements):
     def integer_subtype_comparisons(self):
         """if a compare of Integer and BigInteger is supported yet."""
         return exclusions.skip_if(["oracle"], "not supported by alembic impl")
+
+    def _mariadb_102(self, config):
+        return exclusions.against(config, "mysql") and \
+            sqla_compat._is_mariadb(config.db.dialect) and \
+            sqla_compat._mariadb_normalized_version_info(
+                config.db.dialect) > (10, 2)
+
+    def _mysql_not_mariadb_102(self, config):
+        return exclusions.against(config, "mysql") and (
+            not sqla_compat._is_mariadb(config.db.dialect) or
+            sqla_compat._mariadb_normalized_version_info(
+                config.db.dialect) < (10, 2)
+        )
