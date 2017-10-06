@@ -125,6 +125,13 @@ class DefaultRequirements(SuiteRequirements):
         """if a compare of Integer and BigInteger is supported yet."""
         return exclusions.skip_if(["oracle"], "not supported by alembic impl")
 
+    @property
+    def mysql_timestamp_reflection(self):
+        def go(config):
+            return not self._mariadb_102(config) \
+                or self.sqlalchemy_1115.enabled
+        return exclusions.only_if(go)
+
     def _mariadb_102(self, config):
         return exclusions.against(config, "mysql") and \
             sqla_compat._is_mariadb(config.db.dialect) and \

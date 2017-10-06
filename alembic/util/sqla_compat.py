@@ -31,6 +31,7 @@ sqla_105 = _vers >= (1, 0, 5)
 sqla_1010 = _vers >= (1, 0, 10)
 sqla_110 = _vers >= (1, 1, 0)
 sqla_1014 = _vers >= (1, 0, 14)
+sqla_1115 = _vers >= (1, 1, 15)
 
 if sqla_08:
     from sqlalchemy.sql.expression import TextClause

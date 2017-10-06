@@ -219,6 +219,8 @@ class MySQLDefaultCompareTest(TestBase):
     __only_on__ = 'mysql'
     __backend__ = True
 
+    __requires__ = 'mysql_timestamp_reflection',
+
     @classmethod
     def setup_class(cls):
         cls.bind = config.db
