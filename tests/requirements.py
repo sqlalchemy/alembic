@@ -126,6 +126,19 @@ class DefaultRequirements(SuiteRequirements):
         return exclusions.skip_if(["oracle"], "not supported by alembic impl")
 
     @property
+    def check_constraint_reflection(self):
+        return exclusions.fails_on_everything_except(
+            "postgresql", "sqlite", self._mariadb_102
+        )
+
+    @property
+    def mysql_check_reflection_or_none(self):
+        def go(config):
+            return not self._mariadb_102(config) \
+                or self.sqlalchemy_1115.enabled
+        return exclusions.succeeds_if(go)
+
+    @property
     def mysql_timestamp_reflection(self):
         def go(config):
             return not self._mariadb_102(config) \

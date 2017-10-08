@@ -1442,13 +1442,14 @@ class BatchRoundTripMySQLTest(BatchRoundTripTest):
     def test_rename_column_boolean(self):
         super(BatchRoundTripMySQLTest, self).test_rename_column_boolean()
 
-    @exclusions.fails_if(config.requirements._mariadb_102)
+    @config.requirements.mysql_check_reflection_or_none
     def test_change_type_boolean_to_int(self):
         super(BatchRoundTripMySQLTest, self).test_change_type_boolean_to_int()
 
-    @exclusions.fails_if(config.requirements._mariadb_102)
+    @config.requirements.mysql_check_reflection_or_none
     def test_change_type_int_to_boolean(self):
         super(BatchRoundTripMySQLTest, self).test_change_type_int_to_boolean()
+
 
 class BatchRoundTripPostgresqlTest(BatchRoundTripTest):
     __only_on__ = "postgresql"
