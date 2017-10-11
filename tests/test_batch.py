@@ -205,7 +205,8 @@ class BatchApplyTest(TestBase):
         for idx in impl.new_indexes.values():
             impl.new_table.name = impl.table.name
             idx_stmt += str(CreateIndex(idx).compile(dialect=context.dialect))
-            impl.new_table.name = '_alembic_batch_temp'
+            impl.new_table.name = ApplyBatchImpl._calc_temp_name(
+                impl.table.name)
         idx_stmt = re.sub(r'[\n\t]', '', idx_stmt)
 
         if ddl_contains:
@@ -221,6 +222,8 @@ class BatchApplyTest(TestBase):
             args = {"schema": "%s." % schema}
         else:
             args = {"schema": ""}
+
+        args["temp_name"] = impl.new_table.name
 
         args['colnames'] = ", ".join([
             impl.new_table.c[name].name
@@ -242,10 +245,10 @@ class BatchApplyTest(TestBase):
         )
 
         expected.extend([
-            'INSERT INTO %(schema)s_alembic_batch_temp (%(colnames)s) '
+            'INSERT INTO %(schema)s%(temp_name)s (%(colnames)s) '
             'SELECT %(tname_colnames)s FROM %(schema)stname' % args,
             'DROP TABLE %(schema)stname' % args,
-            'ALTER TABLE %(schema)s_alembic_batch_temp '
+            'ALTER TABLE %(schema)s%(temp_name)s '
             'RENAME TO %(schema)stname' % args
         ])
         if idx_stmt:
@@ -772,12 +775,12 @@ class CopyFromTest(TestBase):
                 "foo", copy_from=self.table) as batch_op:
             batch_op.alter_column('data', type_=Integer)
         context.assert_(
-            'CREATE TABLE _alembic_batch_temp (id INTEGER NOT NULL, '
+            'CREATE TABLE _alembic_tmp_foo (id INTEGER NOT NULL, '
             'data INTEGER, x INTEGER, PRIMARY KEY (id))',
-            'INSERT INTO _alembic_batch_temp (id, data, x) SELECT foo.id, '
+            'INSERT INTO _alembic_tmp_foo (id, data, x) SELECT foo.id, '
             'CAST(foo.data AS INTEGER) AS anon_1, foo.x FROM foo',
             'DROP TABLE foo',
-            'ALTER TABLE _alembic_batch_temp RENAME TO foo'
+            'ALTER TABLE _alembic_tmp_foo RENAME TO foo'
         )
 
     def test_change_type_from_schematype(self):
@@ -793,12 +796,12 @@ class CopyFromTest(TestBase):
                 existing_type=Boolean(
                     create_constraint=True, name="ck1"))
         context.assert_(
-            'CREATE TABLE _alembic_batch_temp (id INTEGER NOT NULL, '
+            'CREATE TABLE _alembic_tmp_foo (id INTEGER NOT NULL, '
             'data VARCHAR(50), x INTEGER, y INTEGER, PRIMARY KEY (id))',
-            'INSERT INTO _alembic_batch_temp (id, data, x, y) SELECT foo.id, '
+            'INSERT INTO _alembic_tmp_foo (id, data, x, y) SELECT foo.id, '
             'foo.data, foo.x, CAST(foo.y AS INTEGER) AS anon_1 FROM foo',
             'DROP TABLE foo',
-            'ALTER TABLE _alembic_batch_temp RENAME TO foo'
+            'ALTER TABLE _alembic_tmp_foo RENAME TO foo'
         )
 
     def test_change_type_to_schematype(self):
@@ -813,13 +816,13 @@ class CopyFromTest(TestBase):
                 type_=Boolean(
                     create_constraint=True, name="ck1"))
         context.assert_(
-            'CREATE TABLE _alembic_batch_temp (id INTEGER NOT NULL, '
+            'CREATE TABLE _alembic_tmp_foo (id INTEGER NOT NULL, '
             'data VARCHAR(50), x INTEGER, y BOOLEAN, PRIMARY KEY (id), '
             'CONSTRAINT ck1 CHECK (y IN (0, 1)))',
-            'INSERT INTO _alembic_batch_temp (id, data, x, y) SELECT foo.id, '
+            'INSERT INTO _alembic_tmp_foo (id, data, x, y) SELECT foo.id, '
             'foo.data, foo.x, CAST(foo.y AS BOOLEAN) AS anon_1 FROM foo',
             'DROP TABLE foo',
-            'ALTER TABLE _alembic_batch_temp RENAME TO foo'
+            'ALTER TABLE _alembic_tmp_foo RENAME TO foo'
         )
 
     def test_create_drop_index_w_always(self):
@@ -830,13 +833,13 @@ class CopyFromTest(TestBase):
                 'ix_data', ['data'], unique=True)
 
         context.assert_(
-            'CREATE TABLE _alembic_batch_temp (id INTEGER NOT NULL, '
+            'CREATE TABLE _alembic_tmp_foo (id INTEGER NOT NULL, '
             'data VARCHAR(50), '
             'x INTEGER, PRIMARY KEY (id))',
-            'INSERT INTO _alembic_batch_temp (id, data, x) '
+            'INSERT INTO _alembic_tmp_foo (id, data, x) '
             'SELECT foo.id, foo.data, foo.x FROM foo',
             'DROP TABLE foo',
-            'ALTER TABLE _alembic_batch_temp RENAME TO foo',
+            'ALTER TABLE _alembic_tmp_foo RENAME TO foo',
             'CREATE UNIQUE INDEX ix_data ON foo (data)',
         )
 
@@ -848,12 +851,12 @@ class CopyFromTest(TestBase):
             batch_op.drop_index('ix_data')
 
         context.assert_(
-            'CREATE TABLE _alembic_batch_temp (id INTEGER NOT NULL, '
+            'CREATE TABLE _alembic_tmp_foo (id INTEGER NOT NULL, '
             'data VARCHAR(50), x INTEGER, PRIMARY KEY (id))',
-            'INSERT INTO _alembic_batch_temp (id, data, x) '
+            'INSERT INTO _alembic_tmp_foo (id, data, x) '
             'SELECT foo.id, foo.data, foo.x FROM foo',
             'DROP TABLE foo',
-            'ALTER TABLE _alembic_batch_temp RENAME TO foo'
+            'ALTER TABLE _alembic_tmp_foo RENAME TO foo'
         )
 
     def test_create_drop_index_wo_always(self):
@@ -887,12 +890,12 @@ class CopyFromTest(TestBase):
                 'ix_data', ['data'], unique=True)
 
         context.assert_(
-            'CREATE TABLE _alembic_batch_temp (id INTEGER NOT NULL, '
+            'CREATE TABLE _alembic_tmp_foo (id INTEGER NOT NULL, '
             'data INTEGER, x INTEGER, PRIMARY KEY (id))',
-            'INSERT INTO _alembic_batch_temp (id, data, x) SELECT foo.id, '
+            'INSERT INTO _alembic_tmp_foo (id, data, x) SELECT foo.id, '
             'CAST(foo.data AS INTEGER) AS anon_1, foo.x FROM foo',
             'DROP TABLE foo',
-            'ALTER TABLE _alembic_batch_temp RENAME TO foo',
+            'ALTER TABLE _alembic_tmp_foo RENAME TO foo',
             'CREATE UNIQUE INDEX ix_data ON foo (data)',
         )
 
@@ -905,12 +908,12 @@ class CopyFromTest(TestBase):
             batch_op.alter_column('data', type_=String)
 
         context.assert_(
-            'CREATE TABLE _alembic_batch_temp (id INTEGER NOT NULL, '
+            'CREATE TABLE _alembic_tmp_foo (id INTEGER NOT NULL, '
             'data VARCHAR, x INTEGER, PRIMARY KEY (id))',
-            'INSERT INTO _alembic_batch_temp (id, data, x) SELECT foo.id, '
+            'INSERT INTO _alembic_tmp_foo (id, data, x) SELECT foo.id, '
             'foo.data, foo.x FROM foo',
             'DROP TABLE foo',
-            'ALTER TABLE _alembic_batch_temp RENAME TO foo'
+            'ALTER TABLE _alembic_tmp_foo RENAME TO foo'
         )
 
 
@@ -1104,7 +1107,7 @@ class BatchRoundTripTest(TestBase):
 
     # in particular, this tests that the failures
     # on PG and MySQL result in recovery of the batch system,
-    # e.g. that the _alembic_batch_temp table is dropped
+    # e.g. that the _alembic_tmp_temp table is dropped
     @config.requirements.no_referential_integrity
     def test_fk_points_to_me_recreate(self):
         self._test_fk_points_to_me("always")

@@ -1,0 +1,8 @@
+.. change::
+    :tags: bug, batch
+    :tickets: 457
+
+    The name of the temporary table in batch mode is now generated
+    off of the original table name itself, to avoid conflicts for the
+    unusual case of multiple batch operations running against the same
+    database schema at the same time.

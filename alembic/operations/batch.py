@@ -117,12 +117,17 @@ class ApplyBatchImpl(object):
         self.table = table  # this is a Table object
         self.table_args = table_args
         self.table_kwargs = table_kwargs
+        self.temp_table_name = self._calc_temp_name(table.name)
         self.new_table = None
         self.column_transfers = OrderedDict(
             (c.name, {'expr': c}) for c in self.table.c
         )
         self.reflected = reflected
         self._grab_table_elements()
+
+    @classmethod
+    def _calc_temp_name(cls, tablename):
+        return ("_alembic_tmp_%s" % tablename)[0:50]
 
     def _grab_table_elements(self):
         schema = self.table.schema
@@ -164,7 +169,7 @@ class ApplyBatchImpl(object):
         schema = self.table.schema
 
         self.new_table = new_table = Table(
-            '_alembic_batch_temp', m,
+            self.temp_table_name, m,
             *(list(self.columns.values()) + list(self.table_args)),
             schema=schema,
             **self.table_kwargs)
@@ -221,7 +226,7 @@ class ApplyBatchImpl(object):
         else:
             referent_schema = None
 
-        if tname != '_alembic_batch_temp':
+        if tname != self.temp_table_name:
             key = sql_schema._get_table_key(tname, referent_schema)
             if key in metadata.tables:
                 t = metadata.tables[key]
@@ -263,7 +268,7 @@ class ApplyBatchImpl(object):
             raise
         else:
             op_impl.rename_table(
-                "_alembic_batch_temp",
+                self.temp_table_name,
                 self.table.name,
                 schema=self.table.schema
             )
@@ -272,7 +277,7 @@ class ApplyBatchImpl(object):
                 for idx in self._gather_indexes_from_both_tables():
                     op_impl.create_index(idx)
             finally:
-                self.new_table.name = "_alembic_batch_temp"
+                self.new_table.name = self.temp_table_name
 
     def alter_column(self, table_name, column_name,
                      nullable=None,
