@@ -1,0 +1,9 @@
+.. change::
+    :tags: bug, autogenerate
+    :tickets: 456
+
+    A :class:`.ForeignKeyConstraint` can now render correctly if the
+    ``link_to_name`` flag is set, as it will not attempt to resolve the name
+    from a "key" in this case.  Additionally, the constraint will render
+    as-is even if the remote column name isn't present on the referenced
+    remote table.

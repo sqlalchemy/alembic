@@ -1184,6 +1184,75 @@ class AutogenRenderTest(TestBase):
             "ondelete='CASCADE', initially='XYZ', deferrable=True)"
         )
 
+    def test_render_fk_constraint_resolve_key(self):
+        m = MetaData()
+        t1 = Table('t', m, Column('c', Integer))
+        t2 = Table('t2', m, Column('c_rem', Integer, key='c_remkey'))
+
+        fk = ForeignKeyConstraint(['c'], ['t2.c_remkey'])
+        t1.append_constraint(fk)
+
+        eq_ignore_whitespace(
+            re.sub(
+                r"u'", "'",
+                autogenerate.render._render_constraint(
+                    fk, self.autogen_context)),
+            "sa.ForeignKeyConstraint(['c'], ['t2.c_rem'], )"
+        )
+
+    def test_render_fk_constraint_bad_table_resolve(self):
+        m = MetaData()
+        t1 = Table('t', m, Column('c', Integer))
+        t2 = Table('t2', m, Column('c_rem', Integer))
+
+        fk = ForeignKeyConstraint(['c'], ['t2.nonexistent'])
+        t1.append_constraint(fk)
+
+        eq_ignore_whitespace(
+            re.sub(
+                r"u'", "'",
+                autogenerate.render._render_constraint(
+                    fk, self.autogen_context)),
+            "sa.ForeignKeyConstraint(['c'], ['t2.nonexistent'], )"
+        )
+
+    def test_render_fk_constraint_bad_table_resolve_dont_get_confused(self):
+        m = MetaData()
+        t1 = Table('t', m, Column('c', Integer))
+        t2 = Table(
+            't2', m,
+            Column('c_rem', Integer, key='cr_key'),
+            Column('c_rem_2', Integer, key='c_rem')
+
+        )
+
+        fk = ForeignKeyConstraint(['c'], ['t2.c_rem'], link_to_name=True)
+        t1.append_constraint(fk)
+
+        eq_ignore_whitespace(
+            re.sub(
+                r"u'", "'",
+                autogenerate.render._render_constraint(
+                    fk, self.autogen_context)),
+            "sa.ForeignKeyConstraint(['c'], ['t2.c_rem'], )"
+        )
+
+    def test_render_fk_constraint_link_to_name(self):
+        m = MetaData()
+        t1 = Table('t', m, Column('c', Integer))
+        t2 = Table('t2', m, Column('c_rem', Integer, key='c_remkey'))
+
+        fk = ForeignKeyConstraint(['c'], ['t2.c_rem'], link_to_name=True)
+        t1.append_constraint(fk)
+
+        eq_ignore_whitespace(
+            re.sub(
+                r"u'", "'",
+                autogenerate.render._render_constraint(
+                    fk, self.autogen_context)),
+            "sa.ForeignKeyConstraint(['c'], ['t2.c_rem'], )"
+        )
+
     def test_render_fk_constraint_use_alter(self):
         m = MetaData()
         Table('t', m, Column('c', Integer))

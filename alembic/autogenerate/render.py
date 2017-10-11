@@ -665,7 +665,7 @@ def _render_primary_key(constraint, autogen_context):
 
 def _fk_colspec(fk, metadata_schema):
     """Implement a 'safe' version of ForeignKey._get_colspec() that
-    never tries to resolve the remote table.
+    won't fail if the remote table can't be resolved.
 
     """
     colspec = fk._get_colspec()
@@ -677,12 +677,16 @@ def _fk_colspec(fk, metadata_schema):
     else:
         table_fullname = ".".join(tokens[0:-1])
 
-    if fk.parent is not None and fk.parent.table is not None:
-        # try to resolve the remote table and adjust for column.key
+    if not fk.link_to_name and \
+            fk.parent is not None and fk.parent.table is not None:
+        # try to resolve the remote table in order to adjust for column.key.
+        # the FK constraint needs to be rendered in terms of the column
+        # name.
         parent_metadata = fk.parent.table.metadata
         if table_fullname in parent_metadata.tables:
-            colname = _ident(
-                parent_metadata.tables[table_fullname].c[colname].name)
+            col = parent_metadata.tables[table_fullname].c.get(colname)
+            if col is not None:
+                colname = _ident(col.name)
 
     colspec = "%s.%s" % (table_fullname, colname)
 
