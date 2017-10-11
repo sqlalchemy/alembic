@@ -1,0 +1,7 @@
+.. change::
+    :tags: bug, commands
+    :tickets: 458
+
+    Fixed a few Python3.6 deprecation warnings by replacing ``StopIteration``
+    with ``return``, as well as using ``getfullargspec()`` instead of
+    ``getargspec()`` under Python 3.

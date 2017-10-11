@@ -49,6 +49,21 @@ else:
     range = xrange
 
 if py3k:
+    import collections
+    ArgSpec = collections.namedtuple(
+        "ArgSpec",
+        ["args", "varargs", "keywords", "defaults"])
+
+    from inspect import getfullargspec as inspect_getfullargspec
+
+    def inspect_getargspec(func):
+        return ArgSpec(
+            *inspect_getfullargspec(func)[0:4]
+        )
+else:
+    from inspect import getargspec as inspect_getargspec  # noqa
+
+if py3k:
     from configparser import ConfigParser as SafeConfigParser
     import configparser
 else:

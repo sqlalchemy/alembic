@@ -794,7 +794,7 @@ class CreateIndexOp(MigrateOperation):
             cls, operations,
             index_name, table_name, columns, schema=None,
             unique=False, **kw):
-        """Issue a "create index" instruction using the current
+        r"""Issue a "create index" instruction using the current
         migration context.
 
         e.g.::
@@ -927,7 +927,7 @@ class DropIndexOp(MigrateOperation):
     ])
     def drop_index(cls, operations, index_name,
                    table_name=None, schema=None, **kw):
-        """Issue a "drop index" instruction using the current
+        r"""Issue a "drop index" instruction using the current
         migration context.
 
         e.g.::
@@ -1027,7 +1027,7 @@ class CreateTableOp(MigrateOperation):
     @classmethod
     @util._with_legacy_names([('name', 'table_name')])
     def create_table(cls, operations, table_name, *columns, **kw):
-        """Issue a "create table" instruction using the current migration
+        r"""Issue a "create table" instruction using the current migration
         context.
 
         This directive receives an argument list similar to that of the
@@ -1157,7 +1157,7 @@ class DropTableOp(MigrateOperation):
     @classmethod
     @util._with_legacy_names([('name', 'table_name')])
     def drop_table(cls, operations, table_name, schema=None, **kw):
-        """Issue a "drop table" instruction using the current
+        r"""Issue a "drop table" instruction using the current
         migration context.
 
 

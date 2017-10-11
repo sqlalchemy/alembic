@@ -536,7 +536,7 @@ def downgrade():
 
 """)
         pyc_path = util.pyc_file_from_path(path)
-        if os.access(pyc_path, os.F_OK):
+        if pyc_path is not None and os.access(pyc_path, os.F_OK):
             os.unlink(pyc_path)
 
         assert_raises_message(

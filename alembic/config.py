@@ -432,7 +432,7 @@ class CommandLine(object):
                     fn.__name__[0] != '_' and \
                     fn.__module__ == 'alembic.command':
 
-                spec = inspect.getargspec(fn)
+                spec = compat.inspect_getargspec(fn)
                 if spec[3]:
                     positional = spec[0][1:-len(spec[3])]
                     kwarg = spec[0][-len(spec[3]):]

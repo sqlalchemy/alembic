@@ -302,7 +302,7 @@ class SpecPredicate(Predicate):
 
 class LambdaPredicate(Predicate):
     def __init__(self, lambda_, description=None, args=None, kw=None):
-        spec = inspect.getargspec(lambda_)
+        spec = compat.inspect_getargspec(lambda_)
         if not spec[0]:
             self.lambda_ = lambda db: lambda_()
         else:

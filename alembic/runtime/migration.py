@@ -287,7 +287,7 @@ class MigrationContext(object):
             head_maintainer.update_to_step(step)
 
     def run_migrations(self, **kw):
-        """Run the migration scripts established for this
+        r"""Run the migration scripts established for this
         :class:`.MigrationContext`, if any.
 
         The commands in :mod:`alembic.command` will set up a function

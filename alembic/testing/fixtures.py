@@ -111,7 +111,7 @@ def op_fixture(
                 # the impl produces soft tabs,
                 # so search for blocks of 4 spaces
                 msg = re.sub(r'    ', '', msg)
-                msg = re.sub('\;\n*$', '', msg)
+                msg = re.sub(r'\;\n*$', '', msg)
 
             self.lines.append(msg)
 

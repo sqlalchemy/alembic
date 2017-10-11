@@ -6,8 +6,7 @@ import collections
 
 from .compat import callable, exec_, string_types, with_metaclass
 
-from sqlalchemy.util import format_argspec_plus, update_wrapper
-from sqlalchemy.util.compat import inspect_getfullargspec
+from .compat import inspect_getargspec
 
 
 class _ModuleClsMeta(type):
@@ -73,7 +72,7 @@ class ModuleClsProxy(with_metaclass(_ModuleClsMeta)):
     @classmethod
     def _create_method_proxy(cls, name, globals_, locals_):
         fn = getattr(cls, name)
-        spec = inspect.getargspec(fn)
+        spec = inspect_getargspec(fn)
         if spec[0] and spec[0][0] == 'self':
             spec[0].pop(0)
         args = inspect.formatargspec(*spec)

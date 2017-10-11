@@ -81,7 +81,7 @@ class EnvironmentContext(util.ModuleClsProxy):
     """
 
     def __init__(self, config, script, **kw):
-        """Construct a new :class:`.EnvironmentContext`.
+        r"""Construct a new :class:`.EnvironmentContext`.
 
         :param config: a :class:`.Config` instance.
         :param script: a :class:`.ScriptDirectory` instance.

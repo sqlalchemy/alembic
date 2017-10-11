@@ -656,7 +656,7 @@ class RevisionMap(object):
         uppers = util.dedupe_tuple(self.get_revisions(upper))
 
         if not uppers and not requested_lowers:
-            raise StopIteration()
+            return
 
         upper_ancestors = set(self._get_ancestor_nodes(uppers, check=True))
 
@@ -716,7 +716,7 @@ class RevisionMap(object):
             # if the requested start is one of those branch points,
             # then just return empty set
             if start_from.intersection(upper_ancestors):
-                raise StopIteration()
+                return
             else:
                 # otherwise, they requested nodes out of
                 # order

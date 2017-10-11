@@ -5,6 +5,7 @@ from ..util import sqla_compat
 from . import batch
 from . import schemaobj
 from ..util.compat import exec_
+from ..util.compat import inspect_getargspec
 import textwrap
 import inspect
 
@@ -91,7 +92,7 @@ class Operations(util.ModuleClsProxy):
                 fn = getattr(op_cls, sourcename)
                 source_name = fn.__name__
 
-            spec = inspect.getargspec(fn)
+            spec = inspect_getargspec(fn)
 
             name_args = spec[0]
             assert name_args[0:2] == ['cls', 'operations']
