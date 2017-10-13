@@ -1,7 +1,0 @@
-.. change::
-    :tags: bug, commands
-    :tickets: 441
-
-    An addition to :ticket:`441` fixed in 0.9.5, we forgot to also filter
-    for the ``+`` sign in migration names which also breaks due to the relative
-    migrations feature.

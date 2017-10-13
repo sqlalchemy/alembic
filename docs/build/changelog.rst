@@ -5,7 +5,95 @@ Changelog
 
 .. changelog::
     :version: 0.9.6
-    :include_notes_from: unreleased
+    :released: October 13, 2017
+
+    .. change::
+        :tags: bug, commands
+        :tickets: 458
+
+        Fixed a few Python3.6 deprecation warnings by replacing ``StopIteration``
+        with ``return``, as well as using ``getfullargspec()`` instead of
+        ``getargspec()`` under Python 3.
+
+    .. change::
+        :tags: bug, commands
+        :tickets: 441
+
+        An addition to :ticket:`441` fixed in 0.9.5, we forgot to also filter
+        for the ``+`` sign in migration names which also breaks due to the relative
+        migrations feature.
+
+    .. change::
+        :tags: bug, autogenerate
+        :tickets: 442
+
+        Fixed bug expanding upon the fix for
+        :ticket:`85` which adds the correct module import to the
+        "inner" type for an ``ARRAY`` type, the fix now accommodates for the
+        generic ``sqlalchemy.types.ARRAY`` type added in SQLAlchemy 1.1,
+        rendering the inner type correctly regardless of whether or not the
+        Postgresql dialect is present.
+
+    .. change::
+        :tags: bug, mysql
+        :tickets: 455
+
+        Fixed bug where server default comparison of CURRENT_TIMESTAMP would fail
+        on MariaDB 10.2 due to a change in how the function is
+        represented by the database during reflection.
+
+    .. change::
+        :tags: bug, autogenerate
+        :pullreq: bitbucket:70
+
+        Fixed bug where comparison of ``Numeric`` types would produce
+        a difference if the Python-side ``Numeric`` inadvertently specified
+        a non-None "scale" with a "precision" of None, even though this ``Numeric``
+        type will pass over the "scale" argument when rendering. Pull request
+        courtesy Ivan Mmelnychuk.
+
+    .. change::
+        :tags: feature, commands
+        :tickets: 447
+
+        The ``alembic history`` command will now make use of the revision
+        environment ``env.py`` unconditionally if the ``revision_environment``
+        configuration flag is set to True.  Previously, the environment would
+        only be invoked if the history specification were against a database-stored
+        revision token.
+
+    .. change::
+        :tags: bug, batch
+        :tickets: 457
+
+        The name of the temporary table in batch mode is now generated
+        off of the original table name itself, to avoid conflicts for the
+        unusual case of multiple batch operations running against the same
+        database schema at the same time.
+
+    .. change::
+        :tags: bug, autogenerate
+        :tickets: 456
+
+        A :class:`.ForeignKeyConstraint` can now render correctly if the
+        ``link_to_name`` flag is set, as it will not attempt to resolve the name
+        from a "key" in this case.  Additionally, the constraint will render
+        as-is even if the remote column name isn't present on the referenced
+        remote table.
+
+    .. change::
+        :tags: bug, runtime, py3k
+        :tickets: 449
+
+        Reworked "sourceless" system to be fully capable of handling any
+        combination of: Python2/3x, pep3149 or not, PYTHONOPTIMIZE or not,
+        for locating and loading both env.py files as well as versioning files.
+        This includes: locating files inside of ``__pycache__`` as well as listing
+        out version files that might be only in ``versions/__pycache__``, deduplicating
+        version files that may be in ``versions/__pycache__`` and ``versions/``
+        at the same time, correctly looking for .pyc or .pyo files based on
+        if pep488 is present or not. The latest Python3x deprecation warnings
+        involving importlib are also corrected.
 
 .. changelog::
     :version: 0.9.5

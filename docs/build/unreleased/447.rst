@@ -1,9 +1,0 @@
-.. change::
-    :tags: feature, commands
-    :tickets: 447
-
-    The ``alembic history`` command will now make use of the revision
-    environment ``env.py`` unconditionally if the ``revision_environment``
-    configuration flag is set to True.  Previously, the environment would
-    only be invoked if the history specification were against a database-stored
-    revision token.
