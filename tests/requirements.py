@@ -116,6 +116,25 @@ class DefaultRequirements(SuiteRequirements):
 
         return exclusions.only_if(check_uuid_ossp)
 
+    def _has_pg_extension(self, name):
+        def check(config):
+            if not exclusions.against(config, "postgresql"):
+                return False
+            count = config.db.scalar(
+                "SELECT count(*) FROM pg_extension "
+                "WHERE extname='%s'" % name)
+            return bool(count)
+        return exclusions.only_if(check, "needs %s extension" % name)
+
+    @property
+    def hstore(self):
+        return self._has_pg_extension("hstore")
+
+    @property
+    def btree_gist(self):
+        return self._has_pg_extension("btree_gist")
+
+
     @property
     def autoincrement_on_composite_pk(self):
         return exclusions.skip_if(["sqlite"], "not supported by database")

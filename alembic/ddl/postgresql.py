@@ -149,19 +149,25 @@ class PostgresqlImpl(DefaultImpl):
                                         conn_indexes,
                                         metadata_unique_constraints,
                                         metadata_indexes):
+
         conn_uniques_by_name = dict(
             (c.name, c) for c in conn_unique_constraints)
         conn_indexes_by_name = dict(
             (c.name, c) for c in conn_indexes)
 
-        # TODO: if SQLA 1.0, make use of "duplicates_constraint"
-        # metadata
-        doubled_constraints = dict(
-            (name, (conn_uniques_by_name[name], conn_indexes_by_name[name]))
-            for name in set(conn_uniques_by_name).intersection(
-                conn_indexes_by_name)
-        )
-        for name, (uq, ix) in doubled_constraints.items():
+        if not util.sqla_100:
+            doubled_constraints = set(
+                conn_indexes_by_name[name]
+                for name in set(conn_uniques_by_name).intersection(
+                    conn_indexes_by_name)
+            )
+        else:
+            doubled_constraints = set(
+                index for index in
+                conn_indexes if index.info.get('duplicates_constraint')
+            )
+
+        for ix in doubled_constraints:
             conn_indexes.remove(ix)
 
         for idx in list(metadata_indexes):

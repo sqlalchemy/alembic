@@ -609,6 +609,31 @@ class PGUniqueIndexTest(AutogenerateUniqueIndexTest):
         diffs = self._fixture(m1, m2, include_schemas=True)
         eq_(diffs, [])
 
+    @config.requirements.sqlalchemy_100
+    @config.requirements.btree_gist
+    def test_exclude_const_unchanged(self):
+        from sqlalchemy.dialects.postgresql import TSRANGE, ExcludeConstraint
+
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table(
+            'add_excl', m1,
+            Column('id', Integer, primary_key=True),
+            Column('period', TSRANGE),
+            ExcludeConstraint(('period', '&&'), name='quarters_period_excl')
+        )
+
+        Table(
+            'add_excl', m2,
+            Column('id', Integer, primary_key=True),
+            Column('period', TSRANGE),
+            ExcludeConstraint(('period', '&&'), name='quarters_period_excl')
+        )
+
+        diffs = self._fixture(m1, m2)
+        eq_(diffs, [])
+
     def test_same_tname_two_schemas(self):
         m1 = MetaData()
         m2 = MetaData()
