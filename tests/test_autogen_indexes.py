@@ -557,6 +557,34 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestBase):
 
         eq_(diffs, [])
 
+    # fails in the 0.8 series where we have truncation rules,
+    # but no control over quoting. passes in 0.7.9 where we don't have
+    # truncation rules either.    dropping these ancient versions
+    # is long overdue.
+
+    @config.requirements.sqlalchemy_09
+    def test_unchanged_case_sensitive_implicit_idx(self):
+        m1 = MetaData()
+        m2 = MetaData()
+        Table('add_ix', m1, Column('regNumber', String(50), index=True))
+        Table('add_ix', m2, Column('regNumber', String(50), index=True))
+        diffs = self._fixture(m1, m2)
+
+        eq_(diffs, [])
+
+    @config.requirements.sqlalchemy_09
+    def test_unchanged_case_sensitive_explicit_idx(self):
+        m1 = MetaData()
+        m2 = MetaData()
+        t1 = Table('add_ix', m1, Column('reg_number', String(50)))
+        Index('regNumber_idx', t1.c.reg_number)
+        t2 = Table('add_ix', m2, Column('reg_number', String(50)))
+        Index('regNumber_idx', t2.c.reg_number)
+
+        diffs = self._fixture(m1, m2)
+
+        eq_(diffs, [])
+
 
 class PGUniqueIndexTest(AutogenerateUniqueIndexTest):
     reports_unnamed_constraints = True
