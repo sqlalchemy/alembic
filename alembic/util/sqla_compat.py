@@ -178,6 +178,21 @@ def _get_index_column_names(idx):
 
 def _get_index_final_name(dialect, idx):
     if sqla_08:
+        # trying to keep the truncation rules totally localized on the
+        # SQLA side while also stepping around the quoting issue.   Ideally
+        # the _prepared_index_name() method on the SQLA side would have
+        # a quoting option or the truncation routine would be broken out.
+        #
+        # test for SQLA quoted_name construct, introduced in
+        # 0.9 or thereabouts.
+        # this doesn't work in 0.8 and the "quote" option on Index doesn't
+        # seem to work in 0.8 either.
+        if hasattr(idx.name, "quote"):
+            # might be quoted_name, might be truncated_name, keep it the
+            # same
+            quoted_name_cls = type(idx.name)
+            new_name = quoted_name_cls(str(idx.name), quote=False)
+            idx = schema.Index(name=new_name)
         return dialect.ddl_compiler(dialect, None)._prepared_index_name(idx)
     else:
         return idx.name
