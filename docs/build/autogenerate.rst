@@ -9,7 +9,7 @@ review and modify these by hand as needed, then proceed normally.
 
 To use autogenerate, we first need to modify our ``env.py`` so that it gets access
 to a table metadata object that contains the target.  Suppose our application
-has a `declarative base <http://www.sqlalchemy.org/docs/orm/extensions/declarative.html#synopsis>`_
+has a :ref:`declarative base <sqla:declarative_toplevel>`
 in ``myapp.mymodel``.  This base contains a :class:`~sqlalchemy.schema.MetaData` object which
 contains :class:`~sqlalchemy.schema.Table` objects defining our database.  We make sure this
 is loaded in ``env.py`` and then passed to :meth:`.EnvironmentContext.configure` via the
