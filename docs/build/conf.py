@@ -229,4 +229,5 @@ autoclass_content = "both"
 
 intersphinx_mapping = {
     'sqla':('http://www.sqlalchemy.org/docs/', None),
+    'python':('http://docs.python.org/', None),
 }
