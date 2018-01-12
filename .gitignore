@@ -11,3 +11,6 @@ alembic.ini
 coverage.xml
 .tox
 *.patch
+/scratch
+/scratch_test_*
+/test_schema.db
