@@ -189,11 +189,10 @@ class MySQLOpTest(TestBase):
         )
 
     def test_drop_check(self):
-        op_fixture('mysql')
-        assert_raises_message(
-            NotImplementedError,
-            "MySQL does not support CHECK constraints.",
-            op.drop_constraint, "f1", "t1", "check"
+        context = op_fixture('mysql')
+        op.drop_constraint("f1", "t1", "check")
+        context.assert_(
+            "ALTER TABLE t1 DROP CONSTRAINT f1"
         )
 
     def test_drop_unknown(self):
