@@ -424,6 +424,65 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestBase):
         diffs = self._fixture(m1, m2)
         eq_(diffs[0][0], 'remove_index')
 
+    def test_drop_table_w_indexes(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        t = Table(
+            'some_table', m1,
+            Column('id', Integer, primary_key=True),
+            Column('x', String(20)),
+            Column('y', String(20)),
+        )
+        Index('xy_idx', t.c.x, t.c.y)
+        Index('y_idx', t.c.y)
+
+        diffs = self._fixture(m1, m2)
+        eq_(diffs[0][0], 'remove_index')
+        eq_(diffs[1][0], 'remove_index')
+        eq_(diffs[2][0], 'remove_table')
+
+        eq_(
+            set([diffs[0][1].name, diffs[1][1].name]),
+            set(['xy_idx', 'y_idx'])
+        )
+
+    # this simply doesn't fully work before we had
+    # effective deduping of indexes/uniques.
+    @config.requirements.sqlalchemy_100
+    def test_drop_table_w_uq_constraint(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table(
+            'some_table', m1,
+            Column('id', Integer, primary_key=True),
+            Column('x', String(20)),
+            Column('y', String(20)),
+            UniqueConstraint('y', name='uq_y')
+        )
+
+        diffs = self._fixture(m1, m2)
+
+        if self.reports_unique_constraints_as_indexes:
+            # for MySQL this UQ will look like an index, so
+            # make sure it at least sets it up correctly
+            eq_(diffs[0][0], 'remove_index')
+            eq_(diffs[1][0], 'remove_table')
+            eq_(len(diffs), 2)
+
+            constraints = [c for c in diffs[1][1].constraints
+                           if isinstance(c, UniqueConstraint)]
+            eq_(len(constraints), 0)
+        else:
+            eq_(diffs[0][0], 'remove_table')
+            eq_(len(diffs), 1)
+
+            constraints = [c for c in diffs[0][1].constraints
+                           if isinstance(c, UniqueConstraint)]
+            if self.reports_unique_constraints:
+                eq_(len(constraints), 1)
+
     def test_unnamed_cols_changed(self):
         m1 = MetaData()
         m2 = MetaData()
