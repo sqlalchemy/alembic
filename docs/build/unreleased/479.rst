@@ -1,0 +1,9 @@
+.. change::
+    :tags: bug, mysql
+    :tickets: 479
+
+    Added support for DROP CONSTRAINT to the MySQL Alembic
+    dialect to support MariaDB 10.2 which now has real
+    CHECK constraints.  Note this change does **not**
+    add autogenerate support, only support for op.drop_constraint()
+    to work.
