@@ -1,0 +1,9 @@
+.. change::
+    :tags: bug, autogenerate
+    :tickets: 468
+
+    Fixed bug where the indexes would not be included in a
+    migration that was dropping the owning table.   The fix
+    now will also emit DROP INDEX for the indexes ahead of time,
+    but more importantly will include CREATE INDEX in the
+    downgrade migration.
