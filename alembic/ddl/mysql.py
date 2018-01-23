@@ -333,8 +333,11 @@ def _mysql_drop_constraint(element, compiler, **kw):
                   ):
         return compiler.visit_drop_constraint(element, **kw)
     elif isinstance(constraint, schema.CheckConstraint):
-        raise NotImplementedError(
-            "MySQL does not support CHECK constraints.")
+        # note that SQLAlchemy as of 1.2 does not yet support
+        # DROP CONSTRAINT for MySQL/MariaDB, so we implement fully
+        # here.
+        return "ALTER TABLE %s DROP CONSTRAINT %s" % \
+            (compiler.preparer.format_table(constraint.table), constraint.name)
     else:
         raise NotImplementedError(
             "No generic 'DROP CONSTRAINT' in MySQL - "
