@@ -136,6 +136,16 @@ def _compare_tables(conn_table_names, metadata_table_names,
                 _compat_autogen_column_reflect(inspector))
             inspector.reflecttable(t, None)
         if autogen_context.run_filters(t, tname, "table", True, None):
+
+            modify_table_ops = ops.ModifyTableOps(tname, [], schema=s)
+
+            comparators.dispatch("table")(
+                autogen_context, modify_table_ops,
+                s, tname, t, None
+            )
+            if not modify_table_ops.is_empty():
+                upgrade_ops.ops.append(modify_table_ops)
+
             upgrade_ops.ops.append(
                 ops.DropTableOp.from_table(t)
             )
@@ -362,13 +372,18 @@ def _compare_indexes_and_uniques(
 
     inspector = autogen_context.inspector
     is_create_table = conn_table is None
+    is_drop_table = metadata_table is None
 
     # 1a. get raw indexes and unique constraints from metadata ...
-    metadata_unique_constraints = set(
-        uq for uq in metadata_table.constraints
-        if isinstance(uq, sa_schema.UniqueConstraint)
-    )
-    metadata_indexes = set(metadata_table.indexes)
+    if metadata_table is not None:
+        metadata_unique_constraints = set(
+            uq for uq in metadata_table.constraints
+            if isinstance(uq, sa_schema.UniqueConstraint)
+        )
+        metadata_indexes = set(metadata_table.indexes)
+    else:
+        metadata_unique_constraints = set()
+        metadata_indexes = set()
 
     conn_uniques = conn_indexes = frozenset()
 
@@ -401,8 +416,13 @@ def _compare_indexes_and_uniques(
 
         # 2. convert conn-level objects from raw inspector records
         # into schema objects
-        conn_uniques = set(_make_unique_constraint(uq_def, conn_table)
-                           for uq_def in conn_uniques)
+        if is_drop_table:
+            # for DROP TABLE uniques are inline, don't need them
+            conn_uniques = set()
+        else:
+            conn_uniques = set(_make_unique_constraint(uq_def, conn_table)
+                               for uq_def in conn_uniques)
+
         conn_indexes = set(_make_index(ix, conn_table) for ix in conn_indexes)
 
     # 2a. if the dialect dupes unique indexes as unique constraints
@@ -493,7 +513,7 @@ def _compare_indexes_and_uniques(
                 # can't report unique indexes as added if we don't
                 # detect them
                 return
-            if is_create_table:
+            if is_create_table or is_drop_table:
                 # unique constraints are created inline with table defs
                 return
             if autogen_context.run_filters(
@@ -523,6 +543,10 @@ def _compare_indexes_and_uniques(
                 log.info(
                     "Detected removed index '%s' on '%s'", obj.name, tname)
         else:
+            if is_create_table or is_drop_table:
+                # if the whole table is being dropped, we don't need to
+                # consider unique constraint separately
+                return
             if autogen_context.run_filters(
                     obj.const, obj.name,
                     "unique_constraint", True, None):
@@ -617,7 +641,6 @@ def _correct_for_uq_duplicates_uix(
         conn_indexes,
         metadata_unique_constraints,
         metadata_indexes):
-
     # dedupe unique indexes vs. constraints, since MySQL / Oracle
     # doesn't really have unique constraints as a separate construct.
     # but look in the metadata and try to maintain constructs
@@ -644,6 +667,7 @@ def _correct_for_uq_duplicates_uix(
         (cons.name, cons) for cons in conn_unique_constraints
         if cons.info['duplicates_index']
     )
+
     for overlap in uqs_dupe_indexes:
         if overlap not in metadata_uq_names:
             if _uq_constraint_sig(uqs_dupe_indexes[overlap]).sig \
@@ -775,7 +799,7 @@ def _compare_foreign_keys(
 
     # if we're doing CREATE TABLE, all FKs are created
     # inline within the table def
-    if conn_table is None:
+    if conn_table is None or metadata_table is None:
         return
 
     inspector = autogen_context.inspector
