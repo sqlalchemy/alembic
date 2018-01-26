@@ -199,6 +199,11 @@ class PostgresqlImpl(DefaultImpl):
 
         return False
 
+    def _render_HSTORE_type(self, type_, autogen_context):
+        return render._render_type_w_subtype(
+            type_, autogen_context, 'text_type', r'(.+?\(.*text_type=)'
+        )
+
     def _render_ARRAY_type(self, type_, autogen_context):
         return render._render_type_w_subtype(
             type_, autogen_context, 'item_type', r'(.+?\()'
