@@ -1,0 +1,8 @@
+.. change::
+    :tags: bug, postgresql
+    :tickets: 480
+
+    Fixed the autogenerate of the module prefix
+    when rendering the text_type parameter of
+    postgresql.HSTORE, in much the same way that
+    we do for ARRAY's type and JSON's text_type.

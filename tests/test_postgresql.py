@@ -32,7 +32,7 @@ from sqlalchemy.sql import false
 
 
 if util.sqla_09:
-    from sqlalchemy.dialects.postgresql import JSON, JSONB
+    from sqlalchemy.dialects.postgresql import JSON, JSONB, HSTORE
 
 
 class PostgresqlOpTest(TestBase):
@@ -688,6 +688,29 @@ unique=False, """
                 ARRAY(BYTEA, as_tuple=True, dimensions=2),
                 self.autogen_context),
             "postgresql.ARRAY(postgresql.BYTEA(), as_tuple=True, dimensions=2)"
+        )
+
+        assert 'from sqlalchemy.dialects import postgresql' in \
+            self.autogen_context.imports
+
+    @config.requirements.sqlalchemy_110
+    def test_postgresql_hstore_subtypes(self):
+        eq_ignore_whitespace(
+            autogenerate.render._repr_type(
+                HSTORE(), self.autogen_context),
+            "postgresql.HSTORE(text_type=sa.Text())"
+        )
+
+        eq_ignore_whitespace(
+            autogenerate.render._repr_type(
+                HSTORE(text_type=String()), self.autogen_context),
+            "postgresql.HSTORE(text_type=sa.String())"
+        )
+
+        eq_ignore_whitespace(
+            autogenerate.render._repr_type(
+                HSTORE(text_type=BYTEA()), self.autogen_context),
+            "postgresql.HSTORE(text_type=postgresql.BYTEA())"
         )
 
         assert 'from sqlalchemy.dialects import postgresql' in \
