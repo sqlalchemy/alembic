@@ -319,6 +319,74 @@ def downgrade():
     return a, b, c
 
 
+def multi_heads_fixture(cfg, a, b, c):
+    """Create a multiple head fixture from the three-revs fixture"""
+
+    d = util.rev_id()
+    e = util.rev_id()
+    f = util.rev_id()
+
+    script = ScriptDirectory.from_config(cfg)
+    script.generate_revision(
+        d, "revision d from b", head=b, splice=True, refresh=True)
+    write_script(script, d, """\
+"Rev D"
+revision = '%s'
+down_revision = '%s'
+
+from alembic import op
+
+
+def upgrade():
+    op.execute("CREATE STEP 4")
+
+
+def downgrade():
+    op.execute("DROP STEP 4")
+
+""" % (d, b))
+
+    script.generate_revision(
+        e, "revision e from d", head=d, splice=True, refresh=True)
+    write_script(script, e, """\
+"Rev E"
+revision = '%s'
+down_revision = '%s'
+
+from alembic import op
+
+
+def upgrade():
+    op.execute("CREATE STEP 5")
+
+
+def downgrade():
+    op.execute("DROP STEP 5")
+
+""" % (e, d))
+
+    script.generate_revision(
+        f, "revision f from b", head=b, splice=True, refresh=True)
+    write_script(script, f, """\
+"Rev F"
+revision = '%s'
+down_revision = '%s'
+
+from alembic import op
+
+
+def upgrade():
+    op.execute("CREATE STEP 6")
+
+
+def downgrade():
+    op.execute("DROP STEP 6")
+
+""" % (f, b))
+
+    return d, e, f
+
+
 def _multidb_testing_config(engines):
     """alembic.ini fixture to work exactly with the 'multidb' template"""
 

@@ -237,6 +237,8 @@ class ScriptDirectory(object):
         if not rev:
             # convert () to None
             return None
+        elif id_ == "heads":
+            return rev
         else:
             return rev[0]
 

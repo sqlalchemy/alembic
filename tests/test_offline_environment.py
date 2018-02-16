@@ -4,7 +4,8 @@ from alembic import command, util
 
 from alembic.testing import assert_raises_message
 from alembic.testing.env import staging_env, _no_sql_testing_config, \
-    three_rev_fixture, clear_staging_env, env_file_fixture
+    three_rev_fixture, clear_staging_env, env_file_fixture, \
+    multi_heads_fixture
 import re
 
 a = b = c = None
@@ -80,6 +81,12 @@ assert context.get_revision_argument() == '%s'
         command.stamp(self.cfg, b, sql=True)
         command.downgrade(self.cfg, "%s:%s" % (c, b), sql=True)
 
+    def test_destination_rev_pre_context_multihead(self):
+        d, e, f = multi_heads_fixture(self.cfg, a, b, c)
+        env_file_fixture("""
+assert set(context.get_revision_argument()) == set(('%s', '%s', '%s', ))
+""" % (f, e, c))
+        command.upgrade(self.cfg, 'heads', sql=True)
 
     def test_destination_rev_post_context(self):
         env_file_fixture("""
@@ -90,23 +97,54 @@ assert context.get_revision_argument() == '%s'
         command.downgrade(self.cfg, "%s:%s" % (c, b), sql=True)
         command.stamp(self.cfg, b, sql=True)
 
+    def test_destination_rev_post_context_multihead(self):
+        d, e, f = multi_heads_fixture(self.cfg, a, b, c)
+        env_file_fixture("""
+context.configure(dialect_name='sqlite')
+assert set(context.get_revision_argument()) == set(('%s', '%s', '%s', ))
+""" % (f, e, c))
+        command.upgrade(self.cfg, 'heads', sql=True)
+
     def test_head_rev_pre_context(self):
         env_file_fixture("""
 assert context.get_head_revision() == '%s'
-""" % c)
+assert context.get_head_revisions() == ('%s', )
+""" % (c, c))
         command.upgrade(self.cfg, b, sql=True)
         command.downgrade(self.cfg, "%s:%s" % (b, a), sql=True)
         command.stamp(self.cfg, b, sql=True)
+        command.current(self.cfg)
+
+    def test_head_rev_pre_context_multihead(self):
+        d, e, f = multi_heads_fixture(self.cfg, a, b, c)
+        env_file_fixture("""
+assert set(context.get_head_revisions()) == set(('%s', '%s', '%s', ))
+""" % (e, f, c))
+        command.upgrade(self.cfg, e, sql=True)
+        command.downgrade(self.cfg, "%s:%s" % (e, b), sql=True)
+        command.stamp(self.cfg, c, sql=True)
         command.current(self.cfg)
 
     def test_head_rev_post_context(self):
         env_file_fixture("""
 context.configure(dialect_name='sqlite')
 assert context.get_head_revision() == '%s'
-""" % c)
+assert context.get_head_revisions() == ('%s', )
+""" % (c, c))
         command.upgrade(self.cfg, b, sql=True)
         command.downgrade(self.cfg, "%s:%s" % (b, a), sql=True)
         command.stamp(self.cfg, b, sql=True)
+        command.current(self.cfg)
+
+    def test_head_rev_post_context_multihead(self):
+        d, e, f = multi_heads_fixture(self.cfg, a, b, c)
+        env_file_fixture("""
+context.configure(dialect_name='sqlite')
+assert set(context.get_head_revisions()) == set(('%s', '%s', '%s', ))
+""" % (e, f, c))
+        command.upgrade(self.cfg, e, sql=True)
+        command.downgrade(self.cfg, "%s:%s" % (e, b), sql=True)
+        command.stamp(self.cfg, c, sql=True)
         command.current(self.cfg)
 
     def test_tag_pre_context(self):

@@ -1,0 +1,13 @@
+.. change::
+    :tags: bug, runtime
+    :tickets: 482
+
+    Fixed bug where the :meth:`.Script.as_revision_number` method
+    did not accommodate for the 'heads' identifier, which in turn
+    caused the :meth:`.EnvironmentContext.get_head_revisions`
+    and :meth:`.EnvironmentContext.get_revision_argument` methods
+    to be not usable when multiple heads were present.
+    The :meth:.`EnvironmentContext.get_head_revisions` method returns
+    a tuple in all cases as documented.
+
+
