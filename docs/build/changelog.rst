@@ -3,7 +3,11 @@
 Changelog
 ==========
 
-.. changelog::
+    .. changelog::
+        :version: 0.9.9
+        :include_notes_from: unreleased
+
+    .. changelog::
     :version: 0.9.8
     :released: February 16, 2018
 
