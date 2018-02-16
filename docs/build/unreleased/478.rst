@@ -1,9 +1,0 @@
-.. change::
-    :tags: bug, postgresql, autogenerate
-    :tickets: 478
-
-    Fixed bug where autogenerate of :class:`.ExcludeConstraint`
-    would render a raw quoted name for a Column that has case-sensitive
-    characters, which when invoked as an inline member of the Table
-    would produce a stack trace that the quoted name is not found.
-    An incoming Column object is now rendered as ``sa.column('name')``.
