@@ -89,20 +89,25 @@ class MySQLImpl(DefaultImpl):
         # partially a workaround for SQLAlchemy issue #3023; if the
         # column were created without "NOT NULL", MySQL may have added
         # an implicit default of '0' which we need to skip
+        # TODO: this is not really covered anymore ?
         if metadata_column.type._type_affinity is sqltypes.Integer and \
             inspector_column.primary_key and \
                 not inspector_column.autoincrement and \
                 not rendered_metadata_default and \
                 rendered_inspector_default == "'0'":
             return False
+        elif inspector_column.type._type_affinity is sqltypes.Integer:
+            rendered_inspector_default = re.sub(
+                r"^'|'$", '', rendered_inspector_default)
+            return rendered_inspector_default != rendered_metadata_default
         elif rendered_inspector_default and rendered_metadata_default:
             # adjust for "function()" vs. "FUNCTION"
             return (
                 re.sub(
-                    r'(.*)(\(\))?$', '\1',
+                    r'(.*?)(?:\(\))?$', r'\1',
                     rendered_inspector_default.lower()) !=
                 re.sub(
-                    r'(.*)(\(\))?$', '\1',
+                    r'(.*?)(?:\(\))?$', r'\1',
                     rendered_metadata_default.lower())
             )
         else:

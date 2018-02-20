@@ -277,9 +277,11 @@ class MySQLDefaultCompareTest(TestBase):
         t1.create(self.bind)
         insp = Inspector.from_engine(self.bind)
         cols = insp.get_columns(t1.name)
+        refl = Table(t1.name, MetaData())
+        insp.reflecttable(refl, None)
         ctx = self.autogen_context['context']
         return ctx.impl.compare_server_default(
-            None,
+            refl.c[cols[0]['name']],
             col,
             rendered,
             cols[0]['default'])
@@ -294,4 +296,24 @@ class MySQLDefaultCompareTest(TestBase):
         self._compare_default_roundtrip(
             TIMESTAMP(),
             None, "CURRENT_TIMESTAMP",
+        )
+
+    def test_compare_integer_same(self):
+        self._compare_default_roundtrip(
+            Integer(), "5"
+        )
+
+    def test_compare_integer_diff(self):
+        self._compare_default_roundtrip(
+            Integer(), "5", "7"
+        )
+
+    def test_compare_boolean_same(self):
+        self._compare_default_roundtrip(
+            Boolean(), "1"
+        )
+
+    def test_compare_boolean_diff(self):
+        self._compare_default_roundtrip(
+            Boolean(), "1", "0"
         )

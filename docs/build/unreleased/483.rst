@@ -1,0 +1,11 @@
+.. change::
+    :tags: bug, mysql, autogenerate
+    :tickets: 483
+
+    Fixed bug where MySQL server default comparisons were basically not working
+    at all due to incorrect regexp added in :ticket:`455`.  Also accommodates
+    for MariaDB 10.2 quoting differences in reporting integer based server
+    defaults.
+
+
+
