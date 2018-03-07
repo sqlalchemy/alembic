@@ -1,0 +1,8 @@
+.. change::
+    :tags: feature, commands
+    :tickets: 481
+
+    Added new flag ``--indicate-current`` to the ``alembic history`` command.
+    When listing versions, it will include the token "(current)" to indicate
+    the given version is a current head in the target database.  Pull request
+    courtesy Kazutaka Mise.

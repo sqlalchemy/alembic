@@ -65,16 +65,19 @@ finally:
 
 """)
 
-    def _eq_cmd_output(self, buf, expected, env_token=False):
+    def _eq_cmd_output(self, buf, expected, env_token=False, currents=()):
         script = ScriptDirectory.from_config(self.cfg)
 
         # test default encode/decode behavior as well,
         # rev B has a non-ascii char in it + a coding header.
 
-        assert_lines = [
-            script.get_revision(rev).log_entry
-            for rev in expected
-        ]
+        assert_lines = []
+        for _id in expected:
+            rev = script.get_revision(_id)
+            if _id in currents:
+                rev._db_current_indicator = True
+            assert_lines.append(rev.log_entry)
+
         if env_token:
             assert_lines.insert(0, "environment included OK")
 
@@ -154,6 +157,13 @@ finally:
         self.cfg.set_main_option("revision_environment", "true")
         command.history(self.cfg, verbose=True)
         self._eq_cmd_output(buf, [self.c, self.b, self.a], env_token=True)
+
+    def test_history_indicate_current(self):
+        command.stamp(self.cfg, (self.b,))
+        self.cfg.stdout = buf = self._buf_fixture()
+        command.history(self.cfg, indicate_current=True, verbose=True)
+        self._eq_cmd_output(
+            buf, [self.c, self.b, self.a], currents=(self.b,), env_token=True)
 
 
 class CurrentTest(_BufMixin, TestBase):
