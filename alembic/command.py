@@ -321,7 +321,7 @@ def show(config, rev):
             config.print_stdout(sc.log_entry)
 
 
-def history(config, rev_range=None, verbose=False):
+def history(config, rev_range=None, verbose=False, indicate_current=False):
     """List changeset scripts in chronological order.
 
     :param config: a :class:`.Config` instance.
@@ -329,6 +329,10 @@ def history(config, rev_range=None, verbose=False):
     :param rev_range: string revision range
 
     :param verbose: output in verbose mode.
+
+    :param indicate_current: indicate current revision.
+
+     ..versionadded:: 0.9.9
 
     """
 
@@ -344,25 +348,29 @@ def history(config, rev_range=None, verbose=False):
 
     environment = util.asbool(
         config.get_main_option("revision_environment")
-    )
+    ) or indicate_current
 
-    def _display_history(config, script, base, head):
+    def _display_history(config, script, base, head, currents=()):
         for sc in script.walk_revisions(
                 base=base or "base",
                 head=head or "heads"):
+
+            if indicate_current:
+                sc._db_current_indicator = sc.revision in currents
+
             config.print_stdout(
                 sc.cmd_format(
                     verbose=verbose, include_branches=True,
                     include_doc=True, include_parents=True))
 
-    def _display_history_w_current(config, script, base=None, head=None):
+    def _display_history_w_current(config, script, base, head):
         def _display_current_history(rev, context):
-            if head is None:
-                _display_history(config, script, base, rev)
-            elif base is None:
-                _display_history(config, script, rev, head)
+            if head == 'current':
+                _display_history(config, script, base, rev, rev)
+            elif base == 'current':
+                _display_history(config, script, rev, head, rev)
             else:
-                _display_history(config, script, base, head)
+                _display_history(config, script, base, head, rev)
             return []
 
         with EnvironmentContext(
@@ -372,11 +380,7 @@ def history(config, rev_range=None, verbose=False):
         ):
             script.run_env()
 
-    if base == "current":
-        _display_history_w_current(config, script, head=head)
-    elif head == "current":
-        _display_history_w_current(config, script, base=base)
-    elif environment:
+    if base == "current" or head == "current" or environment:
         _display_history_w_current(config, script, base, head)
     else:
         _display_history(config, script, base, head)

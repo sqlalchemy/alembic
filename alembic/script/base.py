@@ -635,6 +635,10 @@ class Script(revision.Revision):
     path = None
     """Filesystem path of the script."""
 
+    _db_current_indicator = None
+    """Utility variable which when set will cause string output to indicate
+    this is a "current" version in some database"""
+
     @property
     def doc(self):
         """Return the docstring given in the script."""
@@ -655,11 +659,12 @@ class Script(revision.Revision):
 
     @property
     def log_entry(self):
-        entry = "Rev: %s%s%s%s\n" % (
+        entry = "Rev: %s%s%s%s%s\n" % (
             self.revision,
             " (head)" if self.is_head else "",
             " (branchpoint)" if self.is_branch_point else "",
             " (mergepoint)" if self.is_merge_point else "",
+            " (current)" if self._db_current_indicator else ""
         )
         if self.is_merge_point:
             entry += "Merges: %s\n" % (self._format_down_revision(), )
@@ -715,10 +720,11 @@ class Script(revision.Revision):
         if include_branches and self.branch_labels:
             text += " (%s)" % util.format_as_comma(self.branch_labels)
         if head_indicators or tree_indicators:
-            text += "%s%s" % (
+            text += "%s%s%s" % (
                 " (head)" if self._is_real_head else "",
                 " (effective head)" if self.is_head and
-                    not self._is_real_head else ""
+                    not self._is_real_head else "",
+                " (current)" if self._db_current_indicator else ""
             )
         if tree_indicators:
             text += "%s%s" % (

@@ -388,6 +388,13 @@ class CommandLine(object):
                         action="store",
                         help="Specify a revision range; "
                         "format is [start]:[end]")
+                ),
+                'indicate_current': (
+                    "-i", "--indicate-current",
+                    dict(
+                        action="store_true",
+                        help="Indicate the current revision"
+                    )
                 )
             }
             positional_help = {
