@@ -174,6 +174,13 @@ class MySQLOpTest(TestBase):
             "ALTER TABLE t1 DROP FOREIGN KEY f1"
         )
 
+    def test_drop_fk_quoted(self):
+        context = op_fixture('mysql')
+        op.drop_constraint("MyFk", "MyTable", "foreignkey")
+        context.assert_(
+            "ALTER TABLE `MyTable` DROP FOREIGN KEY `MyFk`"
+        )
+
     def test_drop_constraint_primary(self):
         context = op_fixture('mysql')
         op.drop_constraint('primary', 't1', type_='primary')
@@ -188,11 +195,25 @@ class MySQLOpTest(TestBase):
             "ALTER TABLE t1 DROP INDEX f1"
         )
 
+    def test_drop_unique_quoted(self):
+        context = op_fixture('mysql')
+        op.drop_constraint("MyUnique", "MyTable", "unique")
+        context.assert_(
+            "ALTER TABLE `MyTable` DROP INDEX `MyUnique`"
+        )
+
     def test_drop_check(self):
         context = op_fixture('mysql')
         op.drop_constraint("f1", "t1", "check")
         context.assert_(
             "ALTER TABLE t1 DROP CONSTRAINT f1"
+        )
+
+    def test_drop_check_quoted(self):
+        context = op_fixture('mysql')
+        op.drop_constraint("MyCheck", "MyTable", "check")
+        context.assert_(
+            "ALTER TABLE `MyTable` DROP CONSTRAINT `MyCheck`"
         )
 
     def test_drop_unknown(self):
