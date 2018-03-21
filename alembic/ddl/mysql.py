@@ -342,7 +342,8 @@ def _mysql_drop_constraint(element, compiler, **kw):
         # DROP CONSTRAINT for MySQL/MariaDB, so we implement fully
         # here.
         return "ALTER TABLE %s DROP CONSTRAINT %s" % \
-            (compiler.preparer.format_table(constraint.table), constraint.name)
+            (compiler.preparer.format_table(constraint.table),
+             compiler.preparer.format_constraint(constraint))
     else:
         raise NotImplementedError(
             "No generic 'DROP CONSTRAINT' in MySQL - "
