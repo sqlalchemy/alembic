@@ -1,9 +1,0 @@
-.. change::
-    :tags: bug, autogenerate, mysql
-    :tickets: 455
-
-    The fix for :ticket:`455` in version 0.9.6 involving MySQL server default
-    comparison was entirely non functional, as the test itself was also broken
-    and didn't reveal that it wasn't working. The regular expression to compare
-    server default values like CURRENT_TIMESTAMP to current_timestamp() is
-    repaired.

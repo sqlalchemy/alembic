@@ -5,7 +5,45 @@ Changelog
 
 .. changelog::
     :version: 0.9.9
-    :include_notes_from: unreleased
+    :released: March 22, 2018
+
+    .. change::
+        :tags: feature, commands
+        :tickets: 481
+
+        Added new flag ``--indicate-current`` to the ``alembic history`` command.
+        When listing versions, it will include the token "(current)" to indicate
+        the given version is a current head in the target database.  Pull request
+        courtesy Kazutaka Mise.
+
+    .. change::
+        :tags: bug, autogenerate, mysql
+        :tickets: 455
+
+        The fix for :ticket:`455` in version 0.9.6 involving MySQL server default
+        comparison was entirely non functional, as the test itself was also broken
+        and didn't reveal that it wasn't working. The regular expression to compare
+        server default values like CURRENT_TIMESTAMP to current_timestamp() is
+        repaired.
+
+    .. change::
+        :tags: bug, mysql, autogenerate
+        :tickets: 483
+
+        Fixed bug where MySQL server default comparisons were basically not working
+        at all due to incorrect regexp added in :ticket:`455`.  Also accommodates
+        for MariaDB 10.2 quoting differences in reporting integer based server
+        defaults.
+
+
+
+
+    .. change::
+        :tags: bug, operations, mysql
+        :tickets: 487
+
+        Fixed bug in ``op.drop_constraint()`` for MySQL where
+        quoting rules would not be applied to the constraint name.
 
 .. changelog::
     :version: 0.9.8

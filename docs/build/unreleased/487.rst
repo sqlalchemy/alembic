@@ -1,6 +1,0 @@
-.. change::
-    :tags: bug, operations, mysql
-    :tickets: 487
-
-    Fixed bug in ``op.drop_constraint()`` for MySQL where
-    quoting rules would not be applied to the constraint name.
