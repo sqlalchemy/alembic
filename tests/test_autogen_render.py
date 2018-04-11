@@ -364,6 +364,24 @@ class AutogenRenderTest(TestBase):
             "schema='CamelSchema', type_='unique')"
         )
 
+    def test_drop_unique_constraint_schema_reprobj(self):
+        """
+        autogenerate.render._drop_constraint using schema
+        """
+        class SomeObj(str):
+            def __repr__(self):
+                return "foo.camel_schema"
+
+        op_obj = ops.DropConstraintOp(
+            "uq_test_code", "test", type_="unique",
+            schema=SomeObj("CamelSchema")
+        )
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.drop_constraint('uq_test_code', 'test', "
+            "schema=foo.camel_schema, type_='unique')"
+        )
+
     def test_add_fk_constraint(self):
         m = MetaData()
         Table('a', m, Column('id', Integer, primary_key=True))
