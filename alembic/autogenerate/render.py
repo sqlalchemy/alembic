@@ -275,7 +275,7 @@ def _drop_constraint(autogen_context, op):
             autogen_context, op.constraint_name),
         'table_name': _ident(op.table_name),
         'type': op.constraint_type,
-        'schema': (", schema='%s'" % _ident(op.schema))
+        'schema': (", schema=%r" % _ident(op.schema))
         if op.schema else '',
     }
     return text
