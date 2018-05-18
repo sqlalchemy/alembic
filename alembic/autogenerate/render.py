@@ -586,6 +586,8 @@ def _repr_type(type_, autogen_context):
             return impl_rt
         else:
             return "%s.%r" % (dname, type_)
+    elif impl_rt:
+        return impl_rt
     elif mod.startswith("sqlalchemy."):
         if '_render_%s_type' % type_.__visit_name__ in globals():
             fn = globals()['_render_%s_type' % type_.__visit_name__]
@@ -604,7 +606,8 @@ def _render_ARRAY_type(type_, autogen_context):
     )
 
 
-def _render_type_w_subtype(type_, autogen_context, attrname, regexp):
+def _render_type_w_subtype(
+        type_, autogen_context, attrname, regexp, prefix=None):
     outer_repr = repr(type_)
     inner_type = getattr(type_, attrname, None)
     if inner_type is None:
@@ -617,6 +620,9 @@ def _render_type_w_subtype(type_, autogen_context, attrname, regexp):
     outer_type = re.sub(
         regexp + inner_repr,
         r"\1%s" % sub_type, outer_repr)
+
+    if prefix:
+        return "%s%s" % (prefix, outer_type)
 
     mod = type(type_).__module__
     if mod.startswith("sqlalchemy.dialects"):
