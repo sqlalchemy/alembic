@@ -146,6 +146,9 @@ def op_fixture(
     ctx_dialect = _get_dialect(dialect)
     if native_boolean is not None:
         ctx_dialect.supports_native_boolean = native_boolean
+        # this is new as of SQLAlchemy 1.2.7 and is used by SQL Server,
+        # which breaks assumptions in the alembic test suite
+        ctx_dialect.non_native_boolean_check_constraint = True
     if not as_sql:
         def execute(stmt, *multiparam, **param):
             if isinstance(stmt, string_types):
