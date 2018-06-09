@@ -26,7 +26,7 @@ to_bootstrap = locals()['to_bootstrap']
 
 def load_file_as_module(name):
     path = os.path.join(os.path.dirname(bootstrap_file), "%s.py" % name)
-    if sys.version_info >= (3, 3):
+    if sys.version_info.major >= 3:
         from importlib import machinery
         mod = machinery.SourceFileLoader(name, path).load_module()
     else:

@@ -19,11 +19,6 @@ requires = [
     'python-dateutil'
 ]
 
-try:
-    import argparse
-except ImportError:
-    requires.append('argparse')
-
 
 class PyTest(TestCommand):
     user_options = [('pytest-args=', 'a', "Arguments to pass to py.test")]
@@ -48,12 +43,18 @@ setup(name='alembic',
       version=VERSION,
       description="A database migration tool for SQLAlchemy.",
       long_description=open(readme).read(),
+      python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*',
       classifiers=[
           'Development Status :: 4 - Beta',
           'Environment :: Console',
           'Intended Audience :: Developers',
           'Programming Language :: Python',
+          'Programming Language :: Python :: 2',
+          'Programming Language :: Python :: 2.7',
           'Programming Language :: Python :: 3',
+          'Programming Language :: Python :: 3.4',
+          'Programming Language :: Python :: 3.5',
+          'Programming Language :: Python :: 3.6',
           'Programming Language :: Python :: Implementation :: CPython',
           'Programming Language :: Python :: Implementation :: PyPy',
           'Topic :: Database :: Front-Ends',

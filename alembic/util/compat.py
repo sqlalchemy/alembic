@@ -1,13 +1,12 @@
 import io
 import sys
 
-if sys.version_info < (2, 6):
-    raise NotImplementedError("Python 2.6 or greater is required.")
+if sys.version_info < (2, 7):
+    raise NotImplementedError("Python 2.7 or greater is required.")
 
 py27 = sys.version_info >= (2, 7)
-py2k = sys.version_info < (3, 0)
-py3k = sys.version_info >= (3, 0)
-py33 = sys.version_info >= (3, 3)
+py2k = sys.version_info.major < 3
+py3k = sys.version_info.major >= 3
 py35 = sys.version_info >= (3, 5)
 py36 = sys.version_info >= (3, 6)
 
@@ -89,7 +88,7 @@ if py35:
         spec.loader.exec_module(module)
         return module
 
-elif py33:
+elif py3k:
     import importlib.machinery
 
     def load_module_py(module_id, path):
@@ -104,7 +103,7 @@ elif py33:
         del sys.modules[module_id]
         return module
 
-if py33:
+if py3k:
     def get_bytecode_suffixes():
         try:
             return importlib.machinery.BYTECODE_SUFFIXES
@@ -114,16 +113,11 @@ if py33:
     def get_current_bytecode_suffixes():
         if py35:
             suffixes = importlib.machinery.BYTECODE_SUFFIXES
-        elif py33:
+        else:
             if sys.flags.optimize:
                 suffixes = importlib.machinery.OPTIMIZED_BYTECODE_SUFFIXES
             else:
                 suffixes = importlib.machinery.BYTECODE_SUFFIXES
-        else:
-            if sys.flags.optimize:
-                suffixes = [".pyo"]
-            else:
-                suffixes = [".pyc"]
 
         return suffixes
 

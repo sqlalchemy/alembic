@@ -12,9 +12,9 @@
 
 """
 from __future__ import absolute_import
-from ..util.compat import py33
+from ..util.compat import py3k
 
-if py33:
+if py3k:
     from unittest.mock import MagicMock, Mock, call, patch, ANY
 else:
     try:

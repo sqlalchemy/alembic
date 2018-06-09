@@ -27,7 +27,7 @@ import sys
 from nose.plugins import Plugin
 fixtures = None
 
-py3k = sys.version_info >= (3, 0)
+py3k = sys.version_info.major >= 3
 
 
 class NoseSQLAlchemy(Plugin):
