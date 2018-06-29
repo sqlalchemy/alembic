@@ -11,24 +11,11 @@ Alembic is hosted on `Bitbucket <http://bitbucket.org>`_ - the lead project
 page is at https://bitbucket.org/zzzeek/alembic. Source code is tracked here
 using `Git <http://git-scm.com/>`_.
 
-.. versionchanged:: 0.6
-	The source repository was moved from Mercurial to Git.
-
 Releases and project status are available on Pypi at
 http://pypi.python.org/pypi/alembic.
 
 The most recent published version of this documentation should be at
 http://alembic.zzzcomputing.com/.
-
-Project Status
-==============
-
-Alembic is currently in beta status and is expected to be fairly
-stable.   Users should take care to report bugs and missing features
-(see :ref:`bugs`) on an as-needed
-basis.  It should be expected that the development version may be required
-for proper implementation of recently repaired issues in between releases;
-the latest master is always available at https://bitbucket.org/zzzeek/alembic/get/master.tar.gz.
 
 .. _installation:
 
