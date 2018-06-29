@@ -924,6 +924,24 @@ class AutogenRenderTest(TestBase):
             "sa.PrimaryKeyConstraint('x'))"
         )
 
+    @config.requirements.fail_before_sqla_110
+    def test_render_table_w_autoincrement(self):
+        m = MetaData()
+        t = Table(
+            'test', m,
+            Column('id1', Integer, primary_key=True),
+            Column('id2', Integer, primary_key=True, autoincrement=True))
+        op_obj = ops.CreateTableOp.from_table(t)
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.create_table('test',"
+            "sa.Column('id1', sa.Integer(), nullable=False),"
+            "sa.Column('id2', sa.Integer(), autoincrement=True, "
+            "nullable=False),"
+            "sa.PrimaryKeyConstraint('id1', 'id2')"
+            ")"
+        )
+
     def test_render_add_column(self):
         op_obj = ops.AddColumnOp(
             "foo", Column("x", Integer, server_default="5"))

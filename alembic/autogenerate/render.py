@@ -1,6 +1,7 @@
 from sqlalchemy import schema as sa_schema, types as sqltypes, sql
 from ..operations import ops
 from ..util import compat
+from ..util import sqla_compat
 import re
 from ..util.compat import string_types
 from .. import util
@@ -533,7 +534,8 @@ def _render_column(column, autogen_context):
         if rendered:
             opts.append(("server_default", rendered))
 
-    if not column.autoincrement:
+    if column.autoincrement is not None and \
+            column.autoincrement != sqla_compat.AUTOINCREMENT_DEFAULT:
         opts.append(("autoincrement", column.autoincrement))
 
     if column.nullable is not None:
