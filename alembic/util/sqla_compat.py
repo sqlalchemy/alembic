@@ -38,6 +38,10 @@ if sqla_08:
 else:
     from sqlalchemy.sql.expression import _TextClause as TextClause
 
+if sqla_110:
+    AUTOINCREMENT_DEFAULT = 'auto'
+else:
+    AUTOINCREMENT_DEFAULT = True
 
 def _table_for_constraint(constraint):
     if isinstance(constraint, ForeignKeyConstraint):
