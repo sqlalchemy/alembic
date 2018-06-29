@@ -1,7 +1,0 @@
-.. change::
-    :tags: bug, autogenerate
-    :tickets: 494
-
-    Added basic capabilities for external dialects to support rendering of
-    "nested" types, like arrays, in a manner similar to that of the Postgresql
-    dialect.

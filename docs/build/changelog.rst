@@ -5,7 +5,31 @@ Changelog
 
 .. changelog::
     :version: 0.9.10
-    :include_notes_from: unreleased
+    :released: June 29, 2018
+
+    .. change::
+        :tags: bug, autogenerate
+
+        The "op.drop_constraint()" directive will now render using ``repr()`` for
+        the schema name, in the same way that "schema" renders for all the other op
+        directives.  Pull request courtesy Denis Kataev.
+
+    .. change::
+        :tags: bug, autogenerate
+        :tickets: 494
+
+        Added basic capabilities for external dialects to support rendering of
+        "nested" types, like arrays, in a manner similar to that of the Postgresql
+        dialect.
+
+    .. change::
+        :tags: bug, autogenerate
+
+        Fixed issue where "autoincrement=True" would not render for a column that
+        specified it, since as of SQLAlchemy 1.1 this is no longer the default
+        value for "autoincrement".  Note the behavior only takes effect against the
+        SQLAlchemy 1.1.0 and higher; for pre-1.1 SQLAlchemy, "autoincrement=True"
+        does not render as was the case before. Pull request courtesy  Elad Almos.
 
 .. changelog::
     :version: 0.9.9
