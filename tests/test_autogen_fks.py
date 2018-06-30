@@ -5,7 +5,7 @@ from sqlalchemy import MetaData, Column, Table, Integer, String, \
     ForeignKeyConstraint
 from alembic.testing import eq_
 
-py3k = sys.version_info >= (3, )
+py3k = sys.version_info.major >= 3
 
 from ._autogen_fixtures import AutogenFixtureTest
 

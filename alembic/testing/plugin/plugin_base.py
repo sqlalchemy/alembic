@@ -28,7 +28,7 @@ except ImportError:
 import sys
 import re
 
-py3k = sys.version_info >= (3, 0)
+py3k = sys.version_info.major >= 3
 
 if py3k:
     import configparser

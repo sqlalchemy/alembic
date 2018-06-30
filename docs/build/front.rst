@@ -41,7 +41,9 @@ is installed, in addition to other dependencies.  Alembic will work with
 SQLAlchemy as of version **0.7.3**, however more features are available with
 newer versions such as the 0.9 or 1.0 series.
 
-Alembic supports Python versions 2.6 and above.
+Alembic supports Python versions 2.7, 3.4 and above.
+
+.. versionchanged::  1.0.0  Support for Python 2.6 and 3.3 was dropped.
 
 Community
 =========
