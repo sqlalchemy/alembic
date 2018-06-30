@@ -1,0 +1,10 @@
+.. change::
+    :tags: feature, general
+    :tickets: 491
+
+    For Alembic 1.0, Python 2.6 / 3.3 support is being dropped, allowing a
+    fixed setup.py to be built as well as universal wheels.  Pull request
+    courtesy Hugo.
+
+
+

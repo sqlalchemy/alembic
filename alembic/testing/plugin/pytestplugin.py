@@ -11,7 +11,7 @@ except ImportError:
 
 import sys
 
-py3k = sys.version_info >= (3, 0)
+py3k = sys.version_info.major >= 3
 
 import pytest
 import argparse
