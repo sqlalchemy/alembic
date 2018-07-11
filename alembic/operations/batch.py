@@ -7,7 +7,7 @@ from .. import util
 if util.sqla_08:
     from sqlalchemy.events import SchemaEventTarget
 from ..util.sqla_compat import _columns_for_constraint, \
-    _is_type_bound, _fk_is_self_referential
+    _is_type_bound, _fk_is_self_referential, _remove_column_from_collection
 
 
 class BatchOperationsImpl(object):
@@ -334,6 +334,11 @@ class ApplyBatchImpl(object):
         self.column_transfers[column.name] = {}
 
     def drop_column(self, table_name, column, **kw):
+        if column.name in self.table.primary_key.columns:
+            _remove_column_from_collection(
+                self.table.primary_key.columns,
+                column
+            )
         del self.columns[column.name]
         del self.column_transfers[column.name]
 
