@@ -114,6 +114,15 @@ def _find_columns(clause):
     return cols
 
 
+def _remove_column_from_collection(collection, column):
+    """remove a column from a ColumnCollection."""
+
+    # workaround for older SQLAlchemy, remove the
+    # same object that's present
+    to_remove = collection[column.key]
+    collection.remove(to_remove)
+
+
 def _textual_index_column(table, text_):
     """a workaround for the Index construct's severe lack of flexibility"""
     if isinstance(text_, compat.string_types):
