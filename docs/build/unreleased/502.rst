@@ -1,8 +1,0 @@
-.. change::
-    :tags: bug, batch
-    :tickets: 502
-
-    Fixed issue in batch where dropping a primary key column, then adding it
-    back under the same name but without the primary_key flag, would not remove
-    it from the existing PrimaryKeyConstraint.  If a new PrimaryKeyConstraint
-    is added, it is used as-is, as was the case before.
