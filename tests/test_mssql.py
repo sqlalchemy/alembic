@@ -95,7 +95,6 @@ class OpTest(TestBase):
                         nullable=False)
         context.assert_('ALTER TABLE tests ALTER COLUMN col BIT NOT NULL')
 
-    @config.requirements.fail_before_sqla_084
     def test_drop_index(self):
         context = op_fixture('mssql')
         op.drop_index('my_idx', 'my_table')
@@ -109,7 +108,6 @@ class OpTest(TestBase):
             "exec('alter table t1 drop constraint ' + @const_name)")
         context.assert_contains("ALTER TABLE t1 DROP COLUMN c1")
 
-    @config.requirements.sqlalchemy_08
     def test_drop_column_w_default_in_batch(self):
         context = op_fixture('mssql')
         with op.batch_alter_table('t1', schema=None) as batch_op:
@@ -143,7 +141,6 @@ class OpTest(TestBase):
             "exec('alter table t1 drop constraint ' + @const_name)")
         context.assert_contains("ALTER TABLE t1 DROP COLUMN c1")
 
-    @config.requirements.sqlalchemy_08
     def test_drop_column_w_check_in_batch(self):
         context = op_fixture('mssql')
         with op.batch_alter_table('t1', schema=None) as batch_op:
@@ -174,7 +171,6 @@ class OpTest(TestBase):
             "exec('alter table t1 drop constraint ' + @const_name)")
         context.assert_contains("ALTER TABLE t1 DROP COLUMN c1")
 
-    @config.requirements.sqlalchemy_08
     def test_drop_column_w_fk_in_batch(self):
         context = op_fixture('mssql')
         with op.batch_alter_table('t1', schema=None) as batch_op:

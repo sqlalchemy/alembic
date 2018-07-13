@@ -40,7 +40,6 @@ class OpTest(TestBase):
             op.create_index, 'name', 'tname', [func.foo(column('x'))]
         )
 
-    @config.requirements.sqlalchemy_09
     def test_add_column_schema_hard_quoting(self):
         from sqlalchemy.sql.schema import quoted_name
         context = op_fixture("postgresql")
@@ -52,7 +51,6 @@ class OpTest(TestBase):
             'ALTER TABLE "some.schema".somename ADD COLUMN colname VARCHAR'
         )
 
-    @config.requirements.sqlalchemy_09
     def test_rename_table_schema_hard_quoting(self):
         from sqlalchemy.sql.schema import quoted_name
         context = op_fixture("postgresql")
@@ -64,7 +62,6 @@ class OpTest(TestBase):
             'ALTER TABLE "some.schema".t1 RENAME TO t2'
         )
 
-    @config.requirements.sqlalchemy_09
     def test_add_constraint_schema_hard_quoting(self):
         from sqlalchemy.sql.schema import quoted_name
         context = op_fixture("postgresql")
@@ -88,7 +85,6 @@ class OpTest(TestBase):
         context.assert_(
             'CREATE INDEX geocoded ON locations ("IShouldBeQuoted")')
 
-    @config.requirements.fail_before_sqla_080
     def test_create_index_expressions(self):
         context = op_fixture()
         op.create_index(
@@ -667,7 +663,6 @@ class OpTest(TestBase):
             "CREATE UNIQUE INDEX ik_test ON t1 (foo, bar)"
         )
 
-    @config.requirements.fail_before_sqla_09
     def test_create_index_quote_flag(self):
         context = op_fixture()
         op.create_index('ik_test', 't1', ['foo', 'bar'], quote=True)
@@ -845,7 +840,6 @@ class OpTest(TestBase):
         op.drop_constraint("f1", "t1", type_="foreignkey")
         context.assert_("ALTER TABLE t1 DROP FOREIGN KEY f1")
 
-    @config.requirements.fail_before_sqla_084
     def test_naming_changes_drop_idx(self):
         context = op_fixture('mssql')
         op.drop_index('ik_test', tablename='t1')
@@ -853,7 +847,6 @@ class OpTest(TestBase):
 
 
 class SQLModeOpTest(TestBase):
-    @config.requirements.sqlalchemy_09
     def test_auto_literals(self):
         context = op_fixture(as_sql=True, literal_binds=True)
         from sqlalchemy.sql import table, column

@@ -421,11 +421,8 @@ def _ident(name):
 
 def _render_potential_expr(value, autogen_context, wrap_in_text=True):
     if isinstance(value, sql.ClauseElement):
-        if util.sqla_08:
-            compile_kw = dict(compile_kwargs={
-                'literal_binds': True, "include_table": False})
-        else:
-            compile_kw = {}
+        compile_kw = dict(compile_kwargs={
+            'literal_binds': True, "include_table": False})
 
         if wrap_in_text:
             template = "%(prefix)stext(%(sql)r)"
@@ -445,14 +442,10 @@ def _render_potential_expr(value, autogen_context, wrap_in_text=True):
 
 
 def _get_index_rendered_expressions(idx, autogen_context):
-    if util.sqla_08:
-        return [repr(_ident(getattr(exp, "name", None)))
-                if isinstance(exp, sa_schema.Column)
-                else _render_potential_expr(exp, autogen_context)
-                for exp in idx.expressions]
-    else:
-        return [
-            repr(_ident(getattr(col, "name", None))) for col in idx.columns]
+    return [repr(_ident(getattr(exp, "name", None)))
+            if isinstance(exp, sa_schema.Column)
+            else _render_potential_expr(exp, autogen_context)
+            for exp in idx.expressions]
 
 
 def _uq_constraint(constraint, autogen_context, alter):

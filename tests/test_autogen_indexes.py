@@ -26,11 +26,9 @@ class NoUqReflection(object):
             raise NotImplementedError()
         eng.dialect.get_unique_constraints = unimpl
 
-    @config.requirements.fail_before_sqla_083
     def test_add_ix_on_table_create(self):
         return super(NoUqReflection, self).test_add_ix_on_table_create()
 
-    @config.requirements.fail_before_sqla_080
     def test_add_idx_non_col(self):
         return super(NoUqReflection, self).test_add_idx_non_col()
 
@@ -621,7 +619,6 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestBase):
     # truncation rules either.    dropping these ancient versions
     # is long overdue.
 
-    @config.requirements.sqlalchemy_09
     def test_unchanged_case_sensitive_implicit_idx(self):
         m1 = MetaData()
         m2 = MetaData()
@@ -631,7 +628,6 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestBase):
 
         eq_(diffs, [])
 
-    @config.requirements.sqlalchemy_09
     def test_unchanged_case_sensitive_explicit_idx(self):
         m1 = MetaData()
         m2 = MetaData()
@@ -1096,7 +1092,6 @@ class IncludeHooksTest(AutogenFixtureTest, TestBase):
 
 
 class TruncatedIdxTest(AutogenFixtureTest, TestBase):
-    __requires__ = ('sqlalchemy_09', )
 
     def setUp(self):
         self.bind = engines.testing_engine()

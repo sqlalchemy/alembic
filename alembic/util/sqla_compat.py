@@ -6,6 +6,7 @@ from sqlalchemy import schema, sql
 from sqlalchemy.sql.visitors import traverse
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.sql.expression import _BindParamClause
+from sqlalchemy.sql.expression import _TextClause as TextClause
 from . import compat
 
 
@@ -16,11 +17,6 @@ def _safe_int(value):
         return value
 _vers = tuple(
     [_safe_int(x) for x in re.findall(r'(\d+|[abc]\d)', __version__)])
-sqla_07 = _vers > (0, 7, 2)
-sqla_079 = _vers >= (0, 7, 9)
-sqla_08 = _vers >= (0, 8, 0)
-sqla_083 = _vers >= (0, 8, 3)
-sqla_084 = _vers >= (0, 8, 4)
 sqla_09 = _vers >= (0, 9, 0)
 sqla_092 = _vers >= (0, 9, 2)
 sqla_094 = _vers >= (0, 9, 4)
@@ -33,15 +29,12 @@ sqla_110 = _vers >= (1, 1, 0)
 sqla_1014 = _vers >= (1, 0, 14)
 sqla_1115 = _vers >= (1, 1, 15)
 
-if sqla_08:
-    from sqlalchemy.sql.expression import TextClause
-else:
-    from sqlalchemy.sql.expression import _TextClause as TextClause
 
 if sqla_110:
     AUTOINCREMENT_DEFAULT = 'auto'
 else:
     AUTOINCREMENT_DEFAULT = True
+
 
 def _table_for_constraint(constraint):
     if isinstance(constraint, ForeignKeyConstraint):
@@ -179,10 +172,7 @@ def _render_literal_bindparam(element, compiler, **kw):
 
 
 def _get_index_expressions(idx):
-    if sqla_08:
-        return list(idx.expressions)
-    else:
-        return list(idx.columns)
+    return list(idx.expressions)
 
 
 def _get_index_column_names(idx):
@@ -190,25 +180,22 @@ def _get_index_column_names(idx):
 
 
 def _get_index_final_name(dialect, idx):
-    if sqla_08:
-        # trying to keep the truncation rules totally localized on the
-        # SQLA side while also stepping around the quoting issue.   Ideally
-        # the _prepared_index_name() method on the SQLA side would have
-        # a quoting option or the truncation routine would be broken out.
-        #
-        # test for SQLA quoted_name construct, introduced in
-        # 0.9 or thereabouts.
-        # this doesn't work in 0.8 and the "quote" option on Index doesn't
-        # seem to work in 0.8 either.
-        if hasattr(idx.name, "quote"):
-            # might be quoted_name, might be truncated_name, keep it the
-            # same
-            quoted_name_cls = type(idx.name)
-            new_name = quoted_name_cls(str(idx.name), quote=False)
-            idx = schema.Index(name=new_name)
-        return dialect.ddl_compiler(dialect, None)._prepared_index_name(idx)
-    else:
-        return idx.name
+    # trying to keep the truncation rules totally localized on the
+    # SQLA side while also stepping around the quoting issue.   Ideally
+    # the _prepared_index_name() method on the SQLA side would have
+    # a quoting option or the truncation routine would be broken out.
+    #
+    # test for SQLA quoted_name construct, introduced in
+    # 0.9 or thereabouts.
+    # this doesn't work in 0.8 and the "quote" option on Index doesn't
+    # seem to work in 0.8 either.
+    if hasattr(idx.name, "quote"):
+        # might be quoted_name, might be truncated_name, keep it the
+        # same
+        quoted_name_cls = type(idx.name)
+        new_name = quoted_name_cls(str(idx.name), quote=False)
+        idx = schema.Index(name=new_name)
+    return dialect.ddl_compiler(dialect, None)._prepared_index_name(idx)
 
 
 def _is_mariadb(mysql_dialect):

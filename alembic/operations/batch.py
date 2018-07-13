@@ -4,8 +4,7 @@ from sqlalchemy import types as sqltypes
 from sqlalchemy import schema as sql_schema
 from sqlalchemy.util import OrderedDict
 from .. import util
-if util.sqla_08:
-    from sqlalchemy.events import SchemaEventTarget
+from sqlalchemy.events import SchemaEventTarget
 from ..util.sqla_compat import _columns_for_constraint, \
     _is_type_bound, _fk_is_self_referential, _remove_column_from_collection
 
@@ -14,9 +13,6 @@ class BatchOperationsImpl(object):
     def __init__(self, operations, table_name, schema, recreate,
                  copy_from, table_args, table_kwargs,
                  reflect_args, reflect_kwargs, naming_convention):
-        if not util.sqla_08:
-            raise NotImplementedError(
-                "batch mode requires SQLAlchemy 0.8 or greater.")
         self.operations = operations
         self.table_name = table_name
         self.schema = schema
