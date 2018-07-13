@@ -6,6 +6,7 @@ Changelog
 .. changelog::
     :version: 1.0.0
     :released: July 13, 2018
+    :released: July 13, 2018
 
     .. change::
         :tags: feature, general
