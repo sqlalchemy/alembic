@@ -305,11 +305,7 @@ def _prep_testing_database(options, file_config):
     from sqlalchemy import schema
     from alembic import util
 
-    if util.sqla_08:
-        from sqlalchemy import inspect
-    else:
-        from sqlalchemy.engine.reflection import Inspector
-        inspect = Inspector.from_engine
+    from sqlalchemy import inspect
 
     if options.dropfirst:
         for cfg in config.Config.all_configs():

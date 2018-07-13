@@ -20,10 +20,7 @@ from ..operations import schemaobj
 
 import logging
 
-if util.sqla_08:
-    from sqlalchemy.sql.expression import UnaryExpression
-else:
-    from sqlalchemy.sql.expression import _UnaryExpression as UnaryExpression
+from sqlalchemy.sql.expression import UnaryExpression
 
 if util.sqla_100:
     from sqlalchemy.dialects.postgresql import ExcludeConstraint
@@ -174,10 +171,7 @@ class PostgresqlImpl(DefaultImpl):
         for idx in list(metadata_indexes):
             if idx.name in conn_indexes_by_name:
                 continue
-            if util.sqla_08:
-                exprs = idx.expressions
-            else:
-                exprs = idx.columns
+            exprs = idx.expressions
             for expr in exprs:
                 while isinstance(expr, UnaryExpression):
                     expr = expr.element

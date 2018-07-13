@@ -45,9 +45,6 @@ class DefaultImpl(with_metaclass(ImplMeta)):
         self.connection = connection
         self.as_sql = as_sql
         self.literal_binds = context_opts.get('literal_binds', False)
-        if self.literal_binds and not util.sqla_08:
-            util.warn("'literal_binds' flag not supported in SQLAlchemy 0.7")
-            self.literal_binds = False
 
         self.output_buffer = output_buffer
         self.memo = {}
@@ -187,15 +184,13 @@ class DefaultImpl(with_metaclass(ImplMeta)):
                                     new_table_name, schema=schema))
 
     def create_table(self, table):
-        if util.sqla_07:
-            table.dispatch.before_create(table, self.connection,
-                                         checkfirst=False,
-                                         _ddl_runner=self)
+        table.dispatch.before_create(table, self.connection,
+                                     checkfirst=False,
+                                     _ddl_runner=self)
         self._exec(schema.CreateTable(table))
-        if util.sqla_07:
-            table.dispatch.after_create(table, self.connection,
-                                        checkfirst=False,
-                                        _ddl_runner=self)
+        table.dispatch.after_create(table, self.connection,
+                                    checkfirst=False,
+                                    _ddl_runner=self)
         for index in table.indexes:
             self._exec(schema.CreateIndex(index))
 
@@ -274,13 +269,7 @@ class DefaultImpl(with_metaclass(ImplMeta)):
         pass
 
     def _compat_autogen_column_reflect(self, inspector):
-        if util.sqla_08:
-            return self.autogen_column_reflect
-        else:
-            def adapt(table, column_info):
-                return self.autogen_column_reflect(
-                    inspector, table, column_info)
-            return adapt
+        return self.autogen_column_reflect
 
     def correct_for_autogen_foreignkeys(self, conn_fks, metadata_fks):
         pass

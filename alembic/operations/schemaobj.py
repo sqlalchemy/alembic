@@ -46,9 +46,7 @@ class SchemaObjects(object):
         tname = "%s.%s" % (referent_schema, referent) if referent_schema \
                 else referent
 
-        if util.sqla_08:
-            # "match" kw unsupported in 0.7
-            dialect_kw['match'] = match
+        dialect_kw['match'] = match
 
         f = sa_schema.ForeignKeyConstraint(local_cols,
                                            ["%s.%s" % (tname, n)

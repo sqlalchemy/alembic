@@ -124,7 +124,6 @@ class AutogenRenderTest(TestBase):
                 "['active', 'code'], unique=False)"
             )
 
-    @config.requirements.fail_before_sqla_080
     def test_render_add_index_func(self):
         m = MetaData()
         t = Table(
@@ -141,7 +140,6 @@ class AutogenRenderTest(TestBase):
             "[sa.text(!U'lower(code)')], unique=False)"
         )
 
-    @config.requirements.fail_before_sqla_080
     def test_render_add_index_cast(self):
         m = MetaData()
         t = Table(
@@ -165,7 +163,6 @@ class AutogenRenderTest(TestBase):
                 "[sa.text(!U'CAST(code AS VARCHAR)')], unique=False)"
             )
 
-    @config.requirements.fail_before_sqla_080
     def test_render_add_index_desc(self):
         m = MetaData()
         t = Table(
@@ -413,8 +410,6 @@ class AutogenRenderTest(TestBase):
         t2 = Table('t2', m, Column('c_rem', Integer))
 
         fk = ForeignKeyConstraint([t1.c.c], [t2.c.c_rem], onupdate="CASCADE")
-        if not util.sqla_08:
-            t1.append_constraint(fk)
 
         # SQLA 0.9 generates a u'' here for remote cols while 0.8 does not,
         # so just whack out "'u" here from the generated
@@ -430,8 +425,6 @@ class AutogenRenderTest(TestBase):
         )
 
         fk = ForeignKeyConstraint([t1.c.c], [t2.c.c_rem], ondelete="CASCADE")
-        if not util.sqla_08:
-            t1.append_constraint(fk)
 
         op_obj = ops.AddConstraintOp.from_constraint(fk)
         eq_ignore_whitespace(
@@ -444,8 +437,6 @@ class AutogenRenderTest(TestBase):
         )
 
         fk = ForeignKeyConstraint([t1.c.c], [t2.c.c_rem], deferrable=True)
-        if not util.sqla_08:
-            t1.append_constraint(fk)
         op_obj = ops.AddConstraintOp.from_constraint(fk)
         eq_ignore_whitespace(
             re.sub(
@@ -457,8 +448,6 @@ class AutogenRenderTest(TestBase):
         )
 
         fk = ForeignKeyConstraint([t1.c.c], [t2.c.c_rem], initially="XYZ")
-        if not util.sqla_08:
-            t1.append_constraint(fk)
         op_obj = ops.AddConstraintOp.from_constraint(fk)
         eq_ignore_whitespace(
             re.sub(
@@ -472,8 +461,6 @@ class AutogenRenderTest(TestBase):
         fk = ForeignKeyConstraint(
             [t1.c.c], [t2.c.c_rem],
             initially="XYZ", ondelete="CASCADE", deferrable=True)
-        if not util.sqla_08:
-            t1.append_constraint(fk)
         op_obj = ops.AddConstraintOp.from_constraint(fk)
         eq_ignore_whitespace(
             re.sub(
@@ -729,7 +716,6 @@ class AutogenRenderTest(TestBase):
             "schema=%r)" % compat.ue('\u0411\u0435\u0437')
         )
 
-    @config.requirements.sqlalchemy_09
     def test_render_table_w_unsupported_constraint(self):
         from sqlalchemy.sql.schema import ColumnCollectionConstraint
 
@@ -1155,8 +1141,6 @@ class AutogenRenderTest(TestBase):
         t2 = Table('t2', m, Column('c_rem', Integer))
 
         fk = ForeignKeyConstraint([t1.c.c], [t2.c.c_rem], onupdate="CASCADE")
-        if not util.sqla_08:
-            t1.append_constraint(fk)
 
         # SQLA 0.9 generates a u'' here for remote cols while 0.8 does not,
         # so just whack out "'u" here from the generated
@@ -1170,8 +1154,6 @@ class AutogenRenderTest(TestBase):
         )
 
         fk = ForeignKeyConstraint([t1.c.c], [t2.c.c_rem], ondelete="CASCADE")
-        if not util.sqla_08:
-            t1.append_constraint(fk)
 
         eq_ignore_whitespace(
             re.sub(
@@ -1182,8 +1164,6 @@ class AutogenRenderTest(TestBase):
         )
 
         fk = ForeignKeyConstraint([t1.c.c], [t2.c.c_rem], deferrable=True)
-        if not util.sqla_08:
-            t1.append_constraint(fk)
         eq_ignore_whitespace(
             re.sub(
                 r"u'", "'",
@@ -1194,8 +1174,6 @@ class AutogenRenderTest(TestBase):
         )
 
         fk = ForeignKeyConstraint([t1.c.c], [t2.c.c_rem], initially="XYZ")
-        if not util.sqla_08:
-            t1.append_constraint(fk)
         eq_ignore_whitespace(
             re.sub(
                 r"u'", "'",
@@ -1208,8 +1186,6 @@ class AutogenRenderTest(TestBase):
         fk = ForeignKeyConstraint(
             [t1.c.c], [t2.c.c_rem],
             initially="XYZ", ondelete="CASCADE", deferrable=True)
-        if not util.sqla_08:
-            t1.append_constraint(fk)
         eq_ignore_whitespace(
             re.sub(
                 r"u'", "'",
@@ -1312,8 +1288,6 @@ class AutogenRenderTest(TestBase):
         t2 = Table('t2', m, Column('c_rem', Integer))
 
         fk = ForeignKeyConstraint([t1.c.c], [t2.c.c_rem], onupdate="CASCADE")
-        if not util.sqla_08:
-            t1.append_constraint(fk)
 
         eq_ignore_whitespace(
             re.sub(
@@ -1346,7 +1320,6 @@ class AutogenRenderTest(TestBase):
             "sa.CheckConstraint(!U'c > 5 AND c < 10')"
         )
 
-    @config.requirements.fail_before_sqla_080
     def test_render_check_constraint_literal_binds(self):
         c = column('c')
         eq_ignore_whitespace(
@@ -1395,7 +1368,6 @@ class AutogenRenderTest(TestBase):
             "existing_server_default='5')"
         )
 
-    @config.requirements.fail_before_sqla_079
     def test_render_enum(self):
         eq_ignore_whitespace(
             autogenerate.render._repr_type(
@@ -1410,10 +1382,7 @@ class AutogenRenderTest(TestBase):
             "sa.Enum('one', 'two', 'three')"
         )
 
-    @exclusions.fails_if(
-        lambda config: (util.sqla_09 and not util.sqla_099) or not util.sqla_079,
-        "Fails on SQLAlchemy <0.7.9, 0.9.0-0.9.8"
-    )
+    @config.requirements.sqlalchemy_099
     def test_render_non_native_enum(self):
         eq_ignore_whitespace(
             autogenerate.render._repr_type(
@@ -1508,7 +1477,6 @@ class AutogenRenderTest(TestBase):
             "user.MyType()"
         )
 
-    @config.requirements.sqlalchemy_09
     def test_repr_dialect_type(self):
         from sqlalchemy.dialects.mysql import VARCHAR
 
@@ -1539,7 +1507,6 @@ class AutogenRenderTest(TestBase):
             'nullable=False)'
         )
 
-    @config.requirements.fail_before_sqla_09
     def test_render_server_default_non_native_boolean(self):
         c = Column(
             'updated_at', Boolean(),

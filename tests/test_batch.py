@@ -21,7 +21,6 @@ from sqlalchemy import exc
 
 
 class BatchApplyTest(TestBase):
-    __requires__ = ('sqlalchemy_08', )
 
     def setUp(self):
         self.op = Operations(mock.Mock(opts={}))
@@ -420,9 +419,6 @@ class BatchApplyTest(TestBase):
             ddl_contains='FOREIGN KEY(user_id_3, user_id_version) '
             'REFERENCES "user" (id, id_version)')
 
-    # _get_colspec() in 0.8 calls upon fk.column when schema is
-    # present.  not sure if we want to try to fix this
-    @config.requirements.fail_before_sqla_09
     def test_regen_multi_fk_schema(self):
         impl = self._multi_fk_fixture(schema='foo_schema')
         self._assert_impl(
@@ -558,7 +554,6 @@ class BatchApplyTest(TestBase):
 
 
 class BatchAPITest(TestBase):
-    __requires__ = ('sqlalchemy_08', )
 
     @contextmanager
     def _fixture(self, schema=None):
@@ -754,7 +749,6 @@ class BatchAPITest(TestBase):
 
 
 class CopyFromTest(TestBase):
-    __requires__ = ('sqlalchemy_08', )
 
     def _fixture(self):
         self.metadata = MetaData()
@@ -918,7 +912,6 @@ class CopyFromTest(TestBase):
 
 
 class BatchRoundTripTest(TestBase):
-    __requires__ = ('sqlalchemy_09', )
     __only_on__ = "sqlite"
 
     def setUp(self):

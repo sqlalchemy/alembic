@@ -67,7 +67,6 @@ class FOOBARTYPE(sqla_types.TypeEngine):
 
 
 class ExternalDialectRenderTest(TestBase):
-    __requires__ = ('sqlalchemy_09', )
 
     def setUp(self):
         ctx_opts = {

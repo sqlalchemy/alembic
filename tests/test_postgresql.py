@@ -47,7 +47,6 @@ class PostgresqlOpTest(TestBase):
         op.rename_table('t1', 't2', schema="foo")
         context.assert_("ALTER TABLE foo.t1 RENAME TO t2")
 
-    @config.requirements.fail_before_sqla_080
     def test_create_index_postgresql_expressions(self):
         context = op_fixture("postgresql")
         op.create_index(
@@ -196,7 +195,6 @@ def downgrade():
 
 """ % self.rid)
 
-    @config.requirements.sqlalchemy_09
     def test_offline_inline_enum_create(self):
         self._inline_enum_script()
         with capture_context_buffer() as buf:
@@ -213,7 +211,6 @@ def downgrade():
         # no drop since we didn't emit events
         assert "DROP TYPE pgenum" not in buf.getvalue()
 
-    @config.requirements.sqlalchemy_09
     def test_offline_distinct_enum_create(self):
         self._distinct_enum_script()
         with capture_context_buffer() as buf:
@@ -638,20 +635,12 @@ class PostgresqlAutogenRenderTest(TestBase):
 
         op_obj = ops.CreateIndexOp.from_index(idx)
 
-        if util.sqla_08:
-            eq_ignore_whitespace(
-                autogenerate.render_op_text(autogen_context, op_obj),
-                """op.create_index('foo_idx', 't', \
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(autogen_context, op_obj),
+            """op.create_index('foo_idx', 't', \
 ['x', 'y'], unique=False, """
-                """postgresql_where=sa.text(!U"y = 'something'"))"""
-            )
-        else:
-            eq_ignore_whitespace(
-                autogenerate.render_op_text(autogen_context, op_obj),
-                """op.create_index('foo_idx', 't', ['x', 'y'], \
-unique=False, """
-                """postgresql_where=sa.text(!U't.y = %(y_1)s'))"""
-            )
+            """postgresql_where=sa.text(!U"y = 'something'"))"""
+        )
 
     def test_render_server_default_native_boolean(self):
         c = Column(
@@ -668,7 +657,6 @@ unique=False, """
             'nullable=False)'
         )
 
-    @config.requirements.sqlalchemy_09
     def test_postgresql_array_type(self):
 
         eq_ignore_whitespace(
@@ -744,7 +732,6 @@ unique=False, """
         assert 'from sqlalchemy.dialects import postgresql' in \
             self.autogen_context.imports
 
-    @config.requirements.sqlalchemy_09
     def test_array_type_user_defined_inner(self):
         def repr_type(typestring, object_, autogen_context):
             if typestring == 'type' and isinstance(object_, String):
@@ -874,7 +861,6 @@ unique=False, """
             "name='TExclX'))"
         )
 
-    @config.requirements.sqlalchemy_09
     def test_json_type(self):
         if config.requirements.sqlalchemy_110.enabled:
             eq_ignore_whitespace(
@@ -889,7 +875,6 @@ unique=False, """
                 "postgresql.JSON()"
             )
 
-    @config.requirements.sqlalchemy_09
     def test_jsonb_type(self):
         if config.requirements.sqlalchemy_110.enabled:
             eq_ignore_whitespace(

@@ -7,12 +7,11 @@ from .pyfiles import (  # noqa
     template_to_file, coerce_resource_to_filename,
     pyc_file_from_path, load_python_file, edit)
 from .sqla_compat import (  # noqa
-    sqla_07, sqla_079, sqla_08, sqla_083, sqla_084, sqla_09, sqla_092,
-    sqla_094, sqla_099, sqla_100, sqla_105, sqla_110, sqla_1010, sqla_1014,
-    sqla_1115)
+    sqla_09, sqla_092, sqla_094, sqla_099, sqla_100, sqla_105, sqla_110, sqla_1010,
+    sqla_1014, sqla_1115)
 from .exc import CommandError
 
 
-if not sqla_07:
+if not sqla_09:
     raise CommandError(
-        "SQLAlchemy 0.7.3 or greater is required. ")
+        "SQLAlchemy 0.9.0 or greater is required. ")
