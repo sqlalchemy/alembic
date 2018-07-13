@@ -5,7 +5,33 @@ Changelog
 
 .. changelog::
     :version: 1.0.0
-    :include_notes_from: unreleased
+    :released: July 13, 2018
+
+    .. change::
+        :tags: feature, general
+        :tickets: 491
+
+        For Alembic 1.0, Python 2.6 / 3.3 support is being dropped, allowing a
+        fixed setup.py to be built as well as universal wheels.  Pull request
+        courtesy Hugo.
+
+
+
+
+    .. change::
+        :tags: feature, general
+
+        With the 1.0 release, Alembic's minimum SQLAlchemy support version
+        moves to 0.9.0, previously 0.7.9.
+
+    .. change::
+        :tags: bug, batch
+        :tickets: 502
+
+        Fixed issue in batch where dropping a primary key column, then adding it
+        back under the same name but without the primary_key flag, would not remove
+        it from the existing PrimaryKeyConstraint.  If a new PrimaryKeyConstraint
+        is added, it is used as-is, as was the case before.
 
 .. changelog::
     :version: 0.9.10
