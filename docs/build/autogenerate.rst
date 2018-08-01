@@ -409,9 +409,10 @@ are being used::
 
     def my_compare_type(context, inspected_column,
                 metadata_column, inspected_type, metadata_type):
-        # return True if the types are different,
-        # False if not, or None to allow the default implementation
-        # to compare these types
+        # return False if the metadata_type is the same as the inspected_type
+        # or None to allow the default implementation to compare these
+        # types. a return value of True means the two types do not
+        # match and should result in a type change operation.
         return None
 
     context.configure(
@@ -439,13 +440,26 @@ will proceed::
         # ...
 
         def compare_against_backend(self, dialect, conn_type):
-            # return True if the types are different,
-            # False if not, or None to allow the default implementation
-            # to compare these types
+            # return True if this type is the same as the given database type,
+            # or None to allow the default implementation to compare these
+            # types. a return value of False means the given type does not
+            # match this type.
+
             if dialect.name == 'postgresql':
                 return isinstance(conn_type, postgresql.UUID)
             else:
                 return isinstance(conn_type, String)
+
+.. warning::
+
+    The boolean return values for the above
+    ``compare_against_backend`` method, which is part of SQLAlchemy and not
+    Alembic,are **the opposite** of that of the
+    :paramref:`.EnvironmentContext.configure.compare_type` callable, returning
+    ``True`` for types that are the same vs. ``False`` for types that are
+    different.The :paramref:`.EnvironmentContext.configure.compare_type`
+    callable on the other hand should return ``True`` for types that are
+    **different**.
 
 The order of precedence regarding the
 :paramref:`.EnvironmentContext.configure.compare_type` callable vs. the
