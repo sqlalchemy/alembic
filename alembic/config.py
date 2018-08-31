@@ -153,11 +153,27 @@ class Config(object):
         return {}
 
     def print_stdout(self, text, *arg):
-        """Render a message to standard out."""
+        """Render a message to standard out.
+
+        When :meth:`.Config.print_stdout` is called with additional args
+        those arguments will formatted against the provided text,
+        otherwise we simply output the provided text verbatim.
+
+        e.g.::
+
+            >>> config.print_stdout('Some text %s', 'arg')
+            Some Text arg
+
+        """
+
+        if arg:
+            output = (compat.text_type(text) % arg)
+        else:
+            output = compat.text_type(text)
 
         util.write_outstream(
             self.stdout,
-            (compat.text_type(text) % arg),
+            output,
             "\n"
         )
 

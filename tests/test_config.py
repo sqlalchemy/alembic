@@ -137,6 +137,15 @@ class StdoutOutputEncodingTest(TestBase):
             [call.write('m?il x y'), call.write('\n')]
         )
 
+    def test_only_formats_output_with_args(self):
+        stdout = Mock(encoding=None)
+        cfg = config.Config(stdout=stdout)
+        cfg.print_stdout(compat.u("test 3%"))
+        eq_(
+            stdout.mock_calls,
+            [call.write('test 3%'), call.write('\n')]
+        )
+
 
 class TemplateOutputEncodingTest(TestBase):
     def setUp(self):
