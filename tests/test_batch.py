@@ -1448,6 +1448,7 @@ class BatchRoundTripTest(TestBase):
 
 class BatchRoundTripMySQLTest(BatchRoundTripTest):
     __only_on__ = "mysql"
+    __backend__ = True
 
     @exclusions.fails()
     def test_drop_pk_col_readd_pk_col(self):
@@ -1474,7 +1475,8 @@ class BatchRoundTripMySQLTest(BatchRoundTripTest):
     def test_create_drop_index(self):
         super(BatchRoundTripMySQLTest, self).test_create_drop_index()
 
-    @exclusions.fails_if(config.requirements._mariadb_102)
+    # fails on mariadb 10.2, succeeds on 10.3
+    @exclusions.fails_if(config.requirements._mariadb_only_102)
     def test_rename_column_boolean(self):
         super(BatchRoundTripMySQLTest, self).test_rename_column_boolean()
 
@@ -1489,6 +1491,7 @@ class BatchRoundTripMySQLTest(BatchRoundTripTest):
 
 class BatchRoundTripPostgresqlTest(BatchRoundTripTest):
     __only_on__ = "postgresql"
+    __backend__ = True
 
     @exclusions.fails()
     def test_drop_pk_col_readd_pk_col(self):
