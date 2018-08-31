@@ -170,6 +170,14 @@ class DefaultRequirements(SuiteRequirements):
             sqla_compat._mariadb_normalized_version_info(
                 config.db.dialect) > (10, 2)
 
+    def _mariadb_only_102(self, config):
+        return exclusions.against(config, "mysql") and \
+            sqla_compat._is_mariadb(config.db.dialect) and \
+            sqla_compat._mariadb_normalized_version_info(
+                config.db.dialect) >= (10, 2) and \
+            sqla_compat._mariadb_normalized_version_info(
+                config.db.dialect) < (10, 3)
+
     def _mysql_not_mariadb_102(self, config):
         return exclusions.against(config, "mysql") and (
             not sqla_compat._is_mariadb(config.db.dialect) or
