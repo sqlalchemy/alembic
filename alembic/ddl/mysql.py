@@ -39,6 +39,8 @@ class MySQLImpl(DefaultImpl):
         existing_nullable=None,
         autoincrement=None,
         existing_autoincrement=None,
+        comment=False,
+        existing_comment=None,
         **kw
     ):
         if name is not None:
@@ -66,6 +68,7 @@ class MySQLImpl(DefaultImpl):
             nullable is not None
             or type_ is not None
             or autoincrement is not None
+            or comment is not False
         ):
             self._exec(
                 MySQLModifyColumn(
@@ -85,6 +88,9 @@ class MySQLImpl(DefaultImpl):
                     autoincrement=autoincrement
                     if autoincrement is not None
                     else existing_autoincrement,
+                    comment=comment
+                    if comment is not False
+                    else existing_comment,
                 )
             )
         elif server_default is not False:
@@ -276,6 +282,7 @@ class MySQLChangeColumn(AlterColumn):
         nullable=None,
         default=False,
         autoincrement=None,
+        comment=False,
     ):
         super(AlterColumn, self).__init__(name, schema=schema)
         self.column_name = column_name
@@ -283,6 +290,7 @@ class MySQLChangeColumn(AlterColumn):
         self.newname = newname
         self.default = default
         self.autoincrement = autoincrement
+        self.comment = comment
         if type_ is None:
             raise util.CommandError(
                 "All MySQL CHANGE/MODIFY COLUMN operations "
@@ -328,6 +336,7 @@ def _mysql_modify_column(element, compiler, **kw):
             server_default=element.default,
             type_=element.type_,
             autoincrement=element.autoincrement,
+            comment=element.comment,
         ),
     )
 
@@ -344,6 +353,7 @@ def _mysql_change_column(element, compiler, **kw):
             server_default=element.default,
             type_=element.type_,
             autoincrement=element.autoincrement,
+            comment=element.comment,
         ),
     )
 
@@ -355,7 +365,9 @@ def _render_value(compiler, expr):
         return compiler.sql_compiler.process(expr)
 
 
-def _mysql_colspec(compiler, nullable, server_default, type_, autoincrement):
+def _mysql_colspec(
+    compiler, nullable, server_default, type_, autoincrement, comment
+):
     spec = "%s %s" % (
         compiler.dialect.type_compiler.process(type_),
         "NULL" if nullable else "NOT NULL",
@@ -364,6 +376,10 @@ def _mysql_colspec(compiler, nullable, server_default, type_, autoincrement):
         spec += " AUTO_INCREMENT"
     if server_default is not False and server_default is not None:
         spec += " DEFAULT %s" % _render_value(compiler, server_default)
+    if comment:
+        spec += " COMMENT %s" % compiler.sql_compiler.render_literal_value(
+            comment, sqltypes.String()
+        )
 
     return spec
 

@@ -117,6 +117,50 @@ def _render_modify_table(autogen_context, op):
         return ["pass"]
 
 
+@renderers.dispatch_for(ops.CreateTableCommentOp)
+def _render_create_table_comment(autogen_context, op):
+
+    templ = (
+        "{prefix}create_table_comment(\n"
+        "{indent}'{tname}',\n"
+        "{indent}{comment},\n"
+        "{indent}existing_comment={existing},\n"
+        "{indent}schema={schema}\n"
+        ")"
+    )
+    return templ.format(
+        prefix=_alembic_autogenerate_prefix(autogen_context),
+        tname=op.table_name,
+        comment="'%s'" % op.comment if op.comment is not None else None,
+        existing="'%s'" % op.existing_comment
+        if op.existing_comment is not None
+        else None,
+        schema="'%s'" % op.schema if op.schema is not None else None,
+        indent="    ",
+    )
+
+
+@renderers.dispatch_for(ops.DropTableCommentOp)
+def _render_drop_table_comment(autogen_context, op):
+
+    templ = (
+        "{prefix}drop_table_comment(\n"
+        "{indent}'{tname}',\n"
+        "{indent}existing_comment={existing},\n"
+        "{indent}schema={schema}\n"
+        ")"
+    )
+    return templ.format(
+        prefix=_alembic_autogenerate_prefix(autogen_context),
+        tname=op.table_name,
+        existing="'%s'" % op.existing_comment
+        if op.existing_comment is not None
+        else None,
+        schema="'%s'" % op.schema if op.schema is not None else None,
+        indent="    ",
+    )
+
+
 @renderers.dispatch_for(ops.CreateTableOp)
 def _add_table(autogen_context, op):
     table = op.to_table()
@@ -150,6 +194,10 @@ def _add_table(autogen_context, op):
     }
     if op.schema:
         text += ",\nschema=%r" % _ident(op.schema)
+
+    comment = sqla_compat._comment_attribute(table)
+    if comment:
+        text += ",\ncomment=%r" % _ident(comment)
     for k in sorted(op.kw):
         text += ",\n%s=%r" % (k.replace(" ", "_"), op.kw[k])
     text += "\n)"
@@ -357,9 +405,11 @@ def _alter_column(autogen_context, op):
     server_default = op.modify_server_default
     type_ = op.modify_type
     nullable = op.modify_nullable
+    comment = op.modify_comment
     autoincrement = op.kw.get("autoincrement", None)
     existing_type = op.existing_type
     existing_nullable = op.existing_nullable
+    existing_comment = op.existing_comment
     existing_server_default = op.existing_server_default
     schema = op.schema
 
@@ -388,6 +438,10 @@ def _alter_column(autogen_context, op):
         text += ",\n%stype_=%s" % (indent, _repr_type(type_, autogen_context))
     if nullable is not None:
         text += ",\n%snullable=%r" % (indent, nullable)
+    if comment is not False:
+        text += ",\n%scomment=%r" % (indent, comment)
+    if existing_comment is not None:
+        text += ",\n%sexisting_comment=%r" % (indent, existing_comment)
     if nullable is None and existing_nullable is not None:
         text += ",\n%sexisting_nullable=%r" % (indent, existing_nullable)
     if autoincrement is not None:
@@ -557,6 +611,10 @@ def _render_column(column, autogen_context):
 
     if column.system:
         opts.append(("system", column.system))
+
+    comment = sqla_compat._comment_attribute(column)
+    if comment:
+        opts.append(("comment", "'%s'" % comment))
 
     # TODO: for non-ascii colname, assign a "key"
     return "%(prefix)sColumn(%(name)r, %(type)s, %(kw)s)" % {

@@ -31,6 +31,8 @@ from .sqla_compat import sqla_1014  # noqa
 from .sqla_compat import sqla_105  # noqa
 from .sqla_compat import sqla_110  # noqa
 from .sqla_compat import sqla_1115  # noqa
+from .sqla_compat import sqla_120  # noqa
+from .sqla_compat import sqla_1216  # noqa
 
 
 if not sqla_09:

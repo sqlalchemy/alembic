@@ -695,9 +695,9 @@ class BatchAPITest(TestBase):
         with self._fixture() as batch:
             batch.add_column(column)
 
-        eq_(
-            batch.impl.operations.impl.mock_calls,
-            [mock.call.add_column("tname", column, schema=None)],
+        assert (
+            mock.call.add_column("tname", column, schema=None)
+            in batch.impl.operations.impl.mock_calls
         )
 
     def test_create_fk(self):

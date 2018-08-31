@@ -4,5 +4,4 @@ from .base import Operations
 from .ops import MigrateOperation
 
 
-
 __all__ = ["Operations", "BatchOperations", "MigrateOperation"]

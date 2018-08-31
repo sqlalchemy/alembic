@@ -896,6 +896,22 @@ class OpTest(TestBase):
         op.drop_index("ik_test", tablename="t1")
         context.assert_("DROP INDEX ik_test ON t1")
 
+    @config.requirements.comments
+    def test_create_table_comment_op(self):
+        context = op_fixture()
+
+        op.create_table_comment("some_table", "table comment")
+
+        context.assert_("COMMENT ON TABLE some_table IS 'table comment'")
+
+    @config.requirements.comments
+    def test_drop_table_comment_op(self):
+        context = op_fixture()
+
+        op.drop_table_comment("some_table")
+
+        context.assert_("COMMENT ON TABLE some_table IS NULL")
+
 
 class SQLModeOpTest(TestBase):
     def test_auto_literals(self):

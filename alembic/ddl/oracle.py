@@ -1,7 +1,9 @@
 from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.sql import sqltypes
 
 from .base import AddColumn
 from .base import alter_table
+from .base import ColumnComment
 from .base import ColumnDefault
 from .base import ColumnName
 from .base import ColumnNullable
@@ -80,6 +82,22 @@ def visit_column_default(element, compiler, **kw):
         "DEFAULT %s" % format_server_default(compiler, element.default)
         if element.default is not None
         else "DEFAULT NULL",
+    )
+
+
+@compiles(ColumnComment, "oracle")
+def visit_column_comment(element, compiler, **kw):
+    ddl = "COMMENT ON COLUMN {table_name}.{column_name} IS {comment}"
+
+    comment = compiler.sql_compiler.render_literal_value(
+        (element.comment if element.comment is not None else ""),
+        sqltypes.String(),
+    )
+
+    return ddl.format(
+        table_name=element.table_name,
+        column_name=element.column_name,
+        comment=comment,
     )
 
 

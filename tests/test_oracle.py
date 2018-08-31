@@ -3,6 +3,7 @@ from sqlalchemy import Integer
 
 from alembic import command
 from alembic import op
+from alembic.testing import config
 from alembic.testing.env import _no_sql_testing_config
 from alembic.testing.env import clear_staging_env
 from alembic.testing.env import staging_env
@@ -55,6 +56,17 @@ class OpTest(TestBase):
         )
         context.assert_("ALTER TABLE t1 ADD c1 INTEGER DEFAULT '12' NOT NULL")
 
+    @config.requirements.comments
+    def test_add_column_with_comment(self):
+        context = op_fixture("oracle")
+        op.add_column(
+            "t1", Column("c1", Integer, nullable=False, comment="c1 comment")
+        )
+        context.assert_(
+            "ALTER TABLE t1 ADD c1 INTEGER NOT NULL",
+            "COMMENT ON COLUMN t1.c1 IS 'c1 comment'",
+        )
+
     def test_alter_column_rename_oracle(self):
         context = op_fixture("oracle")
         op.alter_column("t", "c", name="x")
@@ -64,6 +76,56 @@ class OpTest(TestBase):
         context = op_fixture("oracle")
         op.alter_column("t", "c", type_=Integer)
         context.assert_("ALTER TABLE t MODIFY c INTEGER")
+
+    def test_alter_column_add_comment(self):
+        context = op_fixture("oracle")
+        op.alter_column("t", "c", type_=Integer, comment="c comment")
+        context.assert_(
+            "ALTER TABLE t MODIFY c INTEGER",
+            "COMMENT ON COLUMN t.c IS 'c comment'",
+        )
+
+    def test_alter_column_add_comment_quotes(self):
+        context = op_fixture("oracle")
+        op.alter_column("t", "c", type_=Integer, comment="c 'comment'")
+        context.assert_(
+            "ALTER TABLE t MODIFY c INTEGER",
+            "COMMENT ON COLUMN t.c IS 'c ''comment'''",
+        )
+
+    def test_alter_column_drop_comment(self):
+        context = op_fixture("oracle")
+        op.alter_column("t", "c", type_=Integer, comment=None)
+        context.assert_(
+            "ALTER TABLE t MODIFY c INTEGER", "COMMENT ON COLUMN t.c IS ''"
+        )
+
+    @config.requirements.comments_api
+    def test_create_table_comment(self):
+        # this is handled by SQLAlchemy's compilers
+        context = op_fixture("oracle")
+        op.create_table_comment(
+            't2',
+            comment='t2 table',
+            schema='foo'
+        )
+        context.assert_(
+            "COMMENT ON TABLE foo.t2 IS 't2 table'"
+        )
+
+    @config.requirements.comments_api
+    @config.requirements.sqlalchemy_1216
+    def test_drop_table_comment(self):
+        # this is handled by SQLAlchemy's compilers
+        context = op_fixture("oracle")
+        op.drop_table_comment(
+            't2',
+            existing_comment='t2 table',
+            schema='foo'
+        )
+        context.assert_(
+            "COMMENT ON TABLE foo.t2 IS ''"
+        )
 
     def test_drop_index(self):
         context = op_fixture("oracle")
@@ -136,6 +198,17 @@ class OpTest(TestBase):
             "ALTER TABLE t MODIFY c DEFAULT '5'",
             "ALTER TABLE t MODIFY c INTEGER",
             "ALTER TABLE t RENAME COLUMN c TO c2",
+        )
+
+    @config.requirements.comments
+    def test_create_table_with_column_comments(self):
+        context = op_fixture("oracle")
+        op.create_table(
+            "t2", Column("c1", Integer, primary_key=True), comment="t2 comment"
+        )
+        context.assert_(
+            "CREATE TABLE t2 (c1 INTEGER NOT NULL, PRIMARY KEY (c1))",
+            "COMMENT ON TABLE t2 IS 't2 comment'",
         )
 
     # TODO: when we add schema support

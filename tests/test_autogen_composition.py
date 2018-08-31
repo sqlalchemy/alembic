@@ -183,7 +183,7 @@ nullable=True))
         batch_op.drop_index('pw_idx')
         batch_op.drop_column('pw')
 
-    # ### end Alembic commands ###"""  # noqa,
+    # ### end Alembic commands ###""",  # noqa,
         )
 
         eq_(
@@ -219,7 +219,7 @@ nullable=True))
     sa.ForeignKeyConstraint(['uid'], ['user.id'], )
     )
     op.drop_table('item')
-    # ### end Alembic commands ###"""  # noqa,
+    # ### end Alembic commands ###""",  # noqa,
         )
 
     def test_imports_maintined(self):

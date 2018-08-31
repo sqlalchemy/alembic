@@ -159,6 +159,132 @@ class PostgresqlOpTest(TestBase):
             'USING gist ("SomeColumn" WITH >) WHERE ("SomeColumn" > 5)'
         )
 
+    @config.requirements.comments_api
+    def test_add_column_with_comment(self):
+        context = op_fixture("postgresql")
+        op.add_column("t", Column("q", Integer, comment="This is a comment"))
+        context.assert_(
+            "ALTER TABLE t ADD COLUMN q INTEGER",
+            "COMMENT ON COLUMN t.q IS 'This is a comment'",
+        )
+
+    @config.requirements.comments_api
+    def test_alter_column_with_comment(self):
+        context = op_fixture("postgresql")
+        op.alter_column(
+            "t",
+            "c",
+            nullable=False,
+            existing_type=Boolean(),
+            schema="foo",
+            comment="This is a column comment",
+        )
+
+        context.assert_(
+            "ALTER TABLE foo.t ALTER COLUMN c SET NOT NULL",
+            "COMMENT ON COLUMN t.c IS 'This is a column comment'",
+        )
+
+    @config.requirements.comments_api
+    def test_alter_column_add_comment(self):
+        context = op_fixture("postgresql")
+        op.alter_column(
+            "t",
+            "c",
+            existing_type=Boolean(),
+            schema="foo",
+            comment="This is a column comment",
+        )
+
+        context.assert_("COMMENT ON COLUMN t.c IS 'This is a column comment'")
+
+    @config.requirements.comments_api
+    def test_alter_column_add_comment_quoting(self):
+        context = op_fixture("postgresql")
+        op.alter_column(
+            "t",
+            "c",
+            existing_type=Boolean(),
+            schema="foo",
+            comment="This is a column 'comment'",
+        )
+
+        context.assert_(
+            "COMMENT ON COLUMN t.c IS 'This is a column ''comment'''"
+        )
+
+    @config.requirements.comments_api
+    def test_alter_column_drop_comment(self):
+        context = op_fixture("postgresql")
+        op.alter_column(
+            "t",
+            "c",
+            existing_type=Boolean(),
+            schema="foo",
+            comment=None,
+            existing_comment="This is a column comment",
+        )
+
+        context.assert_("COMMENT ON COLUMN t.c IS NULL")
+
+    @config.requirements.comments_api
+    def test_create_table_with_comment(self):
+        context = op_fixture("postgresql")
+        op.create_table(
+            "t2",
+            Column("c1", Integer, primary_key=True),
+            Column("c2", Integer),
+            comment="t2 comment",
+        )
+        context.assert_(
+            "CREATE TABLE t2 (c1 SERIAL NOT NULL, "
+            "c2 INTEGER, PRIMARY KEY (c1))",
+            "COMMENT ON TABLE t2 IS 't2 comment'",
+        )
+
+    @config.requirements.comments_api
+    def test_create_table_with_column_comments(self):
+        context = op_fixture("postgresql")
+        op.create_table(
+            "t2",
+            Column("c1", Integer, primary_key=True, comment="c1 comment"),
+            Column("c2", Integer, comment="c2 comment"),
+            comment="t2 comment",
+        )
+        context.assert_(
+            "CREATE TABLE t2 (c1 SERIAL NOT NULL, "
+            "c2 INTEGER, PRIMARY KEY (c1))",
+            "COMMENT ON TABLE t2 IS 't2 comment'",
+            "COMMENT ON COLUMN t2.c1 IS 'c1 comment'",
+            "COMMENT ON COLUMN t2.c2 IS 'c2 comment'",
+        )
+
+    @config.requirements.comments_api
+    def test_create_table_comment(self):
+        # this is handled by SQLAlchemy's compilers
+        context = op_fixture("postgresql")
+        op.create_table_comment(
+            't2',
+            comment='t2 table',
+            schema='foo'
+        )
+        context.assert_(
+            "COMMENT ON TABLE foo.t2 IS 't2 table'"
+        )
+
+    @config.requirements.comments_api
+    def test_drop_table_comment(self):
+        # this is handled by SQLAlchemy's compilers
+        context = op_fixture("postgresql")
+        op.drop_table_comment(
+            't2',
+            existing_comment='t2 table',
+            schema='foo'
+        )
+        context.assert_(
+            "COMMENT ON TABLE foo.t2 IS NULL"
+        )
+
 
 class PGOfflineEnumTest(TestBase):
     def setUp(self):

@@ -1352,6 +1352,119 @@ class RenameTableOp(AlterTableOp):
         return operations.invoke(op)
 
 
+@Operations.register_operation("create_table_comment")
+class CreateTableCommentOp(AlterTableOp):
+    """Represent a COMMENT ON `table` operation.
+    """
+
+    def __init__(
+        self, table_name, comment, schema=None, existing_comment=None
+    ):
+        self.table_name = table_name
+        self.comment = comment
+        self.existing_comment = existing_comment
+        self.schema = schema
+
+    @classmethod
+    def create_table_comment(
+        cls,
+        operations,
+        table_name,
+        comment,
+        existing_comment=None,
+        schema=None,
+    ):
+        """Invokes the `:func:`alembic.operations.toimpl.create_table_comment`
+        impl to initiate a new COMMENT ON `table` operation.
+
+        :param table_name: string name of the target table.
+        :param comment: string value of the comment being registered against
+         the specified table.
+        :param existing_comment: An optional string value of a comment
+         already registered
+         on the specified table.
+
+        """
+
+        op = cls(
+            table_name,
+            comment,
+            existing_comment=existing_comment,
+            schema=schema,
+        )
+        return operations.invoke(op)
+
+    def reverse(self):
+        """Reverses the COMMENT ON operation against a table.
+        """
+        if self.existing_comment is None:
+            return DropTableCommentOp(
+                self.table_name,
+                existing_comment=self.comment,
+                schema=self.schema,
+            )
+        else:
+            return CreateTableCommentOp(
+                self.table_name,
+                self.existing_comment,
+                existing_comment=self.comment,
+                schema=self.schema,
+            )
+
+    def to_table(self, migration_context=None):
+        schema_obj = schemaobj.SchemaObjects(migration_context)
+
+        return schema_obj.table(
+            self.table_name, schema=self.schema, comment=self.comment
+        )
+
+    def to_diff_tuple(self):
+        return ("add_table_comment", self.to_table(), self.existing_comment)
+
+
+@Operations.register_operation("drop_table_comment")
+class DropTableCommentOp(AlterTableOp):
+    """Represent a COMMENT ON `table` operation.
+    """
+
+    def __init__(self, table_name, schema=None, existing_comment=None):
+        self.table_name = table_name
+        self.existing_comment = existing_comment
+        self.schema = schema
+
+    @classmethod
+    def drop_table_comment(
+        cls, operations, table_name, existing_comment=None, schema=None
+    ):
+        """Invokes the `:func:`alembic.operations.toimpl.drop_table_comment` to
+        remove an existing comment set on a table.
+
+        :param table_name: string name of the target table.
+        :param existing_comment: An optional string value of a comment already
+         registered
+         on the specified table.
+
+        """
+
+        op = cls(table_name, existing_comment=existing_comment, schema=schema)
+        return operations.invoke(op)
+
+    def reverse(self):
+        """Reverses the COMMENT ON operation against a table.
+        """
+        return CreateTableCommentOp(
+            self.table_name, self.existing_comment, schema=self.schema
+        )
+
+    def to_table(self, migration_context=None):
+        schema_obj = schemaobj.SchemaObjects(migration_context)
+
+        return schema_obj.table(self.table_name, schema=self.schema)
+
+    def to_diff_tuple(self):
+        return ("remove_table_comment", self.to_table())
+
+
 @Operations.register_operation("alter_column")
 @BatchOperations.register_operation("alter_column", "batch_alter_column")
 class AlterColumnOp(AlterTableOp):
@@ -1365,7 +1478,9 @@ class AlterColumnOp(AlterTableOp):
         existing_type=None,
         existing_server_default=False,
         existing_nullable=None,
+        existing_comment=None,
         modify_nullable=None,
+        modify_comment=False,
         modify_server_default=False,
         modify_name=None,
         modify_type=None,
@@ -1376,7 +1491,9 @@ class AlterColumnOp(AlterTableOp):
         self.existing_type = existing_type
         self.existing_server_default = existing_server_default
         self.existing_nullable = existing_nullable
+        self.existing_comment = existing_comment
         self.modify_nullable = modify_nullable
+        self.modify_comment = modify_comment
         self.modify_server_default = modify_server_default
         self.modify_name = modify_name
         self.modify_type = modify_type
@@ -1398,6 +1515,7 @@ class AlterColumnOp(AlterTableOp):
                         "existing_server_default": (
                             self.existing_server_default
                         ),
+                        "existing_comment": self.existing_comment,
                     },
                     self.existing_type,
                     self.modify_type,
@@ -1416,6 +1534,7 @@ class AlterColumnOp(AlterTableOp):
                         "existing_server_default": (
                             self.existing_server_default
                         ),
+                        "existing_comment": self.existing_comment,
                     },
                     self.existing_nullable,
                     self.modify_nullable,
@@ -1432,9 +1551,29 @@ class AlterColumnOp(AlterTableOp):
                     {
                         "existing_nullable": self.existing_nullable,
                         "existing_type": self.existing_type,
+                        "existing_comment": self.existing_comment,
                     },
                     self.existing_server_default,
                     self.modify_server_default,
+                )
+            )
+
+        if self.modify_comment is not False:
+            col_diff.append(
+                (
+                    "modify_comment",
+                    schema,
+                    tname,
+                    cname,
+                    {
+                        "existing_nullable": self.existing_nullable,
+                        "existing_type": self.existing_type,
+                        "existing_server_default": (
+                            self.existing_server_default
+                        ),
+                    },
+                    self.existing_comment,
+                    self.modify_comment,
                 )
             )
 
@@ -1445,6 +1584,7 @@ class AlterColumnOp(AlterTableOp):
             self.modify_nullable is not None
             or self.modify_server_default is not False
             or self.modify_type is not None
+            or self.modify_comment is not False
         )
         if hc1:
             return True
@@ -1460,12 +1600,15 @@ class AlterColumnOp(AlterTableOp):
         kw["existing_type"] = self.existing_type
         kw["existing_nullable"] = self.existing_nullable
         kw["existing_server_default"] = self.existing_server_default
+        kw["existing_comment"] = self.existing_comment
         if self.modify_type is not None:
             kw["modify_type"] = self.modify_type
         if self.modify_nullable is not None:
             kw["modify_nullable"] = self.modify_nullable
         if self.modify_server_default is not False:
             kw["modify_server_default"] = self.modify_server_default
+        if self.modify_comment is not False:
+            kw["modify_comment"] = self.modify_comment
 
         # TODO: make this a little simpler
         all_keys = set(
@@ -1492,12 +1635,14 @@ class AlterColumnOp(AlterTableOp):
         table_name,
         column_name,
         nullable=None,
+        comment=False,
         server_default=False,
         new_column_name=None,
         type_=None,
         existing_type=None,
         existing_server_default=False,
         existing_nullable=None,
+        existing_comment=None,
         schema=None,
         **kw
     ):
@@ -1592,10 +1737,12 @@ class AlterColumnOp(AlterTableOp):
             existing_type=existing_type,
             existing_server_default=existing_server_default,
             existing_nullable=existing_nullable,
+            existing_comment=existing_comment,
             modify_name=new_column_name,
             modify_type=type_,
             modify_server_default=server_default,
             modify_nullable=nullable,
+            modify_comment=comment,
             **kw
         )
 
@@ -1607,12 +1754,14 @@ class AlterColumnOp(AlterTableOp):
         operations,
         column_name,
         nullable=None,
+        comment=False,
         server_default=False,
         new_column_name=None,
         type_=None,
         existing_type=None,
         existing_server_default=False,
         existing_nullable=None,
+        existing_comment=None,
         **kw
     ):
         """Issue an "alter column" instruction using the current
@@ -1630,10 +1779,12 @@ class AlterColumnOp(AlterTableOp):
             existing_type=existing_type,
             existing_server_default=existing_server_default,
             existing_nullable=existing_nullable,
+            existing_comment=existing_comment,
             modify_name=new_column_name,
             modify_type=type_,
             modify_server_default=server_default,
             modify_nullable=nullable,
+            modify_comment=comment,
             **kw
         )
 

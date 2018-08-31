@@ -14,6 +14,7 @@ from sqlalchemy.types import NULLTYPE
 from .base import alter_column
 from .base import alter_table
 from .base import AlterColumn
+from .base import ColumnComment
 from .base import compiles
 from .base import format_table_name
 from .base import format_type
@@ -274,6 +275,24 @@ def visit_column_type(element, compiler, **kw):
         alter_column(compiler, element.column_name),
         "TYPE %s" % format_type(compiler, element.type_),
         "USING %s" % element.using if element.using else "",
+    )
+
+
+@compiles(ColumnComment, "postgresql")
+def visit_column_comment(element, compiler, **kw):
+    ddl = "COMMENT ON COLUMN {table_name}.{column_name} IS {comment}"
+    comment = (
+        compiler.sql_compiler.render_literal_value(
+            element.comment, sqltypes.String()
+        )
+        if element.comment is not None
+        else "NULL"
+    )
+
+    return ddl.format(
+        table_name=element.table_name,
+        column_name=element.column_name,
+        comment=comment,
     )
 
 
