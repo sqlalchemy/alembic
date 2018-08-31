@@ -283,9 +283,9 @@ def downgrade():
 
     script.generate_revision(b, "revision b", refresh=True)
     write_script(script, b, u("""# coding: utf-8
-"Rev B, méil"
-revision = '%s'
-down_revision = '%s'
+"Rev B, méil, %3"
+revision = '{}'
+down_revision = '{}'
 
 from alembic import op
 
@@ -297,7 +297,7 @@ def upgrade():
 def downgrade():
     op.execute("DROP STEP 2")
 
-""") % (b, a), encoding="utf-8")
+""").format(b, a), encoding="utf-8")
 
     script.generate_revision(c, "revision c", refresh=True)
     write_script(script, c, """\
