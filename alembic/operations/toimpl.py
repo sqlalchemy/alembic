@@ -2,6 +2,7 @@ from sqlalchemy import schema as sa_schema
 
 from . import ops
 from .base import Operations
+from ..util import sqla_compat
 
 
 @Operations.implementation_for(ops.AlterColumnOp)
@@ -21,6 +22,8 @@ def alter_column(operations, operation):
     server_default = operation.modify_server_default
     new_column_name = operation.modify_name
     nullable = operation.modify_nullable
+    comment = operation.modify_comment
+    existing_comment = operation.existing_comment
 
     def _count_constraint(constraint):
         return not isinstance(constraint, sa_schema.PrimaryKeyConstraint) and (
@@ -48,6 +51,8 @@ def alter_column(operations, operation):
         existing_type=existing_type,
         existing_server_default=existing_server_default,
         existing_nullable=existing_nullable,
+        comment=comment,
+        existing_comment=existing_comment,
         **operation.kw
     )
 
@@ -104,6 +109,18 @@ def rename_table(operations, operation):
     )
 
 
+@Operations.implementation_for(ops.CreateTableCommentOp)
+def create_table_comment(operations, operation):
+    table = operation.to_table(operations.migration_context)
+    operations.impl.create_table_comment(table)
+
+
+@Operations.implementation_for(ops.DropTableCommentOp)
+def drop_table_comment(operations, operation):
+    table = operation.to_table(operations.migration_context)
+    operations.impl.drop_table_comment(table)
+
+
 @Operations.implementation_for(ops.AddColumnOp)
 def add_column(operations, operation):
     table_name = operation.table_name
@@ -117,6 +134,14 @@ def add_column(operations, operation):
             operations.impl.add_constraint(constraint)
     for index in t.indexes:
         operations.impl.create_index(index)
+
+    with_comment = (
+        sqla_compat._dialect_supports_comments(operations.impl.dialect)
+        and not operations.impl.dialect.inline_comments
+    )
+    comment = sqla_compat._comment_attribute(column)
+    if comment and with_comment:
+        operations.impl.create_column_comment(column)
 
 
 @Operations.implementation_for(ops.AddConstraintOp)

@@ -36,6 +36,8 @@ sqla_1010 = _vers >= (1, 0, 10)
 sqla_110 = _vers >= (1, 1, 0)
 sqla_1014 = _vers >= (1, 0, 14)
 sqla_1115 = _vers >= (1, 1, 15)
+sqla_120 = _vers >= (1, 2, 0)
+sqla_1216 = _vers >= (1, 2, 16)
 
 
 if sqla_110:
@@ -212,6 +214,22 @@ def _get_index_final_name(dialect, idx):
         new_name = quoted_name_cls(str(idx.name), quote=False)
         idx = schema.Index(name=new_name)
     return dialect.ddl_compiler(dialect, None)._prepared_index_name(idx)
+
+
+def _dialect_supports_comments(dialect):
+    if sqla_120:
+        return dialect.supports_comments
+    else:
+        return False
+
+
+def _comment_attribute(obj):
+    """return the .comment attribute from a Table or Column"""
+
+    if sqla_120:
+        return obj.comment
+    else:
+        return None
 
 
 def _is_mariadb(mysql_dialect):

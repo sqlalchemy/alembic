@@ -1,0 +1,8 @@
+.. change::
+    :tags: feature, operations
+    :tickets: 422
+
+    Added Table and Column level comments for supported backends.
+    `create_table`, `add_column` and `alter_column` now all optionally
+    take  `comment="X"` kwarg.  Support for autogenerate for Table
+    and Column objects has also been added.

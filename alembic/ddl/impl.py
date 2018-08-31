@@ -146,6 +146,8 @@ class DefaultImpl(with_metaclass(ImplMeta)):
         type_=None,
         schema=None,
         autoincrement=None,
+        comment=False,
+        existing_comment=None,
         existing_type=None,
         existing_server_default=None,
         existing_nullable=None,
@@ -166,6 +168,7 @@ class DefaultImpl(with_metaclass(ImplMeta)):
                     existing_type=existing_type,
                     existing_server_default=existing_server_default,
                     existing_nullable=existing_nullable,
+                    existing_comment=existing_comment,
                 )
             )
         if server_default is not False:
@@ -178,6 +181,7 @@ class DefaultImpl(with_metaclass(ImplMeta)):
                     existing_type=existing_type,
                     existing_server_default=existing_server_default,
                     existing_nullable=existing_nullable,
+                    existing_comment=existing_comment,
                 )
             )
         if type_ is not None:
@@ -190,8 +194,24 @@ class DefaultImpl(with_metaclass(ImplMeta)):
                     existing_type=existing_type,
                     existing_server_default=existing_server_default,
                     existing_nullable=existing_nullable,
+                    existing_comment=existing_comment,
                 )
             )
+
+        if comment is not False:
+            self._exec(
+                base.ColumnComment(
+                    table_name,
+                    column_name,
+                    comment,
+                    schema=schema,
+                    existing_type=existing_type,
+                    existing_server_default=existing_server_default,
+                    existing_nullable=existing_nullable,
+                    existing_comment=existing_comment,
+                )
+            )
+
         # do the new name last ;)
         if name is not None:
             self._exec(
@@ -235,11 +255,33 @@ class DefaultImpl(with_metaclass(ImplMeta)):
         for index in table.indexes:
             self._exec(schema.CreateIndex(index))
 
+        with_comment = (
+            sqla_compat._dialect_supports_comments(self.dialect)
+            and not self.dialect.inline_comments
+        )
+        comment = sqla_compat._comment_attribute(table)
+        if comment and with_comment:
+            self.create_table_comment(table)
+
+        for column in table.columns:
+            comment = sqla_compat._comment_attribute(column)
+            if comment and with_comment:
+                self.create_column_comment(column)
+
     def drop_table(self, table):
         self._exec(schema.DropTable(table))
 
     def create_index(self, index):
         self._exec(schema.CreateIndex(index))
+
+    def create_table_comment(self, table):
+        self._exec(schema.SetTableComment(table))
+
+    def drop_table_comment(self, table):
+        self._exec(schema.DropTableComment(table))
+
+    def create_column_comment(self, column):
+        self._exec(schema.SetColumnComment(column))
 
     def drop_index(self, index):
         self._exec(schema.DropIndex(index))

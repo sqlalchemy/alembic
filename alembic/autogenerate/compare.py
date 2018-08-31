@@ -921,6 +921,32 @@ def _compare_server_default(
         log.info("Detected server default on column '%s.%s'", tname, cname)
 
 
+@comparators.dispatch_for("column")
+def _compare_column_comment(
+    autogen_context,
+    alter_column_op,
+    schema,
+    tname,
+    cname,
+    conn_col,
+    metadata_col,
+):
+
+    if not sqla_compat._dialect_supports_comments(autogen_context.dialect):
+        return
+
+    metadata_comment = metadata_col.comment
+    conn_col_comment = conn_col.comment
+    if conn_col_comment is None and metadata_comment is None:
+        return False
+
+    alter_column_op.existing_comment = conn_col_comment
+
+    if conn_col_comment != metadata_comment:
+        alter_column_op.modify_comment = metadata_comment
+        log.info("Detected column comment '%s.%s'", tname, cname)
+
+
 @comparators.dispatch_for("table")
 def _compare_foreign_keys(
     autogen_context,
@@ -1028,3 +1054,41 @@ def _compare_foreign_keys(
                 else None
             )
             _add_fk(const, compare_to)
+
+
+@comparators.dispatch_for("table")
+def _compare_table_comment(
+    autogen_context,
+    modify_table_ops,
+    schema,
+    tname,
+    conn_table,
+    metadata_table,
+):
+
+    if not sqla_compat._dialect_supports_comments(autogen_context.dialect):
+        return
+
+    # if we're doing CREATE TABLE, comments will be created inline
+    # with the create_table op.
+    if conn_table is None or metadata_table is None:
+        return
+
+    if conn_table.comment is None and metadata_table.comment is None:
+        return
+
+    if metadata_table.comment is None and conn_table.comment is not None:
+        modify_table_ops.ops.append(
+            ops.DropTableCommentOp(
+                tname, existing_comment=conn_table.comment, schema=schema
+            )
+        )
+    elif metadata_table.comment != conn_table.comment:
+        modify_table_ops.ops.append(
+            ops.CreateTableCommentOp(
+                tname,
+                metadata_table.comment,
+                existing_comment=conn_table.comment,
+                schema=schema,
+            )
+        )

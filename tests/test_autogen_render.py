@@ -1143,6 +1143,18 @@ class AutogenRenderTest(TestBase):
             "nullable=False)",
         )
 
+    @config.requirements.comments_api
+    def test_render_col_with_comment(self):
+        c = Column("some_key", Integer, comment="This is a comment")
+        Table("some_table", MetaData(), c)
+        result = autogenerate.render._render_column(c, self.autogen_context)
+        eq_ignore_whitespace(
+            result,
+            "sa.Column('some_key', sa.Integer(), "
+            "nullable=True, "
+            "comment='This is a comment')",
+        )
+
     def test_render_col_autoinc_false_mysql(self):
         c = Column("some_key", Integer, primary_key=True, autoincrement=False)
         Table("some_table", MetaData(), c)
@@ -1758,6 +1770,128 @@ class AutogenRenderTest(TestBase):
             autogenerate.render_op_text,
             self.autogen_context,
             op_obj,
+        )
+
+    @config.requirements.comments_api
+    def test_render_alter_column_modify_comment(self):
+        op_obj = ops.AlterColumnOp(
+            "sometable", "somecolumn", modify_comment="This is a comment"
+        )
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.alter_column('sometable', 'somecolumn', "
+            "comment='This is a comment')",
+        )
+
+    @config.requirements.comments_api
+    def test_render_alter_column_existing_comment(self):
+        op_obj = ops.AlterColumnOp(
+            "sometable", "somecolumn", existing_comment="This is a comment"
+        )
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.alter_column('sometable', 'somecolumn', "
+            "existing_comment='This is a comment')",
+        )
+
+    @config.requirements.comments_api
+    def test_render_col_drop_comment(self):
+        op_obj = ops.AlterColumnOp(
+            "sometable",
+            "somecolumn",
+            existing_comment="This is a comment",
+            modify_comment=None,
+        )
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.alter_column('sometable', 'somecolumn', "
+            "comment=None, "
+            "existing_comment='This is a comment')",
+        )
+
+    @config.requirements.comments_api
+    def test_render_table_with_comment(self):
+        m = MetaData()
+        t = Table(
+            "test",
+            m,
+            Column("id", Integer, primary_key=True),
+            Column("q", Integer, ForeignKey("address.id")),
+            comment="test comment",
+        )
+        op_obj = ops.CreateTableOp.from_table(t)
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.create_table('test',"
+            "sa.Column('id', sa.Integer(), nullable=False),"
+            "sa.Column('q', sa.Integer(), nullable=True),"
+            "sa.ForeignKeyConstraint(['q'], ['address.id'], ),"
+            "sa.PrimaryKeyConstraint('id'),"
+            "comment='test comment'"
+            ")",
+        )
+
+    @config.requirements.comments_api
+    def test_render_add_column_with_comment(self):
+        op_obj = ops.AddColumnOp(
+            "foo", Column("x", Integer, comment="This is a Column")
+        )
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.add_column('foo', sa.Column('x', sa.Integer(), "
+            "nullable=True, comment='This is a Column'))",
+        )
+
+    @config.requirements.comments_api
+    def test_render_create_table_comment_op(self):
+        op_obj = ops.CreateTableCommentOp("table_name", "comment")
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.create_table_comment("
+            "   'table_name',"
+            "   'comment',"
+            "   existing_comment=None,"
+            "   schema=None"
+            ")",
+        )
+
+    def test_render_create_table_comment_op_with_existing_comment(self):
+        op_obj = ops.CreateTableCommentOp(
+            "table_name", "comment", existing_comment="old comment"
+        )
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.create_table_comment("
+            "   'table_name',"
+            "   'comment',"
+            "   existing_comment='old comment',"
+            "   schema=None"
+            ")",
+        )
+
+    def test_render_create_table_comment_op_with_schema(self):
+        op_obj = ops.CreateTableCommentOp(
+            "table_name", "comment", schema="SomeSchema"
+        )
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.create_table_comment("
+            "   'table_name',"
+            "   'comment',"
+            "   existing_comment=None,"
+            "   schema='SomeSchema'"
+            ")",
+        )
+
+    def test_render_drop_table_comment_op(self):
+        op_obj = ops.DropTableCommentOp("table_name")
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.drop_table_comment("
+            "   'table_name',"
+            "   existing_comment=None,"
+            "   schema=None"
+            ")",
         )
 
 

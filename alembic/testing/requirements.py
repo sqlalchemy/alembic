@@ -1,4 +1,5 @@
 from alembic import util
+from alembic.util import sqla_compat
 from . import exclusions
 
 if util.sqla_094:
@@ -136,6 +137,25 @@ class SuiteRequirements(Requirements):
         )
 
     @property
+    def sqlalchemy_1216(self):
+        return exclusions.skip_if(
+            lambda config: not util.sqla_1216,
+            "SQLAlchemy 1.2.16 or greater required",
+        )
+
+    @property
     def pep3147(self):
 
         return exclusions.only_if(lambda config: util.compat.has_pep3147())
+
+    @property
+    def comments(self):
+        return exclusions.only_if(
+            lambda config: sqla_compat._dialect_supports_comments(
+                config.db.dialect
+            )
+        )
+
+    @property
+    def comments_api(self):
+        return exclusions.only_if(lambda config: util.sqla_120)

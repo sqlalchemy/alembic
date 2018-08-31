@@ -20,6 +20,43 @@ from alembic.testing.fixtures import TestBase
 
 
 class MySQLOpTest(TestBase):
+    @config.requirements.comments_api
+    def test_create_table_with_comment(self):
+        context = op_fixture("mysql")
+        op.create_table(
+            "t2",
+            Column("c1", Integer, primary_key=True),
+            comment="This is a table comment",
+        )
+        context.assert_contains("COMMENT='This is a table comment'")
+
+    @config.requirements.comments_api
+    def test_create_table_with_column_comments(self):
+        context = op_fixture("mysql")
+        op.create_table(
+            "t2",
+            Column("c1", Integer, primary_key=True, comment="c1 comment"),
+            Column("c2", Integer, comment="c2 comment"),
+            comment="This is a table comment",
+        )
+
+        context.assert_(
+            "CREATE TABLE t2 "
+            "(c1 INTEGER NOT NULL COMMENT 'c1 comment' AUTO_INCREMENT, "
+            # TODO: why is there no space at the end here? is that on the
+            # SQLA side?
+            "c2 INTEGER COMMENT 'c2 comment', PRIMARY KEY (c1))"
+            "COMMENT='This is a table comment'"
+        )
+
+    @config.requirements.comments_api
+    def test_add_column_with_comment(self):
+        context = op_fixture("mysql")
+        op.add_column("t", Column("q", Integer, comment="This is a comment"))
+        context.assert_(
+            "ALTER TABLE t ADD COLUMN q INTEGER COMMENT 'This is a comment'"
+        )
+
     def test_rename_column(self):
         context = op_fixture("mysql")
         op.alter_column(
@@ -191,6 +228,100 @@ class MySQLOpTest(TestBase):
             nullable=False,
             server_default="q",
         )
+
+    @config.requirements.comments_api
+    def test_alter_column_add_comment(self):
+        context = op_fixture("mysql")
+        op.alter_column(
+            "t1",
+            "c1",
+            comment="This is a column comment",
+            existing_type=Boolean(),
+            schema="foo",
+        )
+
+        context.assert_(
+            "ALTER TABLE foo.t1 MODIFY c1 BOOL NULL "
+            "COMMENT 'This is a column comment'"
+        )
+
+    @config.requirements.comments_api
+    def test_alter_column_add_comment_quoting(self):
+        context = op_fixture("mysql")
+        op.alter_column(
+            "t1",
+            "c1",
+            comment="This is a 'column' comment",
+            existing_type=Boolean(),
+            schema="foo",
+        )
+
+        context.assert_(
+            "ALTER TABLE foo.t1 MODIFY c1 BOOL NULL "
+            "COMMENT 'This is a ''column'' comment'"
+        )
+
+    @config.requirements.comments_api
+    def test_alter_column_drop_comment(self):
+        context = op_fixture("mysql")
+        op.alter_column(
+            "t",
+            "c",
+            existing_type=Boolean(),
+            schema="foo",
+            comment=None,
+            existing_comment="This is a column comment",
+        )
+
+        context.assert_("ALTER TABLE foo.t MODIFY c BOOL NULL")
+
+    @config.requirements.comments_api
+    def test_alter_column_existing_comment(self):
+        context = op_fixture("mysql")
+        op.alter_column(
+            "t1",
+            "c1",
+            nullable=False,
+            existing_comment="existing column comment",
+            existing_type=Integer,
+        )
+
+        context.assert_(
+            "ALTER TABLE t1 MODIFY c1 INTEGER NOT NULL "
+            "COMMENT 'existing column comment'"
+        )
+
+    @config.requirements.comments_api
+    def test_alter_column_new_comment_replaces_existing(self):
+        context = op_fixture("mysql")
+        op.alter_column(
+            "t1",
+            "c1",
+            nullable=False,
+            comment="This is a column comment",
+            existing_comment="existing column comment",
+            existing_type=Integer,
+        )
+
+        context.assert_(
+            "ALTER TABLE t1 MODIFY c1 INTEGER NOT NULL "
+            "COMMENT 'This is a column comment'"
+        )
+
+    @config.requirements.comments_api
+    def test_create_table_comment(self):
+        # this is handled by SQLAlchemy's compilers
+        context = op_fixture("mysql")
+        op.create_table_comment("t2", comment="t2 table", schema="foo")
+        context.assert_("ALTER TABLE foo.t2 COMMENT 't2 table'")
+
+    @config.requirements.comments_api
+    @config.requirements.sqlalchemy_1216
+    def test_drop_table_comment(self):
+        # this is handled by SQLAlchemy's compilers
+        context = op_fixture("mysql")
+        op.drop_table_comment("t2", existing_comment="t2 table", schema="foo")
+        context.assert_("ALTER TABLE foo.t2 COMMENT ''")
 
     def test_drop_fk(self):
         context = op_fixture("mysql")

@@ -48,6 +48,7 @@ class AlterColumn(AlterTable):
         existing_type=None,
         existing_nullable=None,
         existing_server_default=None,
+        existing_comment=None,
     ):
         super(AlterColumn, self).__init__(name, schema=schema)
         self.column_name = column_name
@@ -58,6 +59,7 @@ class AlterColumn(AlterTable):
         )
         self.existing_nullable = existing_nullable
         self.existing_server_default = existing_server_default
+        self.existing_comment = existing_comment
 
 
 class ColumnNullable(AlterColumn):
@@ -94,6 +96,12 @@ class DropColumn(AlterTable):
     def __init__(self, name, column, schema=None):
         super(DropColumn, self).__init__(name, schema=schema)
         self.column = column
+
+
+class ColumnComment(AlterColumn):
+    def __init__(self, name, column_name, comment, **kw):
+        super(ColumnComment, self).__init__(name, column_name, **kw)
+        self.comment = comment
 
 
 @compiles(RenameTable)

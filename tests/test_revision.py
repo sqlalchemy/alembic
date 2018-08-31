@@ -190,6 +190,7 @@ class LabeledBranchTest(DownIterateTest):
                 Revision("e", ("d",), branch_labels=["xy1"]),
                 Revision("f", ("e",)),
             ]
+
         assert_raises_message(
             RevisionError,
             r"Branch name 'xy1' in revision (?:e|c) already "
@@ -208,6 +209,7 @@ class LabeledBranchTest(DownIterateTest):
                 Revision("c2", ("b",)),
                 Revision("d", ("c1", "c2")),
             ]
+
         map_ = RevisionMap(fn)
         c1 = map_.get_revision("c1")
         c2 = map_.get_revision("c2")
