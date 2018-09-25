@@ -206,8 +206,8 @@ This file contains the following features:
   as in ``%(here)s/alembic``.
 
   For support of applications that package themselves into .egg files, the value can
-  also be specified
-  as a `package resource <https://pythonhosted.org/setuptools/pkg_resources.html>`_, in which
+  also be specified as a `package resource
+  <https://setuptools.readthedocs.io/en/latest/pkg_resources.html>`_, in which
   case ``resource_filename()`` is used to find the file (new in 0.2.2).  Any non-absolute
   URI which contains colons is interpreted here as a resource name, rather than
   a straight filename.
