@@ -395,7 +395,7 @@ class RevisionContext(object):
             # renders
             autogen_context.imports = set()
             if migration_script.imports:
-                autogen_context.imports.union_update(migration_script.imports)
+                autogen_context.imports.update(migration_script.imports)
             render._render_python_into_templatevars(
                 autogen_context, migration_script, template_args
             )
