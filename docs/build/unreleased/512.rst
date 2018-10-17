@@ -1,8 +1,0 @@
-.. change::
-   :tags: bug, autogenerate
-   :tickets: 512
-
-   Fixed issue where removed method ``union_update()`` was used when a
-   customized :class:`.MigrationScript` instance included entries in the
-   ``.imports`` data member, raising an AttributeError.
-
