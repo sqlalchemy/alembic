@@ -605,7 +605,7 @@ class ImportsTest(TestBase):
     def tearDown(self):
         clear_staging_env()
 
-    def _env_fixture(self, target_metadata):
+    def _env_fixture(self, target_metadata, **kw):
         self.engine = engine = _sqlite_file_db()
 
         def run_env(self):
@@ -614,7 +614,8 @@ class ImportsTest(TestBase):
             with engine.connect() as connection:
                 context.configure(
                     connection=connection,
-                    target_metadata=target_metadata)
+                    target_metadata=target_metadata,
+                    **kw)
                 with context.begin_transaction():
                     context.run_migrations()
 
@@ -636,13 +637,22 @@ class ImportsTest(TestBase):
             Column('x', type_)
         )
 
-        with self._env_fixture(m):
+        def process_revision_directives(context, rev, generate_revisions):
+            generate_revisions[0].imports.add(
+                "from sqlalchemy.dialects.mysql import TINYINT")
+
+        with self._env_fixture(
+                m,
+                process_revision_directives=process_revision_directives
+        ):
             rev = command.revision(
                 self.cfg, message="some message",
                 autogenerate=True)
 
         with open(rev.path) as file_:
-            assert "from sqlalchemy.dialects import mysql" in file_.read()
+            contents = file_.read()
+            assert "from sqlalchemy.dialects import mysql" in contents
+            assert "from sqlalchemy.dialects.mysql import TINYINT" in contents
 
 
 class MultiContextTest(TestBase):
