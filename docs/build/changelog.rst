@@ -5,7 +5,28 @@ Changelog
 
 .. changelog::
     :version: 1.0.1
-    :include_notes_from: unreleased
+    :released: October 17, 2018
+
+    .. change::
+        :tags: bug, commands
+        :tickets: 497
+
+        Fixed an issue where revision descriptions were essentially
+        being formatted twice. Any revision description that contained
+        characters like %, writing output to stdout will fail because
+        the call to config.print_stdout attempted to format any
+        additional args passed to the function.
+        This fix now only applies string formatting if any args are provided
+        along with the output text.
+
+    .. change::
+       :tags: bug, autogenerate
+       :tickets: 512
+
+       Fixed issue where removed method ``union_update()`` was used when a
+       customized :class:`.MigrationScript` instance included entries in the
+       ``.imports`` data member, raising an AttributeError.
+
 
 .. changelog::
     :version: 1.0.0
