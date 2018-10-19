@@ -275,3 +275,12 @@ class OpTest(TestBase):
         context.assert_(
             "EXEC sp_rename 'y.t.c', x, 'COLUMN'"
         )
+
+    def test_create_index_mssql_include(self):
+        context = op_fixture('mssql')
+        op.create_index(
+            op.f('ix_mytable_a_b'), 'mytable', ['col_a', 'col_b'],
+            unique=False, mssql_include=['col_c'])
+        context.assert_contains(
+            "CREATE INDEX ix_mytable_a_b ON mytable "
+            "(col_a, col_b) INCLUDE (col_c)")

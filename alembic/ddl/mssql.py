@@ -6,6 +6,8 @@ from .base import alter_table, AddColumn, ColumnName, RenameTable,\
     format_table_name, format_column_name, ColumnNullable, alter_column,\
     format_server_default, ColumnDefault, format_type, ColumnType
 from sqlalchemy.sql.expression import ClauseElement, Executable
+from sqlalchemy.schema import CreateIndex, Column
+from sqlalchemy import types as sqltypes
 
 
 class MSSQLImpl(DefaultImpl):
@@ -86,6 +88,13 @@ class MSSQLImpl(DefaultImpl):
                 table_name, column_name,
                 schema=schema,
                 name=name)
+
+    def create_index(self, index):
+        mssql_include = index.kwargs.get('mssql_include', ())
+        for col in mssql_include:
+            if col not in index.table.c:
+                index.table.append_column(Column(col, sqltypes.NullType))
+        self._exec(CreateIndex(index))
 
     def bulk_insert(self, table, rows, **kw):
         if self.as_sql:
@@ -231,3 +240,4 @@ def visit_rename_table(element, compiler, **kw):
         format_table_name(compiler, element.table_name, element.schema),
         format_table_name(compiler, element.new_table_name, None)
     )
+
