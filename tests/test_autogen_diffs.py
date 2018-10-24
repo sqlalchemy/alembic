@@ -675,6 +675,40 @@ class CompareTypeSpecificityTest(TestBase):
         is_(impl.compare_type(Column('x', t2), Column('x', t3)), True)
 
 
+class AutogenSystemColTest(AutogenTest, TestBase):
+    __only_on__ = 'postgresql'
+
+    @classmethod
+    def _get_db_schema(cls):
+        m = MetaData()
+
+        Table(
+            'sometable', m,
+            Column('id', Integer, primary_key=True),
+        )
+        return m
+
+    @classmethod
+    def _get_model_schema(cls):
+        m = MetaData()
+
+        # 'xmin' is implicitly present, when added to a model should produce
+        # no change
+        Table(
+            'sometable', m,
+            Column('id', Integer, primary_key=True),
+            Column('xmin', Integer, system=True)
+        )
+        return m
+
+    def test_dont_add_system(self):
+        uo = ops.UpgradeOps(ops=[])
+        autogenerate._produce_net_changes(self.autogen_context, uo)
+
+        diffs = uo.as_diffs()
+        eq_(diffs, [])
+
+
 class AutogenerateVariantCompareTest(AutogenTest, TestBase):
     __backend__ = True
 
@@ -1133,7 +1167,6 @@ class PGCompareMetaData(ModelOne, AutogenTest, TestBase):
         eq_(diffs[5][0][0], 'modify_nullable')
         eq_(diffs[5][0][5], False)
         eq_(diffs[5][0][6], True)
-
 
 class OrigObjectTest(TestBase):
     def setUp(self):

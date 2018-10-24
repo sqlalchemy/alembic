@@ -534,6 +534,9 @@ def _render_column(column, autogen_context):
     if column.nullable is not None:
         opts.append(("nullable", column.nullable))
 
+    if column.system:
+        opts.append(("system", column.system))
+
     # TODO: for non-ascii colname, assign a "key"
     return "%(prefix)sColumn(%(name)r, %(type)s, %(kw)s)" % {
         'prefix': _sqlalchemy_autogenerate_prefix(autogen_context),
