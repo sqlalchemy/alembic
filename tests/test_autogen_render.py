@@ -688,6 +688,21 @@ class AutogenRenderTest(TestBase):
             ")"
         )
 
+    def test_render_table_w_system(self):
+        m = MetaData()
+        t = Table('sometable', m,
+                  Column('id', Integer, primary_key=True),
+                  Column('xmin', Integer, system=True, nullable=False)
+                  )
+        op_obj = ops.CreateTableOp.from_table(t)
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.create_table('sometable',"
+            "sa.Column('id', sa.Integer(), nullable=False),"
+            "sa.Column('xmin', sa.Integer(), nullable=False, system=True),"
+            "sa.PrimaryKeyConstraint('id'))"
+        )
+
     def test_render_table_w_unicode_name(self):
         m = MetaData()
         t = Table(compat.ue('\u0411\u0435\u0437'), m,
@@ -935,6 +950,18 @@ class AutogenRenderTest(TestBase):
             autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.add_column('foo', sa.Column('x', sa.Integer(), "
             "server_default='5', nullable=True))"
+        )
+
+    def test_render_add_column_system(self):
+        # this would never actually happen since "system" columns
+        # can't be added in any case.   Howver it will render as
+        # part of op.CreateTableOp.
+        op_obj = ops.AddColumnOp(
+            "foo", Column("xmin", Integer, system=True))
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.add_column('foo', sa.Column('xmin', sa.Integer(), "
+            "nullable=True, system=True))"
         )
 
     def test_render_add_column_w_schema(self):

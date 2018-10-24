@@ -241,7 +241,8 @@ def _make_foreign_key(params, conn_table):
 def _compare_columns(schema, tname, conn_table, metadata_table,
                      modify_table_ops, autogen_context, inspector):
     name = '%s.%s' % (schema, tname) if schema else tname
-    metadata_cols_by_name = dict((c.name, c) for c in metadata_table.c)
+    metadata_cols_by_name = dict(
+        (c.name, c) for c in metadata_table.c if not c.system)
     conn_col_names = dict((c.name, c) for c in conn_table.c)
     metadata_col_names = OrderedSet(sorted(metadata_cols_by_name))
 
