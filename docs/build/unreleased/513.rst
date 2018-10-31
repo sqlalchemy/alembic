@@ -1,8 +1,0 @@
-.. change::
-   :tags: bug, mssql
-   :tickets: 513
-
-   Fixed issue where usage of the SQL Server ``mssql_include`` option within a
-   :meth:`.Operations.create_index` would raise a KeyError, as the additional
-   column(s) need to be added to the table object used by the construct
-   internally.

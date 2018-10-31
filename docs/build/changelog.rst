@@ -5,7 +5,26 @@ Changelog
 
 .. changelog::
     :version: 1.0.2
-    :include_notes_from: unreleased
+    :released: October 31, 2018
+
+    .. change::
+       :tags: bug, autogenerate
+       :tickets: 515
+
+       The ``system=True`` flag on :class:`.Column`, used primarily in conjunction
+       with the Postgresql "xmin" column, now renders within the autogenerate
+       render process, allowing the column to be excluded from DDL.  Additionally,
+       adding a system=True column to a model will produce no autogenerate diff as
+       this column is implicitly present in the database.
+
+    .. change::
+       :tags: bug, mssql
+       :tickets: 513
+
+       Fixed issue where usage of the SQL Server ``mssql_include`` option within a
+       :meth:`.Operations.create_index` would raise a KeyError, as the additional
+       column(s) need to be added to the table object used by the construct
+       internally.
 
 .. changelog::
     :version: 1.0.1

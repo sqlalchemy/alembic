@@ -1,9 +1,0 @@
-.. change::
-   :tags: bug, autogenerate
-   :tickets: 515
-
-   The ``system=True`` flag on :class:`.Column`, used primarily in conjunction
-   with the Postgresql "xmin" column, now renders within the autogenerate
-   render process, allowing the column to be excluded from DDL.  Additionally,
-   adding a system=True column to a model will produce no autogenerate diff as
-   this column is implicitly present in the database.
