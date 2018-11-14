@@ -284,3 +284,12 @@ class OpTest(TestBase):
         context.assert_contains(
             "CREATE INDEX ix_mytable_a_b ON mytable "
             "(col_a, col_b) INCLUDE (col_c)")
+
+    def test_create_index_mssql_include_is_none(self):
+        context = op_fixture('mssql')
+        op.create_index(
+            op.f('ix_mytable_a_b'), 'mytable', ['col_a', 'col_b'],
+            unique=False)
+        context.assert_contains(
+            "CREATE INDEX ix_mytable_a_b ON mytable "
+            "(col_a, col_b)")

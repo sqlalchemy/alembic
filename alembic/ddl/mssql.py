@@ -90,7 +90,10 @@ class MSSQLImpl(DefaultImpl):
                 name=name)
 
     def create_index(self, index):
-        mssql_include = index.kwargs.get('mssql_include', ())
+        # this likely defaults to None if not present, so get()
+        # should normally not return the default value.  being
+        # defensive in any case
+        mssql_include = index.kwargs.get('mssql_include', None) or ()
         for col in mssql_include:
             if col not in index.table.c:
                 index.table.append_column(Column(col, sqltypes.NullType))
