@@ -5,7 +5,16 @@ Changelog
 
 .. changelog::
     :version: 1.0.3
-    :include_notes_from: unreleased
+    :released: November 14, 2018
+
+    .. change::
+        :tags: bug, mssql
+        :tickets: 516
+
+       Fixed regression caused by :ticket:`513`, where the logic to consume
+       ``mssql_include`` was not correctly interpreting the case where the flag
+       was not present, breaking the ``op.create_index`` directive for SQL Server
+       as a whole.
 
 .. changelog::
     :version: 1.0.2
