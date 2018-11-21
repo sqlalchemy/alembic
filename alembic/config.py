@@ -311,7 +311,8 @@ class CommandLine(object):
                     dict(
                         action="store_true",
                         help="Don't emit SQL to database - dump to "
-                        "standard output/file instead"
+                        "standard output/file instead. See docs on "
+                        "offline mode."
                     )
                 ),
                 'tag': (
