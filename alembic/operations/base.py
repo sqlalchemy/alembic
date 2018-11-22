@@ -5,9 +5,9 @@ from ..util import sqla_compat
 from . import batch
 from . import schemaobj
 from ..util.compat import exec_
+from ..util.compat import inspect_formatargspec
 from ..util.compat import inspect_getargspec
 import textwrap
-import inspect
 
 __all__ = ('Operations', 'BatchOperations')
 
@@ -99,14 +99,14 @@ class Operations(util.ModuleClsProxy):
 
             name_args[0:2] = ['self']
 
-            args = inspect.formatargspec(*spec)
+            args = inspect_formatargspec(*spec)
             num_defaults = len(spec[3]) if spec[3] else 0
             if num_defaults:
                 defaulted_vals = name_args[0 - num_defaults:]
             else:
                 defaulted_vals = ()
 
-            apply_kw = inspect.formatargspec(
+            apply_kw = inspect_formatargspec(
                 name_args, spec[1], spec[2],
                 defaulted_vals,
                 formatvalue=lambda x: '=' + x)

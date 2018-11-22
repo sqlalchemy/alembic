@@ -17,11 +17,11 @@ import re
 
 def setup_filters():
     """Set global warning behavior for the test suite."""
-
     warnings.filterwarnings('ignore',
                             category=sa_exc.SAPendingDeprecationWarning)
     warnings.filterwarnings('error', category=sa_exc.SADeprecationWarning)
     warnings.filterwarnings('error', category=sa_exc.SAWarning)
+    warnings.filterwarnings('error', category=DeprecationWarning)
 
 
 def assert_warnings(fn, warning_msgs, regex=False):

@@ -183,7 +183,7 @@ class RevisionPathTest(MigrationTest):
         assert_raises_message(
             util.CommandError,
             r"Destination %s is not a valid downgrade "
-            "target from current head\(s\)" % self.b.revision[0:3],
+            r"target from current head\(s\)" % self.b.revision[0:3],
             self.env._downgrade_revs, self.b.revision[0:3], None
         )
 
@@ -192,7 +192,7 @@ class RevisionPathTest(MigrationTest):
         assert_raises_message(
             util.CommandError,
             r"Destination %s is not a valid downgrade "
-            "target from current head\(s\)" % self.c.revision[0:4],
+            r"target from current head\(s\)" % self.c.revision[0:4],
             self.env._downgrade_revs, self.c.revision[0:4], self.b.revision
         )
 
