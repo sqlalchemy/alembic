@@ -1,9 +1,10 @@
 from .compat import py27, binary_type, string_types
+from .compat import collections_abc
+
 import sys
 from sqlalchemy.engine import url
 import warnings
 import textwrap
-import collections
 import logging
 
 log = logging.getLogger(__name__)
@@ -88,7 +89,7 @@ def format_as_comma(value):
         return ""
     elif isinstance(value, string_types):
         return value
-    elif isinstance(value, collections.Iterable):
+    elif isinstance(value, collections_abc.Iterable):
         return ", ".join(value)
     else:
         raise ValueError("Don't know how to comma-format %r" % value)
