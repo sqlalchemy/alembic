@@ -140,8 +140,7 @@ class _textual_index_element(sql.ColumnElement):
     is the same length as the .expressions collection.  Ultimately
     SQLAlchemy should support text() expressions in indexes.
 
-    See https://bitbucket.org/zzzeek/sqlalchemy/issue/3174/\
-    support-text-sent-to-indexes
+    See SQLAlchemy issue 3174.
 
     """
     __visit_name__ = '_textual_idx_element'

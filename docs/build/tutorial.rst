@@ -2,8 +2,8 @@
 Tutorial
 ========
 
-`Alembic <http://bitbucket.org/zzzeek/alembic>`_ provides for the creation, management, and invocation of *change management*
-scripts for a relational database, using `SQLAlchemy <http://www.sqlalchemy.org>`_ as the underlying engine.
+Alembic provides for the creation, management, and invocation of *change management*
+scripts for a relational database, using SQLAlchemy as the underlying engine.
 This tutorial will provide a full introduction to the theory and usage of this tool.
 
 To begin, make sure Alembic is installed as described at :ref:`installation`.

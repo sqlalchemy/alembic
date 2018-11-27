@@ -295,7 +295,6 @@ Changelog
 
     .. change::
         :tags: bug, autogenerate
-        :pullreq: bitbucket:70
 
         Fixed bug where comparison of ``Numeric`` types would produce
         a difference if the Python-side ``Numeric`` inadvertently specified
@@ -803,7 +802,6 @@ Changelog
     .. change::
       :tags: bug, batch
       :tickets: 361
-      :pullreq: bitbucket:55
 
       Fixed bug introduced by the fix for :ticket:`338` in version 0.8.4
       where a server default could no longer be dropped in batch mode.
@@ -811,7 +809,6 @@ Changelog
 
     .. change::
       :tags: bug, batch, mssql
-      :pullreq: bitbucket:53
 
       Fixed bug where SQL Server arguments for drop_column() would not
       be propagated when running under a batch block.  Pull request
@@ -824,7 +821,6 @@ Changelog
     .. change::
       :tags: bug, autogenerate
       :tickets: 335
-      :pullreq: bitbucket:49
 
       Fixed bug where the columns rendered in a ``PrimaryKeyConstraint``
       in autogenerate would inappropriately render the "key" of the
@@ -857,7 +853,6 @@ Changelog
 
     .. change::
       :tags: feature, versioning
-      :pullreq: bitbucket:51
 
       A major improvement to the hash id generation function, which for some
       reason used an awkward arithmetic formula against uuid4() that produced
@@ -867,7 +862,6 @@ Changelog
 
     .. change::
       :tags: feature, autogenerate
-      :pullreq: github:20
 
       Added an autogenerate renderer for the :class:`.ExecuteSQLOp` operation
       object; only renders if given a plain SQL string, otherwise raises
@@ -944,7 +938,6 @@ Changelog
 
     .. change::
       :tags: bug, tests
-      :pullreq: bitbucket:47
 
       Added "pytest-xdist" as a tox dependency, so that the -n flag
       in the test command works if this is not already installed.
@@ -1053,7 +1046,6 @@ Changelog
 
     .. change::
       :tags: feature, commands
-      :pullreq: bitbucket:46
 
       Added new command ``alembic edit``.  This command takes the same
       arguments as ``alembic show``, however runs the target script
@@ -1302,7 +1294,6 @@ Changelog
     .. change::
       :tags: bug, autogenerate
       :tickets: 266
-      :pullreq: bitbucket:39
 
       The ``--autogenerate`` option is not valid when used in conjunction
       with "offline" mode, e.g. ``--sql``.  This now raises a ``CommandError``,
@@ -1394,7 +1385,6 @@ Changelog
     .. change::
       :tags: bug, autogenerate, postgresql
       :tickets: 241
-      :pullreq: bitbucket:37
 
       Repaired issue where a server default specified without ``text()``
       that represented a numeric or floating point (e.g. with decimal places)
@@ -1431,7 +1421,6 @@ Changelog
     .. change::
       :tags: bug, autogenerate
       :tickets: 261
-      :pullreq: github:17
 
       Fixed issue in autogenerate type rendering where types that belong
       to modules that have the name "sqlalchemy" in them would be mistaken
@@ -1473,7 +1462,6 @@ Changelog
     .. change::
       :tags: bug, mysql
       :tickets: 251
-      :pullreq: bitbucket:35
 
       Fixed an issue where the MySQL routine to skip foreign-key-implicit
       indexes would also catch unnamed unique indexes, as they would be
@@ -1502,7 +1490,6 @@ Changelog
     .. change::
       :tags: feature, autogenerate
       :tickets: 178
-      :pullreq: bitbucket:32
 
       Support for autogenerate of FOREIGN KEY constraints has been added.
       These are delivered within the autogenerate process in the same
@@ -1524,7 +1511,6 @@ Changelog
 
     .. change::
       :tags: bug, batch
-      :pullreq: bitbucket:34
 
       Fixed bug where the "source_schema" argument was not correctly passed
       when calling :meth:`.BatchOperations.create_foreign_key`.  Pull
@@ -1687,7 +1673,6 @@ Changelog
 
     .. change::
       :tags: feature, config
-      :pullreq: bitbucket:33
 
       Added new argument :paramref:`.Config.config_args`, allows a dictionary
       of replacement variables to be passed which will serve as substitution
@@ -1717,7 +1702,6 @@ Changelog
     .. change::
       :tags: bug, operations
       :tickets: 174
-      :pullreq: bitbucket:29
 
       The :meth:`.Operations.add_column` directive will now additionally emit
       the appropriate ``CREATE INDEX`` statement if the
@@ -1886,7 +1870,6 @@ Changelog
 
     .. change::
       :tags: bug, mssql
-      :pullreq: bitbucket:26
 
       Fixed bug in MSSQL dialect where "rename table" wasn't using
       ``sp_rename()`` as is required on SQL Server.  Pull request courtesy
@@ -1911,7 +1894,6 @@ Changelog
     .. change::
       :tags: bug
       :tickets: 95
-      :pullreq: bitbucket:24
 
       A file named ``__init__.py`` in the ``versions/`` directory is now
       ignored by Alembic when the collection of version files is retrieved.
@@ -1919,7 +1901,6 @@ Changelog
 
     .. change::
       :tags: bug
-      :pullreq: bitbucket:23
 
       Fixed Py3K bug where an attempt would be made to sort None against
       string values when autogenerate would detect tables across multiple
@@ -1928,7 +1909,6 @@ Changelog
 
     .. change::
       :tags: bug
-      :pullreq: github:15
 
       Autogenerate render will render the arguments within a Table construct
       using ``*[...]`` when the number of columns/elements is greater than
@@ -1936,7 +1916,6 @@ Changelog
 
     .. change::
       :tags: bug
-      :pullreq: github:14
 
       Fixed bug where foreign key constraints would fail to render in
       autogenerate when a schema name was present.  Pull request courtesy
@@ -1973,7 +1952,6 @@ Changelog
 
     .. change::
       :tags: feature
-      :pullreq: github:10
 
       Added a new accessor :attr:`.MigrationContext.config`, when used
       in conjunction with a :class:`.EnvironmentContext` and
@@ -2165,7 +2143,6 @@ Changelog
 
     .. change::
       :tags: feature
-      :pullreq: bitbucket:20
 
       The :func:`.command.revision` command now returns the :class:`.Script`
       object corresponding to the newly generated revision.  From this
@@ -2211,7 +2188,6 @@ Changelog
 
     .. change::
       :tags: bug
-      :pullreq: github:9
 
       The :func:`.compare_metadata` public API function now takes into
       account the settings for
@@ -2231,7 +2207,6 @@ Changelog
 
     .. change::
       :tags: bug
-      :pullreq: bitbucket:17
 
      Enabled schema support for index and unique constraint autodetection;
      previously these were non-functional and could in some cases lead to
@@ -2337,7 +2312,6 @@ Changelog
 
     .. change::
       :tags: bug, mssql
-      :pullreq: bitbucket:13
 
       The MSSQL backend will add the batch separator (e.g. ``"GO"``)
       in ``--sql`` mode after the final ``COMMIT`` statement, to ensure
@@ -2358,7 +2332,6 @@ Changelog
 
     .. change::
       :tags: feature
-      :pullreq: bitbucket:12
 
       Expanded the size of the "slug" generated by "revision" to 40
       characters, which is also configurable by new field
@@ -2376,7 +2349,6 @@ Changelog
 
     .. change::
       :tags: bug
-      :pullreq: bitbucket:9
 
       Fixes to Py3k in-place compatibity regarding output encoding and related;
       the use of the new io.* package introduced some incompatibilities on Py2k.
@@ -3370,8 +3342,7 @@ Changelog
 
       The author asks that you *please* report all
       issues, missing features, workarounds etc.
-      to the bugtracker, at
-      https://bitbucket.org/zzzeek/alembic/issues/new .
+      to the bugtracker.
 
     .. change::
         :tags:

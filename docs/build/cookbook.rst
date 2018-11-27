@@ -294,7 +294,7 @@ The Replaceable Object Structure
 We first need to devise a simple format that represents the "CREATE XYZ" /
 "DROP XYZ" aspect of what it is we're building.  We will work with an object
 that represents a textual definition; while a SQL view is an object that we can define
-using a `table-metadata-like system <https://bitbucket.org/zzzeek/sqlalchemy/wiki/UsageRecipes/Views>`_,
+using a `table-metadata-like system <https://github.com/sqlalchemy/sqlalchemy/wiki/UsageRecipes/Views>`_,
 this is not so much the case for things like stored procedures, where
 we pretty much need to have a full string definition written down somewhere.
 We'll use a simple value object called ``ReplaceableObject`` that can
