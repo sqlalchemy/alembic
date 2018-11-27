@@ -36,13 +36,12 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.intersphinx',
 # tags to sort on inside of sections
 changelog_sections = ["changed", "feature", "bug", "moved", "removed"]
 
-changelog_render_ticket = "https://bitbucket.org/zzzeek/alembic/issue/%s/"
-changelog_render_pullreq = "https://bitbucket.org/zzzeek/alembic/pull-request/%s"
+changelog_render_ticket = "https://github.com/sqlalchemy/alembic/issues/%s"
+changelog_render_pullreq = "https://github.com/sqlalchemy/alembic/pull/%s"
 
 changelog_render_pullreq = {
-    "bitbucket": "https://bitbucket.org/zzzeek/alembic/pull-request/%s",
-    "default": "https://bitbucket.org/zzzeek/alembic/pull-request/%s",
-    "github": "https://github.com/zzzeek/alembic/pull/%s",
+    "default": "https://github.com/sqlalchemy/alembic/pull/%s",
+    "github": "https://github.com/sqlalchemy/alembic/pull/%s",
 }
 
 autodoc_default_flags = ["members"]

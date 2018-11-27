@@ -74,5 +74,5 @@ The goals of Alembic are:
   other databases, if you want to recreate a table in the background
   on a busy system.
 
-Documentation and status of Alembic is at http://alembic.zzzcomputing.com/
+Documentation and status of Alembic is at https://alembic.sqlalchemy.org/
 
