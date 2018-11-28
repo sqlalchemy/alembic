@@ -1,12 +1,14 @@
 import textwrap
 import warnings
-import inspect
 import uuid
 import collections
+
+from .compat import collections_abc
 
 from .compat import callable, exec_, string_types, with_metaclass
 
 from .compat import inspect_getargspec
+from .compat import inspect_formatargspec
 
 
 class _ModuleClsMeta(type):
@@ -75,7 +77,7 @@ class ModuleClsProxy(with_metaclass(_ModuleClsMeta)):
         spec = inspect_getargspec(fn)
         if spec[0] and spec[0][0] == 'self':
             spec[0].pop(0)
-        args = inspect.formatargspec(*spec)
+        args = inspect_formatargspec(*spec)
         num_defaults = 0
         if spec[3]:
             num_defaults += len(spec[3])
@@ -85,7 +87,7 @@ class ModuleClsProxy(with_metaclass(_ModuleClsMeta)):
         else:
             defaulted_vals = ()
 
-        apply_kw = inspect.formatargspec(
+        apply_kw = inspect_formatargspec(
             name_args, spec[1], spec[2],
             defaulted_vals,
             formatvalue=lambda x: '=' + x)
@@ -189,7 +191,7 @@ def to_list(x, default=None):
         return default
     elif isinstance(x, string_types):
         return [x]
-    elif isinstance(x, collections.Iterable):
+    elif isinstance(x, collections_abc.Iterable):
         return list(x)
     else:
         return [x]
@@ -200,7 +202,7 @@ def to_tuple(x, default=None):
         return default
     elif isinstance(x, string_types):
         return (x, )
-    elif isinstance(x, collections.Iterable):
+    elif isinstance(x, collections_abc.Iterable):
         return tuple(x)
     else:
         return (x, )

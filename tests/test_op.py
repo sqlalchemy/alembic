@@ -36,7 +36,7 @@ class OpTest(TestBase):
         op_fixture()
         assert_raises_message(
             ValueError,
-            "String or text\(\) construct expected",
+            r"String or text\(\) construct expected",
             op.create_index, 'name', 'tname', [func.foo(column('x'))]
         )
 
