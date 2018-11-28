@@ -5,7 +5,15 @@ Changelog
 
 .. changelog::
     :version: 1.0.4
-    :include_notes_from: unreleased
+    :released: November 27, 2018
+
+    .. change::
+       :tags: change
+
+       Code hosting has been moved to GitHub, at
+       https://github.com/sqlalchemy/alembic.  Additionally, the
+       main Alembic website documentation URL is now
+       https://alembic.sqlalchemy.org.
 
 .. changelog::
     :version: 1.0.3
