@@ -5,7 +5,18 @@ Changelog
 
 .. changelog::
     :version: 1.0.5
-    :include_notes_from: unreleased
+    :released: November 27, 2018
+
+    .. change::
+        :tags: bug, py3k
+        :tickets: 507
+
+        Resolved remaining Python 3 deprecation warnings, covering
+        the use of inspect.formatargspec() with a vendored version
+        copied from the Python standard library, importing
+        collections.abc above Python 3.3 when testing against abstract
+        base classes, fixed one occurrence of log.warn(), as well as a few
+        invalid escape sequences.
 
 .. changelog::
     :version: 1.0.4
