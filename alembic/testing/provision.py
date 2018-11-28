@@ -256,6 +256,7 @@ def _oracle_create_db(cfg, eng, ident):
         conn.execute("grant unlimited tablespace to %s_ts1" % ident)
         conn.execute("grant unlimited tablespace to %s_ts2" % ident)
 
+
 @_configure_follower.for_db("oracle")
 def _oracle_configure_follower(config, ident):
     config.test_schema = "%s_ts1" % ident
@@ -268,7 +269,7 @@ def _ora_drop_ignore(conn, dbname):
         log.info("Reaped db: %s" % dbname)
         return True
     except exc.DatabaseError as err:
-        log.warn("couldn't drop db: %s" % err)
+        log.warning("couldn't drop db: %s" % err)
         return False
 
 
