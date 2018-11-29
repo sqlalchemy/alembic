@@ -59,7 +59,7 @@ to the Alembic Google Group at `sqlalchemy-alembic <https://groups.google.com/gr
 Bugs
 ====
 
-Bugs and feature enhancements to dogpile.cache should be reported on the `GitHub
+Bugs and feature enhancements to Alembic should be reported on the `GitHub
 issue tracker
 <https://github.com/sqlalchemy/alembic/issues/>`_.
 
