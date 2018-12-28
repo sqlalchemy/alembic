@@ -1792,26 +1792,12 @@ class ExecuteSQLOp(MigrateOperation):
     def execute(cls, operations, sqltext, execution_options=None):
         """Execute the given SQL using the current migration context.
 
-        In a SQL script context, the statement is emitted directly to the
-        output stream.   There is *no* return result, however, as this
-        function is oriented towards generating a change script
-        that can run in "offline" mode.  For full interaction
-        with a connected database, use the "bind" available
-        from the context::
+        The given SQL can be a plain string, e.g.::
 
-            from alembic import op
-            connection = op.get_bind()
+            op.execute("INSERT INTO table (foo) VALUES ('some value')")
 
-        Also note that any parameterized statement here *will not work*
-        in offline mode - INSERT, UPDATE and DELETE statements which refer
-        to literal values would need to render
-        inline expressions.   For simple use cases, the
-        :meth:`.inline_literal` function can be used for **rudimentary**
-        quoting of string values.  For "bulk" inserts, consider using
-        :meth:`.bulk_insert`.
-
-        For example, to emit an UPDATE statement which is equally
-        compatible with both online and offline mode::
+        Or it can be any kind of Core SQL Expression construct, such as
+        below where we use an update construct::
 
             from sqlalchemy.sql import table, column
             from sqlalchemy import String
@@ -1826,16 +1812,43 @@ class ExecuteSQLOp(MigrateOperation):
                     values({'name':op.inline_literal('account 2')})
                     )
 
-        Note above we also used the SQLAlchemy
-        :func:`sqlalchemy.sql.expression.table`
-        and :func:`sqlalchemy.sql.expression.column` constructs to
-        make a brief, ad-hoc table construct just for our UPDATE
-        statement.  A full :class:`~sqlalchemy.schema.Table` construct
-        of course works perfectly fine as well, though note it's a
-        recommended practice to at least ensure the definition of a
-        table is self-contained within the migration script, rather
-        than imported from a module that may break compatibility with
-        older migrations.
+        Above, we made use of the SQLAlchemy
+        :func:`sqlalchemy.sql.expression.table` and
+        :func:`sqlalchemy.sql.expression.column` constructs to make a brief,
+        ad-hoc table construct just for our UPDATE statement.  A full
+        :class:`~sqlalchemy.schema.Table` construct of course works perfectly
+        fine as well, though note it's a recommended practice to at least
+        ensure the definition of a table is self-contained within the migration
+        script, rather than imported from a module that may break compatibility
+        with older migrations.
+
+        In a SQL script context, the statement is emitted directly to the
+        output stream.   There is *no* return result, however, as this
+        function is oriented towards generating a change script
+        that can run in "offline" mode.     Additionally, parameterized
+        statements are discouraged here, as they *will not work* in offline
+        mode.  Above, we use :meth:`.inline_literal` where parameters are
+        to be used.
+
+        For full interaction with a connected database where parameters can
+        also be used normally, use the "bind" available from the context::
+
+            from alembic import op
+            connection = op.get_bind()
+
+            connection.execute(
+                account.update().where(account.c.name=='account 1').
+                values({"name": "account 2"})
+            )
+
+        Additionally, when passing the statement as a plain string, it is first
+        coerceed into a :func:`sqlalchemy.sql.expression.text` construct
+        before being passed along.  In the less likely case that the
+        literal SQL string contains a colon, it must be escaped with a
+        backslash, as::
+
+           op.execute("INSERT INTO table (foo) VALUES ('\:colon_value')")
+
 
         :param sql: Any legal SQLAlchemy expression, including:
 
@@ -1847,6 +1860,12 @@ class ExecuteSQLOp(MigrateOperation):
           or :func:`sqlalchemy.sql.expression.delete`  construct.
         * Pretty much anything that's "executable" as described
           in :ref:`sqlexpression_toplevel`.
+
+        .. note::  when passing a plain string, the statement is coerced into
+           a :func:`sqlalchemy.sql.expression.text` construct. This construct
+           considers symbols with colons, e.g. ``:foo`` to be bound parameters.
+           To avoid this, ensure that colon symbols are escaped, e.g.
+           ``\:foo``.
 
         :param execution_options: Optional dictionary of
          execution options, will be passed to
