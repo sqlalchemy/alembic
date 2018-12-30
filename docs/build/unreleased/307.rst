@@ -1,0 +1,18 @@
+ .. change::
+    :tags: feature, commands
+    :tickets: 307
+
+    Added "post write hooks" to revision generation.  These allow custom logic
+    to run after a revision Python script is generated, typically for the
+    purpose of running code formatters such as "Black" or "autopep8", but may
+    be used for any arbitrary post-render hook as well, including custom Python
+    functions or scripts.  The hooks are enabled by providing a
+    ``[post_write_hooks]`` section in the alembic.ini file.  A single hook
+    is provided which runs an arbitrary Python executable on the newly
+    generated revision script, which can be configured to run code formatters
+    such as Black; full examples are included in the documentation.
+
+    .. seealso::
+
+        :ref:`post_write_hooks`
+

@@ -212,11 +212,14 @@ class Config(object):
         """
         return os.path.join(package_dir, "templates")
 
-    def get_section(self, name):
+    def get_section(self, name, default=None):
         """Return all the configuration options from a given .ini file section
         as a dictionary.
 
         """
+        if not self.file_config.has_section(name):
+            return default
+
         return dict(self.file_config.items(name))
 
     def set_main_option(self, name, value):

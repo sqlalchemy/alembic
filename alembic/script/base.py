@@ -7,6 +7,7 @@ import shutil
 from dateutil import tz
 
 from . import revision
+from . import write_hooks
 from .. import util
 from ..runtime import migration
 from ..util import compat
@@ -17,7 +18,7 @@ _legacy_rev = re.compile(r"([a-f0-9]+)\.py$")
 _mod_def_re = re.compile(r"(upgrade|downgrade)_([a-z0-9]+)")
 _slug_re = re.compile(r"\w+")
 _default_file_template = "%(rev)s_%(slug)s"
-_split_on_space_comma = re.compile(r",|(?: +)")
+_split_on_space_comma = re.compile(r", *|(?: +)")
 
 
 class ScriptDirectory(object):
@@ -50,6 +51,7 @@ class ScriptDirectory(object):
         sourceless=False,
         output_encoding="utf-8",
         timezone=None,
+        hook_config=None,
     ):
         self.dir = dir
         self.file_template = file_template
@@ -59,6 +61,7 @@ class ScriptDirectory(object):
         self.output_encoding = output_encoding
         self.revision_map = revision.RevisionMap(self._load_revisions)
         self.timezone = timezone
+        self.hook_config = hook_config
 
         if not os.access(dir, os.F_OK):
             raise util.CommandError(
@@ -143,6 +146,7 @@ class ScriptDirectory(object):
             output_encoding=config.get_main_option("output_encoding", "utf-8"),
             version_locations=version_locations,
             timezone=config.get_main_option("timezone"),
+            hook_config=config.get_section("post_write_hooks", {}),
         )
 
     @contextmanager
@@ -637,6 +641,11 @@ class ScriptDirectory(object):
             message=message if message is not None else ("empty message"),
             **kw
         )
+
+        post_write_hooks = self.hook_config
+        if post_write_hooks:
+            write_hooks._run_hooks(path, post_write_hooks)
+
         try:
             script = Script._from_path(self, path)
         except revision.RevisionError as err:

@@ -46,13 +46,14 @@ def write_outstream(stream, *text):
 
 
 def status(_statmsg, fn, *arg, **kw):
-    msg(_statmsg + " ...", False)
+    newline = kw.pop("newline", False)
+    msg(_statmsg + " ...", newline, True)
     try:
         ret = fn(*arg, **kw)
-        write_outstream(sys.stdout, " done\n")
+        write_outstream(sys.stdout, "  done\n")
         return ret
     except:
-        write_outstream(sys.stdout, " FAILED\n")
+        write_outstream(sys.stdout, "  FAILED\n")
         raise
 
 
@@ -73,7 +74,7 @@ def warn(msg, stacklevel=2):
     warnings.warn(msg, UserWarning, stacklevel=stacklevel)
 
 
-def msg(msg, newline=True):
+def msg(msg, newline=True, flush=False):
     if TERMWIDTH is None:
         write_outstream(sys.stdout, msg)
         if newline:
@@ -85,6 +86,8 @@ def msg(msg, newline=True):
             for line in lines[0:-1]:
                 write_outstream(sys.stdout, "  ", line, "\n")
         write_outstream(sys.stdout, "  ", lines[-1], ("\n" if newline else ""))
+    if flush:
+        sys.stdout.flush()
 
 
 def format_as_comma(value):
