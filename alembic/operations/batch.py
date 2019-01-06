@@ -1,24 +1,48 @@
-from sqlalchemy import Table, MetaData, Index, select, Column, \
-    ForeignKeyConstraint, PrimaryKeyConstraint, cast, CheckConstraint
+from sqlalchemy import (
+    Table,
+    MetaData,
+    Index,
+    select,
+    Column,
+    ForeignKeyConstraint,
+    PrimaryKeyConstraint,
+    cast,
+    CheckConstraint,
+)
 from sqlalchemy import types as sqltypes
 from sqlalchemy import schema as sql_schema
 from sqlalchemy.util import OrderedDict
 from .. import util
 from sqlalchemy.events import SchemaEventTarget
-from ..util.sqla_compat import _columns_for_constraint, \
-    _is_type_bound, _fk_is_self_referential, _remove_column_from_collection
+from ..util.sqla_compat import (
+    _columns_for_constraint,
+    _is_type_bound,
+    _fk_is_self_referential,
+    _remove_column_from_collection,
+)
 
 
 class BatchOperationsImpl(object):
-    def __init__(self, operations, table_name, schema, recreate,
-                 copy_from, table_args, table_kwargs,
-                 reflect_args, reflect_kwargs, naming_convention):
+    def __init__(
+        self,
+        operations,
+        table_name,
+        schema,
+        recreate,
+        copy_from,
+        table_args,
+        table_kwargs,
+        reflect_args,
+        reflect_kwargs,
+        naming_convention,
+    ):
         self.operations = operations
         self.table_name = table_name
         self.schema = schema
-        if recreate not in ('auto', 'always', 'never'):
+        if recreate not in ("auto", "always", "never"):
             raise ValueError(
-                "recreate may be one of 'auto', 'always', or 'never'.")
+                "recreate may be one of 'auto', 'always', or 'never'."
+            )
         self.recreate = recreate
         self.copy_from = copy_from
         self.table_args = table_args
@@ -37,9 +61,9 @@ class BatchOperationsImpl(object):
         return self.operations.impl
 
     def _should_recreate(self):
-        if self.recreate == 'auto':
+        if self.recreate == "auto":
             return self.operations.impl.requires_recreate_in_batch(self)
-        elif self.recreate == 'always':
+        elif self.recreate == "always":
             return True
         else:
             return False
@@ -62,15 +86,19 @@ class BatchOperationsImpl(object):
                 reflected = False
             else:
                 existing_table = Table(
-                    self.table_name, m1,
+                    self.table_name,
+                    m1,
                     schema=self.schema,
                     autoload=True,
                     autoload_with=self.operations.get_bind(),
-                    *self.reflect_args, **self.reflect_kwargs)
+                    *self.reflect_args,
+                    **self.reflect_kwargs
+                )
                 reflected = True
 
             batch_impl = ApplyBatchImpl(
-                existing_table, self.table_args, self.table_kwargs, reflected)
+                existing_table, self.table_args, self.table_kwargs, reflected
+            )
             for opname, arg, kw in self.batch:
                 fn = getattr(batch_impl, opname)
                 fn(*arg, **kw)
@@ -90,7 +118,7 @@ class BatchOperationsImpl(object):
         self.batch.append(("add_constraint", (const,), {}))
 
     def drop_constraint(self, const):
-        self.batch.append(("drop_constraint", (const, ), {}))
+        self.batch.append(("drop_constraint", (const,), {}))
 
     def rename_table(self, *arg, **kw):
         self.batch.append(("rename_table", arg, kw))
@@ -116,7 +144,7 @@ class ApplyBatchImpl(object):
         self.temp_table_name = self._calc_temp_name(table.name)
         self.new_table = None
         self.column_transfers = OrderedDict(
-            (c.name, {'expr': c}) for c in self.table.c
+            (c.name, {"expr": c}) for c in self.table.c
         )
         self.reflected = reflected
         self._grab_table_elements()
@@ -165,16 +193,20 @@ class ApplyBatchImpl(object):
         schema = self.table.schema
 
         self.new_table = new_table = Table(
-            self.temp_table_name, m,
+            self.temp_table_name,
+            m,
             *(list(self.columns.values()) + list(self.table_args)),
             schema=schema,
-            **self.table_kwargs)
+            **self.table_kwargs
+        )
 
-        for const in list(self.named_constraints.values()) + \
-                self.unnamed_constraints:
+        for const in (
+            list(self.named_constraints.values()) + self.unnamed_constraints
+        ):
 
-            const_columns = set([
-                c.key for c in _columns_for_constraint(const)])
+            const_columns = set(
+                [c.key for c in _columns_for_constraint(const)]
+            )
 
             if not const_columns.issubset(self.column_transfers):
                 continue
@@ -188,7 +220,8 @@ class ApplyBatchImpl(object):
                     # no foreign keys just keeps the names unchanged, so
                     # when we rename back, they match again.
                     const_copy = const.copy(
-                        schema=schema, target_table=self.table)
+                        schema=schema, target_table=self.table
+                    )
                 else:
                     # "target_table" for ForeignKeyConstraint.copy() is
                     # only used if the FK is detected as being
@@ -209,7 +242,8 @@ class ApplyBatchImpl(object):
                     index.name,
                     unique=index.unique,
                     *[self.new_table.c[col] for col in index.columns.keys()],
-                    **index.kwargs)
+                    **index.kwargs
+                )
             )
         return idx
 
@@ -229,16 +263,20 @@ class ApplyBatchImpl(object):
                 for elem in constraint.elements:
                     colname = elem._get_colspec().split(".")[-1]
                     if not t.c.contains_column(colname):
-                        t.append_column(
-                            Column(colname, sqltypes.NULLTYPE)
-                        )
+                        t.append_column(Column(colname, sqltypes.NULLTYPE))
             else:
                 Table(
-                    tname, metadata,
-                    *[Column(n, sqltypes.NULLTYPE) for n in
-                        [elem._get_colspec().split(".")[-1]
-                         for elem in constraint.elements]],
-                    schema=referent_schema)
+                    tname,
+                    metadata,
+                    *[
+                        Column(n, sqltypes.NULLTYPE)
+                        for n in [
+                            elem._get_colspec().split(".")[-1]
+                            for elem in constraint.elements
+                        ]
+                    ],
+                    schema=referent_schema
+                )
 
     def _create(self, op_impl):
         self._transfer_elements_to_new_table()
@@ -249,13 +287,18 @@ class ApplyBatchImpl(object):
         try:
             op_impl._exec(
                 self.new_table.insert(inline=True).from_select(
-                    list(k for k, transfer in
-                         self.column_transfers.items() if 'expr' in transfer),
-                    select([
-                        transfer['expr']
-                        for transfer in self.column_transfers.values()
-                        if 'expr' in transfer
-                    ])
+                    list(
+                        k
+                        for k, transfer in self.column_transfers.items()
+                        if "expr" in transfer
+                    ),
+                    select(
+                        [
+                            transfer["expr"]
+                            for transfer in self.column_transfers.values()
+                            if "expr" in transfer
+                        ]
+                    ),
                 )
             )
             op_impl.drop_table(self.table)
@@ -264,9 +307,7 @@ class ApplyBatchImpl(object):
             raise
         else:
             op_impl.rename_table(
-                self.temp_table_name,
-                self.table.name,
-                schema=self.table.schema
+                self.temp_table_name, self.table.name, schema=self.table.schema
             )
             self.new_table.name = self.table.name
             try:
@@ -275,14 +316,17 @@ class ApplyBatchImpl(object):
             finally:
                 self.new_table.name = self.temp_table_name
 
-    def alter_column(self, table_name, column_name,
-                     nullable=None,
-                     server_default=False,
-                     name=None,
-                     type_=None,
-                     autoincrement=None,
-                     **kw
-                     ):
+    def alter_column(
+        self,
+        table_name,
+        column_name,
+        nullable=None,
+        server_default=False,
+        name=None,
+        type_=None,
+        autoincrement=None,
+        **kw
+    ):
         existing = self.columns[column_name]
         existing_transfer = self.column_transfers[column_name]
         if name is not None and name != column_name:
@@ -299,12 +343,14 @@ class ApplyBatchImpl(object):
             # we also ignore the drop_constraint that will come here from
             # Operations.implementation_for(alter_column)
             if isinstance(existing.type, SchemaEventTarget):
-                existing.type._create_events = \
-                    existing.type.create_constraint = False
+                existing.type._create_events = (
+                    existing.type.create_constraint
+                ) = False
 
             if existing.type._type_affinity is not type_._type_affinity:
                 existing_transfer["expr"] = cast(
-                    existing_transfer["expr"], type_)
+                    existing_transfer["expr"], type_
+                )
 
             existing.type = type_
 
@@ -332,8 +378,7 @@ class ApplyBatchImpl(object):
     def drop_column(self, table_name, column, **kw):
         if column.name in self.table.primary_key.columns:
             _remove_column_from_collection(
-                self.table.primary_key.columns,
-                column
+                self.table.primary_key.columns, column
             )
         del self.columns[column.name]
         del self.column_transfers[column.name]

@@ -4,7 +4,7 @@ import re
 
 
 class SQLiteImpl(DefaultImpl):
-    __dialect__ = 'sqlite'
+    __dialect__ = "sqlite"
 
     transactional_ddl = False
     """SQLite supports transactional DDL, but pysqlite does not:
@@ -21,7 +21,7 @@ class SQLiteImpl(DefaultImpl):
 
         """
         for op in batch_op.batch:
-            if op[0] not in ('add_column', 'create_index', 'drop_index'):
+            if op[0] not in ("add_column", "create_index", "drop_index"):
                 return True
         else:
             return False
@@ -31,34 +31,46 @@ class SQLiteImpl(DefaultImpl):
         # auto-gen constraint and an explicit one
         if const._create_rule is None:
             raise NotImplementedError(
-                "No support for ALTER of constraints in SQLite dialect")
+                "No support for ALTER of constraints in SQLite dialect"
+            )
         elif const._create_rule(self):
-            util.warn("Skipping unsupported ALTER for "
-                      "creation of implicit constraint")
+            util.warn(
+                "Skipping unsupported ALTER for "
+                "creation of implicit constraint"
+            )
 
     def drop_constraint(self, const):
         if const._create_rule is None:
             raise NotImplementedError(
-                "No support for ALTER of constraints in SQLite dialect")
+                "No support for ALTER of constraints in SQLite dialect"
+            )
 
-    def compare_server_default(self, inspector_column,
-                               metadata_column,
-                               rendered_metadata_default,
-                               rendered_inspector_default):
+    def compare_server_default(
+        self,
+        inspector_column,
+        metadata_column,
+        rendered_metadata_default,
+        rendered_inspector_default,
+    ):
 
         if rendered_metadata_default is not None:
             rendered_metadata_default = re.sub(
-                r"^\"'|\"'$", "", rendered_metadata_default)
+                r"^\"'|\"'$", "", rendered_metadata_default
+            )
         if rendered_inspector_default is not None:
             rendered_inspector_default = re.sub(
-                r"^\"'|\"'$", "", rendered_inspector_default)
+                r"^\"'|\"'$", "", rendered_inspector_default
+            )
 
         return rendered_inspector_default != rendered_metadata_default
 
     def correct_for_autogen_constraints(
-        self, conn_unique_constraints, conn_indexes,
+        self,
+        conn_unique_constraints,
+        conn_indexes,
         metadata_unique_constraints,
-            metadata_indexes):
+        metadata_indexes,
+    ):
 
         if util.sqla_100:
             return
@@ -70,10 +82,7 @@ class SQLiteImpl(DefaultImpl):
         def uq_sig(uq):
             return tuple(sorted(uq.columns.keys()))
 
-        conn_unique_sigs = set(
-            uq_sig(uq)
-            for uq in conn_unique_constraints
-        )
+        conn_unique_sigs = set(uq_sig(uq) for uq in conn_unique_constraints)
 
         for idx in list(metadata_unique_constraints):
             # SQLite backend can't report on unnamed UNIQUE constraints,

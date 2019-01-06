@@ -45,4 +45,4 @@ def setup_py_test():
     to nose.
 
     """
-    nose.main(addplugins=[NoseSQLAlchemy()], argv=['runner'])
+    nose.main(addplugins=[NoseSQLAlchemy()], argv=["runner"])

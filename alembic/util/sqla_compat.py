@@ -15,8 +15,11 @@ def _safe_int(value):
         return int(value)
     except:
         return value
+
+
 _vers = tuple(
-    [_safe_int(x) for x in re.findall(r'(\d+|[abc]\d)', __version__)])
+    [_safe_int(x) for x in re.findall(r"(\d+|[abc]\d)", __version__)]
+)
 sqla_09 = _vers >= (0, 9, 0)
 sqla_092 = _vers >= (0, 9, 2)
 sqla_094 = _vers >= (0, 9, 4)
@@ -31,7 +34,7 @@ sqla_1115 = _vers >= (1, 1, 15)
 
 
 if sqla_110:
-    AUTOINCREMENT_DEFAULT = 'auto'
+    AUTOINCREMENT_DEFAULT = "auto"
 else:
     AUTOINCREMENT_DEFAULT = True
 
@@ -55,10 +58,12 @@ def _columns_for_constraint(constraint):
 def _fk_spec(constraint):
     if sqla_100:
         source_columns = [
-            constraint.columns[key].name for key in constraint.column_keys]
+            constraint.columns[key].name for key in constraint.column_keys
+        ]
     else:
         source_columns = [
-            element.parent.name for element in constraint.elements]
+            element.parent.name for element in constraint.elements
+        ]
 
     source_table = constraint.parent.name
     source_schema = constraint.parent.schema
@@ -70,9 +75,17 @@ def _fk_spec(constraint):
     deferrable = constraint.deferrable
     initially = constraint.initially
     return (
-        source_schema, source_table,
-        source_columns, target_schema, target_table, target_columns,
-        onupdate, ondelete, deferrable, initially)
+        source_schema,
+        source_table,
+        source_columns,
+        target_schema,
+        target_table,
+        target_columns,
+        onupdate,
+        ondelete,
+        deferrable,
+        initially,
+    )
 
 
 def _fk_is_self_referential(constraint):
@@ -91,11 +104,9 @@ def _is_type_bound(constraint):
         return constraint._type_bound
     else:
         # old way, look at what we know Boolean/Enum to use
-        return (
-            constraint._create_rule is not None and
-            isinstance(
-                getattr(constraint._create_rule, "target", None),
-                sqltypes.SchemaType)
+        return constraint._create_rule is not None and isinstance(
+            getattr(constraint._create_rule, "target", None),
+            sqltypes.SchemaType,
         )
 
 
@@ -103,7 +114,7 @@ def _find_columns(clause):
     """locate Column objects within the given expression."""
 
     cols = set()
-    traverse(clause, {}, {'column': cols.add})
+    traverse(clause, {}, {"column": cols.add})
     return cols
 
 
@@ -143,7 +154,8 @@ class _textual_index_element(sql.ColumnElement):
     See SQLAlchemy issue 3174.
 
     """
-    __visit_name__ = '_textual_idx_element'
+
+    __visit_name__ = "_textual_idx_element"
 
     def __init__(self, table, text):
         self.table = table
@@ -198,7 +210,7 @@ def _get_index_final_name(dialect, idx):
 
 
 def _is_mariadb(mysql_dialect):
-    return 'MariaDB' in mysql_dialect.server_version_info
+    return "MariaDB" in mysql_dialect.server_version_info
 
 
 def _mariadb_normalized_version_info(mysql_dialect):

@@ -7,9 +7,16 @@ import textwrap
 from alembic import command, util
 from alembic.util import compat
 from alembic.script import ScriptDirectory, Script
-from alembic.testing.env import clear_staging_env, staging_env, \
-    _sqlite_testing_config, write_script, _sqlite_file_db, \
-    three_rev_fixture, _no_sql_testing_config, env_file_fixture
+from alembic.testing.env import (
+    clear_staging_env,
+    staging_env,
+    _sqlite_testing_config,
+    write_script,
+    _sqlite_file_db,
+    three_rev_fixture,
+    _no_sql_testing_config,
+    env_file_fixture,
+)
 from alembic.testing import eq_, assert_raises_message
 from alembic.testing.fixtures import TestBase, capture_context_buffer
 from alembic.environment import EnvironmentContext
@@ -18,7 +25,7 @@ from alembic.testing import mock
 
 
 class ApplyVersionsFunctionalTest(TestBase):
-    __only_on__ = 'sqlite'
+    __only_on__ = "sqlite"
 
     sourceless = False
 
@@ -46,7 +53,10 @@ class ApplyVersionsFunctionalTest(TestBase):
 
         script = ScriptDirectory.from_config(self.cfg)
         script.generate_revision(a, None, refresh=True)
-        write_script(script, a, """
+        write_script(
+            script,
+            a,
+            """
     revision = '%s'
     down_revision = None
 
@@ -60,10 +70,16 @@ class ApplyVersionsFunctionalTest(TestBase):
     def downgrade():
         op.execute("DROP TABLE foo")
 
-    """ % a, sourceless=self.sourceless)
+    """
+            % a,
+            sourceless=self.sourceless,
+        )
 
         script.generate_revision(b, None, refresh=True)
-        write_script(script, b, """
+        write_script(
+            script,
+            b,
+            """
     revision = '%s'
     down_revision = '%s'
 
@@ -77,10 +93,16 @@ class ApplyVersionsFunctionalTest(TestBase):
     def downgrade():
         op.execute("DROP TABLE bar")
 
-    """ % (b, a), sourceless=self.sourceless)
+    """
+            % (b, a),
+            sourceless=self.sourceless,
+        )
 
         script.generate_revision(c, None, refresh=True)
-        write_script(script, c, """
+        write_script(
+            script,
+            c,
+            """
     revision = '%s'
     down_revision = '%s'
 
@@ -94,49 +116,52 @@ class ApplyVersionsFunctionalTest(TestBase):
     def downgrade():
         op.execute("DROP TABLE bat")
 
-    """ % (c, b), sourceless=self.sourceless)
+    """
+            % (c, b),
+            sourceless=self.sourceless,
+        )
 
     def _test_002_upgrade(self):
         command.upgrade(self.cfg, self.c)
         db = self.bind
-        assert db.dialect.has_table(db.connect(), 'foo')
-        assert db.dialect.has_table(db.connect(), 'bar')
-        assert db.dialect.has_table(db.connect(), 'bat')
+        assert db.dialect.has_table(db.connect(), "foo")
+        assert db.dialect.has_table(db.connect(), "bar")
+        assert db.dialect.has_table(db.connect(), "bat")
 
     def _test_003_downgrade(self):
         command.downgrade(self.cfg, self.a)
         db = self.bind
-        assert db.dialect.has_table(db.connect(), 'foo')
-        assert not db.dialect.has_table(db.connect(), 'bar')
-        assert not db.dialect.has_table(db.connect(), 'bat')
+        assert db.dialect.has_table(db.connect(), "foo")
+        assert not db.dialect.has_table(db.connect(), "bar")
+        assert not db.dialect.has_table(db.connect(), "bat")
 
     def _test_004_downgrade(self):
-        command.downgrade(self.cfg, 'base')
+        command.downgrade(self.cfg, "base")
         db = self.bind
-        assert not db.dialect.has_table(db.connect(), 'foo')
-        assert not db.dialect.has_table(db.connect(), 'bar')
-        assert not db.dialect.has_table(db.connect(), 'bat')
+        assert not db.dialect.has_table(db.connect(), "foo")
+        assert not db.dialect.has_table(db.connect(), "bar")
+        assert not db.dialect.has_table(db.connect(), "bat")
 
     def _test_005_upgrade(self):
         command.upgrade(self.cfg, self.b)
         db = self.bind
-        assert db.dialect.has_table(db.connect(), 'foo')
-        assert db.dialect.has_table(db.connect(), 'bar')
-        assert not db.dialect.has_table(db.connect(), 'bat')
+        assert db.dialect.has_table(db.connect(), "foo")
+        assert db.dialect.has_table(db.connect(), "bar")
+        assert not db.dialect.has_table(db.connect(), "bat")
 
     def _test_006_upgrade_again(self):
         command.upgrade(self.cfg, self.b)
         db = self.bind
-        assert db.dialect.has_table(db.connect(), 'foo')
-        assert db.dialect.has_table(db.connect(), 'bar')
-        assert not db.dialect.has_table(db.connect(), 'bat')
+        assert db.dialect.has_table(db.connect(), "foo")
+        assert db.dialect.has_table(db.connect(), "bar")
+        assert not db.dialect.has_table(db.connect(), "bat")
 
     def _test_007_stamp_upgrade(self):
         command.stamp(self.cfg, self.c)
         db = self.bind
-        assert db.dialect.has_table(db.connect(), 'foo')
-        assert db.dialect.has_table(db.connect(), 'bar')
-        assert not db.dialect.has_table(db.connect(), 'bat')
+        assert db.dialect.has_table(db.connect(), "foo")
+        assert db.dialect.has_table(db.connect(), "bar")
+        assert not db.dialect.has_table(db.connect(), "bat")
 
 
 class SimpleSourcelessApplyVersionsTest(ApplyVersionsFunctionalTest):
@@ -144,25 +169,29 @@ class SimpleSourcelessApplyVersionsTest(ApplyVersionsFunctionalTest):
 
 
 class NewFangledSourcelessEnvOnlyApplyVersionsTest(
-        ApplyVersionsFunctionalTest):
+    ApplyVersionsFunctionalTest
+):
     sourceless = "pep3147_envonly"
 
-    __requires__ = "pep3147",
+    __requires__ = ("pep3147",)
 
 
 class NewFangledSourcelessEverythingApplyVersionsTest(
-        ApplyVersionsFunctionalTest):
+    ApplyVersionsFunctionalTest
+):
     sourceless = "pep3147_everything"
 
-    __requires__ = "pep3147",
+    __requires__ = ("pep3147",)
 
 
 class CallbackEnvironmentTest(ApplyVersionsFunctionalTest):
-    exp_kwargs = frozenset(('ctx', 'heads', 'run_args', 'step'))
+    exp_kwargs = frozenset(("ctx", "heads", "run_args", "step"))
 
     @staticmethod
     def _env_file_fixture():
-        env_file_fixture(textwrap.dedent("""\
+        env_file_fixture(
+            textwrap.dedent(
+                """\
             import alembic
             from alembic import context
             from sqlalchemy import engine_from_config, pool
@@ -199,13 +228,16 @@ class CallbackEnvironmentTest(ApplyVersionsFunctionalTest):
                 run_migrations_offline()
             else:
                 run_migrations_online()
-            """))
+            """
+            )
+        )
 
     def test_steps(self):
         import alembic
+
         alembic.mock_event_listener = None
         self._env_file_fixture()
-        with mock.patch('alembic.mock_event_listener', mock.Mock()) as mymock:
+        with mock.patch("alembic.mock_event_listener", mock.Mock()) as mymock:
             super(CallbackEnvironmentTest, self).test_steps()
         calls = mymock.call_args_list
         assert calls
@@ -213,27 +245,27 @@ class CallbackEnvironmentTest(ApplyVersionsFunctionalTest):
             args, kw = call
             assert not args
             assert set(kw.keys()) >= self.exp_kwargs
-            assert kw['run_args'] == {}
-            assert hasattr(kw['ctx'], 'get_current_revision')
+            assert kw["run_args"] == {}
+            assert hasattr(kw["ctx"], "get_current_revision")
 
-            step = kw['step']
+            step = kw["step"]
             assert isinstance(step.is_upgrade, bool)
             assert isinstance(step.is_stamp, bool)
             assert isinstance(step.is_migration, bool)
             assert isinstance(step.up_revision_id, compat.string_types)
             assert isinstance(step.up_revision, Script)
 
-            for revtype in 'up', 'down', 'source', 'destination':
-                revs = getattr(step, '%s_revisions' % revtype)
+            for revtype in "up", "down", "source", "destination":
+                revs = getattr(step, "%s_revisions" % revtype)
                 assert isinstance(revs, tuple)
                 for rev in revs:
                     assert isinstance(rev, Script)
-                revids = getattr(step, '%s_revision_ids' % revtype)
+                revids = getattr(step, "%s_revision_ids" % revtype)
                 for revid in revids:
                     assert isinstance(revid, compat.string_types)
 
-            heads = kw['heads']
-            assert hasattr(heads, '__iter__')
+            heads = kw["heads"]
+            assert hasattr(heads, "__iter__")
             for h in heads:
                 assert h is None or isinstance(h, compat.string_types)
 
@@ -242,8 +274,8 @@ class OfflineTransactionalDDLTest(TestBase):
     def setUp(self):
         self.env = staging_env()
         self.cfg = cfg = _no_sql_testing_config()
-        cfg.set_main_option('dialect_name', 'sqlite')
-        cfg.remove_main_option('url')
+        cfg.set_main_option("dialect_name", "sqlite")
+        cfg.remove_main_option("url")
 
         self.a, self.b, self.c = three_rev_fixture(cfg)
 
@@ -254,11 +286,12 @@ class OfflineTransactionalDDLTest(TestBase):
         with capture_context_buffer(transactional_ddl=True) as buf:
             command.upgrade(self.cfg, self.c, sql=True)
         assert re.match(
-            (r"^BEGIN;\s+CREATE TABLE.*?%s.*" % self.a) +
-            (r".*%s" % self.b) +
-            (r".*%s.*?COMMIT;.*$" % self.c),
-
-            buf.getvalue(), re.S)
+            (r"^BEGIN;\s+CREATE TABLE.*?%s.*" % self.a)
+            + (r".*%s" % self.b)
+            + (r".*%s.*?COMMIT;.*$" % self.c),
+            buf.getvalue(),
+            re.S,
+        )
 
     def test_begin_commit_nontransactional_ddl(self):
         with capture_context_buffer(transactional_ddl=False) as buf:
@@ -270,11 +303,12 @@ class OfflineTransactionalDDLTest(TestBase):
         with capture_context_buffer(transaction_per_migration=True) as buf:
             command.upgrade(self.cfg, self.c, sql=True)
         assert re.match(
-            (r"^BEGIN;\s+CREATE TABLE.*%s.*?COMMIT;.*" % self.a) +
-            (r"BEGIN;.*?%s.*?COMMIT;.*" % self.b) +
-            (r"BEGIN;.*?%s.*?COMMIT;.*$" % self.c),
-
-            buf.getvalue(), re.S)
+            (r"^BEGIN;\s+CREATE TABLE.*%s.*?COMMIT;.*" % self.a)
+            + (r"BEGIN;.*?%s.*?COMMIT;.*" % self.b)
+            + (r"BEGIN;.*?%s.*?COMMIT;.*$" % self.c),
+            buf.getvalue(),
+            re.S,
+        )
 
 
 class OnlineTransactionalDDLTest(TestBase):
@@ -290,7 +324,10 @@ class OnlineTransactionalDDLTest(TestBase):
         b = util.rev_id()
         c = util.rev_id()
         script.generate_revision(a, "revision a", refresh=True)
-        write_script(script, a, """
+        write_script(
+            script,
+            a,
+            """
 "rev a"
 
 revision = '%s'
@@ -302,9 +339,14 @@ def upgrade():
 def downgrade():
     pass
 
-""" % (a, ))
+"""
+            % (a,),
+        )
         script.generate_revision(b, "revision b", refresh=True)
-        write_script(script, b, """
+        write_script(
+            script,
+            b,
+            """
 "rev b"
 revision = '%s'
 down_revision = '%s'
@@ -320,9 +362,14 @@ def upgrade():
 def downgrade():
     pass
 
-""" % (b, a))
+"""
+            % (b, a),
+        )
         script.generate_revision(c, "revision c", refresh=True)
-        write_script(script, c, """
+        write_script(
+            script,
+            c,
+            """
 "rev c"
 revision = '%s'
 down_revision = '%s'
@@ -337,7 +384,9 @@ def upgrade():
 def downgrade():
     pass
 
-""" % (c, b))
+"""
+            % (c, b),
+        )
         return a, b, c
 
     @contextmanager
@@ -347,7 +396,8 @@ def downgrade():
         def configure(*arg, **opt):
             opt.update(
                 transactional_ddl=transactional_ddl,
-                transaction_per_migration=transaction_per_migration)
+                transaction_per_migration=transaction_per_migration,
+            )
             return conf(*arg, **opt)
 
         with mock.patch.object(EnvironmentContext, "configure", configure):
@@ -357,39 +407,47 @@ def downgrade():
         a, b, c = self._opened_transaction_fixture()
 
         with self._patch_environment(
-                transactional_ddl=False, transaction_per_migration=False):
+            transactional_ddl=False, transaction_per_migration=False
+        ):
             assert_raises_message(
                 util.CommandError,
                 r'Migration "upgrade .*, rev b" has left an uncommitted '
-                r'transaction opened; transactional_ddl is False so Alembic '
-                r'is not committing transactions',
-                command.upgrade, self.cfg, c
+                r"transaction opened; transactional_ddl is False so Alembic "
+                r"is not committing transactions",
+                command.upgrade,
+                self.cfg,
+                c,
             )
 
     def test_raise_when_rev_leaves_open_transaction_tpm(self):
         a, b, c = self._opened_transaction_fixture()
 
         with self._patch_environment(
-                transactional_ddl=False, transaction_per_migration=True):
+            transactional_ddl=False, transaction_per_migration=True
+        ):
             assert_raises_message(
                 util.CommandError,
                 r'Migration "upgrade .*, rev b" has left an uncommitted '
-                r'transaction opened; transactional_ddl is False so Alembic '
-                r'is not committing transactions',
-                command.upgrade, self.cfg, c
+                r"transaction opened; transactional_ddl is False so Alembic "
+                r"is not committing transactions",
+                command.upgrade,
+                self.cfg,
+                c,
             )
 
     def test_noerr_rev_leaves_open_transaction_transactional_ddl(self):
         a, b, c = self._opened_transaction_fixture()
 
         with self._patch_environment(
-                transactional_ddl=True, transaction_per_migration=False):
+            transactional_ddl=True, transaction_per_migration=False
+        ):
             command.upgrade(self.cfg, c)
 
     def test_noerr_transaction_opened_externally(self):
         a, b, c = self._opened_transaction_fixture()
 
-        env_file_fixture("""
+        env_file_fixture(
+            """
 from sqlalchemy import engine_from_config, pool
 
 def run_migrations_online():
@@ -411,22 +469,27 @@ def run_migrations_online():
 
 run_migrations_online()
 
-""")
+"""
+        )
 
         command.stamp(self.cfg, c)
 
 
 class EncodingTest(TestBase):
-
     def setUp(self):
         self.env = staging_env()
         self.cfg = cfg = _no_sql_testing_config()
-        cfg.set_main_option('dialect_name', 'sqlite')
-        cfg.remove_main_option('url')
+        cfg.set_main_option("dialect_name", "sqlite")
+        cfg.remove_main_option("url")
         self.a = util.rev_id()
         script = ScriptDirectory.from_config(cfg)
         script.generate_revision(self.a, "revision a", refresh=True)
-        write_script(script, self.a, (compat.u("""# coding: utf-8
+        write_script(
+            script,
+            self.a,
+            (
+                compat.u(
+                    """# coding: utf-8
 from __future__ import unicode_literals
 revision = '%s'
 down_revision = None
@@ -439,22 +502,25 @@ def upgrade():
 def downgrade():
     op.execute("drôle de petite voix m’a réveillé")
 
-""") % self.a), encoding='utf-8')
+"""
+                )
+                % self.a
+            ),
+            encoding="utf-8",
+        )
 
     def tearDown(self):
         clear_staging_env()
 
     def test_encode(self):
         with capture_context_buffer(
-            bytes_io=True,
-            output_encoding='utf-8'
+            bytes_io=True, output_encoding="utf-8"
         ) as buf:
             command.upgrade(self.cfg, self.a, sql=True)
         assert compat.u("« S’il vous plaît…").encode("utf-8") in buf.getvalue()
 
 
 class VersionNameTemplateTest(TestBase):
-
     def setUp(self):
         self.env = staging_env()
         self.cfg = _sqlite_testing_config()
@@ -467,7 +533,10 @@ class VersionNameTemplateTest(TestBase):
         script = ScriptDirectory.from_config(self.cfg)
         a = util.rev_id()
         script.generate_revision(a, "some message", refresh=True)
-        write_script(script, a, """
+        write_script(
+            script,
+            a,
+            """
     revision = '%s'
     down_revision = None
 
@@ -481,7 +550,9 @@ class VersionNameTemplateTest(TestBase):
     def downgrade():
         op.execute("DROP TABLE foo")
 
-    """ % a)
+    """
+            % a,
+        )
 
         script = ScriptDirectory.from_config(self.cfg)
         rev = script.get_revision(a)
@@ -493,7 +564,10 @@ class VersionNameTemplateTest(TestBase):
         script = ScriptDirectory.from_config(self.cfg)
         a = util.rev_id()
         script.generate_revision(a, None, refresh=True)
-        write_script(script, a, """
+        write_script(
+            script,
+            a,
+            """
     down_revision = None
 
     from alembic import op
@@ -506,7 +580,8 @@ class VersionNameTemplateTest(TestBase):
     def downgrade():
         op.execute("DROP TABLE foo")
 
-    """)
+    """,
+        )
 
         script = ScriptDirectory.from_config(self.cfg)
         rev = script.get_revision(a)
@@ -520,8 +595,9 @@ class VersionNameTemplateTest(TestBase):
         script.generate_revision(a, "foobar", refresh=True)
 
         path = script.get_revision(a).path
-        with open(path, 'w') as fp:
-            fp.write("""
+        with open(path, "w") as fp:
+            fp.write(
+                """
 down_revision = None
 
 from alembic import op
@@ -534,7 +610,8 @@ def upgrade():
 def downgrade():
     op.execute("DROP TABLE foo")
 
-""")
+"""
+            )
         pyc_path = util.pyc_file_from_path(path)
         if pyc_path is not None and os.access(pyc_path, os.F_OK):
             os.unlink(pyc_path)
@@ -544,7 +621,10 @@ def downgrade():
             "Could not determine revision id from filename foobar_%s.py. "
             "Be sure the 'revision' variable is declared "
             "inside the script." % a,
-            Script._from_path, script, path)
+            Script._from_path,
+            script,
+            path,
+        )
 
 
 class IgnoreFilesTest(TestBase):
@@ -563,13 +643,11 @@ class IgnoreFilesTest(TestBase):
         command.revision(self.cfg, message="some rev")
         script = ScriptDirectory.from_config(self.cfg)
         path = os.path.join(script.versions, fname)
-        with open(path, 'w') as f:
-            f.write(
-                "crap, crap -> crap"
-            )
+        with open(path, "w") as f:
+            f.write("crap, crap -> crap")
         command.revision(self.cfg, message="another rev")
 
-        script.get_revision('head')
+        script.get_revision("head")
 
     def _test_ignore_init_py(self, ext):
         """test that __init__.py is ignored."""
@@ -613,17 +691,16 @@ class SimpleSourcelessIgnoreFilesTest(IgnoreFilesTest):
 class NewFangledEnvOnlySourcelessIgnoreFilesTest(IgnoreFilesTest):
     sourceless = "pep3147_envonly"
 
-    __requires__ = "pep3147",
+    __requires__ = ("pep3147",)
 
 
 class NewFangledEverythingSourcelessIgnoreFilesTest(IgnoreFilesTest):
     sourceless = "pep3147_everything"
 
-    __requires__ = "pep3147",
+    __requires__ = ("pep3147",)
 
 
 class SourcelessNeedsFlagTest(TestBase):
-
     def setUp(self):
         self.env = staging_env(sourceless=False)
         self.cfg = _sqlite_testing_config()
@@ -636,7 +713,10 @@ class SourcelessNeedsFlagTest(TestBase):
 
         script = ScriptDirectory.from_config(self.cfg)
         script.generate_revision(a, None, refresh=True)
-        write_script(script, a, """
+        write_script(
+            script,
+            a,
+            """
     revision = '%s'
     down_revision = None
 
@@ -650,7 +730,10 @@ class SourcelessNeedsFlagTest(TestBase):
     def downgrade():
         op.execute("DROP TABLE foo")
 
-    """ % a, sourceless=True)
+    """
+            % a,
+            sourceless=True,
+        )
 
         script = ScriptDirectory.from_config(self.cfg)
         eq_(script.get_heads(), [])

@@ -1,23 +1,24 @@
-
 from sqlalchemy import Integer, Column
 
 from alembic import op, command
 from alembic.testing.fixtures import TestBase
 
 from alembic.testing.fixtures import op_fixture, capture_context_buffer
-from alembic.testing.env import _no_sql_testing_config, staging_env, \
-    three_rev_fixture, clear_staging_env
+from alembic.testing.env import (
+    _no_sql_testing_config,
+    staging_env,
+    three_rev_fixture,
+    clear_staging_env,
+)
 
 
 class FullEnvironmentTests(TestBase):
-
     @classmethod
     def setup_class(cls):
         staging_env()
         cls.cfg = cfg = _no_sql_testing_config("oracle")
 
-        cls.a, cls.b, cls.c = \
-            three_rev_fixture(cfg)
+        cls.a, cls.b, cls.c = three_rev_fixture(cfg)
 
     @classmethod
     def teardown_class(cls):
@@ -42,113 +43,99 @@ class FullEnvironmentTests(TestBase):
 
 
 class OpTest(TestBase):
-
     def test_add_column(self):
-        context = op_fixture('oracle')
-        op.add_column('t1', Column('c1', Integer, nullable=False))
+        context = op_fixture("oracle")
+        op.add_column("t1", Column("c1", Integer, nullable=False))
         context.assert_("ALTER TABLE t1 ADD c1 INTEGER NOT NULL")
 
     def test_add_column_with_default(self):
         context = op_fixture("oracle")
         op.add_column(
-            't1', Column('c1', Integer, nullable=False, server_default="12"))
+            "t1", Column("c1", Integer, nullable=False, server_default="12")
+        )
         context.assert_("ALTER TABLE t1 ADD c1 INTEGER DEFAULT '12' NOT NULL")
 
     def test_alter_column_rename_oracle(self):
-        context = op_fixture('oracle')
+        context = op_fixture("oracle")
         op.alter_column("t", "c", name="x")
-        context.assert_(
-            "ALTER TABLE t RENAME COLUMN c TO x"
-        )
+        context.assert_("ALTER TABLE t RENAME COLUMN c TO x")
 
     def test_alter_column_new_type(self):
-        context = op_fixture('oracle')
+        context = op_fixture("oracle")
         op.alter_column("t", "c", type_=Integer)
-        context.assert_(
-            'ALTER TABLE t MODIFY c INTEGER'
-        )
+        context.assert_("ALTER TABLE t MODIFY c INTEGER")
 
     def test_drop_index(self):
-        context = op_fixture('oracle')
-        op.drop_index('my_idx', 'my_table')
+        context = op_fixture("oracle")
+        op.drop_index("my_idx", "my_table")
         context.assert_contains("DROP INDEX my_idx")
 
     def test_drop_column_w_default(self):
-        context = op_fixture('oracle')
-        op.drop_column('t1', 'c1')
-        context.assert_(
-            "ALTER TABLE t1 DROP COLUMN c1"
-        )
+        context = op_fixture("oracle")
+        op.drop_column("t1", "c1")
+        context.assert_("ALTER TABLE t1 DROP COLUMN c1")
 
     def test_drop_column_w_check(self):
-        context = op_fixture('oracle')
-        op.drop_column('t1', 'c1')
-        context.assert_(
-            "ALTER TABLE t1 DROP COLUMN c1"
-        )
+        context = op_fixture("oracle")
+        op.drop_column("t1", "c1")
+        context.assert_("ALTER TABLE t1 DROP COLUMN c1")
 
     def test_alter_column_nullable_w_existing_type(self):
-        context = op_fixture('oracle')
+        context = op_fixture("oracle")
         op.alter_column("t", "c", nullable=True, existing_type=Integer)
-        context.assert_(
-            "ALTER TABLE t MODIFY c NULL"
-        )
+        context.assert_("ALTER TABLE t MODIFY c NULL")
 
     def test_alter_column_not_nullable_w_existing_type(self):
-        context = op_fixture('oracle')
+        context = op_fixture("oracle")
         op.alter_column("t", "c", nullable=False, existing_type=Integer)
-        context.assert_(
-            "ALTER TABLE t MODIFY c NOT NULL"
-        )
+        context.assert_("ALTER TABLE t MODIFY c NOT NULL")
 
     def test_alter_column_nullable_w_new_type(self):
-        context = op_fixture('oracle')
+        context = op_fixture("oracle")
         op.alter_column("t", "c", nullable=True, type_=Integer)
         context.assert_(
-            "ALTER TABLE t MODIFY c NULL",
-            'ALTER TABLE t MODIFY c INTEGER'
+            "ALTER TABLE t MODIFY c NULL", "ALTER TABLE t MODIFY c INTEGER"
         )
 
     def test_alter_column_not_nullable_w_new_type(self):
-        context = op_fixture('oracle')
+        context = op_fixture("oracle")
         op.alter_column("t", "c", nullable=False, type_=Integer)
         context.assert_(
-            "ALTER TABLE t MODIFY c NOT NULL",
-            "ALTER TABLE t MODIFY c INTEGER"
+            "ALTER TABLE t MODIFY c NOT NULL", "ALTER TABLE t MODIFY c INTEGER"
         )
 
     def test_alter_add_server_default(self):
-        context = op_fixture('oracle')
+        context = op_fixture("oracle")
         op.alter_column("t", "c", server_default="5")
-        context.assert_(
-            "ALTER TABLE t MODIFY c DEFAULT '5'"
-        )
+        context.assert_("ALTER TABLE t MODIFY c DEFAULT '5'")
 
     def test_alter_replace_server_default(self):
-        context = op_fixture('oracle')
+        context = op_fixture("oracle")
         op.alter_column(
-            "t", "c", server_default="5", existing_server_default="6")
-        context.assert_(
-            "ALTER TABLE t MODIFY c DEFAULT '5'"
+            "t", "c", server_default="5", existing_server_default="6"
         )
+        context.assert_("ALTER TABLE t MODIFY c DEFAULT '5'")
 
     def test_alter_remove_server_default(self):
-        context = op_fixture('oracle')
+        context = op_fixture("oracle")
         op.alter_column("t", "c", server_default=None)
-        context.assert_(
-            "ALTER TABLE t MODIFY c DEFAULT NULL"
-        )
+        context.assert_("ALTER TABLE t MODIFY c DEFAULT NULL")
 
     def test_alter_do_everything(self):
-        context = op_fixture('oracle')
+        context = op_fixture("oracle")
         op.alter_column(
-            "t", "c", name="c2", nullable=True,
-            type_=Integer, server_default="5")
+            "t",
+            "c",
+            name="c2",
+            nullable=True,
+            type_=Integer,
+            server_default="5",
+        )
         context.assert_(
-            'ALTER TABLE t MODIFY c NULL',
+            "ALTER TABLE t MODIFY c NULL",
             "ALTER TABLE t MODIFY c DEFAULT '5'",
-            'ALTER TABLE t MODIFY c INTEGER',
-            'ALTER TABLE t RENAME COLUMN c TO c2'
+            "ALTER TABLE t MODIFY c INTEGER",
+            "ALTER TABLE t RENAME COLUMN c TO c2",
         )
 
     # TODO: when we add schema support

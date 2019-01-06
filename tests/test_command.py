@@ -3,9 +3,16 @@ from io import TextIOWrapper, BytesIO
 from alembic.script import ScriptDirectory
 from alembic import config
 from alembic.testing.fixtures import TestBase, capture_context_buffer
-from alembic.testing.env import staging_env, _sqlite_testing_config, \
-    three_rev_fixture, clear_staging_env, _no_sql_testing_config, \
-    _sqlite_file_db, write_script, env_file_fixture
+from alembic.testing.env import (
+    staging_env,
+    _sqlite_testing_config,
+    three_rev_fixture,
+    clear_staging_env,
+    _no_sql_testing_config,
+    _sqlite_file_db,
+    write_script,
+    env_file_fixture,
+)
 from alembic.testing import eq_, assert_raises_message, mock, assert_raises
 from alembic import util
 from contextlib import contextmanager
@@ -18,13 +25,12 @@ class _BufMixin(object):
         # try to simulate how sys.stdout looks - we send it u''
         # but then it's trying to encode to something.
         buf = BytesIO()
-        wrapper = TextIOWrapper(buf, encoding='ascii', line_buffering=True)
+        wrapper = TextIOWrapper(buf, encoding="ascii", line_buffering=True)
         wrapper.getvalue = buf.getvalue
         return wrapper
 
 
 class HistoryTest(_BufMixin, TestBase):
-
     @classmethod
     def setup_class(cls):
         cls.env = staging_env()
@@ -41,7 +47,8 @@ class HistoryTest(_BufMixin, TestBase):
 
     @classmethod
     def _setup_env_file(self):
-        env_file_fixture(r"""
+        env_file_fixture(
+            r"""
 
 from sqlalchemy import MetaData, engine_from_config
 target_metadata = MetaData()
@@ -63,7 +70,8 @@ try:
 finally:
     connection.close()
 
-""")
+"""
+        )
 
     def _eq_cmd_output(self, buf, expected, env_token=False, currents=()):
         script = ScriptDirectory.from_config(self.cfg)
@@ -82,9 +90,11 @@ finally:
             assert_lines.insert(0, "environment included OK")
 
         eq_(
-            buf.getvalue().decode("ascii", 'replace').strip(),
-            "\n".join(assert_lines).
-            encode("ascii", "replace").decode("ascii").strip()
+            buf.getvalue().decode("ascii", "replace").strip(),
+            "\n".join(assert_lines)
+            .encode("ascii", "replace")
+            .decode("ascii")
+            .strip(),
         )
 
     def test_history_full(self):
@@ -163,11 +173,11 @@ finally:
         self.cfg.stdout = buf = self._buf_fixture()
         command.history(self.cfg, indicate_current=True, verbose=True)
         self._eq_cmd_output(
-            buf, [self.c, self.b, self.a], currents=(self.b,), env_token=True)
+            buf, [self.c, self.b, self.a], currents=(self.b,), env_token=True
+        )
 
 
 class CurrentTest(_BufMixin, TestBase):
-
     @classmethod
     def setup_class(cls):
         cls.env = env = staging_env()
@@ -189,11 +199,15 @@ class CurrentTest(_BufMixin, TestBase):
 
         yield
 
-        lines = set([
-            re.match(r'(^.\w)', elem).group(1)
-            for elem in re.split(
-                "\n",
-                buf.getvalue().decode('ascii', 'replace').strip()) if elem])
+        lines = set(
+            [
+                re.match(r"(^.\w)", elem).group(1)
+                for elem in re.split(
+                    "\n", buf.getvalue().decode("ascii", "replace").strip()
+                )
+                if elem
+            ]
+        )
 
         eq_(lines, set(revs))
 
@@ -205,25 +219,25 @@ class CurrentTest(_BufMixin, TestBase):
     def test_plain_current(self):
         command.stamp(self.cfg, ())
         command.stamp(self.cfg, self.a3.revision)
-        with self._assert_lines(['a3']):
+        with self._assert_lines(["a3"]):
             command.current(self.cfg)
 
     def test_two_heads(self):
         command.stamp(self.cfg, ())
         command.stamp(self.cfg, (self.a1.revision, self.b1.revision))
-        with self._assert_lines(['a1', 'b1']):
+        with self._assert_lines(["a1", "b1"]):
             command.current(self.cfg)
 
     def test_heads_one_is_dependent(self):
         command.stamp(self.cfg, ())
-        command.stamp(self.cfg, (self.b2.revision, ))
-        with self._assert_lines(['a2', 'b2']):
+        command.stamp(self.cfg, (self.b2.revision,))
+        with self._assert_lines(["a2", "b2"]):
             command.current(self.cfg)
 
     def test_heads_upg(self):
-        command.stamp(self.cfg, (self.b2.revision, ))
+        command.stamp(self.cfg, (self.b2.revision,))
         command.upgrade(self.cfg, (self.b3.revision))
-        with self._assert_lines(['a2', 'b3']):
+        with self._assert_lines(["a2", "b3"]):
             command.current(self.cfg)
 
 
@@ -236,7 +250,8 @@ class RevisionTest(TestBase):
         clear_staging_env()
 
     def _env_fixture(self, version_table_pk=True):
-        env_file_fixture("""
+        env_file_fixture(
+            """
 
 from sqlalchemy import MetaData, engine_from_config
 target_metadata = MetaData()
@@ -258,7 +273,9 @@ try:
 finally:
     connection.close()
 
-""" % (version_table_pk, ))
+"""
+            % (version_table_pk,)
+        )
 
     def test_create_rev_plain_db_not_up_to_date(self):
         self._env_fixture()
@@ -275,7 +292,9 @@ finally:
         assert_raises_message(
             util.CommandError,
             "Target database is not up to date.",
-            command.revision, self.cfg, autogenerate=True
+            command.revision,
+            self.cfg,
+            autogenerate=True,
         )
 
     def test_create_rev_autogen_db_not_up_to_date_multi_heads(self):
@@ -290,7 +309,9 @@ finally:
         assert_raises_message(
             util.CommandError,
             "Target database is not up to date.",
-            command.revision, self.cfg, autogenerate=True
+            command.revision,
+            self.cfg,
+            autogenerate=True,
         )
 
     def test_create_rev_plain_db_not_up_to_date_multi_heads(self):
@@ -306,7 +327,8 @@ finally:
             util.CommandError,
             "Multiple heads are present; please specify the head revision "
             "on which the new revision should be based, or perform a merge.",
-            command.revision, self.cfg
+            command.revision,
+            self.cfg,
         )
 
     def test_create_rev_autogen_need_to_select_head(self):
@@ -321,7 +343,9 @@ finally:
             util.CommandError,
             "Multiple heads are present; please specify the head revision "
             "on which the new revision should be based, or perform a merge.",
-            command.revision, self.cfg, autogenerate=True
+            command.revision,
+            self.cfg,
+            autogenerate=True,
         )
 
     def test_pk_constraint_normally_prevents_dupe_rows(self):
@@ -333,7 +357,7 @@ finally:
         assert_raises(
             sqla_exc.IntegrityError,
             db.execute,
-            "insert into alembic_version values ('%s')" % r2.revision
+            "insert into alembic_version values ('%s')" % r2.revision,
         )
 
     def test_err_correctly_raised_on_dupe_rows_no_pk(self):
@@ -347,7 +371,9 @@ finally:
             util.CommandError,
             "Online migration expected to match one row when "
             "updating .* in 'alembic_version'; 2 found",
-            command.downgrade, self.cfg, "-1"
+            command.downgrade,
+            self.cfg,
+            "-1",
         )
 
     def test_create_rev_plain_need_to_select_head(self):
@@ -362,7 +388,8 @@ finally:
             util.CommandError,
             "Multiple heads are present; please specify the head revision "
             "on which the new revision should be based, or perform a merge.",
-            command.revision, self.cfg
+            command.revision,
+            self.cfg,
         )
 
     def test_create_rev_plain_post_merge(self):
@@ -389,27 +416,20 @@ finally:
         command.revision(self.cfg)
         rev2 = command.revision(self.cfg)
         rev3 = command.revision(self.cfg, depends_on=rev2.revision)
-        eq_(
-            rev3._resolved_dependencies, (rev2.revision, )
-        )
+        eq_(rev3._resolved_dependencies, (rev2.revision,))
 
         rev4 = command.revision(
-            self.cfg, depends_on=[rev2.revision, rev3.revision])
-        eq_(
-            rev4._resolved_dependencies, (rev2.revision, rev3.revision)
+            self.cfg, depends_on=[rev2.revision, rev3.revision]
         )
+        eq_(rev4._resolved_dependencies, (rev2.revision, rev3.revision))
 
     def test_create_rev_depends_on_branch_label(self):
         self._env_fixture()
         command.revision(self.cfg)
-        rev2 = command.revision(self.cfg, branch_label='foobar')
-        rev3 = command.revision(self.cfg, depends_on='foobar')
-        eq_(
-            rev3.dependencies, 'foobar'
-        )
-        eq_(
-            rev3._resolved_dependencies, (rev2.revision, )
-        )
+        rev2 = command.revision(self.cfg, branch_label="foobar")
+        rev3 = command.revision(self.cfg, depends_on="foobar")
+        eq_(rev3.dependencies, "foobar")
+        eq_(rev3._resolved_dependencies, (rev2.revision,))
 
     def test_create_rev_depends_on_partial_revid(self):
         self._env_fixture()
@@ -417,12 +437,8 @@ finally:
         rev2 = command.revision(self.cfg)
         assert len(rev2.revision) > 7
         rev3 = command.revision(self.cfg, depends_on=rev2.revision[0:4])
-        eq_(
-            rev3.dependencies, rev2.revision
-        )
-        eq_(
-            rev3._resolved_dependencies, (rev2.revision, )
-        )
+        eq_(rev3.dependencies, rev2.revision)
+        eq_(rev3._resolved_dependencies, (rev2.revision,))
 
     def test_create_rev_invalid_depends_on(self):
         self._env_fixture()
@@ -430,7 +446,9 @@ finally:
         assert_raises_message(
             util.CommandError,
             "Can't locate revision identified by 'invalid'",
-            command.revision, self.cfg, depends_on='invalid'
+            command.revision,
+            self.cfg,
+            depends_on="invalid",
         )
 
     def test_create_rev_autogenerate_db_not_up_to_date_post_merge(self):
@@ -444,7 +462,9 @@ finally:
         assert_raises_message(
             util.CommandError,
             "Target database is not up to date.",
-            command.revision, self.cfg, autogenerate=True
+            command.revision,
+            self.cfg,
+            autogenerate=True,
         )
 
     def test_nonsensical_sql_mode_autogen(self):
@@ -452,7 +472,10 @@ finally:
         assert_raises_message(
             util.CommandError,
             "Using --sql with --autogenerate does not make any sense",
-            command.revision, self.cfg, autogenerate=True, sql=True
+            command.revision,
+            self.cfg,
+            autogenerate=True,
+            sql=True,
         )
 
     def test_nonsensical_sql_no_env(self):
@@ -461,7 +484,9 @@ finally:
             util.CommandError,
             "Using --sql with the revision command when revision_environment "
             "is not configured does not make any sense",
-            command.revision, self.cfg, sql=True
+            command.revision,
+            self.cfg,
+            sql=True,
         )
 
     def test_sensical_sql_w_env(self):
@@ -471,12 +496,11 @@ finally:
 
 
 class UpgradeDowngradeStampTest(TestBase):
-
     def setUp(self):
         self.env = staging_env()
         self.cfg = cfg = _no_sql_testing_config()
-        cfg.set_main_option('dialect_name', 'sqlite')
-        cfg.remove_main_option('url')
+        cfg.set_main_option("dialect_name", "sqlite")
+        cfg.remove_main_option("url")
 
         self.a, self.b, self.c = three_rev_fixture(cfg)
 
@@ -559,7 +583,7 @@ class UpgradeDowngradeStampTest(TestBase):
 
 
 class LiveStampTest(TestBase):
-    __only_on__ = 'sqlite'
+    __only_on__ = "sqlite"
 
     def setUp(self):
         self.bind = _sqlite_file_db()
@@ -569,15 +593,25 @@ class LiveStampTest(TestBase):
         self.b = b = util.rev_id()
         script = ScriptDirectory.from_config(self.cfg)
         script.generate_revision(a, None, refresh=True)
-        write_script(script, a, """
+        write_script(
+            script,
+            a,
+            """
 revision = '%s'
 down_revision = None
-""" % a)
+"""
+            % a,
+        )
         script.generate_revision(b, None, refresh=True)
-        write_script(script, b, """
+        write_script(
+            script,
+            b,
+            """
 revision = '%s'
 down_revision = '%s'
-""" % (b, a))
+"""
+            % (b, a),
+        )
 
     def tearDown(self):
         clear_staging_env()
@@ -585,29 +619,25 @@ down_revision = '%s'
     def test_stamp_creates_table(self):
         command.stamp(self.cfg, "head")
         eq_(
-            self.bind.scalar("select version_num from alembic_version"),
-            self.b
+            self.bind.scalar("select version_num from alembic_version"), self.b
         )
 
     def test_stamp_existing_upgrade(self):
         command.stamp(self.cfg, self.a)
         command.stamp(self.cfg, self.b)
         eq_(
-            self.bind.scalar("select version_num from alembic_version"),
-            self.b
+            self.bind.scalar("select version_num from alembic_version"), self.b
         )
 
     def test_stamp_existing_downgrade(self):
         command.stamp(self.cfg, self.b)
         command.stamp(self.cfg, self.a)
         eq_(
-            self.bind.scalar("select version_num from alembic_version"),
-            self.a
+            self.bind.scalar("select version_num from alembic_version"), self.a
         )
 
 
 class EditTest(TestBase):
-
     @classmethod
     def setup_class(cls):
         cls.env = staging_env()
@@ -622,56 +652,61 @@ class EditTest(TestBase):
         command.stamp(self.cfg, "base")
 
     def test_edit_head(self):
-        expected_call_arg = '%s/scripts/versions/%s_revision_c.py' % (
-            EditTest.cfg.config_args['here'],
-            EditTest.c
+        expected_call_arg = "%s/scripts/versions/%s_revision_c.py" % (
+            EditTest.cfg.config_args["here"],
+            EditTest.c,
         )
 
-        with mock.patch('alembic.util.edit') as edit:
+        with mock.patch("alembic.util.edit") as edit:
             command.edit(self.cfg, "head")
             edit.assert_called_with(expected_call_arg)
 
     def test_edit_b(self):
-        expected_call_arg = '%s/scripts/versions/%s_revision_b.py' % (
-            EditTest.cfg.config_args['here'],
-            EditTest.b
+        expected_call_arg = "%s/scripts/versions/%s_revision_b.py" % (
+            EditTest.cfg.config_args["here"],
+            EditTest.b,
         )
 
-        with mock.patch('alembic.util.edit') as edit:
+        with mock.patch("alembic.util.edit") as edit:
             command.edit(self.cfg, self.b[0:3])
             edit.assert_called_with(expected_call_arg)
 
     def test_edit_with_missing_editor(self):
-        with mock.patch('editor.edit') as edit_mock:
+        with mock.patch("editor.edit") as edit_mock:
             edit_mock.side_effect = OSError("file not found")
             assert_raises_message(
                 util.CommandError,
-                'file not found',
+                "file not found",
                 util.edit,
-                "/not/a/file.txt")
+                "/not/a/file.txt",
+            )
 
     def test_edit_no_revs(self):
         assert_raises_message(
             util.CommandError,
             "No revision files indicated by symbol 'base'",
             command.edit,
-            self.cfg, "base")
+            self.cfg,
+            "base",
+        )
 
     def test_edit_no_current(self):
         assert_raises_message(
             util.CommandError,
             "No current revisions",
             command.edit,
-            self.cfg, "current")
+            self.cfg,
+            "current",
+        )
 
     def test_edit_current(self):
-        expected_call_arg = '%s/scripts/versions/%s_revision_b.py' % (
-            EditTest.cfg.config_args['here'],
-            EditTest.b
+        expected_call_arg = "%s/scripts/versions/%s_revision_b.py" % (
+            EditTest.cfg.config_args["here"],
+            EditTest.b,
         )
 
         command.stamp(self.cfg, self.b)
-        with mock.patch('alembic.util.edit') as edit:
+        with mock.patch("alembic.util.edit") as edit:
             command.edit(self.cfg, "current")
             edit.assert_called_with(expected_call_arg)
 
@@ -691,16 +726,21 @@ class CommandLineTest(TestBase):
         # the command function has "process_revision_directives"
         # however the ArgumentParser does not.  ensure things work
         def revision(
-            config, message=None, autogenerate=False, sql=False,
-            head="head", splice=False, branch_label=None,
-            version_path=None, rev_id=None, depends_on=None,
-            process_revision_directives=None
+            config,
+            message=None,
+            autogenerate=False,
+            sql=False,
+            head="head",
+            splice=False,
+            branch_label=None,
+            version_path=None,
+            rev_id=None,
+            depends_on=None,
+            process_revision_directives=None,
         ):
-            canary(
-                config, message=message
-            )
+            canary(config, message=message)
 
-        revision.__module__ = 'alembic.command'
+        revision.__module__ = "alembic.command"
 
         # CommandLine() pulls the function into the ArgumentParser
         # and needs the full signature, so we can't patch the "revision"
@@ -712,7 +752,4 @@ class CommandLineTest(TestBase):
             commandline.run_cmd(self.cfg, options)
         finally:
             config.command.revision = orig_revision
-        eq_(
-            canary.mock_calls,
-            [mock.call(self.cfg, message="foo")]
-        )
+        eq_(canary.mock_calls, [mock.call(self.cfg, message="foo")])

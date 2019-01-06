@@ -19,12 +19,13 @@ else:
 
 if py3k:
     import builtins as compat_builtins
-    string_types = str,
+
+    string_types = (str,)
     binary_type = bytes
     text_type = str
 
     def callable(fn):
-        return hasattr(fn, '__call__')
+        return hasattr(fn, "__call__")
 
     def u(s):
         return s
@@ -35,7 +36,8 @@ if py3k:
     range = range
 else:
     import __builtin__ as compat_builtins
-    string_types = basestring,
+
+    string_types = (basestring,)
     binary_type = str
     text_type = unicode
     callable = callable
@@ -55,16 +57,17 @@ else:
 
 if py3k:
     import collections
+
     ArgSpec = collections.namedtuple(
-        "ArgSpec",
-        ["args", "varargs", "keywords", "defaults"])
+        "ArgSpec", ["args", "varargs", "keywords", "defaults"]
+    )
 
     from inspect import getfullargspec as inspect_getfullargspec
 
     def inspect_getargspec(func):
-        return ArgSpec(
-            *inspect_getfullargspec(func)[0:4]
-        )
+        return ArgSpec(*inspect_getfullargspec(func)[0:4])
+
+
 else:
     from inspect import getargspec as inspect_getargspec  # noqa
 
@@ -72,14 +75,20 @@ if py35:
     from inspect import formatannotation
 
     def inspect_formatargspec(
-            args, varargs=None, varkw=None, defaults=None,
-            kwonlyargs=(), kwonlydefaults={}, annotations={},
-            formatarg=str,
-            formatvarargs=lambda name: '*' + name,
-            formatvarkw=lambda name: '**' + name,
-            formatvalue=lambda value: '=' + repr(value),
-            formatreturns=lambda text: ' -> ' + text,
-            formatannotation=formatannotation):
+        args,
+        varargs=None,
+        varkw=None,
+        defaults=None,
+        kwonlyargs=(),
+        kwonlydefaults={},
+        annotations={},
+        formatarg=str,
+        formatvarargs=lambda name: "*" + name,
+        formatvarkw=lambda name: "**" + name,
+        formatvalue=lambda value: "=" + repr(value),
+        formatreturns=lambda text: " -> " + text,
+        formatannotation=formatannotation,
+    ):
         """Copy formatargspec from python 3.7 standard library.
 
         Python 3 has deprecated formatargspec and requested that Signature
@@ -93,8 +102,9 @@ if py35:
         def formatargandannotation(arg):
             result = formatarg(arg)
             if arg in annotations:
-                result += ': ' + formatannotation(annotations[arg])
+                result += ": " + formatannotation(annotations[arg])
             return result
+
         specs = []
         if defaults:
             firstdefault = len(args) - len(defaults)
@@ -107,7 +117,7 @@ if py35:
             specs.append(formatvarargs(formatargandannotation(varargs)))
         else:
             if kwonlyargs:
-                specs.append('*')
+                specs.append("*")
         if kwonlyargs:
             for kwonlyarg in kwonlyargs:
                 spec = formatargandannotation(kwonlyarg)
@@ -116,10 +126,11 @@ if py35:
                 specs.append(spec)
         if varkw is not None:
             specs.append(formatvarkw(formatargandannotation(varkw)))
-        result = '(' + ', '.join(specs) + ')'
-        if 'return' in annotations:
-            result += formatreturns(formatannotation(annotations['return']))
+        result = "(" + ", ".join(specs) + ")"
+        if "return" in annotations:
+            result += formatreturns(formatannotation(annotations["return"]))
         return result
+
 
 else:
     from inspect import formatargspec as inspect_formatargspec
@@ -151,22 +162,27 @@ if py35:
         spec.loader.exec_module(module)
         return module
 
+
 elif py3k:
     import importlib.machinery
 
     def load_module_py(module_id, path):
         module = importlib.machinery.SourceFileLoader(
-            module_id, path).load_module(module_id)
+            module_id, path
+        ).load_module(module_id)
         del sys.modules[module_id]
         return module
 
     def load_module_pyc(module_id, path):
         module = importlib.machinery.SourcelessFileLoader(
-            module_id, path).load_module(module_id)
+            module_id, path
+        ).load_module(module_id)
         del sys.modules[module_id]
         return module
 
+
 if py3k:
+
     def get_bytecode_suffixes():
         try:
             return importlib.machinery.BYTECODE_SUFFIXES
@@ -188,13 +204,15 @@ if py3k:
         # http://www.python.org/dev/peps/pep-3147/#detecting-pep-3147-availability
 
         import imp
-        return hasattr(imp, 'get_tag')
+
+        return hasattr(imp, "get_tag")
+
 
 else:
     import imp
 
     def load_module_py(module_id, path):  # noqa
-        with open(path, 'rb') as fp:
+        with open(path, "rb") as fp:
             mod = imp.load_source(module_id, path, fp)
             if py2k:
                 source_encoding = parse_encoding(fp)
@@ -204,7 +222,7 @@ else:
             return mod
 
     def load_module_pyc(module_id, path):  # noqa
-        with open(path, 'rb') as fp:
+        with open(path, "rb") as fp:
             mod = imp.load_compiled(module_id, path, fp)
             # no source encoding here
             del sys.modules[module_id]
@@ -219,12 +237,14 @@ else:
     def has_pep3147():
         return False
 
+
 try:
-    exec_ = getattr(compat_builtins, 'exec')
+    exec_ = getattr(compat_builtins, "exec")
 except AttributeError:
     # Python 2
     def exec_(func_text, globals_, lcl):
-        exec('exec func_text in globals_, lcl')
+        exec("exec func_text in globals_, lcl")
+
 
 ################################################
 # cross-compatible metaclass implementation
@@ -234,9 +254,12 @@ except AttributeError:
 def with_metaclass(meta, base=object):
     """Create a base class with a metaclass."""
     return meta("%sBase" % meta.__name__, (base,), {})
+
+
 ################################################
 
 if py3k:
+
     def reraise(tp, value, tb=None, cause=None):
         if cause is not None:
             value.__cause__ = cause
@@ -249,9 +272,13 @@ if py3k:
             exc_info = sys.exc_info()
         exc_type, exc_value, exc_tb = exc_info
         reraise(type(exception), exception, tb=exc_tb, cause=exc_value)
+
+
 else:
-    exec("def reraise(tp, value, tb=None, cause=None):\n"
-         "    raise tp, value, tb\n")
+    exec(
+        "def reraise(tp, value, tb=None, cause=None):\n"
+        "    raise tp, value, tb\n"
+    )
 
     def raise_from_cause(exception, exc_info=None):
         # not as nice as that of Py3K, but at least preserves
@@ -261,13 +288,14 @@ else:
         exc_type, exc_value, exc_tb = exc_info
         reraise(type(exception), exception, tb=exc_tb)
 
+
 # produce a wrapper that allows encoded text to stream
 # into a given buffer, but doesn't close it.
 # not sure of a more idiomatic approach to this.
 class EncodedIO(io.TextIOWrapper):
-
     def close(self):
         pass
+
 
 if py2k:
     # in Py2K, the io.* package is awkward because it does not
@@ -303,7 +331,7 @@ if py2k:
             return self.file_.flush()
 
     class EncodedIO(EncodedIO):
-
         def __init__(self, file_, encoding):
             super(EncodedIO, self).__init__(
-                ActLikePy3kIO(file_), encoding=encoding)
+                ActLikePy3kIO(file_), encoding=encoding
+            )

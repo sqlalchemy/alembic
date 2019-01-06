@@ -11,30 +11,35 @@ from alembic.testing.mock import Mock, call
 
 from alembic.testing import eq_, assert_raises_message
 from alembic.testing.fixtures import capture_db
-from alembic.testing.env import _no_sql_testing_config, clear_staging_env,\
-    staging_env, _write_config_file
+from alembic.testing.env import (
+    _no_sql_testing_config,
+    clear_staging_env,
+    staging_env,
+    _write_config_file,
+)
 
 
 class FileConfigTest(TestBase):
-
     def test_config_args(self):
-        cfg = _write_config_file("""
+        cfg = _write_config_file(
+            """
 [alembic]
 migrations = %(base_path)s/db/migrations
-""")
+"""
+        )
         test_cfg = config.Config(
             cfg.config_file_name, config_args=dict(base_path="/home/alembic")
         )
         eq_(
             test_cfg.get_section_option("alembic", "migrations"),
-            "/home/alembic/db/migrations")
+            "/home/alembic/db/migrations",
+        )
 
     def tearDown(self):
         clear_staging_env()
 
 
 class ConfigTest(TestBase):
-
     def test_config_no_file_main_option(self):
         cfg = config.Config()
         cfg.set_main_option("url", "postgresql://foo/bar")
@@ -66,12 +71,12 @@ class ConfigTest(TestBase):
         cfg = config.Config()
         cfg.set_section_option("some_section", "foob", "foob_value")
 
-        cfg.set_section_option(
-            "some_section", "bar", "bar with %(foob)s")
+        cfg.set_section_option("some_section", "bar", "bar with %(foob)s")
 
         eq_(
             cfg.get_section_option("some_section", "bar"),
-            "bar with foob_value")
+            "bar with foob_value",
+        )
 
     def test_standalone_op(self):
         eng, buf = capture_db()
@@ -80,71 +85,58 @@ class ConfigTest(TestBase):
         op = Operations(env)
 
         op.alter_column("t", "c", nullable=True)
-        eq_(buf, ['ALTER TABLE t ALTER COLUMN c DROP NOT NULL'])
+        eq_(buf, ["ALTER TABLE t ALTER COLUMN c DROP NOT NULL"])
 
     def test_no_script_error(self):
         cfg = config.Config()
         assert_raises_message(
             util.CommandError,
             "No 'script_location' key found in configuration.",
-            ScriptDirectory.from_config, cfg
+            ScriptDirectory.from_config,
+            cfg,
         )
 
     def test_attributes_attr(self):
         m1 = Mock()
         cfg = config.Config()
-        cfg.attributes['connection'] = m1
-        eq_(
-            cfg.attributes['connection'], m1
-        )
+        cfg.attributes["connection"] = m1
+        eq_(cfg.attributes["connection"], m1)
 
     def test_attributes_construtor(self):
         m1 = Mock()
         m2 = Mock()
-        cfg = config.Config(attributes={'m1': m1})
-        cfg.attributes['connection'] = m2
-        eq_(
-            cfg.attributes, {'m1': m1, 'connection': m2}
-        )
+        cfg = config.Config(attributes={"m1": m1})
+        cfg.attributes["connection"] = m2
+        eq_(cfg.attributes, {"m1": m1, "connection": m2})
 
 
 class StdoutOutputEncodingTest(TestBase):
-
     def test_plain(self):
-        stdout = Mock(encoding='latin-1')
+        stdout = Mock(encoding="latin-1")
         cfg = config.Config(stdout=stdout)
         cfg.print_stdout("test %s %s", "x", "y")
-        eq_(
-            stdout.mock_calls,
-            [call.write('test x y'), call.write('\n')]
-        )
+        eq_(stdout.mock_calls, [call.write("test x y"), call.write("\n")])
 
     def test_utf8_unicode(self):
-        stdout = Mock(encoding='latin-1')
+        stdout = Mock(encoding="latin-1")
         cfg = config.Config(stdout=stdout)
         cfg.print_stdout(compat.u("méil %s %s"), "x", "y")
         eq_(
             stdout.mock_calls,
-            [call.write(compat.u('méil x y')), call.write('\n')]
+            [call.write(compat.u("méil x y")), call.write("\n")],
         )
 
     def test_ascii_unicode(self):
         stdout = Mock(encoding=None)
         cfg = config.Config(stdout=stdout)
         cfg.print_stdout(compat.u("méil %s %s"), "x", "y")
-        eq_(
-            stdout.mock_calls,
-            [call.write('m?il x y'), call.write('\n')]
-        )
+        eq_(stdout.mock_calls, [call.write("m?il x y"), call.write("\n")])
 
     def test_only_formats_output_with_args(self):
         stdout = Mock(encoding=None)
         cfg = config.Config(stdout=stdout)
         cfg.print_stdout(compat.u("test 3%"))
-        eq_(
-            stdout.mock_calls,
-            [call.write('test 3%'), call.write('\n')]
-        )
+        eq_(stdout.mock_calls, [call.write("test 3%"), call.write("\n")])
 
 
 class TemplateOutputEncodingTest(TestBase):
@@ -157,9 +149,9 @@ class TemplateOutputEncodingTest(TestBase):
 
     def test_default(self):
         script = ScriptDirectory.from_config(self.cfg)
-        eq_(script.output_encoding, 'utf-8')
+        eq_(script.output_encoding, "utf-8")
 
     def test_setting(self):
-        self.cfg.set_main_option('output_encoding', 'latin-1')
+        self.cfg.set_main_option("output_encoding", "latin-1")
         script = ScriptDirectory.from_config(self.cfg)
-        eq_(script.output_encoding, 'latin-1')
+        eq_(script.output_encoding, "latin-1")

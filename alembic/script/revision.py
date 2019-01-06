@@ -5,8 +5,8 @@ from .. import util
 from sqlalchemy import util as sqlautil
 from ..util import compat
 
-_relative_destination = re.compile(r'(?:(.+?)@)?(\w+)?((?:\+|-)\d+)')
-_revision_illegal_chars = ['@', '-', '+']
+_relative_destination = re.compile(r"(?:(.+?)@)?(\w+)?((?:\+|-)\d+)")
+_revision_illegal_chars = ["@", "-", "+"]
 
 
 class RevisionError(Exception):
@@ -18,8 +18,8 @@ class RangeNotAncestorError(RevisionError):
         self.lower = lower
         self.upper = upper
         super(RangeNotAncestorError, self).__init__(
-            "Revision %s is not an ancestor of revision %s" %
-            (lower or "base", upper or "base")
+            "Revision %s is not an ancestor of revision %s"
+            % (lower or "base", upper or "base")
         )
 
 
@@ -122,8 +122,9 @@ class RevisionMap(object):
         for revision in self._generator():
 
             if revision.revision in map_:
-                util.warn("Revision %s is present more than once" %
-                          revision.revision)
+                util.warn(
+                    "Revision %s is present more than once" % revision.revision
+                )
             map_[revision.revision] = revision
             if revision.branch_labels:
                 has_branch_labels.add(revision)
@@ -132,9 +133,9 @@ class RevisionMap(object):
             heads.add(revision.revision)
             _real_heads.add(revision.revision)
             if revision.is_base:
-                self.bases += (revision.revision, )
+                self.bases += (revision.revision,)
             if revision._is_real_base:
-                self._real_bases += (revision.revision, )
+                self._real_bases += (revision.revision,)
 
         # add the branch_labels to the map_.  We'll need these
         # to resolve the dependencies.
@@ -147,8 +148,10 @@ class RevisionMap(object):
         for rev in map_.values():
             for downrev in rev._all_down_revisions:
                 if downrev not in map_:
-                    util.warn("Revision %s referenced from %s is not present"
-                              % (downrev, rev))
+                    util.warn(
+                        "Revision %s referenced from %s is not present"
+                        % (downrev, rev)
+                    )
                 down_revision = map_[downrev]
                 down_revision.add_nextrev(rev)
                 if downrev in rev._versioned_down_revisions:
@@ -169,9 +172,12 @@ class RevisionMap(object):
                 if branch_label in map_:
                     raise RevisionError(
                         "Branch name '%s' in revision %s already "
-                        "used by revision %s" %
-                        (branch_label, revision.revision,
-                            map_[branch_label].revision)
+                        "used by revision %s"
+                        % (
+                            branch_label,
+                            revision.revision,
+                            map_[branch_label].revision,
+                        )
                     )
                 map_[branch_label] = revision
 
@@ -182,13 +188,16 @@ class RevisionMap(object):
         if revision.branch_labels:
             revision.branch_labels.update(revision.branch_labels)
             for node in self._get_descendant_nodes(
-                    [revision], map_, include_dependencies=False):
+                [revision], map_, include_dependencies=False
+            ):
                 node.branch_labels.update(revision.branch_labels)
 
             parent = node
-            while parent and \
-                    not parent._is_real_branch_point and \
-                    not parent.is_merge_point:
+            while (
+                parent
+                and not parent._is_real_branch_point
+                and not parent.is_merge_point
+            ):
 
                 parent.branch_labels.update(revision.branch_labels)
                 if parent.down_revision:
@@ -201,7 +210,6 @@ class RevisionMap(object):
             deps = [map_[dep] for dep in util.to_tuple(revision.dependencies)]
             revision._resolved_dependencies = tuple([d.revision for d in deps])
 
-
     def add_revision(self, revision, _replace=False):
         """add a single revision to an existing map.
 
@@ -211,8 +219,9 @@ class RevisionMap(object):
         """
         map_ = self._revision_map
         if not _replace and revision.revision in map_:
-            util.warn("Revision %s is present more than once" %
-                      revision.revision)
+            util.warn(
+                "Revision %s is present more than once" % revision.revision
+            )
         elif _replace and revision.revision not in map_:
             raise Exception("revision %s not in map" % revision.revision)
 
@@ -221,9 +230,9 @@ class RevisionMap(object):
         self._add_depends_on(revision, map_)
 
         if revision.is_base:
-            self.bases += (revision.revision, )
+            self.bases += (revision.revision,)
         if revision._is_real_base:
-            self._real_bases += (revision.revision, )
+            self._real_bases += (revision.revision,)
         for downrev in revision._all_down_revisions:
             if downrev not in map_:
                 util.warn(
@@ -233,15 +242,21 @@ class RevisionMap(object):
             map_[downrev].add_nextrev(revision)
         if revision._is_real_head:
             self._real_heads = tuple(
-                head for head in self._real_heads
-                if head not in
-                set(revision._all_down_revisions).union([revision.revision])
+                head
+                for head in self._real_heads
+                if head
+                not in set(revision._all_down_revisions).union(
+                    [revision.revision]
+                )
             ) + (revision.revision,)
         if revision.is_head:
             self.heads = tuple(
-                head for head in self.heads
-                if head not in
-                set(revision._versioned_down_revisions).union([revision.revision])
+                head
+                for head in self.heads
+                if head
+                not in set(revision._versioned_down_revisions).union(
+                    [revision.revision]
+                )
             ) + (revision.revision,)
 
     def get_current_head(self, branch_label=None):
@@ -264,11 +279,14 @@ class RevisionMap(object):
         """
         current_heads = self.heads
         if branch_label:
-            current_heads = self.filter_for_lineage(current_heads, branch_label)
+            current_heads = self.filter_for_lineage(
+                current_heads, branch_label
+            )
         if len(current_heads) > 1:
             raise MultipleHeads(
                 current_heads,
-                "%s@head" % branch_label if branch_label else "head")
+                "%s@head" % branch_label if branch_label else "head",
+            )
 
         if current_heads:
             return current_heads[0]
@@ -301,7 +319,8 @@ class RevisionMap(object):
             resolved_id, branch_label = self._resolve_revision_number(id_)
             return tuple(
                 self._revision_for_ident(rev_id, branch_label)
-                for rev_id in resolved_id)
+                for rev_id in resolved_id
+            )
 
     def get_revision(self, id_):
         """Return the :class:`.Revision` instance with the given rev id.
@@ -333,7 +352,8 @@ class RevisionMap(object):
                 nonbranch_rev = self._revision_for_ident(branch_label)
             except ResolutionError:
                 raise ResolutionError(
-                    "No such branch: '%s'" % branch_label, branch_label)
+                    "No such branch: '%s'" % branch_label, branch_label
+                )
             else:
                 return nonbranch_rev
         else:
@@ -352,30 +372,37 @@ class RevisionMap(object):
             revision = False
         if revision is False:
             # do a partial lookup
-            revs = [x for x in self._revision_map
-                    if x and x.startswith(resolved_id)]
+            revs = [
+                x
+                for x in self._revision_map
+                if x and x.startswith(resolved_id)
+            ]
             if branch_rev:
                 revs = self.filter_for_lineage(revs, check_branch)
             if not revs:
                 raise ResolutionError(
                     "No such revision or branch '%s'" % resolved_id,
-                    resolved_id)
+                    resolved_id,
+                )
             elif len(revs) > 1:
                 raise ResolutionError(
                     "Multiple revisions start "
-                    "with '%s': %s..." % (
-                        resolved_id,
-                        ", ".join("'%s'" % r for r in revs[0:3])
-                    ), resolved_id)
+                    "with '%s': %s..."
+                    % (resolved_id, ", ".join("'%s'" % r for r in revs[0:3])),
+                    resolved_id,
+                )
             else:
                 revision = self._revision_map[revs[0]]
 
         if check_branch and revision is not None:
             if not self._shares_lineage(
-                    revision.revision, branch_rev.revision):
+                revision.revision, branch_rev.revision
+            ):
                 raise ResolutionError(
-                    "Revision %s is not a member of branch '%s'" %
-                    (revision.revision, check_branch), resolved_id)
+                    "Revision %s is not a member of branch '%s'"
+                    % (revision.revision, check_branch),
+                    resolved_id,
+                )
         return revision
 
     def _filter_into_branch_heads(self, targets):
@@ -383,14 +410,14 @@ class RevisionMap(object):
 
         for rev in list(targets):
             if targets.intersection(
-                self._get_descendant_nodes(
-                    [rev], include_dependencies=False)).\
-                    difference([rev]):
+                self._get_descendant_nodes([rev], include_dependencies=False)
+            ).difference([rev]):
                 targets.discard(rev)
         return targets
 
     def filter_for_lineage(
-            self, targets, check_against, include_dependencies=False):
+        self, targets, check_against, include_dependencies=False
+    ):
         id_, branch_label = self._resolve_revision_number(check_against)
 
         shares = []
@@ -400,12 +427,16 @@ class RevisionMap(object):
             shares.extend(id_)
 
         return [
-            tg for tg in targets
+            tg
+            for tg in targets
             if self._shares_lineage(
-                tg, shares, include_dependencies=include_dependencies)]
+                tg, shares, include_dependencies=include_dependencies
+            )
+        ]
 
     def _shares_lineage(
-            self, target, test_against_revs, include_dependencies=False):
+        self, target, test_against_revs, include_dependencies=False
+    ):
         if not test_against_revs:
             return True
         if not isinstance(target, Revision):
@@ -415,46 +446,61 @@ class RevisionMap(object):
             self._revision_for_ident(test_against_rev)
             if not isinstance(test_against_rev, Revision)
             else test_against_rev
-            for test_against_rev
-            in util.to_tuple(test_against_revs, default=())
+            for test_against_rev in util.to_tuple(
+                test_against_revs, default=()
+            )
         ]
 
         return bool(
-            set(self._get_descendant_nodes([target],
-                include_dependencies=include_dependencies))
-            .union(self._get_ancestor_nodes([target],
-                   include_dependencies=include_dependencies))
+            set(
+                self._get_descendant_nodes(
+                    [target], include_dependencies=include_dependencies
+                )
+            )
+            .union(
+                self._get_ancestor_nodes(
+                    [target], include_dependencies=include_dependencies
+                )
+            )
             .intersection(test_against_revs)
         )
 
     def _resolve_revision_number(self, id_):
         if isinstance(id_, compat.string_types) and "@" in id_:
-            branch_label, id_ = id_.split('@', 1)
+            branch_label, id_ = id_.split("@", 1)
         else:
             branch_label = None
 
         # ensure map is loaded
         self._revision_map
-        if id_ == 'heads':
+        if id_ == "heads":
             if branch_label:
-                return self.filter_for_lineage(
-                    self.heads, branch_label), branch_label
+                return (
+                    self.filter_for_lineage(self.heads, branch_label),
+                    branch_label,
+                )
             else:
                 return self._real_heads, branch_label
-        elif id_ == 'head':
+        elif id_ == "head":
             current_head = self.get_current_head(branch_label)
             if current_head:
-                return (current_head, ), branch_label
+                return (current_head,), branch_label
             else:
                 return (), branch_label
-        elif id_ == 'base' or id_ is None:
+        elif id_ == "base" or id_ is None:
             return (), branch_label
         else:
             return util.to_tuple(id_, default=None), branch_label
 
     def _relative_iterate(
-            self, destination, source, is_upwards,
-            implicit_base, inclusive, assert_relative_length):
+        self,
+        destination,
+        source,
+        is_upwards,
+        implicit_base,
+        inclusive,
+        assert_relative_length,
+    ):
         if isinstance(destination, compat.string_types):
             match = _relative_destination.match(destination)
             if not match:
@@ -490,13 +536,15 @@ class RevisionMap(object):
 
         revs = list(
             self._iterate_revisions(
-                from_, to_,
-                inclusive=inclusive, implicit_base=implicit_base))
+                from_, to_, inclusive=inclusive, implicit_base=implicit_base
+            )
+        )
 
         if symbol:
             if branch_label:
                 symbol_rev = self.get_revision(
-                    "%s@%s" % (branch_label, symbol))
+                    "%s@%s" % (branch_label, symbol)
+                )
             else:
                 symbol_rev = self.get_revision(symbol)
             if symbol.startswith("head"):
@@ -513,25 +561,39 @@ class RevisionMap(object):
         else:
             index = 0
         if is_upwards:
-            revs = revs[index - relative - reldelta:]
-            if not index and assert_relative_length and \
-                    len(revs) < abs(relative - reldelta):
+            revs = revs[index - relative - reldelta :]
+            if (
+                not index
+                and assert_relative_length
+                and len(revs) < abs(relative - reldelta)
+            ):
                 raise RevisionError(
                     "Relative revision %s didn't "
-                    "produce %d migrations" % (destination, abs(relative)))
+                    "produce %d migrations" % (destination, abs(relative))
+                )
         else:
-            revs = revs[0:index - relative + reldelta]
-            if not index and assert_relative_length and \
-                    len(revs) != abs(relative) + reldelta:
+            revs = revs[0 : index - relative + reldelta]
+            if (
+                not index
+                and assert_relative_length
+                and len(revs) != abs(relative) + reldelta
+            ):
                 raise RevisionError(
                     "Relative revision %s didn't "
-                    "produce %d migrations" % (destination, abs(relative)))
+                    "produce %d migrations" % (destination, abs(relative))
+                )
 
         return iter(revs)
 
     def iterate_revisions(
-            self, upper, lower, implicit_base=False, inclusive=False,
-            assert_relative_length=True, select_for_downgrade=False):
+        self,
+        upper,
+        lower,
+        implicit_base=False,
+        inclusive=False,
+        assert_relative_length=True,
+        select_for_downgrade=False,
+    ):
         """Iterate through script revisions, starting at the given
         upper revision identifier and ending at the lower.
 
@@ -545,37 +607,59 @@ class RevisionMap(object):
         """
 
         relative_upper = self._relative_iterate(
-            upper, lower, True, implicit_base,
-            inclusive, assert_relative_length
+            upper,
+            lower,
+            True,
+            implicit_base,
+            inclusive,
+            assert_relative_length,
         )
         if relative_upper:
             return relative_upper
 
         relative_lower = self._relative_iterate(
-            lower, upper, False, implicit_base,
-            inclusive, assert_relative_length
+            lower,
+            upper,
+            False,
+            implicit_base,
+            inclusive,
+            assert_relative_length,
         )
         if relative_lower:
             return relative_lower
 
         return self._iterate_revisions(
-            upper, lower, inclusive=inclusive, implicit_base=implicit_base,
-            select_for_downgrade=select_for_downgrade)
+            upper,
+            lower,
+            inclusive=inclusive,
+            implicit_base=implicit_base,
+            select_for_downgrade=select_for_downgrade,
+        )
 
     def _get_descendant_nodes(
-            self, targets, map_=None, check=False,
-            omit_immediate_dependencies=False, include_dependencies=True):
+        self,
+        targets,
+        map_=None,
+        check=False,
+        omit_immediate_dependencies=False,
+        include_dependencies=True,
+    ):
 
         if omit_immediate_dependencies:
+
             def fn(rev):
                 if rev not in targets:
                     return rev._all_nextrev
                 else:
                     return rev.nextrev
+
         elif include_dependencies:
+
             def fn(rev):
                 return rev._all_nextrev
+
         else:
+
             def fn(rev):
                 return rev.nextrev
 
@@ -584,12 +668,16 @@ class RevisionMap(object):
         )
 
     def _get_ancestor_nodes(
-            self, targets, map_=None, check=False, include_dependencies=True):
+        self, targets, map_=None, check=False, include_dependencies=True
+    ):
 
         if include_dependencies:
+
             def fn(rev):
                 return rev._all_down_revisions
+
         else:
+
             def fn(rev):
                 return rev._versioned_down_revisions
 
@@ -617,24 +705,30 @@ class RevisionMap(object):
                 if rev in seen:
                     continue
                 seen.add(rev)
-                todo.extend(
-                    map_[rev_id] for rev_id in fn(rev))
+                todo.extend(map_[rev_id] for rev_id in fn(rev))
                 yield rev
             if check:
-                overlaps = per_target.intersection(targets).\
-                    difference([target])
+                overlaps = per_target.intersection(targets).difference(
+                    [target]
+                )
                 if overlaps:
                     raise RevisionError(
                         "Requested revision %s overlaps with "
-                        "other requested revisions %s" % (
+                        "other requested revisions %s"
+                        % (
                             target.revision,
-                            ", ".join(r.revision for r in overlaps)
+                            ", ".join(r.revision for r in overlaps),
                         )
                     )
 
     def _iterate_revisions(
-            self, upper, lower, inclusive=True, implicit_base=False,
-            select_for_downgrade=False):
+        self,
+        upper,
+        lower,
+        inclusive=True,
+        implicit_base=False,
+        select_for_downgrade=False,
+    ):
         """iterate revisions from upper to lower.
 
         The traversal is depth-first within branches, and breadth-first
@@ -650,8 +744,9 @@ class RevisionMap(object):
         # is specified using a branch identifier, then we limit operations
         # to just that branch.
 
-        limit_to_lower_branch = \
-            isinstance(lower, compat.string_types) and lower.endswith('@base')
+        limit_to_lower_branch = isinstance(
+            lower, compat.string_types
+        ) and lower.endswith("@base")
 
         uppers = util.dedupe_tuple(self.get_revisions(upper))
 
@@ -663,16 +758,14 @@ class RevisionMap(object):
         if limit_to_lower_branch:
             lowers = self.get_revisions(self._get_base_revisions(lower))
         elif implicit_base and requested_lowers:
-            lower_ancestors = set(
-                self._get_ancestor_nodes(requested_lowers)
-            )
+            lower_ancestors = set(self._get_ancestor_nodes(requested_lowers))
             lower_descendants = set(
                 self._get_descendant_nodes(requested_lowers)
             )
             base_lowers = set()
-            candidate_lowers = upper_ancestors.\
-                difference(lower_ancestors).\
-                difference(lower_descendants)
+            candidate_lowers = upper_ancestors.difference(
+                lower_ancestors
+            ).difference(lower_descendants)
             for rev in candidate_lowers:
                 for downrev in rev._all_down_revisions:
                     if self._revision_map[downrev] in candidate_lowers:
@@ -690,13 +783,15 @@ class RevisionMap(object):
 
         # represents all nodes we will produce
         total_space = set(
-            rev.revision for rev in upper_ancestors).intersection(
-            rev.revision for rev
-            in self._get_descendant_nodes(
-                lowers, check=True,
+            rev.revision for rev in upper_ancestors
+        ).intersection(
+            rev.revision
+            for rev in self._get_descendant_nodes(
+                lowers,
+                check=True,
                 omit_immediate_dependencies=(
                     select_for_downgrade and requested_lowers
-                )
+                ),
             )
         )
 
@@ -706,7 +801,8 @@ class RevisionMap(object):
             start_from = set(requested_lowers)
             start_from.update(
                 self._get_ancestor_nodes(
-                    list(start_from), include_dependencies=True)
+                    list(start_from), include_dependencies=True
+                )
             )
 
             # determine all the current branch points represented
@@ -725,19 +821,18 @@ class RevisionMap(object):
         # organize branch points to be consumed separately from
         # member nodes
         branch_todo = set(
-            rev for rev in
-            (self._revision_map[rev] for rev in total_space)
-            if rev._is_real_branch_point and
-            len(total_space.intersection(rev._all_nextrev)) > 1
+            rev
+            for rev in (self._revision_map[rev] for rev in total_space)
+            if rev._is_real_branch_point
+            and len(total_space.intersection(rev._all_nextrev)) > 1
         )
 
         # it's not possible for any "uppers" to be in branch_todo,
         # because the ._all_nextrev of those nodes is not in total_space
-        #assert not branch_todo.intersection(uppers)
+        # assert not branch_todo.intersection(uppers)
 
         todo = collections.deque(
-            r for r in uppers
-            if r.revision in total_space
+            r for r in uppers if r.revision in total_space
         )
 
         # iterate for total_space being emptied out
@@ -746,7 +841,8 @@ class RevisionMap(object):
 
             if not total_space_modified:
                 raise RevisionError(
-                    "Dependency resolution failed; iteration can't proceed")
+                    "Dependency resolution failed; iteration can't proceed"
+                )
             total_space_modified = False
             # when everything non-branch pending is consumed,
             # add to the todo any branch nodes that have no
@@ -755,12 +851,13 @@ class RevisionMap(object):
                 todo.extendleft(
                     sorted(
                         (
-                            rev for rev in branch_todo
+                            rev
+                            for rev in branch_todo
                             if not rev._all_nextrev.intersection(total_space)
                         ),
                         # favor "revisioned" branch points before
                         # dependent ones
-                        key=lambda rev: 0 if rev.is_branch_point else 1
+                        key=lambda rev: 0 if rev.is_branch_point else 1,
                     )
                 )
                 branch_todo.difference_update(todo)
@@ -772,11 +869,14 @@ class RevisionMap(object):
 
                 # do depth first for elements within branches,
                 # don't consume any actual branch nodes
-                todo.extendleft([
-                    self._revision_map[downrev]
-                    for downrev in reversed(rev._all_down_revisions)
-                    if self._revision_map[downrev] not in branch_todo
-                    and downrev in total_space])
+                todo.extendleft(
+                    [
+                        self._revision_map[downrev]
+                        for downrev in reversed(rev._all_down_revisions)
+                        if self._revision_map[downrev] not in branch_todo
+                        and downrev in total_space
+                    ]
+                )
 
                 if not inclusive and rev in requested_lowers:
                     continue
@@ -795,6 +895,7 @@ class Revision(object):
     to Python files in a version directory.
 
     """
+
     nextrev = frozenset()
     """following revisions, based on down_revision only."""
 
@@ -830,15 +931,13 @@ class Revision(object):
         illegal_chars = set(revision).intersection(_revision_illegal_chars)
         if illegal_chars:
             raise RevisionError(
-                "Character(s) '%s' not allowed in revision identifier '%s'" % (
-                    ", ".join(sorted(illegal_chars)),
-                    revision
-                )
+                "Character(s) '%s' not allowed in revision identifier '%s'"
+                % (", ".join(sorted(illegal_chars)), revision)
             )
 
     def __init__(
-            self, revision, down_revision,
-            dependencies=None, branch_labels=None):
+        self, revision, down_revision, dependencies=None, branch_labels=None
+    ):
         self.verify_rev_id(revision)
         self.revision = revision
         self.down_revision = tuple_rev_as_scalar(down_revision)
@@ -848,18 +947,12 @@ class Revision(object):
         self.branch_labels = set(self._orig_branch_labels)
 
     def __repr__(self):
-        args = [
-            repr(self.revision),
-            repr(self.down_revision)
-        ]
+        args = [repr(self.revision), repr(self.down_revision)]
         if self.dependencies:
             args.append("dependencies=%r" % (self.dependencies,))
         if self.branch_labels:
             args.append("branch_labels=%r" % (self.branch_labels,))
-        return "%s(%s)" % (
-            self.__class__.__name__,
-            ", ".join(args)
-        )
+        return "%s(%s)" % (self.__class__.__name__, ", ".join(args))
 
     def add_nextrev(self, revision):
         self._all_nextrev = self._all_nextrev.union([revision.revision])
@@ -868,8 +961,10 @@ class Revision(object):
 
     @property
     def _all_down_revisions(self):
-        return util.to_tuple(self.down_revision, default=()) + \
-            self._resolved_dependencies
+        return (
+            util.to_tuple(self.down_revision, default=())
+            + self._resolved_dependencies
+        )
 
     @property
     def _versioned_down_revisions(self):

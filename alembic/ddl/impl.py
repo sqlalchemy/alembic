@@ -1,21 +1,19 @@
 from sqlalchemy import schema, text
 from sqlalchemy import types as sqltypes
 
-from ..util.compat import (
-    string_types, text_type, with_metaclass
-)
+from ..util.compat import string_types, text_type, with_metaclass
 from ..util import sqla_compat
 from .. import util
 from . import base
 
 
 class ImplMeta(type):
-
     def __init__(cls, classname, bases, dict_):
         newtype = type.__init__(cls, classname, bases, dict_)
-        if '__dialect__' in dict_:
-            _impls[dict_['__dialect__']] = cls
+        if "__dialect__" in dict_:
+            _impls[dict_["__dialect__"]] = cls
         return newtype
+
 
 _impls = {}
 
@@ -33,18 +31,25 @@ class DefaultImpl(with_metaclass(ImplMeta)):
     bulk inserts.
 
     """
-    __dialect__ = 'default'
+
+    __dialect__ = "default"
 
     transactional_ddl = False
     command_terminator = ";"
 
-    def __init__(self, dialect, connection, as_sql,
-                 transactional_ddl, output_buffer,
-                 context_opts):
+    def __init__(
+        self,
+        dialect,
+        connection,
+        as_sql,
+        transactional_ddl,
+        output_buffer,
+        context_opts,
+    ):
         self.dialect = dialect
         self.connection = connection
         self.as_sql = as_sql
-        self.literal_binds = context_opts.get('literal_binds', False)
+        self.literal_binds = context_opts.get("literal_binds", False)
 
         self.output_buffer = output_buffer
         self.memo = {}
@@ -55,7 +60,8 @@ class DefaultImpl(with_metaclass(ImplMeta)):
         if self.literal_binds:
             if not self.as_sql:
                 raise util.CommandError(
-                    "Can't use literal_binds setting without as_sql mode")
+                    "Can't use literal_binds setting without as_sql mode"
+                )
 
     @classmethod
     def get_by_dialect(cls, dialect):
@@ -89,9 +95,13 @@ class DefaultImpl(with_metaclass(ImplMeta)):
     def bind(self):
         return self.connection
 
-    def _exec(self, construct, execution_options=None,
-              multiparams=(),
-              params=util.immutabledict()):
+    def _exec(
+        self,
+        construct,
+        execution_options=None,
+        multiparams=(),
+        params=util.immutabledict(),
+    ):
         if isinstance(construct, string_types):
             construct = text(construct)
         if self.as_sql:
@@ -100,14 +110,20 @@ class DefaultImpl(with_metaclass(ImplMeta)):
                 raise Exception("Execution arguments not allowed with as_sql")
 
             if self.literal_binds and not isinstance(
-                    construct, schema.DDLElement):
+                construct, schema.DDLElement
+            ):
                 compile_kw = dict(compile_kwargs={"literal_binds": True})
             else:
                 compile_kw = {}
 
-            self.static_output(text_type(
-                construct.compile(dialect=self.dialect, **compile_kw)
-            ).replace("\t", "    ").strip() + self.command_terminator)
+            self.static_output(
+                text_type(
+                    construct.compile(dialect=self.dialect, **compile_kw)
+                )
+                .replace("\t", "    ")
+                .strip()
+                + self.command_terminator
+            )
         else:
             conn = self.connection
             if execution_options:
@@ -117,53 +133,75 @@ class DefaultImpl(with_metaclass(ImplMeta)):
     def execute(self, sql, execution_options=None):
         self._exec(sql, execution_options)
 
-    def alter_column(self, table_name, column_name,
-                     nullable=None,
-                     server_default=False,
-                     name=None,
-                     type_=None,
-                     schema=None,
-                     autoincrement=None,
-                     existing_type=None,
-                     existing_server_default=None,
-                     existing_nullable=None,
-                     existing_autoincrement=None
-                     ):
+    def alter_column(
+        self,
+        table_name,
+        column_name,
+        nullable=None,
+        server_default=False,
+        name=None,
+        type_=None,
+        schema=None,
+        autoincrement=None,
+        existing_type=None,
+        existing_server_default=None,
+        existing_nullable=None,
+        existing_autoincrement=None,
+    ):
         if autoincrement is not None or existing_autoincrement is not None:
             util.warn(
                 "autoincrement and existing_autoincrement "
-                "only make sense for MySQL")
+                "only make sense for MySQL"
+            )
         if nullable is not None:
-            self._exec(base.ColumnNullable(
-                table_name, column_name,
-                nullable, schema=schema,
-                existing_type=existing_type,
-                existing_server_default=existing_server_default,
-                existing_nullable=existing_nullable,
-            ))
+            self._exec(
+                base.ColumnNullable(
+                    table_name,
+                    column_name,
+                    nullable,
+                    schema=schema,
+                    existing_type=existing_type,
+                    existing_server_default=existing_server_default,
+                    existing_nullable=existing_nullable,
+                )
+            )
         if server_default is not False:
-            self._exec(base.ColumnDefault(
-                table_name, column_name, server_default,
-                schema=schema,
-                existing_type=existing_type,
-                existing_server_default=existing_server_default,
-                existing_nullable=existing_nullable,
-            ))
+            self._exec(
+                base.ColumnDefault(
+                    table_name,
+                    column_name,
+                    server_default,
+                    schema=schema,
+                    existing_type=existing_type,
+                    existing_server_default=existing_server_default,
+                    existing_nullable=existing_nullable,
+                )
+            )
         if type_ is not None:
-            self._exec(base.ColumnType(
-                table_name, column_name, type_, schema=schema,
-                existing_type=existing_type,
-                existing_server_default=existing_server_default,
-                existing_nullable=existing_nullable,
-            ))
+            self._exec(
+                base.ColumnType(
+                    table_name,
+                    column_name,
+                    type_,
+                    schema=schema,
+                    existing_type=existing_type,
+                    existing_server_default=existing_server_default,
+                    existing_nullable=existing_nullable,
+                )
+            )
         # do the new name last ;)
         if name is not None:
-            self._exec(base.ColumnName(
-                table_name, column_name, name, schema=schema,
-                existing_type=existing_type,
-                existing_server_default=existing_server_default,
-                existing_nullable=existing_nullable,
-            ))
+            self._exec(
+                base.ColumnName(
+                    table_name,
+                    column_name,
+                    name,
+                    schema=schema,
+                    existing_type=existing_type,
+                    existing_server_default=existing_server_default,
+                    existing_nullable=existing_nullable,
+                )
+            )
 
     def add_column(self, table_name, column, schema=None):
         self._exec(base.AddColumn(table_name, column, schema=schema))
@@ -172,25 +210,25 @@ class DefaultImpl(with_metaclass(ImplMeta)):
         self._exec(base.DropColumn(table_name, column, schema=schema))
 
     def add_constraint(self, const):
-        if const._create_rule is None or \
-                const._create_rule(self):
+        if const._create_rule is None or const._create_rule(self):
             self._exec(schema.AddConstraint(const))
 
     def drop_constraint(self, const):
         self._exec(schema.DropConstraint(const))
 
     def rename_table(self, old_table_name, new_table_name, schema=None):
-        self._exec(base.RenameTable(old_table_name,
-                                    new_table_name, schema=schema))
+        self._exec(
+            base.RenameTable(old_table_name, new_table_name, schema=schema)
+        )
 
     def create_table(self, table):
-        table.dispatch.before_create(table, self.connection,
-                                     checkfirst=False,
-                                     _ddl_runner=self)
+        table.dispatch.before_create(
+            table, self.connection, checkfirst=False, _ddl_runner=self
+        )
         self._exec(schema.CreateTable(table))
-        table.dispatch.after_create(table, self.connection,
-                                    checkfirst=False,
-                                    _ddl_runner=self)
+        table.dispatch.after_create(
+            table, self.connection, checkfirst=False, _ddl_runner=self
+        )
         for index in table.indexes:
             self._exec(schema.CreateIndex(index))
 
@@ -210,17 +248,26 @@ class DefaultImpl(with_metaclass(ImplMeta)):
             raise TypeError("List of dictionaries expected")
         if self.as_sql:
             for row in rows:
-                self._exec(table.insert(inline=True).values(**dict(
-                    (k,
-                        sqla_compat._literal_bindparam(
-                            k, v, type_=table.c[k].type)
-                        if not isinstance(
-                            v, sqla_compat._literal_bindparam) else v)
-                    for k, v in row.items()
-                )))
+                self._exec(
+                    table.insert(inline=True).values(
+                        **dict(
+                            (
+                                k,
+                                sqla_compat._literal_bindparam(
+                                    k, v, type_=table.c[k].type
+                                )
+                                if not isinstance(
+                                    v, sqla_compat._literal_bindparam
+                                )
+                                else v,
+                            )
+                            for k, v in row.items()
+                        )
+                    )
+                )
         else:
             # work around http://www.sqlalchemy.org/trac/ticket/2461
-            if not hasattr(table, '_autoincrement_column'):
+            if not hasattr(table, "_autoincrement_column"):
                 table._autoincrement_column = None
             if rows:
                 if multiinsert:
@@ -240,32 +287,38 @@ class DefaultImpl(with_metaclass(ImplMeta)):
 
         # work around SQLAlchemy bug "stale value for type affinity"
         # fixed in 0.7.4
-        metadata_impl.__dict__.pop('_type_affinity', None)
+        metadata_impl.__dict__.pop("_type_affinity", None)
 
         if hasattr(metadata_impl, "compare_against_backend"):
             comparison = metadata_impl.compare_against_backend(
-                self.dialect, conn_type)
+                self.dialect, conn_type
+            )
             if comparison is not None:
                 return not comparison
 
-        if conn_type._compare_type_affinity(
-            metadata_impl
-        ):
+        if conn_type._compare_type_affinity(metadata_impl):
             comparator = _type_comparators.get(conn_type._type_affinity, None)
 
             return comparator and comparator(metadata_impl, conn_type)
         else:
             return True
 
-    def compare_server_default(self, inspector_column,
-                               metadata_column,
-                               rendered_metadata_default,
-                               rendered_inspector_default):
+    def compare_server_default(
+        self,
+        inspector_column,
+        metadata_column,
+        rendered_metadata_default,
+        rendered_inspector_default,
+    ):
         return rendered_inspector_default != rendered_metadata_default
 
-    def correct_for_autogen_constraints(self, conn_uniques, conn_indexes,
-                                        metadata_unique_constraints,
-                                        metadata_indexes):
+    def correct_for_autogen_constraints(
+        self,
+        conn_uniques,
+        conn_indexes,
+        metadata_unique_constraints,
+        metadata_indexes,
+    ):
         pass
 
     def _compat_autogen_column_reflect(self, inspector):
@@ -316,38 +369,37 @@ class DefaultImpl(with_metaclass(ImplMeta)):
 
 
 def _string_compare(t1, t2):
-    return \
-        t1.length is not None and \
-        t1.length != t2.length
+    return t1.length is not None and t1.length != t2.length
 
 
 def _numeric_compare(t1, t2):
-    return (
-        t1.precision is not None and
-        t1.precision != t2.precision
-    ) or (
-        t1.precision is not None and
-        t1.scale is not None and
-        t1.scale != t2.scale
+    return (t1.precision is not None and t1.precision != t2.precision) or (
+        t1.precision is not None
+        and t1.scale is not None
+        and t1.scale != t2.scale
     )
 
 
 def _integer_compare(t1, t2):
     t1_small_or_big = (
-        'S' if isinstance(t1, sqltypes.SmallInteger)
-        else 'B' if isinstance(t1, sqltypes.BigInteger) else 'I'
+        "S"
+        if isinstance(t1, sqltypes.SmallInteger)
+        else "B"
+        if isinstance(t1, sqltypes.BigInteger)
+        else "I"
     )
     t2_small_or_big = (
-        'S' if isinstance(t2, sqltypes.SmallInteger)
-        else 'B' if isinstance(t2, sqltypes.BigInteger) else 'I'
+        "S"
+        if isinstance(t2, sqltypes.SmallInteger)
+        else "B"
+        if isinstance(t2, sqltypes.BigInteger)
+        else "I"
     )
     return t1_small_or_big != t2_small_or_big
 
 
 def _datetime_compare(t1, t2):
-    return (
-        t1.timezone != t2.timezone
-    )
+    return t1.timezone != t2.timezone
 
 
 _type_comparators = {

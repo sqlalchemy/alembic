@@ -90,9 +90,16 @@ class Config(object):
 
     """
 
-    def __init__(self, file_=None, ini_section='alembic', output_buffer=None,
-                 stdout=sys.stdout, cmd_opts=None,
-                 config_args=util.immutabledict(), attributes=None):
+    def __init__(
+        self,
+        file_=None,
+        ini_section="alembic",
+        output_buffer=None,
+        stdout=sys.stdout,
+        cmd_opts=None,
+        config_args=util.immutabledict(),
+        attributes=None,
+    ):
         """Construct a new :class:`.Config`
 
         """
@@ -167,15 +174,11 @@ class Config(object):
         """
 
         if arg:
-            output = (compat.text_type(text) % arg)
+            output = compat.text_type(text) % arg
         else:
             output = compat.text_type(text)
 
-        util.write_outstream(
-            self.stdout,
-            output,
-            "\n"
-        )
+        util.write_outstream(self.stdout, output, "\n")
 
     @util.memoized_property
     def file_config(self):
@@ -192,7 +195,7 @@ class Config(object):
             here = os.path.abspath(os.path.dirname(self.config_file_name))
         else:
             here = ""
-        self.config_args['here'] = here
+        self.config_args["here"] = here
         file_config = SafeConfigParser(self.config_args)
         if self.config_file_name:
             file_config.read([self.config_file_name])
@@ -207,7 +210,7 @@ class Config(object):
         commands.
 
         """
-        return os.path.join(package_dir, 'templates')
+        return os.path.join(package_dir, "templates")
 
     def get_section(self, name):
         """Return all the configuration options from a given .ini file section
@@ -265,9 +268,10 @@ class Config(object):
 
         """
         if not self.file_config.has_section(section):
-            raise util.CommandError("No config file %r found, or file has no "
-                                    "'[%s]' section" %
-                                    (self.config_file_name, section))
+            raise util.CommandError(
+                "No config file %r found, or file has no "
+                "'[%s]' section" % (self.config_file_name, section)
+            )
         if self.file_config.has_option(section, name):
             return self.file_config.get(section, name)
         else:
@@ -285,140 +289,144 @@ class Config(object):
 
 
 class CommandLine(object):
-
     def __init__(self, prog=None):
         self._generate_args(prog)
 
     def _generate_args(self, prog):
         def add_options(parser, positional, kwargs):
             kwargs_opts = {
-                'template': (
-                    "-t", "--template",
+                "template": (
+                    "-t",
+                    "--template",
                     dict(
-                        default='generic',
+                        default="generic",
                         type=str,
-                        help="Setup template for use with 'init'"
-                    )
+                        help="Setup template for use with 'init'",
+                    ),
                 ),
-                'message': (
-                    "-m", "--message",
+                "message": (
+                    "-m",
+                    "--message",
                     dict(
-                        type=str,
-                        help="Message string to use with 'revision'")
+                        type=str, help="Message string to use with 'revision'"
+                    ),
                 ),
-                'sql': (
+                "sql": (
                     "--sql",
                     dict(
                         action="store_true",
                         help="Don't emit SQL to database - dump to "
                         "standard output/file instead. See docs on "
-                        "offline mode."
-                    )
+                        "offline mode.",
+                    ),
                 ),
-                'tag': (
+                "tag": (
                     "--tag",
                     dict(
                         type=str,
                         help="Arbitrary 'tag' name - can be used by "
-                        "custom env.py scripts.")
+                        "custom env.py scripts.",
+                    ),
                 ),
-                'head': (
+                "head": (
                     "--head",
                     dict(
                         type=str,
                         help="Specify head revision or <branchname>@head "
-                        "to base new revision on."
-                    )
+                        "to base new revision on.",
+                    ),
                 ),
-                'splice': (
+                "splice": (
                     "--splice",
                     dict(
                         action="store_true",
                         help="Allow a non-head revision as the "
-                        "'head' to splice onto"
-                    )
+                        "'head' to splice onto",
+                    ),
                 ),
-                'depends_on': (
+                "depends_on": (
                     "--depends-on",
                     dict(
                         action="append",
                         help="Specify one or more revision identifiers "
-                        "which this revision should depend on."
-                    )
+                        "which this revision should depend on.",
+                    ),
                 ),
-                'rev_id': (
+                "rev_id": (
                     "--rev-id",
                     dict(
                         type=str,
                         help="Specify a hardcoded revision id instead of "
-                        "generating one"
-                    )
+                        "generating one",
+                    ),
                 ),
-                'version_path': (
+                "version_path": (
                     "--version-path",
                     dict(
                         type=str,
                         help="Specify specific path from config for "
-                        "version file"
-                    )
+                        "version file",
+                    ),
                 ),
-                'branch_label': (
+                "branch_label": (
                     "--branch-label",
                     dict(
                         type=str,
                         help="Specify a branch label to apply to the "
-                        "new revision"
-                    )
+                        "new revision",
+                    ),
                 ),
-                'verbose': (
-                    "-v", "--verbose",
+                "verbose": (
+                    "-v",
+                    "--verbose",
+                    dict(action="store_true", help="Use more verbose output"),
+                ),
+                "resolve_dependencies": (
+                    "--resolve-dependencies",
                     dict(
                         action="store_true",
-                        help="Use more verbose output"
-                    )
+                        help="Treat dependency versions as down revisions",
+                    ),
                 ),
-                'resolve_dependencies': (
-                    '--resolve-dependencies',
-                    dict(
-                        action="store_true",
-                        help="Treat dependency versions as down revisions"
-                    )
-                ),
-                'autogenerate': (
+                "autogenerate": (
                     "--autogenerate",
                     dict(
                         action="store_true",
                         help="Populate revision script with candidate "
                         "migration operations, based on comparison "
-                        "of database to model.")
+                        "of database to model.",
+                    ),
                 ),
-                'head_only': (
+                "head_only": (
                     "--head-only",
                     dict(
                         action="store_true",
                         help="Deprecated.  Use --verbose for "
-                        "additional output")
+                        "additional output",
+                    ),
                 ),
-                'rev_range': (
-                    "-r", "--rev-range",
+                "rev_range": (
+                    "-r",
+                    "--rev-range",
                     dict(
                         action="store",
                         help="Specify a revision range; "
-                        "format is [start]:[end]")
+                        "format is [start]:[end]",
+                    ),
                 ),
-                'indicate_current': (
-                    "-i", "--indicate-current",
+                "indicate_current": (
+                    "-i",
+                    "--indicate-current",
                     dict(
                         action="store_true",
-                        help="Indicate the current revision"
-                    )
-                )
+                        help="Indicate the current revision",
+                    ),
+                ),
             }
             positional_help = {
-                'directory': "location of scripts directory",
-                'revision': "revision identifier",
-                'revisions': "one or more revisions, or 'heads' for all heads"
-
+                "directory": "location of scripts directory",
+                "revision": "revision identifier",
+                "revisions": "one or more revisions, or 'heads' for all heads",
             }
             for arg in kwargs:
                 if arg in kwargs_opts:
@@ -429,44 +437,56 @@ class CommandLine(object):
             for arg in positional:
                 if arg == "revisions":
                     subparser.add_argument(
-                        arg, nargs='+', help=positional_help.get(arg))
+                        arg, nargs="+", help=positional_help.get(arg)
+                    )
                 else:
                     subparser.add_argument(arg, help=positional_help.get(arg))
 
         parser = ArgumentParser(prog=prog)
-        parser.add_argument("-c", "--config",
-                            type=str,
-                            default="alembic.ini",
-                            help="Alternate config file")
-        parser.add_argument("-n", "--name",
-                            type=str,
-                            default="alembic",
-                            help="Name of section in .ini file to "
-                                    "use for Alembic config")
-        parser.add_argument("-x", action="append",
-                            help="Additional arguments consumed by "
-                            "custom env.py scripts, e.g. -x "
-                            "setting1=somesetting -x setting2=somesetting")
-        parser.add_argument("--raiseerr", action="store_true",
-                            help="Raise a full stack trace on error")
+        parser.add_argument(
+            "-c",
+            "--config",
+            type=str,
+            default="alembic.ini",
+            help="Alternate config file",
+        )
+        parser.add_argument(
+            "-n",
+            "--name",
+            type=str,
+            default="alembic",
+            help="Name of section in .ini file to " "use for Alembic config",
+        )
+        parser.add_argument(
+            "-x",
+            action="append",
+            help="Additional arguments consumed by "
+            "custom env.py scripts, e.g. -x "
+            "setting1=somesetting -x setting2=somesetting",
+        )
+        parser.add_argument(
+            "--raiseerr",
+            action="store_true",
+            help="Raise a full stack trace on error",
+        )
         subparsers = parser.add_subparsers()
 
         for fn in [getattr(command, n) for n in dir(command)]:
-            if inspect.isfunction(fn) and \
-                    fn.__name__[0] != '_' and \
-                    fn.__module__ == 'alembic.command':
+            if (
+                inspect.isfunction(fn)
+                and fn.__name__[0] != "_"
+                and fn.__module__ == "alembic.command"
+            ):
 
                 spec = compat.inspect_getargspec(fn)
                 if spec[3]:
-                    positional = spec[0][1:-len(spec[3])]
-                    kwarg = spec[0][-len(spec[3]):]
+                    positional = spec[0][1 : -len(spec[3])]
+                    kwarg = spec[0][-len(spec[3]) :]
                 else:
                     positional = spec[0][1:]
                     kwarg = []
 
-                subparser = subparsers.add_parser(
-                    fn.__name__,
-                    help=fn.__doc__)
+                subparser = subparsers.add_parser(fn.__name__, help=fn.__doc__)
                 add_options(subparser, positional, kwarg)
                 subparser.set_defaults(cmd=(fn, positional, kwarg))
         self.parser = parser
@@ -475,10 +495,11 @@ class CommandLine(object):
         fn, positional, kwarg = options.cmd
 
         try:
-            fn(config,
-               *[getattr(options, k, None) for k in positional],
-               **dict((k, getattr(options, k, None)) for k in kwarg)
-               )
+            fn(
+                config,
+                *[getattr(options, k, None) for k in positional],
+                **dict((k, getattr(options, k, None)) for k in kwarg)
+            )
         except util.CommandError as e:
             if options.raiseerr:
                 raise
@@ -492,8 +513,11 @@ class CommandLine(object):
             # behavior changed incompatibly in py3.3
             self.parser.error("too few arguments")
         else:
-            cfg = Config(file_=options.config,
-                         ini_section=options.name, cmd_opts=options)
+            cfg = Config(
+                file_=options.config,
+                ini_section=options.name,
+                cmd_opts=options,
+            )
             self.run_cmd(cfg, options)
 
 
@@ -502,5 +526,6 @@ def main(argv=None, prog=None, **kwargs):
 
     CommandLine(prog=prog).main(argv=argv)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

@@ -5,6 +5,7 @@ from . import exclusions
 if util.sqla_094:
     from sqlalchemy.testing.requirements import Requirements
 else:
+
     class Requirements(object):
         pass
 
@@ -28,7 +29,7 @@ class SuiteRequirements(Requirements):
 
             insp = inspect(config.db)
             try:
-                insp.get_unique_constraints('x')
+                insp.get_unique_constraints("x")
             except NotImplementedError:
                 return True
             except TypeError:
@@ -62,83 +63,80 @@ class SuiteRequirements(Requirements):
     def fail_before_sqla_100(self):
         return exclusions.fails_if(
             lambda config: not util.sqla_100,
-            "SQLAlchemy 1.0.0 or greater required"
+            "SQLAlchemy 1.0.0 or greater required",
         )
 
     @property
     def fail_before_sqla_1010(self):
         return exclusions.fails_if(
             lambda config: not util.sqla_1010,
-            "SQLAlchemy 1.0.10 or greater required"
+            "SQLAlchemy 1.0.10 or greater required",
         )
 
     @property
     def fail_before_sqla_099(self):
         return exclusions.fails_if(
             lambda config: not util.sqla_099,
-            "SQLAlchemy 0.9.9 or greater required"
+            "SQLAlchemy 0.9.9 or greater required",
         )
 
     @property
     def fail_before_sqla_110(self):
         return exclusions.fails_if(
             lambda config: not util.sqla_110,
-            "SQLAlchemy 1.1.0 or greater required"
+            "SQLAlchemy 1.1.0 or greater required",
         )
 
     @property
     def sqlalchemy_092(self):
         return exclusions.skip_if(
             lambda config: not util.sqla_092,
-            "SQLAlchemy 0.9.2 or greater required"
+            "SQLAlchemy 0.9.2 or greater required",
         )
 
     @property
     def sqlalchemy_094(self):
         return exclusions.skip_if(
             lambda config: not util.sqla_094,
-            "SQLAlchemy 0.9.4 or greater required"
+            "SQLAlchemy 0.9.4 or greater required",
         )
 
     @property
     def sqlalchemy_099(self):
         return exclusions.skip_if(
             lambda config: not util.sqla_099,
-            "SQLAlchemy 0.9.9 or greater required"
+            "SQLAlchemy 0.9.9 or greater required",
         )
 
     @property
     def sqlalchemy_100(self):
         return exclusions.skip_if(
             lambda config: not util.sqla_100,
-            "SQLAlchemy 1.0.0 or greater required"
+            "SQLAlchemy 1.0.0 or greater required",
         )
 
     @property
     def sqlalchemy_1014(self):
         return exclusions.skip_if(
             lambda config: not util.sqla_1014,
-            "SQLAlchemy 1.0.14 or greater required"
+            "SQLAlchemy 1.0.14 or greater required",
         )
 
     @property
     def sqlalchemy_1115(self):
         return exclusions.skip_if(
             lambda config: not util.sqla_1115,
-            "SQLAlchemy 1.1.15 or greater required"
+            "SQLAlchemy 1.1.15 or greater required",
         )
 
     @property
     def sqlalchemy_110(self):
         return exclusions.skip_if(
             lambda config: not util.sqla_110,
-            "SQLAlchemy 1.1.0 or greater required"
+            "SQLAlchemy 1.1.0 or greater required",
         )
 
     @property
     def pep3147(self):
 
-        return exclusions.only_if(
-            lambda config: util.compat.has_pep3147()
-        )
-
+        return exclusions.only_if(lambda config: util.compat.has_pep3147())
