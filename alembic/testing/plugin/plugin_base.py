@@ -18,6 +18,9 @@ this should be removable when Alembic targets SQLAlchemy 1.0.0
 
 from __future__ import absolute_import
 
+import re
+import sys
+
 try:
     # unitttest has a SkipTest also but pytest doesn't
     # honor it unless nose is imported too...
@@ -26,9 +29,6 @@ except ImportError:
     from pytest import skip
 
     SkipTest = skip.Exception
-
-import sys
-import re
 
 py3k = sys.version_info.major >= 3
 
@@ -236,7 +236,8 @@ def post_begin():
 
     # late imports, has to happen after config as well
     # as nose plugins like coverage
-    global util, fixtures, engines, exclusions, assertions, warnings, profiling, config, testing
+    global util, fixtures, engines, exclusions, assertions
+    global warnings, profiling, config, testing
     from alembic.testing import config, warnings, exclusions  # noqa
     from alembic.testing import engines, fixtures  # noqa
     from sqlalchemy import util  # noqa

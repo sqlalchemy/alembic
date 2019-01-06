@@ -1,33 +1,32 @@
+import logging
 import re
 
-from ..util import compat
-from .. import util
-from .base import (
-    compiles,
-    alter_column,
-    alter_table,
-    format_table_name,
-    format_type,
-    AlterColumn,
-    RenameTable,
-)
-from .impl import DefaultImpl
-from sqlalchemy.dialects.postgresql import INTEGER, BIGINT
-from ..autogenerate import render
-from sqlalchemy import text, Numeric, Column
-from sqlalchemy.sql.expression import ColumnClause
-from sqlalchemy.types import NULLTYPE
+from sqlalchemy import Column
+from sqlalchemy import Numeric
+from sqlalchemy import text
 from sqlalchemy import types as sqltypes
-
-from ..operations.base import Operations
-from ..operations.base import BatchOperations
-from ..operations import ops
-from ..util import sqla_compat
-from ..operations import schemaobj
-
-import logging
-
+from sqlalchemy.dialects.postgresql import BIGINT
+from sqlalchemy.dialects.postgresql import INTEGER
+from sqlalchemy.sql.expression import ColumnClause
 from sqlalchemy.sql.expression import UnaryExpression
+from sqlalchemy.types import NULLTYPE
+
+from .base import alter_column
+from .base import alter_table
+from .base import AlterColumn
+from .base import compiles
+from .base import format_table_name
+from .base import format_type
+from .base import RenameTable
+from .impl import DefaultImpl
+from .. import util
+from ..autogenerate import render
+from ..operations import ops
+from ..operations import schemaobj
+from ..operations.base import BatchOperations
+from ..operations.base import Operations
+from ..util import compat
+from ..util import sqla_compat
 
 if util.sqla_100:
     from sqlalchemy.dialects.postgresql import ExcludeConstraint
@@ -150,7 +149,8 @@ class PostgresqlImpl(DefaultImpl):
                 info = inspector.bind.execute(
                     text(
                         "select c.relname, a.attname "
-                        "from pg_class as c join pg_depend d on d.objid=c.oid and "
+                        "from pg_class as c join "
+                        "pg_depend d on d.objid=c.oid and "
                         "d.classid='pg_class'::regclass and "
                         "d.refclassid='pg_class'::regclass "
                         "join pg_class t on t.oid=d.refobjid "

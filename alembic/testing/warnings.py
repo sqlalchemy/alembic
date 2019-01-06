@@ -10,9 +10,10 @@
 
 from __future__ import absolute_import
 
-import warnings
-from sqlalchemy import exc as sa_exc
 import re
+import warnings
+
+from sqlalchemy import exc as sa_exc
 
 
 def setup_filters():

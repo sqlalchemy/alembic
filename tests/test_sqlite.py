@@ -1,8 +1,11 @@
-from alembic.testing.fixtures import op_fixture
-from alembic.testing import assert_raises_message
-from alembic import op
-from sqlalchemy import Integer, Column, Boolean
+from sqlalchemy import Boolean
+from sqlalchemy import Column
+from sqlalchemy import Integer
 from sqlalchemy.sql import column
+
+from alembic import op
+from alembic.testing import assert_raises_message
+from alembic.testing.fixtures import op_fixture
 from alembic.testing.fixtures import TestBase
 
 

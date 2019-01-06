@@ -1,23 +1,28 @@
-from alembic import command
-from io import TextIOWrapper, BytesIO
-from alembic.script import ScriptDirectory
-from alembic import config
-from alembic.testing.fixtures import TestBase, capture_context_buffer
-from alembic.testing.env import (
-    staging_env,
-    _sqlite_testing_config,
-    three_rev_fixture,
-    clear_staging_env,
-    _no_sql_testing_config,
-    _sqlite_file_db,
-    write_script,
-    env_file_fixture,
-)
-from alembic.testing import eq_, assert_raises_message, mock, assert_raises
-from alembic import util
 from contextlib import contextmanager
+from io import BytesIO
+from io import TextIOWrapper
 import re
+
 from sqlalchemy import exc as sqla_exc
+
+from alembic import command
+from alembic import config
+from alembic import util
+from alembic.script import ScriptDirectory
+from alembic.testing import assert_raises
+from alembic.testing import assert_raises_message
+from alembic.testing import eq_
+from alembic.testing import mock
+from alembic.testing.env import _no_sql_testing_config
+from alembic.testing.env import _sqlite_file_db
+from alembic.testing.env import _sqlite_testing_config
+from alembic.testing.env import clear_staging_env
+from alembic.testing.env import env_file_fixture
+from alembic.testing.env import staging_env
+from alembic.testing.env import three_rev_fixture
+from alembic.testing.env import write_script
+from alembic.testing.fixtures import capture_context_buffer
+from alembic.testing.fixtures import TestBase
 
 
 class _BufMixin(object):

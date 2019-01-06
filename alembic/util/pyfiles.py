@@ -1,15 +1,14 @@
-import sys
 import os
 import re
-from .compat import (
-    load_module_py,
-    load_module_pyc,
-    get_current_bytecode_suffixes,
-    has_pep3147,
-)
-from mako.template import Template
-from mako import exceptions
 import tempfile
+
+from mako import exceptions
+from mako.template import Template
+
+from .compat import get_current_bytecode_suffixes
+from .compat import has_pep3147
+from .compat import load_module_py
+from .compat import load_module_pyc
 from .exc import CommandError
 
 

@@ -1,11 +1,10 @@
+from alembic.script.revision import MultipleHeads
+from alembic.script.revision import Revision
+from alembic.script.revision import RevisionError
+from alembic.script.revision import RevisionMap
+from alembic.testing import assert_raises_message
+from alembic.testing import eq_
 from alembic.testing.fixtures import TestBase
-from alembic.testing import eq_, assert_raises_message
-from alembic.script.revision import (
-    RevisionMap,
-    Revision,
-    MultipleHeads,
-    RevisionError,
-)
 from . import _large_map
 
 
@@ -182,14 +181,15 @@ class EmptyMapTest(DownIterateTest):
 
 class LabeledBranchTest(DownIterateTest):
     def test_dupe_branch_collection(self):
-        fn = lambda: [
-            Revision("a", ()),
-            Revision("b", ("a",)),
-            Revision("c", ("b",), branch_labels=["xy1"]),
-            Revision("d", ()),
-            Revision("e", ("d",), branch_labels=["xy1"]),
-            Revision("f", ("e",)),
-        ]
+        def fn():
+            return [
+                Revision("a", ()),
+                Revision("b", ("a",)),
+                Revision("c", ("b",), branch_labels=["xy1"]),
+                Revision("d", ()),
+                Revision("e", ("d",), branch_labels=["xy1"]),
+                Revision("f", ("e",)),
+            ]
         assert_raises_message(
             RevisionError,
             r"Branch name 'xy1' in revision (?:e|c) already "
@@ -200,13 +200,14 @@ class LabeledBranchTest(DownIterateTest):
         )
 
     def test_filter_for_lineage_labeled_head_across_merge(self):
-        fn = lambda: [
-            Revision("a", ()),
-            Revision("b", ("a",)),
-            Revision("c1", ("b",), branch_labels="c1branch"),
-            Revision("c2", ("b",)),
-            Revision("d", ("c1", "c2")),
-        ]
+        def fn():
+            return [
+                Revision("a", ()),
+                Revision("b", ("a",)),
+                Revision("c1", ("b",), branch_labels="c1branch"),
+                Revision("c2", ("b",)),
+                Revision("d", ("c1", "c2")),
+            ]
         map_ = RevisionMap(fn)
         c1 = map_.get_revision("c1")
         c2 = map_.get_revision("c2")
@@ -840,20 +841,20 @@ class MultipleBaseTest(DownIterateTest):
 class MultipleBaseCrossDependencyTestOne(DownIterateTest):
     def setUp(self):
         """
+        Structure::
 
-        base1 -----> a1a  -> b1a
-              +----> a1b  -> b1b
-                              |
-                  +-----------+
-                  |
-                  v
-        base3 -> a3 -> b3
-                  ^
-                  |
-                  +-----------+
-                              |
-        base2 -> a2 -> b2 -> c2 -> d2
-
+            base1 -----> a1a  -> b1a
+                  +----> a1b  -> b1b
+                                  |
+                      +-----------+
+                      |
+                      v
+            base3 -> a3 -> b3
+                      ^
+                      |
+                      +-----------+
+                                  |
+            base2 -> a2 -> b2 -> c2 -> d2
 
         """
         self.map = RevisionMap(

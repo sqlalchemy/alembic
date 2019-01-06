@@ -1,6 +1,7 @@
-from .. import util
-from .impl import DefaultImpl
 import re
+
+from .impl import DefaultImpl
+from .. import util
 
 
 class SQLiteImpl(DefaultImpl):

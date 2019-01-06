@@ -1,19 +1,19 @@
 import sys
-from alembic.testing import TestBase, config, mock
 
-from sqlalchemy import (
-    MetaData,
-    Column,
-    Table,
-    Integer,
-    String,
-    ForeignKeyConstraint,
-)
+from sqlalchemy import Column
+from sqlalchemy import ForeignKeyConstraint
+from sqlalchemy import Integer
+from sqlalchemy import MetaData
+from sqlalchemy import String
+from sqlalchemy import Table
+
+from alembic.testing import config
 from alembic.testing import eq_
+from alembic.testing import mock
+from alembic.testing import TestBase
+from ._autogen_fixtures import AutogenFixtureTest
 
 py3k = sys.version_info.major >= 3
-
-from ._autogen_fixtures import AutogenFixtureTest
 
 
 class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):

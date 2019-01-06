@@ -1,36 +1,38 @@
 from contextlib import contextmanager
 import re
 
-from alembic.testing import exclusions
-from alembic.testing import assert_raises_message
-from alembic.testing import TestBase, eq_, config
-from alembic.testing.fixtures import op_fixture
-from alembic.testing import mock
+from sqlalchemy import Boolean
+from sqlalchemy import CheckConstraint
+from sqlalchemy import Column
+from sqlalchemy import DateTime
+from sqlalchemy import Enum
+from sqlalchemy import exc
+from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKeyConstraint
+from sqlalchemy import Index
+from sqlalchemy import Integer
+from sqlalchemy import MetaData
+from sqlalchemy import PrimaryKeyConstraint
+from sqlalchemy import String
+from sqlalchemy import Table
+from sqlalchemy import UniqueConstraint
+from sqlalchemy.engine.reflection import Inspector
+from sqlalchemy.schema import CreateIndex
+from sqlalchemy.schema import CreateTable
+from sqlalchemy.sql import column
+from sqlalchemy.sql import select
+from sqlalchemy.sql import text
+
 from alembic.operations import Operations
 from alembic.operations.batch import ApplyBatchImpl
 from alembic.runtime.migration import MigrationContext
-
-
-from sqlalchemy import (
-    Integer,
-    Table,
-    Column,
-    String,
-    MetaData,
-    ForeignKey,
-    UniqueConstraint,
-    ForeignKeyConstraint,
-    Index,
-    Boolean,
-    CheckConstraint,
-    Enum,
-    DateTime,
-    PrimaryKeyConstraint,
-)
-from sqlalchemy.engine.reflection import Inspector
-from sqlalchemy.sql import column, text, select
-from sqlalchemy.schema import CreateTable, CreateIndex
-from sqlalchemy import exc
+from alembic.testing import assert_raises_message
+from alembic.testing import config
+from alembic.testing import eq_
+from alembic.testing import exclusions
+from alembic.testing import mock
+from alembic.testing import TestBase
+from alembic.testing.fixtures import op_fixture
 
 
 class BatchApplyTest(TestBase):

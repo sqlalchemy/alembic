@@ -1,7 +1,7 @@
-from . import ops
+from sqlalchemy import schema as sa_schema
 
 from . import Operations
-from sqlalchemy import schema as sa_schema
+from . import ops
 
 
 @Operations.implementation_for(ops.AlterColumnOp)

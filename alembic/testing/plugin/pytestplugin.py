@@ -9,15 +9,15 @@ except ImportError:
     # assume we're a package, use traditional import
     from . import plugin_base
 
+import argparse
+import collections
+import inspect
+import os
 import sys
 
-py3k = sys.version_info.major >= 3
-
 import pytest
-import argparse
-import inspect
-import collections
-import os
+
+py3k = sys.version_info.major >= 3
 
 try:
     import xdist  # noqa
@@ -52,7 +52,7 @@ def pytest_addoption(parser):
                     dest,
                     default=False,
                     required=False,
-                    help=None,
+                    help=None,  # noqa
                 ):
                     super(CallableAction, self).__init__(
                         option_strings=option_strings,

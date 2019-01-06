@@ -9,15 +9,17 @@
 """
 
 
-import operator
-from .plugin.plugin_base import SkipTest
-from sqlalchemy.util import decorator
-from . import config
-from sqlalchemy import util
-from ..util import compat
-import inspect
 import contextlib
-from .compat import get_url_driver_name, get_url_backend_name
+import operator
+
+from sqlalchemy import util
+from sqlalchemy.util import decorator
+
+from . import config
+from .compat import get_url_backend_name
+from .compat import get_url_driver_name
+from .plugin.plugin_base import SkipTest
+from ..util import compat
 
 
 def skip_if(predicate, reason=None):
@@ -389,7 +391,7 @@ def db_spec(*dbs):
     return OrPredicate([Predicate.as_predicate(db) for db in dbs])
 
 
-def open():
+def open():  # noqa
     return skip_if(BooleanPredicate(False, "mark as execute"))
 
 

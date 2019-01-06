@@ -1,4 +1,5 @@
-from alembic.script.revision import RevisionMap, Revision
+from alembic.script.revision import Revision
+from alembic.script.revision import RevisionMap
 
 data = [
     Revision("3fc8a578bc0a", ("4878cb1cb7f6", "454a0529f84e")),

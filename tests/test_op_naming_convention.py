@@ -1,15 +1,13 @@
-from sqlalchemy import (
-    Integer,
-    Column,
-    Table,
-    Boolean,
-    MetaData,
-    CheckConstraint,
-)
-from sqlalchemy.sql import column, func
+from sqlalchemy import Boolean
+from sqlalchemy import CheckConstraint
+from sqlalchemy import Column
+from sqlalchemy import Integer
+from sqlalchemy import MetaData
+from sqlalchemy import Table
+from sqlalchemy.sql import column
+from sqlalchemy.sql import func
 
 from alembic import op
-
 from alembic.testing.fixtures import op_fixture
 from alembic.testing.fixtures import TestBase
 
@@ -43,7 +41,8 @@ class AutoNamingConventionTest(TestBase):
         context = op_fixture(naming_convention={"uq": "uq_%(table_name)s_foo"})
         op.create_unique_constraint(None, "user_table", "x")
         context.assert_(
-            "ALTER TABLE user_table ADD CONSTRAINT uq_user_table_foo UNIQUE (x)"
+            "ALTER TABLE user_table "
+            "ADD CONSTRAINT uq_user_table_foo UNIQUE (x)"
         )
 
     def test_add_index_name_is_none(self):

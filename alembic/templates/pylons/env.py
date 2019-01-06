@@ -4,10 +4,11 @@ Place 'pylons_config_file' into alembic.ini, and the application will
 be loaded from there.
 
 """
-from alembic import context
-from paste.deploy import loadapp
 from logging.config import fileConfig
-from sqlalchemy.engine.base import Engine
+
+from paste.deploy import loadapp
+
+from alembic import context
 
 
 try:
@@ -68,7 +69,7 @@ def run_migrations_online():
     # engine = meta.engine
     raise NotImplementedError("Please specify engine connectivity here")
 
-    with engine.connect() as connection:
+    with engine.connect() as connection:  # noqa
         context.configure(
             connection=connection, target_metadata=target_metadata
         )

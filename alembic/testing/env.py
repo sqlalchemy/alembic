@@ -4,11 +4,14 @@ import os
 import shutil
 import textwrap
 
-from ..util.compat import u, has_pep3147, get_current_bytecode_suffixes
-from ..script import Script, ScriptDirectory
-from .. import util
 from . import engines
 from . import provision
+from .. import util
+from ..script import Script
+from ..script import ScriptDirectory
+from ..util.compat import get_current_bytecode_suffixes
+from ..util.compat import has_pep3147
+from ..util.compat import u
 
 
 def _get_staging_directory():

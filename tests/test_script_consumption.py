@@ -1,27 +1,29 @@
 # coding: utf-8
 
+from contextlib import contextmanager
 import os
 import re
 import textwrap
 
-from alembic import command, util
-from alembic.util import compat
-from alembic.script import ScriptDirectory, Script
-from alembic.testing.env import (
-    clear_staging_env,
-    staging_env,
-    _sqlite_testing_config,
-    write_script,
-    _sqlite_file_db,
-    three_rev_fixture,
-    _no_sql_testing_config,
-    env_file_fixture,
-)
-from alembic.testing import eq_, assert_raises_message
-from alembic.testing.fixtures import TestBase, capture_context_buffer
+from alembic import command
+from alembic import util
 from alembic.environment import EnvironmentContext
-from contextlib import contextmanager
+from alembic.script import Script
+from alembic.script import ScriptDirectory
+from alembic.testing import assert_raises_message
+from alembic.testing import eq_
 from alembic.testing import mock
+from alembic.testing.env import _no_sql_testing_config
+from alembic.testing.env import _sqlite_file_db
+from alembic.testing.env import _sqlite_testing_config
+from alembic.testing.env import clear_staging_env
+from alembic.testing.env import env_file_fixture
+from alembic.testing.env import staging_env
+from alembic.testing.env import three_rev_fixture
+from alembic.testing.env import write_script
+from alembic.testing.fixtures import capture_context_buffer
+from alembic.testing.fixtures import TestBase
+from alembic.util import compat
 
 
 class ApplyVersionsFunctionalTest(TestBase):

@@ -1,12 +1,17 @@
 import re
+
 from sqlalchemy import __version__
-from sqlalchemy.schema import ForeignKeyConstraint, CheckConstraint, Column
+from sqlalchemy import schema
+from sqlalchemy import sql
 from sqlalchemy import types as sqltypes
-from sqlalchemy import schema, sql
-from sqlalchemy.sql.visitors import traverse
 from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.schema import CheckConstraint
+from sqlalchemy.schema import Column
+from sqlalchemy.schema import ForeignKeyConstraint
 from sqlalchemy.sql.expression import _BindParamClause
 from sqlalchemy.sql.expression import _TextClause as TextClause
+from sqlalchemy.sql.visitors import traverse
+
 from . import compat
 
 

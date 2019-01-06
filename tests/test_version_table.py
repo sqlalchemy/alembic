@@ -1,11 +1,16 @@
-from alembic.testing.fixtures import TestBase
-from alembic.testing import mock
-from alembic.testing import config, eq_, assert_raises, assert_raises_message
-
-from sqlalchemy import Table, MetaData, Column, String
+from sqlalchemy import Column
+from sqlalchemy import MetaData
+from sqlalchemy import String
+from sqlalchemy import Table
 from sqlalchemy.engine.reflection import Inspector
-from alembic import migration
 
+from alembic import migration
+from alembic.testing import assert_raises
+from alembic.testing import assert_raises_message
+from alembic.testing import config
+from alembic.testing import eq_
+from alembic.testing import mock
+from alembic.testing.fixtures import TestBase
 from alembic.util import CommandError
 
 version_table = Table(

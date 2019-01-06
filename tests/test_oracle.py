@@ -1,15 +1,15 @@
-from sqlalchemy import Integer, Column
+from sqlalchemy import Column
+from sqlalchemy import Integer
 
-from alembic import op, command
+from alembic import command
+from alembic import op
+from alembic.testing.env import _no_sql_testing_config
+from alembic.testing.env import clear_staging_env
+from alembic.testing.env import staging_env
+from alembic.testing.env import three_rev_fixture
+from alembic.testing.fixtures import capture_context_buffer
+from alembic.testing.fixtures import op_fixture
 from alembic.testing.fixtures import TestBase
-
-from alembic.testing.fixtures import op_fixture, capture_context_buffer
-from alembic.testing.env import (
-    _no_sql_testing_config,
-    staging_env,
-    three_rev_fixture,
-    clear_staging_env,
-)
 
 
 class FullEnvironmentTests(TestBase):

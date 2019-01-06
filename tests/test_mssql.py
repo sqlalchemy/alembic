@@ -1,20 +1,20 @@
 """Test op functions against MSSQL."""
 
+from sqlalchemy import Column
+from sqlalchemy import Integer
+
+from alembic import command
+from alembic import op
+from alembic import util
+from alembic.testing import assert_raises_message
+from alembic.testing import eq_
+from alembic.testing.env import _no_sql_testing_config
+from alembic.testing.env import clear_staging_env
+from alembic.testing.env import staging_env
+from alembic.testing.env import three_rev_fixture
+from alembic.testing.fixtures import capture_context_buffer
+from alembic.testing.fixtures import op_fixture
 from alembic.testing.fixtures import TestBase
-
-from sqlalchemy import Integer, Column
-
-from alembic import op, command, util
-
-from alembic.testing import eq_, assert_raises_message
-from alembic.testing.fixtures import capture_context_buffer, op_fixture
-from alembic.testing.env import (
-    staging_env,
-    _no_sql_testing_config,
-    three_rev_fixture,
-    clear_staging_env,
-)
-from alembic.testing import config
 
 
 class FullEnvironmentTests(TestBase):
@@ -198,7 +198,7 @@ class OpTest(TestBase):
         context.assert_("ALTER TABLE t ALTER COLUMN c INTEGER NOT NULL")
 
     def test_alter_column_nullable_type_required(self):
-        context = op_fixture("mssql")
+        op_fixture("mssql")
         assert_raises_message(
             util.CommandError,
             "MS-SQL ALTER COLUMN operations with NULL or "

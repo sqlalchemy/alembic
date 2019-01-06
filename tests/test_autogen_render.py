@@ -1,52 +1,54 @@
 import re
 import sys
-from alembic.testing import TestBase, exclusions, assert_raises
-from alembic.testing import assertions
 
-from alembic.operations import ops
-from sqlalchemy import (
-    MetaData,
-    Column,
-    Table,
-    String,
-    Numeric,
-    CHAR,
-    ForeignKey,
-    DATETIME,
-    Integer,
-    BigInteger,
-    CheckConstraint,
-    Unicode,
-    Enum,
-    cast,
-    DateTime,
-    UniqueConstraint,
-    Boolean,
-    ForeignKeyConstraint,
-    PrimaryKeyConstraint,
-    Index,
-    func,
-    text,
-    DefaultClause,
-)
-
-from sqlalchemy.types import TIMESTAMP
-from sqlalchemy import types
-from sqlalchemy.types import UserDefinedType
-from sqlalchemy.engine.default import DefaultDialect
-from sqlalchemy.sql import and_, column, literal_column, false, table
-from alembic.migration import MigrationContext
-from alembic.autogenerate import api
-
-from alembic.testing.mock import patch
-
-from alembic import autogenerate, util
-from alembic.util import compat
-from alembic.testing import eq_, eq_ignore_whitespace, config
-
-from alembic.testing.fixtures import op_fixture
-from alembic import op  # noqa
 import sqlalchemy as sa  # noqa
+from sqlalchemy import BigInteger
+from sqlalchemy import Boolean
+from sqlalchemy import cast
+from sqlalchemy import CHAR
+from sqlalchemy import CheckConstraint
+from sqlalchemy import Column
+from sqlalchemy import DATETIME
+from sqlalchemy import DateTime
+from sqlalchemy import DefaultClause
+from sqlalchemy import Enum
+from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKeyConstraint
+from sqlalchemy import func
+from sqlalchemy import Index
+from sqlalchemy import Integer
+from sqlalchemy import MetaData
+from sqlalchemy import Numeric
+from sqlalchemy import PrimaryKeyConstraint
+from sqlalchemy import String
+from sqlalchemy import Table
+from sqlalchemy import text
+from sqlalchemy import types
+from sqlalchemy import Unicode
+from sqlalchemy import UniqueConstraint
+from sqlalchemy.engine.default import DefaultDialect
+from sqlalchemy.sql import and_
+from sqlalchemy.sql import column
+from sqlalchemy.sql import false
+from sqlalchemy.sql import literal_column
+from sqlalchemy.sql import table
+from sqlalchemy.types import TIMESTAMP
+from sqlalchemy.types import UserDefinedType
+
+from alembic import autogenerate
+from alembic import op  # noqa
+from alembic.autogenerate import api
+from alembic.migration import MigrationContext
+from alembic.operations import ops
+from alembic.testing import assert_raises
+from alembic.testing import assertions
+from alembic.testing import config
+from alembic.testing import eq_
+from alembic.testing import eq_ignore_whitespace
+from alembic.testing import TestBase
+from alembic.testing.fixtures import op_fixture
+from alembic.testing.mock import patch
+from alembic.util import compat
 
 py3k = sys.version_info >= (3,)
 
@@ -454,7 +456,8 @@ class AutogenRenderTest(TestBase):
         with self.autogen_context._within_batch():
             eq_ignore_whitespace(
                 autogenerate.render_op_text(self.autogen_context, op_obj),
-                "batch_op.create_foreign_key('fk_a_id', 'a', ['a_id'], ['id'])",
+                "batch_op.create_foreign_key"
+                "('fk_a_id', 'a', ['a_id'], ['id'])",
             )
 
     def test_add_fk_constraint_kwarg(self):
@@ -1358,7 +1361,7 @@ class AutogenRenderTest(TestBase):
     def test_render_fk_constraint_resolve_key(self):
         m = MetaData()
         t1 = Table("t", m, Column("c", Integer))
-        t2 = Table("t2", m, Column("c_rem", Integer, key="c_remkey"))
+        Table("t2", m, Column("c_rem", Integer, key="c_remkey"))
 
         fk = ForeignKeyConstraint(["c"], ["t2.c_remkey"])
         t1.append_constraint(fk)
@@ -1377,7 +1380,7 @@ class AutogenRenderTest(TestBase):
     def test_render_fk_constraint_bad_table_resolve(self):
         m = MetaData()
         t1 = Table("t", m, Column("c", Integer))
-        t2 = Table("t2", m, Column("c_rem", Integer))
+        Table("t2", m, Column("c_rem", Integer))
 
         fk = ForeignKeyConstraint(["c"], ["t2.nonexistent"])
         t1.append_constraint(fk)
@@ -1396,7 +1399,7 @@ class AutogenRenderTest(TestBase):
     def test_render_fk_constraint_bad_table_resolve_dont_get_confused(self):
         m = MetaData()
         t1 = Table("t", m, Column("c", Integer))
-        t2 = Table(
+        Table(
             "t2",
             m,
             Column("c_rem", Integer, key="cr_key"),
@@ -1420,7 +1423,7 @@ class AutogenRenderTest(TestBase):
     def test_render_fk_constraint_link_to_name(self):
         m = MetaData()
         t1 = Table("t", m, Column("c", Integer))
-        t2 = Table("t2", m, Column("c_rem", Integer, key="c_remkey"))
+        Table("t2", m, Column("c_rem", Integer, key="c_remkey"))
 
         fk = ForeignKeyConstraint(["c"], ["t2.c_rem"], link_to_name=True)
         t1.append_constraint(fk)

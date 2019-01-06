@@ -1,15 +1,15 @@
-from alembic.testing.fixtures import TestBase
-from alembic.ddl import impl
-from alembic.testing import eq_ignore_whitespace
-from alembic import autogenerate
-from alembic.autogenerate import render
-from alembic.migration import MigrationContext
-from alembic.autogenerate import api
-from alembic.testing import eq_
-
-from sqlalchemy import types as sqla_types
 from sqlalchemy import MetaData
+from sqlalchemy import types as sqla_types
 from sqlalchemy.engine import default
+
+from alembic import autogenerate
+from alembic.autogenerate import api
+from alembic.autogenerate import render
+from alembic.ddl import impl
+from alembic.migration import MigrationContext
+from alembic.testing import eq_
+from alembic.testing import eq_ignore_whitespace
+from alembic.testing.fixtures import TestBase
 
 
 class CustomDialect(default.DefaultDialect):
@@ -96,7 +96,8 @@ class ExternalDialectRenderTest(TestBase):
             self.autogen_context.imports,
             set(
                 [
-                    "from tests.test_external_dialect import custom_dialect_types"
+                    "from tests.test_external_dialect "
+                    "import custom_dialect_types"
                 ]
             ),
         )
@@ -122,7 +123,8 @@ class ExternalDialectRenderTest(TestBase):
             self.autogen_context.imports,
             set(
                 [
-                    "from tests.test_external_dialect import custom_dialect_types"
+                    "from tests.test_external_dialect "
+                    "import custom_dialect_types"
                 ]
             ),
         )
@@ -133,14 +135,16 @@ class ExternalDialectRenderTest(TestBase):
             autogenerate.render._repr_type(
                 EXT_ARRAY(FOOBARTYPE), self.autogen_context
             ),
-            "custom_dialect_types.EXT_ARRAY(custom_dialect_types.FOOBARTYPE())",
+            "custom_dialect_types.EXT_ARRAY"
+            "(custom_dialect_types.FOOBARTYPE())",
         )
 
         eq_(
             self.autogen_context.imports,
             set(
                 [
-                    "from tests.test_external_dialect import custom_dialect_types"
+                    "from tests.test_external_dialect "
+                    "import custom_dialect_types"
                 ]
             ),
         )

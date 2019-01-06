@@ -1,8 +1,9 @@
-import re
 import collections
+import re
+
+from sqlalchemy import util as sqlautil
 
 from .. import util
-from sqlalchemy import util as sqlautil
 from ..util import compat
 
 _relative_destination = re.compile(r"(?:(.+?)@)?(\w+)?((?:\+|-)\d+)")

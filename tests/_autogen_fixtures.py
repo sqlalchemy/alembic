@@ -1,30 +1,29 @@
-from sqlalchemy import (
-    MetaData,
-    Column,
-    Table,
-    Integer,
-    String,
-    Text,
-    Numeric,
-    CHAR,
-    ForeignKey,
-    Index,
-    UniqueConstraint,
-    CheckConstraint,
-    text,
-)
+from sqlalchemy import CHAR
+from sqlalchemy import CheckConstraint
+from sqlalchemy import Column
+from sqlalchemy import event
+from sqlalchemy import ForeignKey
+from sqlalchemy import Index
+from sqlalchemy import Integer
+from sqlalchemy import MetaData
+from sqlalchemy import Numeric
+from sqlalchemy import String
+from sqlalchemy import Table
+from sqlalchemy import Text
+from sqlalchemy import text
+from sqlalchemy import UniqueConstraint
 from sqlalchemy.engine.reflection import Inspector
 
-from alembic.operations import ops
 from alembic import autogenerate
-from alembic.migration import MigrationContext
-from alembic.testing import config
-from alembic.testing.env import staging_env, clear_staging_env
-from alembic.testing import eq_
-from alembic.ddl.base import _fk_spec
-from alembic.autogenerate import api
 from alembic import util
-from sqlalchemy import event
+from alembic.autogenerate import api
+from alembic.ddl.base import _fk_spec
+from alembic.migration import MigrationContext
+from alembic.operations import ops
+from alembic.testing import config
+from alembic.testing import eq_
+from alembic.testing.env import clear_staging_env
+from alembic.testing.env import staging_env
 
 names_in_this_test = set()
 

@@ -1,13 +1,13 @@
 from argparse import ArgumentParser
-from .util.compat import SafeConfigParser
 import inspect
 import os
 import sys
 
 from . import command
-from . import util
 from . import package_dir
+from . import util
 from .util import compat
+from .util.compat import SafeConfigParser
 
 
 class Config(object):

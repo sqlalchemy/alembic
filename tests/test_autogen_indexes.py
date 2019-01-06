@@ -1,28 +1,26 @@
 import sys
-from alembic.testing import TestBase
-from alembic.testing import config
-from alembic.testing import assertions
 
-from sqlalchemy import (
-    MetaData,
-    Column,
-    Table,
-    Integer,
-    String,
-    Numeric,
-    UniqueConstraint,
-    Index,
-    ForeignKeyConstraint,
-    ForeignKey,
-    func,
-)
+from sqlalchemy import Column
+from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKeyConstraint
+from sqlalchemy import func
+from sqlalchemy import Index
+from sqlalchemy import Integer
+from sqlalchemy import MetaData
+from sqlalchemy import Numeric
+from sqlalchemy import String
+from sqlalchemy import Table
+from sqlalchemy import UniqueConstraint
+
+from alembic.testing import assertions
+from alembic.testing import config
 from alembic.testing import engines
 from alembic.testing import eq_
+from alembic.testing import TestBase
 from alembic.testing.env import staging_env
+from ._autogen_fixtures import AutogenFixtureTest
 
 py3k = sys.version_info >= (3,)
-
-from ._autogen_fixtures import AutogenFixtureTest
 
 
 class NoUqReflection(object):

@@ -1,44 +1,46 @@
 import sys
 
-from sqlalchemy import (
-    MetaData,
-    Column,
-    Table,
-    Integer,
-    String,
-    Text,
-    Numeric,
-    CHAR,
-    ForeignKey,
-    INTEGER,
-    Index,
-    UniqueConstraint,
-    TypeDecorator,
-    CheckConstraint,
-    text,
-    PrimaryKeyConstraint,
-    ForeignKeyConstraint,
-    VARCHAR,
-    DECIMAL,
-    DateTime,
-    BigInteger,
-    BIGINT,
-    SmallInteger,
-)
+from sqlalchemy import BIGINT
+from sqlalchemy import BigInteger
+from sqlalchemy import CHAR
+from sqlalchemy import CheckConstraint
+from sqlalchemy import Column
+from sqlalchemy import DateTime
+from sqlalchemy import DECIMAL
+from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKeyConstraint
+from sqlalchemy import Index
+from sqlalchemy import INTEGER
+from sqlalchemy import Integer
+from sqlalchemy import MetaData
+from sqlalchemy import Numeric
+from sqlalchemy import PrimaryKeyConstraint
+from sqlalchemy import SmallInteger
+from sqlalchemy import String
+from sqlalchemy import Table
+from sqlalchemy import Text
+from sqlalchemy import text
+from sqlalchemy import TypeDecorator
+from sqlalchemy import UniqueConstraint
+from sqlalchemy import VARCHAR
 from sqlalchemy.dialects import sqlite
-from sqlalchemy.types import NULLTYPE, VARBINARY
 from sqlalchemy.engine.reflection import Inspector
+from sqlalchemy.types import NULLTYPE
+from sqlalchemy.types import VARBINARY
 
-from alembic.operations import ops
 from alembic import autogenerate
 from alembic.migration import MigrationContext
-from alembic.testing import TestBase
-from alembic.testing import config
+from alembic.operations import ops
 from alembic.testing import assert_raises_message
-from alembic.testing.mock import Mock, patch
-from alembic.testing import eq_, is_, is_not_
+from alembic.testing import config
+from alembic.testing import eq_
+from alembic.testing import is_
+from alembic.testing import is_not_
+from alembic.testing import TestBase
+from alembic.testing.mock import Mock
 from alembic.util import CommandError
-from ._autogen_fixtures import AutogenTest, AutogenFixtureTest
+from ._autogen_fixtures import AutogenFixtureTest
+from ._autogen_fixtures import AutogenTest
 
 py3k = sys.version_info >= (3,)
 

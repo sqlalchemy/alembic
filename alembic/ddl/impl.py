@@ -1,10 +1,13 @@
-from sqlalchemy import schema, text
+from sqlalchemy import schema
+from sqlalchemy import text
 from sqlalchemy import types as sqltypes
 
-from ..util.compat import string_types, text_type, with_metaclass
-from ..util import sqla_compat
-from .. import util
 from . import base
+from .. import util
+from ..util import sqla_compat
+from ..util.compat import string_types
+from ..util.compat import text_type
+from ..util.compat import with_metaclass
 
 
 class ImplMeta(type):

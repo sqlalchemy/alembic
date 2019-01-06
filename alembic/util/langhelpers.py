@@ -1,14 +1,15 @@
-import textwrap
-import warnings
-import uuid
 import collections
+import textwrap
+import uuid
+import warnings
 
+from .compat import callable
 from .compat import collections_abc
-
-from .compat import callable, exec_, string_types, with_metaclass
-
-from .compat import inspect_getargspec
+from .compat import exec_
 from .compat import inspect_formatargspec
+from .compat import inspect_getargspec
+from .compat import string_types
+from .compat import with_metaclass
 
 
 class _ModuleClsMeta(type):

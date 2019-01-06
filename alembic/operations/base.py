@@ -1,13 +1,13 @@
 from contextlib import contextmanager
+import textwrap
 
-from .. import util
-from ..util import sqla_compat
 from . import batch
 from . import schemaobj
+from .. import util
+from ..util import sqla_compat
 from ..util.compat import exec_
 from ..util.compat import inspect_formatargspec
 from ..util.compat import inspect_getargspec
-import textwrap
 
 __all__ = ("Operations", "BatchOperations")
 

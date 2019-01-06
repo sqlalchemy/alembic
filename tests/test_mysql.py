@@ -1,20 +1,22 @@
-from sqlalchemy import Integer, func, Boolean
-from alembic.testing.fixtures import TestBase
-from alembic.testing import config
-from sqlalchemy import TIMESTAMP, MetaData, Table, Column, text
+from sqlalchemy import Boolean
+from sqlalchemy import Column
+from sqlalchemy import func
+from sqlalchemy import Integer
+from sqlalchemy import MetaData
+from sqlalchemy import Table
+from sqlalchemy import text
+from sqlalchemy import TIMESTAMP
 from sqlalchemy.engine.reflection import Inspector
-from alembic import op, util
 
-from alembic.testing import eq_, assert_raises_message
-from alembic.testing.fixtures import capture_context_buffer, op_fixture
-from alembic.testing.env import (
-    staging_env,
-    _no_sql_testing_config,
-    three_rev_fixture,
-    clear_staging_env,
-)
-
+from alembic import op
+from alembic import util
 from alembic.migration import MigrationContext
+from alembic.testing import assert_raises_message
+from alembic.testing import config
+from alembic.testing.env import clear_staging_env
+from alembic.testing.env import staging_env
+from alembic.testing.fixtures import op_fixture
+from alembic.testing.fixtures import TestBase
 
 
 class MySQLOpTest(TestBase):

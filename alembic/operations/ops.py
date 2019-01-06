@@ -1,9 +1,12 @@
+import re
+
+from sqlalchemy.types import NULLTYPE
+
+from . import schemaobj
+from .base import BatchOperations
+from .base import Operations
 from .. import util
 from ..util import sqla_compat
-from . import schemaobj
-from sqlalchemy.types import NULLTYPE
-from .base import Operations, BatchOperations
-import re
 
 
 class MigrateOperation(object):
@@ -503,9 +506,18 @@ class CreateForeignKeyOp(AddConstraintOp):
         if constraint.use_alter:
             kw["use_alter"] = constraint.use_alter
 
-        source_schema, source_table, source_columns, target_schema, target_table, target_columns, onupdate, ondelete, deferrable, initially = sqla_compat._fk_spec(
-            constraint
-        )
+        (
+            source_schema,
+            source_table,
+            source_columns,
+            target_schema,
+            target_table,
+            target_columns,
+            onupdate,
+            ondelete,
+            deferrable,
+            initially,
+        ) = sqla_compat._fk_spec(constraint)
 
         kw["source_schema"] = source_schema
         kw["referent_schema"] = target_schema
@@ -1383,7 +1395,9 @@ class AlterColumnOp(AlterTableOp):
                     cname,
                     {
                         "existing_nullable": self.existing_nullable,
-                        "existing_server_default": self.existing_server_default,
+                        "existing_server_default": (
+                            self.existing_server_default
+                        ),
                     },
                     self.existing_type,
                     self.modify_type,
@@ -1399,7 +1413,9 @@ class AlterColumnOp(AlterTableOp):
                     cname,
                     {
                         "existing_type": self.existing_type,
-                        "existing_server_default": self.existing_server_default,
+                        "existing_server_default": (
+                            self.existing_server_default
+                        ),
                     },
                     self.existing_nullable,
                     self.modify_nullable,
@@ -1945,7 +1961,7 @@ class ExecuteSQLOp(MigrateOperation):
 
     @classmethod
     def execute(cls, operations, sqltext, execution_options=None):
-        """Execute the given SQL using the current migration context.
+        r"""Execute the given SQL using the current migration context.
 
         The given SQL can be a plain string, e.g.::
 

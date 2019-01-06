@@ -1,16 +1,26 @@
 """Test against the builders in the op.* module."""
 
-from sqlalchemy import Integer, Column, ForeignKey, Table, String, Boolean
-from sqlalchemy.sql import column, func, text
+from sqlalchemy import Boolean
+from sqlalchemy import Column
 from sqlalchemy import event
+from sqlalchemy import ForeignKey
+from sqlalchemy import Integer
+from sqlalchemy import String
+from sqlalchemy import Table
+from sqlalchemy.sql import column
+from sqlalchemy.sql import func
+from sqlalchemy.sql import text
 
 from alembic import op
-from alembic.testing.fixtures import op_fixture
-from alembic.testing import eq_, assert_raises_message, is_
-from alembic.testing import mock
-from alembic.testing.fixtures import TestBase
+from alembic.operations import ops
+from alembic.operations import schemaobj
+from alembic.testing import assert_raises_message
 from alembic.testing import config
-from alembic.operations import schemaobj, ops
+from alembic.testing import eq_
+from alembic.testing import is_
+from alembic.testing import mock
+from alembic.testing.fixtures import op_fixture
+from alembic.testing.fixtures import TestBase
 
 
 @event.listens_for(Table, "after_parent_attach")
@@ -310,7 +320,8 @@ class OpTest(TestBase):
             "t", "c", server_default=func.utc_thing(func.current_timestamp())
         )
         context.assert_(
-            "ALTER TABLE t ALTER COLUMN c SET DEFAULT utc_thing(CURRENT_TIMESTAMP)"
+            "ALTER TABLE t ALTER COLUMN c "
+            "SET DEFAULT utc_thing(CURRENT_TIMESTAMP)"
         )
 
     def test_alter_column_schema_set_compiled_default(self):
@@ -845,7 +856,8 @@ class OpTest(TestBase):
             .values({"id": op.inline_literal(2)})
         )
         context.assert_(
-            "UPDATE account SET name='account 2' WHERE account.name = 'account 1'",
+            "UPDATE account SET name='account 2' "
+            "WHERE account.name = 'account 1'",
             "UPDATE account SET id=2 WHERE account.id = 1",
         )
 
