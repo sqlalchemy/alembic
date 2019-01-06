@@ -1,6 +1,6 @@
-from ..operations import Operations
 from .migration import MigrationContext
 from .. import util
+from ..operations import Operations
 
 
 class EnvironmentContext(util.ModuleClsProxy):

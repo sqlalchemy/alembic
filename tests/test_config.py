@@ -1,22 +1,22 @@
 #!coding: utf-8
 
 
-from alembic import config, util
-from alembic.util import compat
+from alembic import config
+from alembic import util
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
 from alembic.script import ScriptDirectory
-from alembic.testing.fixtures import TestBase
-from alembic.testing.mock import Mock, call
-
-from alembic.testing import eq_, assert_raises_message
+from alembic.testing import assert_raises_message
+from alembic.testing import eq_
+from alembic.testing.env import _no_sql_testing_config
+from alembic.testing.env import _write_config_file
+from alembic.testing.env import clear_staging_env
+from alembic.testing.env import staging_env
 from alembic.testing.fixtures import capture_db
-from alembic.testing.env import (
-    _no_sql_testing_config,
-    clear_staging_env,
-    staging_env,
-    _write_config_file,
-)
+from alembic.testing.fixtures import TestBase
+from alembic.testing.mock import call
+from alembic.testing.mock import Mock
+from alembic.util import compat
 
 
 class FileConfigTest(TestBase):

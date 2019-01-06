@@ -1,14 +1,15 @@
+from contextlib import contextmanager
 import datetime
-from dateutil import tz
 import os
 import re
 import shutil
-from .. import util
-from ..util import compat
-from . import revision
-from ..runtime import migration
 
-from contextlib import contextmanager
+from dateutil import tz
+
+from . import revision
+from .. import util
+from ..runtime import migration
+from ..util import compat
 
 _sourceless_rev_file = re.compile(r"(?!\.\#|__init__)(.*\.py)(c|o)?$")
 _only_source_rev_file = re.compile(r"(?!\.\#|__init__)(.*\.py)$")
@@ -42,7 +43,7 @@ class ScriptDirectory(object):
 
     def __init__(
         self,
-        dir,
+        dir,  # noqa
         file_template=_default_file_template,
         truncate_slug_length=40,
         version_locations=None,

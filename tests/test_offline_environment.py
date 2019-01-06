@@ -1,17 +1,16 @@
-from alembic.testing.fixtures import TestBase, capture_context_buffer
-
-from alembic import command, util
-
-from alembic.testing import assert_raises_message
-from alembic.testing.env import (
-    staging_env,
-    _no_sql_testing_config,
-    three_rev_fixture,
-    clear_staging_env,
-    env_file_fixture,
-    multi_heads_fixture,
-)
 import re
+
+from alembic import command
+from alembic import util
+from alembic.testing import assert_raises_message
+from alembic.testing.env import _no_sql_testing_config
+from alembic.testing.env import clear_staging_env
+from alembic.testing.env import env_file_fixture
+from alembic.testing.env import multi_heads_fixture
+from alembic.testing.env import staging_env
+from alembic.testing.env import three_rev_fixture
+from alembic.testing.fixtures import capture_context_buffer
+from alembic.testing.fixtures import TestBase
 
 a = b = c = None
 

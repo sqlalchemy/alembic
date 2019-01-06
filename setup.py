@@ -1,12 +1,18 @@
-from setuptools import setup, find_packages
-from setuptools.command.test import test as TestCommand
 import os
 import re
 import sys
 
+from setuptools import find_packages
+from setuptools import setup
+from setuptools.command.test import test as TestCommand
+
 
 v = open(os.path.join(os.path.dirname(__file__), "alembic", "__init__.py"))
-VERSION = re.compile(r""".*__version__ = ["'](.*?)["']""", re.S).match(v.read()).group(1)
+VERSION = (
+    re.compile(r""".*__version__ = ["'](.*?)["']""", re.S)
+    .match(v.read())
+    .group(1)
+)
 v.close()
 
 

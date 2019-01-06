@@ -1,23 +1,23 @@
-from sqlalchemy.ext.compiler import compiles
-from sqlalchemy import types as sqltypes
-from sqlalchemy import schema
-
-from ..util.compat import string_types
-from .. import util
-from .impl import DefaultImpl
-from .base import (
-    ColumnNullable,
-    ColumnName,
-    ColumnDefault,
-    ColumnType,
-    AlterColumn,
-    format_column_name,
-    format_server_default,
-)
-from .base import alter_table
-from ..autogenerate import compare
-from ..util.sqla_compat import _is_type_bound, sqla_100
 import re
+
+from sqlalchemy import schema
+from sqlalchemy import types as sqltypes
+from sqlalchemy.ext.compiler import compiles
+
+from .base import alter_table
+from .base import AlterColumn
+from .base import ColumnDefault
+from .base import ColumnName
+from .base import ColumnNullable
+from .base import ColumnType
+from .base import format_column_name
+from .base import format_server_default
+from .impl import DefaultImpl
+from .. import util
+from ..autogenerate import compare
+from ..util.compat import string_types
+from ..util.sqla_compat import _is_type_bound
+from ..util.sqla_compat import sqla_100
 
 
 class MySQLImpl(DefaultImpl):

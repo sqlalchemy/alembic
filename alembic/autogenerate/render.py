@@ -1,11 +1,15 @@
-from sqlalchemy import schema as sa_schema, types as sqltypes, sql
+import re
+
+from mako.pygen import PythonPrinter
+from sqlalchemy import schema as sa_schema
+from sqlalchemy import sql
+from sqlalchemy import types as sqltypes
+
+from .. import util
 from ..operations import ops
 from ..util import compat
 from ..util import sqla_compat
-import re
 from ..util.compat import string_types
-from .. import util
-from mako.pygen import PythonPrinter
 from ..util.compat import StringIO
 
 

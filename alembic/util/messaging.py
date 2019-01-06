@@ -1,11 +1,14 @@
-from .compat import py27, binary_type, string_types
-from .compat import collections_abc
-
-import sys
-from sqlalchemy.engine import url
-import warnings
-import textwrap
 import logging
+import sys
+import textwrap
+import warnings
+
+from sqlalchemy.engine import url
+
+from .compat import binary_type
+from .compat import collections_abc
+from .compat import py27
+from .compat import string_types
 
 log = logging.getLogger(__name__)
 

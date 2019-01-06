@@ -1,9 +1,9 @@
 import os
 
-from .script import ScriptDirectory
-from .runtime.environment import EnvironmentContext
-from . import util
 from . import autogenerate as autogen
+from . import util
+from .runtime.environment import EnvironmentContext
+from .script import ScriptDirectory
 
 
 def list_templates(config):
@@ -100,7 +100,8 @@ def revision(
      ``-m`` option to ``alembic revision``.
 
     :param autogenerate: whether or not to autogenerate the script from
-     the database; this is the ``--autogenerate`` option to ``alembic revision``.
+     the database; this is the ``--autogenerate`` option to
+     ``alembic revision``.
 
     :param sql: whether to dump the script out as a SQL string; when specified,
      the script is dumped to stdout.  This is the ``--sql`` option to

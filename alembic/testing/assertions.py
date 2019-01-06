@@ -1,17 +1,19 @@
 from __future__ import absolute_import
 
-
-import re
-from .. import util
-from sqlalchemy.engine import default
-from ..util.compat import text_type, py3k
 import contextlib
-from sqlalchemy.util import decorator
-from sqlalchemy import exc as sa_exc
+import re
 import warnings
+
+from sqlalchemy import exc as sa_exc
+from sqlalchemy.engine import default
+from sqlalchemy.util import decorator
+
+from . import config
 from . import mock
 from .exclusions import db_spec
-from . import config
+from .. import util
+from ..util.compat import py3k
+from ..util.compat import text_type
 
 
 if not util.sqla_094:
@@ -55,14 +57,12 @@ if not util.sqla_094:
 
 
 else:
-    from sqlalchemy.testing.assertions import (
-        eq_,
-        ne_,
-        is_,
-        is_not_,
-        assert_raises_message,
-        assert_raises,
-    )
+    from sqlalchemy.testing.assertions import assert_raises  # noqa
+    from sqlalchemy.testing.assertions import assert_raises_message  # noqa
+    from sqlalchemy.testing.assertions import eq_  # noqa
+    from sqlalchemy.testing.assertions import is_  # noqa
+    from sqlalchemy.testing.assertions import is_not_  # noqa
+    from sqlalchemy.testing.assertions import ne_  # noqa
 
 
 def eq_ignore_whitespace(a, b, msg=None):

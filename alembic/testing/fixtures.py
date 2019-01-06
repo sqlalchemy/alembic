@@ -1,20 +1,24 @@
 # coding: utf-8
+from contextlib import contextmanager
 import io
 import re
 
-from sqlalchemy import create_engine, text, MetaData
+from sqlalchemy import create_engine
+from sqlalchemy import MetaData
+from sqlalchemy import text
 
 import alembic
-from ..util.compat import configparser
-from .. import util
-from ..util.compat import string_types, text_type
-from ..migration import MigrationContext
-from ..environment import EnvironmentContext
-from ..operations import Operations
-from contextlib import contextmanager
-from .plugin.plugin_base import SkipTest
-from .assertions import _get_dialect, eq_
 from . import mock
+from .assertions import _get_dialect
+from .assertions import eq_
+from .plugin.plugin_base import SkipTest
+from .. import util
+from ..environment import EnvironmentContext
+from ..migration import MigrationContext
+from ..operations import Operations
+from ..util.compat import configparser
+from ..util.compat import string_types
+from ..util.compat import text_type
 
 testing_config = configparser.ConfigParser()
 testing_config.read(["test.cfg"])
@@ -37,8 +41,8 @@ if not util.sqla_094:
         # dialect.  If you need multiple, use __unsupported_on__ and invert.
         __only_on__ = None
 
-        # A sequence of no-arg callables. If any are True, the entire testcase is
-        # skipped.
+        # A sequence of no-arg callables. If any are True, the entire
+        # testcase is skipped.
         __skip_if__ = None
 
         def assert_(self, val, msg=None):
@@ -55,7 +59,7 @@ if not util.sqla_094:
 
 
 else:
-    from sqlalchemy.testing.fixtures import TestBase
+    from sqlalchemy.testing.fixtures import TestBase  # noqa
 
 
 def capture_db():

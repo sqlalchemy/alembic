@@ -1,25 +1,21 @@
-from sqlalchemy import (
-    Table,
-    MetaData,
-    Index,
-    select,
-    Column,
-    ForeignKeyConstraint,
-    PrimaryKeyConstraint,
-    cast,
-    CheckConstraint,
-)
-from sqlalchemy import types as sqltypes
+from sqlalchemy import cast
+from sqlalchemy import CheckConstraint
+from sqlalchemy import Column
+from sqlalchemy import ForeignKeyConstraint
+from sqlalchemy import Index
+from sqlalchemy import MetaData
+from sqlalchemy import PrimaryKeyConstraint
 from sqlalchemy import schema as sql_schema
-from sqlalchemy.util import OrderedDict
-from .. import util
+from sqlalchemy import select
+from sqlalchemy import Table
+from sqlalchemy import types as sqltypes
 from sqlalchemy.events import SchemaEventTarget
-from ..util.sqla_compat import (
-    _columns_for_constraint,
-    _is_type_bound,
-    _fk_is_self_referential,
-    _remove_column_from_collection,
-)
+from sqlalchemy.util import OrderedDict
+
+from ..util.sqla_compat import _columns_for_constraint
+from ..util.sqla_compat import _fk_is_self_referential
+from ..util.sqla_compat import _is_type_bound
+from ..util.sqla_compat import _remove_column_from_collection
 
 
 class BatchOperationsImpl(object):

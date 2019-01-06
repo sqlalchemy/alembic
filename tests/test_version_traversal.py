@@ -1,9 +1,12 @@
-from alembic.testing.env import clear_staging_env, staging_env
-from alembic.testing import assert_raises_message, eq_
 from alembic import util
-from alembic.testing.fixtures import TestBase
+from alembic.migration import HeadMaintainer
+from alembic.migration import MigrationStep
+from alembic.testing import assert_raises_message
+from alembic.testing import eq_
 from alembic.testing import mock
-from alembic.migration import MigrationStep, HeadMaintainer
+from alembic.testing.env import clear_staging_env
+from alembic.testing.env import staging_env
+from alembic.testing.fixtures import TestBase
 
 
 class MigrationTest(TestBase):
@@ -665,30 +668,32 @@ class DependsOnBranchTestTwo(MigrationTest):
     @classmethod
     def setup_class(cls):
         """
-        a1 ---+
-              |
-        a2 ---+--> amerge
-              |
-        a3 ---+
-         ^
-         |
-         +---------------------------+
-                                     |
-        b1 ---+                      |
-              +--> bmerge        overmerge / d1
-        b2 ---+                     |  |
-         ^                          |  |
-         |                          |  |
-         +--------------------------+  |
-                                       |
-         +-----------------------------+
-         |
-         v
-        c1 ---+
-              |
-        c2 ---+--> cmerge
-              |
-        c3 ---+
+        Structure::
+
+            a1 ---+
+                  |
+            a2 ---+--> amerge
+                  |
+            a3 ---+
+             ^
+             |
+             +---------------------------+
+                                         |
+            b1 ---+                      |
+                  +--> bmerge        overmerge / d1
+            b2 ---+                     |  |
+             ^                          |  |
+             |                          |  |
+             +--------------------------+  |
+                                           |
+             +-----------------------------+
+             |
+             v
+            c1 ---+
+                  |
+            c2 ---+--> cmerge
+                  |
+            c3 ---+
 
         """
         cls.env = env = staging_env()
@@ -806,14 +811,16 @@ class DependsOnBranchTestThree(MigrationTest):
         """
         issue #377
 
-        <base> -> a1 --+--> a2 -------> a3
-                       |     ^          |
-                       |     |   +------+
-                       |     |   |
-                       |     +---|------+
-                       |         |      |
-                       |         v      |
-                       +-------> b1 --> b2 --> b3
+        Structure::
+
+            <base> -> a1 --+--> a2 -------> a3
+                           |     ^          |
+                           |     |   +------+
+                           |     |   |
+                           |     +---|------+
+                           |         |      |
+                           |         v      |
+                           +-------> b1 --> b2 --> b3
 
         """
         cls.env = env = staging_env()

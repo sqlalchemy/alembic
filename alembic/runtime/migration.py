@@ -1,21 +1,21 @@
+from contextlib import contextmanager
 import logging
 import sys
-from contextlib import contextmanager
 
-from sqlalchemy import (
-    MetaData,
-    Table,
-    Column,
-    String,
-    literal_column,
-    PrimaryKeyConstraint,
-)
-from sqlalchemy.engine.strategies import MockEngineStrategy
-from sqlalchemy.engine import url as sqla_url
+from sqlalchemy import Column
+from sqlalchemy import literal_column
+from sqlalchemy import MetaData
+from sqlalchemy import PrimaryKeyConstraint
+from sqlalchemy import String
+from sqlalchemy import Table
 from sqlalchemy.engine import Connection
+from sqlalchemy.engine import url as sqla_url
+from sqlalchemy.engine.strategies import MockEngineStrategy
 
-from ..util.compat import callable, EncodedIO
-from .. import ddl, util
+from .. import ddl
+from .. import util
+from ..util.compat import callable
+from ..util.compat import EncodedIO
 
 log = logging.getLogger(__name__)
 
@@ -693,7 +693,10 @@ class MigrationInfo(object):
 
     @property
     def up_revision(self):
-        """Get :attr:`~.MigrationInfo.up_revision_id` as a :class:`.Revision`."""
+        """Get :attr:`~.MigrationInfo.up_revision_id` as
+        a :class:`.Revision`.
+
+        """
         return self.revision_map.get_revision(self.up_revision_id)
 
     @property

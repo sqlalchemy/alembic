@@ -1,13 +1,19 @@
-from unittest import TestCase
-
-from alembic import op
-from sqlalchemy import Integer, String
-from sqlalchemy.sql import table, column
-from sqlalchemy import Table, Column, MetaData
+from sqlalchemy import Column
+from sqlalchemy import Integer
+from sqlalchemy import MetaData
+from sqlalchemy import String
+from sqlalchemy import Table
+from sqlalchemy.sql import column
+from sqlalchemy.sql import table
 from sqlalchemy.types import TypeEngine
 
-from alembic.testing.fixtures import op_fixture, TestBase
-from alembic.testing import eq_, assert_raises_message, config
+from alembic import op
+from alembic.migration import MigrationContext
+from alembic.testing import assert_raises_message
+from alembic.testing import config
+from alembic.testing import eq_
+from alembic.testing.fixtures import op_fixture
+from alembic.testing.fixtures import TestBase
 
 
 class BulkInsertTest(TestBase):
@@ -74,7 +80,8 @@ class BulkInsertTest(TestBase):
         )
         op.bulk_insert(t1, [{"v1": "row v1"}])
         context.assert_(
-            "INSERT INTO ins_table (id, v1, v2) VALUES (%(id)s, %(v1)s, %(v2)s)"
+            "INSERT INTO ins_table (id, v1, v2) "
+            "VALUES (%(id)s, %(v1)s, %(v2)s)"
         )
 
     def test_bulk_insert_no_rows(self):
@@ -228,9 +235,6 @@ class RoundTripTest(TestBase):
     __only_on__ = "sqlite"
 
     def setUp(self):
-        from sqlalchemy import create_engine
-        from alembic.migration import MigrationContext
-
         self.conn = config.db.connect()
         self.conn.execute(
             """

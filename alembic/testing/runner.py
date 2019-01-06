@@ -29,8 +29,9 @@ plugin in a special (somewhat hacky) way so that coverage against
 SQLAlchemy itself is possible.
 
 """
-from .plugin.noseplugin import NoseSQLAlchemy
 import nose
+
+from .plugin.noseplugin import NoseSQLAlchemy
 
 
 def main():

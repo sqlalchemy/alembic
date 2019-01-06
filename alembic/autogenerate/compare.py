@@ -1,16 +1,19 @@
-from sqlalchemy import schema as sa_schema, types as sqltypes
-from sqlalchemy.engine.reflection import Inspector
-from sqlalchemy import event
-from ..operations import ops
+import contextlib
 import logging
+import re
+
+from sqlalchemy import event
+from sqlalchemy import schema as sa_schema
+from sqlalchemy import types as sqltypes
+from sqlalchemy.engine.reflection import Inspector
+from sqlalchemy.util import OrderedSet
+
+from alembic.ddl.base import _fk_spec
+from .render import _user_defined_render
 from .. import util
+from ..operations import ops
 from ..util import compat
 from ..util import sqla_compat
-from sqlalchemy.util import OrderedSet
-import re
-from .render import _user_defined_render
-import contextlib
-from alembic.ddl.base import _fk_spec
 
 log = logging.getLogger(__name__)
 
@@ -152,9 +155,11 @@ def _compare_tables(
             event.listen(
                 t,
                 "column_reflect",
-                autogen_context.migration_context.impl._compat_autogen_column_reflect(
-                    inspector
-                ),
+                # fmt: off
+                autogen_context.migration_context.impl.
+                _compat_autogen_column_reflect
+                (inspector),
+                # fmt: on
             )
             inspector.reflecttable(t, None)
         if autogen_context.run_filters(t, tname, "table", True, None):
@@ -182,9 +187,10 @@ def _compare_tables(
             event.listen(
                 t,
                 "column_reflect",
-                autogen_context.migration_context.impl._compat_autogen_column_reflect(
-                    inspector
-                ),
+                # fmt: off
+                autogen_context.migration_context.impl.
+                _compat_autogen_column_reflect(inspector),
+                # fmt: on
             )
             inspector.reflecttable(t, None)
         conn_column_info[(s, tname)] = t

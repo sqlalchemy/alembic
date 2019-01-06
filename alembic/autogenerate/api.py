@@ -1,12 +1,14 @@
 """Provide the 'autogenerate' feature which can produce migration operations
 automatically."""
 
-from ..operations import ops
-from . import render
-from . import compare
-from .. import util
-from sqlalchemy.engine.reflection import Inspector
 import contextlib
+
+from sqlalchemy.engine.reflection import Inspector
+
+from . import compare
+from . import render
+from .. import util
+from ..operations import ops
 
 
 def compare_metadata(context, metadata):
@@ -226,8 +228,8 @@ class AutogenContext(object):
 
     The directives are to be rendered into the ``${imports}`` section
     of a script template.  The set is normally empty and can be modified
-    within hooks such as the :paramref:`.EnvironmentContext.configure.render_item`
-    hook.
+    within hooks such as the
+    :paramref:`.EnvironmentContext.configure.render_item` hook.
 
     .. versionadded:: 0.8.3
 
@@ -281,10 +283,10 @@ class AutogenContext(object):
         if include_symbol:
 
             def include_symbol_filter(
-                object, name, type_, reflected, compare_to
+                object_, name, type_, reflected, compare_to
             ):
                 if type_ == "table":
-                    return include_symbol(name, object.schema)
+                    return include_symbol(name, object_.schema)
                 else:
                     return True
 

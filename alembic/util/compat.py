@@ -24,7 +24,7 @@ if py3k:
     binary_type = bytes
     text_type = str
 
-    def callable(fn):
+    def callable(fn):  # noqa
         return hasattr(fn, "__call__")
 
     def u(s):
@@ -33,27 +33,27 @@ if py3k:
     def ue(s):
         return s
 
-    range = range
+    range = range  # noqa
 else:
     import __builtin__ as compat_builtins
 
-    string_types = (basestring,)
+    string_types = (basestring,)  # noqa
     binary_type = str
-    text_type = unicode
-    callable = callable
+    text_type = unicode  # noqa
+    callable = callable  # noqa
 
     def u(s):
-        return unicode(s, "utf-8")
+        return unicode(s, "utf-8")  # noqa
 
     def ue(s):
-        return unicode(s, "unicode_escape")
+        return unicode(s, "unicode_escape")  # noqa
 
-    range = xrange
+    range = xrange  # noqa
 
 if py33:
     import collections.abc as collections_abc
 else:
-    import collections as collections_abc
+    import collections as collections_abc  # noqa
 
 if py3k:
     import collections
@@ -133,7 +133,7 @@ if py35:
 
 
 else:
-    from inspect import formatargspec as inspect_formatargspec
+    from inspect import formatargspec as inspect_formatargspec  # noqa
 
 
 if py3k:

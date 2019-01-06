@@ -1,53 +1,49 @@
-from sqlalchemy import (
-    DateTime,
-    MetaData,
-    Table,
-    Column,
-    text,
-    Integer,
-    String,
-    Interval,
-    Sequence,
-    Numeric,
-    BigInteger,
-    Float,
-    Numeric,
-)
-from sqlalchemy.dialects.postgresql import ARRAY, UUID, BYTEA
-from sqlalchemy.engine.reflection import Inspector
-from sqlalchemy import types
-from alembic.operations import Operations
-from sqlalchemy.sql import table, column
-from alembic.autogenerate.compare import (
-    _compare_server_default,
-    _compare_tables,
-    _render_server_default_for_compare,
-)
-
-from alembic.operations import ops
-from alembic import command, util
-from alembic.migration import MigrationContext
-from alembic.script import ScriptDirectory
-from alembic.autogenerate import api
-
-from alembic.testing import eq_, provide_metadata
-from alembic.testing.env import (
-    staging_env,
-    clear_staging_env,
-    _no_sql_testing_config,
-    write_script,
-)
-from alembic.testing.fixtures import capture_context_buffer
-from alembic.testing.fixtures import TestBase
-from alembic.testing.fixtures import op_fixture
-from alembic.testing import config
-from alembic import op
-from alembic.util import compat
-from alembic.testing import eq_ignore_whitespace
-from alembic import autogenerate
-from sqlalchemy import Index
+from sqlalchemy import BigInteger
 from sqlalchemy import Boolean
+from sqlalchemy import Column
+from sqlalchemy import DateTime
+from sqlalchemy import Float
+from sqlalchemy import Index
+from sqlalchemy import Integer
+from sqlalchemy import Interval
+from sqlalchemy import MetaData
+from sqlalchemy import Numeric
+from sqlalchemy import Sequence
+from sqlalchemy import String
+from sqlalchemy import Table
+from sqlalchemy import text
+from sqlalchemy import types
+from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.dialects.postgresql import BYTEA
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.engine.reflection import Inspector
+from sqlalchemy.sql import column
 from sqlalchemy.sql import false
+from sqlalchemy.sql import table
+
+from alembic import autogenerate
+from alembic import command
+from alembic import op
+from alembic import util
+from alembic.autogenerate import api
+from alembic.autogenerate.compare import _compare_server_default
+from alembic.autogenerate.compare import _compare_tables
+from alembic.autogenerate.compare import _render_server_default_for_compare
+from alembic.migration import MigrationContext
+from alembic.operations import Operations
+from alembic.operations import ops
+from alembic.script import ScriptDirectory
+from alembic.testing import config
+from alembic.testing import eq_
+from alembic.testing import eq_ignore_whitespace
+from alembic.testing import provide_metadata
+from alembic.testing.env import _no_sql_testing_config
+from alembic.testing.env import clear_staging_env
+from alembic.testing.env import staging_env
+from alembic.testing.env import write_script
+from alembic.testing.fixtures import capture_context_buffer
+from alembic.testing.fixtures import op_fixture
+from alembic.testing.fixtures import TestBase
 
 
 if util.sqla_09:
@@ -667,7 +663,8 @@ class PostgresqlAutogenRenderTest(TestBase):
             autogenerate.render._repr_type(
                 ARRAY(BYTEA, as_tuple=True, dimensions=2), self.autogen_context
             ),
-            "postgresql.ARRAY(postgresql.BYTEA(), as_tuple=True, dimensions=2)",
+            "postgresql.ARRAY(postgresql.BYTEA(), "
+            "as_tuple=True, dimensions=2)",
         )
 
         assert (
@@ -769,7 +766,8 @@ class PostgresqlAutogenRenderTest(TestBase):
 
         eq_ignore_whitespace(
             autogenerate.render_op_text(autogen_context, op_obj),
-            "op.create_exclude_constraint('t_excl_x', 't', (sa.column('x'), '>'), "
+            "op.create_exclude_constraint('t_excl_x', "
+            "'t', (sa.column('x'), '>'), "
             "where=sa.text(!U'x != 2'), using='gist')",
         )
 
@@ -795,7 +793,8 @@ class PostgresqlAutogenRenderTest(TestBase):
 
         eq_ignore_whitespace(
             autogenerate.render_op_text(autogen_context, op_obj),
-            "op.create_exclude_constraint('t_excl_x', 'TTAble', (sa.column('XColumn'), '>'), "
+            "op.create_exclude_constraint('t_excl_x', 'TTAble', "
+            "(sa.column('XColumn'), '>'), "
             "where=sa.text(!U'\"XColumn\" != 2'), using='gist')",
         )
 

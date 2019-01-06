@@ -1,5 +1,4 @@
 from alembic import util
-
 from . import exclusions
 
 if util.sqla_094:

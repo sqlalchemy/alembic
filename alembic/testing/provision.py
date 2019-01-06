@@ -1,17 +1,20 @@
 """NOTE:  copied/adapted from SQLAlchemy master for backwards compatibility;
    this should be removable when Alembic targets SQLAlchemy 1.0.0
 """
-from sqlalchemy.engine import url as sa_url
-from sqlalchemy import create_engine
-from sqlalchemy import text
-from sqlalchemy import exc
-from ..util import compat
-from . import config, engines
-from .compat import get_url_backend_name
 import collections
+import logging
 import os
 import time
-import logging
+
+from sqlalchemy import create_engine
+from sqlalchemy import exc
+from sqlalchemy import text
+from sqlalchemy.engine import url as sa_url
+
+from . import config
+from . import engines
+from .compat import get_url_backend_name
+from ..util import compat
 
 log = logging.getLogger(__name__)
 

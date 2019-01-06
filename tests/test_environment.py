@@ -1,20 +1,20 @@
 #!coding: utf-8
 
-from alembic.script import ScriptDirectory
 from alembic.environment import EnvironmentContext
 from alembic.migration import MigrationContext
-from alembic.testing.fixtures import TestBase
-from alembic.testing.mock import Mock, call, MagicMock
-from alembic.testing.env import (
-    _no_sql_testing_config,
-    staging_env,
-    clear_staging_env,
-    write_script,
-    _sqlite_file_db,
-)
+from alembic.script import ScriptDirectory
+from alembic.testing import eq_
+from alembic.testing import is_
 from alembic.testing.assertions import expect_warnings
-
-from alembic.testing import eq_, is_
+from alembic.testing.env import _no_sql_testing_config
+from alembic.testing.env import _sqlite_file_db
+from alembic.testing.env import clear_staging_env
+from alembic.testing.env import staging_env
+from alembic.testing.env import write_script
+from alembic.testing.fixtures import TestBase
+from alembic.testing.mock import call
+from alembic.testing.mock import MagicMock
+from alembic.testing.mock import Mock
 
 
 class EnvironmentTest(TestBase):

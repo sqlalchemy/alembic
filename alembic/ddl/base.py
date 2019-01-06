@@ -1,19 +1,19 @@
 import functools
 
-from sqlalchemy.ext.compiler import compiles
-from sqlalchemy.schema import DDLElement, Column
 from sqlalchemy import Integer
 from sqlalchemy import types as sqltypes
+from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.schema import Column
+from sqlalchemy.schema import DDLElement
+
 from .. import util
+from ..util.sqla_compat import _columns_for_constraint  # noqa
+from ..util.sqla_compat import _find_columns  # noqa
+from ..util.sqla_compat import _fk_spec  # noqa
+from ..util.sqla_compat import _is_type_bound  # noqa
+from ..util.sqla_compat import _table_for_constraint  # noqa
 
 # backwards compat
-from ..util.sqla_compat import (  # noqa
-    _table_for_constraint,
-    _columns_for_constraint,
-    _fk_spec,
-    _is_type_bound,
-    _find_columns,
-)
 
 if util.sqla_09:
     from sqlalchemy.sql.elements import quoted_name

@@ -1,7 +1,9 @@
 from sqlalchemy import schema as sa_schema
-from sqlalchemy.types import NULLTYPE, Integer
-from ..util.compat import string_types
+from sqlalchemy.types import Integer
+from sqlalchemy.types import NULLTYPE
+
 from .. import util
+from ..util.compat import string_types
 
 
 class SchemaObjects(object):
