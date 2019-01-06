@@ -10,7 +10,7 @@ def provide_metadata(fn, *args, **kw):
 
     metadata = schema.MetaData(config.db)
     self = args[0]
-    prev_meta = getattr(self, 'metadata', None)
+    prev_meta = getattr(self, "metadata", None)
     self.metadata = metadata
     try:
         return fn(*args, **kw)

@@ -1,7 +1,6 @@
 """Test against the builders in the op.* module."""
 
-from sqlalchemy import Integer, Column, ForeignKey, \
-    Table, String, Boolean
+from sqlalchemy import Integer, Column, ForeignKey, Table, String, Boolean
 from sqlalchemy.sql import column, func, text
 from sqlalchemy import event
 
@@ -17,19 +16,18 @@ from alembic.operations import schemaobj, ops
 @event.listens_for(Table, "after_parent_attach")
 def _add_cols(table, metadata):
     if table.name == "tbl_with_auto_appended_column":
-        table.append_column(Column('bat', Integer))
+        table.append_column(Column("bat", Integer))
 
 
 class OpTest(TestBase):
-
     def test_rename_table(self):
         context = op_fixture()
-        op.rename_table('t1', 't2')
+        op.rename_table("t1", "t2")
         context.assert_("ALTER TABLE t1 RENAME TO t2")
 
     def test_rename_table_schema(self):
         context = op_fixture()
-        op.rename_table('t1', 't2', schema="foo")
+        op.rename_table("t1", "t2", schema="foo")
         context.assert_("ALTER TABLE foo.t1 RENAME TO foo.t2")
 
     def test_create_index_no_expr_allowed(self):
@@ -37,15 +35,21 @@ class OpTest(TestBase):
         assert_raises_message(
             ValueError,
             r"String or text\(\) construct expected",
-            op.create_index, 'name', 'tname', [func.foo(column('x'))]
+            op.create_index,
+            "name",
+            "tname",
+            [func.foo(column("x"))],
         )
 
     def test_add_column_schema_hard_quoting(self):
         from sqlalchemy.sql.schema import quoted_name
+
         context = op_fixture("postgresql")
         op.add_column(
-            "somename", Column("colname", String),
-            schema=quoted_name("some.schema", quote=True))
+            "somename",
+            Column("colname", String),
+            schema=quoted_name("some.schema", quote=True),
+        )
 
         context.assert_(
             'ALTER TABLE "some.schema".somename ADD COLUMN colname VARCHAR'
@@ -53,68 +57,67 @@ class OpTest(TestBase):
 
     def test_rename_table_schema_hard_quoting(self):
         from sqlalchemy.sql.schema import quoted_name
+
         context = op_fixture("postgresql")
         op.rename_table(
-            't1', 't2',
-            schema=quoted_name("some.schema", quote=True))
-
-        context.assert_(
-            'ALTER TABLE "some.schema".t1 RENAME TO t2'
+            "t1", "t2", schema=quoted_name("some.schema", quote=True)
         )
+
+        context.assert_('ALTER TABLE "some.schema".t1 RENAME TO t2')
 
     def test_add_constraint_schema_hard_quoting(self):
         from sqlalchemy.sql.schema import quoted_name
+
         context = op_fixture("postgresql")
         op.create_check_constraint(
             "ck_user_name_len",
             "user_table",
-            func.len(column('name')) > 5,
-            schema=quoted_name("some.schema", quote=True)
+            func.len(column("name")) > 5,
+            schema=quoted_name("some.schema", quote=True),
         )
         context.assert_(
             'ALTER TABLE "some.schema".user_table ADD '
-            'CONSTRAINT ck_user_name_len CHECK (len(name) > 5)'
+            "CONSTRAINT ck_user_name_len CHECK (len(name) > 5)"
         )
 
     def test_create_index_quoting(self):
         context = op_fixture("postgresql")
-        op.create_index(
-            'geocoded',
-            'locations',
-            ["IShouldBeQuoted"])
+        op.create_index("geocoded", "locations", ["IShouldBeQuoted"])
         context.assert_(
-            'CREATE INDEX geocoded ON locations ("IShouldBeQuoted")')
+            'CREATE INDEX geocoded ON locations ("IShouldBeQuoted")'
+        )
 
     def test_create_index_expressions(self):
         context = op_fixture()
-        op.create_index(
-            'geocoded',
-            'locations',
-            [text('lower(coordinates)')])
+        op.create_index("geocoded", "locations", [text("lower(coordinates)")])
         context.assert_(
-            "CREATE INDEX geocoded ON locations (lower(coordinates))")
+            "CREATE INDEX geocoded ON locations (lower(coordinates))"
+        )
 
     def test_add_column(self):
         context = op_fixture()
-        op.add_column('t1', Column('c1', Integer, nullable=False))
+        op.add_column("t1", Column("c1", Integer, nullable=False))
         context.assert_("ALTER TABLE t1 ADD COLUMN c1 INTEGER NOT NULL")
 
     def test_add_column_schema(self):
         context = op_fixture()
-        op.add_column('t1', Column('c1', Integer, nullable=False), schema="foo")
+        op.add_column(
+            "t1", Column("c1", Integer, nullable=False), schema="foo"
+        )
         context.assert_("ALTER TABLE foo.t1 ADD COLUMN c1 INTEGER NOT NULL")
 
     def test_add_column_with_default(self):
         context = op_fixture()
         op.add_column(
-            't1', Column('c1', Integer, nullable=False, server_default="12"))
+            "t1", Column("c1", Integer, nullable=False, server_default="12")
+        )
         context.assert_(
-            "ALTER TABLE t1 ADD COLUMN c1 INTEGER DEFAULT '12' NOT NULL")
+            "ALTER TABLE t1 ADD COLUMN c1 INTEGER DEFAULT '12' NOT NULL"
+        )
 
     def test_add_column_with_index(self):
         context = op_fixture()
-        op.add_column(
-            't1', Column('c1', Integer, nullable=False, index=True))
+        op.add_column("t1", Column("c1", Integer, nullable=False, index=True))
         context.assert_(
             "ALTER TABLE t1 ADD COLUMN c1 INTEGER NOT NULL",
             "CREATE INDEX ix_t1_c1 ON t1 (c1)",
@@ -122,107 +125,117 @@ class OpTest(TestBase):
 
     def test_add_column_schema_with_default(self):
         context = op_fixture()
-        op.add_column('t1',
-                      Column('c1', Integer, nullable=False, server_default="12"),
-                      schema='foo')
+        op.add_column(
+            "t1",
+            Column("c1", Integer, nullable=False, server_default="12"),
+            schema="foo",
+        )
         context.assert_(
-            "ALTER TABLE foo.t1 ADD COLUMN c1 INTEGER DEFAULT '12' NOT NULL")
+            "ALTER TABLE foo.t1 ADD COLUMN c1 INTEGER DEFAULT '12' NOT NULL"
+        )
 
     def test_add_column_fk(self):
         context = op_fixture()
         op.add_column(
-            't1', Column('c1', Integer, ForeignKey('c2.id'), nullable=False))
+            "t1", Column("c1", Integer, ForeignKey("c2.id"), nullable=False)
+        )
         context.assert_(
             "ALTER TABLE t1 ADD COLUMN c1 INTEGER NOT NULL",
-            "ALTER TABLE t1 ADD FOREIGN KEY(c1) REFERENCES c2 (id)"
+            "ALTER TABLE t1 ADD FOREIGN KEY(c1) REFERENCES c2 (id)",
         )
 
     def test_add_column_schema_fk(self):
         context = op_fixture()
-        op.add_column('t1',
-                      Column('c1', Integer, ForeignKey('c2.id'), nullable=False),
-                      schema='foo')
+        op.add_column(
+            "t1",
+            Column("c1", Integer, ForeignKey("c2.id"), nullable=False),
+            schema="foo",
+        )
         context.assert_(
             "ALTER TABLE foo.t1 ADD COLUMN c1 INTEGER NOT NULL",
-            "ALTER TABLE foo.t1 ADD FOREIGN KEY(c1) REFERENCES c2 (id)"
+            "ALTER TABLE foo.t1 ADD FOREIGN KEY(c1) REFERENCES c2 (id)",
         )
 
     def test_add_column_schema_type(self):
         """Test that a schema type generates its constraints...."""
         context = op_fixture()
-        op.add_column('t1', Column('c1', Boolean, nullable=False))
+        op.add_column("t1", Column("c1", Boolean, nullable=False))
         context.assert_(
-            'ALTER TABLE t1 ADD COLUMN c1 BOOLEAN NOT NULL',
-            'ALTER TABLE t1 ADD CHECK (c1 IN (0, 1))'
+            "ALTER TABLE t1 ADD COLUMN c1 BOOLEAN NOT NULL",
+            "ALTER TABLE t1 ADD CHECK (c1 IN (0, 1))",
         )
 
     def test_add_column_schema_schema_type(self):
         """Test that a schema type generates its constraints...."""
         context = op_fixture()
-        op.add_column('t1', Column('c1', Boolean, nullable=False), schema='foo')
+        op.add_column(
+            "t1", Column("c1", Boolean, nullable=False), schema="foo"
+        )
         context.assert_(
-            'ALTER TABLE foo.t1 ADD COLUMN c1 BOOLEAN NOT NULL',
-            'ALTER TABLE foo.t1 ADD CHECK (c1 IN (0, 1))'
+            "ALTER TABLE foo.t1 ADD COLUMN c1 BOOLEAN NOT NULL",
+            "ALTER TABLE foo.t1 ADD CHECK (c1 IN (0, 1))",
         )
 
     def test_add_column_schema_type_checks_rule(self):
         """Test that a schema type doesn't generate a
         constraint based on check rule."""
-        context = op_fixture('postgresql')
-        op.add_column('t1', Column('c1', Boolean, nullable=False))
-        context.assert_(
-            'ALTER TABLE t1 ADD COLUMN c1 BOOLEAN NOT NULL',
-        )
+        context = op_fixture("postgresql")
+        op.add_column("t1", Column("c1", Boolean, nullable=False))
+        context.assert_("ALTER TABLE t1 ADD COLUMN c1 BOOLEAN NOT NULL")
 
     def test_add_column_fk_self_referential(self):
         context = op_fixture()
         op.add_column(
-            't1', Column('c1', Integer, ForeignKey('t1.c2'), nullable=False))
+            "t1", Column("c1", Integer, ForeignKey("t1.c2"), nullable=False)
+        )
         context.assert_(
             "ALTER TABLE t1 ADD COLUMN c1 INTEGER NOT NULL",
-            "ALTER TABLE t1 ADD FOREIGN KEY(c1) REFERENCES t1 (c2)"
+            "ALTER TABLE t1 ADD FOREIGN KEY(c1) REFERENCES t1 (c2)",
         )
 
     def test_add_column_schema_fk_self_referential(self):
         context = op_fixture()
         op.add_column(
-            't1',
-            Column('c1', Integer, ForeignKey('foo.t1.c2'), nullable=False),
-            schema='foo')
+            "t1",
+            Column("c1", Integer, ForeignKey("foo.t1.c2"), nullable=False),
+            schema="foo",
+        )
         context.assert_(
             "ALTER TABLE foo.t1 ADD COLUMN c1 INTEGER NOT NULL",
-            "ALTER TABLE foo.t1 ADD FOREIGN KEY(c1) REFERENCES foo.t1 (c2)"
+            "ALTER TABLE foo.t1 ADD FOREIGN KEY(c1) REFERENCES foo.t1 (c2)",
         )
 
     def test_add_column_fk_schema(self):
         context = op_fixture()
         op.add_column(
-            't1',
-            Column('c1', Integer, ForeignKey('remote.t2.c2'), nullable=False))
+            "t1",
+            Column("c1", Integer, ForeignKey("remote.t2.c2"), nullable=False),
+        )
         context.assert_(
-            'ALTER TABLE t1 ADD COLUMN c1 INTEGER NOT NULL',
-            'ALTER TABLE t1 ADD FOREIGN KEY(c1) REFERENCES remote.t2 (c2)'
+            "ALTER TABLE t1 ADD COLUMN c1 INTEGER NOT NULL",
+            "ALTER TABLE t1 ADD FOREIGN KEY(c1) REFERENCES remote.t2 (c2)",
         )
 
     def test_add_column_schema_fk_schema(self):
         context = op_fixture()
         op.add_column(
-            't1',
-            Column('c1', Integer, ForeignKey('remote.t2.c2'), nullable=False),
-            schema='foo')
+            "t1",
+            Column("c1", Integer, ForeignKey("remote.t2.c2"), nullable=False),
+            schema="foo",
+        )
         context.assert_(
-            'ALTER TABLE foo.t1 ADD COLUMN c1 INTEGER NOT NULL',
-            'ALTER TABLE foo.t1 ADD FOREIGN KEY(c1) REFERENCES remote.t2 (c2)'
+            "ALTER TABLE foo.t1 ADD COLUMN c1 INTEGER NOT NULL",
+            "ALTER TABLE foo.t1 ADD FOREIGN KEY(c1) REFERENCES remote.t2 (c2)",
         )
 
     def test_drop_column(self):
         context = op_fixture()
-        op.drop_column('t1', 'c1')
+        op.drop_column("t1", "c1")
         context.assert_("ALTER TABLE t1 DROP COLUMN c1")
 
     def test_drop_column_schema(self):
         context = op_fixture()
-        op.drop_column('t1', 'c1', schema='foo')
+        op.drop_column("t1", "c1", schema="foo")
         context.assert_("ALTER TABLE foo.t1 DROP COLUMN c1")
 
     def test_alter_column_nullable(self):
@@ -236,7 +249,7 @@ class OpTest(TestBase):
 
     def test_alter_column_schema_nullable(self):
         context = op_fixture()
-        op.alter_column("t", "c", nullable=True, schema='foo')
+        op.alter_column("t", "c", nullable=True, schema="foo")
         context.assert_(
             # TODO: not sure if this is PG only or standard
             # SQL
@@ -254,7 +267,7 @@ class OpTest(TestBase):
 
     def test_alter_column_schema_not_nullable(self):
         context = op_fixture()
-        op.alter_column("t", "c", nullable=False, schema='foo')
+        op.alter_column("t", "c", nullable=False, schema="foo")
         context.assert_(
             # TODO: not sure if this is PG only or standard
             # SQL
@@ -264,58 +277,50 @@ class OpTest(TestBase):
     def test_alter_column_rename(self):
         context = op_fixture()
         op.alter_column("t", "c", new_column_name="x")
-        context.assert_(
-            "ALTER TABLE t RENAME c TO x"
-        )
+        context.assert_("ALTER TABLE t RENAME c TO x")
 
     def test_alter_column_schema_rename(self):
         context = op_fixture()
-        op.alter_column("t", "c", new_column_name="x", schema='foo')
-        context.assert_(
-            "ALTER TABLE foo.t RENAME c TO x"
-        )
+        op.alter_column("t", "c", new_column_name="x", schema="foo")
+        context.assert_("ALTER TABLE foo.t RENAME c TO x")
 
     def test_alter_column_type(self):
         context = op_fixture()
         op.alter_column("t", "c", type_=String(50))
-        context.assert_(
-            'ALTER TABLE t ALTER COLUMN c TYPE VARCHAR(50)'
-        )
+        context.assert_("ALTER TABLE t ALTER COLUMN c TYPE VARCHAR(50)")
 
     def test_alter_column_schema_type(self):
         context = op_fixture()
-        op.alter_column("t", "c", type_=String(50), schema='foo')
-        context.assert_(
-            'ALTER TABLE foo.t ALTER COLUMN c TYPE VARCHAR(50)'
-        )
+        op.alter_column("t", "c", type_=String(50), schema="foo")
+        context.assert_("ALTER TABLE foo.t ALTER COLUMN c TYPE VARCHAR(50)")
 
     def test_alter_column_set_default(self):
         context = op_fixture()
         op.alter_column("t", "c", server_default="q")
-        context.assert_(
-            "ALTER TABLE t ALTER COLUMN c SET DEFAULT 'q'"
-        )
+        context.assert_("ALTER TABLE t ALTER COLUMN c SET DEFAULT 'q'")
 
     def test_alter_column_schema_set_default(self):
         context = op_fixture()
-        op.alter_column("t", "c", server_default="q", schema='foo')
-        context.assert_(
-            "ALTER TABLE foo.t ALTER COLUMN c SET DEFAULT 'q'"
-        )
+        op.alter_column("t", "c", server_default="q", schema="foo")
+        context.assert_("ALTER TABLE foo.t ALTER COLUMN c SET DEFAULT 'q'")
 
     def test_alter_column_set_compiled_default(self):
         context = op_fixture()
-        op.alter_column("t", "c",
-                        server_default=func.utc_thing(func.current_timestamp()))
+        op.alter_column(
+            "t", "c", server_default=func.utc_thing(func.current_timestamp())
+        )
         context.assert_(
             "ALTER TABLE t ALTER COLUMN c SET DEFAULT utc_thing(CURRENT_TIMESTAMP)"
         )
 
     def test_alter_column_schema_set_compiled_default(self):
         context = op_fixture()
-        op.alter_column("t", "c",
-                        server_default=func.utc_thing(func.current_timestamp()),
-                        schema='foo')
+        op.alter_column(
+            "t",
+            "c",
+            server_default=func.utc_thing(func.current_timestamp()),
+            schema="foo",
+        )
         context.assert_(
             "ALTER TABLE foo.t ALTER COLUMN c "
             "SET DEFAULT utc_thing(CURRENT_TIMESTAMP)"
@@ -324,101 +329,98 @@ class OpTest(TestBase):
     def test_alter_column_drop_default(self):
         context = op_fixture()
         op.alter_column("t", "c", server_default=None)
-        context.assert_(
-            'ALTER TABLE t ALTER COLUMN c DROP DEFAULT'
-        )
+        context.assert_("ALTER TABLE t ALTER COLUMN c DROP DEFAULT")
 
     def test_alter_column_schema_drop_default(self):
         context = op_fixture()
-        op.alter_column("t", "c", server_default=None, schema='foo')
-        context.assert_(
-            'ALTER TABLE foo.t ALTER COLUMN c DROP DEFAULT'
-        )
+        op.alter_column("t", "c", server_default=None, schema="foo")
+        context.assert_("ALTER TABLE foo.t ALTER COLUMN c DROP DEFAULT")
 
     def test_alter_column_schema_type_unnamed(self):
-        context = op_fixture('mssql', native_boolean=False)
+        context = op_fixture("mssql", native_boolean=False)
         op.alter_column("t", "c", type_=Boolean())
         context.assert_(
-            'ALTER TABLE t ALTER COLUMN c BIT',
-            'ALTER TABLE t ADD CHECK (c IN (0, 1))'
+            "ALTER TABLE t ALTER COLUMN c BIT",
+            "ALTER TABLE t ADD CHECK (c IN (0, 1))",
         )
 
     def test_alter_column_schema_schema_type_unnamed(self):
-        context = op_fixture('mssql', native_boolean=False)
-        op.alter_column("t", "c", type_=Boolean(), schema='foo')
+        context = op_fixture("mssql", native_boolean=False)
+        op.alter_column("t", "c", type_=Boolean(), schema="foo")
         context.assert_(
-            'ALTER TABLE foo.t ALTER COLUMN c BIT',
-            'ALTER TABLE foo.t ADD CHECK (c IN (0, 1))'
+            "ALTER TABLE foo.t ALTER COLUMN c BIT",
+            "ALTER TABLE foo.t ADD CHECK (c IN (0, 1))",
         )
 
     def test_alter_column_schema_type_named(self):
-        context = op_fixture('mssql', native_boolean=False)
+        context = op_fixture("mssql", native_boolean=False)
         op.alter_column("t", "c", type_=Boolean(name="xyz"))
         context.assert_(
-            'ALTER TABLE t ALTER COLUMN c BIT',
-            'ALTER TABLE t ADD CONSTRAINT xyz CHECK (c IN (0, 1))'
+            "ALTER TABLE t ALTER COLUMN c BIT",
+            "ALTER TABLE t ADD CONSTRAINT xyz CHECK (c IN (0, 1))",
         )
 
     def test_alter_column_schema_schema_type_named(self):
-        context = op_fixture('mssql', native_boolean=False)
-        op.alter_column("t", "c", type_=Boolean(name="xyz"), schema='foo')
+        context = op_fixture("mssql", native_boolean=False)
+        op.alter_column("t", "c", type_=Boolean(name="xyz"), schema="foo")
         context.assert_(
-            'ALTER TABLE foo.t ALTER COLUMN c BIT',
-            'ALTER TABLE foo.t ADD CONSTRAINT xyz CHECK (c IN (0, 1))'
+            "ALTER TABLE foo.t ALTER COLUMN c BIT",
+            "ALTER TABLE foo.t ADD CONSTRAINT xyz CHECK (c IN (0, 1))",
         )
 
     def test_alter_column_schema_type_existing_type(self):
-        context = op_fixture('mssql', native_boolean=False)
+        context = op_fixture("mssql", native_boolean=False)
         op.alter_column(
-            "t", "c", type_=String(10), existing_type=Boolean(name="xyz"))
+            "t", "c", type_=String(10), existing_type=Boolean(name="xyz")
+        )
         context.assert_(
-            'ALTER TABLE t DROP CONSTRAINT xyz',
-            'ALTER TABLE t ALTER COLUMN c VARCHAR(10)'
+            "ALTER TABLE t DROP CONSTRAINT xyz",
+            "ALTER TABLE t ALTER COLUMN c VARCHAR(10)",
         )
 
     def test_alter_column_schema_schema_type_existing_type(self):
-        context = op_fixture('mssql', native_boolean=False)
-        op.alter_column("t", "c", type_=String(10),
-                        existing_type=Boolean(name="xyz"), schema='foo')
+        context = op_fixture("mssql", native_boolean=False)
+        op.alter_column(
+            "t",
+            "c",
+            type_=String(10),
+            existing_type=Boolean(name="xyz"),
+            schema="foo",
+        )
         context.assert_(
-            'ALTER TABLE foo.t DROP CONSTRAINT xyz',
-            'ALTER TABLE foo.t ALTER COLUMN c VARCHAR(10)'
+            "ALTER TABLE foo.t DROP CONSTRAINT xyz",
+            "ALTER TABLE foo.t ALTER COLUMN c VARCHAR(10)",
         )
 
     def test_alter_column_schema_type_existing_type_no_const(self):
-        context = op_fixture('postgresql')
+        context = op_fixture("postgresql")
         op.alter_column("t", "c", type_=String(10), existing_type=Boolean())
-        context.assert_(
-            'ALTER TABLE t ALTER COLUMN c TYPE VARCHAR(10)'
-        )
+        context.assert_("ALTER TABLE t ALTER COLUMN c TYPE VARCHAR(10)")
 
     def test_alter_column_schema_schema_type_existing_type_no_const(self):
-        context = op_fixture('postgresql')
-        op.alter_column("t", "c", type_=String(10), existing_type=Boolean(),
-                        schema='foo')
-        context.assert_(
-            'ALTER TABLE foo.t ALTER COLUMN c TYPE VARCHAR(10)'
+        context = op_fixture("postgresql")
+        op.alter_column(
+            "t", "c", type_=String(10), existing_type=Boolean(), schema="foo"
         )
+        context.assert_("ALTER TABLE foo.t ALTER COLUMN c TYPE VARCHAR(10)")
 
     def test_alter_column_schema_type_existing_type_no_new_type(self):
-        context = op_fixture('postgresql')
+        context = op_fixture("postgresql")
         op.alter_column("t", "c", nullable=False, existing_type=Boolean())
-        context.assert_(
-            'ALTER TABLE t ALTER COLUMN c SET NOT NULL'
-        )
+        context.assert_("ALTER TABLE t ALTER COLUMN c SET NOT NULL")
 
     def test_alter_column_schema_schema_type_existing_type_no_new_type(self):
-        context = op_fixture('postgresql')
-        op.alter_column("t", "c", nullable=False, existing_type=Boolean(),
-                        schema='foo')
-        context.assert_(
-            'ALTER TABLE foo.t ALTER COLUMN c SET NOT NULL'
+        context = op_fixture("postgresql")
+        op.alter_column(
+            "t", "c", nullable=False, existing_type=Boolean(), schema="foo"
         )
+        context.assert_("ALTER TABLE foo.t ALTER COLUMN c SET NOT NULL")
 
     def test_add_foreign_key(self):
         context = op_fixture()
-        op.create_foreign_key('fk_test', 't1', 't2',
-                              ['foo', 'bar'], ['bat', 'hoho'])
+        op.create_foreign_key(
+            "fk_test", "t1", "t2", ["foo", "bar"], ["bat", "hoho"]
+        )
         context.assert_(
             "ALTER TABLE t1 ADD CONSTRAINT fk_test FOREIGN KEY(foo, bar) "
             "REFERENCES t2 (bat, hoho)"
@@ -426,9 +428,15 @@ class OpTest(TestBase):
 
     def test_add_foreign_key_schema(self):
         context = op_fixture()
-        op.create_foreign_key('fk_test', 't1', 't2',
-                              ['foo', 'bar'], ['bat', 'hoho'],
-                              source_schema='foo2', referent_schema='bar2')
+        op.create_foreign_key(
+            "fk_test",
+            "t1",
+            "t2",
+            ["foo", "bar"],
+            ["bat", "hoho"],
+            source_schema="foo2",
+            referent_schema="bar2",
+        )
         context.assert_(
             "ALTER TABLE foo2.t1 ADD CONSTRAINT fk_test FOREIGN KEY(foo, bar) "
             "REFERENCES bar2.t2 (bat, hoho)"
@@ -436,9 +444,15 @@ class OpTest(TestBase):
 
     def test_add_foreign_key_schema_same_tablename(self):
         context = op_fixture()
-        op.create_foreign_key('fk_test', 't1', 't1',
-                              ['foo', 'bar'], ['bat', 'hoho'],
-                              source_schema='foo2', referent_schema='bar2')
+        op.create_foreign_key(
+            "fk_test",
+            "t1",
+            "t1",
+            ["foo", "bar"],
+            ["bat", "hoho"],
+            source_schema="foo2",
+            referent_schema="bar2",
+        )
         context.assert_(
             "ALTER TABLE foo2.t1 ADD CONSTRAINT fk_test FOREIGN KEY(foo, bar) "
             "REFERENCES bar2.t1 (bat, hoho)"
@@ -446,9 +460,14 @@ class OpTest(TestBase):
 
     def test_add_foreign_key_onupdate(self):
         context = op_fixture()
-        op.create_foreign_key('fk_test', 't1', 't2',
-                              ['foo', 'bar'], ['bat', 'hoho'],
-                              onupdate='CASCADE')
+        op.create_foreign_key(
+            "fk_test",
+            "t1",
+            "t2",
+            ["foo", "bar"],
+            ["bat", "hoho"],
+            onupdate="CASCADE",
+        )
         context.assert_(
             "ALTER TABLE t1 ADD CONSTRAINT fk_test FOREIGN KEY(foo, bar) "
             "REFERENCES t2 (bat, hoho) ON UPDATE CASCADE"
@@ -456,9 +475,14 @@ class OpTest(TestBase):
 
     def test_add_foreign_key_ondelete(self):
         context = op_fixture()
-        op.create_foreign_key('fk_test', 't1', 't2',
-                              ['foo', 'bar'], ['bat', 'hoho'],
-                              ondelete='CASCADE')
+        op.create_foreign_key(
+            "fk_test",
+            "t1",
+            "t2",
+            ["foo", "bar"],
+            ["bat", "hoho"],
+            ondelete="CASCADE",
+        )
         context.assert_(
             "ALTER TABLE t1 ADD CONSTRAINT fk_test FOREIGN KEY(foo, bar) "
             "REFERENCES t2 (bat, hoho) ON DELETE CASCADE"
@@ -466,9 +490,14 @@ class OpTest(TestBase):
 
     def test_add_foreign_key_deferrable(self):
         context = op_fixture()
-        op.create_foreign_key('fk_test', 't1', 't2',
-                              ['foo', 'bar'], ['bat', 'hoho'],
-                              deferrable=True)
+        op.create_foreign_key(
+            "fk_test",
+            "t1",
+            "t2",
+            ["foo", "bar"],
+            ["bat", "hoho"],
+            deferrable=True,
+        )
         context.assert_(
             "ALTER TABLE t1 ADD CONSTRAINT fk_test FOREIGN KEY(foo, bar) "
             "REFERENCES t2 (bat, hoho) DEFERRABLE"
@@ -476,9 +505,14 @@ class OpTest(TestBase):
 
     def test_add_foreign_key_initially(self):
         context = op_fixture()
-        op.create_foreign_key('fk_test', 't1', 't2',
-                              ['foo', 'bar'], ['bat', 'hoho'],
-                              initially='INITIAL')
+        op.create_foreign_key(
+            "fk_test",
+            "t1",
+            "t2",
+            ["foo", "bar"],
+            ["bat", "hoho"],
+            initially="INITIAL",
+        )
         context.assert_(
             "ALTER TABLE t1 ADD CONSTRAINT fk_test FOREIGN KEY(foo, bar) "
             "REFERENCES t2 (bat, hoho) INITIALLY INITIAL"
@@ -487,9 +521,14 @@ class OpTest(TestBase):
     @config.requirements.foreign_key_match
     def test_add_foreign_key_match(self):
         context = op_fixture()
-        op.create_foreign_key('fk_test', 't1', 't2',
-                              ['foo', 'bar'], ['bat', 'hoho'],
-                              match='SIMPLE')
+        op.create_foreign_key(
+            "fk_test",
+            "t1",
+            "t2",
+            ["foo", "bar"],
+            ["bat", "hoho"],
+            match="SIMPLE",
+        )
         context.assert_(
             "ALTER TABLE t1 ADD CONSTRAINT fk_test FOREIGN KEY(foo, bar) "
             "REFERENCES t2 (bat, hoho) MATCH SIMPLE"
@@ -497,24 +536,44 @@ class OpTest(TestBase):
 
     def test_add_foreign_key_dialect_kw(self):
         op_fixture()
-        with mock.patch(
-                "sqlalchemy.schema.ForeignKeyConstraint"
-        ) as fkc:
-            op.create_foreign_key('fk_test', 't1', 't2',
-                                  ['foo', 'bar'], ['bat', 'hoho'],
-                                  foobar_arg='xyz')
+        with mock.patch("sqlalchemy.schema.ForeignKeyConstraint") as fkc:
+            op.create_foreign_key(
+                "fk_test",
+                "t1",
+                "t2",
+                ["foo", "bar"],
+                ["bat", "hoho"],
+                foobar_arg="xyz",
+            )
             if config.requirements.foreign_key_match.enabled:
-                eq_(fkc.mock_calls[0],
-                    mock.call(['foo', 'bar'], ['t2.bat', 't2.hoho'],
-                              onupdate=None, ondelete=None, name='fk_test',
-                              foobar_arg='xyz',
-                              deferrable=None, initially=None, match=None))
+                eq_(
+                    fkc.mock_calls[0],
+                    mock.call(
+                        ["foo", "bar"],
+                        ["t2.bat", "t2.hoho"],
+                        onupdate=None,
+                        ondelete=None,
+                        name="fk_test",
+                        foobar_arg="xyz",
+                        deferrable=None,
+                        initially=None,
+                        match=None,
+                    ),
+                )
             else:
-                eq_(fkc.mock_calls[0],
-                    mock.call(['foo', 'bar'], ['t2.bat', 't2.hoho'],
-                              onupdate=None, ondelete=None, name='fk_test',
-                              foobar_arg='xyz',
-                              deferrable=None, initially=None))
+                eq_(
+                    fkc.mock_calls[0],
+                    mock.call(
+                        ["foo", "bar"],
+                        ["t2.bat", "t2.hoho"],
+                        onupdate=None,
+                        ondelete=None,
+                        name="fk_test",
+                        foobar_arg="xyz",
+                        deferrable=None,
+                        initially=None,
+                    ),
+                )
 
     def test_add_foreign_key_self_referential(self):
         context = op_fixture()
@@ -541,9 +600,7 @@ class OpTest(TestBase):
     def test_add_check_constraint(self):
         context = op_fixture()
         op.create_check_constraint(
-            "ck_user_name_len",
-            "user_table",
-            func.len(column('name')) > 5
+            "ck_user_name_len", "user_table", func.len(column("name")) > 5
         )
         context.assert_(
             "ALTER TABLE user_table ADD CONSTRAINT ck_user_name_len "
@@ -555,8 +612,8 @@ class OpTest(TestBase):
         op.create_check_constraint(
             "ck_user_name_len",
             "user_table",
-            func.len(column('name')) > 5,
-            schema='foo'
+            func.len(column("name")) > 5,
+            schema="foo",
         )
         context.assert_(
             "ALTER TABLE foo.user_table ADD CONSTRAINT ck_user_name_len "
@@ -565,7 +622,7 @@ class OpTest(TestBase):
 
     def test_add_unique_constraint(self):
         context = op_fixture()
-        op.create_unique_constraint('uk_test', 't1', ['foo', 'bar'])
+        op.create_unique_constraint("uk_test", "t1", ["foo", "bar"])
         context.assert_(
             "ALTER TABLE t1 ADD CONSTRAINT uk_test UNIQUE (foo, bar)"
         )
@@ -574,12 +631,12 @@ class OpTest(TestBase):
         context = op_fixture()
 
         op.create_foreign_key(
-            name='some_fk',
-            source='some_table',
-            referent='referred_table',
-            local_cols=['a', 'b'],
-            remote_cols=['c', 'd'],
-            ondelete='CASCADE'
+            name="some_fk",
+            source="some_table",
+            referent="referred_table",
+            local_cols=["a", "b"],
+            remote_cols=["c", "d"],
+            ondelete="CASCADE",
         )
         context.assert_(
             "ALTER TABLE some_table ADD CONSTRAINT some_fk "
@@ -590,27 +647,26 @@ class OpTest(TestBase):
     def test_add_unique_constraint_legacy_kwarg(self):
         context = op_fixture()
         op.create_unique_constraint(
-            name='uk_test',
-            source='t1',
-            local_cols=['foo', 'bar'])
+            name="uk_test", source="t1", local_cols=["foo", "bar"]
+        )
         context.assert_(
             "ALTER TABLE t1 ADD CONSTRAINT uk_test UNIQUE (foo, bar)"
         )
 
     def test_drop_constraint_legacy_kwarg(self):
         context = op_fixture()
-        op.drop_constraint(name='pk_name',
-                           table_name='sometable',
-                           type_='primary')
-        context.assert_(
-            "ALTER TABLE sometable DROP CONSTRAINT pk_name"
+        op.drop_constraint(
+            name="pk_name", table_name="sometable", type_="primary"
         )
+        context.assert_("ALTER TABLE sometable DROP CONSTRAINT pk_name")
 
     def test_create_pk_legacy_kwarg(self):
         context = op_fixture()
-        op.create_primary_key(name=None,
-                              table_name='sometable',
-                              cols=['router_id', 'l3_agent_id'])
+        op.create_primary_key(
+            name=None,
+            table_name="sometable",
+            cols=["router_id", "l3_agent_id"],
+        )
         context.assert_(
             "ALTER TABLE sometable ADD PRIMARY KEY (router_id, l3_agent_id)"
         )
@@ -623,57 +679,50 @@ class OpTest(TestBase):
             "missing required positional argument: columns",
             op.create_primary_key,
             name=None,
-            table_name='sometable',
-            wrong_cols=['router_id', 'l3_agent_id']
+            table_name="sometable",
+            wrong_cols=["router_id", "l3_agent_id"],
         )
 
     def test_add_unique_constraint_schema(self):
         context = op_fixture()
         op.create_unique_constraint(
-            'uk_test', 't1', ['foo', 'bar'], schema='foo')
+            "uk_test", "t1", ["foo", "bar"], schema="foo"
+        )
         context.assert_(
             "ALTER TABLE foo.t1 ADD CONSTRAINT uk_test UNIQUE (foo, bar)"
         )
 
     def test_drop_constraint(self):
         context = op_fixture()
-        op.drop_constraint('foo_bar_bat', 't1')
-        context.assert_(
-            "ALTER TABLE t1 DROP CONSTRAINT foo_bar_bat"
-        )
+        op.drop_constraint("foo_bar_bat", "t1")
+        context.assert_("ALTER TABLE t1 DROP CONSTRAINT foo_bar_bat")
 
     def test_drop_constraint_schema(self):
         context = op_fixture()
-        op.drop_constraint('foo_bar_bat', 't1', schema='foo')
-        context.assert_(
-            "ALTER TABLE foo.t1 DROP CONSTRAINT foo_bar_bat"
-        )
+        op.drop_constraint("foo_bar_bat", "t1", schema="foo")
+        context.assert_("ALTER TABLE foo.t1 DROP CONSTRAINT foo_bar_bat")
 
     def test_create_index(self):
         context = op_fixture()
-        op.create_index('ik_test', 't1', ['foo', 'bar'])
-        context.assert_(
-            "CREATE INDEX ik_test ON t1 (foo, bar)"
-        )
+        op.create_index("ik_test", "t1", ["foo", "bar"])
+        context.assert_("CREATE INDEX ik_test ON t1 (foo, bar)")
 
     def test_create_unique_index(self):
         context = op_fixture()
-        op.create_index('ik_test', 't1', ['foo', 'bar'], unique=True)
-        context.assert_(
-            "CREATE UNIQUE INDEX ik_test ON t1 (foo, bar)"
-        )
+        op.create_index("ik_test", "t1", ["foo", "bar"], unique=True)
+        context.assert_("CREATE UNIQUE INDEX ik_test ON t1 (foo, bar)")
 
     def test_create_index_quote_flag(self):
         context = op_fixture()
-        op.create_index('ik_test', 't1', ['foo', 'bar'], quote=True)
-        context.assert_(
-            'CREATE INDEX "ik_test" ON t1 (foo, bar)'
-        )
+        op.create_index("ik_test", "t1", ["foo", "bar"], quote=True)
+        context.assert_('CREATE INDEX "ik_test" ON t1 (foo, bar)')
 
     def test_create_index_table_col_event(self):
         context = op_fixture()
 
-        op.create_index('ik_test', 'tbl_with_auto_appended_column', ['foo', 'bar'])
+        op.create_index(
+            "ik_test", "tbl_with_auto_appended_column", ["foo", "bar"]
+        )
         context.assert_(
             "CREATE INDEX ik_test ON tbl_with_auto_appended_column (foo, bar)"
         )
@@ -681,8 +730,8 @@ class OpTest(TestBase):
     def test_add_unique_constraint_col_event(self):
         context = op_fixture()
         op.create_unique_constraint(
-            'ik_test',
-            'tbl_with_auto_appended_column', ['foo', 'bar'])
+            "ik_test", "tbl_with_auto_appended_column", ["foo", "bar"]
+        )
         context.assert_(
             "ALTER TABLE tbl_with_auto_appended_column "
             "ADD CONSTRAINT ik_test UNIQUE (foo, bar)"
@@ -690,45 +739,35 @@ class OpTest(TestBase):
 
     def test_create_index_schema(self):
         context = op_fixture()
-        op.create_index('ik_test', 't1', ['foo', 'bar'], schema='foo')
-        context.assert_(
-            "CREATE INDEX ik_test ON foo.t1 (foo, bar)"
-        )
+        op.create_index("ik_test", "t1", ["foo", "bar"], schema="foo")
+        context.assert_("CREATE INDEX ik_test ON foo.t1 (foo, bar)")
 
     def test_drop_index(self):
         context = op_fixture()
-        op.drop_index('ik_test')
-        context.assert_(
-            "DROP INDEX ik_test"
-        )
+        op.drop_index("ik_test")
+        context.assert_("DROP INDEX ik_test")
 
     def test_drop_index_schema(self):
         context = op_fixture()
-        op.drop_index('ik_test', schema='foo')
-        context.assert_(
-            "DROP INDEX foo.ik_test"
-        )
+        op.drop_index("ik_test", schema="foo")
+        context.assert_("DROP INDEX foo.ik_test")
 
     def test_drop_table(self):
         context = op_fixture()
-        op.drop_table('tb_test')
-        context.assert_(
-            "DROP TABLE tb_test"
-        )
+        op.drop_table("tb_test")
+        context.assert_("DROP TABLE tb_test")
 
     def test_drop_table_schema(self):
         context = op_fixture()
-        op.drop_table('tb_test', schema='foo')
-        context.assert_(
-            "DROP TABLE foo.tb_test"
-        )
+        op.drop_table("tb_test", schema="foo")
+        context.assert_("DROP TABLE foo.tb_test")
 
     def test_create_table_selfref(self):
         context = op_fixture()
         op.create_table(
             "some_table",
-            Column('id', Integer, primary_key=True),
-            Column('st_id', Integer, ForeignKey('some_table.id'))
+            Column("id", Integer, primary_key=True),
+            Column("st_id", Integer, ForeignKey("some_table.id")),
         )
         context.assert_(
             "CREATE TABLE some_table ("
@@ -742,9 +781,9 @@ class OpTest(TestBase):
         context = op_fixture()
         t1 = op.create_table(
             "some_table",
-            Column('id', Integer, primary_key=True),
-            Column('foo_id', Integer, ForeignKey('foo.id')),
-            schema='schema'
+            Column("id", Integer, primary_key=True),
+            Column("foo_id", Integer, ForeignKey("foo.id")),
+            schema="schema",
         )
         context.assert_(
             "CREATE TABLE schema.some_table ("
@@ -760,9 +799,9 @@ class OpTest(TestBase):
         context = op_fixture()
         t1 = op.create_table(
             "some_table",
-            Column('x', Integer),
-            Column('y', Integer),
-            Column('z', Integer),
+            Column("x", Integer),
+            Column("y", Integer),
+            Column("z", Integer),
         )
         context.assert_(
             "CREATE TABLE some_table (x INTEGER, y INTEGER, z INTEGER)"
@@ -773,9 +812,9 @@ class OpTest(TestBase):
         context = op_fixture()
         op.create_table(
             "some_table",
-            Column('id', Integer, primary_key=True),
-            Column('foo_id', Integer, ForeignKey('foo.id')),
-            Column('foo_bar', Integer, ForeignKey('foo.bar')),
+            Column("id", Integer, primary_key=True),
+            Column("foo_id", Integer, ForeignKey("foo.id")),
+            Column("foo_bar", Integer, ForeignKey("foo.bar")),
         )
         context.assert_(
             "CREATE TABLE some_table ("
@@ -792,27 +831,26 @@ class OpTest(TestBase):
         from sqlalchemy.sql import table, column
         from sqlalchemy import String, Integer
 
-        account = table('account',
-                        column('name', String),
-                        column('id', Integer)
-                        )
-        op.execute(
-            account.update().
-            where(account.c.name == op.inline_literal('account 1')).
-            values({'name': op.inline_literal('account 2')})
+        account = table(
+            "account", column("name", String), column("id", Integer)
         )
         op.execute(
-            account.update().
-            where(account.c.id == op.inline_literal(1)).
-            values({'id': op.inline_literal(2)})
+            account.update()
+            .where(account.c.name == op.inline_literal("account 1"))
+            .values({"name": op.inline_literal("account 2")})
+        )
+        op.execute(
+            account.update()
+            .where(account.c.id == op.inline_literal(1))
+            .values({"id": op.inline_literal(2)})
         )
         context.assert_(
             "UPDATE account SET name='account 2' WHERE account.name = 'account 1'",
-            "UPDATE account SET id=2 WHERE account.id = 1"
+            "UPDATE account SET id=2 WHERE account.id = 1",
         )
 
     def test_cant_op(self):
-        if hasattr(op, '_proxy'):
+        if hasattr(op, "_proxy"):
             del op._proxy
         assert_raises_message(
             NameError,
@@ -820,7 +858,8 @@ class OpTest(TestBase):
             "proxy object has not yet been established "
             "for the Alembic 'Operations' class.  "
             "Try placing this code inside a callable.",
-            op.inline_literal, "asdf"
+            op.inline_literal,
+            "asdf",
         )
 
     def test_naming_changes(self):
@@ -832,17 +871,17 @@ class OpTest(TestBase):
         op.alter_column("t", "c", new_column_name="x")
         context.assert_("ALTER TABLE t RENAME c TO x")
 
-        context = op_fixture('mysql')
+        context = op_fixture("mysql")
         op.drop_constraint("f1", "t1", type="foreignkey")
         context.assert_("ALTER TABLE t1 DROP FOREIGN KEY f1")
 
-        context = op_fixture('mysql')
+        context = op_fixture("mysql")
         op.drop_constraint("f1", "t1", type_="foreignkey")
         context.assert_("ALTER TABLE t1 DROP FOREIGN KEY f1")
 
     def test_naming_changes_drop_idx(self):
-        context = op_fixture('mssql')
-        op.drop_index('ik_test', tablename='t1')
+        context = op_fixture("mssql")
+        op.drop_index("ik_test", tablename="t1")
         context.assert_("DROP INDEX ik_test ON t1")
 
 
@@ -852,20 +891,19 @@ class SQLModeOpTest(TestBase):
         from sqlalchemy.sql import table, column
         from sqlalchemy import String, Integer
 
-        account = table('account',
-                        column('name', String),
-                        column('id', Integer)
-                        )
-        op.execute(
-            account.update().
-            where(account.c.name == op.inline_literal('account 1')).
-            values({'name': op.inline_literal('account 2')})
+        account = table(
+            "account", column("name", String), column("id", Integer)
         )
-        op.execute(text("update table set foo=:bar").bindparams(bar='bat'))
+        op.execute(
+            account.update()
+            .where(account.c.name == op.inline_literal("account 1"))
+            .values({"name": op.inline_literal("account 2")})
+        )
+        op.execute(text("update table set foo=:bar").bindparams(bar="bat"))
         context.assert_(
             "UPDATE account SET name='account 2' "
             "WHERE account.name = 'account 1'",
-            "update table set foo='bat'"
+            "update table set foo='bat'",
         )
 
     def test_create_table_literal_binds(self):
@@ -873,8 +911,8 @@ class SQLModeOpTest(TestBase):
 
         op.create_table(
             "some_table",
-            Column('id', Integer, primary_key=True),
-            Column('st_id', Integer, ForeignKey('some_table.id'))
+            Column("id", Integer, primary_key=True),
+            Column("st_id", Integer, ForeignKey("some_table.id")),
         )
 
         context.assert_(
@@ -907,7 +945,7 @@ class CustomOpTest(TestBase):
             operations.execute("CREATE SEQUENCE %s" % operation.sequence_name)
 
         context = op_fixture()
-        op.create_sequence('foob')
+        op.create_sequence("foob")
         context.assert_("CREATE SEQUENCE foob")
 
 
@@ -923,48 +961,36 @@ class EnsureOrigObjectFromToTest(TestBase):
 
     def test_drop_index(self):
         schema_obj = schemaobj.SchemaObjects()
-        idx = schema_obj.index('x', 'y', ['z'])
+        idx = schema_obj.index("x", "y", ["z"])
         op = ops.DropIndexOp.from_index(idx)
-        is_(
-            op.to_index(), idx
-        )
+        is_(op.to_index(), idx)
 
     def test_create_index(self):
         schema_obj = schemaobj.SchemaObjects()
-        idx = schema_obj.index('x', 'y', ['z'])
+        idx = schema_obj.index("x", "y", ["z"])
         op = ops.CreateIndexOp.from_index(idx)
-        is_(
-            op.to_index(), idx
-        )
+        is_(op.to_index(), idx)
 
     def test_drop_table(self):
         schema_obj = schemaobj.SchemaObjects()
-        table = schema_obj.table('x', Column('q', Integer))
+        table = schema_obj.table("x", Column("q", Integer))
         op = ops.DropTableOp.from_table(table)
-        is_(
-            op.to_table(), table
-        )
+        is_(op.to_table(), table)
 
     def test_create_table(self):
         schema_obj = schemaobj.SchemaObjects()
-        table = schema_obj.table('x', Column('q', Integer))
+        table = schema_obj.table("x", Column("q", Integer))
         op = ops.CreateTableOp.from_table(table)
-        is_(
-            op.to_table(), table
-        )
+        is_(op.to_table(), table)
 
     def test_drop_unique_constraint(self):
         schema_obj = schemaobj.SchemaObjects()
-        const = schema_obj.unique_constraint('x', 'foobar', ['a'])
+        const = schema_obj.unique_constraint("x", "foobar", ["a"])
         op = ops.DropConstraintOp.from_constraint(const)
-        is_(
-            op.to_constraint(), const
-        )
+        is_(op.to_constraint(), const)
 
     def test_drop_constraint_not_available(self):
-        op = ops.DropConstraintOp('x', 'y', type_='unique')
+        op = ops.DropConstraintOp("x", "y", type_="unique")
         assert_raises_message(
-            ValueError,
-            "constraint cannot be produced",
-            op.to_constraint
+            ValueError, "constraint cannot be produced", op.to_constraint
         )

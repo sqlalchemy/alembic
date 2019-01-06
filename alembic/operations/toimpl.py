@@ -8,8 +8,7 @@ from sqlalchemy import schema as sa_schema
 def alter_column(operations, operation):
 
     compiler = operations.impl.dialect.statement_compiler(
-        operations.impl.dialect,
-        None
+        operations.impl.dialect, None
     )
 
     existing_type = operation.existing_type
@@ -24,24 +23,23 @@ def alter_column(operations, operation):
     nullable = operation.modify_nullable
 
     def _count_constraint(constraint):
-        return not isinstance(
-            constraint,
-            sa_schema.PrimaryKeyConstraint) and \
-            (not constraint._create_rule or
-                constraint._create_rule(compiler))
+        return not isinstance(constraint, sa_schema.PrimaryKeyConstraint) and (
+            not constraint._create_rule or constraint._create_rule(compiler)
+        )
 
     if existing_type and type_:
         t = operations.schema_obj.table(
             table_name,
             sa_schema.Column(column_name, existing_type),
-            schema=schema
+            schema=schema,
         )
         for constraint in t.constraints:
             if _count_constraint(constraint):
                 operations.impl.drop_constraint(constraint)
 
     operations.impl.alter_column(
-        table_name, column_name,
+        table_name,
+        column_name,
         nullable=nullable,
         server_default=server_default,
         name=new_column_name,
@@ -57,7 +55,7 @@ def alter_column(operations, operation):
         t = operations.schema_obj.table(
             table_name,
             operations.schema_obj.column(column_name, type_),
-            schema=schema
+            schema=schema,
         )
         for constraint in t.constraints:
             if _count_constraint(constraint):
@@ -75,10 +73,7 @@ def drop_table(operations, operation):
 def drop_column(operations, operation):
     column = operation.to_column(operations.migration_context)
     operations.impl.drop_column(
-        operation.table_name,
-        column,
-        schema=operation.schema,
-        **operation.kw
+        operation.table_name, column, schema=operation.schema, **operation.kw
     )
 
 
@@ -105,9 +100,8 @@ def create_table(operations, operation):
 @Operations.implementation_for(ops.RenameTableOp)
 def rename_table(operations, operation):
     operations.impl.rename_table(
-        operation.table_name,
-        operation.new_table_name,
-        schema=operation.schema)
+        operation.table_name, operation.new_table_name, schema=operation.schema
+    )
 
 
 @Operations.implementation_for(ops.AddColumnOp)
@@ -117,11 +111,7 @@ def add_column(operations, operation):
     schema = operation.schema
 
     t = operations.schema_obj.table(table_name, column, schema=schema)
-    operations.impl.add_column(
-        table_name,
-        column,
-        schema=schema
-    )
+    operations.impl.add_column(table_name, column, schema=schema)
     for constraint in t.constraints:
         if not isinstance(constraint, sa_schema.PrimaryKeyConstraint):
             operations.impl.add_constraint(constraint)
@@ -151,12 +141,12 @@ def drop_constraint(operations, operation):
 @Operations.implementation_for(ops.BulkInsertOp)
 def bulk_insert(operations, operation):
     operations.impl.bulk_insert(
-        operation.table, operation.rows, multiinsert=operation.multiinsert)
+        operation.table, operation.rows, multiinsert=operation.multiinsert
+    )
 
 
 @Operations.implementation_for(ops.ExecuteSQLOp)
 def execute_sql(operations, operation):
     operations.migration_context.impl.execute(
-        operation.sqltext,
-        execution_options=operation.execution_options
+        operation.sqltext, execution_options=operation.execution_options
     )

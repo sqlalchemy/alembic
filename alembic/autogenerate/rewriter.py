@@ -95,7 +95,8 @@ class Rewriter(object):
             yield directive
         else:
             for r_directive in util.to_list(
-                    _rewriter(context, revision, directive)):
+                _rewriter(context, revision, directive)
+            ):
                 yield r_directive
 
     def __call__(self, context, revision, directives):
@@ -110,17 +111,20 @@ class Rewriter(object):
             ret = self._traverse_for(context, revision, directive.upgrade_ops)
             if len(ret) != 1:
                 raise ValueError(
-                    "Can only return single object for UpgradeOps traverse")
+                    "Can only return single object for UpgradeOps traverse"
+                )
             upgrade_ops_list.append(ret[0])
         directive.upgrade_ops = upgrade_ops_list
 
         downgrade_ops_list = []
         for downgrade_ops in directive.downgrade_ops_list:
             ret = self._traverse_for(
-                context, revision, directive.downgrade_ops)
+                context, revision, directive.downgrade_ops
+            )
             if len(ret) != 1:
                 raise ValueError(
-                    "Can only return single object for DowngradeOps traverse")
+                    "Can only return single object for DowngradeOps traverse"
+                )
             downgrade_ops_list.append(ret[0])
         directive.downgrade_ops = downgrade_ops_list
 

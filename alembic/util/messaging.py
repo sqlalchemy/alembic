@@ -11,16 +11,16 @@ log = logging.getLogger(__name__)
 
 if py27:
     # disable "no handler found" errors
-    logging.getLogger('alembic').addHandler(logging.NullHandler())
+    logging.getLogger("alembic").addHandler(logging.NullHandler())
 
 
 try:
     import fcntl
     import termios
     import struct
-    ioctl = fcntl.ioctl(0, termios.TIOCGWINSZ,
-                        struct.pack('HHHH', 0, 0, 0, 0))
-    _h, TERMWIDTH, _hp, _wp = struct.unpack('HHHH', ioctl)
+
+    ioctl = fcntl.ioctl(0, termios.TIOCGWINSZ, struct.pack("HHHH", 0, 0, 0, 0))
+    _h, TERMWIDTH, _hp, _wp = struct.unpack("HHHH", ioctl)
     if TERMWIDTH <= 0:  # can occur if running in emacs pseudo-tty
         TERMWIDTH = None
 except (ImportError, IOError):
@@ -28,10 +28,10 @@ except (ImportError, IOError):
 
 
 def write_outstream(stream, *text):
-    encoding = getattr(stream, 'encoding', 'ascii') or 'ascii'
+    encoding = getattr(stream, "encoding", "ascii") or "ascii"
     for t in text:
         if not isinstance(t, binary_type):
-            t = t.encode(encoding, 'replace')
+            t = t.encode(encoding, "replace")
         t = t.decode(encoding)
         try:
             stream.write(t)
@@ -62,7 +62,7 @@ def err(message):
 def obfuscate_url_pw(u):
     u = url.make_url(u)
     if u.password:
-        u.password = 'XXXXX'
+        u.password = "XXXXX"
     return str(u)
 
 

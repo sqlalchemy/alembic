@@ -25,4 +25,3 @@ def testing_engine(url=None, options=None):
     engine = create_engine(url, **options)
 
     return engine
-

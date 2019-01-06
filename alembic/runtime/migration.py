@@ -2,8 +2,14 @@ import logging
 import sys
 from contextlib import contextmanager
 
-from sqlalchemy import MetaData, Table, Column, String, literal_column,\
-    PrimaryKeyConstraint
+from sqlalchemy import (
+    MetaData,
+    Table,
+    Column,
+    String,
+    literal_column,
+    PrimaryKeyConstraint,
+)
 from sqlalchemy.engine.strategies import MockEngineStrategy
 from sqlalchemy.engine import url as sqla_url
 from sqlalchemy.engine import Connection
@@ -65,71 +71,82 @@ class MigrationContext(object):
         self.environment_context = environment_context
         self.opts = opts
         self.dialect = dialect
-        self.script = opts.get('script')
-        as_sql = opts.get('as_sql', False)
+        self.script = opts.get("script")
+        as_sql = opts.get("as_sql", False)
         transactional_ddl = opts.get("transactional_ddl")
         self._transaction_per_migration = opts.get(
-            "transaction_per_migration", False)
-        self.on_version_apply_callbacks = opts.get('on_version_apply', ())
+            "transaction_per_migration", False
+        )
+        self.on_version_apply_callbacks = opts.get("on_version_apply", ())
 
         if as_sql:
             self.connection = self._stdout_connection(connection)
             assert self.connection is not None
         else:
             self.connection = connection
-        self._migrations_fn = opts.get('fn')
+        self._migrations_fn = opts.get("fn")
         self.as_sql = as_sql
 
         if "output_encoding" in opts:
             self.output_buffer = EncodedIO(
                 opts.get("output_buffer") or sys.stdout,
-                opts['output_encoding']
+                opts["output_encoding"],
             )
         else:
             self.output_buffer = opts.get("output_buffer", sys.stdout)
 
-        self._user_compare_type = opts.get('compare_type', False)
+        self._user_compare_type = opts.get("compare_type", False)
         self._user_compare_server_default = opts.get(
-            'compare_server_default',
-            False)
+            "compare_server_default", False
+        )
         self.version_table = version_table = opts.get(
-            'version_table', 'alembic_version')
-        self.version_table_schema = version_table_schema = \
-            opts.get('version_table_schema', None)
+            "version_table", "alembic_version"
+        )
+        self.version_table_schema = version_table_schema = opts.get(
+            "version_table_schema", None
+        )
         self._version = Table(
-            version_table, MetaData(),
-            Column('version_num', String(32), nullable=False),
-            schema=version_table_schema)
+            version_table,
+            MetaData(),
+            Column("version_num", String(32), nullable=False),
+            schema=version_table_schema,
+        )
         if opts.get("version_table_pk", True):
             self._version.append_constraint(
                 PrimaryKeyConstraint(
-                    'version_num', name="%s_pkc" % version_table
+                    "version_num", name="%s_pkc" % version_table
                 )
             )
 
         self._start_from_rev = opts.get("starting_rev")
         self.impl = ddl.DefaultImpl.get_by_dialect(dialect)(
-            dialect, self.connection, self.as_sql,
+            dialect,
+            self.connection,
+            self.as_sql,
             transactional_ddl,
             self.output_buffer,
-            opts
+            opts,
         )
         log.info("Context impl %s.", self.impl.__class__.__name__)
         if self.as_sql:
             log.info("Generating static SQL")
-        log.info("Will assume %s DDL.",
-                 "transactional" if self.impl.transactional_ddl
-                 else "non-transactional")
+        log.info(
+            "Will assume %s DDL.",
+            "transactional"
+            if self.impl.transactional_ddl
+            else "non-transactional",
+        )
 
     @classmethod
-    def configure(cls,
-                  connection=None,
-                  url=None,
-                  dialect_name=None,
-                  dialect=None,
-                  environment_context=None,
-                  opts=None,
-                  ):
+    def configure(
+        cls,
+        connection=None,
+        url=None,
+        dialect_name=None,
+        dialect=None,
+        environment_context=None,
+        opts=None,
+    ):
         """Create a new :class:`.MigrationContext`.
 
         This is a factory method usually called
@@ -158,7 +175,8 @@ class MigrationContext(object):
                 util.warn(
                     "'connection' argument to configure() is expected "
                     "to be a sqlalchemy.engine.Connection instance, "
-                    "got %r" % connection)
+                    "got %r" % connection
+                )
             dialect = connection.dialect
         elif url:
             url = sqla_url.make_url(url)
@@ -175,22 +193,28 @@ class MigrationContext(object):
         transaction_now = _per_migration == self._transaction_per_migration
 
         if not transaction_now:
+
             @contextmanager
             def do_nothing():
                 yield
+
             return do_nothing()
 
         elif not self.impl.transactional_ddl:
+
             @contextmanager
             def do_nothing():
                 yield
+
             return do_nothing()
         elif self.as_sql:
+
             @contextmanager
             def begin_commit():
                 self.impl.emit_begin()
                 yield
                 self.impl.emit_commit()
+
             return begin_commit()
         else:
             return self.bind.begin()
@@ -217,7 +241,8 @@ class MigrationContext(object):
         elif len(heads) > 1:
             raise util.CommandError(
                 "Version table '%s' has more than one head present; "
-                "please use get_current_heads()" % self.version_table)
+                "please use get_current_heads()" % self.version_table
+            )
         else:
             return heads[0]
 
@@ -243,18 +268,20 @@ class MigrationContext(object):
         """
         if self.as_sql:
             start_from_rev = self._start_from_rev
-            if start_from_rev == 'base':
+            if start_from_rev == "base":
                 start_from_rev = None
             elif start_from_rev is not None and self.script:
-                start_from_rev = \
-                    self.script.get_revision(start_from_rev).revision
+                start_from_rev = self.script.get_revision(
+                    start_from_rev
+                ).revision
 
             return util.to_tuple(start_from_rev, default=())
         else:
             if self._start_from_rev:
                 raise util.CommandError(
                     "Can't specify current_rev to context "
-                    "when using a database connection")
+                    "when using a database connection"
+                )
             if not self._has_version_table():
                 return ()
         return tuple(
@@ -266,7 +293,8 @@ class MigrationContext(object):
 
     def _has_version_table(self):
         return self.connection.dialect.has_table(
-            self.connection, self.version_table, self.version_table_schema)
+            self.connection, self.version_table, self.version_table_schema
+        )
 
     def stamp(self, script_directory, revision):
         """Stamp the version table with a specific revision.
@@ -315,8 +343,9 @@ class MigrationContext(object):
 
         head_maintainer = HeadMaintainer(self, heads)
 
-        starting_in_transaction = not self.as_sql and \
-            self._in_connection_transaction()
+        starting_in_transaction = (
+            not self.as_sql and self._in_connection_transaction()
+        )
 
         for step in self._migrations_fn(heads, self):
             with self.begin_transaction(_per_migration=True):
@@ -326,7 +355,9 @@ class MigrationContext(object):
                     self._version.create(self.connection)
                 log.info("Running %s", step)
                 if self.as_sql:
-                    self.impl.static_output("-- Running %s" % (step.short_log,))
+                    self.impl.static_output(
+                        "-- Running %s" % (step.short_log,)
+                    )
                 step.migration_fn(**kw)
 
                 # previously, we wouldn't stamp per migration
@@ -336,19 +367,24 @@ class MigrationContext(object):
                 # just to run the operations on every version
                 head_maintainer.update_to_step(step)
                 for callback in self.on_version_apply_callbacks:
-                    callback(ctx=self,
-                             step=step.info,
-                             heads=set(head_maintainer.heads),
-                             run_args=kw)
+                    callback(
+                        ctx=self,
+                        step=step.info,
+                        heads=set(head_maintainer.heads),
+                        run_args=kw,
+                    )
 
-            if not starting_in_transaction and not self.as_sql and \
-                not self.impl.transactional_ddl and \
-                    self._in_connection_transaction():
+            if (
+                not starting_in_transaction
+                and not self.as_sql
+                and not self.impl.transactional_ddl
+                and self._in_connection_transaction()
+            ):
                 raise util.CommandError(
-                    "Migration \"%s\" has left an uncommitted "
+                    'Migration "%s" has left an uncommitted '
                     "transaction opened; transactional_ddl is False so "
-                    "Alembic is not committing transactions"
-                    % step)
+                    "Alembic is not committing transactions" % step
+                )
 
         if self.as_sql and not head_maintainer.heads:
             self._version.drop(self.connection)
@@ -421,19 +457,20 @@ class MigrationContext(object):
                 inspector_column,
                 metadata_column,
                 inspector_column.type,
-                metadata_column.type
+                metadata_column.type,
             )
             if user_value is not None:
                 return user_value
 
-        return self.impl.compare_type(
-            inspector_column,
-            metadata_column)
+        return self.impl.compare_type(inspector_column, metadata_column)
 
-    def _compare_server_default(self, inspector_column,
-                                metadata_column,
-                                rendered_metadata_default,
-                                rendered_column_default):
+    def _compare_server_default(
+        self,
+        inspector_column,
+        metadata_column,
+        rendered_metadata_default,
+        rendered_column_default,
+    ):
 
         if self._user_compare_server_default is False:
             return False
@@ -445,7 +482,7 @@ class MigrationContext(object):
                 metadata_column,
                 rendered_column_default,
                 metadata_column.server_default,
-                rendered_metadata_default
+                rendered_metadata_default,
             )
             if user_value is not None:
                 return user_value
@@ -454,7 +491,8 @@ class MigrationContext(object):
             inspector_column,
             metadata_column,
             rendered_metadata_default,
-            rendered_column_default)
+            rendered_column_default,
+        )
 
 
 class HeadMaintainer(object):
@@ -467,8 +505,7 @@ class HeadMaintainer(object):
         self.heads.add(version)
 
         self.context.impl._exec(
-            self.context._version.insert().
-            values(
+            self.context._version.insert().values(
                 version_num=literal_column("'%s'" % version)
             )
         )
@@ -478,15 +515,17 @@ class HeadMaintainer(object):
 
         ret = self.context.impl._exec(
             self.context._version.delete().where(
-                self.context._version.c.version_num ==
-                literal_column("'%s'" % version)))
+                self.context._version.c.version_num
+                == literal_column("'%s'" % version)
+            )
+        )
         if not self.context.as_sql and ret.rowcount != 1:
             raise util.CommandError(
                 "Online migration expected to match one "
                 "row when deleting '%s' in '%s'; "
                 "%d found"
-                % (version,
-                   self.context.version_table, ret.rowcount))
+                % (version, self.context.version_table, ret.rowcount)
+            )
 
     def _update_version(self, from_, to_):
         assert to_ not in self.heads
@@ -494,17 +533,20 @@ class HeadMaintainer(object):
         self.heads.add(to_)
 
         ret = self.context.impl._exec(
-            self.context._version.update().
-            values(version_num=literal_column("'%s'" % to_)).where(
+            self.context._version.update()
+            .values(version_num=literal_column("'%s'" % to_))
+            .where(
                 self.context._version.c.version_num
-                == literal_column("'%s'" % from_))
+                == literal_column("'%s'" % from_)
+            )
         )
         if not self.context.as_sql and ret.rowcount != 1:
             raise util.CommandError(
                 "Online migration expected to match one "
                 "row when updating '%s' to '%s' in '%s'; "
                 "%d found"
-                % (from_, to_, self.context.version_table, ret.rowcount))
+                % (from_, to_, self.context.version_table, ret.rowcount)
+            )
 
     def update_to_step(self, step):
         if step.should_delete_branch(self.heads):
@@ -517,20 +559,32 @@ class HeadMaintainer(object):
             self._insert_version(vers)
         elif step.should_merge_branches(self.heads):
             # delete revs, update from rev, update to rev
-            (delete_revs, update_from_rev,
-             update_to_rev) = step.merge_branch_idents(self.heads)
+            (
+                delete_revs,
+                update_from_rev,
+                update_to_rev,
+            ) = step.merge_branch_idents(self.heads)
             log.debug(
                 "merge, delete %s, update %s to %s",
-                delete_revs, update_from_rev, update_to_rev)
+                delete_revs,
+                update_from_rev,
+                update_to_rev,
+            )
             for delrev in delete_revs:
                 self._delete_version(delrev)
             self._update_version(update_from_rev, update_to_rev)
         elif step.should_unmerge_branches(self.heads):
-            (update_from_rev, update_to_rev,
-             insert_revs) = step.unmerge_branch_idents(self.heads)
+            (
+                update_from_rev,
+                update_to_rev,
+                insert_revs,
+            ) = step.unmerge_branch_idents(self.heads)
             log.debug(
                 "unmerge, insert %s, update %s to %s",
-                insert_revs, update_from_rev, update_to_rev)
+                insert_revs,
+                update_from_rev,
+                update_to_rev,
+            )
             for insrev in insert_revs:
                 self._insert_version(insrev)
             self._update_version(update_from_rev, update_to_rev)
@@ -597,8 +651,9 @@ class MigrationInfo(object):
     revision_map = None
     """The revision map inside of which this operation occurs."""
 
-    def __init__(self, revision_map, is_upgrade, is_stamp, up_revisions,
-                 down_revisions):
+    def __init__(
+        self, revision_map, is_upgrade, is_stamp, up_revisions, down_revisions
+    ):
         self.revision_map = revision_map
         self.is_upgrade = is_upgrade
         self.is_stamp = is_stamp
@@ -625,14 +680,16 @@ class MigrationInfo(object):
     @property
     def source_revision_ids(self):
         """Active revisions before this migration step is applied."""
-        return self.down_revision_ids if self.is_upgrade \
-            else self.up_revision_ids
+        return (
+            self.down_revision_ids if self.is_upgrade else self.up_revision_ids
+        )
 
     @property
     def destination_revision_ids(self):
         """Active revisions after this migration step is applied."""
-        return self.up_revision_ids if self.is_upgrade \
-            else self.down_revision_ids
+        return (
+            self.up_revision_ids if self.is_upgrade else self.down_revision_ids
+        )
 
     @property
     def up_revision(self):
@@ -689,7 +746,7 @@ class MigrationStep(object):
         return "%s %s -> %s" % (
             self.name,
             util.format_as_comma(self.from_revisions_no_deps),
-            util.format_as_comma(self.to_revisions_no_deps)
+            util.format_as_comma(self.to_revisions_no_deps),
         )
 
     def __str__(self):
@@ -698,7 +755,7 @@ class MigrationStep(object):
                 self.name,
                 util.format_as_comma(self.from_revisions_no_deps),
                 util.format_as_comma(self.to_revisions_no_deps),
-                self.doc
+                self.doc,
             )
         else:
             return self.short_log
@@ -716,13 +773,16 @@ class RevisionStep(MigrationStep):
 
     def __repr__(self):
         return "RevisionStep(%r, is_upgrade=%r)" % (
-            self.revision.revision, self.is_upgrade
+            self.revision.revision,
+            self.is_upgrade,
         )
 
     def __eq__(self, other):
-        return isinstance(other, RevisionStep) and \
-            other.revision == self.revision and \
-            self.is_upgrade == other.is_upgrade
+        return (
+            isinstance(other, RevisionStep)
+            and other.revision == self.revision
+            and self.is_upgrade == other.is_upgrade
+        )
 
     @property
     def doc(self):
@@ -733,26 +793,26 @@ class RevisionStep(MigrationStep):
         if self.is_upgrade:
             return self.revision._all_down_revisions
         else:
-            return (self.revision.revision, )
+            return (self.revision.revision,)
 
     @property
     def from_revisions_no_deps(self):
         if self.is_upgrade:
             return self.revision._versioned_down_revisions
         else:
-            return (self.revision.revision, )
+            return (self.revision.revision,)
 
     @property
     def to_revisions(self):
         if self.is_upgrade:
-            return (self.revision.revision, )
+            return (self.revision.revision,)
         else:
             return self.revision._all_down_revisions
 
     @property
     def to_revisions_no_deps(self):
         if self.is_upgrade:
-            return (self.revision.revision, )
+            return (self.revision.revision,)
         else:
             return self.revision._versioned_down_revisions
 
@@ -788,31 +848,31 @@ class RevisionStep(MigrationStep):
 
         if other_heads:
             ancestors = set(
-                r.revision for r in
-                self.revision_map._get_ancestor_nodes(
-                    self.revision_map.get_revisions(other_heads),
-                    check=False
+                r.revision
+                for r in self.revision_map._get_ancestor_nodes(
+                    self.revision_map.get_revisions(other_heads), check=False
                 )
             )
             from_revisions = list(
-                set(self.from_revisions).difference(ancestors))
+                set(self.from_revisions).difference(ancestors)
+            )
         else:
             from_revisions = list(self.from_revisions)
 
         return (
             # delete revs, update from rev, update to rev
-            list(from_revisions[0:-1]), from_revisions[-1],
-            self.to_revisions[0]
+            list(from_revisions[0:-1]),
+            from_revisions[-1],
+            self.to_revisions[0],
         )
 
     def _unmerge_to_revisions(self, heads):
         other_heads = set(heads).difference([self.revision.revision])
         if other_heads:
             ancestors = set(
-                r.revision for r in
-                self.revision_map._get_ancestor_nodes(
-                    self.revision_map.get_revisions(other_heads),
-                    check=False
+                r.revision
+                for r in self.revision_map._get_ancestor_nodes(
+                    self.revision_map.get_revisions(other_heads), check=False
                 )
             )
             return list(set(self.to_revisions).difference(ancestors))
@@ -824,8 +884,9 @@ class RevisionStep(MigrationStep):
 
         return (
             # update from rev, update to rev, insert revs
-            self.from_revisions[0], to_revisions[-1],
-            to_revisions[0:-1]
+            self.from_revisions[0],
+            to_revisions[-1],
+            to_revisions[0:-1],
         )
 
     def should_create_branch(self, heads):
@@ -853,8 +914,7 @@ class RevisionStep(MigrationStep):
 
         downrevs = self.revision._all_down_revisions
 
-        if len(downrevs) > 1 and \
-                len(heads.intersection(downrevs)) > 1:
+        if len(downrevs) > 1 and len(heads.intersection(downrevs)) > 1:
             return True
 
         return False
@@ -873,8 +933,9 @@ class RevisionStep(MigrationStep):
     def update_version_num(self, heads):
         if not self._has_scalar_down_revision:
             downrev = heads.intersection(self.revision._all_down_revisions)
-            assert len(downrev) == 1, \
-                "Can't do an UPDATE because downrevision is ambiguous"
+            assert (
+                len(downrev) == 1
+            ), "Can't do an UPDATE because downrevision is ambiguous"
             down_revision = list(downrev)[0]
         else:
             down_revision = self.revision._all_down_revisions[0]
@@ -894,10 +955,13 @@ class RevisionStep(MigrationStep):
 
     @property
     def info(self):
-        return MigrationInfo(revision_map=self.revision_map,
-                             up_revisions=self.revision.revision,
-                             down_revisions=self.revision._all_down_revisions,
-                             is_upgrade=self.is_upgrade, is_stamp=False)
+        return MigrationInfo(
+            revision_map=self.revision_map,
+            up_revisions=self.revision.revision,
+            down_revisions=self.revision._all_down_revisions,
+            is_upgrade=self.is_upgrade,
+            is_stamp=False,
+        )
 
 
 class StampStep(MigrationStep):
@@ -915,11 +979,13 @@ class StampStep(MigrationStep):
         return None
 
     def __eq__(self, other):
-        return isinstance(other, StampStep) and \
-            other.from_revisions == self.revisions and \
-            other.to_revisions == self.to_revisions and \
-            other.branch_move == self.branch_move and \
-            self.is_upgrade == other.is_upgrade
+        return (
+            isinstance(other, StampStep)
+            and other.from_revisions == self.revisions
+            and other.to_revisions == self.to_revisions
+            and other.branch_move == self.branch_move
+            and self.is_upgrade == other.is_upgrade
+        )
 
     @property
     def from_revisions(self):
@@ -955,15 +1021,17 @@ class StampStep(MigrationStep):
     def merge_branch_idents(self, heads):
         return (
             # delete revs, update from rev, update to rev
-            list(self.from_[0:-1]), self.from_[-1],
-            self.to_[0]
+            list(self.from_[0:-1]),
+            self.from_[-1],
+            self.to_[0],
         )
 
     def unmerge_branch_idents(self, heads):
         return (
             # update from rev, update to rev, insert revs
-            self.from_[0], self.to_[-1],
-            list(self.to_[0:-1])
+            self.from_[0],
+            self.to_[-1],
+            list(self.to_[0:-1]),
         )
 
     def should_delete_branch(self, heads):
@@ -980,10 +1048,15 @@ class StampStep(MigrationStep):
 
     @property
     def info(self):
-        up, down = (self.to_, self.from_) if self.is_upgrade \
+        up, down = (
+            (self.to_, self.from_)
+            if self.is_upgrade
             else (self.from_, self.to_)
-        return MigrationInfo(revision_map=self.revision_map,
-                             up_revisions=up,
-                             down_revisions=down,
-                             is_upgrade=self.is_upgrade,
-                             is_stamp=True)
+        )
+        return MigrationInfo(
+            revision_map=self.revision_map,
+            up_revisions=up,
+            down_revisions=down,
+            is_upgrade=self.is_upgrade,
+            is_stamp=True,
+        )

@@ -13,18 +13,21 @@ from sqlalchemy.engine.base import Engine
 try:
     # if pylons app already in, don't create a new app
     from pylons import config as pylons_config
-    pylons_config['__file__']
+
+    pylons_config["__file__"]
 except:
     config = context.config
     # can use config['__file__'] here, i.e. the Pylons
     # ini file, instead of alembic.ini
-    config_file = config.get_main_option('pylons_config_file')
+    config_file = config.get_main_option("pylons_config_file")
     fileConfig(config_file)
-    wsgi_app = loadapp('config:%s' % config_file, relative_to='.')
+    wsgi_app = loadapp("config:%s" % config_file, relative_to=".")
 
 
 # customize this section for non-standard engine configurations.
-meta = __import__("%s.model.meta" % wsgi_app.config['pylons.package']).model.meta
+meta = __import__(
+    "%s.model.meta" % wsgi_app.config["pylons.package"]
+).model.meta
 
 # add your model's MetaData object here
 # for 'autogenerate' support
@@ -46,8 +49,10 @@ def run_migrations_offline():
 
     """
     context.configure(
-        url=meta.engine.url, target_metadata=target_metadata,
-        literal_binds=True)
+        url=meta.engine.url,
+        target_metadata=target_metadata,
+        literal_binds=True,
+    )
     with context.begin_transaction():
         context.run_migrations()
 
@@ -65,12 +70,12 @@ def run_migrations_online():
 
     with engine.connect() as connection:
         context.configure(
-            connection=connection,
-            target_metadata=target_metadata
+            connection=connection, target_metadata=target_metadata
         )
 
         with context.begin_transaction():
             context.run_migrations()
+
 
 if context.is_offline_mode():
     run_migrations_offline()

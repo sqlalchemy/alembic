@@ -7,34 +7,29 @@ from alembic.testing.fixtures import TestBase
 
 
 class SQLiteTest(TestBase):
-
     def test_add_column(self):
-        context = op_fixture('sqlite')
-        op.add_column('t1', Column('c1', Integer))
-        context.assert_(
-            'ALTER TABLE t1 ADD COLUMN c1 INTEGER'
-        )
+        context = op_fixture("sqlite")
+        op.add_column("t1", Column("c1", Integer))
+        context.assert_("ALTER TABLE t1 ADD COLUMN c1 INTEGER")
 
     def test_add_column_implicit_constraint(self):
-        context = op_fixture('sqlite')
-        op.add_column('t1', Column('c1', Boolean))
-        context.assert_(
-            'ALTER TABLE t1 ADD COLUMN c1 BOOLEAN'
-        )
+        context = op_fixture("sqlite")
+        op.add_column("t1", Column("c1", Boolean))
+        context.assert_("ALTER TABLE t1 ADD COLUMN c1 BOOLEAN")
 
     def test_add_explicit_constraint(self):
-        op_fixture('sqlite')
+        op_fixture("sqlite")
         assert_raises_message(
             NotImplementedError,
             "No support for ALTER of constraints in SQLite dialect",
             op.create_check_constraint,
             "foo",
             "sometable",
-            column('name') > 5
+            column("name") > 5,
         )
 
     def test_drop_explicit_constraint(self):
-        op_fixture('sqlite')
+        op_fixture("sqlite")
         assert_raises_message(
             NotImplementedError,
             "No support for ALTER of constraints in SQLite dialect",

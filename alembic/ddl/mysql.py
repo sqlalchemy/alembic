@@ -5,9 +5,15 @@ from sqlalchemy import schema
 from ..util.compat import string_types
 from .. import util
 from .impl import DefaultImpl
-from .base import ColumnNullable, ColumnName, ColumnDefault, \
-    ColumnType, AlterColumn, format_column_name, \
-    format_server_default
+from .base import (
+    ColumnNullable,
+    ColumnName,
+    ColumnDefault,
+    ColumnType,
+    AlterColumn,
+    format_column_name,
+    format_server_default,
+)
 from .base import alter_table
 from ..autogenerate import compare
 from ..util.sqla_compat import _is_type_bound, sqla_100
@@ -15,64 +21,76 @@ import re
 
 
 class MySQLImpl(DefaultImpl):
-    __dialect__ = 'mysql'
+    __dialect__ = "mysql"
 
     transactional_ddl = False
 
-    def alter_column(self, table_name, column_name,
-                     nullable=None,
-                     server_default=False,
-                     name=None,
-                     type_=None,
-                     schema=None,
-                     existing_type=None,
-                     existing_server_default=None,
-                     existing_nullable=None,
-                     autoincrement=None,
-                     existing_autoincrement=None,
-                     **kw
-                     ):
+    def alter_column(
+        self,
+        table_name,
+        column_name,
+        nullable=None,
+        server_default=False,
+        name=None,
+        type_=None,
+        schema=None,
+        existing_type=None,
+        existing_server_default=None,
+        existing_nullable=None,
+        autoincrement=None,
+        existing_autoincrement=None,
+        **kw
+    ):
         if name is not None:
             self._exec(
                 MySQLChangeColumn(
-                    table_name, column_name,
+                    table_name,
+                    column_name,
                     schema=schema,
                     newname=name,
-                    nullable=nullable if nullable is not None else
-                    existing_nullable
+                    nullable=nullable
+                    if nullable is not None
+                    else existing_nullable
                     if existing_nullable is not None
                     else True,
                     type_=type_ if type_ is not None else existing_type,
-                    default=server_default if server_default is not False
+                    default=server_default
+                    if server_default is not False
                     else existing_server_default,
-                    autoincrement=autoincrement if autoincrement is not None
-                    else existing_autoincrement
+                    autoincrement=autoincrement
+                    if autoincrement is not None
+                    else existing_autoincrement,
                 )
             )
-        elif nullable is not None or \
-                type_ is not None or \
-                autoincrement is not None:
+        elif (
+            nullable is not None
+            or type_ is not None
+            or autoincrement is not None
+        ):
             self._exec(
                 MySQLModifyColumn(
-                    table_name, column_name,
+                    table_name,
+                    column_name,
                     schema=schema,
                     newname=name if name is not None else column_name,
-                    nullable=nullable if nullable is not None else
-                    existing_nullable
+                    nullable=nullable
+                    if nullable is not None
+                    else existing_nullable
                     if existing_nullable is not None
                     else True,
                     type_=type_ if type_ is not None else existing_type,
-                    default=server_default if server_default is not False
+                    default=server_default
+                    if server_default is not False
                     else existing_server_default,
-                    autoincrement=autoincrement if autoincrement is not None
-                    else existing_autoincrement
+                    autoincrement=autoincrement
+                    if autoincrement is not None
+                    else existing_autoincrement,
                 )
             )
         elif server_default is not False:
             self._exec(
                 MySQLAlterDefault(
-                    table_name, column_name, server_default,
-                    schema=schema,
+                    table_name, column_name, server_default, schema=schema
                 )
             )
 
@@ -82,41 +100,47 @@ class MySQLImpl(DefaultImpl):
 
         super(MySQLImpl, self).drop_constraint(const)
 
-    def compare_server_default(self, inspector_column,
-                               metadata_column,
-                               rendered_metadata_default,
-                               rendered_inspector_default):
+    def compare_server_default(
+        self,
+        inspector_column,
+        metadata_column,
+        rendered_metadata_default,
+        rendered_inspector_default,
+    ):
         # partially a workaround for SQLAlchemy issue #3023; if the
         # column were created without "NOT NULL", MySQL may have added
         # an implicit default of '0' which we need to skip
         # TODO: this is not really covered anymore ?
-        if metadata_column.type._type_affinity is sqltypes.Integer and \
-            inspector_column.primary_key and \
-                not inspector_column.autoincrement and \
-                not rendered_metadata_default and \
-                rendered_inspector_default == "'0'":
+        if (
+            metadata_column.type._type_affinity is sqltypes.Integer
+            and inspector_column.primary_key
+            and not inspector_column.autoincrement
+            and not rendered_metadata_default
+            and rendered_inspector_default == "'0'"
+        ):
             return False
         elif inspector_column.type._type_affinity is sqltypes.Integer:
             rendered_inspector_default = re.sub(
-                r"^'|'$", '', rendered_inspector_default)
+                r"^'|'$", "", rendered_inspector_default
+            )
             return rendered_inspector_default != rendered_metadata_default
         elif rendered_inspector_default and rendered_metadata_default:
             # adjust for "function()" vs. "FUNCTION"
-            return (
-                re.sub(
-                    r'(.*?)(?:\(\))?$', r'\1',
-                    rendered_inspector_default.lower()) !=
-                re.sub(
-                    r'(.*?)(?:\(\))?$', r'\1',
-                    rendered_metadata_default.lower())
+            return re.sub(
+                r"(.*?)(?:\(\))?$", r"\1", rendered_inspector_default.lower()
+            ) != re.sub(
+                r"(.*?)(?:\(\))?$", r"\1", rendered_metadata_default.lower()
             )
         else:
             return rendered_inspector_default != rendered_metadata_default
 
-    def correct_for_autogen_constraints(self, conn_unique_constraints,
-                                        conn_indexes,
-                                        metadata_unique_constraints,
-                                        metadata_indexes):
+    def correct_for_autogen_constraints(
+        self,
+        conn_unique_constraints,
+        conn_indexes,
+        metadata_unique_constraints,
+        metadata_indexes,
+    ):
 
         # TODO: if SQLA 1.0, make use of "duplicates_index"
         # metadata
@@ -153,31 +177,41 @@ class MySQLImpl(DefaultImpl):
                 conn_unique_constraints,
                 conn_indexes,
                 metadata_unique_constraints,
-                metadata_indexes
+                metadata_indexes,
             )
 
-    def _legacy_correct_for_dupe_uq_uix(self, conn_unique_constraints,
-                                        conn_indexes,
-                                        metadata_unique_constraints,
-                                        metadata_indexes):
+    def _legacy_correct_for_dupe_uq_uix(
+        self,
+        conn_unique_constraints,
+        conn_indexes,
+        metadata_unique_constraints,
+        metadata_indexes,
+    ):
 
         # then dedupe unique indexes vs. constraints, since MySQL
         # doesn't really have unique constraints as a separate construct.
         # but look in the metadata and try to maintain constructs
         # that already seem to be defined one way or the other
         # on that side.  See #276
-        metadata_uq_names = set([
-            cons.name for cons in metadata_unique_constraints
-            if cons.name is not None])
+        metadata_uq_names = set(
+            [
+                cons.name
+                for cons in metadata_unique_constraints
+                if cons.name is not None
+            ]
+        )
 
-        unnamed_metadata_uqs = set([
-            compare._uq_constraint_sig(cons).sig
-            for cons in metadata_unique_constraints
-            if cons.name is None
-        ])
+        unnamed_metadata_uqs = set(
+            [
+                compare._uq_constraint_sig(cons).sig
+                for cons in metadata_unique_constraints
+                if cons.name is None
+            ]
+        )
 
-        metadata_ix_names = set([
-            cons.name for cons in metadata_indexes if cons.unique])
+        metadata_ix_names = set(
+            [cons.name for cons in metadata_indexes if cons.unique]
+        )
         conn_uq_names = dict(
             (cons.name, cons) for cons in conn_unique_constraints
         )
@@ -187,8 +221,10 @@ class MySQLImpl(DefaultImpl):
 
         for overlap in set(conn_uq_names).intersection(conn_ix_names):
             if overlap not in metadata_uq_names:
-                if compare._uq_constraint_sig(conn_uq_names[overlap]).sig \
-                        not in unnamed_metadata_uqs:
+                if (
+                    compare._uq_constraint_sig(conn_uq_names[overlap]).sig
+                    not in unnamed_metadata_uqs
+                ):
 
                     conn_unique_constraints.discard(conn_uq_names[overlap])
             elif overlap not in metadata_ix_names:
@@ -208,18 +244,21 @@ class MySQLImpl(DefaultImpl):
             # MySQL considers RESTRICT to be the default and doesn't
             # report on it.  if the model has explicit RESTRICT and
             # the conn FK has None, set it to RESTRICT
-            if mdfk.ondelete is not None and \
-                    mdfk.ondelete.lower() == 'restrict' and \
-                    cnfk.ondelete is None:
-                cnfk.ondelete = 'RESTRICT'
-            if mdfk.onupdate is not None and \
-                    mdfk.onupdate.lower() == 'restrict' and \
-                    cnfk.onupdate is None:
-                cnfk.onupdate = 'RESTRICT'
+            if (
+                mdfk.ondelete is not None
+                and mdfk.ondelete.lower() == "restrict"
+                and cnfk.ondelete is None
+            ):
+                cnfk.ondelete = "RESTRICT"
+            if (
+                mdfk.onupdate is not None
+                and mdfk.onupdate.lower() == "restrict"
+                and cnfk.onupdate is None
+            ):
+                cnfk.onupdate = "RESTRICT"
 
 
 class MySQLAlterDefault(AlterColumn):
-
     def __init__(self, name, column_name, default, schema=None):
         super(AlterColumn, self).__init__(name, schema=schema)
         self.column_name = column_name
@@ -227,13 +266,17 @@ class MySQLAlterDefault(AlterColumn):
 
 
 class MySQLChangeColumn(AlterColumn):
-
-    def __init__(self, name, column_name, schema=None,
-                 newname=None,
-                 type_=None,
-                 nullable=None,
-                 default=False,
-                 autoincrement=None):
+    def __init__(
+        self,
+        name,
+        column_name,
+        schema=None,
+        newname=None,
+        type_=None,
+        nullable=None,
+        default=False,
+        autoincrement=None,
+    ):
         super(AlterColumn, self).__init__(name, schema=schema)
         self.column_name = column_name
         self.nullable = nullable
@@ -253,10 +296,10 @@ class MySQLModifyColumn(MySQLChangeColumn):
     pass
 
 
-@compiles(ColumnNullable, 'mysql')
-@compiles(ColumnName, 'mysql')
-@compiles(ColumnDefault, 'mysql')
-@compiles(ColumnType, 'mysql')
+@compiles(ColumnNullable, "mysql")
+@compiles(ColumnName, "mysql")
+@compiles(ColumnDefault, "mysql")
+@compiles(ColumnType, "mysql")
 def _mysql_doesnt_support_individual(element, compiler, **kw):
     raise NotImplementedError(
         "Individual alter column constructs not supported by MySQL"
@@ -270,7 +313,7 @@ def _mysql_alter_default(element, compiler, **kw):
         format_column_name(compiler, element.column_name),
         "SET DEFAULT %s" % format_server_default(compiler, element.default)
         if element.default is not None
-        else "DROP DEFAULT"
+        else "DROP DEFAULT",
     )
 
 
@@ -284,7 +327,7 @@ def _mysql_modify_column(element, compiler, **kw):
             nullable=element.nullable,
             server_default=element.default,
             type_=element.type_,
-            autoincrement=element.autoincrement
+            autoincrement=element.autoincrement,
         ),
     )
 
@@ -300,7 +343,7 @@ def _mysql_change_column(element, compiler, **kw):
             nullable=element.nullable,
             server_default=element.default,
             type_=element.type_,
-            autoincrement=element.autoincrement
+            autoincrement=element.autoincrement,
         ),
     )
 
@@ -312,11 +355,10 @@ def _render_value(compiler, expr):
         return compiler.sql_compiler.process(expr)
 
 
-def _mysql_colspec(compiler, nullable, server_default, type_,
-                   autoincrement):
+def _mysql_colspec(compiler, nullable, server_default, type_, autoincrement):
     spec = "%s %s" % (
         compiler.dialect.type_compiler.process(type_),
-        "NULL" if nullable else "NOT NULL"
+        "NULL" if nullable else "NOT NULL",
     )
     if autoincrement:
         spec += " AUTO_INCREMENT"
@@ -332,21 +374,25 @@ def _mysql_drop_constraint(element, compiler, **kw):
     raise errors for invalid constraint type."""
 
     constraint = element.element
-    if isinstance(constraint, (schema.ForeignKeyConstraint,
-                               schema.PrimaryKeyConstraint,
-                               schema.UniqueConstraint)
-                  ):
+    if isinstance(
+        constraint,
+        (
+            schema.ForeignKeyConstraint,
+            schema.PrimaryKeyConstraint,
+            schema.UniqueConstraint,
+        ),
+    ):
         return compiler.visit_drop_constraint(element, **kw)
     elif isinstance(constraint, schema.CheckConstraint):
         # note that SQLAlchemy as of 1.2 does not yet support
         # DROP CONSTRAINT for MySQL/MariaDB, so we implement fully
         # here.
-        return "ALTER TABLE %s DROP CONSTRAINT %s" % \
-            (compiler.preparer.format_table(constraint.table),
-             compiler.preparer.format_constraint(constraint))
+        return "ALTER TABLE %s DROP CONSTRAINT %s" % (
+            compiler.preparer.format_table(constraint.table),
+            compiler.preparer.format_constraint(constraint),
+        )
     else:
         raise NotImplementedError(
             "No generic 'DROP CONSTRAINT' in MySQL - "
-            "please specify constraint type")
-
-
+            "please specify constraint type"
+        )

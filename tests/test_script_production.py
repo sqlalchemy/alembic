@@ -1,10 +1,20 @@
 from alembic.testing.fixtures import TestBase
 from alembic.testing import eq_, ne_, assert_raises_message, is_, assertions
-from alembic.testing.env import clear_staging_env, staging_env, \
-    _get_staging_directory, _no_sql_testing_config, env_file_fixture, \
-    script_file_fixture, _testing_config, _sqlite_testing_config, \
-    three_rev_fixture, _multi_dir_testing_config, write_script,\
-    _sqlite_file_db, _multidb_testing_config
+from alembic.testing.env import (
+    clear_staging_env,
+    staging_env,
+    _get_staging_directory,
+    _no_sql_testing_config,
+    env_file_fixture,
+    script_file_fixture,
+    _testing_config,
+    _sqlite_testing_config,
+    three_rev_fixture,
+    _multi_dir_testing_config,
+    write_script,
+    _sqlite_file_db,
+    _multidb_testing_config,
+)
 from alembic import command
 from alembic.script import ScriptDirectory
 from alembic.environment import EnvironmentContext
@@ -24,7 +34,6 @@ env, abc, def_ = None, None, None
 
 
 class GeneralOrderedTests(TestBase):
-
     def setUp(self):
         global env
         env = staging_env()
@@ -43,11 +52,8 @@ class GeneralOrderedTests(TestBase):
         self._test_008_long_name_configurable()
 
     def _test_001_environment(self):
-        assert_set = set(['env.py', 'script.py.mako', 'README'])
-        eq_(
-            assert_set.intersection(os.listdir(env.dir)),
-            assert_set
-        )
+        assert_set = set(["env.py", "script.py.mako", "README"])
+        eq_(assert_set.intersection(os.listdir(env.dir)), assert_set)
 
     def _test_002_rev_ids(self):
         global abc, def_
@@ -66,19 +72,23 @@ class GeneralOrderedTests(TestBase):
         eq_(script.revision, abc)
         eq_(script.down_revision, None)
         assert os.access(
-            os.path.join(env.dir, 'versions',
-                         '%s_this_is_a_message.py' % abc), os.F_OK)
+            os.path.join(env.dir, "versions", "%s_this_is_a_message.py" % abc),
+            os.F_OK,
+        )
         assert callable(script.module.upgrade)
         eq_(env.get_heads(), [abc])
         eq_(env.get_base(), abc)
 
     def _test_005_nextrev(self):
         script = env.generate_revision(
-            def_, "this is the next rev", refresh=True)
+            def_, "this is the next rev", refresh=True
+        )
         assert os.access(
             os.path.join(
-                env.dir, 'versions',
-                '%s_this_is_the_next_rev.py' % def_), os.F_OK)
+                env.dir, "versions", "%s_this_is_the_next_rev.py" % def_
+            ),
+            os.F_OK,
+        )
         eq_(script.revision, def_)
         eq_(script.down_revision, abc)
         eq_(env.get_revision(abc).nextrev, set([def_]))
@@ -103,32 +113,42 @@ class GeneralOrderedTests(TestBase):
 
     def _test_007_long_name(self):
         rid = util.rev_id()
-        env.generate_revision(rid,
-                              "this is a really long name with "
-                              "lots of characters and also "
-                              "I'd like it to\nhave\nnewlines")
+        env.generate_revision(
+            rid,
+            "this is a really long name with "
+            "lots of characters and also "
+            "I'd like it to\nhave\nnewlines",
+        )
         assert os.access(
             os.path.join(
-                env.dir, 'versions',
-                '%s_this_is_a_really_long_name_with_lots_of_.py' % rid),
-            os.F_OK)
+                env.dir,
+                "versions",
+                "%s_this_is_a_really_long_name_with_lots_of_.py" % rid,
+            ),
+            os.F_OK,
+        )
 
     def _test_008_long_name_configurable(self):
         env.truncate_slug_length = 60
         rid = util.rev_id()
-        env.generate_revision(rid,
-                              "this is a really long name with "
-                              "lots of characters and also "
-                              "I'd like it to\nhave\nnewlines")
+        env.generate_revision(
+            rid,
+            "this is a really long name with "
+            "lots of characters and also "
+            "I'd like it to\nhave\nnewlines",
+        )
         assert os.access(
-            os.path.join(env.dir, 'versions',
-                         '%s_this_is_a_really_long_name_with_lots_'
-                         'of_characters_and_also_.py' % rid),
-            os.F_OK)
+            os.path.join(
+                env.dir,
+                "versions",
+                "%s_this_is_a_really_long_name_with_lots_"
+                "of_characters_and_also_.py" % rid,
+            ),
+            os.F_OK,
+        )
 
 
 class ScriptNamingTest(TestBase):
-
     @classmethod
     def setup_class(cls):
         _testing_config()
@@ -143,15 +163,17 @@ class ScriptNamingTest(TestBase):
             file_template="%(rev)s_%(slug)s_"
             "%(year)s_%(month)s_"
             "%(day)s_%(hour)s_"
-            "%(minute)s_%(second)s"
+            "%(minute)s_%(second)s",
         )
         create_date = datetime.datetime(2012, 7, 25, 15, 8, 5)
         eq_(
             script._rev_path(
-                script.versions, "12345", "this is a message", create_date),
+                script.versions, "12345", "this is a message", create_date
+            ),
             os.path.abspath(
                 "%s/versions/12345_this_is_a_"
-                "message_2012_7_25_15_8_5.py" % _get_staging_directory())
+                "message_2012_7_25_15_8_5.py" % _get_staging_directory()
+            ),
         )
 
     def _test_tz(self, timezone_arg, given, expected):
@@ -161,61 +183,57 @@ class ScriptNamingTest(TestBase):
             "%(year)s_%(month)s_"
             "%(day)s_%(hour)s_"
             "%(minute)s_%(second)s",
-            timezone=timezone_arg
+            timezone=timezone_arg,
         )
 
         with mock.patch(
-                "alembic.script.base.datetime",
-                mock.Mock(
-                    datetime=mock.Mock(
-                        utcnow=lambda: given,
-                        now=lambda: given
-                    )
-                )
+            "alembic.script.base.datetime",
+            mock.Mock(
+                datetime=mock.Mock(utcnow=lambda: given, now=lambda: given)
+            ),
         ):
             create_date = script._generate_create_date()
-        eq_(
-            create_date,
-            expected
-        )
+        eq_(create_date, expected)
 
     def test_custom_tz(self):
         self._test_tz(
-            'EST5EDT',
+            "EST5EDT",
             datetime.datetime(2012, 7, 25, 15, 8, 5),
             datetime.datetime(
-                2012, 7, 25, 11, 8, 5, tzinfo=tz.gettz('EST5EDT'))
+                2012, 7, 25, 11, 8, 5, tzinfo=tz.gettz("EST5EDT")
+            ),
         )
 
     def test_custom_tz_lowercase(self):
         self._test_tz(
-            'est5edt',
+            "est5edt",
             datetime.datetime(2012, 7, 25, 15, 8, 5),
             datetime.datetime(
-                2012, 7, 25, 11, 8, 5, tzinfo=tz.gettz('EST5EDT'))
+                2012, 7, 25, 11, 8, 5, tzinfo=tz.gettz("EST5EDT")
+            ),
         )
 
     def test_custom_tz_utc(self):
         self._test_tz(
-            'utc',
+            "utc",
             datetime.datetime(2012, 7, 25, 15, 8, 5),
-            datetime.datetime(
-                2012, 7, 25, 15, 8, 5, tzinfo=tz.gettz('UTC'))
+            datetime.datetime(2012, 7, 25, 15, 8, 5, tzinfo=tz.gettz("UTC")),
         )
 
     def test_custom_tzdata_tz(self):
         self._test_tz(
-            'Europe/Berlin',
+            "Europe/Berlin",
             datetime.datetime(2012, 7, 25, 15, 8, 5),
             datetime.datetime(
-                2012, 7, 25, 17, 8, 5, tzinfo=tz.gettz('Europe/Berlin'))
+                2012, 7, 25, 17, 8, 5, tzinfo=tz.gettz("Europe/Berlin")
+            ),
         )
 
     def test_default_tz(self):
         self._test_tz(
             None,
             datetime.datetime(2012, 7, 25, 15, 8, 5),
-            datetime.datetime(2012, 7, 25, 15, 8, 5)
+            datetime.datetime(2012, 7, 25, 15, 8, 5),
         )
 
     def test_tz_cant_locate(self):
@@ -225,7 +243,7 @@ class ScriptNamingTest(TestBase):
             self._test_tz,
             "fake",
             datetime.datetime(2012, 7, 25, 15, 8, 5),
-            datetime.datetime(2012, 7, 25, 15, 8, 5)
+            datetime.datetime(2012, 7, 25, 15, 8, 5),
         )
 
 
@@ -247,7 +265,8 @@ class RevisionCommandTest(TestBase):
 
     def test_create_script_splice(self):
         rev = command.revision(
-            self.cfg, message="some message", head=self.b, splice=True)
+            self.cfg, message="some message", head=self.b, splice=True
+        )
         script = ScriptDirectory.from_config(self.cfg)
         rev = script.get_revision(rev.revision)
         eq_(rev.down_revision, self.b)
@@ -260,7 +279,9 @@ class RevisionCommandTest(TestBase):
             "Revision %s is not a head revision; please specify --splice "
             "to create a new branch from this revision" % self.b,
             command.revision,
-            self.cfg, message="some message", head=self.b
+            self.cfg,
+            message="some message",
+            head=self.b,
         )
 
     def test_illegal_revision_chars(self):
@@ -269,19 +290,23 @@ class RevisionCommandTest(TestBase):
             r"Character\(s\) '-' not allowed in "
             "revision identifier 'no-dashes'",
             command.revision,
-            self.cfg, message="some message", rev_id="no-dashes"
+            self.cfg,
+            message="some message",
+            rev_id="no-dashes",
         )
 
         assert not os.path.exists(
-            os.path.join(
-                self.env.dir, "versions", "no-dashes_some_message.py"))
+            os.path.join(self.env.dir, "versions", "no-dashes_some_message.py")
+        )
 
         assert_raises_message(
             util.CommandError,
             r"Character\(s\) '@' not allowed in "
             "revision identifier 'no@atsigns'",
             command.revision,
-            self.cfg, message="some message", rev_id="no@atsigns"
+            self.cfg,
+            message="some message",
+            rev_id="no@atsigns",
         )
 
         assert_raises_message(
@@ -289,7 +314,9 @@ class RevisionCommandTest(TestBase):
             r"Character\(s\) '-, @' not allowed in revision "
             "identifier 'no@atsigns-ordashes'",
             command.revision,
-            self.cfg, message="some message", rev_id="no@atsigns-ordashes"
+            self.cfg,
+            message="some message",
+            rev_id="no@atsigns-ordashes",
         )
 
         assert_raises_message(
@@ -297,12 +324,15 @@ class RevisionCommandTest(TestBase):
             r"Character\(s\) '\+' not allowed in revision "
             r"identifier 'no\+plussignseither'",
             command.revision,
-            self.cfg, message="some message", rev_id="no+plussignseither"
+            self.cfg,
+            message="some message",
+            rev_id="no+plussignseither",
         )
 
     def test_create_script_branches(self):
         rev = command.revision(
-            self.cfg, message="some message", branch_label="foobar")
+            self.cfg, message="some message", branch_label="foobar"
+        )
         script = ScriptDirectory.from_config(self.cfg)
         rev = script.get_revision(rev.revision)
         eq_(script.get_revision("foobar"), rev)
@@ -330,7 +360,9 @@ class RevisionCommandTest(TestBase):
             "upgraded your script.py.mako to include the 'branch_labels' "
             r"section\?",
             command.revision,
-            self.cfg, message="some message", branch_label="foobar"
+            self.cfg,
+            message="some message",
+            branch_label="foobar",
         )
 
 
@@ -350,11 +382,17 @@ class CustomizeRevisionTest(TestBase):
             (self.model3, "model3"),
         ]:
             script.generate_revision(
-                model, name, refresh=True,
+                model,
+                name,
+                refresh=True,
                 version_path=os.path.join(_get_staging_directory(), name),
-                head="base")
+                head="base",
+            )
 
-            write_script(script, model, """\
+            write_script(
+                script,
+                model,
+                """\
 "%s"
 revision = '%s'
 down_revision = None
@@ -370,7 +408,9 @@ def upgrade():
 def downgrade():
     pass
 
-""" % (name, model, name))
+"""
+                % (name, model, name),
+            )
 
     def tearDown(self):
         clear_staging_env()
@@ -385,13 +425,13 @@ def downgrade():
                 context.configure(
                     connection=connection,
                     target_metadata=target_metadata,
-                    process_revision_directives=fn)
+                    process_revision_directives=fn,
+                )
                 with context.begin_transaction():
                     context.run_migrations()
 
         return mock.patch(
-            "alembic.script.base.ScriptDirectory.run_env",
-            run_env
+            "alembic.script.base.ScriptDirectory.run_env", run_env
         )
 
     def test_new_locations_no_autogen(self):
@@ -404,24 +444,27 @@ def downgrade():
                     ops.UpgradeOps(),
                     ops.DowngradeOps(),
                     version_path=os.path.join(
-                        _get_staging_directory(), "model1"),
-                    head="model1@head"
+                        _get_staging_directory(), "model1"
+                    ),
+                    head="model1@head",
                 ),
                 ops.MigrationScript(
                     util.rev_id(),
                     ops.UpgradeOps(),
                     ops.DowngradeOps(),
                     version_path=os.path.join(
-                        _get_staging_directory(), "model2"),
-                    head="model2@head"
+                        _get_staging_directory(), "model2"
+                    ),
+                    head="model2@head",
                 ),
                 ops.MigrationScript(
                     util.rev_id(),
                     ops.UpgradeOps(),
                     ops.DowngradeOps(),
                     version_path=os.path.join(
-                        _get_staging_directory(), "model3"),
-                    head="model3@head"
+                        _get_staging_directory(), "model3"
+                    ),
+                    head="model3@head",
                 ),
             ]
 
@@ -438,10 +481,13 @@ def downgrade():
             rev_script = script.get_revision(rev.revision)
             eq_(
                 rev_script.path,
-                os.path.abspath(os.path.join(
-                    _get_staging_directory(), model,
-                    "%s_.py" % (rev_script.revision, )
-                ))
+                os.path.abspath(
+                    os.path.join(
+                        _get_staging_directory(),
+                        model,
+                        "%s_.py" % (rev_script.revision,),
+                    )
+                ),
             )
             assert os.path.exists(rev_script.path)
 
@@ -455,19 +501,23 @@ def downgrade():
 
         with self._env_fixture(process_revision_directives, m):
             rev = command.revision(
-                self.cfg, message="some message", head="model1@head", sql=True)
+                self.cfg, message="some message", head="model1@head", sql=True
+            )
 
         with mock.patch.object(rev.module, "op") as op_mock:
             rev.module.upgrade()
         eq_(
             op_mock.mock_calls,
-            [mock.call.create_index(
-                'some_index', 'some_table', ['a', 'b'], unique=False)]
+            [
+                mock.call.create_index(
+                    "some_index", "some_table", ["a", "b"], unique=False
+                )
+            ],
         )
 
     def test_autogen(self):
         m = sa.MetaData()
-        sa.Table('t', m, sa.Column('x', sa.Integer))
+        sa.Table("t", m, sa.Column("x", sa.Integer))
 
         def process_revision_directives(context, rev, generate_revisions):
             existing_upgrades = generate_revisions[0].upgrade_ops
@@ -483,17 +533,19 @@ def downgrade():
                     existing_upgrades,
                     ops.DowngradeOps(),
                     version_path=os.path.join(
-                        _get_staging_directory(), "model1"),
-                    head="model1@head"
+                        _get_staging_directory(), "model1"
+                    ),
+                    head="model1@head",
                 ),
                 ops.MigrationScript(
                     util.rev_id(),
                     ops.UpgradeOps(ops=existing_downgrades.ops),
                     ops.DowngradeOps(),
                     version_path=os.path.join(
-                        _get_staging_directory(), "model2"),
-                    head="model2@head"
-                )
+                        _get_staging_directory(), "model2"
+                    ),
+                    head="model2@head",
+                ),
             ]
 
         with self._env_fixture(process_revision_directives, m):
@@ -501,57 +553,57 @@ def downgrade():
 
             eq_(
                 Inspector.from_engine(self.engine).get_table_names(),
-                ["alembic_version"]
+                ["alembic_version"],
             )
 
             command.revision(
-                self.cfg, message="some message",
-                autogenerate=True)
+                self.cfg, message="some message", autogenerate=True
+            )
 
             command.upgrade(self.cfg, "model1@head")
 
             eq_(
                 Inspector.from_engine(self.engine).get_table_names(),
-                ["alembic_version", "t"]
+                ["alembic_version", "t"],
             )
 
             command.upgrade(self.cfg, "model2@head")
 
             eq_(
                 Inspector.from_engine(self.engine).get_table_names(),
-                ["alembic_version"]
+                ["alembic_version"],
             )
 
     def test_programmatic_command_option(self):
-
         def process_revision_directives(context, rev, generate_revisions):
             generate_revisions[0].message = "test programatic"
             generate_revisions[0].upgrade_ops = ops.UpgradeOps(
                 ops=[
                     ops.CreateTableOp(
-                        'test_table',
+                        "test_table",
                         [
-                            sa.Column('id', sa.Integer(), primary_key=True),
-                            sa.Column('name', sa.String(50), nullable=False)
-                        ]
-                    ),
+                            sa.Column("id", sa.Integer(), primary_key=True),
+                            sa.Column("name", sa.String(50), nullable=False),
+                        ],
+                    )
                 ]
             )
             generate_revisions[0].downgrade_ops = ops.DowngradeOps(
-                ops=[
-                    ops.DropTableOp('test_table')
-                ]
+                ops=[ops.DropTableOp("test_table")]
             )
 
         with self._env_fixture(None, None):
             rev = command.revision(
                 self.cfg,
                 head="model1@head",
-                process_revision_directives=process_revision_directives)
+                process_revision_directives=process_revision_directives,
+            )
 
         with open(rev.path) as handle:
             result = handle.read()
-        assert ("""
+        assert (
+            (
+                """
 def upgrade():
     # ### commands auto generated by Alembic - please adjust! ###
     op.create_table('test_table',
@@ -560,22 +612,19 @@ def upgrade():
     sa.PrimaryKeyConstraint('id')
     )
     # ### end Alembic commands ###
-""") in result
+"""
+            )
+            in result
+        )
 
 
 class ScriptAccessorTest(TestBase):
     def test_upgrade_downgrade_ops_list_accessors(self):
         u1 = ops.UpgradeOps(ops=[])
         d1 = ops.DowngradeOps(ops=[])
-        m1 = ops.MigrationScript(
-            "somerev", u1, d1
-        )
-        is_(
-            m1.upgrade_ops, u1
-        )
-        is_(
-            m1.downgrade_ops, d1
-        )
+        m1 = ops.MigrationScript("somerev", u1, d1)
+        is_(m1.upgrade_ops, u1)
+        is_(m1.downgrade_ops, d1)
         u2 = ops.UpgradeOps(ops=[])
         d2 = ops.DowngradeOps(ops=[])
         m1._upgrade_ops.append(u2)
@@ -585,13 +634,17 @@ class ScriptAccessorTest(TestBase):
             ValueError,
             "This MigrationScript instance has a multiple-entry list for "
             "UpgradeOps; please use the upgrade_ops_list attribute.",
-            getattr, m1, "upgrade_ops"
+            getattr,
+            m1,
+            "upgrade_ops",
         )
         assert_raises_message(
             ValueError,
             "This MigrationScript instance has a multiple-entry list for "
             "DowngradeOps; please use the downgrade_ops_list attribute.",
-            getattr, m1, "downgrade_ops"
+            getattr,
+            m1,
+            "downgrade_ops",
         )
         eq_(m1.upgrade_ops_list, [u1, u2])
         eq_(m1.downgrade_ops_list, [d1, d2])
@@ -615,39 +668,36 @@ class ImportsTest(TestBase):
                 context.configure(
                     connection=connection,
                     target_metadata=target_metadata,
-                    **kw)
+                    **kw
+                )
                 with context.begin_transaction():
                     context.run_migrations()
 
         return mock.patch(
-            "alembic.script.base.ScriptDirectory.run_env",
-            run_env
+            "alembic.script.base.ScriptDirectory.run_env", run_env
         )
 
     def test_imports_in_script(self):
         from sqlalchemy import MetaData, Table, Column
         from sqlalchemy.dialects.mysql import VARCHAR
 
-        type_ = VARCHAR(20, charset='utf8', national=True)
+        type_ = VARCHAR(20, charset="utf8", national=True)
 
         m = MetaData()
 
-        Table(
-            't', m,
-            Column('x', type_)
-        )
+        Table("t", m, Column("x", type_))
 
         def process_revision_directives(context, rev, generate_revisions):
             generate_revisions[0].imports.add(
-                "from sqlalchemy.dialects.mysql import TINYINT")
+                "from sqlalchemy.dialects.mysql import TINYINT"
+            )
 
         with self._env_fixture(
-                m,
-                process_revision_directives=process_revision_directives
+            m, process_revision_directives=process_revision_directives
         ):
             rev = command.revision(
-                self.cfg, message="some message",
-                autogenerate=True)
+                self.cfg, message="some message", autogenerate=True
+            )
 
         with open(rev.path) as file_:
             contents = file_.read()
@@ -659,24 +709,24 @@ class MultiContextTest(TestBase):
     """test the multidb template for autogenerate front-to-back"""
 
     def setUp(self):
-        self.engine1 = _sqlite_file_db(tempname='eng1.db')
-        self.engine2 = _sqlite_file_db(tempname='eng2.db')
-        self.engine3 = _sqlite_file_db(tempname='eng3.db')
+        self.engine1 = _sqlite_file_db(tempname="eng1.db")
+        self.engine2 = _sqlite_file_db(tempname="eng2.db")
+        self.engine3 = _sqlite_file_db(tempname="eng3.db")
 
         self.env = staging_env(template="multidb")
-        self.cfg = _multidb_testing_config({
-            "engine1": self.engine1,
-            "engine2": self.engine2,
-            "engine3": self.engine3
-        })
+        self.cfg = _multidb_testing_config(
+            {
+                "engine1": self.engine1,
+                "engine2": self.engine2,
+                "engine3": self.engine3,
+            }
+        )
 
     def _write_metadata(self, meta):
-        path = os.path.join(_get_staging_directory(), 'scripts', 'env.py')
+        path = os.path.join(_get_staging_directory(), "scripts", "env.py")
         with open(path) as env_:
             existing_env = env_.read()
-        existing_env = existing_env.replace(
-            "target_metadata = {}",
-            meta)
+        existing_env = existing_env.replace("target_metadata = {}", meta)
         with open(path, "w") as env_:
             env_.write(existing_env)
 
@@ -701,40 +751,30 @@ sa.Table('e3t1', m3, sa.Column('z', sa.Integer))
         )
 
         rev = command.revision(
-            self.cfg, message="some message",
-            autogenerate=True
+            self.cfg, message="some message", autogenerate=True
         )
         with mock.patch.object(rev.module, "op") as op_mock:
             rev.module.upgrade_engine1()
             eq_(
                 op_mock.mock_calls[-1],
-                mock.call.create_table('e1t1', mock.ANY)
+                mock.call.create_table("e1t1", mock.ANY),
             )
             rev.module.upgrade_engine2()
             eq_(
                 op_mock.mock_calls[-1],
-                mock.call.create_table('e2t1', mock.ANY)
+                mock.call.create_table("e2t1", mock.ANY),
             )
             rev.module.upgrade_engine3()
             eq_(
                 op_mock.mock_calls[-1],
-                mock.call.create_table('e3t1', mock.ANY)
+                mock.call.create_table("e3t1", mock.ANY),
             )
             rev.module.downgrade_engine1()
-            eq_(
-                op_mock.mock_calls[-1],
-                mock.call.drop_table('e1t1')
-            )
+            eq_(op_mock.mock_calls[-1], mock.call.drop_table("e1t1"))
             rev.module.downgrade_engine2()
-            eq_(
-                op_mock.mock_calls[-1],
-                mock.call.drop_table('e2t1')
-            )
+            eq_(op_mock.mock_calls[-1], mock.call.drop_table("e2t1"))
             rev.module.downgrade_engine3()
-            eq_(
-                op_mock.mock_calls[-1],
-                mock.call.drop_table('e3t1')
-            )
+            eq_(op_mock.mock_calls[-1], mock.call.drop_table("e3t1"))
 
 
 class RewriterTest(TestBase):
@@ -744,20 +784,13 @@ class RewriterTest(TestBase):
         mocker = mock.Mock(side_effect=lambda context, revision, op: op)
         writer.rewrites(ops.MigrateOperation)(mocker)
 
-        addcolop = ops.AddColumnOp(
-            't1', sa.Column('x', sa.Integer())
-        )
+        addcolop = ops.AddColumnOp("t1", sa.Column("x", sa.Integer()))
 
         directives = [
             ops.MigrationScript(
                 util.rev_id(),
-                ops.UpgradeOps(ops=[
-                    ops.ModifyTableOps('t1', ops=[
-                        addcolop
-                    ])
-                ]),
-                ops.DowngradeOps(ops=[
-                ]),
+                ops.UpgradeOps(ops=[ops.ModifyTableOps("t1", ops=[addcolop])]),
+                ops.DowngradeOps(ops=[]),
             )
         ]
 
@@ -771,7 +804,7 @@ class RewriterTest(TestBase):
                 mock.call(ctx, rev, directives[0].upgrade_ops.ops[0]),
                 mock.call(ctx, rev, addcolop),
                 mock.call(ctx, rev, directives[0].downgrade_ops),
-            ]
+            ],
         )
 
     def test_double_migrate_table(self):
@@ -783,28 +816,33 @@ class RewriterTest(TestBase):
         def second_table(context, revision, op):
             return [
                 op,
-                ops.ModifyTableOps('t2', ops=[
-                    ops.AddColumnOp('t2', sa.Column('x', sa.Integer()))
-                ])
+                ops.ModifyTableOps(
+                    "t2",
+                    ops=[ops.AddColumnOp("t2", sa.Column("x", sa.Integer()))],
+                ),
             ]
 
         @writer.rewrites(ops.AddColumnOp)
         def add_column(context, revision, op):
-            idx_op = ops.CreateIndexOp('ixt', op.table_name, [op.column.name])
+            idx_op = ops.CreateIndexOp("ixt", op.table_name, [op.column.name])
             idx_ops.append(idx_op)
-            return [
-                op,
-                idx_op
-            ]
+            return [op, idx_op]
 
         directives = [
             ops.MigrationScript(
                 util.rev_id(),
-                ops.UpgradeOps(ops=[
-                    ops.ModifyTableOps('t1', ops=[
-                        ops.AddColumnOp('t1', sa.Column('x', sa.Integer()))
-                    ])
-                ]),
+                ops.UpgradeOps(
+                    ops=[
+                        ops.ModifyTableOps(
+                            "t1",
+                            ops=[
+                                ops.AddColumnOp(
+                                    "t1", sa.Column("x", sa.Integer())
+                                )
+                            ],
+                        )
+                    ]
+                ),
                 ops.DowngradeOps(ops=[]),
             )
         ]
@@ -812,17 +850,10 @@ class RewriterTest(TestBase):
         ctx, rev = mock.Mock(), mock.Mock()
         writer(ctx, rev, directives)
         eq_(
-            [d.table_name for d in directives[0].upgrade_ops.ops],
-            ['t1', 't2']
+            [d.table_name for d in directives[0].upgrade_ops.ops], ["t1", "t2"]
         )
-        is_(
-            directives[0].upgrade_ops.ops[0].ops[1],
-            idx_ops[0]
-        )
-        is_(
-            directives[0].upgrade_ops.ops[1].ops[1],
-            idx_ops[1]
-        )
+        is_(directives[0].upgrade_ops.ops[0].ops[1], idx_ops[0])
+        is_(directives[0].upgrade_ops.ops[1].ops[1], idx_ops[1])
 
     def test_chained_ops(self):
         writer1 = autogenerate.Rewriter()
@@ -841,26 +872,32 @@ class RewriterTest(TestBase):
                         op.column.name,
                         modify_nullable=False,
                         existing_type=op.column.type,
-                    )
+                    ),
                 ]
 
         @writer2.rewrites(ops.AddColumnOp)
         def add_column_idx(context, revision, op):
-            idx_op = ops.CreateIndexOp('ixt', op.table_name, [op.column.name])
-            return [
-                op,
-                idx_op
-            ]
+            idx_op = ops.CreateIndexOp("ixt", op.table_name, [op.column.name])
+            return [op, idx_op]
 
         directives = [
             ops.MigrationScript(
                 util.rev_id(),
-                ops.UpgradeOps(ops=[
-                    ops.ModifyTableOps('t1', ops=[
-                        ops.AddColumnOp(
-                            't1', sa.Column('x', sa.Integer(), nullable=False))
-                    ])
-                ]),
+                ops.UpgradeOps(
+                    ops=[
+                        ops.ModifyTableOps(
+                            "t1",
+                            ops=[
+                                ops.AddColumnOp(
+                                    "t1",
+                                    sa.Column(
+                                        "x", sa.Integer(), nullable=False
+                                    ),
+                                )
+                            ],
+                        )
+                    ]
+                ),
                 ops.DowngradeOps(ops=[]),
             )
         ]
@@ -877,7 +914,7 @@ class RewriterTest(TestBase):
             "    op.alter_column('t1', 'x',\n"
             "               existing_type=sa.Integer(),\n"
             "               nullable=False)\n"
-            "    # ### end Alembic commands ###"
+            "    # ### end Alembic commands ###",
         )
 
 
@@ -894,7 +931,9 @@ class MultiDirRevisionCommandTest(TestBase):
             util.CommandError,
             "Multiple version locations present, please specify "
             "--version-path",
-            command.revision, self.cfg, message="some message"
+            command.revision,
+            self.cfg,
+            message="some message",
         )
 
     def test_multiple_dir_no_bases_invalid_version_path(self):
@@ -902,40 +941,46 @@ class MultiDirRevisionCommandTest(TestBase):
             util.CommandError,
             "Path foo/bar/ is not represented in current version locations",
             command.revision,
-            self.cfg, message="x",
-            version_path=os.path.join("foo/bar/")
+            self.cfg,
+            message="x",
+            version_path=os.path.join("foo/bar/"),
         )
 
     def test_multiple_dir_no_bases_version_path(self):
         script = command.revision(
-            self.cfg, message="x",
-            version_path=os.path.join(_get_staging_directory(), "model1"))
+            self.cfg,
+            message="x",
+            version_path=os.path.join(_get_staging_directory(), "model1"),
+        )
         assert os.access(script.path, os.F_OK)
 
     def test_multiple_dir_chooses_base(self):
         command.revision(
-            self.cfg, message="x",
+            self.cfg,
+            message="x",
             head="base",
-            version_path=os.path.join(_get_staging_directory(), "model1"))
+            version_path=os.path.join(_get_staging_directory(), "model1"),
+        )
 
         script2 = command.revision(
-            self.cfg, message="y",
+            self.cfg,
+            message="y",
             head="base",
-            version_path=os.path.join(_get_staging_directory(), "model2"))
+            version_path=os.path.join(_get_staging_directory(), "model2"),
+        )
 
         script3 = command.revision(
-            self.cfg, message="y2",
-            head=script2.revision)
+            self.cfg, message="y2", head=script2.revision
+        )
 
         eq_(
             os.path.dirname(script3.path),
-            os.path.abspath(os.path.join(_get_staging_directory(), "model2"))
+            os.path.abspath(os.path.join(_get_staging_directory(), "model2")),
         )
         assert os.access(script3.path, os.F_OK)
 
 
 class TemplateArgsTest(TestBase):
-
     def setUp(self):
         staging_env()
         self.cfg = _no_sql_testing_config(
@@ -949,43 +994,45 @@ class TemplateArgsTest(TestBase):
         config = _no_sql_testing_config()
         script = ScriptDirectory.from_config(config)
         template_args = {"x": "x1", "y": "y1", "z": "z1"}
-        env = EnvironmentContext(
-            config,
-            script,
-            template_args=template_args
+        env = EnvironmentContext(config, script, template_args=template_args)
+        env.configure(
+            dialect_name="sqlite", template_args={"y": "y2", "q": "q1"}
         )
-        env.configure(dialect_name="sqlite",
-                      template_args={"y": "y2", "q": "q1"})
-        eq_(
-            template_args,
-            {"x": "x1", "y": "y2", "z": "z1", "q": "q1"}
-        )
+        eq_(template_args, {"x": "x1", "y": "y2", "z": "z1", "q": "q1"})
 
     def test_tmpl_args_revision(self):
-        env_file_fixture("""
+        env_file_fixture(
+            """
 context.configure(dialect_name='sqlite', template_args={"somearg":"somevalue"})
-""")
-        script_file_fixture("""
+"""
+        )
+        script_file_fixture(
+            """
 # somearg: ${somearg}
 revision = ${repr(up_revision)}
 down_revision = ${repr(down_revision)}
-""")
+"""
+        )
 
         command.revision(self.cfg, message="some rev")
         script = ScriptDirectory.from_config(self.cfg)
 
-        rev = script.get_revision('head')
+        rev = script.get_revision("head")
         with open(rev.path) as f:
             text = f.read()
         assert "somearg: somevalue" in text
 
     def test_bad_render(self):
-        env_file_fixture("""
+        env_file_fixture(
+            """
 context.configure(dialect_name='sqlite', template_args={"somearg":"somevalue"})
-""")
-        script_file_fixture("""
+"""
+        )
+        script_file_fixture(
+            """
     <% z = x + y %>
-""")
+"""
+        )
 
         try:
             command.revision(self.cfg, message="some rev")
@@ -993,7 +1040,7 @@ context.configure(dialect_name='sqlite', template_args={"somearg":"somevalue"})
             m = re.match(
                 r"^Template rendering failed; see (.+?) "
                 "for a template-oriented",
-                str(ce)
+                str(ce),
             )
             assert m, "Command error did not produce a file"
             with open(m.group(1)) as handle:
@@ -1003,13 +1050,12 @@ context.configure(dialect_name='sqlite', template_args={"somearg":"somevalue"})
 
 
 class DuplicateVersionLocationsTest(TestBase):
-
     def setUp(self):
         self.env = staging_env()
         self.cfg = _multi_dir_testing_config(
             # this is a duplicate of one of the paths
             # already present in this fixture
-            extra_version_location='%(here)s/model1'
+            extra_version_location="%(here)s/model1"
         )
 
         script = ScriptDirectory.from_config(self.cfg)
@@ -1022,10 +1068,16 @@ class DuplicateVersionLocationsTest(TestBase):
             (self.model3, "model3"),
         ]:
             script.generate_revision(
-                model, name, refresh=True,
+                model,
+                name,
+                refresh=True,
                 version_path=os.path.join(_get_staging_directory(), name),
-                head="base")
-            write_script(script, model, """\
+                head="base",
+            )
+            write_script(
+                script,
+                model,
+                """\
 "%s"
 revision = '%s'
 down_revision = None
@@ -1041,7 +1093,9 @@ def upgrade():
 def downgrade():
     pass
 
-""" % (name, model, name))
+"""
+                % (name, model, name),
+            )
 
     def tearDown(self):
         clear_staging_env()
@@ -1049,16 +1103,20 @@ def downgrade():
     def test_env_emits_warning(self):
         with assertions.expect_warnings(
             "File %s loaded twice! ignoring. "
-            "Please ensure version_locations is unique" % (
-                os.path.realpath(os.path.join(
-                _get_staging_directory(),
-                "model1",
-                "%s_model1.py" % self.model1
-                )))
+            "Please ensure version_locations is unique"
+            % (
+                os.path.realpath(
+                    os.path.join(
+                        _get_staging_directory(),
+                        "model1",
+                        "%s_model1.py" % self.model1,
+                    )
+                )
+            )
         ):
             script = ScriptDirectory.from_config(self.cfg)
             script.revision_map.heads
             eq_(
                 [rev.revision for rev in script.walk_revisions()],
-                [self.model1, self.model2, self.model3]
+                [self.model1, self.model2, self.model3],
             )

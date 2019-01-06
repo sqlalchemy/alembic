@@ -1,8 +1,12 @@
 import sys
 import os
 import re
-from .compat import load_module_py, load_module_pyc, \
-    get_current_bytecode_suffixes, has_pep3147
+from .compat import (
+    load_module_py,
+    load_module_pyc,
+    get_current_bytecode_suffixes,
+    has_pep3147,
+)
 from mako.template import Template
 from mako import exceptions
 import tempfile
@@ -14,16 +18,19 @@ def template_to_file(template_file, dest, output_encoding, **kw):
     try:
         output = template.render_unicode(**kw).encode(output_encoding)
     except:
-        with tempfile.NamedTemporaryFile(suffix='.txt', delete=False) as ntf:
+        with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as ntf:
             ntf.write(
-                exceptions.text_error_template().
-                render_unicode().encode(output_encoding))
+                exceptions.text_error_template()
+                .render_unicode()
+                .encode(output_encoding)
+            )
             fname = ntf.name
         raise CommandError(
             "Template rendering failed; see %s for a "
-            "template-oriented traceback." % fname)
+            "template-oriented traceback." % fname
+        )
     else:
-        with open(dest, 'wb') as f:
+        with open(dest, "wb") as f:
             f.write(output)
 
 
@@ -37,7 +44,8 @@ def coerce_resource_to_filename(fname):
     """
     if not os.path.isabs(fname) and ":" in fname:
         import pkg_resources
-        fname = pkg_resources.resource_filename(*fname.split(':'))
+
+        fname = pkg_resources.resource_filename(*fname.split(":"))
     return fname
 
 
@@ -48,6 +56,7 @@ def pyc_file_from_path(path):
 
     if has_pep3147():
         import imp
+
         candidate = imp.cache_from_source(path)
         if os.path.exists(candidate):
             return candidate
@@ -64,16 +73,17 @@ def edit(path):
     """Given a source path, run the EDITOR for it"""
 
     import editor
+
     try:
         editor.edit(path)
     except Exception as exc:
-        raise CommandError('Error executing editor (%s)' % (exc,))
+        raise CommandError("Error executing editor (%s)" % (exc,))
 
 
 def load_python_file(dir_, filename):
     """Load a file from the given path as a Python module."""
 
-    module_id = re.sub(r'\W', "_", filename)
+    module_id = re.sub(r"\W", "_", filename)
     path = os.path.join(dir_, filename)
     _, ext = os.path.splitext(filename)
     if ext == ".py":

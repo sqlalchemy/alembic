@@ -3,4 +3,4 @@ from .ops import MigrateOperation
 from . import toimpl
 
 
-__all__ = ['Operations', 'BatchOperations', 'MigrateOperation']
+__all__ = ["Operations", "BatchOperations", "MigrateOperation"]

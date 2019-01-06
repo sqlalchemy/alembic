@@ -120,7 +120,7 @@ class EnvironmentContext(util.ModuleClsProxy):
         has been configured.
 
         """
-        return self.context_opts.get('as_sql', False)
+        return self.context_opts.get("as_sql", False)
 
     def is_transactional_ddl(self):
         """Return True if the context is configured to expect a
@@ -182,17 +182,20 @@ class EnvironmentContext(util.ModuleClsProxy):
         """
         if self._migration_context is not None:
             return self.script.as_revision_number(
-                self.get_context()._start_from_rev)
-        elif 'starting_rev' in self.context_opts:
+                self.get_context()._start_from_rev
+            )
+        elif "starting_rev" in self.context_opts:
             return self.script.as_revision_number(
-                self.context_opts['starting_rev'])
+                self.context_opts["starting_rev"]
+            )
         else:
             # this should raise only in the case that a command
             # is being run where the "starting rev" is never applicable;
             # this is to catch scripts which rely upon this in
             # non-sql mode or similar
             raise util.CommandError(
-                "No starting revision argument is available.")
+                "No starting revision argument is available."
+            )
 
     def get_revision_argument(self):
         """Get the 'destination' revision argument.
@@ -209,7 +212,8 @@ class EnvironmentContext(util.ModuleClsProxy):
 
         """
         return self.script.as_revision_number(
-            self.context_opts['destination_rev'])
+            self.context_opts["destination_rev"]
+        )
 
     def get_tag_argument(self):
         """Return the value passed for the ``--tag`` argument, if any.
@@ -229,7 +233,7 @@ class EnvironmentContext(util.ModuleClsProxy):
             line.
 
         """
-        return self.context_opts.get('tag', None)
+        return self.context_opts.get("tag", None)
 
     def get_x_argument(self, as_dictionary=False):
         """Return the value(s) passed for the ``-x`` argument, if any.
@@ -277,39 +281,38 @@ class EnvironmentContext(util.ModuleClsProxy):
         else:
             value = []
         if as_dictionary:
-            value = dict(
-                arg.split('=', 1) for arg in value
-            )
+            value = dict(arg.split("=", 1) for arg in value)
         return value
 
-    def configure(self,
-                  connection=None,
-                  url=None,
-                  dialect_name=None,
-                  transactional_ddl=None,
-                  transaction_per_migration=False,
-                  output_buffer=None,
-                  starting_rev=None,
-                  tag=None,
-                  template_args=None,
-                  render_as_batch=False,
-                  target_metadata=None,
-                  include_symbol=None,
-                  include_object=None,
-                  include_schemas=False,
-                  process_revision_directives=None,
-                  compare_type=False,
-                  compare_server_default=False,
-                  render_item=None,
-                  literal_binds=False,
-                  upgrade_token="upgrades",
-                  downgrade_token="downgrades",
-                  alembic_module_prefix="op.",
-                  sqlalchemy_module_prefix="sa.",
-                  user_module_prefix=None,
-                  on_version_apply=None,
-                  **kw
-                  ):
+    def configure(
+        self,
+        connection=None,
+        url=None,
+        dialect_name=None,
+        transactional_ddl=None,
+        transaction_per_migration=False,
+        output_buffer=None,
+        starting_rev=None,
+        tag=None,
+        template_args=None,
+        render_as_batch=False,
+        target_metadata=None,
+        include_symbol=None,
+        include_object=None,
+        include_schemas=False,
+        process_revision_directives=None,
+        compare_type=False,
+        compare_server_default=False,
+        render_item=None,
+        literal_binds=False,
+        upgrade_token="upgrades",
+        downgrade_token="downgrades",
+        alembic_module_prefix="op.",
+        sqlalchemy_module_prefix="sa.",
+        user_module_prefix=None,
+        on_version_apply=None,
+        **kw
+    ):
         """Configure a :class:`.MigrationContext` within this
         :class:`.EnvironmentContext` which will provide database
         connectivity and other configuration to a series of
@@ -774,33 +777,33 @@ class EnvironmentContext(util.ModuleClsProxy):
         elif self.config.output_buffer is not None:
             opts["output_buffer"] = self.config.output_buffer
         if starting_rev:
-            opts['starting_rev'] = starting_rev
+            opts["starting_rev"] = starting_rev
         if tag:
-            opts['tag'] = tag
-        if template_args and 'template_args' in opts:
-            opts['template_args'].update(template_args)
+            opts["tag"] = tag
+        if template_args and "template_args" in opts:
+            opts["template_args"].update(template_args)
         opts["transaction_per_migration"] = transaction_per_migration
-        opts['target_metadata'] = target_metadata
-        opts['include_symbol'] = include_symbol
-        opts['include_object'] = include_object
-        opts['include_schemas'] = include_schemas
-        opts['render_as_batch'] = render_as_batch
-        opts['upgrade_token'] = upgrade_token
-        opts['downgrade_token'] = downgrade_token
-        opts['sqlalchemy_module_prefix'] = sqlalchemy_module_prefix
-        opts['alembic_module_prefix'] = alembic_module_prefix
-        opts['user_module_prefix'] = user_module_prefix
-        opts['literal_binds'] = literal_binds
-        opts['process_revision_directives'] = process_revision_directives
-        opts['on_version_apply'] = util.to_tuple(on_version_apply, default=())
+        opts["target_metadata"] = target_metadata
+        opts["include_symbol"] = include_symbol
+        opts["include_object"] = include_object
+        opts["include_schemas"] = include_schemas
+        opts["render_as_batch"] = render_as_batch
+        opts["upgrade_token"] = upgrade_token
+        opts["downgrade_token"] = downgrade_token
+        opts["sqlalchemy_module_prefix"] = sqlalchemy_module_prefix
+        opts["alembic_module_prefix"] = alembic_module_prefix
+        opts["user_module_prefix"] = user_module_prefix
+        opts["literal_binds"] = literal_binds
+        opts["process_revision_directives"] = process_revision_directives
+        opts["on_version_apply"] = util.to_tuple(on_version_apply, default=())
 
         if render_item is not None:
-            opts['render_item'] = render_item
+            opts["render_item"] = render_item
         if compare_type is not None:
-            opts['compare_type'] = compare_type
+            opts["compare_type"] = compare_type
         if compare_server_default is not None:
-            opts['compare_server_default'] = compare_server_default
-        opts['script'] = self.script
+            opts["compare_server_default"] = compare_server_default
+        opts["script"] = self.script
 
         opts.update(kw)
 
@@ -809,7 +812,7 @@ class EnvironmentContext(util.ModuleClsProxy):
             url=url,
             dialect_name=dialect_name,
             environment_context=self,
-            opts=opts
+            opts=opts,
         )
 
     def run_migrations(self, **kw):
@@ -847,8 +850,7 @@ class EnvironmentContext(util.ModuleClsProxy):
         first been made available via :meth:`.configure`.
 
         """
-        self.get_context().execute(sql,
-                                   execution_options=execution_options)
+        self.get_context().execute(sql, execution_options=execution_options)
 
     def static_output(self, text):
         """Emit text directly to the "offline" SQL stream.

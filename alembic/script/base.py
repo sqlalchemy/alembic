@@ -10,13 +10,13 @@ from ..runtime import migration
 
 from contextlib import contextmanager
 
-_sourceless_rev_file = re.compile(r'(?!\.\#|__init__)(.*\.py)(c|o)?$')
-_only_source_rev_file = re.compile(r'(?!\.\#|__init__)(.*\.py)$')
-_legacy_rev = re.compile(r'([a-f0-9]+)\.py$')
-_mod_def_re = re.compile(r'(upgrade|downgrade)_([a-z0-9]+)')
-_slug_re = re.compile(r'\w+')
+_sourceless_rev_file = re.compile(r"(?!\.\#|__init__)(.*\.py)(c|o)?$")
+_only_source_rev_file = re.compile(r"(?!\.\#|__init__)(.*\.py)$")
+_legacy_rev = re.compile(r"([a-f0-9]+)\.py$")
+_mod_def_re = re.compile(r"(upgrade|downgrade)_([a-z0-9]+)")
+_slug_re = re.compile(r"\w+")
 _default_file_template = "%(rev)s_%(slug)s"
-_split_on_space_comma = re.compile(r',|(?: +)')
+_split_on_space_comma = re.compile(r",|(?: +)")
 
 
 class ScriptDirectory(object):
@@ -40,11 +40,16 @@ class ScriptDirectory(object):
 
     """
 
-    def __init__(self, dir, file_template=_default_file_template,
-                 truncate_slug_length=40,
-                 version_locations=None,
-                 sourceless=False, output_encoding="utf-8",
-                 timezone=None):
+    def __init__(
+        self,
+        dir,
+        file_template=_default_file_template,
+        truncate_slug_length=40,
+        version_locations=None,
+        sourceless=False,
+        output_encoding="utf-8",
+        timezone=None,
+    ):
         self.dir = dir
         self.file_template = file_template
         self.version_locations = version_locations
@@ -55,9 +60,11 @@ class ScriptDirectory(object):
         self.timezone = timezone
 
         if not os.access(dir, os.F_OK):
-            raise util.CommandError("Path doesn't exist: %r.  Please use "
-                                    "the 'init' command to create a new "
-                                    "scripts folder." % dir)
+            raise util.CommandError(
+                "Path doesn't exist: %r.  Please use "
+                "the 'init' command to create a new "
+                "scripts folder." % dir
+            )
 
     @property
     def versions(self):
@@ -75,13 +82,15 @@ class ScriptDirectory(object):
                 for location in self.version_locations
             ]
         else:
-            return (os.path.abspath(os.path.join(self.dir, 'versions')),)
+            return (os.path.abspath(os.path.join(self.dir, "versions")),)
 
     def _load_revisions(self):
         if self.version_locations:
             paths = [
-                vers for vers in self._version_locations
-                if os.path.exists(vers)]
+                vers
+                for vers in self._version_locations
+                if os.path.exists(vers)
+            ]
         else:
             paths = [self.versions]
 
@@ -110,10 +119,11 @@ class ScriptDirectory(object):
         present.
 
         """
-        script_location = config.get_main_option('script_location')
+        script_location = config.get_main_option("script_location")
         if script_location is None:
-            raise util.CommandError("No 'script_location' key "
-                                    "found in configuration.")
+            raise util.CommandError(
+                "No 'script_location' key " "found in configuration."
+            )
         truncate_slug_length = config.get_main_option("truncate_slug_length")
         if truncate_slug_length is not None:
             truncate_slug_length = int(truncate_slug_length)
@@ -125,20 +135,24 @@ class ScriptDirectory(object):
         return ScriptDirectory(
             util.coerce_resource_to_filename(script_location),
             file_template=config.get_main_option(
-                'file_template',
-                _default_file_template),
+                "file_template", _default_file_template
+            ),
             truncate_slug_length=truncate_slug_length,
             sourceless=config.get_main_option("sourceless") == "true",
             output_encoding=config.get_main_option("output_encoding", "utf-8"),
             version_locations=version_locations,
-            timezone=config.get_main_option("timezone")
+            timezone=config.get_main_option("timezone"),
         )
 
     @contextmanager
     def _catch_revision_errors(
-            self,
-            ancestor=None, multiple_heads=None, start=None, end=None,
-            resolution=None):
+        self,
+        ancestor=None,
+        multiple_heads=None,
+        start=None,
+        end=None,
+        resolution=None,
+    ):
         try:
             yield
         except revision.RangeNotAncestorError as rna:
@@ -160,10 +174,11 @@ class ScriptDirectory(object):
                     "argument '%(head_arg)s'; please "
                     "specify a specific target revision, "
                     "'<branchname>@%(head_arg)s' to "
-                    "narrow to a specific head, or 'heads' for all heads")
+                    "narrow to a specific head, or 'heads' for all heads"
+                )
             multiple_heads = multiple_heads % {
                 "head_arg": end or mh.argument,
-                "heads": util.format_as_comma(mh.heads)
+                "heads": util.format_as_comma(mh.heads),
             }
             compat.raise_from_cause(util.CommandError(multiple_heads))
         except revision.ResolutionError as re:
@@ -192,7 +207,8 @@ class ScriptDirectory(object):
         """
         with self._catch_revision_errors(start=base, end=head):
             for rev in self.revision_map.iterate_revisions(
-                    head, base, inclusive=True, assert_relative_length=False):
+                head, base, inclusive=True, assert_relative_length=False
+            ):
                 yield rev
 
     def get_revisions(self, id_):
@@ -210,7 +226,8 @@ class ScriptDirectory(object):
             top_revs = set(self.revision_map.get_revisions(id_))
             top_revs.update(
                 self.revision_map._get_ancestor_nodes(
-                    list(top_revs), include_dependencies=True)
+                    list(top_revs), include_dependencies=True
+                )
             )
             top_revs = self.revision_map._filter_into_branch_heads(top_revs)
             return top_revs
@@ -275,11 +292,13 @@ class ScriptDirectory(object):
             :meth:`.ScriptDirectory.get_heads`
 
         """
-        with self._catch_revision_errors(multiple_heads=(
-                'The script directory has multiple heads (due to branching).'
-                'Please use get_heads(), or merge the branches using '
-                'alembic merge.'
-        )):
+        with self._catch_revision_errors(
+            multiple_heads=(
+                "The script directory has multiple heads (due to branching)."
+                "Please use get_heads(), or merge the branches using "
+                "alembic merge."
+            )
+        ):
             return self.revision_map.get_current_head()
 
     def get_heads(self):
@@ -310,7 +329,8 @@ class ScriptDirectory(object):
         if len(bases) > 1:
             raise util.CommandError(
                 "The script directory has multiple bases. "
-                "Please use get_bases().")
+                "Please use get_bases()."
+            )
         elif bases:
             return bases[0]
         else:
@@ -329,40 +349,50 @@ class ScriptDirectory(object):
 
     def _upgrade_revs(self, destination, current_rev):
         with self._catch_revision_errors(
-                ancestor="Destination %(end)s is not a valid upgrade "
-                "target from current head(s)", end=destination):
+            ancestor="Destination %(end)s is not a valid upgrade "
+            "target from current head(s)",
+            end=destination,
+        ):
             revs = self.revision_map.iterate_revisions(
-                destination, current_rev, implicit_base=True)
+                destination, current_rev, implicit_base=True
+            )
             revs = list(revs)
             return [
                 migration.MigrationStep.upgrade_from_script(
-                    self.revision_map, script)
+                    self.revision_map, script
+                )
                 for script in reversed(list(revs))
             ]
 
     def _downgrade_revs(self, destination, current_rev):
         with self._catch_revision_errors(
-                ancestor="Destination %(end)s is not a valid downgrade "
-                "target from current head(s)", end=destination):
+            ancestor="Destination %(end)s is not a valid downgrade "
+            "target from current head(s)",
+            end=destination,
+        ):
             revs = self.revision_map.iterate_revisions(
-                current_rev, destination, select_for_downgrade=True)
+                current_rev, destination, select_for_downgrade=True
+            )
             return [
                 migration.MigrationStep.downgrade_from_script(
-                    self.revision_map, script)
+                    self.revision_map, script
+                )
                 for script in revs
             ]
 
     def _stamp_revs(self, revision, heads):
         with self._catch_revision_errors(
-                multiple_heads="Multiple heads are present; please specify a "
-                "single target revision"):
+            multiple_heads="Multiple heads are present; please specify a "
+            "single target revision"
+        ):
 
             heads = self.get_revisions(heads)
 
             # filter for lineage will resolve things like
             # branchname@base, version@base, etc.
             filtered_heads = self.revision_map.filter_for_lineage(
-                heads, revision, include_dependencies=True)
+                heads, revision, include_dependencies=True
+            )
 
             steps = []
 
@@ -371,11 +401,18 @@ class ScriptDirectory(object):
                 if dest is None:
                     # dest is 'base'.  Return a "delete branch" migration
                     # for all applicable heads.
-                    steps.extend([
-                        migration.StampStep(head.revision, None, False, True,
-                                            self.revision_map)
-                        for head in filtered_heads
-                    ])
+                    steps.extend(
+                        [
+                            migration.StampStep(
+                                head.revision,
+                                None,
+                                False,
+                                True,
+                                self.revision_map,
+                            )
+                            for head in filtered_heads
+                        ]
+                    )
                     continue
                 elif dest in filtered_heads:
                     # the dest is already in the version table, do nothing.
@@ -384,7 +421,8 @@ class ScriptDirectory(object):
                 # figure out if the dest is a descendant or an
                 # ancestor of the selected nodes
                 descendants = set(
-                    self.revision_map._get_descendant_nodes([dest]))
+                    self.revision_map._get_descendant_nodes([dest])
+                )
                 ancestors = set(self.revision_map._get_ancestor_nodes([dest]))
 
                 if descendants.intersection(filtered_heads):
@@ -393,8 +431,12 @@ class ScriptDirectory(object):
                     assert not ancestors.intersection(filtered_heads)
                     todo_heads = [head.revision for head in filtered_heads]
                     step = migration.StampStep(
-                        todo_heads, dest.revision, False, False,
-                        self.revision_map)
+                        todo_heads,
+                        dest.revision,
+                        False,
+                        False,
+                        self.revision_map,
+                    )
                     steps.append(step)
                     continue
                 elif ancestors.intersection(filtered_heads):
@@ -402,15 +444,20 @@ class ScriptDirectory(object):
                     # we can treat them as a "merge", single step.
                     todo_heads = [head.revision for head in filtered_heads]
                     step = migration.StampStep(
-                        todo_heads, dest.revision, True, False,
-                        self.revision_map)
+                        todo_heads,
+                        dest.revision,
+                        True,
+                        False,
+                        self.revision_map,
+                    )
                     steps.append(step)
                     continue
                 else:
                     # destination is in a branch not represented,
                     # treat it as new branch
-                    step = migration.StampStep((), dest.revision, True, True,
-                                               self.revision_map)
+                    step = migration.StampStep(
+                        (), dest.revision, True, True, self.revision_map
+                    )
                     steps.append(step)
                     continue
             return steps
@@ -424,32 +471,31 @@ class ScriptDirectory(object):
 
 
         """
-        util.load_python_file(self.dir, 'env.py')
+        util.load_python_file(self.dir, "env.py")
 
     @property
     def env_py_location(self):
         return os.path.abspath(os.path.join(self.dir, "env.py"))
 
     def _generate_template(self, src, dest, **kw):
-        util.status("Generating %s" % os.path.abspath(dest),
-                    util.template_to_file,
-                    src,
-                    dest,
-                    self.output_encoding,
-                    **kw
-                    )
+        util.status(
+            "Generating %s" % os.path.abspath(dest),
+            util.template_to_file,
+            src,
+            dest,
+            self.output_encoding,
+            **kw
+        )
 
     def _copy_file(self, src, dest):
-        util.status("Generating %s" % os.path.abspath(dest),
-                    shutil.copy,
-                    src, dest)
+        util.status(
+            "Generating %s" % os.path.abspath(dest), shutil.copy, src, dest
+        )
 
     def _ensure_directory(self, path):
         path = os.path.abspath(path)
         if not os.path.exists(path):
-            util.status(
-                "Creating directory %s" % path,
-                os.makedirs, path)
+            util.status("Creating directory %s" % path, os.makedirs, path)
 
     def _generate_create_date(self):
         if self.timezone is not None:
@@ -460,17 +506,29 @@ class ScriptDirectory(object):
                 tzinfo = tz.gettz(self.timezone.upper())
             if tzinfo is None:
                 raise util.CommandError(
-                    "Can't locate timezone: %s" % self.timezone)
-            create_date = datetime.datetime.utcnow().replace(
-                tzinfo=tz.tzutc()).astimezone(tzinfo)
+                    "Can't locate timezone: %s" % self.timezone
+                )
+            create_date = (
+                datetime.datetime.utcnow()
+                .replace(tzinfo=tz.tzutc())
+                .astimezone(tzinfo)
+            )
         else:
             create_date = datetime.datetime.now()
         return create_date
 
     def generate_revision(
-            self, revid, message, head=None,
-            refresh=False, splice=False, branch_labels=None,
-            version_path=None, depends_on=None, **kw):
+        self,
+        revid,
+        message,
+        head=None,
+        refresh=False,
+        splice=False,
+        branch_labels=None,
+        version_path=None,
+        depends_on=None,
+        **kw
+    ):
         """Generate a new revision file.
 
         This runs the ``script.py.mako`` template, given
@@ -500,11 +558,13 @@ class ScriptDirectory(object):
         except revision.RevisionError as err:
             compat.raise_from_cause(util.CommandError(err.args[0]))
 
-        with self._catch_revision_errors(multiple_heads=(
-            "Multiple heads are present; please specify the head "
-            "revision on which the new revision should be based, "
-            "or perform a merge."
-        )):
+        with self._catch_revision_errors(
+            multiple_heads=(
+                "Multiple heads are present; please specify the head "
+                "revision on which the new revision should be based, "
+                "or perform a merge."
+            )
+        ):
             heads = self.revision_map.get_revisions(head)
 
         if len(set(heads)) != len(heads):
@@ -521,7 +581,8 @@ class ScriptDirectory(object):
                 else:
                     raise util.CommandError(
                         "Multiple version locations present, "
-                        "please specify --version-path")
+                        "please specify --version-path"
+                    )
             else:
                 version_path = self.versions
 
@@ -532,7 +593,8 @@ class ScriptDirectory(object):
         else:
             raise util.CommandError(
                 "Path %s is not represented in current "
-                "version locations" % version_path)
+                "version locations" % version_path
+            )
 
         if self.version_locations:
             self._ensure_directory(version_path)
@@ -545,7 +607,8 @@ class ScriptDirectory(object):
                     raise util.CommandError(
                         "Revision %s is not a head revision; please specify "
                         "--splice to create a new branch from this revision"
-                        % head.revision)
+                        % head.revision
+                    )
 
         if depends_on:
             with self._catch_revision_errors():
@@ -557,7 +620,6 @@ class ScriptDirectory(object):
                         (self.revision_map.get_revision(dep), dep)
                         for dep in util.to_list(depends_on)
                     ]
-
                 ]
 
         self._generate_template(
@@ -565,7 +627,8 @@ class ScriptDirectory(object):
             path,
             up_revision=str(revid),
             down_revision=revision.tuple_rev_as_scalar(
-                tuple(h.revision if h is not None else None for h in heads)),
+                tuple(h.revision if h is not None else None for h in heads)
+            ),
             branch_labels=util.to_tuple(branch_labels),
             depends_on=revision.tuple_rev_as_scalar(depends_on),
             create_date=create_date,
@@ -582,9 +645,9 @@ class ScriptDirectory(object):
                 "Version %s specified branch_labels %s, however the "
                 "migration file %s does not have them; have you upgraded "
                 "your script.py.mako to include the "
-                "'branch_labels' section?" % (
-                    script.revision, branch_labels, script.path
-                ))
+                "'branch_labels' section?"
+                % (script.revision, branch_labels, script.path)
+            )
 
         self.revision_map.add_revision(script)
         return script
@@ -592,17 +655,18 @@ class ScriptDirectory(object):
     def _rev_path(self, path, rev_id, message, create_date):
         slug = "_".join(_slug_re.findall(message or "")).lower()
         if len(slug) > self.truncate_slug_length:
-            slug = slug[:self.truncate_slug_length].rsplit('_', 1)[0] + '_'
+            slug = slug[: self.truncate_slug_length].rsplit("_", 1)[0] + "_"
         filename = "%s.py" % (
-            self.file_template % {
-                'rev': rev_id,
-                'slug': slug,
-                'year': create_date.year,
-                'month': create_date.month,
-                'day': create_date.day,
-                'hour': create_date.hour,
-                'minute': create_date.minute,
-                'second': create_date.second
+            self.file_template
+            % {
+                "rev": rev_id,
+                "slug": slug,
+                "year": create_date.year,
+                "month": create_date.month,
+                "day": create_date.day,
+                "hour": create_date.hour,
+                "minute": create_date.minute,
+                "second": create_date.second,
             }
         )
         return os.path.join(path, filename)
@@ -624,9 +688,11 @@ class Script(revision.Revision):
             rev_id,
             module.down_revision,
             branch_labels=util.to_tuple(
-                getattr(module, 'branch_labels', None), default=()),
+                getattr(module, "branch_labels", None), default=()
+            ),
             dependencies=util.to_tuple(
-                getattr(module, 'depends_on', None), default=())
+                getattr(module, "depends_on", None), default=()
+            ),
         )
 
     module = None
@@ -664,32 +730,32 @@ class Script(revision.Revision):
             " (head)" if self.is_head else "",
             " (branchpoint)" if self.is_branch_point else "",
             " (mergepoint)" if self.is_merge_point else "",
-            " (current)" if self._db_current_indicator else ""
+            " (current)" if self._db_current_indicator else "",
         )
         if self.is_merge_point:
-            entry += "Merges: %s\n" % (self._format_down_revision(), )
+            entry += "Merges: %s\n" % (self._format_down_revision(),)
         else:
-            entry += "Parent: %s\n" % (self._format_down_revision(), )
+            entry += "Parent: %s\n" % (self._format_down_revision(),)
 
         if self.dependencies:
             entry += "Also depends on: %s\n" % (
-                util.format_as_comma(self.dependencies))
+                util.format_as_comma(self.dependencies)
+            )
 
         if self.is_branch_point:
             entry += "Branches into: %s\n" % (
-                util.format_as_comma(self.nextrev))
+                util.format_as_comma(self.nextrev)
+            )
 
         if self.branch_labels:
             entry += "Branch names: %s\n" % (
-                util.format_as_comma(self.branch_labels), )
+                util.format_as_comma(self.branch_labels),
+            )
 
         entry += "Path: %s\n" % (self.path,)
 
         entry += "\n%s\n" % (
-            "\n".join(
-                "    %s" % para
-                for para in self.longdoc.splitlines()
-            )
+            "\n".join("    %s" % para for para in self.longdoc.splitlines())
         )
         return entry
 
@@ -700,36 +766,41 @@ class Script(revision.Revision):
             " (head)" if self.is_head else "",
             " (branchpoint)" if self.is_branch_point else "",
             " (mergepoint)" if self.is_merge_point else "",
-            self.doc)
+            self.doc,
+        )
 
     def _head_only(
-            self, include_branches=False, include_doc=False,
-            include_parents=False, tree_indicators=True,
-            head_indicators=True):
+        self,
+        include_branches=False,
+        include_doc=False,
+        include_parents=False,
+        tree_indicators=True,
+        head_indicators=True,
+    ):
         text = self.revision
         if include_parents:
             if self.dependencies:
                 text = "%s (%s) -> %s" % (
                     self._format_down_revision(),
                     util.format_as_comma(self.dependencies),
-                    text
+                    text,
                 )
             else:
-                text = "%s -> %s" % (
-                    self._format_down_revision(), text)
+                text = "%s -> %s" % (self._format_down_revision(), text)
         if include_branches and self.branch_labels:
             text += " (%s)" % util.format_as_comma(self.branch_labels)
         if head_indicators or tree_indicators:
             text += "%s%s%s" % (
                 " (head)" if self._is_real_head else "",
-                " (effective head)" if self.is_head and
-                    not self._is_real_head else "",
-                " (current)" if self._db_current_indicator else ""
+                " (effective head)"
+                if self.is_head and not self._is_real_head
+                else "",
+                " (current)" if self._db_current_indicator else "",
             )
         if tree_indicators:
             text += "%s%s" % (
                 " (branchpoint)" if self.is_branch_point else "",
-                " (mergepoint)" if self.is_merge_point else ""
+                " (mergepoint)" if self.is_merge_point else "",
             )
         if include_doc:
             text += ", %s" % self.doc
@@ -737,15 +808,18 @@ class Script(revision.Revision):
 
     def cmd_format(
         self,
-            verbose,
-            include_branches=False, include_doc=False,
-            include_parents=False, tree_indicators=True):
+        verbose,
+        include_branches=False,
+        include_doc=False,
+        include_parents=False,
+        tree_indicators=True,
+    ):
         if verbose:
             return self.log_entry
         else:
             return self._head_only(
-                include_branches, include_doc,
-                include_parents, tree_indicators)
+                include_branches, include_doc, include_parents, tree_indicators
+            )
 
     def _format_down_revision(self):
         if not self.down_revision:
@@ -768,13 +842,13 @@ class Script(revision.Revision):
             names = set(fname.split(".")[0] for fname in paths)
 
             # look for __pycache__
-            if os.path.exists(os.path.join(path, '__pycache__')):
+            if os.path.exists(os.path.join(path, "__pycache__")):
                 # add all files from __pycache__ whose filename is not
                 # already in the names we got from the version directory.
                 # add as relative paths including __pycache__ token
                 paths.extend(
-                    os.path.join('__pycache__', pyc)
-                    for pyc in os.listdir(os.path.join(path, '__pycache__'))
+                    os.path.join("__pycache__", pyc)
+                    for pyc in os.listdir(os.path.join(path, "__pycache__"))
                     if pyc.split(".")[0] not in names
                 )
             return paths
@@ -794,8 +868,8 @@ class Script(revision.Revision):
         py_filename = py_match.group(1)
 
         if scriptdir.sourceless:
-            is_c = py_match.group(2) == 'c'
-            is_o = py_match.group(2) == 'o'
+            is_c = py_match.group(2) == "c"
+            is_o = py_match.group(2) == "o"
         else:
             is_c = is_o = False
 
@@ -821,7 +895,8 @@ class Script(revision.Revision):
                     "Be sure the 'revision' variable is "
                     "declared inside the script (please see 'Upgrading "
                     "from Alembic 0.1 to 0.2' in the documentation)."
-                    % filename)
+                    % filename
+                )
             else:
                 revision = m.group(1)
         else:

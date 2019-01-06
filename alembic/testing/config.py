@@ -66,7 +66,8 @@ class Config(object):
         assert _current, "Can't push without a default Config set up"
         cls.push(
             Config(
-                db, _current.db_opts, _current.options, _current.file_config)
+                db, _current.db_opts, _current.options, _current.file_config
+            )
         )
 
     @classmethod
@@ -88,4 +89,3 @@ class Config(object):
     def all_dbs(cls):
         for cfg in cls.all_configs():
             yield cfg.db
-

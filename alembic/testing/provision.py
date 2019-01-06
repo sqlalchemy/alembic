@@ -30,6 +30,7 @@ class register(object):
         def decorate(fn):
             self.fns[dbname] = fn
             return self
+
         return decorate
 
     def __call__(self, cfg, *arg):
@@ -43,7 +44,7 @@ class register(object):
         if backend in self.fns:
             return self.fns[backend](cfg, *arg)
         else:
-            return self.fns['*'](cfg, *arg)
+            return self.fns["*"](cfg, *arg)
 
 
 def create_follower_db(follower_ident):
@@ -86,9 +87,7 @@ def _configs_for_db_operation():
     for cfg in config.Config.all_configs():
         url = cfg.db.url
         backend = get_url_backend_name(url)
-        host_conf = (
-            backend,
-            url.username, url.host, url.database)
+        host_conf = (backend, url.username, url.host, url.database)
 
         if host_conf not in hosts:
             yield cfg
@@ -132,13 +131,13 @@ def _follower_url_from_main(url, ident):
 
 @_update_db_opts.for_db("mssql")
 def _mssql_update_db_opts(db_url, db_opts):
-    db_opts['legacy_schema_aliasing'] = False
+    db_opts["legacy_schema_aliasing"] = False
 
 
 @_follower_url_from_main.for_db("sqlite")
 def _sqlite_follower_url_from_main(url, ident):
     url = sa_url.make_url(url)
-    if not url.database or url.database == ':memory:':
+    if not url.database or url.database == ":memory:":
         return url
     else:
         return sa_url.make_url("sqlite:///%s.db" % ident)
@@ -154,19 +153,20 @@ def _sqlite_post_configure_engine(url, engine, follower_ident):
         # as an attached
         if not follower_ident:
             dbapi_connection.execute(
-                'ATTACH DATABASE "test_schema.db" AS test_schema')
+                'ATTACH DATABASE "test_schema.db" AS test_schema'
+            )
         else:
             dbapi_connection.execute(
                 'ATTACH DATABASE "%s_test_schema.db" AS test_schema'
-                % follower_ident)
+                % follower_ident
+            )
 
 
 @_create_db.for_db("postgresql")
 def _pg_create_db(cfg, eng, ident):
     template_db = cfg.options.postgresql_templatedb
 
-    with eng.connect().execution_options(
-            isolation_level="AUTOCOMMIT") as conn:
+    with eng.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
         try:
             _pg_drop_db(cfg, conn, ident)
         except Exception:
@@ -222,14 +222,15 @@ def _sqlite_create_db(cfg, eng, ident):
 
 @_drop_db.for_db("postgresql")
 def _pg_drop_db(cfg, eng, ident):
-    with eng.connect().execution_options(
-            isolation_level="AUTOCOMMIT") as conn:
+    with eng.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
         conn.execute(
             text(
                 "select pg_terminate_backend(pid) from pg_stat_activity "
                 "where usename=current_user and pid != pg_backend_pid() "
                 "and datname=:dname"
-            ), dname=ident)
+            ),
+            dname=ident,
+        )
         conn.execute("DROP DATABASE %s" % ident)
 
 
@@ -258,7 +259,7 @@ def _oracle_create_db(cfg, eng, ident):
         conn.execute("create user %s identified by xe" % ident)
         conn.execute("create user %s_ts1 identified by xe" % ident)
         conn.execute("create user %s_ts2 identified by xe" % ident)
-        conn.execute("grant dba to %s" % (ident, ))
+        conn.execute("grant dba to %s" % (ident,))
         conn.execute("grant unlimited tablespace to %s" % ident)
         conn.execute("grant unlimited tablespace to %s_ts1" % ident)
         conn.execute("grant unlimited tablespace to %s_ts2" % ident)
@@ -316,8 +317,9 @@ def reap_oracle_dbs(idents_file):
             to_reap = conn.execute(
                 "select u.username from all_users u where username "
                 "like 'TEST_%' and not exists (select username "
-                "from v$session where username=u.username)")
-            all_names = set(username.lower() for (username, ) in to_reap)
+                "from v$session where username=u.username)"
+            )
+            all_names = set(username.lower() for (username,) in to_reap)
             to_drop = set()
             for name in all_names:
                 if name.endswith("_ts1") or name.endswith("_ts2"):
@@ -334,15 +336,13 @@ def reap_oracle_dbs(idents_file):
                 if _ora_drop_ignore(conn, username):
                     dropped += 1
             log.info(
-                "Dropped %d out of %d stale databases detected",
-                dropped, total)
+                "Dropped %d out of %d stale databases detected", dropped, total
+            )
 
 
 @_follower_url_from_main.for_db("oracle")
 def _oracle_follower_url_from_main(url, ident):
     url = sa_url.make_url(url)
     url.username = ident
-    url.password = 'xe'
+    url.password = "xe"
     return url
-
-

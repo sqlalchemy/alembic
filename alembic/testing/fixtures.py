@@ -17,10 +17,11 @@ from .assertions import _get_dialect, eq_
 from . import mock
 
 testing_config = configparser.ConfigParser()
-testing_config.read(['test.cfg'])
+testing_config.read(["test.cfg"])
 
 
 if not util.sqla_094:
+
     class TestBase(object):
         # A sequence of database names to always run, regardless of the
         # constraints below.
@@ -51,6 +52,8 @@ if not util.sqla_094:
         def teardown(self):
             if hasattr(self, "tearDown"):
                 self.tearDown()
+
+
 else:
     from sqlalchemy.testing.fixtures import TestBase
 
@@ -60,23 +63,22 @@ def capture_db():
 
     def dump(sql, *multiparams, **params):
         buf.append(str(sql.compile(dialect=engine.dialect)))
+
     engine = create_engine("postgresql://", strategy="mock", executor=dump)
     return engine, buf
+
 
 _engs = {}
 
 
 @contextmanager
 def capture_context_buffer(**kw):
-    if kw.pop('bytes_io', False):
+    if kw.pop("bytes_io", False):
         buf = io.BytesIO()
     else:
         buf = io.StringIO()
 
-    kw.update({
-        'dialect_name': "sqlite",
-        'output_buffer': buf
-    })
+    kw.update({"dialect_name": "sqlite", "output_buffer": buf})
     conf = EnvironmentContext.configure
 
     def configure(*arg, **opt):
@@ -88,17 +90,20 @@ def capture_context_buffer(**kw):
 
 
 def op_fixture(
-        dialect='default', as_sql=False,
-        naming_convention=None, literal_binds=False,
-        native_boolean=None):
+    dialect="default",
+    as_sql=False,
+    naming_convention=None,
+    literal_binds=False,
+    native_boolean=None,
+):
 
     opts = {}
     if naming_convention:
         if not util.sqla_092:
             raise SkipTest(
-                "naming_convention feature requires "
-                "sqla 0.9.2 or greater")
-        opts['target_metadata'] = MetaData(naming_convention=naming_convention)
+                "naming_convention feature requires " "sqla 0.9.2 or greater"
+            )
+        opts["target_metadata"] = MetaData(naming_convention=naming_convention)
 
     class buffer_(object):
         def __init__(self):
@@ -106,12 +111,12 @@ def op_fixture(
 
         def write(self, msg):
             msg = msg.strip()
-            msg = re.sub(r'[\n\t]', '', msg)
+            msg = re.sub(r"[\n\t]", "", msg)
             if as_sql:
                 # the impl produces soft tabs,
                 # so search for blocks of 4 spaces
-                msg = re.sub(r'    ', '', msg)
-                msg = re.sub(r'\;\n*$', '', msg)
+                msg = re.sub(r"    ", "", msg)
+                msg = re.sub(r"\;\n*$", "", msg)
 
             self.lines.append(msg)
 
@@ -136,13 +141,13 @@ def op_fixture(
             else:
                 assert False, "Could not locate fragment %r in %r" % (
                     sql,
-                    buf.lines
+                    buf.lines,
                 )
 
     if as_sql:
-        opts['as_sql'] = as_sql
+        opts["as_sql"] = as_sql
     if literal_binds:
-        opts['literal_binds'] = literal_binds
+        opts["literal_binds"] = literal_binds
     ctx_dialect = _get_dialect(dialect)
     if native_boolean is not None:
         ctx_dialect.supports_native_boolean = native_boolean
@@ -150,6 +155,7 @@ def op_fixture(
         # which breaks assumptions in the alembic test suite
         ctx_dialect.non_native_boolean_check_constraint = True
     if not as_sql:
+
         def execute(stmt, *multiparam, **param):
             if isinstance(stmt, string_types):
                 stmt = text(stmt)
@@ -160,12 +166,9 @@ def op_fixture(
 
         connection = mock.Mock(dialect=ctx_dialect, execute=execute)
     else:
-        opts['output_buffer'] = buf
+        opts["output_buffer"] = buf
         connection = None
-    context = ctx(
-        ctx_dialect,
-        connection,
-        opts)
+    context = ctx(ctx_dialect, connection, opts)
 
     alembic.op._proxy = Operations(context)
     return context
