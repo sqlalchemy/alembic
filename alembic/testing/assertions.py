@@ -10,6 +10,8 @@ from sqlalchemy.util import decorator
 from sqlalchemy import exc as sa_exc
 import warnings
 from . import mock
+from .exclusions import db_spec
+from . import config
 
 
 if not util.sqla_094:
@@ -126,8 +128,6 @@ def expect_warnings_on(db, *messages, **kw):
     spec = db_spec(db)
 
     if isinstance(db, util.string_types) and not spec(config._current):
-        yield
-    elif not _is_excluded(*db):
         yield
     else:
         with expect_warnings(*messages, **kw):
