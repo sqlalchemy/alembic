@@ -72,7 +72,7 @@ class SQLiteImpl(DefaultImpl):
         self.set_foreignkeys('ON')
 
     def create_constraint(self,const):
-        util.warn("dropping constraints in sqlite is experimental. "
+        util.warn("adding constraints in sqlite is experimental. "
                   "ensure constraints and foreign keys are still correct. only use it for dev")
 
         self.set_foreignkeys('OFF')
@@ -80,22 +80,22 @@ class SQLiteImpl(DefaultImpl):
         temp_table_name = self.get_random_table_name()
         old_table=Table(const.table.name, MetaData(bind=self.connection.engine), autoload=True,autoload_with=self.connection.engine)
         columns= self.duplicate_columns(old_table.columns)
-        import pdb; pdb.set_trace()
+
         enhanced_columns = self.replace_columns(columns,const)
-        #new_column_list = self.replace_columns(const.table.columns,const.columns)
         self.rename_table(const.parent.name,temp_table_name, const.parent.schema)
         new_table=Table(const.parent.name, MetaData(bind=self.connection.engine), *enhanced_columns)
-        #[x._set_parent(new_table) for x in columns_with_constraints]
         new_table.create()
         self.move_data(new_table.name,temp_table_name)
         self.drop_table(Table(temp_table_name, MetaData(bind=self.connection.engine), autoload=True,autoload_with=self.connection.engine))
         self.set_foreignkeys('ON')
 
     def replace_columns(self, columns,new_constrained_bound_columns):
-        unbound_columns_with_constraints=self.duplicate_columns()
+        unbound_columns_with_constraints=self.duplicate_columns(new_constrained_bound_columns)
         for constraint in unbound_columns_with_constraints:
-            columns=[constraint if constraint.name==x.name else x for x in columns]
-            [ setattr(x,'type_',x._type) 
+            fixed_columns=[constraint if constraint.name==x.name else x for x in columns]
+        for old,new in zip(columns,fixed_columns):
+            new.type=old.type
+
         return columns
     
     def remove_constraint(self, columns,const_name,table_name):    
@@ -103,7 +103,7 @@ class SQLiteImpl(DefaultImpl):
             raise "Unnamed ForeignKey, don't know how to drop that"
         if '_fk' not in const_name:
             raise "ForeignKey name not in expected format 'tablename_columnname_fkey'"
-        column_name=const_name.strip(table_name).strip('_fkey')
+        column_name=const_name.split('_')[-2]
         column=[x for x in columns if x.name == column_name][0]
         foreignkeys_to_keep={x for x in column.foreign_keys if not x.column.name==column.name}
         column.foreign_keys=foreignkeys_to_keep
@@ -126,8 +126,6 @@ class SQLiteImpl(DefaultImpl):
         sql_legacyalter='PRAGMA legacy_alter_table=%s;' % ( 'OFF' if state=='ON' else 'ON')
         self.connection.execute(sql_foreignkeys)
         self.connection.execute(sql_legacyalter)
-        result=self.connection.execute("PRAGMA foreign_keys;")
-        self.static_output("pragma is"+str(result.fetchone()[0]))
         
     def get_random_table_name(self, len=8):
         import random, string
