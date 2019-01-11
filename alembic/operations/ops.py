@@ -1374,15 +1374,23 @@ class CreateTableCommentOp(AlterTableOp):
         existing_comment=None,
         schema=None,
     ):
-        """Invokes the `:func:`alembic.operations.toimpl.create_table_comment`
-        impl to initiate a new COMMENT ON `table` operation.
+        """Emit a COMMENT ON operation to set the comment for a table.
+
+        .. versionadded:: 1.0.6
 
         :param table_name: string name of the target table.
         :param comment: string value of the comment being registered against
          the specified table.
-        :param existing_comment: An optional string value of a comment
-         already registered
-         on the specified table.
+        :param existing_comment: String value of a comment
+         already registered on the specified table, used within autogenerate
+         so that the operation is reversible, but not required for direct
+         use.
+
+        .. seealso::
+
+            :meth:`.Operations.drop_table_comment`
+
+            :paramref:`.Operations.alter_column.comment`
 
         """
 
@@ -1424,7 +1432,7 @@ class CreateTableCommentOp(AlterTableOp):
 
 @Operations.register_operation("drop_table_comment")
 class DropTableCommentOp(AlterTableOp):
-    """Represent a COMMENT ON `table` operation.
+    """Represent an operation to remove the comment from a table.
     """
 
     def __init__(self, table_name, schema=None, existing_comment=None):
@@ -1436,13 +1444,20 @@ class DropTableCommentOp(AlterTableOp):
     def drop_table_comment(
         cls, operations, table_name, existing_comment=None, schema=None
     ):
-        """Invokes the `:func:`alembic.operations.toimpl.drop_table_comment` to
+        """Issue a "drop table comment" operation to
         remove an existing comment set on a table.
+
+        .. versionadded:: 1.0.6
 
         :param table_name: string name of the target table.
         :param existing_comment: An optional string value of a comment already
-         registered
-         on the specified table.
+         registered on the specified table.
+
+        .. seealso::
+
+            :meth:`.Operations.create_table_comment`
+
+            :paramref:`.Operations.alter_column.comment`
 
         """
 
@@ -1682,6 +1697,11 @@ class AlterColumnOp(AlterTableOp):
          or :class:`~sqlalchemy.schema.DefaultClause` to indicate
          an alteration to the column's default value.
          Set to ``None`` to have the default removed.
+        :param comment: optional string text of a new comment to add to the
+         column.
+
+         .. versionadded:: 1.0.6
+
         :param new_column_name: Optional; specify a string name here to
          indicate the new name within a column rename operation.
         :param type_: Optional; a :class:`~sqlalchemy.types.TypeEngine`
@@ -1712,6 +1732,12 @@ class AlterColumnOp(AlterTableOp):
         :param existing_autoincrement: Optional; the existing autoincrement
          of the column.  Used for MySQL's system of altering a column
          that specifies ``AUTO_INCREMENT``.
+        :param existing_comment: string text of the existing comment on the
+         column to be maintained.  Required on MySQL if the existing comment
+         on the column is not being changed.
+
+         .. versionadded:: 1.0.6
+
         :param schema: Optional schema name to operate within.  To control
          quoting of the schema outside of the default behavior, use
          the SQLAlchemy construct

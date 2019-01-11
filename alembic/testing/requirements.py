@@ -137,10 +137,20 @@ class SuiteRequirements(Requirements):
         )
 
     @property
-    def sqlalchemy_1216(self):
+    def sqlalchemy_issue_4436(self):
+        def check(config):
+            vers = sqla_compat._vers
+
+            if vers == (1, 3, 0, 'b1'):
+                return True
+            elif vers > (1, 2, 16):
+                return False
+            else:
+                return True
+
         return exclusions.skip_if(
-            lambda config: not util.sqla_1216,
-            "SQLAlchemy 1.2.16 or greater required",
+            check,
+            "SQLAlchemy 1.2.16, 1.3.0b2 or greater required",
         )
 
     @property

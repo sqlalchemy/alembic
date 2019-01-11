@@ -316,7 +316,7 @@ class MySQLOpTest(TestBase):
         context.assert_("ALTER TABLE foo.t2 COMMENT 't2 table'")
 
     @config.requirements.comments_api
-    @config.requirements.sqlalchemy_1216
+    @config.requirements.sqlalchemy_issue_4436
     def test_drop_table_comment(self):
         # this is handled by SQLAlchemy's compilers
         context = op_fixture("mysql")
