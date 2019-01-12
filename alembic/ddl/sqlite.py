@@ -3,7 +3,6 @@ import re
 from .impl import DefaultImpl
 from .. import util
 from sqlalchemy import Table, MetaData
-from sqlalchemy.types import *
 
 class SQLiteImpl(DefaultImpl):
     __dialect__ = "sqlite"
@@ -32,7 +31,9 @@ class SQLiteImpl(DefaultImpl):
         # attempt to distinguish between an
         # auto-gen constraint and an explicit one
         if const._create_rule is None:
-            self.create_constraint(const)
+            raise NotImplementedError(
+                "No support for ALTER of constraints in SQLite dialect"
+            )
         elif const._create_rule(self):
             util.warn(
                 "Skipping unsupported ALTER for "
@@ -55,65 +56,36 @@ class SQLiteImpl(DefaultImpl):
         self.set_foreignkeys('ON')
 
     def drop_constraint(self, const):
+        import pdb; pdb.set_trace()       
         util.warn("dropping constraints in sqlite is experimental. "
                   "ensure constraints and foreign keys are still correct. only use it for dev")
 
         self.set_foreignkeys('OFF')
 
         temp_table_name = self.get_random_table_name()
-        old_table=Table(const.table.name, MetaData(bind=self.connection.engine), autoload=True,autoload_with=self.connection.engine)
-        new_column_list= self.duplicate_columns(old_table.columns._all_columns)
-        reduced_columns = self.remove_constraint(new_column_list,const.name, const.parent.name)
-        new_table=Table(const.parent.name, MetaData(bind=self.connection.engine), *reduced_columns)
+        new_column_list= duplicate_columns(const.table)
+        
+        new_table=Table(const.parent, MetaData(bind=self.connection.engine), autoload=True,autoload_with=self.connection.engine)
         self.rename_table(const.parent.name,temp_table_name, const.parent.schema)
         new_table.create()
         self.move_data(new_table.name,temp_table_name)
         self.drop_table(Table(temp_table_name, MetaData(bind=self.connection.engine), autoload=True,autoload_with=self.connection.engine))
         self.set_foreignkeys('ON')
 
-    def create_constraint(self,const):
-        util.warn("dropping constraints in sqlite is experimental. "
-                  "ensure constraints and foreign keys are still correct. only use it for dev")
-
-        self.set_foreignkeys('OFF')
-
-        temp_table_name = self.get_random_table_name()
+    def duplicate_columns(table):
+        [x.name for x in old_table.columns._all_columns if x.name != column.name]
         old_table=Table(const.table.name, MetaData(bind=self.connection.engine), autoload=True,autoload_with=self.connection.engine)
-        columns= self.duplicate_columns(old_table.columns)
-        import pdb; pdb.set_trace()
-        enhanced_columns = self.replace_columns(columns,const)
-        #new_column_list = self.replace_columns(const.table.columns,const.columns)
-        self.rename_table(const.parent.name,temp_table_name, const.parent.schema)
-        new_table=Table(const.parent.name, MetaData(bind=self.connection.engine), *enhanced_columns)
-        #[x._set_parent(new_table) for x in columns_with_constraints]
-        new_table.create()
-        self.move_data(new_table.name,temp_table_name)
-        self.drop_table(Table(temp_table_name, MetaData(bind=self.connection.engine), autoload=True,autoload_with=self.connection.engine))
-        self.set_foreignkeys('ON')
-
-    def replace_columns(self, columns,new_constrained_bound_columns):
-        unbound_columns_with_constraints=self.duplicate_columns()
-        for constraint in unbound_columns_with_constraints:
-            columns=[constraint if constraint.name==x.name else x for x in columns]
-            [ setattr(x,'type_',x._type) 
-        return columns
-    
-    def remove_constraint(self, columns,const_name,table_name):    
-        if const_name is None:
-            raise "Unnamed ForeignKey, don't know how to drop that"
-        if '_fk' not in const_name:
-            raise "ForeignKey name not in expected format 'tablename_columnname_fkey'"
-        column_name=const_name.strip(table_name).strip('_fkey')
-        column=[x for x in columns if x.name == column_name][0]
-        foreignkeys_to_keep={x for x in column.foreign_keys if not x.column.name==column.name}
-        column.foreign_keys=foreignkeys_to_keep
-        return columns;
-    
-    def duplicate_columns(self,bound_columns):
-        free_columns=[x.copy() for x in bound_columns]
-        for f,b in zip(free_columns,bound_columns):
-            f.foreign_keys=b.foreign_keys
-        return free_columns
+        ncl=old_table.columns._all_columns
+        col=ncl[-1]
+        from sqlalchemy.sql.schema import Column
+        col2=Column('Creator', INTEGER(),table=old_table)
+        from sqlalchemy.types import TypeEngine
+        from sqlalchemy.types import *
+        col2=Column('Creator', INTEGER())
+        ncl[-1]=col2
+        meta=MetaData()
+        new_table=Table(old_table.name,None,*ncl)
+        new_table=Table(old_table.name,meta,*ncl)
 
     def move_data(self, new_table_name,old_table_name):
         self.execute("INSERT INTO %s SELECT * from %s;" % (new_table_name, old_table_name))
