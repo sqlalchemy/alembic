@@ -42,37 +42,9 @@ class SQLiteImpl(DefaultImpl):
 
     def drop_constraint(self, const):
         if const._create_rule is None:
-            from sqlalchemy import Table, MetaData
-            temp_table_name = self.get_random_table_name()
-            t=self.connection.begin()
-            self.set_foreignkeys('off')
-            new_table=Table(const.parent, MetaData(bind=self.connection.engine), autoload=True,autoload_with=self.connection.engine)
-            self.rename_table(const.parent.name,temp_table_name, const.parent.schema)
-            new_table.create()
-            self.move_data(new_table.name,temp_table_name)
-            self.set_foreignkeys("on")
-            self.drop_table(Table(temp_table_name, MetaData(bind=self.connection.engine), autoload=True,autoload_with=self.connection.engine))
-            t.commit()
-            t.close()
-            
-    def move_data(self, new_table_name,old_table_name):
-        self.execute("INSERT INTO %s SELECT * from %s;" % (new_table_name, old_table_name))
-            
-    def collect_constraints(self, table_name, engine):
-        from sqlalchemy import inspect
-        insp=inspect(engine)
-        insp.get_pk_constraint(table_name)
-        insp.get_columns(table_name)
-        insp.get_foreign_keys(table_name)
-        insp.get_sorted_table_and_fkc_names()
-
-    def set_foreignkeys(self, state):
-        sql="PRAGMA foreign_keys=%s;" % state
-        self.connection.execute(sql)
-
-    def get_random_table_name(self, len=8):
-        import random, string
-        return 'temp_'+''.join(random.choices(string.ascii_lowercase + string.digits, k=len))
+            raise NotImplementedError(
+                "No support for ALTER of constraints in SQLite dialect"
+            )
 
     def compare_server_default(
         self,
