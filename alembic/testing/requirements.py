@@ -143,7 +143,7 @@ class SuiteRequirements(Requirements):
 
             if vers == (1, 3, 0, 'b1'):
                 return True
-            elif vers > (1, 2, 16):
+            elif vers >= (1, 2, 16):
                 return False
             else:
                 return True
