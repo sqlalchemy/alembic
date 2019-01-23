@@ -1155,6 +1155,19 @@ class AutogenRenderTest(TestBase):
             "comment='This is a comment')",
         )
 
+    @config.requirements.comments_api
+    def test_render_col_comment_with_quote(self):
+        c = Column("some_key", Integer, comment="This is a john's comment")
+        Table("some_table", MetaData(), c)
+        result = autogenerate.render._render_column(c, self.autogen_context)
+        print(result)
+        eq_ignore_whitespace(
+            result,
+            "sa.Column('some_key', sa.Integer(), "
+            "nullable=True, "
+            "comment=\"This is a john's comment\")",
+        )
+
     def test_render_col_autoinc_false_mysql(self):
         c = Column("some_key", Integer, primary_key=True, autoincrement=False)
         Table("some_table", MetaData(), c)
