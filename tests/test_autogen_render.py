@@ -1160,7 +1160,6 @@ class AutogenRenderTest(TestBase):
         c = Column("some_key", Integer, comment="This is a john's comment")
         Table("some_table", MetaData(), c)
         result = autogenerate.render._render_column(c, self.autogen_context)
-        print(result)
         eq_ignore_whitespace(
             result,
             "sa.Column('some_key', sa.Integer(), "
