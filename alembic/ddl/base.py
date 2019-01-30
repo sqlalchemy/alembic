@@ -176,7 +176,7 @@ def quote_dotted(name, quote):
 
 
 def format_table_name(compiler, name, schema):
-    quote = functools.partial(compiler.preparer.quote, force=None)
+    quote = functools.partial(compiler.preparer.quote)
     if schema:
         return quote_dotted(schema, quote) + "." + quote(name)
     else:
