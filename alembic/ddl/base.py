@@ -184,7 +184,7 @@ def format_table_name(compiler, name, schema):
 
 
 def format_column_name(compiler, name):
-    return compiler.preparer.quote(name, None)
+    return compiler.preparer.quote(name)
 
 
 def format_server_default(compiler, default):
