@@ -1,0 +1,7 @@
+.. change::
+   :tags: bug, operations
+   :tickets: 528
+
+   Removed use of deprecated ``force`` parameter for SQLAlchemy quoting
+   functions as this parameter will be removed in a future release.
+   Pull request courtesy Parth Shandilya(ParthS007).
