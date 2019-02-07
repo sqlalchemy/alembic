@@ -938,7 +938,7 @@ class PostgresqlAutogenRenderTest(TestBase):
             autogenerate.render_op_text(autogen_context, op_obj),
             "op.create_table('t',sa.Column('x', sa.String(), nullable=True),"
             "sa.Column('y', sa.String(), nullable=True),"
-            "postgresql.ExcludeConstraint((sa.column(!U'x'), '>'), "
+            "postgresql.ExcludeConstraint((sa.column('x'), '>'), "
             "where=sa.text(!U'x != 2'), using='gist', name='t_excl_x')"
             ")",
         )
