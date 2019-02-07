@@ -135,7 +135,7 @@ class PostgresqlOpTest(TestBase):
         op.create_exclude_constraint(
             "ex1",
             "SomeTable",
-            ('"SomeColumn"', ">"),
+            (column("SomeColumn"), ">"),
             where='"SomeColumn" > 5',
             using="gist",
         )
@@ -263,27 +263,15 @@ class PostgresqlOpTest(TestBase):
     def test_create_table_comment(self):
         # this is handled by SQLAlchemy's compilers
         context = op_fixture("postgresql")
-        op.create_table_comment(
-            't2',
-            comment='t2 table',
-            schema='foo'
-        )
-        context.assert_(
-            "COMMENT ON TABLE foo.t2 IS 't2 table'"
-        )
+        op.create_table_comment("t2", comment="t2 table", schema="foo")
+        context.assert_("COMMENT ON TABLE foo.t2 IS 't2 table'")
 
     @config.requirements.comments_api
     def test_drop_table_comment(self):
         # this is handled by SQLAlchemy's compilers
         context = op_fixture("postgresql")
-        op.drop_table_comment(
-            't2',
-            existing_comment='t2 table',
-            schema='foo'
-        )
-        context.assert_(
-            "COMMENT ON TABLE foo.t2 IS NULL"
-        )
+        op.drop_table_comment("t2", existing_comment="t2 table", schema="foo")
+        context.assert_("COMMENT ON TABLE foo.t2 IS NULL")
 
 
 class PGOfflineEnumTest(TestBase):
@@ -937,7 +925,10 @@ class PostgresqlAutogenRenderTest(TestBase):
             Column("x", String),
             Column("y", String),
             ExcludeConstraint(
-                ("x", ">"), using="gist", where="x != 2", name="t_excl_x"
+                (column("x"), ">"),
+                using="gist",
+                where="x != 2",
+                name="t_excl_x",
             ),
         )
 
@@ -947,7 +938,7 @@ class PostgresqlAutogenRenderTest(TestBase):
             autogenerate.render_op_text(autogen_context, op_obj),
             "op.create_table('t',sa.Column('x', sa.String(), nullable=True),"
             "sa.Column('y', sa.String(), nullable=True),"
-            "postgresql.ExcludeConstraint((!U'x', '>'), "
+            "postgresql.ExcludeConstraint((sa.column(!U'x'), '>'), "
             "where=sa.text(!U'x != 2'), using='gist', name='t_excl_x')"
             ")",
         )

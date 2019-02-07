@@ -522,11 +522,11 @@ class OpTest(TestBase):
             "t2",
             ["foo", "bar"],
             ["bat", "hoho"],
-            initially="INITIAL",
+            initially="deferred",
         )
         context.assert_(
             "ALTER TABLE t1 ADD CONSTRAINT fk_test FOREIGN KEY(foo, bar) "
-            "REFERENCES t2 (bat, hoho) INITIALLY INITIAL"
+            "REFERENCES t2 (bat, hoho) INITIALLY deferred"
         )
 
     @config.requirements.foreign_key_match

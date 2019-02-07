@@ -614,7 +614,7 @@ def _render_column(column, autogen_context):
 
     comment = sqla_compat._comment_attribute(column)
     if comment:
-        opts.append(("comment", '%r' % comment))
+        opts.append(("comment", "%r" % comment))
 
     # TODO: for non-ascii colname, assign a "key"
     return "%(prefix)sColumn(%(name)r, %(type)s, %(kw)s)" % {
