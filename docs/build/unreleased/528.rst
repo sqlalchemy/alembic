@@ -1,0 +1,7 @@
+.. change::
+   :tags: bug
+   :tickets: 528
+
+   Fixed issue by removing Force Parameter from Base.py that
+   is causing alembic's tests to fail on the warning.
+   Pull request courtesy Parth Shandilya(ParthS007).
