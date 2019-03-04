@@ -5,7 +5,24 @@ Changelog
 
 .. changelog::
     :version: 1.0.8
-    :include_notes_from: unreleased
+    :released: March 4, 2019
+
+    .. change::
+       :tags: bug, operations
+       :tickets: 528
+
+       Removed use of deprecated ``force`` parameter for SQLAlchemy quoting
+       functions as this parameter will be removed in a future release.
+       Pull request courtesy Parth Shandilya(ParthS007).
+
+    .. change::
+       :tags: bug, autogenerate, postgresql, py3k
+       :tickets: 541
+
+       Fixed issue where server default comparison on the PostgreSQL dialect would
+       fail for a blank string on Python 3.7 only, due to a change in regular
+       expression behavior in Python 3.7.
+
 
 .. changelog::
     :version: 1.0.7

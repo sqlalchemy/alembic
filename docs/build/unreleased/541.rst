@@ -1,8 +1,0 @@
-.. change::
-   :tags: bug, autogenerate, postgresql, py3k
-   :tickets: 541
-
-   Fixed issue where server default comparison on the PostgreSQL dialect would
-   fail for a blank string on Python 3.7 only, due to a change in regular
-   expression behavior in Python 3.7.
-
