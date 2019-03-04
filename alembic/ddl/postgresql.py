@@ -68,19 +68,22 @@ class PostgresqlImpl(DefaultImpl):
         if None in (conn_col_default, rendered_metadata_default):
             return not defaults_equal
 
+        if compat.py2k:
+            # look for a python 2 "u''" string and filter
+            m = re.match(r"^u'(.*)'$", rendered_metadata_default)
+            if m:
+                rendered_metadata_default = "'%s'" % m.group(1)
+
+        # check for unquoted string and quote for PG String types
         if (
+            not isinstance(inspector_column.type, Numeric) and
             metadata_column.server_default is not None
             and isinstance(
                 metadata_column.server_default.arg, compat.string_types
             )
-            and not re.match(r"^'.+'$", rendered_metadata_default)
-            and not isinstance(inspector_column.type, Numeric)
+            and not re.match(r"^'.*'$", rendered_metadata_default)
         ):
-            # don't single quote if the column type is float/numeric,
-            # otherwise a comparison such as SELECT 5 = '5.0' will fail
-            rendered_metadata_default = re.sub(
-                r"^u?'?|'?$", "'", rendered_metadata_default
-            )
+            rendered_metadata_default = "'%s'" % rendered_metadata_default
 
         return not self.connection.scalar(
             "SELECT %s = %s" % (conn_col_default, rendered_metadata_default)

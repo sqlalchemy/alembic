@@ -506,6 +506,12 @@ class PostgresqlDefaultCompareTest(TestBase):
             None, col, rendered, cols[0]["default"]
         )
 
+    def test_compare_string_blank_default(self):
+        self._compare_default_roundtrip(String(8), '')
+
+    def test_compare_string_nonblank_default(self):
+        self._compare_default_roundtrip(String(8), 'hi')
+
     def test_compare_interval_str(self):
         # this form shouldn't be used but testing here
         # for compatibility
