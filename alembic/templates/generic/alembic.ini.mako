@@ -15,7 +15,7 @@ script_location = ${script_location}
 
 # max length of characters to apply to the
 # "slug" field
-#truncate_slug_length = 40
+# truncate_slug_length = 40
 
 # set to 'true' to run the environment during
 # the 'revision' command, regardless of autogenerate
