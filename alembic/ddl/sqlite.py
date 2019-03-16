@@ -33,17 +33,24 @@ class SQLiteImpl(DefaultImpl):
         if const._create_rule is None:
             raise NotImplementedError(
                 "No support for ALTER of constraints in SQLite dialect"
+                "Please refer to the batch mode feature which allows for "
+                "SQLite migrations using a copy-and-move strategy."
             )
         elif const._create_rule(self):
             util.warn(
                 "Skipping unsupported ALTER for "
                 "creation of implicit constraint"
+                "Please refer to the batch mode feature which allows for "
+                "SQLite migrations using a copy-and-move strategy."
             )
 
     def drop_constraint(self, const):
         if const._create_rule is None:
             raise NotImplementedError(
                 "No support for ALTER of constraints in SQLite dialect"
+                "Please refer to the batch mode feature which allows for "
+                "SQLite migrations using a copy-and-move strategy."
+
             )
 
     def compare_server_default(
