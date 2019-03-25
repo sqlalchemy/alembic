@@ -1,3 +1,4 @@
+from .util.langhelpers import immutabledict
 from .operations.base import Operations
 
 # create proxy functions for
