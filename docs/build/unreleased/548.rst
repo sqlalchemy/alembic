@@ -1,0 +1,10 @@
+.. change::
+   :tags: bug, operations
+   :tickets: 548
+
+   Simplified the internal scheme used to generate the ``alembic.op`` namespace
+   to no longer attempt to generate full method signatures (e.g. rather than
+   generic ``*args, **kw``) as this was not working in most cases anyway, while
+   in rare circumstances it would in fact sporadically have access to the real
+   argument names and then fail when generating the function due to missing
+   symbols in the argument signature.
