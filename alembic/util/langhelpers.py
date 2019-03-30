@@ -6,7 +6,6 @@ import warnings
 from .compat import callable
 from .compat import collections_abc
 from .compat import exec_
-from .compat import inspect_formatargspec
 from .compat import inspect_getargspec
 from .compat import string_types
 from .compat import with_metaclass
@@ -74,26 +73,6 @@ class ModuleClsProxy(with_metaclass(_ModuleClsMeta)):
     @classmethod
     def _create_method_proxy(cls, name, globals_, locals_):
         fn = getattr(cls, name)
-        spec = inspect_getargspec(fn)
-        if spec[0] and spec[0][0] == "self":
-            spec[0].pop(0)
-        args = inspect_formatargspec(*spec)
-        num_defaults = 0
-        if spec[3]:
-            num_defaults += len(spec[3])
-        name_args = spec[0]
-        if num_defaults:
-            defaulted_vals = name_args[0 - num_defaults :]
-        else:
-            defaulted_vals = ()
-
-        apply_kw = inspect_formatargspec(
-            name_args,
-            spec[1],
-            spec[2],
-            defaulted_vals,
-            formatvalue=lambda x: "=" + x,
-        )
 
         def _name_error(name):
             raise NameError(
@@ -108,6 +87,10 @@ class ModuleClsProxy(with_metaclass(_ModuleClsMeta)):
 
         translations = getattr(fn, "_legacy_translations", [])
         if translations:
+            spec = inspect_getargspec(fn)
+            if spec[0] and spec[0][0] == "self":
+                spec[0].pop(0)
+
             outer_args = inner_args = "*args, **kw"
             translate_str = "args, kw = _translate(%r, %r, %r, args, kw)" % (
                 fn.__name__,
@@ -148,8 +131,8 @@ class ModuleClsProxy(with_metaclass(_ModuleClsMeta)):
 
             globals_["_translate"] = translate
         else:
-            outer_args = args[1:-1]
-            inner_args = apply_kw[1:-1]
+            outer_args = "*args, **kw"
+            inner_args = "*args, **kw"
             translate_str = ""
 
         func_text = textwrap.dedent(
