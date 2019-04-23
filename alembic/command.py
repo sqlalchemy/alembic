@@ -7,7 +7,7 @@ from .script import ScriptDirectory
 
 
 def list_templates(config):
-    """List available templates
+    """List available templates.
 
     :param config: a :class:`.Config` object.
 
@@ -409,7 +409,7 @@ def history(config, rev_range=None, verbose=False, indicate_current=False):
 
 
 def heads(config, verbose=False, resolve_dependencies=False):
-    """Show current available heads in the script directory
+    """Show current available heads in the script directory.
 
     :param config: a :class:`.Config` instance.
 
