@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+import inspect
 from io import BytesIO
 from io import TextIOWrapper
 import re
@@ -758,3 +759,42 @@ class CommandLineTest(TestBase):
         finally:
             config.command.revision = orig_revision
         eq_(canary.mock_calls, [mock.call(self.cfg, message="foo")])
+
+    def test_help_text(self):
+        commands = {
+            fn.__name__
+            for fn in [getattr(command, n) for n in dir(command)]
+            if inspect.isfunction(fn)
+            and fn.__name__[0] != "_"
+            and fn.__module__ == "alembic.command"
+        }
+        # make sure we found them
+        assert commands.intersection(
+            {"upgrade", "downgrade", "merge", "revision"}
+        )
+
+        # catch help text coming intersection
+        with mock.patch("alembic.config.ArgumentParser") as argparse:
+            config.CommandLine()
+            for kall in argparse().add_subparsers().mock_calls:
+                for sub_kall in kall.call_list():
+                    if sub_kall[0] == "add_parser":
+                        cmdname = sub_kall[1][0]
+                        help_text = sub_kall[2]["help"]
+                        if help_text:
+                            commands.remove(cmdname)
+                            # more than two spaces
+                            assert not re.search(r"   ", help_text)
+
+                            # no markup stuff
+                            assert ":" not in help_text
+
+                            # no newlines
+                            assert "\n" not in help_text
+
+                            # ends with a period
+                            assert help_text.endswith(".")
+
+                            # not too long
+                            assert len(help_text) < 80
+        assert not commands, "Commands without help text: %s" % commands

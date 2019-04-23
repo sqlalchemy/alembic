@@ -486,7 +486,20 @@ class CommandLine(object):
                     positional = spec[0][1:]
                     kwarg = []
 
-                subparser = subparsers.add_parser(fn.__name__, help=fn.__doc__)
+                # parse first line(s) of helptext without a line break
+                help_ = fn.__doc__
+                if help_:
+                    help_text = []
+                    for line in help_.split("\n"):
+                        if not line.strip():
+                            break
+                        else:
+                            help_text.append(line.strip())
+                else:
+                    help_text = ""
+                subparser = subparsers.add_parser(
+                    fn.__name__, help=" ".join(help_text)
+                )
                 add_options(subparser, positional, kwarg)
                 subparser.set_defaults(cmd=(fn, positional, kwarg))
         self.parser = parser
