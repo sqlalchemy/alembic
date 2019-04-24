@@ -314,6 +314,7 @@ class RevisionMap(object):
         full revision.
 
         """
+
         if isinstance(id_, (list, tuple, set, frozenset)):
             return sum([self.get_revisions(id_elem) for id_elem in id_], ())
         else:
@@ -469,6 +470,20 @@ class RevisionMap(object):
     def _resolve_revision_number(self, id_):
         if isinstance(id_, compat.string_types) and "@" in id_:
             branch_label, id_ = id_.split("@", 1)
+
+        elif id_ is not None and (
+            (
+                isinstance(id_, tuple)
+                and id_
+                and not isinstance(id_[0], compat.string_types)
+            )
+            or not isinstance(id_, compat.string_types + (tuple, ))
+        ):
+            raise RevisionError(
+                "revision identifier %r is not a string; ensure database "
+                "driver settings are correct" % (id_,)
+            )
+
         else:
             branch_label = None
 

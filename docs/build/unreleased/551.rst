@@ -1,0 +1,8 @@
+.. change::
+    :tags: bug, operations, mysql
+    :tickets: 551
+
+    Added an assertion in :meth:`.RevisionMap.get_revisions` and other methods
+    which ensures revision numbers are passed as strings or collections of
+    strings.   Driver issues particularly on MySQL may inadvertently be passing
+    bytes here which leads to failures later on.

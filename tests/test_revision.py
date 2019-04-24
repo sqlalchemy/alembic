@@ -3,12 +3,46 @@ from alembic.script.revision import Revision
 from alembic.script.revision import RevisionError
 from alembic.script.revision import RevisionMap
 from alembic.testing import assert_raises_message
+from alembic.testing import config
 from alembic.testing import eq_
 from alembic.testing.fixtures import TestBase
 from . import _large_map
 
 
 class APITest(TestBase):
+    @config.requirements.python3
+    def test_invalid_datatype(self):
+        map_ = RevisionMap(
+            lambda: [
+                Revision("a", ()),
+                Revision("b", ("a",)),
+                Revision("c", ("b",)),
+            ]
+        )
+        assert_raises_message(
+            RevisionError,
+            "revision identifier b'12345' is not a string; "
+            "ensure database driver settings are correct",
+            map_.get_revisions, b'12345'
+        )
+
+        assert_raises_message(
+            RevisionError,
+            "revision identifier b'12345' is not a string; "
+            "ensure database driver settings are correct",
+            map_.get_revision, b'12345'
+        )
+
+        assert_raises_message(
+            RevisionError,
+            r"revision identifier \(b'12345',\) is not a string; "
+            "ensure database driver settings are correct",
+            map_.get_revision, (b'12345', )
+        )
+
+        map_.get_revision(("a", ))
+        map_.get_revision("a")
+
     def test_add_revision_one_head(self):
         map_ = RevisionMap(
             lambda: [

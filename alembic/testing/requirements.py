@@ -1,3 +1,5 @@
+import sys
+
 from alembic import util
 from alembic.util import sqla_compat
 from . import exclusions
@@ -151,6 +153,12 @@ class SuiteRequirements(Requirements):
         return exclusions.skip_if(
             check,
             "SQLAlchemy 1.2.16, 1.3.0b2 or greater required",
+        )
+
+    @property
+    def python3(self):
+        return exclusions.skip_if(
+            lambda: sys.version_info < (3,), "Python version 3.xx is required."
         )
 
     @property
