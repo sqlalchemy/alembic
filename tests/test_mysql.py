@@ -453,6 +453,9 @@ class MySQLDefaultCompareTest(TestBase):
     def test_compare_timestamp_current_timestamp_diff(self):
         self._compare_default_roundtrip(TIMESTAMP(), None, "CURRENT_TIMESTAMP")
 
+    def test_compare_integer_from_none(self):
+        self._compare_default_roundtrip(Integer(), None, "0")
+
     def test_compare_integer_same(self):
         self._compare_default_roundtrip(Integer(), "5")
 
