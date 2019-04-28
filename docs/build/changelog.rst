@@ -5,7 +5,36 @@ Changelog
 
 .. changelog::
     :version: 1.0.10
-    :include_notes_from: unreleased
+    :released: April 28, 2019
+
+    .. change::
+       :tags: bug, commands
+       :tickets: 552
+
+       Fixed bug introduced in release 0.9.0 where the helptext for commands
+       inadvertently got expanded to include function docstrings from the
+       command.py module.  The logic has been adjusted to only refer to the first
+       line(s) preceding the first line break within each docstring, as was the
+       original intent.
+
+    .. change::
+        :tags: bug, operations, mysql
+        :tickets: 551
+
+        Added an assertion in :meth:`.RevisionMap.get_revisions` and other methods
+        which ensures revision numbers are passed as strings or collections of
+        strings.   Driver issues particularly on MySQL may inadvertently be passing
+        bytes here which leads to failures later on.
+
+    .. change::
+        :tags: bug, autogenerate, mysql
+        :tickets: 553
+
+        Fixed bug when using the
+        :paramref:`.EnvironmentContext.configure.compare_server_default` flag set
+        to ``True`` where a server default that is introduced in the table metadata
+        on an ``Integer`` column, where there is no existing server default in the
+        database, would raise a ``TypeError``.
 
 .. changelog::
     :version: 1.0.9

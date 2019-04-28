@@ -1,9 +1,0 @@
-.. change::
-   :tags: bug, commands
-   :tickets: 552
-
-   Fixed bug introduced in release 0.9.0 where the helptext for commands
-   inadvertently got expanded to include function docstrings from the
-   command.py module.  The logic has been adjusted to only refer to the first
-   line(s) preceding the first line break within each docstring, as was the
-   original intent.
