@@ -4,6 +4,6 @@
 
     Fixed bug when using the
     :paramref:`.EnvironmentContext.configure.compare_server_default` flag set
-    to ``True``where a server default that is introduced in the table metadata
+    to ``True`` where a server default that is introduced in the table metadata
     on an ``Integer`` column, where there is no existing server default in the
     database, would raise a ``TypeError``.
