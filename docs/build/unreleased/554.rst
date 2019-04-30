@@ -1,0 +1,10 @@
+.. change::
+   :tags: bug, mysql
+   :tickets: 554
+
+   Added support for MySQL "DROP CHECK", which is added as of MySQL 8.0.16,
+   separate from MariaDB's "DROP CONSTRAINT" for CHECK constraints.  The MySQL
+   Alembic implementation now checks for "MariaDB" in server_version_info to
+   decide which one to use.
+
+

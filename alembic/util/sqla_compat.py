@@ -233,7 +233,10 @@ def _comment_attribute(obj):
 
 
 def _is_mariadb(mysql_dialect):
-    return "MariaDB" in mysql_dialect.server_version_info
+    return (
+        mysql_dialect.server_version_info
+        and "MariaDB" in mysql_dialect.server_version_info
+    )
 
 
 def _mariadb_normalized_version_info(mysql_dialect):

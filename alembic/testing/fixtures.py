@@ -152,7 +152,12 @@ def op_fixture(
         opts["as_sql"] = as_sql
     if literal_binds:
         opts["literal_binds"] = literal_binds
-    ctx_dialect = _get_dialect(dialect)
+    if dialect == "mariadb":
+        ctx_dialect = _get_dialect("mysql")
+        ctx_dialect.server_version_info = (10, 0, 0, "MariaDB")
+
+    else:
+        ctx_dialect = _get_dialect(dialect)
     if native_boolean is not None:
         ctx_dialect.supports_native_boolean = native_boolean
         # this is new as of SQLAlchemy 1.2.7 and is used by SQL Server,

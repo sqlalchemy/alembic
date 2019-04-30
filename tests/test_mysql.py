@@ -348,15 +348,25 @@ class MySQLOpTest(TestBase):
         op.drop_constraint("MyUnique", "MyTable", "unique")
         context.assert_("ALTER TABLE `MyTable` DROP INDEX `MyUnique`")
 
-    def test_drop_check(self):
-        context = op_fixture("mysql")
+    def test_drop_check_mariadb(self):
+        context = op_fixture("mariadb")
         op.drop_constraint("f1", "t1", "check")
         context.assert_("ALTER TABLE t1 DROP CONSTRAINT f1")
 
-    def test_drop_check_quoted(self):
-        context = op_fixture("mysql")
+    def test_drop_check_quoted_mariadb(self):
+        context = op_fixture("mariadb")
         op.drop_constraint("MyCheck", "MyTable", "check")
         context.assert_("ALTER TABLE `MyTable` DROP CONSTRAINT `MyCheck`")
+
+    def test_drop_check_mysql(self):
+        context = op_fixture("mysql")
+        op.drop_constraint("f1", "t1", "check")
+        context.assert_("ALTER TABLE t1 DROP CHECK f1")
+
+    def test_drop_check_quoted_mysql(self):
+        context = op_fixture("mysql")
+        op.drop_constraint("MyCheck", "MyTable", "check")
+        context.assert_("ALTER TABLE `MyTable` DROP CHECK `MyCheck`")
 
     def test_drop_unknown(self):
         op_fixture("mysql")

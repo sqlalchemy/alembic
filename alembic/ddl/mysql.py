@@ -16,6 +16,7 @@ from .impl import DefaultImpl
 from .. import util
 from ..autogenerate import compare
 from ..util.compat import string_types
+from ..util.sqla_compat import _is_mariadb
 from ..util.sqla_compat import _is_type_bound
 from ..util.sqla_compat import sqla_100
 
@@ -126,9 +127,11 @@ class MySQLImpl(DefaultImpl):
         ):
             return False
         elif inspector_column.type._type_affinity is sqltypes.Integer:
-            rendered_inspector_default = re.sub(
-                r"^'|'$", "", rendered_inspector_default
-            ) if rendered_inspector_default is not None else None
+            rendered_inspector_default = (
+                re.sub(r"^'|'$", "", rendered_inspector_default)
+                if rendered_inspector_default is not None
+                else None
+            )
             return rendered_inspector_default != rendered_metadata_default
         elif rendered_inspector_default and rendered_metadata_default:
             # adjust for "function()" vs. "FUNCTION"
@@ -403,10 +406,16 @@ def _mysql_drop_constraint(element, compiler, **kw):
         # note that SQLAlchemy as of 1.2 does not yet support
         # DROP CONSTRAINT for MySQL/MariaDB, so we implement fully
         # here.
-        return "ALTER TABLE %s DROP CONSTRAINT %s" % (
-            compiler.preparer.format_table(constraint.table),
-            compiler.preparer.format_constraint(constraint),
-        )
+        if _is_mariadb(compiler.dialect):
+            return "ALTER TABLE %s DROP CONSTRAINT %s" % (
+                compiler.preparer.format_table(constraint.table),
+                compiler.preparer.format_constraint(constraint),
+            )
+        else:
+            return "ALTER TABLE %s DROP CHECK %s" % (
+                compiler.preparer.format_table(constraint.table),
+                compiler.preparer.format_constraint(constraint),
+            )
     else:
         raise NotImplementedError(
             "No generic 'DROP CONSTRAINT' in MySQL - "
