@@ -179,7 +179,23 @@ class DefaultRequirements(SuiteRequirements):
             > (10, 2)
         )
 
-    def _mariadb_only_102(self, config):
+    def mysql_check_col_name_change(self, config):
+        if exclusions.against(config, "mysql"):
+            if sqla_compat._is_mariadb(config.db.dialect):
+                mnvi = sqla_compat._mariadb_normalized_version_info
+                norm_version_info = mnvi(config.db.dialect)
+                return norm_version_info >= (10, 2) and norm_version_info < (
+                    10,
+                    2,
+                    22,
+                )
+            else:
+                norm_version_info = config.db.dialect.server_version_info
+                return norm_version_info >= (8, 0, 16)
+
+        else:
+            return False
+
         return (
             exclusions.against(config, "mysql")
             and sqla_compat._is_mariadb(config.db.dialect)

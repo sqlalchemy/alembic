@@ -1638,7 +1638,7 @@ class BatchRoundTripMySQLTest(BatchRoundTripTest):
         super(BatchRoundTripMySQLTest, self).test_create_drop_index()
 
     # fails on mariadb 10.2, succeeds on 10.3
-    @exclusions.fails_if(config.requirements._mariadb_only_102)
+    @exclusions.fails_if(config.requirements.mysql_check_col_name_change)
     def test_rename_column_boolean(self):
         super(BatchRoundTripMySQLTest, self).test_rename_column_boolean()
 
