@@ -3,6 +3,7 @@ import inspect
 from io import BytesIO
 from io import TextIOWrapper
 import re
+import os
 
 from sqlalchemy import exc as sqla_exc
 
@@ -96,7 +97,7 @@ finally:
             assert_lines.insert(0, "environment included OK")
 
         eq_(
-            buf.getvalue().decode("ascii", "replace").strip(),
+            buf.getvalue().decode("ascii", "replace").strip().replace('\r', ''),
             "\n".join(assert_lines)
             .encode("ascii", "replace")
             .decode("ascii")
@@ -658,9 +659,11 @@ class EditTest(TestBase):
         command.stamp(self.cfg, "base")
 
     def test_edit_head(self):
-        expected_call_arg = "%s/scripts/versions/%s_revision_c.py" % (
-            EditTest.cfg.config_args["here"],
-            EditTest.c,
+        expected_call_arg = os.path.join(
+            "%s" % EditTest.cfg.config_args["here"],
+            "scripts",
+            "versions",
+            "%s_revision_c.py" % EditTest.c,
         )
 
         with mock.patch("alembic.util.edit") as edit:
@@ -668,9 +671,11 @@ class EditTest(TestBase):
             edit.assert_called_with(expected_call_arg)
 
     def test_edit_b(self):
-        expected_call_arg = "%s/scripts/versions/%s_revision_b.py" % (
-            EditTest.cfg.config_args["here"],
-            EditTest.b,
+        expected_call_arg = os.path.join(
+            "%s" % EditTest.cfg.config_args["here"], 
+            "scripts", 
+            "versions", 
+            "%s_revision_b.py" % EditTest.b
         )
 
         with mock.patch("alembic.util.edit") as edit:
@@ -706,9 +711,11 @@ class EditTest(TestBase):
         )
 
     def test_edit_current(self):
-        expected_call_arg = "%s/scripts/versions/%s_revision_b.py" % (
-            EditTest.cfg.config_args["here"],
-            EditTest.b,
+        expected_call_arg = os.path.join(
+            "%s" % EditTest.cfg.config_args["here"],
+            "scripts",
+            "versions",
+            "%s_revision_b.py" % EditTest.b,
         )
 
         command.stamp(self.cfg, self.b)

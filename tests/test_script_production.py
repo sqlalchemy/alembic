@@ -1115,7 +1115,7 @@ def downgrade():
                         "model1",
                         "%s_model1.py" % self.model1,
                     )
-                )
+                ).replace('\\', '\\\\')
             )
         ):
             script = ScriptDirectory.from_config(self.cfg)
