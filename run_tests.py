@@ -1,3 +1,9 @@
+####### NOTE:
+####### This file is deprecated as is nose support.
+####### Please use py.test or the tox test runner to run tests.
+####### See README.unittests.rst
+
+
 import os
 # use bootstrapping so that test plugins are loaded
 # without touching the main library before coverage starts
