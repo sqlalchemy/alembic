@@ -176,12 +176,10 @@ def quote_dotted(name, quote):
 
 
 def format_table_name(compiler, name, schema):
-    quote = functools.partial(compiler.preparer.quote)
-    if schema:
-        return quote_dotted(schema, quote) + "." + quote(name)
-    else:
-        return quote(name)
+    from ..operations import schemaobj
 
+    table = schemaobj.SchemaObjects().table(name, schema=schema)
+    return compiler.preparer.format_table(table)
 
 def format_column_name(compiler, name):
     return compiler.preparer.quote(name)
