@@ -48,7 +48,7 @@ def staging_env(create=True, template="generic", sourceless=False):
         _try_out(
             lambda: _delete_path_if_exists(path), 
             tries = 5, 
-            ExceptionType = PermissionError
+            ExceptionType = Exception
         )
 						
         command.init(cfg, path, template=template)
