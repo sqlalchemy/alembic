@@ -14,6 +14,24 @@ from ..util.compat import has_pep3147
 from ..util.compat import u
 
 
+def _try_out(function, tries, ExceptionType = Exception, wait_time = 1.0):
+    import time
+    
+    while True:
+        try:
+            function()
+            break
+        except ExceptionType as ex:
+            if tries > 0:
+                tries -= 1
+                time.sleep(wait_time)
+            else:
+                raise ex
+                
+def _delete_path_if_exists(path):
+    if os.path.exists(path):
+        shutil.rmtree(path) 
+
 def _get_staging_directory():
     if provision.FOLLOWER_IDENT:
         return "scratch_%s" % provision.FOLLOWER_IDENT
@@ -27,8 +45,12 @@ def staging_env(create=True, template="generic", sourceless=False):
     cfg = _testing_config()
     if create:
         path = os.path.join(_get_staging_directory(), "scripts")
-        if os.path.exists(path):
-            shutil.rmtree(path)
+        _try_out(
+            lambda: _delete_path_if_exists(path), 
+            tries = 5, 
+            ExceptionType = PermissionError
+        )
+						
         command.init(cfg, path, template=template)
         if sourceless:
             try:
@@ -227,7 +249,11 @@ def _testing_config():
     from alembic.config import Config
 
     if not os.access(_get_staging_directory(), os.F_OK):
-        os.mkdir(_get_staging_directory())
+        _try_out(
+            lambda: os.mkdir(_get_staging_directory()),
+            tries = 5,
+            ExceptionType = PermissionError            
+        )
     return Config(os.path.join(_get_staging_directory(), "test_alembic.ini"))
 
 
