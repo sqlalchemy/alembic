@@ -1047,3 +1047,28 @@ Output::
     op.create_index('property_name_users_id', 'user_properties', ['property_name', 'users_id'], unique=True)
     # ### end Alembic commands ###
 
+Database freshness check
+========================
+
+Following code answers a question if a database schema is up to date in terms
+of applying Alembic migrations. You may want to check it before running your
+application to raise an exception or log an error.
+
+    from alembic import config, script
+    from alembic.runtime import migration
+    from sqlalchemy import engine
+
+
+    connectable: engine.Connectable
+    alembic_cfg: config.Config
+    
+    directory = script.ScriptDirectory.from_config(alembic_cfg)
+    with connectable.begin() as connection:
+        context = migration.MigrationContext.configure(connection)
+        return context.get_current_revision() == directory.get_current_head()
+        
+.. seealso::
+
+    :ref:`script_directory`
+
+    :ref:`the_migration_context`
