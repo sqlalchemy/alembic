@@ -1047,3 +1047,35 @@ Output::
     op.create_index('property_name_users_id', 'user_properties', ['property_name', 'users_id'], unique=True)
     # ### end Alembic commands ###
 
+Test current database revision is at head(s)
+============================================
+
+A recipe to determine if a database schema is up to date in terms of applying
+Alembic migrations.   May be useful for test or installation suites to
+determine if the target database is up to date.   Makes use of the
+:meth:`.MigrationContext.get_current_heads` as well as
+:meth:`.ScriptDirectory.get_heads` methods so that it accommodates for a
+branched revision tree::
+
+
+    from alembic import config, script
+    from alembic.runtime import migration
+    from sqlalchemy import engine
+
+
+    def check_current_head(alembic_cfg, connectable):
+        # type: (config.Config, engine.Engine) -> bool
+        directory = script.ScriptDirectory.from_config(alembic_cfg)
+        with connectable.begin() as connection:
+            context = migration.MigrationContext.configure(connection)
+            return set(context.get_current_heads()) == set(directory.get_heads())
+
+    e = engine.create_engine("mysql://scott:tiger@localhost/test", echo=True)
+    cfg = config.Config("alembic.ini")
+    print(check_current_head(cfg, e))
+
+.. seealso::
+
+    :meth:`.MigrationContext.get_current_heads`
+
+    :meth:`.ScriptDirectory.get_heads`
