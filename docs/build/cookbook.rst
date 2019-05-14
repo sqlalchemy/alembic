@@ -791,7 +791,7 @@ any operations::
         # ...
 
         def process_revision_directives(context, revision, directives):
-            if config.cmd_opts.autogenerate:
+            if context.opts['revision_context'].command_args['autogenerate']:
                 script = directives[0]
                 if script.upgrade_ops.is_empty():
                     directives[:] = []
