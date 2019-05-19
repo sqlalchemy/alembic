@@ -6,6 +6,10 @@ from alembic.util import sqla_compat
 
 class DefaultRequirements(SuiteRequirements):
     @property
+    def alter_column(self):
+        return exclusions.skip_if(["sqlite"], "no ALTER COLUMN support")
+
+    @property
     def schemas(self):
         """Target database must support external schemas, and have one
         named 'test_schema'."""

@@ -62,6 +62,13 @@ class SuiteRequirements(Requirements):
         return exclusions.closed()
 
     @property
+    def sqlachemy_12(self):
+        return exclusions.skip_if(
+            lambda config: not util.sqla_1216,
+            "SQLAlchemy 1.2.16 or greater required",
+        )
+
+    @property
     def fail_before_sqla_100(self):
         return exclusions.fails_if(
             lambda config: not util.sqla_100,
@@ -143,7 +150,7 @@ class SuiteRequirements(Requirements):
         def check(config):
             vers = sqla_compat._vers
 
-            if vers == (1, 3, 0, 'b1'):
+            if vers == (1, 3, 0, "b1"):
                 return True
             elif vers >= (1, 2, 16):
                 return False
@@ -151,8 +158,7 @@ class SuiteRequirements(Requirements):
                 return True
 
         return exclusions.skip_if(
-            check,
-            "SQLAlchemy 1.2.16, 1.3.0b2 or greater required",
+            check, "SQLAlchemy 1.2.16, 1.3.0b2 or greater required"
         )
 
     @property
@@ -177,3 +183,7 @@ class SuiteRequirements(Requirements):
     @property
     def comments_api(self):
         return exclusions.only_if(lambda config: util.sqla_120)
+
+    @property
+    def alter_column(self):
+        return exclusions.open()

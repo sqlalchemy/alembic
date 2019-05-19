@@ -19,6 +19,7 @@ from alembic.testing import config
 from alembic.testing import eq_
 from alembic.testing import is_
 from alembic.testing import mock
+from alembic.testing.fixtures import AlterColRoundTripFixture
 from alembic.testing.fixtures import op_fixture
 from alembic.testing.fixtures import TestBase
 
@@ -1022,3 +1023,29 @@ class EnsureOrigObjectFromToTest(TestBase):
         assert_raises_message(
             ValueError, "constraint cannot be produced", op.to_constraint
         )
+
+
+# MARKMARK
+class BackendAlterColumnTest(AlterColRoundTripFixture, TestBase):
+    __backend__ = True
+
+    def test_rename_column(self):
+        self._run_alter_col({}, {"name": "newname"})
+
+    def test_modify_type_int_str(self):
+        self._run_alter_col({"type": Integer()}, {"type": String(50)})
+
+    def test_add_server_default_int(self):
+        self._run_alter_col({"type": Integer}, {"server_default": text("5")})
+
+    def test_modify_server_default_int(self):
+        self._run_alter_col(
+            {"type": Integer, "server_default": text("2")},
+            {"server_default": text("5")},
+        )
+
+    def test_modify_nullable_to_non(self):
+        self._run_alter_col({}, {"nullable": False})
+
+    def test_modify_non_nullable_to_nullable(self):
+        self._run_alter_col({"nullable": False}, {"nullable": True})
