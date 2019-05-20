@@ -1025,7 +1025,6 @@ class EnsureOrigObjectFromToTest(TestBase):
         )
 
 
-# MARKMARK
 class BackendAlterColumnTest(AlterColRoundTripFixture, TestBase):
     __backend__ = True
 

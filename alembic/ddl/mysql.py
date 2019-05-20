@@ -44,13 +44,15 @@ class MySQLImpl(DefaultImpl):
         existing_comment=None,
         **kw
     ):
-        if name is not None:
+        if name is not None or self._is_mysql_allowed_functional_default(
+            type_ if type_ is not None else existing_type, server_default
+        ):
             self._exec(
                 MySQLChangeColumn(
                     table_name,
                     column_name,
                     schema=schema,
-                    newname=name,
+                    newname=name if name is not None else column_name,
                     nullable=nullable
                     if nullable is not None
                     else existing_nullable
@@ -107,6 +109,13 @@ class MySQLImpl(DefaultImpl):
 
         super(MySQLImpl, self).drop_constraint(const)
 
+    def _is_mysql_allowed_functional_default(self, type_, server_default):
+        return (
+            type_ is not None
+            and type_._type_affinity is sqltypes.DateTime
+            and server_default is not None
+        )
+
     def compare_server_default(
         self,
         inspector_column,
@@ -134,7 +143,29 @@ class MySQLImpl(DefaultImpl):
             )
             return rendered_inspector_default != rendered_metadata_default
         elif rendered_inspector_default and rendered_metadata_default:
-            # adjust for "function()" vs. "FUNCTION"
+            # adjust for "function()" vs. "FUNCTION" as can occur particularly
+            # for the CURRENT_TIMESTAMP function on newer MariaDB versions
+
+            # SQLAlchemy MySQL dialect bundles ON UPDATE into the server
+            # default; adjust for this possibly being present.
+            onupdate_ins = re.match(
+                r"(.*) (on update.*?)(?:\(\))?$",
+                rendered_inspector_default.lower(),
+            )
+            onupdate_met = re.match(
+                r"(.*) (on update.*?)(?:\(\))?$",
+                rendered_metadata_default.lower(),
+            )
+
+            if onupdate_ins:
+                if not onupdate_met:
+                    return True
+                elif onupdate_ins.group(2) != onupdate_met.group(2):
+                    return True
+
+                rendered_inspector_default = onupdate_ins.group(1)
+                rendered_metadata_default = onupdate_met.group(1)
+
             return re.sub(
                 r"(.*?)(?:\(\))?$", r"\1", rendered_inspector_default.lower()
             ) != re.sub(

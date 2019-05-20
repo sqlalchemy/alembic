@@ -1,5 +1,6 @@
 from sqlalchemy import Boolean
 from sqlalchemy import Column
+from sqlalchemy import DATETIME
 from sqlalchemy import func
 from sqlalchemy import Integer
 from sqlalchemy import MetaData
@@ -15,6 +16,7 @@ from alembic.testing import assert_raises_message
 from alembic.testing import config
 from alembic.testing.env import clear_staging_env
 from alembic.testing.env import staging_env
+from alembic.testing.fixtures import AlterColRoundTripFixture
 from alembic.testing.fixtures import op_fixture
 from alembic.testing.fixtures import TestBase
 
@@ -177,6 +179,22 @@ class MySQLOpTest(TestBase):
         # notice we dont need the existing type on this one...
         op.alter_column("t", "c", server_default="1")
         context.assert_("ALTER TABLE t ALTER COLUMN c SET DEFAULT '1'")
+
+    def test_alter_column_modify_datetime_default(self):
+        # use CHANGE format when the datatype is DATETIME or TIMESTAMP,
+        # as this is needed for a functional default which is what you'd
+        # get with a DATETIME/TIMESTAMP.  Will also work in the very unlikely
+        # case the default is a fixed timestamp value.
+        context = op_fixture("mysql")
+        op.alter_column(
+            "t",
+            "c",
+            existing_type=DATETIME(),
+            server_default=text("CURRENT_TIMESTAMP"),
+        )
+        context.assert_(
+            "ALTER TABLE t CHANGE c c DATETIME NULL DEFAULT CURRENT_TIMESTAMP"
+        )
 
     def test_col_not_nullable(self):
         context = op_fixture("mysql")
@@ -392,6 +410,66 @@ class MySQLOpTest(TestBase):
         )
 
 
+class MySQLBackendOpTest(AlterColRoundTripFixture, TestBase):
+    __only_on__ = "mysql"
+    __backend__ = True
+
+    def test_add_timestamp_server_default_current_timestamp(self):
+        self._run_alter_col(
+            {"type": TIMESTAMP()},
+            {"server_default": text("CURRENT_TIMESTAMP")},
+        )
+
+    def test_add_datetime_server_default_current_timestamp(self):
+        self._run_alter_col(
+            {"type": DATETIME()}, {"server_default": text("CURRENT_TIMESTAMP")}
+        )
+
+    def test_add_timestamp_server_default_now(self):
+        self._run_alter_col(
+            {"type": TIMESTAMP()},
+            {"server_default": text("NOW()")},
+            compare={"server_default": text("CURRENT_TIMESTAMP")},
+        )
+
+    def test_add_datetime_server_default_now(self):
+        self._run_alter_col(
+            {"type": DATETIME()},
+            {"server_default": text("NOW()")},
+            compare={"server_default": text("CURRENT_TIMESTAMP")},
+        )
+
+    def test_add_timestamp_server_default_current_timestamp_bundle_onupdate(
+        self
+    ):
+        # note SQLAlchemy reflection bundles the ON UPDATE part into the
+        # server default reflection see
+        # https://github.com/sqlalchemy/sqlalchemy/issues/4652
+        self._run_alter_col(
+            {"type": TIMESTAMP()},
+            {
+                "server_default": text(
+                    "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
+                )
+            },
+        )
+
+    def test_add_datetime_server_default_current_timestamp_bundle_onupdate(
+        self
+    ):
+        # note SQLAlchemy reflection bundles the ON UPDATE part into the
+        # server default reflection see
+        # https://github.com/sqlalchemy/sqlalchemy/issues/4652
+        self._run_alter_col(
+            {"type": DATETIME()},
+            {
+                "server_default": text(
+                    "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
+                )
+            },
+        )
+
+
 class MySQLDefaultCompareTest(TestBase):
     __only_on__ = "mysql"
     __backend__ = True
@@ -462,6 +540,16 @@ class MySQLDefaultCompareTest(TestBase):
 
     def test_compare_timestamp_current_timestamp_diff(self):
         self._compare_default_roundtrip(TIMESTAMP(), None, "CURRENT_TIMESTAMP")
+
+    def test_compare_timestamp_current_timestamp_bundle_onupdate(self):
+        self._compare_default_roundtrip(
+            TIMESTAMP(), "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
+        )
+
+    def test_compare_timestamp_current_timestamp_diff_bundle_onupdate(self):
+        self._compare_default_roundtrip(
+            TIMESTAMP(), None, "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
+        )
 
     def test_compare_integer_from_none(self):
         self._compare_default_roundtrip(Integer(), None, "0")

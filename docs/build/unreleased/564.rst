@@ -1,0 +1,19 @@
+.. change::
+    :tags: bug, mysql, operations
+    :tickets: 564
+
+    Fixed issue where MySQL databases need to use CHANGE COLUMN when altering a
+    server default of CURRENT_TIMESTAMP, NOW() and probably other functions
+    that are only usable with DATETIME/TIMESTAMP columns.  While MariaDB
+    supports both CHANGE and ALTER COLUMN in this case, MySQL databases only
+    support CHANGE.  So the new logic is that if the server default change is
+    against a DateTime-oriented column, the CHANGE format is used
+    unconditionally, as in the vast majority of cases the server default is to
+    be CURRENT_TIMESTAMP which may also be potentially bundled with an "ON
+    UPDATE CURRENT_TIMESTAMP" directive, which SQLAlchemy does not currently
+    support as a distinct field.  The fix addiionally improves the server
+    default comparison logic when the "ON UPDATE" clause is present and
+    there are parenthesis to be adjusted for as is the case on some MariaDB
+    versions.
+
+

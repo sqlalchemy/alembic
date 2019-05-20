@@ -220,7 +220,7 @@ class AlterColRoundTripFixture(object):
         self.metadata.drop_all(self.conn)
         self.conn.close()
 
-    def _run_alter_col(self, from_, to_):
+    def _run_alter_col(self, from_, to_, compare=None):
         column = Column(
             from_.get("name", "colname"),
             from_.get("type", String(10)),
@@ -254,15 +254,23 @@ class AlterColRoundTripFixture(object):
         insp = inspect(self.conn)
         new_col = insp.get_columns("x")[0]
 
-        eq_(new_col["name"], to_["name"] if "name" in to_ else column.name)
-        self._compare_type(new_col["type"], to_.get("type", old_col["type"]))
-        eq_(new_col["nullable"], to_.get("nullable", column.nullable))
+        if compare is None:
+            compare = to_
+
+        eq_(
+            new_col["name"],
+            compare["name"] if "name" in compare else column.name,
+        )
+        self._compare_type(
+            new_col["type"], compare.get("type", old_col["type"])
+        )
+        eq_(new_col["nullable"], compare.get("nullable", column.nullable))
         self._compare_server_default(
             new_col["type"],
             new_col.get("default", None),
-            to_.get("type", old_col["type"]),
-            to_["server_default"].text
-            if "server_default" in to_
+            compare.get("type", old_col["type"]),
+            compare["server_default"].text
+            if "server_default" in compare
             else column.server_default.arg.text
             if column.server_default is not None
             else None,
