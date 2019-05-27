@@ -71,6 +71,7 @@ setup(
     author="Mike Bayer",
     author_email="mike@zzzcomputing.com",
     url="https://alembic.sqlalchemy.org",
+    project_urls={"Issue Tracker": "https://github.com/sqlalchemy/alembic/"},
     license="MIT",
     packages=find_packages(".", exclude=["examples*", "test*"]),
     include_package_data=True,
