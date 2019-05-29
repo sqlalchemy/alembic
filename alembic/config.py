@@ -12,7 +12,7 @@ from .util.compat import SafeConfigParser
 
 class Config(object):
 
-    """Represent an Alembic configuration.
+    r"""Represent an Alembic configuration.
 
     Within an ``env.py`` script, this is available
     via the :attr:`.EnvironmentContext.config` attribute,
@@ -58,7 +58,7 @@ class Config(object):
             alembic_cfg.attributes['connection'] = connection
             command.upgrade(alembic_cfg, "head")
 
-    :param file_: name of the .ini file to open.
+    :param file\_: name of the .ini file to open.
     :param ini_section: name of the main Alembic section within the
      .ini file
     :param output_buffer: optional file-like input buffer which

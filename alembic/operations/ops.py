@@ -131,11 +131,11 @@ class DropConstraintOp(MigrateOperation):
     def drop_constraint(
         cls, operations, constraint_name, table_name, type_=None, schema=None
     ):
-        """Drop a constraint of the given name, typically via DROP CONSTRAINT.
+        r"""Drop a constraint of the given name, typically via DROP CONSTRAINT.
 
         :param constraint_name: name of the constraint.
         :param table_name: table name.
-        :param type_: optional, required on MySQL.  can be
+        :param type\_: optional, required on MySQL.  can be
          'foreignkey', 'primary', 'unique', or 'check'.
         :param schema: Optional schema name to operate within.  To control
          quoting of the schema outside of the default behavior, use
@@ -1661,7 +1661,7 @@ class AlterColumnOp(AlterTableOp):
         schema=None,
         **kw
     ):
-        """Issue an "alter column" instruction using the
+        r"""Issue an "alter column" instruction using the
         current migration context.
 
         Generally, only that aspect of the column which
@@ -1704,7 +1704,7 @@ class AlterColumnOp(AlterTableOp):
 
         :param new_column_name: Optional; specify a string name here to
          indicate the new name within a column rename operation.
-        :param type_: Optional; a :class:`~sqlalchemy.types.TypeEngine`
+        :param type\_: Optional; a :class:`~sqlalchemy.types.TypeEngine`
          type object to specify a change to the column's type.
          For SQLAlchemy types that also indicate a constraint (i.e.
          :class:`~sqlalchemy.types.Boolean`, :class:`~sqlalchemy.types.Enum`),

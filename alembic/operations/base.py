@@ -393,7 +393,7 @@ class Operations(util.ModuleClsProxy):
             )
 
     def inline_literal(self, value, type_=None):
-        """Produce an 'inline literal' expression, suitable for
+        r"""Produce an 'inline literal' expression, suitable for
         using in an INSERT, UPDATE, or DELETE statement.
 
         When using Alembic in "offline" mode, CRUD operations
@@ -423,7 +423,7 @@ class Operations(util.ModuleClsProxy):
          numerics should be supported.   Other types like boolean,
          dates, etc. may or may not be supported yet by various
          backends.
-        :param type_: optional - a :class:`sqlalchemy.types.TypeEngine`
+        :param type\_: optional - a :class:`sqlalchemy.types.TypeEngine`
          subclass stating the type of this value.  In SQLAlchemy
          expressions, this is usually derived automatically
          from the Python type of the value itself, as well as
