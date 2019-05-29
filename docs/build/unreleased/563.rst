@@ -1,0 +1,13 @@
+.. change::
+    :tags: bug, py3k
+    :tickets: 563
+
+    Replaced the Python compatbility routines for ``getargspec()`` with a fully
+    vendored version based on ``getfullargspec()`` from Python 3.3.
+    Originally, Python was emitting deprecation warnings for this function in
+    Python 3.8 alphas.  While this change was reverted, it was observed that
+    Python 3 implementations for ``getfullargspec()`` are an order of magnitude
+    slower as of the 3.4 series where it was rewritten against ``Signature``.
+    While Python plans to improve upon this situation, SQLAlchemy projects for
+    now are using a simple replacement to avoid any future issues.
+

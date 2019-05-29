@@ -1,3 +1,5 @@
+import collections
+import inspect
 import io
 import sys
 
@@ -10,6 +12,41 @@ py3k = sys.version_info.major >= 3
 py33 = sys.version_info >= (3, 3)
 py35 = sys.version_info >= (3, 5)
 py36 = sys.version_info >= (3, 6)
+
+
+ArgSpec = collections.namedtuple(
+    "ArgSpec", ["args", "varargs", "keywords", "defaults"]
+)
+
+
+def inspect_getargspec(func):
+    """getargspec based on fully vendored getfullargspec from Python 3.3."""
+
+    if inspect.ismethod(func):
+        func = func.__func__
+    if not inspect.isfunction(func):
+        raise TypeError("{!r} is not a Python function".format(func))
+
+    co = func.__code__
+    if not inspect.iscode(co):
+        raise TypeError("{!r} is not a code object".format(co))
+
+    nargs = co.co_argcount
+    names = co.co_varnames
+    nkwargs = co.co_kwonlyargcount if py3k else 0
+    args = list(names[:nargs])
+
+    nargs += nkwargs
+    varargs = None
+    if co.co_flags & inspect.CO_VARARGS:
+        varargs = co.co_varnames[nargs]
+        nargs = nargs + 1
+    varkw = None
+    if co.co_flags & inspect.CO_VARKEYWORDS:
+        varkw = co.co_varnames[nargs]
+
+    return ArgSpec(args, varargs, varkw, func.__defaults__)
+
 
 if py3k:
     from io import StringIO
@@ -54,22 +91,6 @@ if py33:
     import collections.abc as collections_abc
 else:
     import collections as collections_abc  # noqa
-
-if py3k:
-    import collections
-
-    ArgSpec = collections.namedtuple(
-        "ArgSpec", ["args", "varargs", "keywords", "defaults"]
-    )
-
-    from inspect import getfullargspec as inspect_getfullargspec
-
-    def inspect_getargspec(func):
-        return ArgSpec(*inspect_getfullargspec(func)[0:4])
-
-
-else:
-    from inspect import getargspec as inspect_getargspec  # noqa
 
 if py35:
     from inspect import formatannotation
