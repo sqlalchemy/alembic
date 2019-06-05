@@ -37,18 +37,19 @@ def init(config, directory, template="generic"):
 
     """
 
-    if os.access(directory, os.F_OK):
-        raise util.CommandError("Directory %s already exists" % directory)
+    if os.access(directory, os.F_OK) and os.listdir(directory):
+        raise util.CommandError("Directory %s already exists and is not empty" % directory)
 
     template_dir = os.path.join(config.get_template_directory(), template)
     if not os.access(template_dir, os.F_OK):
         raise util.CommandError("No such template %r" % template)
 
-    util.status(
-        "Creating directory %s" % os.path.abspath(directory),
-        os.makedirs,
-        directory,
-    )
+    if not os.access(directory, os.F_OK):
+        util.status(
+            "Creating directory %s" % os.path.abspath(directory),
+            os.makedirs,
+            directory,
+        )
 
     versions = os.path.join(directory, "versions")
     util.status(
