@@ -799,10 +799,10 @@ class CommandLineTest(TestBase):
                             assert len(help_text) < 80
         assert not commands, "Commands without help text: %s" % commands
     
-    @mock.patch("alembic.command.os.listdir", return_value = ['file1', 'file2'])
+    @mock.patch("alembic.command.os.listdir", return_value = ["file1", "file2"])
     @mock.patch("alembic.command.os.access", return_value = True)
     def test_init_file_exists_and_is_not_empty(self, mocked_listdir, mocked_access):
-        directory = 'alembic'
+        directory = "alembic"
         assert_raises_message(
             util.CommandError,
             "Directory %s already exists and is not empty" % directory,
