@@ -476,7 +476,7 @@ def current(config, verbose=False, head_only=False):
     script = ScriptDirectory.from_config(config)
 
     if head_only:
-        util.warn("--head-only is deprecated")
+        util.warn("--head-only is deprecated", stacklevel=3)
 
     def display_version(rev, context):
         if verbose:

@@ -69,8 +69,8 @@ def obfuscate_url_pw(u):
     return str(u)
 
 
-def warn(msg):
-    warnings.warn(msg)
+def warn(msg, stacklevel=2):
+    warnings.warn(msg, stacklevel=stacklevel)
 
 
 def msg(msg, newline=True):

@@ -156,7 +156,8 @@ class DefaultImpl(with_metaclass(ImplMeta)):
         if autoincrement is not None or existing_autoincrement is not None:
             util.warn(
                 "autoincrement and existing_autoincrement "
-                "only make sense for MySQL"
+                "only make sense for MySQL",
+                stacklevel=3,
             )
         if nullable is not None:
             self._exec(
