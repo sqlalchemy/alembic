@@ -175,7 +175,8 @@ class MigrationContext(object):
                 util.warn(
                     "'connection' argument to configure() is expected "
                     "to be a sqlalchemy.engine.Connection instance, "
-                    "got %r" % connection
+                    "got %r" % connection,
+                    stacklevel=3
                 )
             dialect = connection.dialect
         elif url:

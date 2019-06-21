@@ -69,8 +69,9 @@ def obfuscate_url_pw(u):
     return str(u)
 
 
-def warn(msg):
-    warnings.warn(msg)
+def warn(msg, stacklevel=2):
+    # Dy default report the warning from our caller's file/line-no, not here
+    warnings.warn(msg, stacklevel=stacklevel)
 
 
 def msg(msg, newline=True):
