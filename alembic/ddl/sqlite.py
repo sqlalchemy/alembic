@@ -56,11 +56,16 @@ class SQLiteImpl(DefaultImpl):
 
         if rendered_metadata_default is not None:
             rendered_metadata_default = re.sub(
-                r"^\"'|\"'$", "", rendered_metadata_default
+                r"^\((.+)\)$", r"\1", rendered_metadata_default
             )
+
+            rendered_metadata_default = re.sub(
+                r"^\"?'(.+)'\"?$", r"\1", rendered_metadata_default
+            )
+
         if rendered_inspector_default is not None:
             rendered_inspector_default = re.sub(
-                r"^\"'|\"'$", "", rendered_inspector_default
+                r"^\"?'(.+)'\"?$", r"\1", rendered_inspector_default
             )
 
         return rendered_inspector_default != rendered_metadata_default
@@ -90,6 +95,47 @@ class SQLiteImpl(DefaultImpl):
             # so remove these, unless we see an exact signature match
             if idx.name is None and uq_sig(idx) not in conn_unique_sigs:
                 metadata_unique_constraints.remove(idx)
+
+    def _guess_if_default_is_unparenthesized_sql_expr(self, expr):
+        """Determine if a server default is a SQL expression or a constant.
+
+        There are too many assertions that expect server defaults to round-trip
+        identically without parenthesis added so we will add parens only in
+        very specific cases.
+
+        """
+        if not expr:
+            return False
+        elif re.match(r"^[0-9\.]$", expr):
+            return False
+        elif re.match(r"^'.+'$", expr):
+            return False
+        elif re.match(r"^\(.+\)$", expr):
+            return False
+        else:
+            return True
+
+    def autogen_column_reflect(self, inspector, table, column_info):
+        # SQLite expression defaults require parenthesis when sent
+        # as DDL
+        if self._guess_if_default_is_unparenthesized_sql_expr(
+            column_info.get("default", None)
+        ):
+            column_info["default"] = "(%s)" % (column_info["default"],)
+
+    def render_ddl_sql_expr(self, expr, is_server_default=False, **kw):
+        # SQLite expression defaults require parenthesis when sent
+        # as DDL
+        str_expr = super(SQLiteImpl, self).render_ddl_sql_expr(
+            expr, is_server_default=is_server_default, **kw
+        )
+
+        if (
+            is_server_default
+            and self._guess_if_default_is_unparenthesized_sql_expr(str_expr)
+        ):
+            str_expr = "(%s)" % (str_expr,)
+        return str_expr
 
 
 # @compiles(AddColumn, 'sqlite')

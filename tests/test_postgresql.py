@@ -3,6 +3,7 @@ from sqlalchemy import Boolean
 from sqlalchemy import Column
 from sqlalchemy import DateTime
 from sqlalchemy import Float
+from sqlalchemy import func
 from sqlalchemy import Index
 from sqlalchemy import Integer
 from sqlalchemy import Interval
@@ -507,10 +508,10 @@ class PostgresqlDefaultCompareTest(TestBase):
         )
 
     def test_compare_string_blank_default(self):
-        self._compare_default_roundtrip(String(8), '')
+        self._compare_default_roundtrip(String(8), "")
 
     def test_compare_string_nonblank_default(self):
-        self._compare_default_roundtrip(String(8), 'hi')
+        self._compare_default_roundtrip(String(8), "hi")
 
     def test_compare_interval_str(self):
         # this form shouldn't be used but testing here
@@ -532,6 +533,12 @@ class PostgresqlDefaultCompareTest(TestBase):
     def test_compare_current_timestamp_text(self):
         self._compare_default_roundtrip(
             DateTime(), text("TIMEZONE('utc', CURRENT_TIMESTAMP)")
+        )
+
+    @config.requirements.sqlalchemy_10
+    def test_compare_current_timestamp_fn_w_binds(self):
+        self._compare_default_roundtrip(
+            DateTime(), func.timezone("utc", func.current_timestamp())
         )
 
     def test_compare_integer_str(self):

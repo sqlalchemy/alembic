@@ -44,7 +44,13 @@ class BatchOperationsImpl(object):
         self.table_args = table_args
         self.table_kwargs = dict(table_kwargs)
         self.reflect_args = reflect_args
-        self.reflect_kwargs = reflect_kwargs
+        self.reflect_kwargs = dict(reflect_kwargs)
+        self.reflect_kwargs.setdefault(
+            "listeners", list(self.reflect_kwargs.get("listeners", ()))
+        )
+        self.reflect_kwargs["listeners"].append(
+            ("column_reflect", operations.impl.autogen_column_reflect)
+        )
         self.naming_convention = naming_convention
         self.batch = []
 

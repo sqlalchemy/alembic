@@ -367,6 +367,19 @@ class DefaultImpl(with_metaclass(ImplMeta)):
     ):
         pass
 
+    def render_ddl_sql_expr(self, expr, is_server_default=False, **kw):
+        """Render a SQL expression that is typically a server default,
+        index expression, etc.
+
+        .. versionadded:: 1.0.11
+
+        """
+
+        compile_kw = dict(
+            compile_kwargs={"literal_binds": True, "include_table": False}
+        )
+        return text_type(expr.compile(dialect=self.dialect, **compile_kw))
+
     def _compat_autogen_column_reflect(self, inspector):
         return self.autogen_column_reflect
 

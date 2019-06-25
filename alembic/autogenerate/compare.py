@@ -873,7 +873,10 @@ def _render_server_default_for_compare(
             metadata_default = metadata_default.arg
         else:
             metadata_default = str(
-                metadata_default.arg.compile(dialect=autogen_context.dialect)
+                metadata_default.arg.compile(
+                    dialect=autogen_context.dialect,
+                    compile_kwargs={"literal_binds": True},
+                )
             )
     if isinstance(metadata_default, compat.string_types):
         if metadata_col.type._type_affinity is sqltypes.String:
