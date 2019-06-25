@@ -5,7 +5,95 @@ Changelog
 
 .. changelog::
     :version: 1.0.11
-    :include_notes_from: unreleased
+    :released: June 25, 2019
+
+    .. change::
+        :tags: bug, sqlite, autogenerate, batch
+        :tickets: 579
+
+        SQLite server default reflection will ensure parenthesis are surrounding a
+        column default expression that is detected as being a non-constant
+        expression, such as a ``datetime()`` default, to accommodate for the
+        requirement that SQL expressions have to be parenthesized when being sent
+        as DDL.  Parenthesis are not added to constant expressions to allow for
+        maximum cross-compatibility with other dialects and existing test suites
+        (such as Alembic's), which necessarily entails scanning the expression to
+        eliminate for constant numeric and string values. The logic is added to the
+        two "reflection->DDL round trip" paths which are currently autogenerate and
+        batch migration.  Within autogenerate, the logic is on the rendering side,
+        whereas in batch the logic is installed as a column reflection hook.
+
+
+    .. change::
+        :tags: bug, sqlite, autogenerate
+        :tickets: 579
+
+        Improved SQLite server default comparison to accommodate for a ``text()``
+        construct that added parenthesis directly vs. a construct that relied
+        upon the SQLAlchemy SQLite dialect to render the parenthesis, as well
+        as improved support for various forms of constant expressions such as
+        values that are quoted vs. non-quoted.
+
+
+    .. change::
+        :tags: bug, autogenerate
+
+        Fixed bug where the "literal_binds" flag was not being set when
+        autogenerate would create a server default value, meaning server default
+        comparisons would fail for functions that contained literal values.
+
+    .. change::
+       :tags: bug, mysql
+       :tickets: 554
+
+       Added support for MySQL "DROP CHECK", which is added as of MySQL 8.0.16,
+       separate from MariaDB's "DROP CONSTRAINT" for CHECK constraints.  The MySQL
+       Alembic implementation now checks for "MariaDB" in server_version_info to
+       decide which one to use.
+
+
+
+    .. change::
+        :tags: bug, mysql, operations
+        :tickets: 564
+
+        Fixed issue where MySQL databases need to use CHANGE COLUMN when altering a
+        server default of CURRENT_TIMESTAMP, NOW() and probably other functions
+        that are only usable with DATETIME/TIMESTAMP columns.  While MariaDB
+        supports both CHANGE and ALTER COLUMN in this case, MySQL databases only
+        support CHANGE.  So the new logic is that if the server default change is
+        against a DateTime-oriented column, the CHANGE format is used
+        unconditionally, as in the vast majority of cases the server default is to
+        be CURRENT_TIMESTAMP which may also be potentially bundled with an "ON
+        UPDATE CURRENT_TIMESTAMP" directive, which SQLAlchemy does not currently
+        support as a distinct field.  The fix addiionally improves the server
+        default comparison logic when the "ON UPDATE" clause is present and
+        there are parenthesis to be adjusted for as is the case on some MariaDB
+        versions.
+
+
+
+    .. change::
+        :tags: bug, environment
+
+        Warnings emitted by Alembic now include a default stack level of 2, and in
+        some cases it's set to 3, in order to help warnings indicate more closely
+        where they are originating from.  Pull request courtesy Ash Berlin-Taylor.
+
+
+    .. change::
+        :tags: bug, py3k
+        :tickets: 563
+
+        Replaced the Python compatbility routines for ``getargspec()`` with a fully
+        vendored version based on ``getfullargspec()`` from Python 3.3.
+        Originally, Python was emitting deprecation warnings for this function in
+        Python 3.8 alphas.  While this change was reverted, it was observed that
+        Python 3 implementations for ``getfullargspec()`` are an order of magnitude
+        slower as of the 3.4 series where it was rewritten against ``Signature``.
+        While Python plans to improve upon this situation, SQLAlchemy projects for
+        now are using a simple replacement to avoid any future issues.
+
 
 .. changelog::
     :version: 1.0.10
