@@ -9,6 +9,7 @@ from sqlalchemy import Enum
 from sqlalchemy import exc
 from sqlalchemy import ForeignKey
 from sqlalchemy import ForeignKeyConstraint
+from sqlalchemy import func
 from sqlalchemy import Index
 from sqlalchemy import Integer
 from sqlalchemy import MetaData
@@ -1117,6 +1118,23 @@ class BatchRoundTripTest(TestBase):
         t.create(self.conn)
         return t
 
+    def _datetime_server_default_fixture(self):
+        return func.datetime("now", "localtime")
+
+    def _timestamp_w_expr_default_fixture(self):
+        t = Table(
+            "hasts",
+            self.metadata,
+            Column(
+                "x",
+                DateTime(),
+                server_default=self._datetime_server_default_fixture(),
+                nullable=False,
+            ),
+        )
+        t.create(self.conn)
+        return t
+
     def _int_to_boolean_fixture(self):
         t = Table("hasbool", self.metadata, Column("x", Integer))
         t.create(self.conn)
@@ -1156,6 +1174,23 @@ class BatchRoundTripTest(TestBase):
             self.conn.execute(select([t.c.x])).fetchall(),
             [(datetime.datetime(2012, 5, 18, 15, 32, 5),)],
         )
+
+    @config.requirements.sqlalchemy_12
+    def test_no_net_change_timestamp_w_default(self):
+        t = self._timestamp_w_expr_default_fixture()
+
+        with self.op.batch_alter_table("hasts") as batch_op:
+            batch_op.alter_column(
+                "x",
+                type_=DateTime(),
+                nullable=False,
+                server_default=self._datetime_server_default_fixture(),
+            )
+
+        self.conn.execute(t.insert())
+
+        row = self.conn.execute(select([t.c.x])).fetchone()
+        assert row["x"] is not None
 
     def test_drop_col_schematype(self):
         self._boolean_fixture()
@@ -1612,6 +1647,9 @@ class BatchRoundTripMySQLTest(BatchRoundTripTest):
     __only_on__ = "mysql"
     __backend__ = True
 
+    def _datetime_server_default_fixture(self):
+        return func.current_timestamp()
+
     @exclusions.fails()
     def test_drop_pk_col_readd_pk_col(self):
         super(BatchRoundTripMySQLTest, self).test_drop_pk_col_readd_pk_col()
@@ -1654,6 +1692,9 @@ class BatchRoundTripMySQLTest(BatchRoundTripTest):
 class BatchRoundTripPostgresqlTest(BatchRoundTripTest):
     __only_on__ = "postgresql"
     __backend__ = True
+
+    def _datetime_server_default_fixture(self):
+        return func.current_timestamp()
 
     @exclusions.fails()
     def test_drop_pk_col_readd_pk_col(self):

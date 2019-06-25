@@ -492,11 +492,10 @@ def _ident(name):
         return name
 
 
-def _render_potential_expr(value, autogen_context, wrap_in_text=True):
+def _render_potential_expr(
+    value, autogen_context, wrap_in_text=True, is_server_default=False
+):
     if isinstance(value, sql.ClauseElement):
-        compile_kw = dict(
-            compile_kwargs={"literal_binds": True, "include_table": False}
-        )
 
         if wrap_in_text:
             template = "%(prefix)stext(%(sql)r)"
@@ -505,8 +504,8 @@ def _render_potential_expr(value, autogen_context, wrap_in_text=True):
 
         return template % {
             "prefix": _sqlalchemy_autogenerate_prefix(autogen_context),
-            "sql": compat.text_type(
-                value.compile(dialect=autogen_context.dialect, **compile_kw)
+            "sql": autogen_context.migration_context.impl.render_ddl_sql_expr(
+                value, is_server_default=is_server_default
             ),
         }
 
@@ -634,7 +633,9 @@ def _render_server_default(default, autogen_context, repr_=True):
         if isinstance(default.arg, compat.string_types):
             default = default.arg
         else:
-            return _render_potential_expr(default.arg, autogen_context)
+            return _render_potential_expr(
+                default.arg, autogen_context, is_server_default=True
+            )
 
     if isinstance(default, string_types) and repr_:
         default = repr(re.sub(r"^'|'$", "", default))
