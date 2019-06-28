@@ -405,7 +405,7 @@ to make them part of the ``op.*`` namespace::
     @Operations.register_operation("drop_view", "invoke_for_target")
     class DropViewOp(ReversibleOp):
         def reverse(self):
-            return CreateViewOp(self.view)
+            return CreateViewOp(self.target)
 
 
     @Operations.register_operation("create_sp", "invoke_for_target")
