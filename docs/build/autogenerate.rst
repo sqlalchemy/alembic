@@ -131,11 +131,11 @@ Autogenerate can **optionally detect**:
 
 * Change of column type.  This will occur if you set
   the :paramref:`.EnvironmentContext.configure.compare_type` parameter
-  to ``True``, or to a custom callable function.
-  The feature works well in most cases,
-  but is off by default so that it can be tested on the target schema
-  first.  It can also be customized by passing a callable here; see the
-  section :ref:`compare_types` for details.
+  to ``True``, or to a custom callable function.   The default implementation
+  **only detects major type changes**, such as between ``Numeric`` and
+  ``String``, and does not detect changes in arguments such as lengths, precisions,
+  or enumeration members.  The type comparison logic is extensible to work
+  around these limitations, see :ref:`compare_types` for details.
 * Change of server default.  This will occur if you set
   the :paramref:`.EnvironmentContext.configure.compare_server_default`
   parameter to ``True``, or to a custom callable function.
@@ -401,6 +401,22 @@ is set to True::
         # ...
         compare_type = True
     )
+
+.. note::
+
+   The default type comparison logic (which is end-user extensible) currently
+   works for **major changes in type only**, such as between ``Numeric`` and
+   ``String``.     The logic will **not** detect changes such as:
+
+   * changes between types that have the same "type affinity", such as
+     between ``VARCHAR`` and ``TEXT``, or ``FLOAT`` and ``NUMERIC``
+
+   * changes between the arguments within the type, such as the lengths of
+     strings, precision values for numerics, the elements inside of an
+     enumeration.
+
+   Detection of these kinds of parameters is a long term project on the
+   SQLAlchemy side.
 
 Alternatively, the :paramref:`.EnvironmentContext.configure.compare_type`
 parameter accepts a callable function which may be used to implement custom type
