@@ -1079,3 +1079,56 @@ branched revision tree::
     :meth:`.MigrationContext.get_current_heads`
 
     :meth:`.ScriptDirectory.get_heads`
+
+Support Non-Ascii Migration Scripts / Messages under Python 2
+==============================================================
+
+To work with a migration file that has non-ascii characters in it under Python
+2, the ``script.py.mako`` file inside of the Alembic environment has to have an
+encoding comment added to the top that will render into a ``.py`` file:
+
+.. code-block:: mako
+
+    <%text># coding: utf-8</%text>
+
+Additionally, individual fields if they are to have non-ascii characters in
+them may require decode operations on the template values.  Such as, if the
+revision message given on the command line to ``alembic revision`` has
+non-ascii characters in it, under Python 2 the command interface passes this
+through as bytes, and Alembic has no decode step built in for this as it is not
+necessary under Python 3.  To decode, add a decoding step to the template for
+each variable that potentially may have non-ascii characters within it.   An
+example of applying this to the "message" field is as follows:
+
+.. code-block:: mako
+
+    <%!
+        import sys
+    %>\
+    <%text># coding: utf-8</%text>
+    """${message.decode("utf-8") \
+       if sys.version_info < (3, ) \
+       and isinstance(message, str) else message}
+
+    Revision ID: ${up_revision}
+    Revises: ${down_revision | comma,n}
+    Create Date: ${create_date}
+
+    """
+    from alembic import op
+    import sqlalchemy as sa
+    ${imports if imports else ""}
+
+    # revision identifiers, used by Alembic.
+    revision = ${repr(up_revision)}
+    down_revision = ${repr(down_revision)}
+    branch_labels = ${repr(branch_labels)}
+    depends_on = ${repr(depends_on)}
+
+
+    def upgrade():
+        ${upgrades if upgrades else "pass"}
+
+
+    def downgrade():
+        ${downgrades if downgrades else "pass"}
