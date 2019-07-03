@@ -528,6 +528,7 @@ class ScriptDirectory(object):
         branch_labels=None,
         version_path=None,
         depends_on=None,
+        template_src_path=None,
         **kw
     ):
         """Generate a new revision file.
@@ -549,6 +550,8 @@ class ScriptDirectory(object):
          actual head; otherwise, the selected head must be a head
          (e.g. endpoint) revision.
         :param refresh: deprecated.
+        :param template_src_path: the path to the mako template file.
+         Defaults to script.py.mako in the ``ScriptDirectory``'s dir.
 
         """
         if head is None:
@@ -622,9 +625,12 @@ class ScriptDirectory(object):
                         for dep in util.to_list(depends_on)
                     ]
                 ]
+        
+        if template_src_path is None:
+            template_src_path = os.path.join(self.dir, "script.py.mako")
 
         self._generate_template(
-            os.path.join(self.dir, "script.py.mako"),
+            template_src_path,
             path,
             up_revision=str(revid),
             down_revision=revision.tuple_rev_as_scalar(
