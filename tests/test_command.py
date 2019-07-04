@@ -800,3 +800,57 @@ class CommandLineTest(TestBase):
                             # not too long
                             assert len(help_text) < 80
         assert not commands, "Commands without help text: %s" % commands
+
+    def test_init_file_exists_and_is_not_empty(self):
+        with mock.patch(
+            "alembic.command.os.listdir", return_value=["file1", "file2"]
+        ), mock.patch("alembic.command.os.access", return_value=True):
+            directory = "alembic"
+            assert_raises_message(
+                util.CommandError,
+                "Directory %s already exists and is not empty" % directory,
+                command.init,
+                self.cfg,
+                directory=directory,
+            )
+
+    def test_init_file_exists_and_is_empty(self):
+        def access_(path, mode):
+            if "generic" in path or path == "foobar":
+                return True
+            else:
+                return False
+
+        def listdir_(path):
+            if path == "foobar":
+                return []
+            else:
+                return ["file1", "file2", "alembic.ini.mako"]
+
+        with mock.patch(
+            "alembic.command.os.access", side_effect=access_
+        ), mock.patch("alembic.command.os.makedirs") as makedirs, mock.patch(
+            "alembic.command.os.listdir", side_effect=listdir_
+        ), mock.patch(
+            "alembic.command.ScriptDirectory"
+        ):
+            command.init(self.cfg, directory="foobar")
+            eq_(makedirs.mock_calls, [mock.call("foobar/versions")])
+
+    def test_init_file_doesnt_exist(self):
+        def access_(path, mode):
+            if "generic" in path:
+                return True
+            else:
+                return False
+
+        with mock.patch(
+            "alembic.command.os.access", side_effect=access_
+        ), mock.patch("alembic.command.os.makedirs") as makedirs, mock.patch(
+            "alembic.command.ScriptDirectory"
+        ):
+            command.init(self.cfg, directory="foobar")
+            eq_(
+                makedirs.mock_calls,
+                [mock.call("foobar"), mock.call("foobar/versions")],
+            )

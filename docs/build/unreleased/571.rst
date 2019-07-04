@@ -1,0 +1,12 @@
+.. change::
+    :tags: usecase, commands
+    :tickets: 571
+
+    The "alembic init" command will now proceed if the target directory exists
+    as long as it's still empty.  Previously, it would not proceed if the
+    directory existed. The new behavior is modeled from what git does, to
+    accommodate for container or other deployments where an Alembic target
+    directory may need to be already mounted instead of being created with
+    alembic init.  Pull request courtesy Aviskar KC.
+
+
