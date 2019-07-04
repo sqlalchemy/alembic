@@ -2,6 +2,7 @@ from contextlib import contextmanager
 import inspect
 from io import BytesIO
 from io import TextIOWrapper
+import os
 import re
 
 from sqlalchemy import exc as sqla_exc
@@ -810,4 +811,81 @@ class CommandLineTest(TestBase):
                 command.init,
                 self.cfg,
                 directory=directory,
+            )
+
+    def test_init_file_exists_and_is_empty(self):
+        def access_(path, mode):
+            if "generic" in path or path == "foobar":
+                return True
+            else:
+                return False
+
+        def listdir_(path):
+            if path == "foobar":
+                return []
+            else:
+                return ["file1", "file2", "alembic.ini.mako"]
+
+        template_dir = self.cfg.get_template_directory()
+
+        with mock.patch(
+            "alembic.command.os.access", side_effect=access_
+        ) as access, mock.patch(
+            "alembic.command.os.makedirs"
+        ) as makedirs, mock.patch(
+            "alembic.command.os.listdir", side_effect=listdir_
+        ) as listdir, mock.patch(
+            "alembic.command.ScriptDirectory"
+        ):
+            command.init(self.cfg, directory="foobar")
+            eq_(
+                access.mock_calls,
+                [
+                    mock.call("foobar", os.F_OK),
+                    mock.call(os.path.join(template_dir, "generic"), os.F_OK),
+                    mock.call("foobar", os.F_OK),
+                    mock.call(
+                        os.path.abspath("./scratch/test_alembic.ini"), os.F_OK
+                    ),
+                ],
+            )
+            eq_(
+                listdir.mock_calls,
+                [
+                    mock.call("foobar"),
+                    mock.call(os.path.join(template_dir, "generic")),
+                ],
+            )
+            eq_(makedirs.mock_calls, [mock.call("foobar/versions")])
+
+    def test_init_file_doesnt_exist(self):
+        def access_(path, mode):
+            if "generic" in path:
+                return True
+            else:
+                return False
+
+        template_dir = self.cfg.get_template_directory()
+        with mock.patch(
+            "alembic.command.os.access", side_effect=access_
+        ) as access, mock.patch(
+            "alembic.command.os.makedirs"
+        ) as makedirs, mock.patch(
+            "alembic.command.ScriptDirectory"
+        ):
+            command.init(self.cfg, directory="foobar")
+            eq_(
+                access.mock_calls,
+                [
+                    mock.call("foobar", os.F_OK),
+                    mock.call(os.path.join(template_dir, "generic"), os.F_OK),
+                    mock.call("foobar", os.F_OK),
+                    mock.call(
+                        os.path.abspath("./scratch/test_alembic.ini"), os.F_OK
+                    ),
+                ],
+            )
+            eq_(
+                makedirs.mock_calls,
+                [mock.call("foobar"), mock.call("foobar/versions")],
             )
