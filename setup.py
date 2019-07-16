@@ -19,10 +19,10 @@ v.close()
 readme = os.path.join(os.path.dirname(__file__), "README.rst")
 
 requires = [
-    "SQLAlchemy>=0.9.0",
-    "Mako",
-    "python-editor>=0.3",
-    "python-dateutil",
+    "SQLAlchemy>=0.9.0<2.0",
+    "Mako<1.0",
+    "python-editor>=0.3,<2.0",
+    "python-dateutil<3.0",
 ]
 
 
