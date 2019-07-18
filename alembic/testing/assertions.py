@@ -162,6 +162,22 @@ def emits_warning(*messages):
     return decorate
 
 
+def emits_python_deprecation_warning(*messages):
+    """Decorator form of expect_warnings().
+
+    Note that emits_warning does **not** assert that the warnings
+    were in fact seen.
+
+    """
+
+    @decorator
+    def decorate(fn, *args, **kw):
+        with _expect_warnings(DeprecationWarning, assert_=False, *messages):
+            return fn(*args, **kw)
+
+    return decorate
+
+
 def emits_warning_on(db, *messages):
     """Mark a test as emitting a warning on a specific dialect.
 

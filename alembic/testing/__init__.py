@@ -1,6 +1,7 @@
 from alembic import util  # noqa
 from .assertions import assert_raises  # noqa
 from .assertions import assert_raises_message  # noqa
+from .assertions import emits_python_deprecation_warning  # noqa
 from .assertions import eq_  # noqa
 from .assertions import eq_ignore_whitespace  # noqa
 from .assertions import is_  # noqa

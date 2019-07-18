@@ -8,6 +8,7 @@ from sqlalchemy import exc as sqla_exc
 
 from alembic import command
 from alembic import config
+from alembic import testing
 from alembic import util
 from alembic.script import ScriptDirectory
 from alembic.testing import assert_raises
@@ -677,6 +678,7 @@ class EditTest(TestBase):
             command.edit(self.cfg, self.b[0:3])
             edit.assert_called_with(expected_call_arg)
 
+    @testing.emits_python_deprecation_warning("the imp module is deprecated")
     def test_edit_with_missing_editor(self):
         with mock.patch("editor.edit") as edit_mock:
             edit_mock.side_effect = OSError("file not found")

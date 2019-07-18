@@ -222,11 +222,17 @@ if py3k:
         return suffixes
 
     def has_pep3147():
-        # http://www.python.org/dev/peps/pep-3147/#detecting-pep-3147-availability
 
-        import imp
+        if py35:
+            return True
+        else:
+            # TODO: not sure if we are supporting old versions of Python
+            # the import here emits a deprecation warning which the test
+            # suite only catches if imp wasn't imported alreadt
+            # http://www.python.org/dev/peps/pep-3147/#detecting-pep-3147-availability
+            import imp
 
-        return hasattr(imp, "get_tag")
+            return hasattr(imp, "get_tag")
 
 
 else:

@@ -9,6 +9,7 @@ from .compat import get_current_bytecode_suffixes
 from .compat import has_pep3147
 from .compat import load_module_py
 from .compat import load_module_pyc
+from .compat import py35
 from .exc import CommandError
 
 
@@ -54,12 +55,19 @@ def pyc_file_from_path(path):
     """
 
     if has_pep3147():
-        import imp
+        if py35:
+            import importlib
 
-        candidate = imp.cache_from_source(path)
+            candidate = importlib.util.cache_from_source(path)
+        else:
+            import imp
+
+            candidate = imp.cache_from_source(path)
         if os.path.exists(candidate):
             return candidate
 
+    # even for pep3147, fall back to the old way of finding .pyc files,
+    # to support sourceless operation
     filepath, ext = os.path.splitext(path)
     for ext in get_current_bytecode_suffixes():
         if os.path.exists(filepath + ext):
