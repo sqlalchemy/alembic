@@ -1,4 +1,3 @@
-
 import logging
 from logging.config import fileConfig
 import re
@@ -73,6 +72,7 @@ def run_migrations_offline():
                 output_buffer=buffer,
                 target_metadata=target_metadata.get(name),
                 literal_binds=True,
+                dialect_opts={"paramstyle": "named"},
             )
             with context.begin_transaction():
                 context.run_migrations(engine_name=name)

@@ -1,0 +1,12 @@
+.. change::
+    :tags: bug, commands
+    :tickets: 562
+
+    Fixed bug where the double-percent logic applied to some dialects such as
+    psycopg2 would be rendered in ``--sql`` mode, by allowing dialect options
+    to be passed through to the dialect used to generate SQL and then providing
+    ``paramstyle="named"`` so that percent signs need not be doubled.   For
+    users having this issue, existing env.py scripts need to add
+    ``dialect_opts={"paramstyle": "named"}`` to their offline
+    context.configure().  See the ``alembic/templates/generic/env.py`` template
+    for an example.

@@ -1,8 +1,9 @@
 #!coding: utf-8
-
+from alembic import command
 from alembic.environment import EnvironmentContext
 from alembic.migration import MigrationContext
 from alembic.script import ScriptDirectory
+from alembic.testing import config
 from alembic.testing import eq_
 from alembic.testing import is_
 from alembic.testing.assertions import expect_warnings
@@ -11,6 +12,7 @@ from alembic.testing.env import _sqlite_file_db
 from alembic.testing.env import clear_staging_env
 from alembic.testing.env import staging_env
 from alembic.testing.env import write_script
+from alembic.testing.fixtures import capture_context_buffer
 from alembic.testing.fixtures import TestBase
 from alembic.testing.mock import call
 from alembic.testing.mock import MagicMock
@@ -60,6 +62,35 @@ class EnvironmentTest(TestBase):
 
         ctx = MigrationContext(ctx.dialect, None, {})
         is_(ctx.config, None)
+
+    @config.requirements.sqlalchemy_issue_3740
+    def test_sql_mode_parameters(self):
+        env = self._fixture()
+
+        a_rev = "arev"
+        env.script.generate_revision(a_rev, "revision a", refresh=True)
+        write_script(
+            env.script,
+            a_rev,
+            """\
+"Rev A"
+revision = '{}'
+down_revision = None
+
+from alembic import op
+
+def upgrade():
+    op.execute('''
+        do some SQL thing with a % percent sign %
+    ''')
+
+""".format(
+                a_rev
+            ),
+        )
+        with capture_context_buffer(transactional_ddl=True) as buf:
+            command.upgrade(self.cfg, "arev", sql=True)
+        assert "do some SQL thing with a % percent sign %" in buf.getvalue()
 
     def test_warning_on_passing_engine(self):
         env = self._fixture()

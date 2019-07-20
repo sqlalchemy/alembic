@@ -289,6 +289,7 @@ class EnvironmentContext(util.ModuleClsProxy):
         connection=None,
         url=None,
         dialect_name=None,
+        dialect_opts=None,
         transactional_ddl=None,
         transaction_per_migration=False,
         output_buffer=None,
@@ -355,6 +356,11 @@ class EnvironmentContext(util.ModuleClsProxy):
          "postgresql", "mssql", etc.
          The type of dialect to be used will be derived from this if
          ``connection`` and ``url`` are not passed.
+        :param dialect_opts: dictionary of options to be passed to dialect
+         constructor.
+
+         .. versionadded:: 1.0.11
+
         :param transactional_ddl: Force the usage of "transactional"
          DDL on or off;
          this otherwise defaults to whether or not the dialect in
@@ -812,6 +818,7 @@ class EnvironmentContext(util.ModuleClsProxy):
             url=url,
             dialect_name=dialect_name,
             environment_context=self,
+            dialect_opts=dialect_opts,
             opts=opts,
         )
 

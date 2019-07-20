@@ -145,6 +145,7 @@ class MigrationContext(object):
         dialect_name=None,
         dialect=None,
         environment_context=None,
+        dialect_opts=None,
         opts=None,
     ):
         """Create a new :class:`.MigrationContext`.
@@ -169,6 +170,8 @@ class MigrationContext(object):
         """
         if opts is None:
             opts = {}
+        if dialect_opts is None:
+            dialect_opts = {}
 
         if connection:
             if not isinstance(connection, Connection):
@@ -176,15 +179,15 @@ class MigrationContext(object):
                     "'connection' argument to configure() is expected "
                     "to be a sqlalchemy.engine.Connection instance, "
                     "got %r" % connection,
-                    stacklevel=3
+                    stacklevel=3,
                 )
             dialect = connection.dialect
         elif url:
             url = sqla_url.make_url(url)
-            dialect = url.get_dialect()()
+            dialect = url.get_dialect()(**dialect_opts)
         elif dialect_name:
             url = sqla_url.make_url("%s://" % dialect_name)
-            dialect = url.get_dialect()()
+            dialect = url.get_dialect()(**dialect_opts)
         elif not dialect:
             raise Exception("Connection, url, or dialect_name is required.")
 
