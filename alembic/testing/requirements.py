@@ -1,10 +1,10 @@
 import sys
 
+from sqlalchemy.testing import exclusions
 from sqlalchemy.testing.requirements import Requirements
 
 from alembic import util
 from alembic.util import sqla_compat
-from . import exclusions
 
 
 class SuiteRequirements(Requirements):

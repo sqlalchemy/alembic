@@ -10,13 +10,13 @@ from sqlalchemy import MetaData
 from sqlalchemy import String
 from sqlalchemy import Table
 from sqlalchemy import text
+from sqlalchemy.testing import config
+from sqlalchemy.testing import mock
+from sqlalchemy.testing.assertions import eq_
 from sqlalchemy.testing.fixtures import TestBase  # noqa
 
 import alembic
-from . import config
-from . import mock
 from .assertions import _get_dialect
-from .assertions import eq_
 from ..environment import EnvironmentContext
 from ..migration import MigrationContext
 from ..operations import Operations

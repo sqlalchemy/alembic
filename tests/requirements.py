@@ -1,4 +1,5 @@
-from alembic.testing import exclusions
+from sqlalchemy.testing import exclusions
+
 from alembic.testing.requirements import SuiteRequirements
 from alembic.util import sqla_compat
 

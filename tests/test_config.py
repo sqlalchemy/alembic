@@ -8,14 +8,13 @@ from alembic.operations import Operations
 from alembic.script import ScriptDirectory
 from alembic.testing import assert_raises_message
 from alembic.testing import eq_
+from alembic.testing import mock
 from alembic.testing.env import _no_sql_testing_config
 from alembic.testing.env import _write_config_file
 from alembic.testing.env import clear_staging_env
 from alembic.testing.env import staging_env
 from alembic.testing.fixtures import capture_db
 from alembic.testing.fixtures import TestBase
-from alembic.testing.mock import call
-from alembic.testing.mock import Mock
 from alembic.util import compat
 
 
@@ -97,14 +96,14 @@ class ConfigTest(TestBase):
         )
 
     def test_attributes_attr(self):
-        m1 = Mock()
+        m1 = mock.Mock()
         cfg = config.Config()
         cfg.attributes["connection"] = m1
         eq_(cfg.attributes["connection"], m1)
 
     def test_attributes_construtor(self):
-        m1 = Mock()
-        m2 = Mock()
+        m1 = mock.Mock()
+        m2 = mock.Mock()
         cfg = config.Config(attributes={"m1": m1})
         cfg.attributes["connection"] = m2
         eq_(cfg.attributes, {"m1": m1, "connection": m2})
@@ -112,31 +111,40 @@ class ConfigTest(TestBase):
 
 class StdoutOutputEncodingTest(TestBase):
     def test_plain(self):
-        stdout = Mock(encoding="latin-1")
+        stdout = mock.Mock(encoding="latin-1")
         cfg = config.Config(stdout=stdout)
         cfg.print_stdout("test %s %s", "x", "y")
-        eq_(stdout.mock_calls, [call.write("test x y"), call.write("\n")])
+        eq_(
+            stdout.mock_calls,
+            [mock.call.write("test x y"), mock.call.write("\n")],
+        )
 
     def test_utf8_unicode(self):
-        stdout = Mock(encoding="latin-1")
+        stdout = mock.Mock(encoding="latin-1")
         cfg = config.Config(stdout=stdout)
         cfg.print_stdout(compat.u("méil %s %s"), "x", "y")
         eq_(
             stdout.mock_calls,
-            [call.write(compat.u("méil x y")), call.write("\n")],
+            [mock.call.write(compat.u("méil x y")), mock.call.write("\n")],
         )
 
     def test_ascii_unicode(self):
-        stdout = Mock(encoding=None)
+        stdout = mock.Mock(encoding=None)
         cfg = config.Config(stdout=stdout)
         cfg.print_stdout(compat.u("méil %s %s"), "x", "y")
-        eq_(stdout.mock_calls, [call.write("m?il x y"), call.write("\n")])
+        eq_(
+            stdout.mock_calls,
+            [mock.call.write("m?il x y"), mock.call.write("\n")],
+        )
 
     def test_only_formats_output_with_args(self):
-        stdout = Mock(encoding=None)
+        stdout = mock.Mock(encoding=None)
         cfg = config.Config(stdout=stdout)
         cfg.print_stdout(compat.u("test 3%"))
-        eq_(stdout.mock_calls, [call.write("test 3%"), call.write("\n")])
+        eq_(
+            stdout.mock_calls,
+            [mock.call.write("test 3%"), mock.call.write("\n")],
+        )
 
 
 class TemplateOutputEncodingTest(TestBase):

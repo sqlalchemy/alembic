@@ -1,11 +1,9 @@
 from __future__ import absolute_import
 
-import contextlib
 import re
-import warnings
 
-from sqlalchemy import exc as sa_exc
 from sqlalchemy.engine import default
+from sqlalchemy.testing.assertions import _expect_warnings
 from sqlalchemy.testing.assertions import assert_raises  # noqa
 from sqlalchemy.testing.assertions import assert_raises_message  # noqa
 from sqlalchemy.testing.assertions import eq_  # noqa
@@ -14,15 +12,13 @@ from sqlalchemy.testing.assertions import is_not_  # noqa
 from sqlalchemy.testing.assertions import ne_  # noqa
 from sqlalchemy.util import decorator
 
-from . import config
-from . import mock
-from .exclusions import db_spec
-from .. import util
 from ..util.compat import py3k
-from ..util.compat import text_type
 
 
 def eq_ignore_whitespace(a, b, msg=None):
+    # sqlalchemy.testing.assertion has this function
+    # but not with the special "!U" detection part
+
     a = re.sub(r"^\s+?|\n", "", a)
     a = re.sub(r" {2,}", " ", a)
     b = re.sub(r"^\s+?|\n", "", b)
@@ -36,16 +32,6 @@ def eq_ignore_whitespace(a, b, msg=None):
         b = re.sub(r"!U", "u", b)
 
     assert a == b, msg or "%r != %r" % (a, b)
-
-
-def assert_compiled(element, assert_string, dialect=None):
-    dialect = _get_dialect(dialect)
-    eq_(
-        text_type(element.compile(dialect=dialect))
-        .replace("\n", "")
-        .replace("\t", ""),
-        assert_string.replace("\n", "").replace("\t", ""),
-    )
 
 
 _dialect_mods = {}
@@ -83,40 +69,7 @@ def expect_warnings(*messages, **kw):
     Note that the test suite sets SAWarning warnings to raise exceptions.
 
     """
-    return _expect_warnings(sa_exc.SAWarning, messages, **kw)
-
-
-@contextlib.contextmanager
-def expect_warnings_on(db, *messages, **kw):
-    """Context manager which expects one or more warnings on specific
-    dialects.
-
-    The expect version **asserts** that the warnings were in fact seen.
-
-    """
-    spec = db_spec(db)
-
-    if isinstance(db, util.string_types) and not spec(config._current):
-        yield
-    else:
-        with expect_warnings(*messages, **kw):
-            yield
-
-
-def emits_warning(*messages):
-    """Decorator form of expect_warnings().
-
-    Note that emits_warning does **not** assert that the warnings
-    were in fact seen.
-
-    """
-
-    @decorator
-    def decorate(fn, *args, **kw):
-        with expect_warnings(assert_=False, *messages):
-            return fn(*args, **kw)
-
-    return decorate
+    return _expect_warnings(Warning, messages, **kw)
 
 
 def emits_python_deprecation_warning(*messages):
@@ -133,63 +86,3 @@ def emits_python_deprecation_warning(*messages):
             return fn(*args, **kw)
 
     return decorate
-
-
-def emits_warning_on(db, *messages):
-    """Mark a test as emitting a warning on a specific dialect.
-
-    With no arguments, squelches all SAWarning failures.  Or pass one or more
-    strings; these will be matched to the root of the warning description by
-    warnings.filterwarnings().
-
-    Note that emits_warning_on does **not** assert that the warnings
-    were in fact seen.
-
-    """
-
-    @decorator
-    def decorate(fn, *args, **kw):
-        with expect_warnings_on(db, *messages):
-            return fn(*args, **kw)
-
-    return decorate
-
-
-@contextlib.contextmanager
-def _expect_warnings(exc_cls, messages, regex=True, assert_=True):
-
-    if regex:
-        filters = [re.compile(msg, re.I) for msg in messages]
-    else:
-        filters = messages
-
-    seen = set(filters)
-
-    real_warn = warnings.warn
-
-    def our_warn(msg, exception=None, *arg, **kw):
-        if exception and not issubclass(exception, exc_cls):
-            return real_warn(msg, exception, *arg, **kw)
-
-        if not filters:
-            return
-
-        for filter_ in filters:
-            if (regex and filter_.match(msg)) or (
-                not regex and filter_ == msg
-            ):
-                seen.discard(filter_)
-                break
-        else:
-            if exception is None:
-                real_warn(msg, *arg, **kw)
-            else:
-                real_warn(msg, exception, *arg, **kw)
-
-    with mock.patch("warnings.warn", our_warn):
-        yield
-
-    if assert_:
-        assert not seen, "Warnings were not seen: %s" % ", ".join(
-            "%r" % (s.pattern if regex else s) for s in seen
-        )

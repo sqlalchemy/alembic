@@ -4,8 +4,9 @@ import os
 import shutil
 import textwrap
 
-from . import engines
-from . import provision
+from sqlalchemy.testing import engines
+from sqlalchemy.testing import provision
+
 from .. import util
 from ..script import Script
 from ..script import ScriptDirectory

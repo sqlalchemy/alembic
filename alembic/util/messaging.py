@@ -70,7 +70,7 @@ def obfuscate_url_pw(u):
 
 
 def warn(msg, stacklevel=2):
-    warnings.warn(msg, stacklevel=stacklevel)
+    warnings.warn(msg, UserWarning, stacklevel=stacklevel)
 
 
 def msg(msg, newline=True):

@@ -6,6 +6,7 @@ from alembic.script import ScriptDirectory
 from alembic.testing import config
 from alembic.testing import eq_
 from alembic.testing import is_
+from alembic.testing import mock
 from alembic.testing.assertions import expect_warnings
 from alembic.testing.env import _no_sql_testing_config
 from alembic.testing.env import _sqlite_file_db
@@ -14,9 +15,6 @@ from alembic.testing.env import staging_env
 from alembic.testing.env import write_script
 from alembic.testing.fixtures import capture_context_buffer
 from alembic.testing.fixtures import TestBase
-from alembic.testing.mock import call
-from alembic.testing.mock import MagicMock
-from alembic.testing.mock import Mock
 
 
 class EnvironmentTest(TestBase):
@@ -34,12 +32,12 @@ class EnvironmentTest(TestBase):
 
     def test_x_arg(self):
         env = self._fixture()
-        self.cfg.cmd_opts = Mock(x="y=5")
+        self.cfg.cmd_opts = mock.Mock(x="y=5")
         eq_(env.get_x_argument(), "y=5")
 
     def test_x_arg_asdict(self):
         env = self._fixture()
-        self.cfg.cmd_opts = Mock(x=["y=5"])
+        self.cfg.cmd_opts = mock.Mock(x=["y=5"])
         eq_(env.get_x_argument(as_dictionary=True), {"y": "5"})
 
     def test_x_arg_no_opts(self):
@@ -120,7 +118,7 @@ def downgrade():
 """
             % a_rev,
         )
-        migration_fn = MagicMock()
+        migration_fn = mock.MagicMock()
 
         def upgrade(rev, context):
             migration_fn(rev, context)
@@ -136,4 +134,4 @@ def downgrade():
 
         env.run_migrations()
 
-        eq_(migration_fn.mock_calls, [call((), env._migration_context)])
+        eq_(migration_fn.mock_calls, [mock.call((), env._migration_context)])

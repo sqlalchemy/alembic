@@ -625,19 +625,21 @@ class PostgresqlDetectSerialTest(TestBase):
     @classmethod
     def setup_class(cls):
         cls.bind = config.db
-        cls.conn = cls.bind.connect()
         staging_env()
-        cls.migration_context = MigrationContext.configure(
-            connection=cls.conn,
-            opts={"compare_type": True, "compare_server_default": True},
-        )
 
     def setUp(self):
+        self.conn = self.bind.connect()
+        self.migration_context = MigrationContext.configure(
+            connection=self.conn,
+            opts={"compare_type": True, "compare_server_default": True},
+        )
         self.autogen_context = api.AutogenContext(self.migration_context)
+
+    def tearDown(self):
+        self.conn.close()
 
     @classmethod
     def teardown_class(cls):
-        cls.conn.close()
         clear_staging_env()
 
     @provide_metadata

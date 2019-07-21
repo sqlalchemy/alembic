@@ -45,9 +45,9 @@ from alembic.testing import assertions
 from alembic.testing import config
 from alembic.testing import eq_
 from alembic.testing import eq_ignore_whitespace
+from alembic.testing import mock
 from alembic.testing import TestBase
 from alembic.testing.fixtures import op_fixture
-from alembic.testing.mock import patch
 from alembic.util import compat
 
 py3k = sys.version_info >= (3,)
@@ -847,7 +847,7 @@ class AutogenRenderTest(TestBase):
                 "SomeCustomConstraint(Column('id', Integer(), table=<t>))])",
             )
 
-    @patch("alembic.autogenerate.render.MAX_PYTHON_ARGS", 3)
+    @mock.patch("alembic.autogenerate.render.MAX_PYTHON_ARGS", 3)
     def test_render_table_max_cols(self):
         m = MetaData()
         t = Table(
