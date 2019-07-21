@@ -751,11 +751,6 @@ class AutogenSystemColTest(AutogenTest, TestBase):
 class AutogenerateVariantCompareTest(AutogenTest, TestBase):
     __backend__ = True
 
-    # 1.0.13 and lower fail on Postgresql due to variant / bigserial issue
-    # #3739
-
-    __requires__ = ("sqlalchemy_1014",)
-
     @classmethod
     def _get_db_schema(cls):
         m = MetaData()
@@ -1544,7 +1539,6 @@ class AutoincrementTest(AutogenFixtureTest, TestBase):
         ops = self._fixture(m1, m2, return_ops=True)
         assert "autoincrement" not in ops.ops[0].ops[0].kw
 
-    @config.requirements.fail_before_sqla_110
     def test_alter_column_autoincrement_nonpk_explicit_true(self):
         m1 = MetaData()
         m2 = MetaData()

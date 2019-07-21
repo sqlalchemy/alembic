@@ -1438,7 +1438,6 @@ class BatchRoundTripTest(TestBase):
             {"id": 6, "data": 5, "x": -2},
         )
 
-    @config.requirements.sqlalchemy_094
     @config.requirements.unnamed_constraints
     def test_drop_foreign_key(self):
         bar = Table(

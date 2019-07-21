@@ -6,6 +6,12 @@ import warnings
 
 from sqlalchemy import exc as sa_exc
 from sqlalchemy.engine import default
+from sqlalchemy.testing.assertions import assert_raises  # noqa
+from sqlalchemy.testing.assertions import assert_raises_message  # noqa
+from sqlalchemy.testing.assertions import eq_  # noqa
+from sqlalchemy.testing.assertions import is_  # noqa
+from sqlalchemy.testing.assertions import is_not_  # noqa
+from sqlalchemy.testing.assertions import ne_  # noqa
 from sqlalchemy.util import decorator
 
 from . import config
@@ -14,55 +20,6 @@ from .exclusions import db_spec
 from .. import util
 from ..util.compat import py3k
 from ..util.compat import text_type
-
-
-if not util.sqla_094:
-
-    def eq_(a, b, msg=None):
-        """Assert a == b, with repr messaging on failure."""
-        assert a == b, msg or "%r != %r" % (a, b)
-
-    def ne_(a, b, msg=None):
-        """Assert a != b, with repr messaging on failure."""
-        assert a != b, msg or "%r == %r" % (a, b)
-
-    def is_(a, b, msg=None):
-        """Assert a is b, with repr messaging on failure."""
-        assert a is b, msg or "%r is not %r" % (a, b)
-
-    def is_not_(a, b, msg=None):
-        """Assert a is not b, with repr messaging on failure."""
-        assert a is not b, msg or "%r is %r" % (a, b)
-
-    def assert_raises(except_cls, callable_, *args, **kw):
-        try:
-            callable_(*args, **kw)
-            success = False
-        except except_cls:
-            success = True
-
-        # assert outside the block so it works for AssertionError too !
-        assert success, "Callable did not raise an exception"
-
-    def assert_raises_message(except_cls, msg, callable_, *args, **kwargs):
-        try:
-            callable_(*args, **kwargs)
-            assert False, "Callable did not raise an exception"
-        except except_cls as e:
-            assert re.search(msg, text_type(e), re.UNICODE), "%r !~ %s" % (
-                msg,
-                e,
-            )
-            print(text_type(e).encode("utf-8"))
-
-
-else:
-    from sqlalchemy.testing.assertions import assert_raises  # noqa
-    from sqlalchemy.testing.assertions import assert_raises_message  # noqa
-    from sqlalchemy.testing.assertions import eq_  # noqa
-    from sqlalchemy.testing.assertions import is_  # noqa
-    from sqlalchemy.testing.assertions import is_not_  # noqa
-    from sqlalchemy.testing.assertions import ne_  # noqa
 
 
 def eq_ignore_whitespace(a, b, msg=None):

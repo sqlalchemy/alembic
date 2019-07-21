@@ -186,9 +186,7 @@ class _ComparesFKs(object):
 
         eq_([elem.column.name for elem in diff[1].elements], target_columns)
         if conditional_name is not None:
-            if config.requirements.no_fk_names.enabled:
-                eq_(diff[1].name, None)
-            elif conditional_name == "servergenerated":
+            if conditional_name == "servergenerated":
                 fks = Inspector.from_engine(self.bind).get_foreign_keys(
                     source_table
                 )

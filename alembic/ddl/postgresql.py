@@ -6,6 +6,7 @@ from sqlalchemy import Numeric
 from sqlalchemy import text
 from sqlalchemy import types as sqltypes
 from sqlalchemy.dialects.postgresql import BIGINT
+from sqlalchemy.dialects.postgresql import ExcludeConstraint
 from sqlalchemy.dialects.postgresql import INTEGER
 from sqlalchemy.sql.expression import ColumnClause
 from sqlalchemy.sql.expression import UnaryExpression
@@ -28,9 +29,6 @@ from ..operations.base import BatchOperations
 from ..operations.base import Operations
 from ..util import compat
 from ..util import sqla_compat
-
-if util.sqla_100:
-    from sqlalchemy.dialects.postgresql import ExcludeConstraint
 
 
 log = logging.getLogger(__name__)
@@ -76,8 +74,8 @@ class PostgresqlImpl(DefaultImpl):
 
         # check for unquoted string and quote for PG String types
         if (
-            not isinstance(inspector_column.type, Numeric) and
-            metadata_column.server_default is not None
+            not isinstance(inspector_column.type, Numeric)
+            and metadata_column.server_default is not None
             and isinstance(
                 metadata_column.server_default.arg, compat.string_types
             )
@@ -187,24 +185,13 @@ class PostgresqlImpl(DefaultImpl):
         metadata_indexes,
     ):
 
-        conn_uniques_by_name = dict(
-            (c.name, c) for c in conn_unique_constraints
-        )
         conn_indexes_by_name = dict((c.name, c) for c in conn_indexes)
 
-        if not util.sqla_100:
-            doubled_constraints = set(
-                conn_indexes_by_name[name]
-                for name in set(conn_uniques_by_name).intersection(
-                    conn_indexes_by_name
-                )
-            )
-        else:
-            doubled_constraints = set(
-                index
-                for index in conn_indexes
-                if index.info.get("duplicates_constraint")
-            )
+        doubled_constraints = set(
+            index
+            for index in conn_indexes
+            if index.info.get("duplicates_constraint")
+        )
 
         for ix in doubled_constraints:
             conn_indexes.remove(ix)
@@ -344,10 +331,6 @@ class CreateExcludeConstraintOp(ops.AddConstraintOp):
         )
 
     def to_constraint(self, migration_context=None):
-        if not util.sqla_100:
-            raise NotImplementedError(
-                "ExcludeConstraint not supported until SQLAlchemy 1.0"
-            )
         if self._orig_constraint is not None:
             return self._orig_constraint
         schema_obj = schemaobj.SchemaObjects(migration_context)
@@ -435,17 +418,15 @@ def _add_exclude_constraint(autogen_context, op):
     return _exclude_constraint(op.to_constraint(), autogen_context, alter=True)
 
 
-if util.sqla_100:
+@render._constraint_renderers.dispatch_for(ExcludeConstraint)
+def _render_inline_exclude_constraint(constraint, autogen_context):
+    rendered = render._user_defined_render(
+        "exclude", constraint, autogen_context
+    )
+    if rendered is not False:
+        return rendered
 
-    @render._constraint_renderers.dispatch_for(ExcludeConstraint)
-    def _render_inline_exclude_constraint(constraint, autogen_context):
-        rendered = render._user_defined_render(
-            "exclude", constraint, autogen_context
-        )
-        if rendered is not False:
-            return rendered
-
-        return _exclude_constraint(constraint, autogen_context, False)
+    return _exclude_constraint(constraint, autogen_context, False)
 
 
 def _postgresql_autogenerate_prefix(autogen_context):

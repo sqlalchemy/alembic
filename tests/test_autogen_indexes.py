@@ -536,9 +536,6 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestBase):
             set([diffs[0][1].name, diffs[1][1].name]), set(["xy_idx", "y_idx"])
         )
 
-    # this simply doesn't fully work before we had
-    # effective deduping of indexes/uniques.
-    @config.requirements.sqlalchemy_100
     def test_drop_table_w_uq_constraint(self):
         m1 = MetaData()
         m2 = MetaData()
@@ -830,7 +827,6 @@ class PGUniqueIndexTest(AutogenerateUniqueIndexTest):
         diffs = self._fixture(m1, m2, include_schemas=True)
         eq_(diffs, [])
 
-    @config.requirements.sqlalchemy_100
     @config.requirements.btree_gist
     def test_exclude_const_unchanged(self):
         from sqlalchemy.dialects.postgresql import TSRANGE, ExcludeConstraint

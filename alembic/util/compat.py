@@ -3,9 +3,6 @@ import inspect
 import io
 import sys
 
-if sys.version_info < (2, 7):
-    raise NotImplementedError("Python 2.7 or greater is required.")
-
 py27 = sys.version_info >= (2, 7)
 py2k = sys.version_info.major < 3
 py3k = sys.version_info.major >= 3
@@ -327,7 +324,7 @@ class EncodedIO(io.TextIOWrapper):
 if py2k:
     # in Py2K, the io.* package is awkward because it does not
     # easily wrap the file type (e.g. sys.stdout) and I can't
-    # figure out at all how to wrap StringIO.StringIO (used by nosetests)
+    # figure out at all how to wrap StringIO.StringIO
     # and also might be user specified too.  So create a full
     # adapter.
 

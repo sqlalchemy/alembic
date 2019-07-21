@@ -16,6 +16,9 @@ from sqlalchemy import text
 from sqlalchemy import types
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.dialects.postgresql import BYTEA
+from sqlalchemy.dialects.postgresql import HSTORE
+from sqlalchemy.dialects.postgresql import JSON
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.sql import column
@@ -45,10 +48,6 @@ from alembic.testing.env import write_script
 from alembic.testing.fixtures import capture_context_buffer
 from alembic.testing.fixtures import op_fixture
 from alembic.testing.fixtures import TestBase
-
-
-if util.sqla_09:
-    from sqlalchemy.dialects.postgresql import JSON, JSONB, HSTORE
 
 
 class PostgresqlOpTest(TestBase):
@@ -88,7 +87,6 @@ class PostgresqlOpTest(TestBase):
             "WHERE locations.coordinates != Null"
         )
 
-    @config.requirements.fail_before_sqla_099
     def test_create_index_postgresql_concurrently(self):
         context = op_fixture("postgresql")
         op.create_index(
@@ -101,7 +99,6 @@ class PostgresqlOpTest(TestBase):
             "CREATE INDEX CONCURRENTLY geocoded ON locations (coordinates)"
         )
 
-    @config.requirements.fail_before_sqla_110
     def test_drop_index_postgresql_concurrently(self):
         context = op_fixture("postgresql")
         op.drop_index("geocoded", "locations", postgresql_concurrently=True)
@@ -119,7 +116,6 @@ class PostgresqlOpTest(TestBase):
         op.add_column("some_table", Column("q", Integer, primary_key=True))
         context.assert_("ALTER TABLE some_table ADD COLUMN q SERIAL NOT NULL")
 
-    @config.requirements.fail_before_sqla_100
     def test_create_exclude_constraint(self):
         context = op_fixture("postgresql")
         op.create_exclude_constraint(
@@ -130,7 +126,6 @@ class PostgresqlOpTest(TestBase):
             "WHERE (x > 5)"
         )
 
-    @config.requirements.fail_before_sqla_100
     def test_create_exclude_constraint_quoted_literal(self):
         context = op_fixture("postgresql")
         op.create_exclude_constraint(
@@ -145,7 +140,6 @@ class PostgresqlOpTest(TestBase):
             '("SomeColumn" WITH >) WHERE ("SomeColumn" > 5)'
         )
 
-    @config.requirements.fail_before_sqla_1010
     def test_create_exclude_constraint_quoted_column(self):
         context = op_fixture("postgresql")
         op.create_exclude_constraint(
@@ -535,7 +529,6 @@ class PostgresqlDefaultCompareTest(TestBase):
             DateTime(), text("TIMEZONE('utc', CURRENT_TIMESTAMP)")
         )
 
-    @config.requirements.sqlalchemy_10
     def test_compare_current_timestamp_fn_w_binds(self):
         self._compare_default_roundtrip(
             DateTime(), func.timezone("utc", func.current_timestamp())
@@ -799,7 +792,6 @@ class PostgresqlAutogenRenderTest(TestBase):
             in self.autogen_context.imports
         )
 
-    @config.requirements.sqlalchemy_110
     def test_postgresql_hstore_subtypes(self):
         eq_ignore_whitespace(
             autogenerate.render._repr_type(HSTORE(), self.autogen_context),
@@ -825,7 +817,6 @@ class PostgresqlAutogenRenderTest(TestBase):
             in self.autogen_context.imports
         )
 
-    @config.requirements.sqlalchemy_110
     def test_generic_array_type(self):
 
         eq_ignore_whitespace(
@@ -876,7 +867,6 @@ class PostgresqlAutogenRenderTest(TestBase):
             "postgresql.ARRAY(foobar.MYVARCHAR)",
         )
 
-    @config.requirements.fail_before_sqla_100
     def test_add_exclude_constraint(self):
         from sqlalchemy.dialects.postgresql import ExcludeConstraint
 
@@ -898,7 +888,6 @@ class PostgresqlAutogenRenderTest(TestBase):
             "where=sa.text(!U'x != 2'), using='gist')",
         )
 
-    @config.requirements.fail_before_sqla_100
     def test_add_exclude_constraint_case_sensitive(self):
         from sqlalchemy.dialects.postgresql import ExcludeConstraint
 
@@ -925,7 +914,6 @@ class PostgresqlAutogenRenderTest(TestBase):
             "where=sa.text(!U'\"XColumn\" != 2'), using='gist')",
         )
 
-    @config.requirements.fail_before_sqla_100
     def test_inline_exclude_constraint(self):
         from sqlalchemy.dialects.postgresql import ExcludeConstraint
 
@@ -956,7 +944,6 @@ class PostgresqlAutogenRenderTest(TestBase):
             ")",
         )
 
-    @config.requirements.fail_before_sqla_100
     def test_inline_exclude_constraint_case_sensitive(self):
         from sqlalchemy.dialects.postgresql import ExcludeConstraint
 
@@ -986,25 +973,13 @@ class PostgresqlAutogenRenderTest(TestBase):
         )
 
     def test_json_type(self):
-        if config.requirements.sqlalchemy_110.enabled:
-            eq_ignore_whitespace(
-                autogenerate.render._repr_type(JSON(), self.autogen_context),
-                "postgresql.JSON(astext_type=sa.Text())",
-            )
-        else:
-            eq_ignore_whitespace(
-                autogenerate.render._repr_type(JSON(), self.autogen_context),
-                "postgresql.JSON()",
-            )
+        eq_ignore_whitespace(
+            autogenerate.render._repr_type(JSON(), self.autogen_context),
+            "postgresql.JSON(astext_type=sa.Text())",
+        )
 
     def test_jsonb_type(self):
-        if config.requirements.sqlalchemy_110.enabled:
-            eq_ignore_whitespace(
-                autogenerate.render._repr_type(JSONB(), self.autogen_context),
-                "postgresql.JSONB(astext_type=sa.Text())",
-            )
-        else:
-            eq_ignore_whitespace(
-                autogenerate.render._repr_type(JSONB(), self.autogen_context),
-                "postgresql.JSONB()",
-            )
+        eq_ignore_whitespace(
+            autogenerate.render._repr_type(JSONB(), self.autogen_context),
+            "postgresql.JSONB(astext_type=sa.Text())",
+        )

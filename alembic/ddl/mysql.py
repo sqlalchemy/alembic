@@ -18,7 +18,6 @@ from ..autogenerate import compare
 from ..util.compat import string_types
 from ..util.sqla_compat import _is_mariadb
 from ..util.sqla_compat import _is_type_bound
-from ..util.sqla_compat import sqla_100
 
 
 class MySQLImpl(DefaultImpl):
@@ -211,14 +210,6 @@ class MySQLImpl(DefaultImpl):
         for idx in list(metadata_indexes):
             if idx.name in removed:
                 metadata_indexes.remove(idx)
-
-        if not sqla_100:
-            self._legacy_correct_for_dupe_uq_uix(
-                conn_unique_constraints,
-                conn_indexes,
-                metadata_unique_constraints,
-                metadata_indexes,
-            )
 
     def _legacy_correct_for_dupe_uq_uix(
         self,

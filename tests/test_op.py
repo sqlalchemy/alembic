@@ -10,6 +10,7 @@ from sqlalchemy import Table
 from sqlalchemy.sql import column
 from sqlalchemy.sql import func
 from sqlalchemy.sql import text
+from sqlalchemy.sql.schema import quoted_name
 
 from alembic import op
 from alembic.operations import ops
@@ -53,7 +54,6 @@ class OpTest(TestBase):
         )
 
     def test_add_column_schema_hard_quoting(self):
-        from sqlalchemy.sql.schema import quoted_name
 
         context = op_fixture("postgresql")
         op.add_column(
@@ -67,7 +67,6 @@ class OpTest(TestBase):
         )
 
     def test_rename_table_schema_hard_quoting(self):
-        from sqlalchemy.sql.schema import quoted_name
 
         context = op_fixture("postgresql")
         op.rename_table(
@@ -77,7 +76,6 @@ class OpTest(TestBase):
         context.assert_('ALTER TABLE "some.schema".t1 RENAME TO t2')
 
     def test_add_constraint_schema_hard_quoting(self):
-        from sqlalchemy.sql.schema import quoted_name
 
         context = op_fixture("postgresql")
         op.create_check_constraint(
