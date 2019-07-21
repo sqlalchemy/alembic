@@ -13,8 +13,6 @@ from alembic.testing.fixtures import TestBase
 
 
 class AutoNamingConventionTest(TestBase):
-    __requires__ = ("sqlalchemy_094",)
-
     def test_add_check_constraint(self):
         context = op_fixture(
             naming_convention={"ck": "ck_%(table_name)s_%(constraint_name)s"}

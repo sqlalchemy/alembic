@@ -181,18 +181,11 @@ class AutogenRenderTest(TestBase):
         idx = Index("test_lower_code_idx", cast(t.c.code, String))
         op_obj = ops.CreateIndexOp.from_index(idx)
 
-        if config.requirements.sqlalchemy_110.enabled:
-            eq_ignore_whitespace(
-                autogenerate.render_op_text(self.autogen_context, op_obj),
-                "op.create_index('test_lower_code_idx', 'test', "
-                "[sa.text(!U'CAST(code AS VARCHAR)')], unique=False)",
-            )
-        else:
-            eq_ignore_whitespace(
-                autogenerate.render_op_text(self.autogen_context, op_obj),
-                "op.create_index('test_lower_code_idx', 'test', "
-                "[sa.text(!U'CAST(code AS VARCHAR)')], unique=False)",
-            )
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.create_index('test_lower_code_idx', 'test', "
+            "[sa.text(!U'CAST(code AS VARCHAR)')], unique=False)",
+        )
 
     def test_render_add_index_desc(self):
         m = MetaData()
@@ -1035,7 +1028,6 @@ class AutogenRenderTest(TestBase):
             "sa.PrimaryKeyConstraint('x'))",
         )
 
-    @config.requirements.fail_before_sqla_110
     def test_render_table_w_autoincrement(self):
         m = MetaData()
         t = Table(
@@ -1164,7 +1156,7 @@ class AutogenRenderTest(TestBase):
             result,
             "sa.Column('some_key', sa.Integer(), "
             "nullable=True, "
-            "comment=\"This is a john's comment\")",
+            'comment="This is a john\'s comment")',
         )
 
     def test_render_col_autoinc_false_mysql(self):
@@ -1587,7 +1579,6 @@ class AutogenRenderTest(TestBase):
             "sa.Enum('one', 'two', 'three')",
         )
 
-    @config.requirements.sqlalchemy_099
     def test_render_non_native_enum(self):
         eq_ignore_whitespace(
             autogenerate.render._repr_type(
@@ -1604,7 +1595,6 @@ class AutogenRenderTest(TestBase):
             "sa.Integer()",
         )
 
-    @config.requirements.sqlalchemy_110
     def test_generic_array_type(self):
 
         eq_ignore_whitespace(
@@ -1621,7 +1611,6 @@ class AutogenRenderTest(TestBase):
             "sa.ARRAY(sa.DateTime(timezone=True))",
         )
 
-    @config.requirements.sqlalchemy_110
     def test_render_array_no_context(self):
         uo = ops.UpgradeOps(
             ops=[
@@ -1908,8 +1897,6 @@ class AutogenRenderTest(TestBase):
 
 
 class RenderNamingConventionTest(TestBase):
-    __requires__ = ("sqlalchemy_094",)
-
     def setUp(self):
 
         convention = {

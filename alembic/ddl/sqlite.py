@@ -70,32 +70,6 @@ class SQLiteImpl(DefaultImpl):
 
         return rendered_inspector_default != rendered_metadata_default
 
-    def correct_for_autogen_constraints(
-        self,
-        conn_unique_constraints,
-        conn_indexes,
-        metadata_unique_constraints,
-        metadata_indexes,
-    ):
-
-        if util.sqla_100:
-            return
-
-        # adjustments to accommodate for SQLite unnamed unique constraints
-        # not being reported from the backend; this was updated in
-        # SQLA 1.0.
-
-        def uq_sig(uq):
-            return tuple(sorted(uq.columns.keys()))
-
-        conn_unique_sigs = set(uq_sig(uq) for uq in conn_unique_constraints)
-
-        for idx in list(metadata_unique_constraints):
-            # SQLite backend can't report on unnamed UNIQUE constraints,
-            # so remove these, unless we see an exact signature match
-            if idx.name is None and uq_sig(idx) not in conn_unique_sigs:
-                metadata_unique_constraints.remove(idx)
-
     def _guess_if_default_is_unparenthesized_sql_expr(self, expr):
         """Determine if a server default is a SQL expression or a constant.
 

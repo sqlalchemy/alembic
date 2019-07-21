@@ -7,11 +7,7 @@
 """Testing extensions.
 
 this module is designed to work as a testing-framework-agnostic library,
-so that we can continue to support nose and also begin adding new
-functionality via py.test.
-
-NOTE:  copied/adapted from SQLAlchemy master for backwards compatibility;
-this should be removable when Alembic targets SQLAlchemy 1.0.0
+however it currenty targets only py.test.
 
 
 """
@@ -21,14 +17,9 @@ from __future__ import absolute_import
 import re
 import sys
 
-try:
-    # unitttest has a SkipTest also but pytest doesn't
-    # honor it unless nose is imported too...
-    from nose import SkipTest
-except ImportError:
-    from pytest import skip
+from pytest import skip
 
-    SkipTest = skip.Exception
+SkipTest = skip.Exception
 
 py3k = sys.version_info.major >= 3
 
@@ -234,8 +225,6 @@ def post_begin():
     for fn in post_configure:
         fn(options, file_config)
 
-    # late imports, has to happen after config as well
-    # as nose plugins like coverage
     global util, fixtures, engines, exclusions, assertions
     global warnings, profiling, config, testing
     from alembic.testing import config, warnings, exclusions  # noqa
@@ -373,8 +362,6 @@ def _prep_testing_database(options, file_config):
     from alembic.testing import config
     from alembic.testing.exclusions import against
     from sqlalchemy import schema
-    from alembic import util
-
     from sqlalchemy import inspect
 
     if options.dropfirst:
@@ -431,7 +418,7 @@ def _prep_testing_database(options, file_config):
                         )
                     )
 
-            if against(cfg, "postgresql") and util.sqla_100:
+            if against(cfg, "postgresql"):
                 from sqlalchemy.dialects import postgresql
 
                 for enum in inspector.get_enums("*"):

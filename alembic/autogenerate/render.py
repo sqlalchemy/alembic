@@ -476,7 +476,7 @@ def _ident(name):
     """
     if name is None:
         return name
-    elif util.sqla_09 and isinstance(name, sql.elements.quoted_name):
+    elif isinstance(name, sql.elements.quoted_name):
         if compat.py2k:
             # the attempt to encode to ascii here isn't super ideal,
             # however we are trying to cut down on an explosion of

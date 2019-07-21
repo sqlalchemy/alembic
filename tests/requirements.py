@@ -1,4 +1,3 @@
-from alembic import util
 from alembic.testing import exclusions
 from alembic.testing.requirements import SuiteRequirements
 from alembic.util import sqla_compat
@@ -33,15 +32,6 @@ class DefaultRequirements(SuiteRequirements):
         )
 
     @property
-    def no_fk_names(self):
-        """foreign key constraints *never* have names in the DB"""
-
-        return exclusions.only_if(
-            lambda config: exclusions.against(config, "sqlite")
-            and not util.sqla_100
-        )
-
-    @property
     def check_constraints_w_enforcement(self):
         return exclusions.fails_on("mysql")
 
@@ -63,14 +53,7 @@ class DefaultRequirements(SuiteRequirements):
 
     @property
     def reflects_fk_options(self):
-        return exclusions.only_on(
-            [
-                "postgresql",
-                "mysql",
-                lambda config: util.sqla_110
-                and exclusions.against(config, "sqlite"),
-            ]
-        )
+        return exclusions.only_on(["postgresql", "mysql", "sqlite"])
 
     @property
     def fk_initially(self):
@@ -100,13 +83,7 @@ class DefaultRequirements(SuiteRequirements):
         """Target driver reflects the name of primary key constraints."""
 
         return exclusions.fails_on_everything_except(
-            "postgresql",
-            "oracle",
-            "mssql",
-            "sybase",
-            lambda config: (
-                util.sqla_110 and exclusions.against(config, "sqlite")
-            ),
+            "postgresql", "oracle", "mssql", "sybase", "sqlite"
         )
 
     @property

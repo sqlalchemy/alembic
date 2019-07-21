@@ -5,18 +5,13 @@ from sqlalchemy import types as sqltypes
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.schema import Column
 from sqlalchemy.schema import DDLElement
+from sqlalchemy.sql.elements import quoted_name
 
-from .. import util
 from ..util.sqla_compat import _columns_for_constraint  # noqa
 from ..util.sqla_compat import _find_columns  # noqa
 from ..util.sqla_compat import _fk_spec  # noqa
 from ..util.sqla_compat import _is_type_bound  # noqa
 from ..util.sqla_compat import _table_for_constraint  # noqa
-
-# backwards compat
-
-if util.sqla_09:
-    from sqlalchemy.sql.elements import quoted_name
 
 
 class AlterTable(DDLElement):
@@ -169,7 +164,7 @@ def visit_column_default(element, compiler, **kw):
 def quote_dotted(name, quote):
     """quote the elements of a dotted name"""
 
-    if util.sqla_09 and isinstance(name, quoted_name):
+    if isinstance(name, quoted_name):
         return quote(name)
     result = ".".join([quote(x) for x in name.split(".")])
     return result

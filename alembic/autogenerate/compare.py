@@ -809,7 +809,7 @@ def _setup_autoincrement(
 
     if metadata_col.table._autoincrement_column is metadata_col:
         alter_column_op.kw["autoincrement"] = True
-    elif util.sqla_110 and metadata_col.autoincrement is True:
+    elif metadata_col.autoincrement is True:
         alter_column_op.kw["autoincrement"] = True
     elif metadata_col.autoincrement is False:
         alter_column_op.kw["autoincrement"] = False

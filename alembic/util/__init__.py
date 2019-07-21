@@ -21,19 +21,11 @@ from .pyfiles import edit  # noqa
 from .pyfiles import load_python_file  # noqa
 from .pyfiles import pyc_file_from_path  # noqa
 from .pyfiles import template_to_file  # noqa
-from .sqla_compat import sqla_09  # noqa
-from .sqla_compat import sqla_092  # noqa
-from .sqla_compat import sqla_094  # noqa
-from .sqla_compat import sqla_099  # noqa
-from .sqla_compat import sqla_100  # noqa
-from .sqla_compat import sqla_1010  # noqa
-from .sqla_compat import sqla_1014  # noqa
-from .sqla_compat import sqla_105  # noqa
 from .sqla_compat import sqla_110  # noqa
 from .sqla_compat import sqla_1115  # noqa
 from .sqla_compat import sqla_120  # noqa
 from .sqla_compat import sqla_1216  # noqa
 
 
-if not sqla_09:
-    raise CommandError("SQLAlchemy 0.9.0 or greater is required. ")
+if not sqla_110:
+    raise CommandError("SQLAlchemy 1.1.0 or greater is required. ")

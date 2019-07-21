@@ -25,6 +25,11 @@ def setup_filters():
     warnings.filterwarnings("error", category=sa_exc.SAWarning)
     warnings.filterwarnings("error", category=DeprecationWarning)
 
+    # temporary to allow SQLAlchemy 1.1 to pass under python 3
+    warnings.filterwarnings(
+        "ignore", category=DeprecationWarning, message=".*formatargspec"
+    )
+
 
 def assert_warnings(fn, warning_msgs, regex=False):
     """Assert that each of the given warnings are emitted by fn."""
