@@ -359,7 +359,7 @@ class EnvironmentContext(util.ModuleClsProxy):
         :param dialect_opts: dictionary of options to be passed to dialect
          constructor.
 
-         .. versionadded:: 1.0.11
+         .. versionadded:: 1.0.12
 
         :param transactional_ddl: Force the usage of "transactional"
          DDL on or off;
