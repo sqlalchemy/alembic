@@ -285,7 +285,13 @@ class Config(object):
         indicate a different section.
 
         """
-        return self.get_section_option(self.config_ini_section, name, default)
+        raw_section_option = self.get_section_option(
+            self.config_ini_section, name, default)
+        if name in ('script_location', 'version_locations'):
+            section_option = os.path.normpath(raw_section_option)
+        else:
+            section_option = raw_section_option
+        return section_option
 
 
 class CommandLine(object):
