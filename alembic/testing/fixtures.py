@@ -4,7 +4,6 @@ import io
 import re
 
 from sqlalchemy import Column
-from sqlalchemy import create_engine
 from sqlalchemy import inspect
 from sqlalchemy import MetaData
 from sqlalchemy import String
@@ -23,6 +22,7 @@ from ..operations import Operations
 from ..util.compat import configparser
 from ..util.compat import string_types
 from ..util.compat import text_type
+from ..util.sqla_compat import create_mock_engine
 
 testing_config = configparser.ConfigParser()
 testing_config.read(["test.cfg"])
@@ -34,7 +34,7 @@ def capture_db():
     def dump(sql, *multiparams, **params):
         buf.append(str(sql.compile(dialect=engine.dialect)))
 
-    engine = create_engine("postgresql://", strategy="mock", executor=dump)
+    engine = create_mock_engine("postgresql://", dump)
     return engine, buf
 
 

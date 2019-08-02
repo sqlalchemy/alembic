@@ -29,6 +29,7 @@ sqla_110 = _vers >= (1, 1, 0)
 sqla_1115 = _vers >= (1, 1, 15)
 sqla_120 = _vers >= (1, 2, 0)
 sqla_1216 = _vers >= (1, 2, 16)
+sqla_14 = _vers >= (1, 4)
 
 
 AUTOINCREMENT_DEFAULT = "auto"
@@ -220,3 +221,14 @@ def _mariadb_normalized_version_info(mysql_dialect):
         return mysql_dialect.server_version_info[3:]
     else:
         return mysql_dialect.server_version_info
+
+
+if sqla_14:
+    from sqlalchemy import create_mock_engine
+else:
+    from sqlalchemy import create_engine
+
+    def create_mock_engine(url, executor):
+        return create_engine(
+            "postgresql://", strategy="mock", executor=executor
+        )
