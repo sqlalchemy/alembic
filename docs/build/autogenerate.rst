@@ -119,7 +119,7 @@ Autogenerate **will detect**:
 * Table additions, removals.
 * Column additions, removals.
 * Change of nullable status on columns.
-* Basic changes in indexes and explcitly-named unique constraints
+* Basic changes in indexes and explicitly-named unique constraints
 
 .. versionadded:: 0.6.1 Support for autogenerate of indexes and unique constraints.
 
