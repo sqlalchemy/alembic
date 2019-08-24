@@ -64,6 +64,9 @@ class MySQLImpl(DefaultImpl):
                     autoincrement=autoincrement
                     if autoincrement is not None
                     else existing_autoincrement,
+                    comment=comment
+                    if comment is not False
+                    else existing_comment,
                 )
             )
         elif (

@@ -310,6 +310,23 @@ class MySQLOpTest(TestBase):
         )
 
     @config.requirements.comments_api
+    def test_rename_column_existing_comment(self):
+        context = op_fixture("mysql")
+        op.alter_column(
+            "t1",
+            "c1",
+            new_column_name="newc1",
+            existing_nullable=False,
+            existing_comment="existing column comment",
+            existing_type=Integer,
+        )
+
+        context.assert_(
+            "ALTER TABLE t1 CHANGE c1 newc1 INTEGER NOT NULL "
+            "COMMENT 'existing column comment'"
+        )
+
+    @config.requirements.comments_api
     def test_alter_column_new_comment_replaces_existing(self):
         context = op_fixture("mysql")
         op.alter_column(
