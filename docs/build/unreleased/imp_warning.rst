@@ -1,5 +1,5 @@
 .. change::
-    :tag: bug, py3k
+    :tags: bug, py3k
 
     Fixed use of the deprecated "imp" module, which is used to detect  pep3147
     availability as well as to locate .pyc files, which started  emitting
