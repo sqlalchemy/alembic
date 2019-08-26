@@ -1,0 +1,15 @@
+.. change::
+    :tags: bug, setup
+    :tickets: 592
+
+    Removed the "python setup.py test" feature in favor of a straight run of
+    "tox".   Per Pypa / pytest developers, "setup.py" commands are in general
+    headed towards deprecation in favor of tox.  The tox.ini script has been
+    updated such that running "tox" with no arguments will perform a single run
+    of the test suite against the default installed Python interpreter.
+
+    .. seealso::
+
+        https://github.com/pypa/setuptools/issues/1684
+
+        https://github.com/pytest-dev/pytest/issues/5534
