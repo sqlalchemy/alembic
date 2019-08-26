@@ -37,7 +37,9 @@ html:
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
 dist-html:
-	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) ..
+	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
+	cp -R $(BUILDDIR)/html/* ../
+	rm -fr $(BUILDDIR)/html
 	@echo
 	@echo "Build finished.  The HTML pages are in ../."
 
