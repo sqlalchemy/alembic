@@ -1,7 +1,0 @@
-.. change::
-    :tags: bug, mysql
-    :tickets: 594
-
-    Fixed issue where emitting a change of column name for MySQL did not
-    preserve the column comment, even if it were specified as existing_comment.
-

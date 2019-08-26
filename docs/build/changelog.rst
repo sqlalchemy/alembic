@@ -5,7 +5,87 @@ Changelog
 
 .. changelog::
     :version: 1.1.0
-    :include_notes_from: unreleased
+    :released: August 26, 2019
+
+    .. change::
+        :tags: change
+
+        Alembic 1.1 bumps the minimum version of SQLAlchemy to 1.1.   As was the
+        case before, Python requirements remain at Python 2.7, or in the 3.x series
+        Python 3.4.
+
+    .. change::
+        :tags: change, internals
+
+        The test suite for Alembic now makes use of SQLAlchemy's testing framework
+        directly.  Previously, Alembic had its own version of this framework that
+        was mostly copied from that of SQLAlchemy to enable testing with older
+        SQLAlchemy versions.  The majority of this code is now removed so that both
+        projects can leverage improvements from a common testing framework.
+
+    .. change::
+        :tags: bug, commands
+        :tickets: 562
+
+        Fixed bug where the double-percent logic applied to some dialects such as
+        psycopg2 would be rendered in ``--sql`` mode, by allowing dialect options
+        to be passed through to the dialect used to generate SQL and then providing
+        ``paramstyle="named"`` so that percent signs need not be doubled.   For
+        users having this issue, existing env.py scripts need to add
+        ``dialect_opts={"paramstyle": "named"}`` to their offline
+        context.configure().  See the ``alembic/templates/generic/env.py`` template
+        for an example.
+
+    .. change::
+        :tags: bug, py3k
+
+        Fixed use of the deprecated "imp" module, which is used to detect  pep3147
+        availability as well as to locate .pyc files, which started  emitting
+        deprecation warnings during the test suite.   The warnings were not being
+        emitted earlier during the test suite, the change is possibly due to
+        changes in py.test itself but this is not clear. The check for pep3147 is
+        set to True for any Python version 3.5 or greater now and importlib is used
+        when available.  Note that some dependencies such as distutils may still be
+        emitting this warning. Tests are adjusted to accommodate for dependencies
+        that emit the warning as well.
+
+
+    .. change::
+        :tags: bug, mysql
+        :tickets: 594
+
+        Fixed issue where emitting a change of column name for MySQL did not
+        preserve the column comment, even if it were specified as existing_comment.
+
+
+    .. change::
+        :tags: bug, setup
+        :tickets: 592
+
+        Removed the "python setup.py test" feature in favor of a straight run of
+        "tox".   Per Pypa / pytest developers, "setup.py" commands are in general
+        headed towards deprecation in favor of tox.  The tox.ini script has been
+        updated such that running "tox" with no arguments will perform a single run
+        of the test suite against the default installed Python interpreter.
+
+        .. seealso::
+
+            https://github.com/pypa/setuptools/issues/1684
+
+            https://github.com/pytest-dev/pytest/issues/5534
+
+    .. change::
+        :tags: usecase, commands
+        :tickets: 571
+
+        The "alembic init" command will now proceed if the target directory exists
+        as long as it's still empty.  Previously, it would not proceed if the
+        directory existed. The new behavior is modeled from what git does, to
+        accommodate for container or other deployments where an Alembic target
+        directory may need to be already mounted instead of being created with
+        alembic init.  Pull request courtesy Aviskar KC.
+
+
 
 .. changelog::
     :version: 1.0.11
