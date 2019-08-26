@@ -360,6 +360,10 @@ class BranchFromMergepointTest(MigrationTest):
             splice=True,
         )
 
+    @classmethod
+    def teardown_class(cls):
+        clear_staging_env()
+
     def test_mergepoint_to_only_one_side_upgrade(self):
 
         self._assert_upgrade(
@@ -439,6 +443,10 @@ class BranchFrom3WayMergepointTest(MigrationTest):
             refresh=True,
             splice=True,
         )
+
+    @classmethod
+    def teardown_class(cls):
+        clear_staging_env()
 
     def test_mergepoint_to_only_one_side_upgrade(self):
 
@@ -533,6 +541,10 @@ class TwinMergeTest(MigrationTest):
 
         cls.d2 = env.generate_revision("d2", "d2", head=cls.c2.revision)
 
+    @classmethod
+    def teardown_class(cls):
+        clear_staging_env()
+
     def test_upgrade(self):
         head = HeadMaintainer(mock.Mock(), [self.a.revision])
 
@@ -592,6 +604,10 @@ class NotQuiteTwinMergeTest(MigrationTest):
 
         cls.d2 = env.generate_revision("d2", "d2", head=cls.c2.revision)
 
+    @classmethod
+    def teardown_class(cls):
+        clear_staging_env()
+
     def test_upgrade(self):
         head = HeadMaintainer(mock.Mock(), [self.a.revision])
 
@@ -649,6 +665,10 @@ class DependsOnBranchTestOne(MigrationTest):
         cls.f1 = env.generate_revision(
             util.rev_id(), "e1->f1", head=cls.e1.revision
         )
+
+    @classmethod
+    def teardown_class(cls):
+        clear_staging_env()
 
     def test_downgrade_to_dependency(self):
         heads = [self.c2.revision, self.d1.revision]
@@ -727,6 +747,10 @@ class DependsOnBranchTestTwo(MigrationTest):
             head="base",
             depends_on=[cls.a3.revision, cls.b2.revision, cls.c1.revision],
         )
+
+    @classmethod
+    def teardown_class(cls):
+        clear_staging_env()
 
     def test_kaboom(self):
         # here's the upgrade path:
@@ -837,6 +861,10 @@ class DependsOnBranchTestThree(MigrationTest):
             "a3", "->a3", head="a2", depends_on="b1"
         )
 
+    @classmethod
+    def teardown_class(cls):
+        clear_staging_env()
+
     def test_downgrade_over_crisscross(self):
         # this state was not possible prior to
         # #377.  a3 would be considered half of a merge point
@@ -881,6 +909,10 @@ class DependsOnBranchLabelTest(MigrationTest):
         cls.f1 = env.generate_revision(
             util.rev_id(), "e1->f1", head=cls.e1.revision
         )
+
+    @classmethod
+    def teardown_class(cls):
+        clear_staging_env()
 
     def test_upgrade_path(self):
         self._assert_upgrade(
