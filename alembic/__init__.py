@@ -6,7 +6,7 @@ from . import op  # noqa
 from .runtime import environment
 from .runtime import migration
 
-__version__ = "1.1.0"
+__version__ = '1.1.1'
 
 package_dir = path.abspath(path.dirname(__file__))
 
