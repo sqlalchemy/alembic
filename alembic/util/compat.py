@@ -6,7 +6,6 @@ import sys
 py27 = sys.version_info >= (2, 7)
 py2k = sys.version_info.major < 3
 py3k = sys.version_info.major >= 3
-py33 = sys.version_info >= (3, 3)
 py35 = sys.version_info >= (3, 5)
 py36 = sys.version_info >= (3, 6)
 
@@ -84,7 +83,7 @@ else:
 
     range = xrange  # noqa
 
-if py33:
+if py3k:
     import collections.abc as collections_abc
 else:
     import collections as collections_abc  # noqa
