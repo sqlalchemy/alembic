@@ -34,6 +34,7 @@ from alembic.testing import exclusions
 from alembic.testing import mock
 from alembic.testing import TestBase
 from alembic.testing.fixtures import op_fixture
+from alembic.util.sqla_compat import sqla_14
 
 
 class BatchApplyTest(TestBase):
@@ -270,11 +271,12 @@ class BatchApplyTest(TestBase):
         )
 
         args["tname_colnames"] = ", ".join(
-            "CAST(%(schema)stname.%(name)s AS %(type)s) AS anon_1"
+            "CAST(%(schema)stname.%(name)s AS %(type)s) AS %(cast_label)s"
             % {
                 "schema": args["schema"],
                 "name": name,
                 "type": impl.new_table.c[name].type,
+                "cast_label": name if sqla_14 else "anon_1",
             }
             if (
                 impl.new_table.c[name].type._type_affinity
@@ -899,7 +901,8 @@ class CopyFromTest(TestBase):
             "CREATE TABLE _alembic_tmp_foo (id INTEGER NOT NULL, "
             "data INTEGER, x INTEGER, PRIMARY KEY (id))",
             "INSERT INTO _alembic_tmp_foo (id, data, x) SELECT foo.id, "
-            "CAST(foo.data AS INTEGER) AS anon_1, foo.x FROM foo",
+            "CAST(foo.data AS INTEGER) AS %s, foo.x FROM foo"
+            % (("data" if sqla_14 else "anon_1"),),
             "DROP TABLE foo",
             "ALTER TABLE _alembic_tmp_foo RENAME TO foo",
         )
@@ -922,7 +925,8 @@ class CopyFromTest(TestBase):
             "CREATE TABLE _alembic_tmp_foo (id INTEGER NOT NULL, "
             "data VARCHAR(50), x INTEGER, y INTEGER, PRIMARY KEY (id))",
             "INSERT INTO _alembic_tmp_foo (id, data, x, y) SELECT foo.id, "
-            "foo.data, foo.x, CAST(foo.y AS INTEGER) AS anon_1 FROM foo",
+            "foo.data, foo.x, CAST(foo.y AS INTEGER) AS %s FROM foo"
+            % (("y" if sqla_14 else "anon_1"),),
             "DROP TABLE foo",
             "ALTER TABLE _alembic_tmp_foo RENAME TO foo",
         )
@@ -944,7 +948,8 @@ class CopyFromTest(TestBase):
             "data VARCHAR(50), x INTEGER, y BOOLEAN, PRIMARY KEY (id), "
             "CONSTRAINT ck1 CHECK (y IN (0, 1)))",
             "INSERT INTO _alembic_tmp_foo (id, data, x, y) SELECT foo.id, "
-            "foo.data, foo.x, CAST(foo.y AS BOOLEAN) AS anon_1 FROM foo",
+            "foo.data, foo.x, CAST(foo.y AS BOOLEAN) AS %s FROM foo"
+            % (("y" if sqla_14 else "anon_1"),),
             "DROP TABLE foo",
             "ALTER TABLE _alembic_tmp_foo RENAME TO foo",
         )
@@ -1015,7 +1020,8 @@ class CopyFromTest(TestBase):
             "CREATE TABLE _alembic_tmp_foo (id INTEGER NOT NULL, "
             "data INTEGER, x INTEGER, PRIMARY KEY (id))",
             "INSERT INTO _alembic_tmp_foo (id, data, x) SELECT foo.id, "
-            "CAST(foo.data AS INTEGER) AS anon_1, foo.x FROM foo",
+            "CAST(foo.data AS INTEGER) AS %s, foo.x FROM foo"
+            % (("data" if sqla_14 else "anon_1"),),
             "DROP TABLE foo",
             "ALTER TABLE _alembic_tmp_foo RENAME TO foo",
             "CREATE UNIQUE INDEX ix_data ON foo (data)",
