@@ -1,0 +1,8 @@
+.. change::
+    :tags: bug, autogenerate
+    :tickets: 549
+
+    Fixed bug where rendering of comment text for table-level comments  within
+    :meth:`.Operations.create_table_comment` and
+    :meth:`.Operations.drop_table_comment` was not properly quote-escaped
+    within rendered Python code for autogenerate.
