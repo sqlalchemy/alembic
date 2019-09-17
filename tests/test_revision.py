@@ -23,24 +23,27 @@ class APITest(TestBase):
             RevisionError,
             "revision identifier b'12345' is not a string; "
             "ensure database driver settings are correct",
-            map_.get_revisions, b'12345'
+            map_.get_revisions,
+            b"12345",
         )
 
         assert_raises_message(
             RevisionError,
             "revision identifier b'12345' is not a string; "
             "ensure database driver settings are correct",
-            map_.get_revision, b'12345'
+            map_.get_revision,
+            b"12345",
         )
 
         assert_raises_message(
             RevisionError,
             r"revision identifier \(b'12345',\) is not a string; "
             "ensure database driver settings are correct",
-            map_.get_revision, (b'12345', )
+            map_.get_revision,
+            (b"12345",),
         )
 
-        map_.get_revision(("a", ))
+        map_.get_revision(("a",))
         map_.get_revision("a")
 
     def test_add_revision_one_head(self):
@@ -336,6 +339,16 @@ class LabeledBranchTest(DownIterateTest):
         eq_(self.map.get_revision("ebranch@some").revision, "someothername")
         eq_(self.map.get_revision("abranch@some").revision, "somelongername")
 
+    def test_partial_id_resolve_too_short(self):
+        assert_raises_message(
+            RevisionError,
+            "No such revision or branch 'sos'; please ensure at least "
+            "four characters are present for partial revision identifier "
+            "matches",
+            self.map.get_revision,
+            "ebranch@sos",
+        )
+
     def test_branch_at_heads(self):
         eq_(self.map.get_revision("abranch@heads").revision, "c")
 
@@ -368,12 +381,24 @@ class LabeledBranchTest(DownIterateTest):
             "abranch@d",
         )
 
+    def test_actually_short_rev_name(self):
+        eq_(self.map.get_revision("e").revision, "e")
+
     def test_no_revision_exists(self):
         assert_raises_message(
             RevisionError,
-            "No such revision or branch 'q'",
+            "No such revision or branch 'qprstuv'$",
             self.map.get_revision,
-            "abranch@q",
+            "abranch@qprstuv",
+        )
+
+        assert_raises_message(
+            RevisionError,
+            "No such revision or branch 'qpr'; please ensure at least "
+            "four characters are present for partial revision identifier "
+            "matches$",
+            self.map.get_revision,
+            "abranch@qpr",
         )
 
     def test_not_actually_a_branch(self):
