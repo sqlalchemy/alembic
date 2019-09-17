@@ -270,6 +270,9 @@ class PostgresqlOpTest(TestBase):
 
 
 class PGAutocommitBlockTest(TestBase):
+    __only_on__ = "postgresql"
+    __backend__ = True
+
     def setUp(self):
         self.conn = conn = config.db.connect()
 
