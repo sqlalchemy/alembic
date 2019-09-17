@@ -29,6 +29,7 @@ sqla_110 = _vers >= (1, 1, 0)
 sqla_1115 = _vers >= (1, 1, 15)
 sqla_120 = _vers >= (1, 2, 0)
 sqla_1216 = _vers >= (1, 2, 16)
+sqla_13 = _vers >= (1, 3)
 sqla_14 = _vers >= (1, 4)
 
 
@@ -172,6 +173,13 @@ def _get_index_expressions(idx):
 
 def _get_index_column_names(idx):
     return [getattr(exp, "name", None) for exp in _get_index_expressions(idx)]
+
+
+def _column_kwargs(col):
+    if sqla_13:
+        return col.kwargs
+    else:
+        return {}
 
 
 def _get_index_final_name(dialect, idx):

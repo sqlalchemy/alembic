@@ -256,3 +256,14 @@ class SQLiteAutogenRenderTest(TestBase):
             "sa.Column('int_value', sa.Integer(), server_default='5', "
             "nullable=True)",
         )
+
+    @config.requirements.sqlalchemy_13
+    def test_render_add_column_w_on_conflict(self):
+        c = Column("int_value", Integer, sqlite_on_conflict_not_null="FAIL")
+
+        result = autogenerate.render._render_column(c, self.autogen_context)
+        eq_ignore_whitespace(
+            result,
+            "sa.Column('int_value', sa.Integer(), "
+            "nullable=True, sqlite_on_conflict_not_null='FAIL')",
+        )
