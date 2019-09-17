@@ -1856,6 +1856,23 @@ class AutogenRenderTest(TestBase):
             ")",
         )
 
+    @config.requirements.comments_api
+    def test_render_create_table_comment_with_quote_op(self):
+        op_obj = ops.CreateTableCommentOp(
+            "table_name",
+            "This is john's comment",
+            existing_comment='This was john\'s "comment"',
+        )
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.create_table_comment("
+            "   'table_name',"
+            '   "This is john\'s comment",'
+            "   existing_comment='This was john\\'s \"comment\"',"
+            "   schema=None"
+            ")",
+        )
+
     def test_render_create_table_comment_op_with_existing_comment(self):
         op_obj = ops.CreateTableCommentOp(
             "table_name", "comment", existing_comment="old comment"
@@ -1891,6 +1908,19 @@ class AutogenRenderTest(TestBase):
             "op.drop_table_comment("
             "   'table_name',"
             "   existing_comment=None,"
+            "   schema=None"
+            ")",
+        )
+
+    def test_render_drop_table_comment_op_existing_with_quote(self):
+        op_obj = ops.DropTableCommentOp(
+            "table_name", existing_comment="This was john's comment"
+        )
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.drop_table_comment("
+            "   'table_name',"
+            '   existing_comment="This was john\'s comment",'
             "   schema=None"
             ")",
         )

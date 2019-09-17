@@ -131,8 +131,8 @@ def _render_create_table_comment(autogen_context, op):
     return templ.format(
         prefix=_alembic_autogenerate_prefix(autogen_context),
         tname=op.table_name,
-        comment="'%s'" % op.comment if op.comment is not None else None,
-        existing="'%s'" % op.existing_comment
+        comment="%r" % op.comment if op.comment is not None else None,
+        existing="%r" % op.existing_comment
         if op.existing_comment is not None
         else None,
         schema="'%s'" % op.schema if op.schema is not None else None,
@@ -153,7 +153,7 @@ def _render_drop_table_comment(autogen_context, op):
     return templ.format(
         prefix=_alembic_autogenerate_prefix(autogen_context),
         tname=op.table_name,
-        existing="'%s'" % op.existing_comment
+        existing="%r" % op.existing_comment
         if op.existing_comment is not None
         else None,
         schema="'%s'" % op.schema if op.schema is not None else None,
