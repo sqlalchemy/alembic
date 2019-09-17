@@ -1,0 +1,14 @@
+.. change::
+    :tags: feature, runtime
+    :tickets: 123
+
+    Added new feature :meth:`.MigrationContext.autocommit_block`, a special
+    directive which will provide for a non-transactional block inside of a
+    migration script. The feature requres that: the database driver
+    (e.g. DBAPI) supports the AUTOCOMMIT isolation mode.  The directive
+    also necessarily needs to COMMIT the existing transaction in progress
+    in order to enter autocommit mode.
+
+    .. seealso::
+
+        :meth:`.MigrationContext.autocommit_block`

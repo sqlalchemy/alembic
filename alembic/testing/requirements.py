@@ -16,6 +16,12 @@ class SuiteRequirements(Requirements):
         return exclusions.open()
 
     @property
+    def autocommit_isolation(self):
+        """target database should support 'AUTOCOMMIT' isolation level"""
+
+        return exclusions.closed()
+
+    @property
     def unique_constraint_reflection(self):
         def doesnt_have_check_uq_constraints(config):
             from sqlalchemy import inspect

@@ -130,6 +130,12 @@ class DefaultRequirements(SuiteRequirements):
         return exclusions.skip_if(["oracle"], "not supported by alembic impl")
 
     @property
+    def autocommit_isolation(self):
+        """target database should support 'AUTOCOMMIT' isolation level"""
+
+        return exclusions.only_on("postgresql", "mysql")
+
+    @property
     def check_constraint_reflection(self):
         return exclusions.fails_on_everything_except(
             "postgresql",

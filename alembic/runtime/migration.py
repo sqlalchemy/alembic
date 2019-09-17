@@ -20,6 +20,27 @@ from ..util.compat import EncodedIO
 log = logging.getLogger(__name__)
 
 
+class _ProxyTransaction(object):
+    def __init__(self, migration_context):
+        self.migration_context = migration_context
+
+    @property
+    def _proxied_transaction(self):
+        return self.migration_context._transaction
+
+    def rollback(self):
+        self._proxied_transaction.rollback()
+
+    def commit(self):
+        self._proxied_transaction.commit()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type_, value, traceback):
+        self._proxied_transaction.__exit__(type_, value, traceback)
+
+
 class MigrationContext(object):
 
     """Represent the database state made available to a migration
@@ -78,6 +99,7 @@ class MigrationContext(object):
             "transaction_per_migration", False
         )
         self.on_version_apply_callbacks = opts.get("on_version_apply", ())
+        self._transaction = None
 
         if as_sql:
             self.connection = self._stdout_connection(connection)
@@ -193,7 +215,124 @@ class MigrationContext(object):
 
         return MigrationContext(dialect, connection, opts, environment_context)
 
+    @contextmanager
+    def autocommit_block(self):
+        """Enter an "autocommit" block, for databases that support AUTOCOMMIT
+        isolation levels.
+
+        This special directive is intended to support the occasional database
+        DDL or system operation that specifically has to be run outside of
+        any kind of transaction block.   The PostgreSQL database platform
+        is the most common target for this style of operation, as many
+        of its DDL operations must be run outside of transaction blocks, even
+        though the database overall supports transactional DDL.
+
+        The method is used as a context manager within a migration script, by
+        calling on :meth:`.Operations.get_context` to retrieve the
+        :class:`.MigrationContext`, then invoking
+        :meth:`.MigrationContext.autocommit_block` using the ``with:``
+        statement::
+
+            def upgrade():
+                with op.get_context().autocommit_block():
+                    op.execute("ALTER TYPE mood ADD VALUE 'soso'")
+
+        Above, a PostgreSQL "ALTER TYPE..ADD VALUE" directive is emitted,
+        which must be run outside of a transaction block at the database level.
+        The :meth:`.MigrationContext.autocommit_block` method makes use of the
+        SQLAlchemy ``AUTOCOMMIT`` isolation level setting, which against the
+        psycogp2 DBAPI corresponds to the ``connection.autocommit`` setting,
+        to ensure that the database driver is not inside of a DBAPI level
+        transaction block.
+
+        .. warning::
+
+            As is necessary, **the database transaction preceding the block is
+            unconditionally committed**.  This means that the run of migrations
+            preceding the operation will be committed, before the overall
+            migration operation is complete.
+
+            It is recommended that when an application includes migrations with
+            "autocommit" blocks, that
+            :paramref:`.EnvironmentContext.transaction_per_migration` be used
+            so that the calling environment is tuned to expect short per-file
+            migrations whether or not one of them has an autocommit block.
+
+
+        .. versionadded:: 1.1.1
+
+        """
+        _in_connection_transaction = self._in_connection_transaction()
+
+        if self.impl.transactional_ddl:
+            if self.as_sql:
+                self.impl.emit_commit()
+
+            elif _in_connection_transaction:
+                assert self._transaction is not None
+
+                self._transaction.commit()
+                self._transaction = None
+
+        if not self.as_sql:
+            current_level = self.connection.get_isolation_level()
+            self.connection.execution_options(isolation_level="AUTOCOMMIT")
+        try:
+            yield
+        finally:
+            if not self.as_sql:
+                self.connection.execution_options(
+                    isolation_level=current_level
+                )
+
+            if self.impl.transactional_ddl:
+                if self.as_sql:
+                    self.impl.emit_begin()
+
+                elif _in_connection_transaction:
+                    self._transaction = self.bind.begin()
+
     def begin_transaction(self, _per_migration=False):
+        """Begin a logical transaction for migration operations.
+
+        This method is used within an ``env.py`` script to demarcate where
+        the outer "transaction" for a series of migrations begins.  Example::
+
+            def run_migrations_online():
+                connectable = create_engine(...)
+
+                with connectable.connect() as connection:
+                    context.configure(
+                        connection=connection, target_metadata=target_metadata
+                    )
+
+                    with context.begin_transaction():
+                        context.run_migrations()
+
+        Above, :meth:`.MigrationContext.begin_transaction` is used to demarcate
+        where the outer logical transaction occurs around the
+        :meth:`.MigrationContext.run_migrations` operation.
+
+        A "Logical" transaction means that the operation may or may not
+        correspond to a real database transaction.   If the target database
+        supports transactional DDL (or
+        :paramref:`.EnvironmentContext.configure.transactional_ddl` is true),
+        the :paramref:`.EnvironmentContext.configure.transaction_per_migration`
+        flag is not set, and the migration is against a real database
+        connection (as opposed to using "offline" ``--sql`` mode), a real
+        transaction will be started.   If ``--sql`` mode is in effect, the
+        operation would instead correspond to a string such as "BEGIN" being
+        emitted to the string output.
+
+        The returned object is a Python context manager that should only be
+        used in the context of a ``with:`` statement as indicated above.
+        The object has no other guaranteed API features present.
+
+        .. seealso::
+
+            :meth:`.MigrationContext.autocommit_block`
+
+        """
         transaction_now = _per_migration == self._transaction_per_migration
 
         if not transaction_now:
@@ -221,7 +360,8 @@ class MigrationContext(object):
 
             return begin_commit()
         else:
-            return self.bind.begin()
+            self._transaction = self.bind.begin()
+            return _ProxyTransaction(self)
 
     def get_current_revision(self):
         """Return the current revision, usually that which is present

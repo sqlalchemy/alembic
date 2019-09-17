@@ -8,7 +8,9 @@ from sqlalchemy.testing.assertions import assert_raises  # noqa
 from sqlalchemy.testing.assertions import assert_raises_message  # noqa
 from sqlalchemy.testing.assertions import eq_  # noqa
 from sqlalchemy.testing.assertions import is_  # noqa
+from sqlalchemy.testing.assertions import is_false  # noqa
 from sqlalchemy.testing.assertions import is_not_  # noqa
+from sqlalchemy.testing.assertions import is_true  # noqa
 from sqlalchemy.testing.assertions import ne_  # noqa
 from sqlalchemy.util import decorator
 

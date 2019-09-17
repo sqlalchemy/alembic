@@ -269,6 +269,24 @@ class PostgresqlOpTest(TestBase):
         context.assert_("COMMENT ON TABLE foo.t2 IS NULL")
 
 
+class PGAutocommitBlockTest(TestBase):
+    def setUp(self):
+        self.conn = conn = config.db.connect()
+
+        with conn.begin():
+            conn.execute("CREATE TYPE mood AS ENUM ('sad', 'ok', 'happy');")
+
+    def tearDown(self):
+        with self.conn.begin():
+            self.conn.execute("DROP TYPE mood")
+
+    def test_alter_enum(self):
+        context = MigrationContext.configure(connection=self.conn)
+        with context.begin_transaction(_per_migration=True):
+            with context.autocommit_block():
+                context.execute("ALTER TYPE mood ADD VALUE 'soso'")
+
+
 class PGOfflineEnumTest(TestBase):
     def setUp(self):
         staging_env()

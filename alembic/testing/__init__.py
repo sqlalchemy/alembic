@@ -12,6 +12,8 @@ from .assertions import emits_python_deprecation_warning  # noqa
 from .assertions import eq_  # noqa
 from .assertions import eq_ignore_whitespace  # noqa
 from .assertions import is_  # noqa
+from .assertions import is_false  # noqa
 from .assertions import is_not_  # noqa
+from .assertions import is_true  # noqa
 from .assertions import ne_  # noqa
 from .fixtures import TestBase  # noqa
