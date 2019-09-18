@@ -377,13 +377,23 @@ class RevisionMap(object):
             revs = [
                 x
                 for x in self._revision_map
-                if x and x.startswith(resolved_id)
+                if x and len(x) > 3 and x.startswith(resolved_id)
             ]
+
             if branch_rev:
                 revs = self.filter_for_lineage(revs, check_branch)
             if not revs:
                 raise ResolutionError(
-                    "No such revision or branch '%s'" % resolved_id,
+                    "No such revision or branch '%s'%s"
+                    % (
+                        resolved_id,
+                        (
+                            "; please ensure at least four characters are "
+                            "present for partial revision identifier matches"
+                            if len(resolved_id) < 4
+                            else ""
+                        ),
+                    ),
                     resolved_id,
                 )
             elif len(revs) > 1:
@@ -477,7 +487,7 @@ class RevisionMap(object):
                 and id_
                 and not isinstance(id_[0], compat.string_types)
             )
-            or not isinstance(id_, compat.string_types + (tuple, ))
+            or not isinstance(id_, compat.string_types + (tuple,))
         ):
             raise RevisionError(
                 "revision identifier %r is not a string; ensure database "

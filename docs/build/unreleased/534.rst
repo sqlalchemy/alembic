@@ -1,0 +1,8 @@
+.. change::
+    :tags: usecase, commands
+    :tickets: 534
+
+    Made the command interface revision lookup behavior more strict in that an
+    Alembic revision number is only resolved based on a partial match rules if
+    it has at least four characters, to prevent simple typographical issues
+    from inadvertently  running migrations.
