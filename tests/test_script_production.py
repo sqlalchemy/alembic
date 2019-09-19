@@ -1255,3 +1255,56 @@ def downgrade():
                 [rev.revision for rev in script.walk_revisions()],
                 [self.model1, self.model2, self.model3],
             )
+
+
+class NormPathTest(TestBase):
+    def setUp(self):
+        self.env = staging_env()
+
+    def test_script_location(self):
+        config = _no_sql_testing_config()
+
+        script = ScriptDirectory.from_config(config)
+
+        def normpath(path):
+            return path.replace("/", ":NORM:")
+
+        normpath = mock.Mock(side_effect=normpath)
+        with mock.patch("os.path.normpath", normpath):
+            eq_(
+                script._version_locations,
+                (
+                    ":NORM:home:NORM:classic:NORM:dev:NORM:alembic"
+                    ":NORM:scratch:NORM:scripts:NORM:versions",
+                ),
+            )
+
+            eq_(
+                script.versions,
+                ":NORM:home:NORM:classic:NORM:dev:NORM:alembic:NORM:scratch:"
+                "NORM:scripts:NORM:versions",
+            )
+
+            eq_(script.dir, "scratch/scripts")
+
+    def test_script_location_muliple(self):
+        config = _multi_dir_testing_config()
+
+        script = ScriptDirectory.from_config(config)
+
+        def normpath(path):
+            return path.replace("/", ":NORM:")
+
+        normpath = mock.Mock(side_effect=normpath)
+        with mock.patch("os.path.normpath", normpath):
+            eq_(
+                script._version_locations,
+                [
+                    ":NORM:home:NORM:classic:NORM:dev:NORM:alembic"
+                    ":NORM:scratch:NORM:model1:NORM:",
+                    ":NORM:home:NORM:classic:NORM:dev:NORM:alembic"
+                    ":NORM:scratch:NORM:model2:NORM:",
+                    ":NORM:home:NORM:classic:NORM:dev:NORM:alembic"
+                    ":NORM:scratch:NORM:model3:NORM:",
+                ],
+            )
