@@ -2,6 +2,7 @@ from contextlib import contextmanager
 import inspect
 from io import BytesIO
 from io import TextIOWrapper
+import os
 import re
 
 from sqlalchemy import exc as sqla_exc
@@ -15,6 +16,7 @@ from alembic.testing import assert_raises
 from alembic.testing import assert_raises_message
 from alembic.testing import eq_
 from alembic.testing import mock
+from alembic.testing.env import _get_staging_directory
 from alembic.testing.env import _no_sql_testing_config
 from alembic.testing.env import _sqlite_file_db
 from alembic.testing.env import _sqlite_testing_config
@@ -909,6 +911,10 @@ class CommandLineTest(TestBase):
         cls.cfg = _sqlite_testing_config()
         cls.a, cls.b, cls.c = three_rev_fixture(cls.cfg)
 
+    @classmethod
+    def teardown_class(cls):
+        clear_staging_env()
+
     def test_run_cmd_args_missing(self):
         canary = mock.Mock()
 
@@ -1036,4 +1042,27 @@ class CommandLineTest(TestBase):
             eq_(
                 makedirs.mock_calls,
                 [mock.call("foobar"), mock.call("foobar/versions")],
+            )
+
+    def test_init_w_package(self):
+
+        path = os.path.join(_get_staging_directory(), "foobar")
+
+        with mock.patch("alembic.command.open") as open_:
+            command.init(self.cfg, directory=path, package=True)
+            eq_(
+                open_.mock_calls,
+                [
+                    mock.call(
+                        os.path.abspath(os.path.join(path, "__init__.py")), "w"
+                    ),
+                    mock.call().close(),
+                    mock.call(
+                        os.path.abspath(
+                            os.path.join(path, "versions", "__init__.py")
+                        ),
+                        "w",
+                    ),
+                    mock.call().close(),
+                ],
             )

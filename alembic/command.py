@@ -25,7 +25,7 @@ def list_templates(config):
     config.print_stdout("\n  alembic init --template generic ./scripts")
 
 
-def init(config, directory, template="generic"):
+def init(config, directory, template="generic", package=False):
     """Initialize a new scripts directory.
 
     :param config: a :class:`.Config` object.
@@ -34,6 +34,12 @@ def init(config, directory, template="generic"):
 
     :param template: string name of the migration environment template to
      use.
+
+    :param package: when True, write ``__init__.py`` files into the
+     environment location as well as the versions/ location.
+
+     .. versionadded:: 1.2
+
 
     """
 
@@ -75,6 +81,14 @@ def init(config, directory, template="generic"):
         elif os.path.isfile(file_path):
             output_file = os.path.join(directory, file_)
             script._copy_file(file_path, output_file)
+
+    if package:
+        for path in [
+            os.path.join(os.path.abspath(directory), "__init__.py"),
+            os.path.join(os.path.abspath(versions), "__init__.py"),
+        ]:
+            file_ = util.status("Adding %s" % path, open, path, "w")
+            file_.close()
 
     util.msg(
         "Please edit configuration/connection/logging "

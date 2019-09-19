@@ -433,6 +433,14 @@ class CommandLine(object):
                         "before stamping",
                     ),
                 ),
+                "package": (
+                    "--package",
+                    dict(
+                        action="store_true",
+                        help="Write empty __init__.py files to the "
+                        "environment and version locations",
+                    ),
+                ),
             }
             positional_help = {
                 "directory": "location of scripts directory",
