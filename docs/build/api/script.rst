@@ -18,3 +18,9 @@ management, used exclusively by :class:`.ScriptDirectory`.
 
 .. automodule:: alembic.script.revision
     :members:
+
+Write Hooks
+===========
+
+.. automodule:: alembic.script.write_hooks
+    :members:
