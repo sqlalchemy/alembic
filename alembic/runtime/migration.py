@@ -109,6 +109,8 @@ class MigrationContext(object):
         self._migrations_fn = opts.get("fn")
         self.as_sql = as_sql
 
+        self.purge = opts.get("purge", False)
+
         if "output_encoding" in opts:
             self.output_buffer = EncodedIO(
                 opts.get("output_buffer") or sys.stdout,
@@ -415,10 +417,12 @@ class MigrationContext(object):
             if start_from_rev == "base":
                 start_from_rev = None
             elif start_from_rev is not None and self.script:
-                start_from_rev = self.script.get_revision(
-                    start_from_rev
-                ).revision
 
+                start_from_rev = [
+                    self.script.get_revision(sfr).revision
+                    for sfr in util.to_list(start_from_rev)
+                    if sfr not in (None, "base")
+                ]
             return util.to_tuple(start_from_rev, default=())
         else:
             if self._start_from_rev:
@@ -432,8 +436,10 @@ class MigrationContext(object):
             row[0] for row in self.connection.execute(self._version.select())
         )
 
-    def _ensure_version_table(self):
+    def _ensure_version_table(self, purge=False):
         self._version.create(self.connection, checkfirst=True)
+        if purge:
+            self.connection.execute(self._version.delete())
 
     def _has_version_table(self):
         return self.connection.dialect.has_table(
@@ -481,9 +487,16 @@ class MigrationContext(object):
         """
         self.impl.start_migrations()
 
-        heads = self.get_current_heads()
-        if not self.as_sql and not heads:
-            self._ensure_version_table()
+        if self.purge:
+            if self.as_sql:
+                raise util.CommandError("Can't use --purge with --sql mode")
+            self._ensure_version_table(purge=True)
+            heads = ()
+        else:
+            heads = self.get_current_heads()
+
+            if not self.as_sql and not heads:
+                self._ensure_version_table()
 
         head_maintainer = HeadMaintainer(self, heads)
 
@@ -1182,10 +1195,17 @@ class StampStep(MigrationStep):
         )
 
     def should_delete_branch(self, heads):
+        # TODO: we probably need to look for self.to_ inside of heads,
+        # in a similar manner as should_create_branch, however we have
+        # no tests for this yet (stamp downgrades w/ branches)
         return self.is_downgrade and self.branch_move
 
     def should_create_branch(self, heads):
-        return self.is_upgrade and self.branch_move
+        return (
+            self.is_upgrade
+            and (self.branch_move or set(self.from_).difference(heads))
+            and set(self.to_).difference(heads)
+        )
 
     def should_merge_branches(self, heads):
         return len(self.from_) > 1

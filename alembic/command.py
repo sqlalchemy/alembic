@@ -496,7 +496,7 @@ def current(config, verbose=False, head_only=False):
         script.run_env()
 
 
-def stamp(config, revision, sql=False, tag=None):
+def stamp(config, revisions, sql=False, tag=None, purge=False):
     """'stamp' the revision table with the given revision; don't
     run any migrations.
 
@@ -510,27 +510,45 @@ def stamp(config, revision, sql=False, tag=None):
      ``env.py`` scripts via the :class:`.EnvironmentContext.get_tag_argument`
      method.
 
+    :param purge: delete all entries in the version table before stamping.
+
+     .. versionadded:: 1.2
+
     """
 
     script = ScriptDirectory.from_config(config)
 
-    starting_rev = None
-    if ":" in revision:
-        if not sql:
-            raise util.CommandError("Range revision not allowed")
-        starting_rev, revision = revision.split(":", 2)
+    if sql:
+        destination_revs = []
+        starting_rev = None
+        for revision in util.to_list(revisions):
+            if ":" in revision:
+                srev, revision = revision.split(":", 2)
+
+                if starting_rev != srev:
+                    if starting_rev is None:
+                        starting_rev = srev
+                    else:
+                        raise util.CommandError(
+                            "Stamp operation with --sql only supports a "
+                            "single starting revision at a time"
+                        )
+            destination_revs.append(revision)
+    else:
+        destination_revs = util.to_list(revisions)
 
     def do_stamp(rev, context):
-        return script._stamp_revs(revision, rev)
+        return script._stamp_revs(util.to_tuple(destination_revs), rev)
 
     with EnvironmentContext(
         config,
         script,
         fn=do_stamp,
         as_sql=sql,
-        destination_rev=revision,
-        starting_rev=starting_rev,
+        starting_rev=starting_rev if sql else None,
+        destination_rev=util.to_tuple(destination_revs),
         tag=tag,
+        purge=purge,
     ):
         script.run_env()
 

@@ -422,6 +422,14 @@ class CommandLine(object):
                         help="Indicate the current revision",
                     ),
                 ),
+                "purge": (
+                    "--purge",
+                    dict(
+                        action="store_true",
+                        help="Unconditionally erase the version table "
+                        "before stamping",
+                    ),
+                ),
             }
             positional_help = {
                 "directory": "location of scripts directory",

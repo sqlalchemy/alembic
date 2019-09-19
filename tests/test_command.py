@@ -20,10 +20,12 @@ from alembic.testing.env import _sqlite_file_db
 from alembic.testing.env import _sqlite_testing_config
 from alembic.testing.env import clear_staging_env
 from alembic.testing.env import env_file_fixture
+from alembic.testing.env import multi_heads_fixture
 from alembic.testing.env import staging_env
 from alembic.testing.env import three_rev_fixture
 from alembic.testing.env import write_script
 from alembic.testing.fixtures import capture_context_buffer
+from alembic.testing.fixtures import capture_engine_context_buffer
 from alembic.testing.fixtures import TestBase
 
 
@@ -502,6 +504,179 @@ finally:
         command.revision(self.cfg, sql=True)
 
 
+class _StampTest(object):
+    def _assert_sql(self, emitted_sql, origin, destinations):
+        ins_expr = (
+            r"INSERT INTO alembic_version \(version_num\) "
+            r"VALUES \('(.+)'\)"
+        )
+        expected = [ins_expr for elem in destinations]
+        if origin:
+            expected[0] = (
+                "UPDATE alembic_version SET version_num='(.+)' WHERE "
+                "alembic_version.version_num = '%s'" % (origin,)
+            )
+        for line in emitted_sql.split("\n"):
+            if not expected:
+                assert not re.match(
+                    ins_expr, line
+                ), "additional inserts were emitted"
+            else:
+                m = re.match(expected[0], line)
+                if m:
+                    destinations.remove(m.group(1))
+                    expected.pop(0)
+
+        assert not expected, "lines remain"
+
+
+class StampMultipleRootsTest(TestBase, _StampTest):
+    def setUp(self):
+        self.env = staging_env()
+        # self.cfg = cfg = _no_sql_testing_config()
+        self.cfg = cfg = _sqlite_testing_config()
+        # cfg.set_main_option("dialect_name", "sqlite")
+        # cfg.remove_main_option("url")
+
+        self.a1, self.b1, self.c1 = three_rev_fixture(cfg)
+        self.a2, self.b2, self.c2 = three_rev_fixture(cfg)
+
+    def tearDown(self):
+        clear_staging_env()
+
+    def test_sql_stamp_heads(self):
+        with capture_context_buffer() as buf:
+            command.stamp(self.cfg, ["heads"], sql=True)
+
+        self._assert_sql(buf.getvalue(), None, {self.c1, self.c2})
+
+    def test_sql_stamp_single_head(self):
+        with capture_context_buffer() as buf:
+            command.stamp(self.cfg, ["%s@head" % self.c1], sql=True)
+
+        self._assert_sql(buf.getvalue(), None, {self.c1})
+
+
+class StampMultipleHeadsTest(TestBase, _StampTest):
+    def setUp(self):
+        self.env = staging_env()
+        # self.cfg = cfg = _no_sql_testing_config()
+        self.cfg = cfg = _sqlite_testing_config()
+        # cfg.set_main_option("dialect_name", "sqlite")
+        # cfg.remove_main_option("url")
+
+        self.a, self.b, self.c = three_rev_fixture(cfg)
+        self.d, self.e, self.f = multi_heads_fixture(
+            cfg, self.a, self.b, self.c
+        )
+
+    def tearDown(self):
+        clear_staging_env()
+
+    def test_sql_stamp_heads(self):
+        with capture_context_buffer() as buf:
+            command.stamp(self.cfg, ["heads"], sql=True)
+
+        self._assert_sql(buf.getvalue(), None, {self.c, self.e, self.f})
+
+    def test_sql_stamp_multi_rev_nonsensical(self):
+        with capture_context_buffer() as buf:
+            command.stamp(self.cfg, [self.a, self.e, self.f], sql=True)
+        # TODO: this shouldn't be possible, because e/f require b as a
+        # dependency
+        self._assert_sql(buf.getvalue(), None, {self.a, self.e, self.f})
+
+    def test_sql_stamp_multi_rev_from_multi_base_nonsensical(self):
+        with capture_context_buffer() as buf:
+            command.stamp(
+                self.cfg,
+                ["base:%s" % self.a, "base:%s" % self.e, "base:%s" % self.f],
+                sql=True,
+            )
+
+        # TODO: this shouldn't be possible, because e/f require b as a
+        # dependency
+        self._assert_sql(buf.getvalue(), None, {self.a, self.e, self.f})
+
+    def test_online_stamp_multi_rev_nonsensical(self):
+        with capture_engine_context_buffer() as buf:
+            command.stamp(self.cfg, [self.a, self.e, self.f])
+
+        # TODO: this shouldn't be possible, because e/f require b as a
+        # dependency
+        self._assert_sql(buf.getvalue(), None, {self.a, self.e, self.f})
+
+    def test_online_stamp_multi_rev_from_real_ancestor(self):
+        command.stamp(self.cfg, [self.a])
+        with capture_engine_context_buffer() as buf:
+            command.stamp(self.cfg, [self.e, self.f])
+
+        self._assert_sql(buf.getvalue(), self.a, {self.e, self.f})
+
+    def test_online_stamp_version_already_there(self):
+        command.stamp(self.cfg, [self.c, self.e])
+        with capture_engine_context_buffer() as buf:
+            command.stamp(self.cfg, [self.c, self.e])
+        self._assert_sql(buf.getvalue(), None, {})
+
+    def test_sql_stamp_multi_rev_from_multi_start(self):
+        with capture_context_buffer() as buf:
+            command.stamp(
+                self.cfg,
+                [
+                    "%s:%s" % (self.b, self.c),
+                    "%s:%s" % (self.b, self.e),
+                    "%s:%s" % (self.b, self.f),
+                ],
+                sql=True,
+            )
+
+        self._assert_sql(buf.getvalue(), self.b, {self.c, self.e, self.f})
+
+    def test_sql_stamp_heads_symbolic(self):
+        with capture_context_buffer() as buf:
+            command.stamp(self.cfg, ["%s:heads" % self.b], sql=True)
+
+        self._assert_sql(buf.getvalue(), self.b, {self.c, self.e, self.f})
+
+    def test_sql_stamp_different_multi_start(self):
+        assert_raises_message(
+            util.CommandError,
+            "Stamp operation with --sql only supports a single "
+            "starting revision at a time",
+            command.stamp,
+            self.cfg,
+            ["%s:%s" % (self.b, self.c), "%s:%s" % (self.a, self.e)],
+            sql=True,
+        )
+
+    def test_stamp_purge(self):
+        command.stamp(self.cfg, [self.a])
+
+        eng = _sqlite_file_db()
+        with eng.connect() as conn:
+            result = conn.execute(
+                "update alembic_version set version_num='fake'"
+            )
+            eq_(result.rowcount, 1)
+
+        with capture_engine_context_buffer() as buf:
+            command.stamp(self.cfg, [self.a, self.e, self.f], purge=True)
+
+        self._assert_sql(buf.getvalue(), None, {self.a, self.e, self.f})
+
+    def test_stamp_purge_no_sql(self):
+        assert_raises_message(
+            util.CommandError,
+            "Can't use --purge with --sql mode",
+            command.stamp,
+            self.cfg,
+            [self.c],
+            sql=True,
+            purge=True,
+        )
+
+
 class UpgradeDowngradeStampTest(TestBase):
     def setUp(self):
         self.env = staging_env()
@@ -641,6 +816,14 @@ down_revision = '%s'
         command.stamp(self.cfg, self.a)
         eq_(
             self.bind.scalar("select version_num from alembic_version"), self.a
+        )
+
+    def test_stamp_version_already_there(self):
+        command.stamp(self.cfg, self.b)
+        command.stamp(self.cfg, self.b)
+
+        eq_(
+            self.bind.scalar("select version_num from alembic_version"), self.b
         )
 
 
