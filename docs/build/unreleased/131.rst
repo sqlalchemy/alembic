@@ -1,0 +1,7 @@
+.. change::
+    :tags: usecase, autogenerate
+    :tickets: 131
+
+    Added rendering for SQLAlchemy ``Variant`` datatypes, which render as the
+    base type plus one or more ``.with_variant()`` method calls.
+
