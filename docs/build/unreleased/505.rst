@@ -1,0 +1,13 @@
+.. change::
+    :tags: bug, autogenerate
+    :tickets: 505
+
+    Modified the logic of the :class:`.Rewriter` object such that it keeps a
+    memoization of which directives it has processed, so that it can ensure it
+    processes a particular directive only once, and additionally fixed
+    :class:`.Rewriter` so that it functions correctly for multiple-pass
+    autogenerate schemes, such as the one illustrated in the "multidb"
+    template.  By tracking which directives have been processed, a
+    multiple-pass scheme which calls upon the :class:`.Rewriter` multiple times
+    for the same structure as elements are added can work without running
+    duplicate operations on the same elements more than once.

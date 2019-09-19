@@ -199,6 +199,11 @@ def revision(
         ):
             script_directory.run_env()
 
+        # the revision_context now has MigrationScript structure(s) present.
+        # these could theoretically be further processed / rewritten *here*,
+        # in addition to the hooks present within each run_migrations() call,
+        # or at the end of env.py run_migrations_online().
+
     scripts = [script for script in revision_context.generate_scripts()]
     if len(scripts) == 1:
         return scripts[0]

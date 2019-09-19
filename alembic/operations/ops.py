@@ -34,6 +34,8 @@ class MigrateOperation(object):
         """
         return {}
 
+    _mutations = frozenset()
+
 
 class AddConstraintOp(MigrateOperation):
     """Represent an add constraint operation."""
