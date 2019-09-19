@@ -1270,22 +1270,23 @@ class NormPathTest(TestBase):
             return path.replace("/", ":NORM:")
 
         normpath = mock.Mock(side_effect=normpath)
+        normstaging = _get_staging_directory().replace("/", ":NORM:")
         with mock.patch("os.path.normpath", normpath):
             eq_(
                 script._version_locations,
                 (
                     ":NORM:home:NORM:classic:NORM:dev:NORM:alembic"
-                    ":NORM:scratch:NORM:scripts:NORM:versions",
+                    ":NORM:%s:NORM:scripts:NORM:versions" % normstaging,
                 ),
             )
 
             eq_(
                 script.versions,
-                ":NORM:home:NORM:classic:NORM:dev:NORM:alembic:NORM:scratch:"
-                "NORM:scripts:NORM:versions",
+                ":NORM:home:NORM:classic:NORM:dev:NORM:alembic:NORM:%s:"
+                "NORM:scripts:NORM:versions" % normstaging,
             )
 
-            eq_(script.dir, "scratch/scripts")
+            eq_(script.dir, "%s/scripts" % normstaging)
 
     def test_script_location_muliple(self):
         config = _multi_dir_testing_config()
@@ -1296,15 +1297,17 @@ class NormPathTest(TestBase):
             return path.replace("/", ":NORM:")
 
         normpath = mock.Mock(side_effect=normpath)
+        normstaging = _get_staging_directory().replace("/", ":NORM:")
+
         with mock.patch("os.path.normpath", normpath):
             eq_(
                 script._version_locations,
                 [
                     ":NORM:home:NORM:classic:NORM:dev:NORM:alembic"
-                    ":NORM:scratch:NORM:model1:NORM:",
+                    ":NORM:%s:NORM:model1:NORM:" % normstaging,
                     ":NORM:home:NORM:classic:NORM:dev:NORM:alembic"
-                    ":NORM:scratch:NORM:model2:NORM:",
+                    ":NORM:%s:NORM:model2:NORM:" % normstaging,
                     ":NORM:home:NORM:classic:NORM:dev:NORM:alembic"
-                    ":NORM:scratch:NORM:model3:NORM:",
+                    ":NORM:%s:NORM:model3:NORM:" % normstaging,
                 ],
             )
