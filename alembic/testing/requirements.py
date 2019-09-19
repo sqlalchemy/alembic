@@ -78,6 +78,13 @@ class SuiteRequirements(Requirements):
         )
 
     @property
+    def sqlalchemy_13(self):
+        return exclusions.skip_if(
+            lambda config: not util.sqla_13,
+            "SQLAlchemy 1.3 or greater required",
+        )
+
+    @property
     def sqlalchemy_1115(self):
         return exclusions.skip_if(
             lambda config: not util.sqla_1115,

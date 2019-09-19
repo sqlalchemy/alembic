@@ -618,11 +618,20 @@ def _render_column(column, autogen_context):
         opts.append(("comment", "%r" % comment))
 
     # TODO: for non-ascii colname, assign a "key"
-    return "%(prefix)sColumn(%(name)r, %(type)s, %(kw)s)" % {
+    return "%(prefix)sColumn(%(name)r, %(type)s, %(kwargs)s)" % {
         "prefix": _sqlalchemy_autogenerate_prefix(autogen_context),
         "name": _ident(column.name),
         "type": _repr_type(column.type, autogen_context),
-        "kw": ", ".join(["%s=%s" % (kwname, val) for kwname, val in opts]),
+        "kwargs": (
+            ", ".join(
+                ["%s=%s" % (kwname, val) for kwname, val in opts]
+                + [
+                    "%s=%s"
+                    % (key, _render_potential_expr(val, autogen_context))
+                    for key, val in sqla_compat._column_kwargs(column).items()
+                ]
+            )
+        ),
     }
 
 

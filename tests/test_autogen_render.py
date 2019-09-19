@@ -22,6 +22,7 @@ from sqlalchemy import Numeric
 from sqlalchemy import PrimaryKeyConstraint
 from sqlalchemy import String
 from sqlalchemy import Table
+from sqlalchemy import testing
 from sqlalchemy import text
 from sqlalchemy import types
 from sqlalchemy import Unicode
@@ -87,6 +88,23 @@ class AutogenRenderTest(TestBase):
             autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.create_index('test_active_code_idx', 'test', "
             "['active', 'code'], unique=False)",
+        )
+
+    @testing.emits_warning("Can't validate argument ")
+    def test_render_add_index_custom_kwarg(self):
+        t = Table(
+            "test",
+            MetaData(),
+            Column("id", Integer, primary_key=True),
+            Column("active", Boolean()),
+            Column("code", String(255)),
+        )
+        idx = Index(None, t.c.active, t.c.code, somedialect_foobar="option")
+        op_obj = ops.CreateIndexOp.from_index(idx)
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.create_index(op.f('ix_test_active'), 'test', "
+            "['active', 'code'], unique=False, somedialect_foobar='option')",
         )
 
     def test_render_add_index_batch(self):
@@ -1055,6 +1073,21 @@ class AutogenRenderTest(TestBase):
             autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.add_column('foo', sa.Column('x', sa.Integer(), "
             "server_default='5', nullable=True))",
+        )
+
+    @testing.requires.sqlalchemy_13
+    @testing.emits_warning("Can't validate argument ")
+    def test_render_add_column_custom_kwarg(self):
+        col = Column(
+            "x", Integer, server_default="5", somedialect_foobar="option"
+        )
+        Table("foo", MetaData(), col)
+
+        op_obj = ops.AddColumnOp.from_column(col)
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.add_column('foo', sa.Column('x', sa.Integer(), "
+            "server_default='5', nullable=True, somedialect_foobar='option'))",
         )
 
     def test_render_add_column_system(self):
