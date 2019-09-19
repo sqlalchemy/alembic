@@ -9,6 +9,7 @@ from .langhelpers import ModuleClsProxy  # noqa
 from .langhelpers import rev_id  # noqa
 from .langhelpers import to_list  # noqa
 from .langhelpers import to_tuple  # noqa
+from .langhelpers import unique_list  # noqa
 from .messaging import err  # noqa
 from .messaging import format_as_comma  # noqa
 from .messaging import msg  # noqa

@@ -19,6 +19,7 @@ from .assertions import _get_dialect
 from ..environment import EnvironmentContext
 from ..migration import MigrationContext
 from ..operations import Operations
+from ..util import compat
 from ..util.compat import configparser
 from ..util.compat import string_types
 from ..util.compat import text_type
@@ -28,13 +29,13 @@ testing_config = configparser.ConfigParser()
 testing_config.read(["test.cfg"])
 
 
-def capture_db():
+def capture_db(dialect="postgresql://"):
     buf = []
 
     def dump(sql, *multiparams, **params):
         buf.append(str(sql.compile(dialect=engine.dialect)))
 
-    engine = create_mock_engine("postgresql://", dump)
+    engine = create_mock_engine(dialect, dump)
     return engine, buf
 
 
@@ -49,6 +50,32 @@ def capture_context_buffer(**kw):
         buf = io.StringIO()
 
     kw.update({"dialect_name": "sqlite", "output_buffer": buf})
+    conf = EnvironmentContext.configure
+
+    def configure(*arg, **opt):
+        opt.update(**kw)
+        return conf(*arg, **opt)
+
+    with mock.patch.object(EnvironmentContext, "configure", configure):
+        yield buf
+
+
+@contextmanager
+def capture_engine_context_buffer(**kw):
+    from .env import _sqlite_file_db
+    from sqlalchemy import event
+
+    buf = compat.StringIO()
+
+    eng = _sqlite_file_db()
+
+    conn = eng.connect()
+
+    @event.listens_for(conn, "before_cursor_execute")
+    def bce(conn, cursor, statement, parameters, context, executemany):
+        buf.write(statement + "\n")
+
+    kw.update({"connection": conn})
     conf = EnvironmentContext.configure
 
     def configure(*arg, **opt):

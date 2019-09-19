@@ -393,16 +393,25 @@ class ScriptDirectory(object):
 
             heads = self.get_revisions(heads)
 
-            # filter for lineage will resolve things like
-            # branchname@base, version@base, etc.
-            filtered_heads = self.revision_map.filter_for_lineage(
-                heads, revision, include_dependencies=True
-            )
-
             steps = []
 
+            if not revision:
+                revision = "base"
+
+            filtered_heads = []
+            for rev in util.to_tuple(revision):
+                if rev:
+                    filtered_heads.extend(
+                        self.revision_map.filter_for_lineage(
+                            heads, rev, include_dependencies=True
+                        )
+                    )
+            filtered_heads = util.unique_list(filtered_heads)
+
             dests = self.get_revisions(revision) or [None]
+
             for dest in dests:
+
                 if dest is None:
                     # dest is 'base'.  Return a "delete branch" migration
                     # for all applicable heads.
@@ -465,6 +474,7 @@ class ScriptDirectory(object):
                     )
                     steps.append(step)
                     continue
+
             return steps
 
     def run_env(self):

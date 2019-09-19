@@ -290,7 +290,7 @@ def three_rev_fixture(cfg):
     c = util.rev_id()
 
     script = ScriptDirectory.from_config(cfg)
-    script.generate_revision(a, "revision a", refresh=True)
+    script.generate_revision(a, "revision a", refresh=True, head="base")
     write_script(
         script,
         a,
@@ -313,7 +313,7 @@ def downgrade():
         % a,
     )
 
-    script.generate_revision(b, "revision b", refresh=True)
+    script.generate_revision(b, "revision b", refresh=True, head=a)
     write_script(
         script,
         b,
@@ -338,7 +338,7 @@ def downgrade():
         encoding="utf-8",
     )
 
-    script.generate_revision(c, "revision c", refresh=True)
+    script.generate_revision(c, "revision c", refresh=True, head=b)
     write_script(
         script,
         c,
@@ -366,6 +366,9 @@ def downgrade():
 def multi_heads_fixture(cfg, a, b, c):
     """Create a multiple head fixture from the three-revs fixture"""
 
+    # a->b->c
+    #     -> d -> e
+    #     -> f
     d = util.rev_id()
     e = util.rev_id()
     f = util.rev_id()
