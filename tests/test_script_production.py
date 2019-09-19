@@ -1270,23 +1270,27 @@ class NormPathTest(TestBase):
             return path.replace("/", ":NORM:")
 
         normpath = mock.Mock(side_effect=normpath)
-        normstaging = _get_staging_directory().replace("/", ":NORM:")
+
         with mock.patch("os.path.normpath", normpath):
             eq_(
                 script._version_locations,
                 (
-                    ":NORM:home:NORM:classic:NORM:dev:NORM:alembic"
-                    ":NORM:%s:NORM:scripts:NORM:versions" % normstaging,
+                    os.path.abspath(
+                        os.path.join(
+                            _get_staging_directory(), "scripts", "versions"
+                        )
+                    ).replace("/", ":NORM:"),
                 ),
             )
 
             eq_(
                 script.versions,
-                ":NORM:home:NORM:classic:NORM:dev:NORM:alembic:NORM:%s:"
-                "NORM:scripts:NORM:versions" % normstaging,
+                os.path.abspath(
+                    os.path.join(
+                        _get_staging_directory(), "scripts", "versions"
+                    )
+                ).replace("/", ":NORM:"),
             )
-
-            eq_(script.dir, "%s/scripts" % normstaging)
 
     def test_script_location_muliple(self):
         config = _multi_dir_testing_config()
@@ -1297,17 +1301,19 @@ class NormPathTest(TestBase):
             return path.replace("/", ":NORM:")
 
         normpath = mock.Mock(side_effect=normpath)
-        normstaging = _get_staging_directory().replace("/", ":NORM:")
 
         with mock.patch("os.path.normpath", normpath):
             eq_(
                 script._version_locations,
                 [
-                    ":NORM:home:NORM:classic:NORM:dev:NORM:alembic"
-                    ":NORM:%s:NORM:model1:NORM:" % normstaging,
-                    ":NORM:home:NORM:classic:NORM:dev:NORM:alembic"
-                    ":NORM:%s:NORM:model2:NORM:" % normstaging,
-                    ":NORM:home:NORM:classic:NORM:dev:NORM:alembic"
-                    ":NORM:%s:NORM:model3:NORM:" % normstaging,
+                    os.path.abspath(
+                        os.path.join(_get_staging_directory(), "model1/")
+                    ).replace("/", ":NORM:"),
+                    os.path.abspath(
+                        os.path.join(_get_staging_directory(), "model2/")
+                    ).replace("/", ":NORM:"),
+                    os.path.abspath(
+                        os.path.join(_get_staging_directory(), "model3/")
+                    ).replace("/", ":NORM:"),
                 ],
             )
