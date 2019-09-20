@@ -1,0 +1,6 @@
+.. change::
+    :tags: bug, tests
+    :tickets: 592
+
+    Removed the "test requirements" from "setup.py test", as this command now
+    only emits a removal error in any case and these requirements are unused.

@@ -72,7 +72,6 @@ setup(
     license="MIT",
     packages=find_packages(".", exclude=["examples*", "test*"]),
     include_package_data=True,
-    tests_require=["pytest!=3.9.1,!=3.9.2", "mock", "Mako"],
     cmdclass={"test": UseTox},
     zip_safe=False,
     install_requires=requires,
