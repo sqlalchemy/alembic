@@ -518,7 +518,7 @@ regardless of whether or not the autogenerate feature was used.
     formatters to them as they are committed.  Alembic's post write hooks are
     useful only in that they can format the files immediately upon generation,
     rather than at commit time, and also can be useful for projects that prefer
-    not to use post-commit.
+    not to use pre-commit.
 
 
 Basic Formatter Configuration
