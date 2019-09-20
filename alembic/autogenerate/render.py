@@ -679,6 +679,8 @@ def _repr_type(type_, autogen_context):
     elif impl_rt:
         return impl_rt
     elif mod.startswith("sqlalchemy."):
+        if type(type_) is sqltypes.Variant:
+            return _render_Variant_type(type_, autogen_context)
         if "_render_%s_type" % type_.__visit_name__ in globals():
             fn = globals()["_render_%s_type" % type_.__visit_name__]
             return fn(type_, autogen_context)
@@ -694,6 +696,17 @@ def _render_ARRAY_type(type_, autogen_context):
     return _render_type_w_subtype(
         type_, autogen_context, "item_type", r"(.+?\()"
     )
+
+
+def _render_Variant_type(type_, autogen_context):
+    base = _repr_type(type_.impl, autogen_context)
+    for dialect in sorted(type_.mapping):
+        typ = type_.mapping[dialect]
+        base += ".with_variant(%r, %s)" % (
+            dialect,
+            _repr_type(typ, autogen_context),
+        )
+    return base
 
 
 def _render_type_w_subtype(

@@ -1677,6 +1677,25 @@ class AutogenRenderTest(TestBase):
             "sqlalchemy_util.types.MyType()",
         )
 
+    def test_render_variant(self):
+        from sqlalchemy import VARCHAR, CHAR
+
+        self.autogen_context.opts["user_module_prefix"] = None
+
+        type_ = (
+            String(5)
+            .with_variant(VARCHAR(10), "mysql")
+            .with_variant(CHAR(15), "oracle")
+        )
+
+        # the new Black formatting will help a lot with this
+        eq_ignore_whitespace(
+            autogenerate.render._repr_type(type_, self.autogen_context),
+            "sa.String(length=5)."
+            "with_variant('mysql', sa.VARCHAR(length=10))."
+            "with_variant('oracle', sa.CHAR(length=15))",
+        )
+
     def test_repr_user_type_user_prefix_None(self):
         class MyType(UserDefinedType):
             def get_col_spec(self):
