@@ -5,7 +5,133 @@ Changelog
 
 .. changelog::
     :version: 1.2.0
-    :include_notes_from: unreleased
+    :released: September 20, 2019
+
+    .. change::
+        :tags: feature, command
+        :tickets: 473
+
+        Added new ``--purge`` flag to the ``alembic stamp`` command, which will
+        unconditionally erase the version table before stamping anything.  This is
+        useful for development where non-existent version identifiers might be left
+        within the table.  Additionally, ``alembic.stamp`` now supports a list of
+        revision identifiers, which are intended to allow setting up muliple heads
+        at once.  Overall handling of version identifiers within the
+        ``alembic.stamp`` command has been improved with many new tests and
+        use cases added.
+
+    .. change::
+        :tags: bug, autogenerate
+        :tickets: 550
+
+        Improved the Python rendering of a series of migration operations such that
+        a single "pass" is rendered for a :class:`.UpgradeOps` or
+        :class:`.DowngradeOps` based on if no lines of Python code actually
+        rendered under the operation, rather than whether or not sub-directives
+        exist. Removed extra "pass" lines that would generate from the
+        :class:`.ModifyTableOps` directive so that these aren't duplicated under
+        operation rewriting scenarios.
+
+
+    .. change::
+        :tags: feature, runtime
+        :tickets: 123
+
+        Added new feature :meth:`.MigrationContext.autocommit_block`, a special
+        directive which will provide for a non-transactional block inside of a
+        migration script. The feature requres that: the database driver
+        (e.g. DBAPI) supports the AUTOCOMMIT isolation mode.  The directive
+        also necessarily needs to COMMIT the existing transaction in progress
+        in order to enter autocommit mode.
+
+        .. seealso::
+
+            :meth:`.MigrationContext.autocommit_block`
+
+    .. change::
+        :tags: change: py3k
+
+        Python 3.4 support is dropped, as the upstream tooling (pip, mysqlclient)
+        etc are already dropping support for Python 3.4, which itself is no longer
+        maintained.
+
+    .. change::
+        :tags: usecase, autogenerate
+        :tickets: 518
+
+        Added autogenerate support for :class:`.Column` objects that have
+        dialect-specific ``**kwargs``, support first added in SQLAlchemy 1.3.
+        This includes SQLite "on conflict" as well as options used by some
+        third party dialects.
+
+    .. change::
+        :tags: usecase, autogenerate
+        :tickets: 131
+
+        Added rendering for SQLAlchemy ``Variant`` datatypes, which render as the
+        base type plus one or more ``.with_variant()`` method calls.
+
+
+    .. change::
+        :tags: usecase, commands
+        :tickets: 534
+
+        Made the command interface revision lookup behavior more strict in that an
+        Alembic revision number is only resolved based on a partial match rules if
+        it has at least four characters, to prevent simple typographical issues
+        from inadvertently  running migrations.
+
+     .. change::
+        :tags: feature, commands
+        :tickets: 307
+
+        Added "post write hooks" to revision generation.  These allow custom logic
+        to run after a revision Python script is generated, typically for the
+        purpose of running code formatters such as "Black" or "autopep8", but may
+        be used for any arbitrary post-render hook as well, including custom Python
+        functions or scripts.  The hooks are enabled by providing a
+        ``[post_write_hooks]`` section in the alembic.ini file.  A single hook
+        is provided which runs an arbitrary Python executable on the newly
+        generated revision script, which can be configured to run code formatters
+        such as Black; full examples are included in the documentation.
+
+        .. seealso::
+
+            :ref:`post_write_hooks`
+
+
+    .. change::
+        :tags: feature, environment
+        :tickets: 463
+
+        Added new flag ``--package`` to ``alembic init``.  For environments where
+        the Alembic migration files and such are within the package tree and
+        importable as modules, this flag can be specified which will add the
+        additional ``__init__.py`` files in the version location and the
+        environment location.
+
+    .. change::
+        :tags: bug, autogenerate
+        :tickets: 549
+
+        Fixed bug where rendering of comment text for table-level comments  within
+        :meth:`.Operations.create_table_comment` and
+        :meth:`.Operations.drop_table_comment` was not properly quote-escaped
+        within rendered Python code for autogenerate.
+
+    .. change::
+        :tags: bug, autogenerate
+        :tickets: 505
+
+        Modified the logic of the :class:`.Rewriter` object such that it keeps a
+        memoization of which directives it has processed, so that it can ensure it
+        processes a particular directive only once, and additionally fixed
+        :class:`.Rewriter` so that it functions correctly for multiple-pass
+        autogenerate schemes, such as the one illustrated in the "multidb"
+        template.  By tracking which directives have been processed, a
+        multiple-pass scheme which calls upon the :class:`.Rewriter` multiple times
+        for the same structure as elements are added can work without running
+        duplicate operations on the same elements more than once.
 
 .. changelog::
     :version: 1.1.0

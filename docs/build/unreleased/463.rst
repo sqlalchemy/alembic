@@ -1,9 +1,0 @@
-.. change::
-    :tags: feature, environment
-    :tickets: 463
-
-    Added new flag ``--package`` to ``alembic init``.  For environments where
-    the Alembic migration files and such are within the package tree and
-    importable as modules, this flag can be specified which will add the
-    additional ``__init__.py`` files in the version location and the
-    environment location.
