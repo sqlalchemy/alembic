@@ -515,13 +515,13 @@ def current(config, verbose=False, head_only=False):
         script.run_env()
 
 
-def stamp(config, revisions, sql=False, tag=None, purge=False):
+def stamp(config, revision, sql=False, tag=None, purge=False):
     """'stamp' the revision table with the given revision; don't
     run any migrations.
 
     :param config: a :class:`.Config` instance.
 
-    :param revision: target revision.
+    :param revision: target revision. Can be a list of revisions.
 
     :param sql: use ``--sql`` mode
 
@@ -540,9 +540,9 @@ def stamp(config, revisions, sql=False, tag=None, purge=False):
     if sql:
         destination_revs = []
         starting_rev = None
-        for revision in util.to_list(revisions):
-            if ":" in revision:
-                srev, revision = revision.split(":", 2)
+        for rev in util.to_list(revision):
+            if ":" in rev:
+                srev, rev = rev.split(":", 2)
 
                 if starting_rev != srev:
                     if starting_rev is None:
@@ -552,9 +552,9 @@ def stamp(config, revisions, sql=False, tag=None, purge=False):
                             "Stamp operation with --sql only supports a "
                             "single starting revision at a time"
                         )
-            destination_revs.append(revision)
+            destination_revs.append(rev)
     else:
-        destination_revs = util.to_list(revisions)
+        destination_revs = util.to_list(revision)
 
     def do_stamp(rev, context):
         return script._stamp_revs(util.to_tuple(destination_revs), rev)

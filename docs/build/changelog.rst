@@ -7,6 +7,14 @@ Changelog
     :version: 1.2.1
     :include_notes_from: unreleased
 
+    .. change::
+        :tags: bug
+        :tickets: 601
+
+        Version 1.2.0 broke the method signature for alembic.command.stamp().
+        `revision` was no longer a valid method parameter.
+        The paramter `revision` is now valid again but it can still be a list.
+
 .. changelog::
     :version: 1.2.0
     :released: September 20, 2019
