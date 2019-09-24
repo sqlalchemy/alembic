@@ -5,7 +5,24 @@ Changelog
 
 .. changelog::
     :version: 1.2.1
-    :include_notes_from: unreleased
+    :released: September 24, 2019
+
+    .. change::
+        :tags: bug, command
+        :tickets: 601
+
+        Reverted the name change of the "revisions" argument to
+        :func:`.command.stamp` to "revision" as apparently applications are
+        calling upon this argument as a keyword name.  Pull request courtesy
+        Thomas Bechtold.  Special translations are also added to the command
+        line interface so that it is still known as "revisions" in the CLI.
+
+    .. change::
+        :tags: bug, tests
+        :tickets: 592
+
+        Removed the "test requirements" from "setup.py test", as this command now
+        only emits a removal error in any case and these requirements are unused.
 
 .. changelog::
     :version: 1.2.0
