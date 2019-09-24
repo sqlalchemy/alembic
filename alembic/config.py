@@ -296,7 +296,7 @@ class CommandLine(object):
         self._generate_args(prog)
 
     def _generate_args(self, prog):
-        def add_options(parser, positional, kwargs):
+        def add_options(fn, parser, positional, kwargs):
             kwargs_opts = {
                 "template": (
                     "-t",
@@ -454,9 +454,15 @@ class CommandLine(object):
                     parser.add_argument(*args, **kw)
 
             for arg in positional:
-                if arg == "revisions":
+                if (
+                    arg == "revisions"
+                    or fn in positional_translations
+                    and positional_translations[fn][arg] == "revisions"
+                ):
                     subparser.add_argument(
-                        arg, nargs="+", help=positional_help.get(arg)
+                        "revisions",
+                        nargs="+",
+                        help=positional_help.get("revisions"),
                     )
                 else:
                     subparser.add_argument(arg, help=positional_help.get(arg))
@@ -490,6 +496,8 @@ class CommandLine(object):
         )
         subparsers = parser.add_subparsers()
 
+        positional_translations = {command.stamp: {"revision": "revisions"}}
+
         for fn in [getattr(command, n) for n in dir(command)]:
             if (
                 inspect.isfunction(fn)
@@ -505,6 +513,12 @@ class CommandLine(object):
                     positional = spec[0][1:]
                     kwarg = []
 
+                if fn in positional_translations:
+                    positional = [
+                        positional_translations[fn].get(name, name)
+                        for name in positional
+                    ]
+
                 # parse first line(s) of helptext without a line break
                 help_ = fn.__doc__
                 if help_:
@@ -519,7 +533,7 @@ class CommandLine(object):
                 subparser = subparsers.add_parser(
                     fn.__name__, help=" ".join(help_text)
                 )
-                add_options(subparser, positional, kwarg)
+                add_options(fn, subparser, positional, kwarg)
                 subparser.set_defaults(cmd=(fn, positional, kwarg))
         self.parser = parser
 

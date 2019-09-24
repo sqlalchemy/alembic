@@ -765,6 +765,41 @@ class UpgradeDowngradeStampTest(TestBase):
             "WHERE alembic_version.version_num = '%s';" % (self.c, self.a)
         ) in buf.getvalue()
 
+    def test_sql_stamp_revision_as_kw(self):
+        with capture_context_buffer() as buf:
+            command.stamp(self.cfg, revision="head", sql=True)
+        assert (
+            "INSERT INTO alembic_version (version_num) VALUES ('%s')" % self.c
+            in buf.getvalue()
+        )
+
+    def test_stamp_argparser_single_rev(self):
+        cmd = config.CommandLine()
+        options = cmd.parser.parse_args(["stamp", self.c, "--sql"])
+        with capture_context_buffer() as buf:
+            cmd.run_cmd(self.cfg, options)
+        assert (
+            "INSERT INTO alembic_version (version_num) VALUES ('%s')" % self.c
+            in buf.getvalue()
+        )
+
+    def test_stamp_argparser_multiple_rev(self):
+        cmd = config.CommandLine()
+        options = cmd.parser.parse_args(["stamp", self.b, self.c, "--sql"])
+        with capture_context_buffer() as buf:
+            cmd.run_cmd(self.cfg, options)
+        # TODO: this is still wrong, as this stamp command is putting
+        # conflicting heads into the table.   The test here is only to test
+        # that the revisions are passed as a list.
+        assert (
+            "INSERT INTO alembic_version (version_num) VALUES ('%s')" % self.b
+            in buf.getvalue()
+        )
+        assert (
+            "INSERT INTO alembic_version (version_num) VALUES ('%s')" % self.c
+            in buf.getvalue()
+        )
+
 
 class LiveStampTest(TestBase):
     __only_on__ = "sqlite"

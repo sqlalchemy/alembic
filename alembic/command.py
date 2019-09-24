@@ -515,13 +515,20 @@ def current(config, verbose=False, head_only=False):
         script.run_env()
 
 
-def stamp(config, revisions, sql=False, tag=None, purge=False):
+def stamp(config, revision, sql=False, tag=None, purge=False):
     """'stamp' the revision table with the given revision; don't
     run any migrations.
 
     :param config: a :class:`.Config` instance.
 
-    :param revision: target revision.
+    :param revision: target revision or list of revisions.   May be a list
+     to indicate stamping of multiple branch heads.
+
+     .. note:: this parameter is called "revisions" in the command line
+        interface.
+
+     .. versionchanged:: 1.2  The revision may be a single revision or
+        list of revisions when stamping multiple branch heads.
 
     :param sql: use ``--sql`` mode
 
@@ -540,9 +547,9 @@ def stamp(config, revisions, sql=False, tag=None, purge=False):
     if sql:
         destination_revs = []
         starting_rev = None
-        for revision in util.to_list(revisions):
-            if ":" in revision:
-                srev, revision = revision.split(":", 2)
+        for _revision in util.to_list(revision):
+            if ":" in _revision:
+                srev, _revision = _revision.split(":", 2)
 
                 if starting_rev != srev:
                     if starting_rev is None:
@@ -552,9 +559,9 @@ def stamp(config, revisions, sql=False, tag=None, purge=False):
                             "Stamp operation with --sql only supports a "
                             "single starting revision at a time"
                         )
-            destination_revs.append(revision)
+            destination_revs.append(_revision)
     else:
-        destination_revs = util.to_list(revisions)
+        destination_revs = util.to_list(revision)
 
     def do_stamp(rev, context):
         return script._stamp_revs(util.to_tuple(destination_revs), rev)

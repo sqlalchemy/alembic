@@ -1,0 +1,9 @@
+.. change::
+    :tags: bug, command
+    :tickets: 601
+
+    Reverted the name change of the "revisions" argument to
+    :func:`.command.stamp` to "revision" as apparently applications are
+    calling upon this argument as a keyword name.  Pull request courtesy
+    Thomas Bechtold.  Special translations are also added to the command
+    line interface so that it is still known as "revisions" in the CLI.
