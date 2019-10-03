@@ -252,11 +252,18 @@ This file contains the following features:
 
   .. versionadded:: 0.6.1 - added ``truncate_slug_length`` configuration
 
-* ``sqlalchemy.url`` - A URL to connect to the database via SQLAlchemy.  This key is in fact
-  only referenced within the ``env.py`` file that is specific to the "generic" configuration;
-  a file that can be customized by the developer. A multiple
-  database configuration may respond to multiple keys here, or may reference other sections
-  of the file.
+* ``sqlalchemy.url`` - A URL to connect to the database via SQLAlchemy.  This
+  configuration value is only used if the ``env.py`` file calls upon them;
+  in the "generic" template, the call to
+  ``config.get_main_option("sqlalchemy.url")`` in the
+  ``run_migrations_offline()`` function and the call to
+  ``engine_from_config(prefix="sqlalchemy.")``  in the
+  ``run_migrations_online()`` function are where this key is referenced.   If
+  the SQLAlchemy URL should come from some other source, such as from
+  environment variables or a global registry, or if the migration environment
+  makes use of multiple database URLs, the developer is encouraged to alter the
+  ``env.py`` file to use whatever methods are appropriate in order to acquire
+  the database URL or URLs.
 
 * ``revision_environment`` - this is a flag which when set to the value 'true', will indicate
   that the migration environment script ``env.py`` should be run unconditionally when
