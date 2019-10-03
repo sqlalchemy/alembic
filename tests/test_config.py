@@ -109,6 +109,45 @@ class ConfigTest(TestBase):
         eq_(cfg.attributes, {"m1": m1, "connection": m2})
 
 
+class EnvVarTest(TestBase):
+
+    def test_invalid_path(self):
+        environ_var='ALEMBIC_TEST_PATH'
+        environ = {
+            environ_var: "/invalid/path.ini",
+        }
+        cfg = config.Config(
+            'alembic.ini',
+            environ=environ, environ_var=environ_var,
+        )
+        assert_raises_message(
+            util.CommandError,
+            r"No config file '/invalid/path.ini' found, "
+            r"or file has no '\[alembic\]' section",
+            cfg.get_main_option,
+            'url',
+        )
+
+    def test_environ_config_file(self):
+        cfg = _write_config_file(
+            """
+[alembic]
+migrations = /home/alembic/db/migrations
+"""
+        )
+        environ_var='ALEMBIC_TEST_PATH'
+        environ = {
+            environ_var: cfg.config_file_name,
+        }
+        test_cfg = config.Config(
+            'alembic.ini',
+            environ=environ, environ_var=environ_var,
+        )
+        eq_(
+            test_cfg.get_section_option("alembic", "migrations"),
+            "/home/alembic/db/migrations",
+        )
+
 class StdoutOutputEncodingTest(TestBase):
     def test_plain(self):
         stdout = mock.Mock(encoding="latin-1")

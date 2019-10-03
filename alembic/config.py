@@ -61,6 +61,10 @@ class Config(object):
     :param file\_: name of the .ini file to open.
     :param ini_section: name of the main Alembic section within the
      .ini file
+    :param environ: environment variables dictionary.
+     Defaults to ``os.environ``.
+    :param environ_var: name of the environment variable with .ini file path.
+     Defaults to ``ALEMBIC_CONFIG``.
     :param output_buffer: optional file-like input buffer which
      will be passed to the :class:`.MigrationContext` - used to redirect
      the output of "offline generation" when using Alembic programmatically.
@@ -94,6 +98,8 @@ class Config(object):
         self,
         file_=None,
         ini_section="alembic",
+        environ=os.environ,
+        environ_var="ALEMBIC_CONFIG",
         output_buffer=None,
         stdout=sys.stdout,
         cmd_opts=None,
@@ -103,8 +109,10 @@ class Config(object):
         """Construct a new :class:`.Config`
 
         """
-        self.config_file_name = file_
+        self.config_file = file_
         self.config_ini_section = ini_section
+        self.config_environ = environ
+        self.config_environ_var = environ_var
         self.output_buffer = output_buffer
         self.stdout = stdout
         self.cmd_opts = cmd_opts
@@ -126,9 +134,6 @@ class Config(object):
 
     """
 
-    config_file_name = None
-    """Filesystem path to the .ini file in use."""
-
     config_ini_section = None
     """Name of the config file section to read basic configuration
     from.  Defaults to ``alembic``, that is the ``[alembic]`` section
@@ -136,6 +141,13 @@ class Config(object):
     option to the Alembic runnier.
 
     """
+
+    @util.memoized_property
+    def config_file_name(self):
+        """Filesystem path to the .ini file in use."""
+        if self.config_environ_var in self.config_environ:
+            return self.config_environ[self.config_environ_var]
+        return self.config_file
 
     @util.memoized_property
     def attributes(self):
@@ -190,7 +202,6 @@ class Config(object):
         methods provide a possibly simpler interface.
 
         """
-
         if self.config_file_name:
             here = os.path.abspath(os.path.dirname(self.config_file_name))
         else:
