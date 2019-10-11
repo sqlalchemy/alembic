@@ -468,12 +468,14 @@ class CommandLine(object):
                     subparser.add_argument(arg, help=positional_help.get(arg))
 
         parser = ArgumentParser(prog=prog)
+
         parser.add_argument(
             "-c",
             "--config",
             type=str,
-            default="alembic.ini",
-            help="Alternate config file",
+            default=os.environ.get("ALEMBIC_CONFIG", "alembic.ini"),
+            help="Alternate config file; defaults to value of "
+            'ALEMBIC_CONFIG environment variable, or "alembic.ini"',
         )
         parser.add_argument(
             "-n",

@@ -946,6 +946,9 @@ class CommandLineTest(TestBase):
         cls.cfg = _sqlite_testing_config()
         cls.a, cls.b, cls.c = three_rev_fixture(cls.cfg)
 
+    def teardown(self):
+        os.environ.pop("ALEMBIC_CONFIG", None)
+
     @classmethod
     def teardown_class(cls):
         clear_staging_env()
@@ -1037,6 +1040,40 @@ class CommandLineTest(TestBase):
                 self.cfg,
                 directory=directory,
             )
+
+    def test_config_file_default(self):
+        cl = config.CommandLine()
+        with mock.patch.object(cl, "run_cmd") as run_cmd:
+            cl.main(argv=["list_templates"])
+
+        cfg = run_cmd.mock_calls[0][1][0]
+        eq_(cfg.config_file_name, "alembic.ini")
+
+    def test_config_file_c_override(self):
+        cl = config.CommandLine()
+        with mock.patch.object(cl, "run_cmd") as run_cmd:
+            cl.main(argv=["-c", "myconf.ini", "list_templates"])
+
+        cfg = run_cmd.mock_calls[0][1][0]
+        eq_(cfg.config_file_name, "myconf.ini")
+
+    def test_config_file_env_variable(self):
+        os.environ["ALEMBIC_CONFIG"] = "/foo/bar/bat.conf"
+        cl = config.CommandLine()
+        with mock.patch.object(cl, "run_cmd") as run_cmd:
+            cl.main(argv=["list_templates"])
+
+        cfg = run_cmd.mock_calls[0][1][0]
+        eq_(cfg.config_file_name, "/foo/bar/bat.conf")
+
+    def test_config_file_env_variable_c_override(self):
+        os.environ["ALEMBIC_CONFIG"] = "/foo/bar/bat.conf"
+        cl = config.CommandLine()
+        with mock.patch.object(cl, "run_cmd") as run_cmd:
+            cl.main(argv=["-c", "myconf.conf", "list_templates"])
+
+        cfg = run_cmd.mock_calls[0][1][0]
+        eq_(cfg.config_file_name, "myconf.conf")
 
     def test_init_file_exists_and_is_empty(self):
         def access_(path, mode):
