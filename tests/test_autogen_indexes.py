@@ -18,6 +18,7 @@ from alembic.testing import engines
 from alembic.testing import eq_
 from alembic.testing import TestBase
 from alembic.testing.env import staging_env
+from alembic.util import sqla_compat
 from ._autogen_fixtures import AutogenFixtureTest
 
 py3k = sys.version_info >= (3,)
@@ -204,7 +205,12 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestBase):
         eq_(diffs[0][0], "add_table")
 
         eq_(diffs[1][0], "add_index")
-        eq_(diffs[1][1].name, "ix_extra_foo")
+        eq_(
+            sqla_compat._get_constraint_final_name(
+                diffs[1][1], config.db.dialect
+            ),
+            "ix_extra_foo",
+        )
 
         eq_(diffs[2][0], "add_index")
         eq_(diffs[2][1].name, "newtable_idx")
@@ -254,6 +260,40 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestBase):
             Column("x", String(20), unique=True, index=True),
         )
 
+        diffs = self._fixture(m1, m2)
+        eq_(diffs, [])
+
+    def test_nothing_changed_implicit_uq_w_naming_conv(self):
+        m1 = MetaData(
+            naming_convention={
+                "ix": "ix_%(column_0_label)s",
+                "uq": "uq_%(column_0_label)s",
+            }
+        )
+        m2 = MetaData(
+            naming_convention={
+                "ix": "ix_%(column_0_label)s",
+                "uq": "uq_%(column_0_label)s",
+            }
+        )
+
+        Table(
+            "nothing_changed",
+            m1,
+            Column("id1", Integer, primary_key=True),
+            Column("id2", Integer, primary_key=True),
+            Column("x", String(20), unique=True),
+            mysql_engine="InnoDB",
+        )
+
+        Table(
+            "nothing_changed",
+            m2,
+            Column("id1", Integer, primary_key=True),
+            Column("id2", Integer, primary_key=True),
+            Column("x", String(20), unique=True),
+            mysql_engine="InnoDB",
+        )
         diffs = self._fixture(m1, m2)
         eq_(diffs, [])
 
