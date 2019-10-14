@@ -702,9 +702,9 @@ def _render_Variant_type(type_, autogen_context):
     base = _repr_type(type_.impl, autogen_context)
     for dialect in sorted(type_.mapping):
         typ = type_.mapping[dialect]
-        base += ".with_variant(%r, %s)" % (
-            dialect,
+        base += ".with_variant(%s, %r)" % (
             _repr_type(typ, autogen_context),
+            dialect,
         )
     return base
 
