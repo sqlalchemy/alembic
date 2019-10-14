@@ -1692,8 +1692,8 @@ class AutogenRenderTest(TestBase):
         eq_ignore_whitespace(
             autogenerate.render._repr_type(type_, self.autogen_context),
             "sa.String(length=5)."
-            "with_variant('mysql', sa.VARCHAR(length=10))."
-            "with_variant('oracle', sa.CHAR(length=15))",
+            "with_variant(sa.VARCHAR(length=10), 'mysql')."
+            "with_variant(sa.CHAR(length=15), 'oracle')",
         )
 
     def test_repr_user_type_user_prefix_None(self):
