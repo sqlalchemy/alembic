@@ -2,11 +2,9 @@
 SQLALCHEMY / ALEMBIC UNIT TESTS
 ================================
 
-Note that Alembic uses a test framework that is mostly equivalent to the  one
-that SQLAlchemy uses.   While it is as of May, 2019 still vendored over (e.g.
-copied from SQLAlchemy into Alembic's source tree with local modifications),
-the potential plan is that Alembic will use SQLAlchemy's suite directly one
-support for older SQLAlchemy versions is dropped.
+Alembic makes use of SQLAlchemy's test framework for its test suite,
+so working with Alembic's suite is similar to that of working with
+SQLAlchemy.
 
 This document is mostly copied directly from that of SQLAlchemy.  Note that
 Alembic's test suite currently has "backend" tests (e.g., tests that require a
@@ -17,13 +15,13 @@ SQL Server are not required.
 Basic Test Running
 ==================
 
-A test target exists within the setup.py script.  For basic test runs::
+Tox is used to run the test suite fully.   For basic test runs against
+a single Python interpreter::
 
-    python setup.py test
+    tox
 
-
-Running with Tox
-================
+Advanced Tox Options
+====================
 
 For more elaborate CI-style test running, the tox script provided will
 run against various Python / database targets.   For a basic run against
@@ -50,12 +48,12 @@ for details.
 The py.test Engine
 ==================
 
-Both the tox runner and the setup.py runner are using py.test to invoke
-the test suite.   Within the realm of py.test, SQLAlchemy itself is adding
-a large series of option and customizations to the py.test runner using
-plugin points, to allow for SQLAlchemy's multiple database support,
-database setup/teardown and connectivity, multi process support, as well as
-lots of skip / database selection rules.
+The tox runner is using py.test to invoke the test suite.   Within the realm of
+py.test, SQLAlchemy itself is adding a large series of option and
+customizations to the py.test runner using plugin points, to allow for
+SQLAlchemy's multiple database support, database setup/teardown and
+connectivity, multi process support, as well as lots of skip / database
+selection rules.
 
 Running tests with py.test directly grants more immediate control over
 database options and test selection.
@@ -77,11 +75,12 @@ Above will run the tests in the test/sql/test_query.py file (a pretty good
 file for basic "does this database work at all?" to start with) against a
 running PostgreSQL database at the given URL.
 
-The py.test frontend can also run tests against multiple kinds of databases
-at once - a large subset of tests are marked as "backend" tests, which will
-be run against each available backend, and additionally lots of tests are targeted
-at specific backends only, which only run if a matching backend is made available.
-For example, to run the test suite against both PostgreSQL and MySQL at the same time::
+The py.test frontend can also run tests against multiple kinds of databases at
+once - a large subset of tests are marked as "backend" tests, which will be run
+against each available backend, and additionally lots of tests are targeted at
+specific backends only, which only run if a matching backend is made available.
+For example, to run the test suite against both PostgreSQL and MySQL at the
+same time::
 
     py.test -n4 --db postgresql --db mysql
 
@@ -122,8 +121,8 @@ Above, we can now run the tests with ``my_postgresql``::
 
     py.test --db my_postgresql
 
-We can also override the existing names in our ``test.cfg`` file, so that we can run
-with the tox runner also::
+We can also override the existing names in our ``test.cfg`` file, so that we
+can run with the tox runner also::
 
     # test.cfg file
     [db]
@@ -135,21 +134,33 @@ of the fixed one in setup.cfg.
 Database Configuration
 ======================
 
-The test runner will by default create and drop tables within the default
-database that's in the database URL, *unless* the multiprocessing option
-is in use via the py.test "-n" flag, which invokes pytest-xdist.   The
-multiprocessing option is **enabled by default** for both the tox runner
-and the setup.py frontend.   When multiprocessing is used, the SQLAlchemy
-testing framework will create a new database for each process, and then
-tear it down after the test run is complete.    So it will be necessary
-for the database user to have access to CREATE DATABASE in order for this
-to work.
+Step one, the **database chosen for tests must be entirely empty**.  A lot
+of what SQLAlchemy and Alembic test is creating and dropping lots of tables
+as well as running database introspection to see what is there.  If there
+are pre-existing tables or other objects in the target database already,
+these will get in the way.   A failed test run can also be followed by
+ a run that includes the "--dropfirst" option, which will try to drop
+all existing tables in the target database.
 
-Several tests require alternate usernames or schemas to be present, which
-are used to test dotted-name access scenarios.  On some databases such
-as Oracle or Sybase, these are usernames, and others such as PostgreSQL
-and MySQL they are schemas.   The requirement applies to all backends
-except SQLite and Firebird.  The names are::
+The above paragraph changes somewhat when the multiprocessing option
+is used, in that separate databases will be created instead, however
+in the case of Postgresql, the starting database is used as a template,
+so the starting database must still be empty.
+
+The test runner will by default create and drop tables within the default
+database that's in the database URL, *unless* the multiprocessing option is in
+use via the py.test "-n" flag, which invokes pytest-xdist.   The
+multiprocessing option is **enabled by default** when using the tox runner.
+When multiprocessing is used, the SQLAlchemy testing framework will create a
+new database for each process, and then tear it down after the test run is
+complete.    So it will be necessary for the database user to have access to
+CREATE DATABASE in order for this to work.
+
+Several tests require alternate usernames or schemas to be present, which are
+used to test dotted-name access scenarios.  On some databases such as Oracle or
+Sybase, these are usernames, and others such as PostgreSQL and MySQL they are
+schemas (created using CREATE SCHEMA).   The requirement applies to all
+backends except SQLite and Firebird.  The names are::
 
     test_schema
     test_schema_2 (only used on PostgreSQL)
