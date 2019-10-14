@@ -183,15 +183,11 @@ def _column_kwargs(col):
 
 
 def _get_index_final_name(dialect, idx):
-    # trying to keep the truncation rules totally localized on the
-    # SQLA side while also stepping around the quoting issue.   Ideally
-    # the _prepared_index_name() method on the SQLA side would have
-    # a quoting option or the truncation routine would be broken out.
-    #
-    # test for SQLA quoted_name construct, introduced in
-    # 0.9 or thereabouts.
-    # this doesn't work in 0.8 and the "quote" option on Index doesn't
-    # seem to work in 0.8 either.
+    if sqla_14:
+        return _get_constraint_final_name(idx, dialect)
+
+    # prior to SQLAlchemy 1.4, work around quoting logic to get at the
+    # final compiled name without quotes.
     if hasattr(idx.name, "quote"):
         # might be quoted_name, might be truncated_name, keep it the
         # same
@@ -199,6 +195,35 @@ def _get_index_final_name(dialect, idx):
         new_name = quoted_name_cls(str(idx.name), quote=False)
         idx = schema.Index(name=new_name)
     return dialect.ddl_compiler(dialect, None)._prepared_index_name(idx)
+
+
+def _get_constraint_final_name(constraint, dialect):
+    if sqla_14:
+        if constraint.name is None:
+            return None
+
+        # for SQLAlchemy 1.4 we would like to have the option to expand
+        # the use of "deferred" names for constraints as well as to have
+        # some flexibility with "None" name and similar; make use of new
+        # SQLAlchemy API to return what would be the final compiled form of
+        # the name for this dialect.
+        return dialect.identifier_preparer.format_constraint(
+            constraint, _alembic_quote=False
+        )
+    else:
+        return constraint.name
+
+
+def _constraint_is_named(constraint, dialect):
+    if sqla_14:
+        if constraint.name is None:
+            return False
+        name = dialect.identifier_preparer.format_constraint(
+            constraint, _alembic_quote=False
+        )
+        return name is not None
+    else:
+        return constraint.name is not None
 
 
 def _dialect_supports_comments(dialect):

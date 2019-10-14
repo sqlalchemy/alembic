@@ -338,7 +338,9 @@ def _compare_columns(
 
 class _constraint_sig(object):
     def md_name_to_sql_name(self, context):
-        return self.name
+        return sqla_compat._get_constraint_final_name(
+            self.const, context.dialect
+        )
 
     def __eq__(self, other):
         return self.const == other.const
@@ -529,7 +531,8 @@ def _compare_indexes_and_uniques(
     metadata_names = dict(
         (c.md_name_to_sql_name(autogen_context), c)
         for c in metadata_unique_constraints.union(metadata_indexes)
-        if c.name is not None
+        if isinstance(c, _ix_constraint_sig)
+        or sqla_compat._constraint_is_named(c.const, autogen_context.dialect)
     )
 
     conn_uniques_by_name = dict((c.name, c) for c in conn_unique_constraints)
@@ -556,7 +559,11 @@ def _compare_indexes_and_uniques(
     )
     metadata_indexes_by_sig = dict((ix.sig, ix) for ix in metadata_indexes)
     unnamed_metadata_uniques = dict(
-        (uq.sig, uq) for uq in metadata_unique_constraints if uq.name is None
+        (uq.sig, uq)
+        for uq in metadata_unique_constraints
+        if not sqla_compat._constraint_is_named(
+            uq.const, autogen_context.dialect
+        )
     )
 
     # assumptions:
