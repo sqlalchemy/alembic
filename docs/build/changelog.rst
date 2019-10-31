@@ -5,7 +5,31 @@ Changelog
 
 .. changelog::
     :version: 1.3.0
-    :include_notes_from: unreleased
+    :released: October 31, 2019
+
+    .. change::
+        :tags: feature, command
+        :tickets: 608
+
+        Added support for ALEMBIC_CONFIG environment variable,
+        refers to the location of the alembic configuration script
+        in lieu of using the -c command line option.
+
+
+    .. change::
+        :tags: bug, autogenerate
+        :tickets: 131
+
+        Fixed bug in new Variant autogenerate where the order of the arguments to
+        Variant were mistakenly reversed.
+
+    .. change::
+        :tags: change, compatibility
+
+        Some internal modifications have been made to how the names of indexes and
+        unique constraints work to make use of new functions added in SQLAlchemy
+        1.4, so that SQLAlchemy has more flexibility over how naming conventions
+        may be applied to these objects.
 
 .. changelog::
     :version: 1.2.1

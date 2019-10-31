@@ -1,8 +1,0 @@
-.. change::
-    :tags: feature, command
-    :tickets: 608
-
-    Added support for ALEMBIC_CONFIG environment variable,
-    refers to the location of the alembic configuration script
-    in lieu of using the -c command line option.
-

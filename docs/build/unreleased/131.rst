@@ -1,6 +1,0 @@
-.. change::
-    :tags: bug, autogenerate
-    :tickets: 131
-
-    Fixed bug in new Variant autogenerate where the order of the arguments to
-    Variant were mistakenly reversed.

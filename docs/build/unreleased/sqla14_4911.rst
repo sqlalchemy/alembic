@@ -1,7 +1,0 @@
-.. change::
-    :tags: change, compatibility
-
-    Some internal modifications have been made to how the names of indexes and
-    unique constraints work to make use of new functions added in SQLAlchemy
-    1.4, so that SQLAlchemy has more flexibility over how naming conventions
-    may be applied to these objects.
