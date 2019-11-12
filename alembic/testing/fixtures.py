@@ -119,17 +119,20 @@ def op_fixture(
     buf = buffer_()
 
     class ctx(MigrationContext):
+        def get_buf(self):
+            return buf
+
         def clear_assertions(self):
             buf.lines[:] = []
 
         def assert_(self, *sql):
             # TODO: make this more flexible about
             # whitespace and such
-            eq_(buf.lines, list(sql))
+            eq_(buf.lines, [re.sub(r"[\n\t]", "", s) for s in sql])
 
         def assert_contains(self, sql):
             for stmt in buf.lines:
-                if sql in stmt:
+                if re.sub(r"[\n\t]", "", sql) in stmt:
                     return
             else:
                 assert False, "Could not locate fragment %r in %r" % (

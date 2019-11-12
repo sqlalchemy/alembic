@@ -117,7 +117,26 @@ class OpTest(TestBase):
         context = op_fixture("mssql")
         op.alter_column("t", "c", server_default=None)
         context.assert_contains(
+            "declare @const_name varchar(256)select @const_name = [name] "
+            "from sys.default_constraintswhere parent_object_id = "
+            "object_id('t')and col_name(parent_object_id, "
+            "parent_column_id) = 'c'"
+        )
+        context.assert_contains(
             "exec('alter table t drop constraint ' + @const_name)"
+        )
+
+    def test_alter_column_drop_default_w_schema(self):
+        context = op_fixture("mssql")
+        op.alter_column("t", "c", server_default=None, schema="xyz")
+        context.assert_contains(
+            "declare @const_name varchar(256)select @const_name = [name] "
+            "from sys.default_constraintswhere parent_object_id = "
+            "object_id('xyz.t')and col_name(parent_object_id, "
+            "parent_column_id) = 'c'"
+        )
+        context.assert_contains(
+            "exec('alter table xyz.t drop constraint ' + @const_name)"
         )
 
     def test_alter_column_dont_drop_default(self):
@@ -166,9 +185,35 @@ class OpTest(TestBase):
         context = op_fixture("mssql")
         op.drop_column("t1", "c1", mssql_drop_foreign_key=True)
         context.assert_contains(
+            "declare @const_name varchar(256)\n"
+            "select @const_name = [name] from\n"
+            "sys.foreign_keys fk join sys.foreign_key_columns fkcon "
+            "fk.object_id=fkc.constraint_object_id\n"
+            "where fkc.parent_object_id = object_id('t1')`and "
+            "col_name(fkc.parent_object_id, fkc.parent_column_id) = 'c1'\n"
+            "exec('alter table t1 drop constraint ' + @const_name)"
+        )
+        context.assert_contains(
             "exec('alter table t1 drop constraint ' + @const_name)"
         )
         context.assert_contains("ALTER TABLE t1 DROP COLUMN c1")
+
+    def test_drop_column_w_fk_schema(self):
+        context = op_fixture("mssql")
+        op.drop_column("t1", "c1", schema="xyz", mssql_drop_foreign_key=True)
+        context.assert_contains(
+            "declare @const_name varchar(256)\n"
+            "select @const_name = [name] from\n"
+            "sys.foreign_keys fk join sys.foreign_key_columns fkcon "
+            "fk.object_id=fkc.constraint_object_id\n"
+            "where fkc.parent_object_id = object_id('xyz.t1')`and "
+            "col_name(fkc.parent_object_id, fkc.parent_column_id) = 'c1'\n"
+            "exec('alter table xyz.t1 drop constraint ' + @const_name)"
+        )
+        context.assert_contains(
+            "exec('alter table xyz.t1 drop constraint ' + @const_name)"
+        )
+        context.assert_contains("ALTER TABLE xyz.t1 DROP COLUMN c1")
 
     def test_drop_column_w_fk_in_batch(self):
         context = op_fixture("mssql")

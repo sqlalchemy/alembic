@@ -89,7 +89,10 @@ class MSSQLImpl(DefaultImpl):
             if existing_server_default is not False or server_default is None:
                 self._exec(
                     _ExecDropConstraint(
-                        table_name, column_name, "sys.default_constraints"
+                        table_name,
+                        column_name,
+                        "sys.default_constraints",
+                        schema,
                     )
                 )
             if server_default is not None:
@@ -129,72 +132,83 @@ class MSSQLImpl(DefaultImpl):
         else:
             super(MSSQLImpl, self).bulk_insert(table, rows, **kw)
 
-    def drop_column(self, table_name, column, **kw):
+    def drop_column(self, table_name, column, schema=None, **kw):
         drop_default = kw.pop("mssql_drop_default", False)
         if drop_default:
             self._exec(
                 _ExecDropConstraint(
-                    table_name, column, "sys.default_constraints"
+                    table_name, column, "sys.default_constraints", schema
                 )
             )
         drop_check = kw.pop("mssql_drop_check", False)
         if drop_check:
             self._exec(
                 _ExecDropConstraint(
-                    table_name, column, "sys.check_constraints"
+                    table_name, column, "sys.check_constraints", schema
                 )
             )
         drop_fks = kw.pop("mssql_drop_foreign_key", False)
         if drop_fks:
-            self._exec(_ExecDropFKConstraint(table_name, column))
-        super(MSSQLImpl, self).drop_column(table_name, column, **kw)
+            self._exec(_ExecDropFKConstraint(table_name, column, schema))
+        super(MSSQLImpl, self).drop_column(
+            table_name, column, schema=schema, **kw
+        )
 
 
 class _ExecDropConstraint(Executable, ClauseElement):
-    def __init__(self, tname, colname, type_):
+    def __init__(self, tname, colname, type_, schema):
         self.tname = tname
         self.colname = colname
         self.type_ = type_
+        self.schema = schema
 
 
 class _ExecDropFKConstraint(Executable, ClauseElement):
-    def __init__(self, tname, colname):
+    def __init__(self, tname, colname, schema):
         self.tname = tname
         self.colname = colname
+        self.schema = schema
 
 
 @compiles(_ExecDropConstraint, "mssql")
 def _exec_drop_col_constraint(element, compiler, **kw):
-    tname, colname, type_ = element.tname, element.colname, element.type_
+    schema, tname, colname, type_ = (
+        element.schema,
+        element.tname,
+        element.colname,
+        element.type_,
+    )
     # from http://www.mssqltips.com/sqlservertip/1425/\
     # working-with-default-constraints-in-sql-server/
     # TODO: needs table formatting, etc.
     return """declare @const_name varchar(256)
 select @const_name = [name] from %(type)s
-where parent_object_id = object_id('%(tname)s')
+where parent_object_id = object_id('%(schema_dot)s%(tname)s')
 and col_name(parent_object_id, parent_column_id) = '%(colname)s'
 exec('alter table %(tname_quoted)s drop constraint ' + @const_name)""" % {
         "type": type_,
         "tname": tname,
         "colname": colname,
-        "tname_quoted": format_table_name(compiler, tname, None),
+        "tname_quoted": format_table_name(compiler, tname, schema),
+        "schema_dot": schema + "." if schema else "",
     }
 
 
 @compiles(_ExecDropFKConstraint, "mssql")
 def _exec_drop_col_fk_constraint(element, compiler, **kw):
-    tname, colname = element.tname, element.colname
+    schema, tname, colname = element.schema, element.tname, element.colname
 
     return """declare @const_name varchar(256)
 select @const_name = [name] from
-    sys.foreign_keys fk join sys.foreign_key_columns fkc
-    on fk.object_id=fkc.constraint_object_id
-where fkc.parent_object_id = object_id('%(tname)s')
-and col_name(fkc.parent_object_id, fkc.parent_column_id) = '%(colname)s'
+sys.foreign_keys fk join sys.foreign_key_columns fkc
+on fk.object_id=fkc.constraint_object_id
+where fkc.parent_object_id = object_id('%(schema_dot)s%(tname)s')
+`and col_name(fkc.parent_object_id, fkc.parent_column_id) = '%(colname)s'
 exec('alter table %(tname_quoted)s drop constraint ' + @const_name)""" % {
         "tname": tname,
         "colname": colname,
-        "tname_quoted": format_table_name(compiler, tname, None),
+        "tname_quoted": format_table_name(compiler, tname, schema),
+        "schema_dot": schema + "." if schema else "",
     }
 
 
