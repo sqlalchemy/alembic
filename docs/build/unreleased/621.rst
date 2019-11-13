@@ -1,8 +1,0 @@
-.. change::
-    :tags: bug, mssql
-    :tickets: 621
-
-    Fixed bug in MSSQL dialect where the drop constraint execution steps used
-    to remove server default or implicit foreign key constraint failed to take
-    into account the schema name of the target table.
-

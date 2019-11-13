@@ -5,7 +5,16 @@ Changelog
 
 .. changelog::
     :version: 1.3.1
-    :include_notes_from: unreleased
+    :released: November 13, 2019
+
+    .. change::
+        :tags: bug, mssql
+        :tickets: 621
+
+        Fixed bug in MSSQL dialect where the drop constraint execution steps used
+        to remove server default or implicit foreign key constraint failed to take
+        into account the schema name of the target table.
+
 
 .. changelog::
     :version: 1.3.0
