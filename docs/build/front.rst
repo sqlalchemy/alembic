@@ -25,6 +25,18 @@ assumed that an approach like `virtual environments
 that the target project also `has a setup.py script
 <https://packaging.python.org/tutorials/packaging-projects/>`_.
 
+.. note::
+
+    While the ``alembic`` command line tool runs perfectly fine no matter where
+    its installed, the rationale for project-local setup is that the Alembic
+    command line tool runs most of its key operations through a Python file
+    ``env.py`` that is established as part of a project's setup when the
+    ``alembic init`` command is run for that project;  the purpose of
+    ``env.py`` is to establish database connectivity and optionally model
+    definitions for the migration process, the latter of which in particular
+    usually rely upon being able to import the modules of the project itself.
+
+
 The documentation below is **only one kind of approach to installing Alembic for a
 project**; there are many such approaches.   The documentation below is
 provided only for those users who otherwise have no specific project setup
