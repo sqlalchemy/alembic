@@ -19,16 +19,49 @@ The most recent published version of this documentation should be at https://ale
 Installation
 ============
 
-Install released versions of Alembic from the Python package index with `pip <http://pypi.python.org/pypi/pip>`_ or a similar tool::
+Installation of Alembic is typically local to a project setup and it is usually
+assumed that an approach like `virtual environments
+<https://docs.python.org/3/tutorial/venv.html>`_ are used, which would include
+that the target project also `has a setup.py script
+<https://packaging.python.org/tutorials/packaging-projects/>`_.
 
-    pip install alembic
+The documentation below is **only one kind of approach to installing Alembic for a
+project**; there are many such approaches.   The documentation below is
+provided only for those users who otherwise have no specific project setup
+chosen.
 
-Installation via source distribution is via the ``setup.py`` script::
+To build a virtual environment for a specific project, first we assume that
+`Python virtualenv <https://pypi.org/project/virtualenv/>`_ is installed
+systemwide.  Then::
 
-    python setup.py install
+    $ cd /path/to/your/project
+    $ virtualenv .venv
 
-The install will add the ``alembic`` command to the environment.  All operations with Alembic
-then proceed through the usage of this command.
+There is now a Python interpreter that you can access in
+``/path/to/your/project/.venv/bin/python``, as well as the `pip
+<http://pypi.python.org/pypi/pip>`_ installer tool in
+``/path/to/your/project/.venv/bin/pip``.
+
+We now install Alembic as follows::
+
+    $ /path/to/your/project/.venv/bin/pip install alembic
+
+The install will add the ``alembic`` command to the virtual environment.  All
+operations with Alembic in terms of this specific virtual environment will then
+proceed through the usage of this command, as in::
+
+    $ /path/to/your/project/.venv/bin/alembic init .
+
+Next, we ensure that the local project is also installed, in a development environment
+this would be in `editable mode <https://pip.pypa.io/en/stable/reference/pip_install/#editable-installs>`_::
+
+    $ /path/to/your/project/.venv/bin/pip install -e .
+
+As a final step, the `virtualenv activate <https://virtualenv.pypa.io/en/latest/userguide/#activate-script>`_
+tool can be used so that the ``alembic`` command is available without any
+path information, within the context of the current shell::
+
+    $ source /path/to/your/project/.venv/bin/activate
 
 Dependencies
 ------------

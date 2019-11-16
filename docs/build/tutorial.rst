@@ -7,6 +7,18 @@ scripts for a relational database, using SQLAlchemy as the underlying engine.
 This tutorial will provide a full introduction to the theory and usage of this tool.
 
 To begin, make sure Alembic is installed as described at :ref:`installation`.
+As stated in the linked document, it is usually preferable that Alembic is
+installed in the **same module / Python path as that of the target project**,
+usually using a `Python virtual environment
+<https://docs.python.org/3/tutorial/venv.html>`_, so that when the ``alembic``
+command is run, the Python script which is invoked by ``alembic``,  namely your
+project's ``env.py`` script, will have access to your application's models.
+This is not strictly necessary in all cases, however in the vast majority of
+cases is usually preferred.
+
+The tutorial below assumes the ``alembic`` command line utility is present in
+the local path and when invoked, will have access to the same Python module
+environment as that of the target project.
 
 The Migration Environment
 ==========================
@@ -72,7 +84,8 @@ Creating an Environment
 With a basic understanding of what the environment is, we can create one using ``alembic init``.
 This will create an environment using the "generic" template::
 
-    $ cd yourproject
+    $ cd /path/to/yourproject
+    $ source /path/to/yourproject/.venv/bin/activate   # assuming a local virtualenv
     $ alembic init alembic
 
 Where above, the ``init`` command was called to generate a migrations directory called ``alembic``::
