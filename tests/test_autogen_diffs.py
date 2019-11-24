@@ -15,6 +15,7 @@ from sqlalchemy import Integer
 from sqlalchemy import MetaData
 from sqlalchemy import Numeric
 from sqlalchemy import PrimaryKeyConstraint
+from sqlalchemy import Sequence
 from sqlalchemy import SmallInteger
 from sqlalchemy import String
 from sqlalchemy import Table
@@ -1187,7 +1188,7 @@ class CompareMetadataTest(ModelOne, AutogenTest, TestBase):
         )
 
 
-class PGCompareMetaData(ModelOne, AutogenTest, TestBase):
+class PGCompareMetaDataTest(ModelOne, AutogenTest, TestBase):
     __only_on__ = "postgresql"
     __backend__ = True
     schema = "test_schema"
@@ -1624,3 +1625,38 @@ class AutoincrementTest(AutogenFixtureTest, TestBase):
 
         ops = self._fixture(m1, m2, return_ops=True)
         is_(ops.ops[0].ops[0].kw["autoincrement"], True)
+
+
+class TestAutogenCaseSensitiveTableNames(AutogenTest, TestBase):
+    __backend__ = True
+
+    @classmethod
+    def _get_db_schema(cls):
+        m = MetaData()
+        Table(
+            'MYTABLE',
+            m,
+            Column('ID', Integer, Sequence('ID_SEQ'), primary_key=True),
+        )
+        return m
+
+    @classmethod
+    def _get_model_schema(cls):
+        m = MetaData()
+        Table(
+            'MYTABLE',
+            m,
+            Column('ID', Integer, Sequence('ID_SEQ'), primary_key=True),
+        )
+
+        return m
+
+    def test_no_diffs(self):
+        """
+        Ensure that using case-sensitive names doesnt trigger spurious auto-gen
+        """
+        ctx = self.autogen_context
+        uo = ops.UpgradeOps(ops=[])
+        autogenerate._produce_net_changes(ctx, uo)
+        diffs = uo.as_diffs()
+        eq_(diffs, [])
