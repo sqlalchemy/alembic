@@ -16,4 +16,6 @@ from .assertions import is_false  # noqa
 from .assertions import is_not_  # noqa
 from .assertions import is_true  # noqa
 from .assertions import ne_  # noqa
+from .fixture_functions import combinations  # noqa
+from .fixture_functions import fixture  # noqa
 from .fixtures import TestBase  # noqa
