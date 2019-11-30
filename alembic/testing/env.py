@@ -27,9 +27,12 @@ def staging_env(create=True, template="generic", sourceless=False):
 
     cfg = _testing_config()
     if create:
+
         path = os.path.join(_get_staging_directory(), "scripts")
-        if os.path.exists(path):
-            shutil.rmtree(path)
+        assert not os.path.exists(path), (
+            "staging directory %s already exists; poor cleanup?" % path
+        )
+
         command.init(cfg, path, template=template)
         if sourceless:
             try:

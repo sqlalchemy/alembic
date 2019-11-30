@@ -11,6 +11,7 @@ import sys
 
 from sqlalchemy.testing.plugin.plugin_base import *  # noqa
 from sqlalchemy.testing.plugin.plugin_base import post
+from sqlalchemy.testing.plugin.plugin_base import stop_test_class as sqla_stc
 
 py3k = sys.version_info >= (3, 0)
 
@@ -24,6 +25,16 @@ else:
 
 
 # override selected SQLAlchemy pytest hooks with vendored functionality
+def stop_test_class(cls):
+    sqla_stc(cls)
+    import os
+    from alembic.testing.env import _get_staging_directory
+
+    assert not os.path.exists(_get_staging_directory()), (
+        "staging directory %s was not cleaned up" % _get_staging_directory()
+    )
+
+
 def want_class(name, cls):
     from sqlalchemy.testing import config
     from sqlalchemy.testing import fixtures

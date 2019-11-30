@@ -1261,6 +1261,9 @@ class NormPathTest(TestBase):
     def setUp(self):
         self.env = staging_env()
 
+    def tearDown(self):
+        clear_staging_env()
+
     def test_script_location(self):
         config = _no_sql_testing_config()
 
