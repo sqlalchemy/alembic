@@ -31,6 +31,9 @@ except ImportError:
         return name
 
 
+_HAS_COMPUTED = hasattr(sa_schema, "Computed")
+
+
 def _indent(text):
     text = re.compile(r"^", re.M).sub("    ", text).strip()
     text = re.compile(r" +$", re.M).sub("", text)
@@ -593,8 +596,11 @@ def _render_column(column, autogen_context):
     if rendered is not False:
         return rendered
 
+    args = []
     opts = []
-    if column.server_default:
+    if _HAS_COMPUTED and isinstance(column.computed, sa_schema.Computed):
+        args.append(_render_computed(column.computed, autogen_context))
+    elif column.server_default:
         rendered = _render_server_default(
             column.server_default, autogen_context
         )
@@ -618,10 +624,11 @@ def _render_column(column, autogen_context):
         opts.append(("comment", "%r" % comment))
 
     # TODO: for non-ascii colname, assign a "key"
-    return "%(prefix)sColumn(%(name)r, %(type)s, %(kwargs)s)" % {
+    return "%(prefix)sColumn(%(name)r, %(type)s, %(args)s %(kwargs)s)" % {
         "prefix": _sqlalchemy_autogenerate_prefix(autogen_context),
         "name": _ident(column.name),
         "type": _repr_type(column.type, autogen_context),
+        "args": ", ".join([str(arg) for arg in args]) + ", " if args else "",
         "kwargs": (
             ", ".join(
                 ["%s=%s" % (kwname, val) for kwname, val in opts]
@@ -652,6 +659,21 @@ def _render_server_default(default, autogen_context, repr_=True):
         default = repr(re.sub(r"^'|'$", "", default))
 
     return default
+
+
+def _render_computed(computed: sa_schema.Computed, autogen_context):
+    text = _render_potential_expr(
+        computed.sqltext, autogen_context, wrap_in_text=False
+    )
+
+    kwargs = {}
+    if computed.persisted is not None:
+        kwargs["persisted"] = computed.persisted
+    return "%(prefix)sComputed(%(text)s, %(kwargs)s)" % {
+        "prefix": _sqlalchemy_autogenerate_prefix(autogen_context),
+        "text": text,
+        "kwargs": (", ".join("%s=%s" % pair for pair in kwargs.items())),
+    }
 
 
 def _repr_type(type_, autogen_context):
