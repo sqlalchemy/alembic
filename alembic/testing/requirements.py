@@ -140,3 +140,14 @@ class SuiteRequirements(Requirements):
     @property
     def alter_column(self):
         return exclusions.open()
+
+    @property
+    def db_computed_columns(self):
+        # TODO: should import the requirements from sqlalchemy
+        return exclusions.skip_if(["postgresql < 12", "sqlite", "mysql < 5.7"])
+
+    @property
+    def sa_computed_column(self):
+        return exclusions.only_if(
+            exclusions.BooleanPredicate(sqla_compat.has_computed)
+        )

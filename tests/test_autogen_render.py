@@ -1977,6 +1977,75 @@ class AutogenRenderTest(TestBase):
             ")",
         )
 
+    @config.requirements.sa_computed_column
+    def test_render_add_column_computed(self):
+        op_obj = ops.AddColumnOp("foo", Column("x", Integer, sa.Computed("5")))
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.add_column('foo', sa.Column('x', sa.Integer(), "
+            "sa.Computed('5', ), nullable=True))",
+        )
+
+    @config.requirements.sa_computed_column
+    def test_render_add_column_computed_persisted(self):
+        for persisted in (True, False):
+            op_obj = ops.AddColumnOp(
+                "foo",
+                Column("x", Integer, sa.Computed("5", persisted=persisted)),
+            )
+            eq_ignore_whitespace(
+                autogenerate.render_op_text(self.autogen_context, op_obj),
+                "op.add_column('foo', sa.Column('x', sa.Integer(), "
+                "sa.Computed('5', persisted=%s), nullable=True))" % persisted,
+            )
+
+    @config.requirements.sa_computed_column
+    def test_render_alter_column_computed(self):
+        op_obj = ops.AlterColumnOp(
+            "sometable", "somecolumn", modify_server_default=sa.Computed("7")
+        )
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.alter_column('sometable', 'somecolumn', "
+            "server_default=sa.Computed('7', ))",
+        )
+        op_obj = ops.AlterColumnOp(
+            "sometable",
+            "somecolumn",
+            existing_server_default=sa.Computed("42"),
+        )
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.alter_column('sometable', 'somecolumn', "
+            "existing_server_default=sa.Computed('42', ))",
+        )
+
+    @config.requirements.sa_computed_column
+    def test_render_alter_column_computed_perisisted(self):
+        for persisted in (True, False):
+
+            op_obj = ops.AlterColumnOp(
+                "sometable",
+                "somecolumn",
+                modify_server_default=sa.Computed("7", persisted=persisted),
+            )
+            eq_ignore_whitespace(
+                autogenerate.render_op_text(self.autogen_context, op_obj),
+                "op.alter_column('sometable', 'somecolumn', "
+                "server_default=sa.Computed('7', persisted=%s))" % persisted,
+            )
+            op_obj = ops.AlterColumnOp(
+                "sometable",
+                "somecolumn",
+                existing_server_default=sa.Computed("42", persisted=persisted),
+            )
+            eq_ignore_whitespace(
+                autogenerate.render_op_text(self.autogen_context, op_obj),
+                "op.alter_column('sometable', 'somecolumn', "
+                "existing_server_default=sa.Computed('42', persisted=%s))"
+                % persisted,
+            )
+
 
 class RenderNamingConventionTest(TestBase):
     def setUp(self):

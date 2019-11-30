@@ -27,6 +27,7 @@ from .sqla_compat import sqla_1115  # noqa
 from .sqla_compat import sqla_120  # noqa
 from .sqla_compat import sqla_1216  # noqa
 from .sqla_compat import sqla_13  # noqa
+from .sqla_compat import has_computed  # noqa
 
 
 if not sqla_110:

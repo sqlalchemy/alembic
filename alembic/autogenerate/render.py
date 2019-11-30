@@ -31,9 +31,6 @@ except ImportError:
         return name
 
 
-_HAS_COMPUTED = hasattr(sa_schema, "Computed")
-
-
 def _indent(text):
     text = re.compile(r"^", re.M).sub("    ", text).strip()
     text = re.compile(r" +$", re.M).sub("", text)
@@ -598,14 +595,17 @@ def _render_column(column, autogen_context):
 
     args = []
     opts = []
-    if _HAS_COMPUTED and isinstance(column.computed, sa_schema.Computed):
-        args.append(_render_computed(column.computed, autogen_context))
-    elif column.server_default:
+    if column.server_default:
         rendered = _render_server_default(
             column.server_default, autogen_context
         )
         if rendered:
-            opts.append(("server_default", rendered))
+            if sqla_compat.has_computed and isinstance(
+                column.computed, sa_schema.Computed
+            ):
+                args.append(rendered)
+            else:
+                opts.append(("server_default", rendered))
 
     if (
         column.autoincrement is not None
@@ -624,7 +624,7 @@ def _render_column(column, autogen_context):
         opts.append(("comment", "%r" % comment))
 
     # TODO: for non-ascii colname, assign a "key"
-    return "%(prefix)sColumn(%(name)r, %(type)s, %(args)s %(kwargs)s)" % {
+    return "%(prefix)sColumn(%(name)r, %(type)s, %(args)s%(kwargs)s)" % {
         "prefix": _sqlalchemy_autogenerate_prefix(autogen_context),
         "name": _ident(column.name),
         "type": _repr_type(column.type, autogen_context),
@@ -646,6 +646,9 @@ def _render_server_default(default, autogen_context, repr_=True):
     rendered = _user_defined_render("server_default", default, autogen_context)
     if rendered is not False:
         return rendered
+
+    if sqla_compat.has_computed and isinstance(default, sa_schema.Computed):
+        return _render_computed(default, autogen_context)
 
     if isinstance(default, sa_schema.DefaultClause):
         if isinstance(default.arg, compat.string_types):
