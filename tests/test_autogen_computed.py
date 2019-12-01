@@ -9,9 +9,15 @@ from alembic.testing import exclusions
 from alembic.testing import TestBase
 from ._autogen_fixtures import AutogenFixtureTest
 
+pg_reason = (
+    "sqlalchemy on postgres detects a computed column "
+    "as a normal server default during inspection"
+)
 
-class AutogenerateComputedNoBackendTest(AutogenFixtureTest, TestBase):
-    __requires__ = ("sa_computed_column",)
+
+class AutogenerateComputedTest(AutogenFixtureTest, TestBase):
+    __requires__ = ("sa_computed_column", "db_computed_columns")
+    __backend__ = True
 
     def test_add_computed_column(self):
         m1 = MetaData()
@@ -39,10 +45,41 @@ class AutogenerateComputedNoBackendTest(AutogenFixtureTest, TestBase):
         assert c.persisted is None
         eq_(str(c.sqltext), "5")
 
+    def _test_remove_computed_column(self):
+        m1 = MetaData()
+        m2 = MetaData()
 
-class AutogenerateComputedBackendTest(AutogenFixtureTest, TestBase):
-    __requires__ = ("sa_computed_column", "db_computed_columns")
-    __backend__ = True
+        Table(
+            "user",
+            m1,
+            Column("id", Integer, primary_key=True),
+            Column("foo", Integer, sa.Computed("5")),
+        )
+
+        Table(
+            "user", m2, Column("id", Integer, primary_key=True),
+        )
+
+        diffs = self._fixture(m1, m2)
+
+        eq_(diffs[0][0], "remove_column")
+        eq_(diffs[0][2], "user")
+        c = diffs[0][3]
+        eq_(c.name, "foo")
+
+        assert c.computed is None
+        return c
+
+    @exclusions.skip_if(["postgresql"], pg_reason)
+    def test_remove_computed_column(self):
+        column = self._test_remove_computed_column()
+        assert column.server_default is None
+
+    @exclusions.only_if(["postgresql"], pg_reason)
+    def test_remove_computed_column_postgres(self):
+        column = self._test_remove_computed_column()
+        assert isinstance(column.server_default, sa.DefaultClause)
+        eq_(str(column.server_default.arg.text), "5")
 
     def _test_computed_unchanged(self, argBefore, argAfter):
         # no combination until sqlalchemy 1.3.7
@@ -77,22 +114,24 @@ class AutogenerateComputedBackendTest(AutogenFixtureTest, TestBase):
             [sa.Computed("bar*5")], [sa.Computed("bar*5")]
         )
 
+    def test_unchanged_change_expression(self):
+        self._test_computed_unchanged(
+            [sa.Computed("bar*5")], [sa.Computed("bar * 42")]
+        )
+
+    def test_unchanged_change_persisted(self):
+        self._test_computed_unchanged(
+            [sa.Computed("bar*5")], [sa.Computed("bar * 42", persisted=True)]
+        )
+
     def test_unchanged_add_computed(self):
         self._test_computed_unchanged([], [sa.Computed("bar*5")])
 
-    @exclusions.skip_if(
-        ["postgresql"],
-        "sqlalchemy on postgres detects a computed column "
-        "as a normal server default during inspection",
-    )
+    @exclusions.skip_if(["postgresql"], pg_reason)
     def test_unchanged_remove_computed(self):
         self._test_computed_unchanged([sa.Computed("bar*5")], [])
 
-    @exclusions.only_if(
-        ["postgresql"],
-        "sqlalchemy on postgres detects a computed column "
-        "as a normal server default during inspection",
-    )
+    @exclusions.only_if(["postgresql"], pg_reason)
     def test_remove_computed_postgresql(self):
         m1 = MetaData()
         m2 = MetaData()
