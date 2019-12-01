@@ -910,6 +910,15 @@ def _compare_server_default(
     conn_col_default = conn_col.server_default
     if conn_col_default is None and metadata_default is None:
         return False
+
+    if sqla_compat.has_computed and isinstance(
+        metadata_default, sa_schema.Computed
+    ):
+        # Force returning false in case of a computed column as the server
+        # default.
+        # TODO: Improve this once sqlalchemy support inspection of computed
+        # columns
+        return False
     rendered_metadata_default = _render_server_default_for_compare(
         metadata_default, metadata_col, autogen_context
     )

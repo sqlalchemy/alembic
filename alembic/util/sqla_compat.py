@@ -32,7 +32,8 @@ sqla_1216 = _vers >= (1, 2, 16)
 sqla_13 = _vers >= (1, 3)
 sqla_14 = _vers >= (1, 4)
 try:
-    from sqlalchemy import Computed # noqa
+    from sqlalchemy import Computed  # noqa
+
     has_computed = True
 except ImportError:
     has_computed = False
