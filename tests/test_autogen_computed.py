@@ -9,10 +9,11 @@ from alembic.testing import exclusions
 from alembic.testing import TestBase
 from ._autogen_fixtures import AutogenFixtureTest
 
-pg_reason = (
-    "sqlalchemy on postgres detects a computed column "
+default_on_computed_backends = ["postgresql", "oracle"]
+default_on_computed_reason = (
+    "sqlalchemy on %s detects a computed column "
     "as a normal server default during inspection"
-)
+) % (", ".join(default_on_computed_backends))
 
 
 class AutogenerateComputedTest(AutogenFixtureTest, TestBase):
@@ -70,13 +71,17 @@ class AutogenerateComputedTest(AutogenFixtureTest, TestBase):
         assert c.computed is None
         return c
 
-    @exclusions.skip_if(["postgresql"], pg_reason)
+    @exclusions.skip_if(
+        default_on_computed_backends, default_on_computed_reason
+    )
     def test_remove_computed_column(self):
         column = self._test_remove_computed_column()
         assert column.server_default is None
 
-    @exclusions.only_if(["postgresql"], pg_reason)
-    def test_remove_computed_column_postgres(self):
+    @exclusions.only_if(
+        default_on_computed_backends, default_on_computed_reason
+    )
+    def test_remove_computed_column_default_on_computed(self):
         column = self._test_remove_computed_column()
         assert isinstance(column.server_default, sa.DefaultClause)
         eq_(str(column.server_default.arg.text), "5")
@@ -127,12 +132,16 @@ class AutogenerateComputedTest(AutogenFixtureTest, TestBase):
     def test_unchanged_add_computed(self):
         self._test_computed_unchanged([], [sa.Computed("bar*5")])
 
-    @exclusions.skip_if(["postgresql"], pg_reason)
+    @exclusions.skip_if(
+        default_on_computed_backends, default_on_computed_reason
+    )
     def test_unchanged_remove_computed(self):
         self._test_computed_unchanged([sa.Computed("bar*5")], [])
 
-    @exclusions.only_if(["postgresql"], pg_reason)
-    def test_remove_computed_postgresql(self):
+    @exclusions.only_if(
+        default_on_computed_backends, default_on_computed_reason
+    )
+    def test_remove_computed_default_on_computed(self):
         m1 = MetaData()
         m2 = MetaData()
 

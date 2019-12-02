@@ -664,7 +664,7 @@ def _render_server_default(default, autogen_context, repr_=True):
     return default
 
 
-def _render_computed(computed: sa_schema.Computed, autogen_context):
+def _render_computed(computed, autogen_context):
     text = _render_potential_expr(
         computed.sqltext, autogen_context, wrap_in_text=False
     )
