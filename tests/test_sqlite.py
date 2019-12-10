@@ -165,6 +165,10 @@ class SQLiteDefaultCompareTest(TestBase):
             DateTime(), func.datetime("now", "localtime")
         )
 
+    @config.requirements.sqlalchemy_12
+    def test_compare_current_timestamp_func_now(self):
+        self._compare_default_roundtrip(DateTime(), func.now())
+
     def test_compare_current_timestamp_text(self):
         # SQLAlchemy doesn't render the parenthesis for a
         # SQLite server default specified as text(), so users will be doing
