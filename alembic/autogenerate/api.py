@@ -143,6 +143,7 @@ def render_python_code(
     render_as_batch=False,
     imports=(),
     render_item=None,
+    migration_context=None,
 ):
     """Render Python code given an :class:`.UpgradeOps` or
     :class:`.DowngradeOps` object.
@@ -158,7 +159,15 @@ def render_python_code(
         "render_as_batch": render_as_batch,
     }
 
-    autogen_context = AutogenContext(None, opts=opts)
+    if migration_context is None:
+        from ..runtime.migration import MigrationContext
+        from sqlalchemy.engine.default import DefaultDialect
+
+        migration_context = MigrationContext.configure(
+            dialect=DefaultDialect()
+        )
+
+    autogen_context = AutogenContext(migration_context, opts=opts)
     autogen_context.imports = set(imports)
     return render._indent(
         render._render_cmd_body(up_or_down_op, autogen_context)
