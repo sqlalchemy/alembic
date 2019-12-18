@@ -194,6 +194,19 @@ class PostgresqlOpTest(TestBase):
         context.assert_("COMMENT ON COLUMN foo.t.c IS 'This is a column comment'")
 
     @config.requirements.comments_api
+    def test_alter_column_add_comment_table_and_column_quoting(self):
+        context = op_fixture("postgresql")
+        op.alter_column(
+            "T",
+            "C",
+            existing_type=Boolean(),
+            schema="foo",
+            comment="This is a column comment",
+        )
+
+        context.assert_("COMMENT ON COLUMN foo.\"T\".\"C\" IS 'This is a column comment'")
+
+    @config.requirements.comments_api
     def test_alter_column_add_comment_quoting(self):
         context = op_fixture("postgresql")
         op.alter_column(

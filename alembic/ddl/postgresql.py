@@ -17,6 +17,7 @@ from .base import alter_table
 from .base import AlterColumn
 from .base import ColumnComment
 from .base import compiles
+from .base import format_column_name
 from .base import format_table_name
 from .base import format_type
 from .base import RenameTable
@@ -281,7 +282,7 @@ def visit_column_comment(element, compiler, **kw):
 
     return ddl.format(
         table_name=format_table_name(compiler, element.table_name, element.schema),
-        column_name=element.column_name,
+        column_name=format_column_name(compiler, element.column_name),
         comment=comment,
     )
 
