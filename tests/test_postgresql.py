@@ -191,7 +191,9 @@ class PostgresqlOpTest(TestBase):
             comment="This is a column comment",
         )
 
-        context.assert_("COMMENT ON COLUMN foo.t.c IS 'This is a column comment'")
+        context.assert_(
+            "COMMENT ON COLUMN foo.t.c IS 'This is a column comment'"
+        )
 
     @config.requirements.comments_api
     def test_alter_column_add_comment_table_and_column_quoting(self):
@@ -204,7 +206,9 @@ class PostgresqlOpTest(TestBase):
             comment="This is a column comment",
         )
 
-        context.assert_("COMMENT ON COLUMN foo.\"T\".\"C\" IS 'This is a column comment'")
+        context.assert_(
+            "COMMENT ON COLUMN foo.\"T\".\"C\" IS 'This is a column comment'"
+        )
 
     @config.requirements.comments_api
     def test_alter_column_add_comment_quoting(self):

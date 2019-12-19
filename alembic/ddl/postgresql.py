@@ -281,7 +281,9 @@ def visit_column_comment(element, compiler, **kw):
     )
 
     return ddl.format(
-        table_name=format_table_name(compiler, element.table_name, element.schema),
+        table_name=format_table_name(
+            compiler, element.table_name, element.schema
+        ),
         column_name=format_column_name(compiler, element.column_name),
         comment=comment,
     )
