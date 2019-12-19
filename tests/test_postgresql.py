@@ -207,7 +207,7 @@ class PostgresqlOpTest(TestBase):
         )
 
         context.assert_(
-            "COMMENT ON COLUMN foo.\"T\".\"C\" IS 'This is a column comment'"
+            'COMMENT ON COLUMN foo."T"."C" IS \'This is a column comment\''
         )
 
     @config.requirements.comments_api
