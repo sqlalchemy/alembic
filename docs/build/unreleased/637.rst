@@ -1,0 +1,7 @@
+.. change::
+    :tags: bug, postgresql
+    :tickets: 637
+
+    Fixed issue where COMMENT directives for PostgreSQL failed to correctly
+    include an explicit schema name, as well as correct quoting rules for
+    schema, table, and column names.  Pull request courtesy Matthew Sills.
