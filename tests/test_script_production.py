@@ -1236,7 +1236,7 @@ def downgrade():
         clear_staging_env()
 
     def test_env_emits_warning(self):
-        with assertions.expect_warnings(
+        mgs = (
             "File %s loaded twice! ignoring. "
             "Please ensure version_locations is unique"
             % (
@@ -1248,7 +1248,9 @@ def downgrade():
                     )
                 )
             )
-        ):
+        )
+        mgs = mgs.replace("\\", "\\\\")  # must escape a windows path
+        with assertions.expect_warnings(mgs):
             script = ScriptDirectory.from_config(self.cfg)
             script.revision_map.heads
             eq_(
