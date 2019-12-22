@@ -5,6 +5,7 @@
 # This module is part of SQLAlchemy and is released under
 # the MIT License: http://www.opensource.org/licenses/mit-license.php
 from os.path import join
+from ..util.compat import win
 
 
 def flag_combinations(*combinations):
@@ -84,4 +85,6 @@ def metadata_fixture(ddl="function"):
 def path(linuxPath):
     """Takes a linux path with / and transforms it to the correct os path.
     This is mainly to support windows \\"""
-    return join(*linuxPath.split("/"))
+    if win:
+        return join(*linuxPath.split("/"))
+    return linuxPath
