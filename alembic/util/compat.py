@@ -8,6 +8,7 @@ py2k = sys.version_info.major < 3
 py3k = sys.version_info.major >= 3
 py35 = sys.version_info >= (3, 5)
 py36 = sys.version_info >= (3, 6)
+win = "win" in sys.platform
 
 
 ArgSpec = collections.namedtuple(

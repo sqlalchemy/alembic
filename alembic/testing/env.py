@@ -13,6 +13,7 @@ from ..script import ScriptDirectory
 from ..util.compat import get_current_bytecode_suffixes
 from ..util.compat import has_pep3147
 from ..util.compat import u
+from ..util.compat import win
 
 
 def _get_staging_directory():
@@ -59,10 +60,6 @@ def staging_env(create=True, template="generic", sourceless=False):
     return sc
 
 
-def clear_staging_env():
-    shutil.rmtree(_get_staging_directory(), True)
-
-
 def script_file_fixture(txt):
     dir_ = os.path.join(_get_staging_directory(), "scripts")
     path = os.path.join(dir_, "script.py.mako")
@@ -90,10 +87,53 @@ config = context.config
         f.write(txt)
 
 
-def _sqlite_file_db(tempname="foo.db"):
-    dir_ = os.path.join(_get_staging_directory(), "scripts")
-    url = "sqlite:///%s/%s" % (dir_, tempname)
-    return engines.testing_engine(url=url)
+if win:
+    # windows cannot remove an open file. An sqlite db file stays open
+    # until any connection to it is open, so we need to keep track of the
+    # engine and of all the connection to close them when clearing the
+    # the staging env
+    def clear_staging_env():
+        for entry in _engine_registry.values():
+            _clear_engine(entry)
+        _engine_registry.clear()
+        shutil.rmtree(_get_staging_directory(), True)
+
+    _engine_registry = {}
+
+    def _clear_engine(entry):
+        entry["engine"].dispose()
+        for conn in entry["connections"]:
+            conn.close()
+
+    def _sqlite_file_db(tempname="foo.db"):
+        dir_ = os.path.join(_get_staging_directory(), "scripts")
+        url = "sqlite:///%s/%s" % (dir_, tempname)
+        eng = engines.testing_engine(url=url)
+
+        if url in _engine_registry:
+            _clear_engine(_engine_registry[url])
+        entry = {"engine": eng, "connections": []}
+        _engine_registry[url] = entry
+        _orig_connect = eng.connect
+
+        def connect(*args, **kwargs):
+            conn = _orig_connect(*args, **kwargs)
+            entry["connections"].append(conn)
+            return conn
+
+        eng.connect = connect
+        return eng
+
+
+else:
+
+    def clear_staging_env():
+        shutil.rmtree(_get_staging_directory(), True)
+
+    def _sqlite_file_db(tempname="foo.db"):
+        dir_ = os.path.join(_get_staging_directory(), "scripts")
+        url = "sqlite:///%s/%s" % (dir_, tempname)
+        return engines.testing_engine(url=url)
 
 
 def _sqlite_testing_config(sourceless=False):
