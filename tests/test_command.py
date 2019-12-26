@@ -16,7 +16,7 @@ from alembic.testing import assert_raises
 from alembic.testing import assert_raises_message
 from alembic.testing import eq_
 from alembic.testing import mock
-from alembic.testing import path
+from alembic.testing import ospath
 from alembic.testing.env import _get_staging_directory
 from alembic.testing.env import _no_sql_testing_config
 from alembic.testing.env import _sqlite_file_db
@@ -96,17 +96,20 @@ finally:
             rev = script.get_revision(_id)
             if _id in currents:
                 rev._db_current_indicator = True
-            entry = rev.log_entry
-            if os.linesep != '\n':
-                entry = entry.replace('\n', os.linesep)
-            assert_lines.append(entry)
+            assert_lines.append(rev.log_entry)
 
         if env_token:
             assert_lines.insert(0, "environment included OK")
 
+        actual = (
+            buf.getvalue()
+            .decode("ascii", "replace")
+            .replace(os.linesep, "\n")
+            .strip()
+        )
         eq_(
-            buf.getvalue().decode("ascii", "replace").strip(),
-            os.linesep.join(assert_lines)
+            actual,
+            "\n".join(assert_lines)
             .encode("ascii", "replace")
             .decode("ascii")
             .strip(),
@@ -883,7 +886,7 @@ class EditTest(TestBase):
         command.stamp(self.cfg, "base")
 
     def test_edit_head(self):
-        expected_call_arg = path(
+        expected_call_arg = ospath(
             "%s/scripts/versions/%s_revision_c.py"
             % (EditTest.cfg.config_args["here"], EditTest.c,)
         )
@@ -893,7 +896,7 @@ class EditTest(TestBase):
             edit.assert_called_with(expected_call_arg)
 
     def test_edit_b(self):
-        expected_call_arg = path(
+        expected_call_arg = ospath(
             "%s/scripts/versions/%s_revision_b.py"
             % (EditTest.cfg.config_args["here"], EditTest.b,)
         )
@@ -932,7 +935,7 @@ class EditTest(TestBase):
         )
 
     def test_edit_current(self):
-        expected_call_arg = path(
+        expected_call_arg = ospath(
             "%s/scripts/versions/%s_revision_b.py"
             % (EditTest.cfg.config_args["here"], EditTest.b,)
         )
@@ -1100,7 +1103,7 @@ class CommandLineTest(TestBase):
             "alembic.command.ScriptDirectory"
         ):
             command.init(self.cfg, directory="foobar")
-            eq_(makedirs.mock_calls, [mock.call(path("foobar/versions"))])
+            eq_(makedirs.mock_calls, [mock.call(ospath("foobar/versions"))])
 
     def test_init_file_doesnt_exist(self):
         def access_(path, mode):
@@ -1117,7 +1120,7 @@ class CommandLineTest(TestBase):
             command.init(self.cfg, directory="foobar")
             eq_(
                 makedirs.mock_calls,
-                [mock.call("foobar"), mock.call(path("foobar/versions"))],
+                [mock.call("foobar"), mock.call(ospath("foobar/versions"))],
             )
 
     def test_init_w_package(self):

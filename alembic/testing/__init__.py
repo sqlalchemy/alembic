@@ -19,4 +19,4 @@ from .assertions import ne_  # noqa
 from .fixture_functions import combinations  # noqa
 from .fixture_functions import fixture  # noqa
 from .fixtures import TestBase  # noqa
-from .util import path  # noqa
+from .util import ospath  # noqa
