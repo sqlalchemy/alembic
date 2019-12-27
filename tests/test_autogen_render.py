@@ -1983,7 +1983,7 @@ class AutogenRenderTest(TestBase):
         eq_ignore_whitespace(
             autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.add_column('foo', sa.Column('x', sa.Integer(), "
-            "sa.Computed('5', ), nullable=True))",
+            "sa.Computed(!U'5', ), nullable=True))",
         )
 
     @config.requirements.sa_computed_column
@@ -1996,7 +1996,7 @@ class AutogenRenderTest(TestBase):
             eq_ignore_whitespace(
                 autogenerate.render_op_text(self.autogen_context, op_obj),
                 "op.add_column('foo', sa.Column('x', sa.Integer(), "
-                "sa.Computed('5', persisted=%s), nullable=True))" % persisted,
+                "sa.Computed(!U'5', persisted=%s), nullable=True))" % persisted,
             )
 
     @config.requirements.sa_computed_column
@@ -2007,7 +2007,7 @@ class AutogenRenderTest(TestBase):
         eq_ignore_whitespace(
             autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.alter_column('sometable', 'somecolumn', "
-            "server_default=sa.Computed('7', ))",
+            "server_default=sa.Computed(!U'7', ))",
         )
         op_obj = ops.AlterColumnOp(
             "sometable",
@@ -2017,7 +2017,7 @@ class AutogenRenderTest(TestBase):
         eq_ignore_whitespace(
             autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.alter_column('sometable', 'somecolumn', "
-            "existing_server_default=sa.Computed('42', ))",
+            "existing_server_default=sa.Computed(!U'42', ))",
         )
 
     @config.requirements.sa_computed_column
@@ -2032,7 +2032,7 @@ class AutogenRenderTest(TestBase):
             eq_ignore_whitespace(
                 autogenerate.render_op_text(self.autogen_context, op_obj),
                 "op.alter_column('sometable', 'somecolumn', "
-                "server_default=sa.Computed('7', persisted=%s))" % persisted,
+                "server_default=sa.Computed(!U'7', persisted=%s))" % persisted,
             )
             op_obj = ops.AlterColumnOp(
                 "sometable",
@@ -2042,7 +2042,7 @@ class AutogenRenderTest(TestBase):
             eq_ignore_whitespace(
                 autogenerate.render_op_text(self.autogen_context, op_obj),
                 "op.alter_column('sometable', 'somecolumn', "
-                "existing_server_default=sa.Computed('42', persisted=%s))"
+                "existing_server_default=sa.Computed(!U'42', persisted=%s))"
                 % persisted,
             )
 

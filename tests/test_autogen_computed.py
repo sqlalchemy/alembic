@@ -4,6 +4,7 @@ from sqlalchemy import Integer
 from sqlalchemy import MetaData
 from sqlalchemy import Table
 
+from alembic.testing import config
 from alembic.testing import eq_
 from alembic.testing import exclusions
 from alembic.testing import TestBase
@@ -171,4 +172,7 @@ class AutogenerateComputedTest(AutogenFixtureTest, TestBase):
 
         assert new is None
         assert isinstance(old, sa.DefaultClause)
-        eq_(str(old.arg.text), "(bar + 42)")
+        if config.db.name == "postgresql":
+            eq_(str(old.arg.text), "(bar + 42)")
+        else:  # oracle
+            eq_(str(old.arg.text), '"BAR"+42')
