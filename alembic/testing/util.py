@@ -4,8 +4,6 @@
 #
 # This module is part of SQLAlchemy and is released under
 # the MIT License: http://www.opensource.org/licenses/mit-license.php
-from os.path import normpath
-from ..util.compat import win
 
 
 def flag_combinations(*combinations):
@@ -80,11 +78,3 @@ def metadata_fixture(ddl="function"):
         return fixture_functions.fixture(scope=ddl)(run_ddl)
 
     return decorate
-
-
-def ospath(linux_path):
-    """Takes a linux path with / and transforms it to the correct os path.
-    This is mainly to support windows \\"""
-    if win:
-        return normpath(linux_path)
-    return linux_path

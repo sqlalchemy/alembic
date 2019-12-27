@@ -16,7 +16,6 @@ from alembic.testing import assert_raises
 from alembic.testing import assert_raises_message
 from alembic.testing import eq_
 from alembic.testing import mock
-from alembic.testing import ospath
 from alembic.testing.env import _get_staging_directory
 from alembic.testing.env import _no_sql_testing_config
 from alembic.testing.env import _sqlite_file_db
@@ -886,7 +885,7 @@ class EditTest(TestBase):
         command.stamp(self.cfg, "base")
 
     def test_edit_head(self):
-        expected_call_arg = ospath(
+        expected_call_arg = os.path.normpath(
             "%s/scripts/versions/%s_revision_c.py"
             % (EditTest.cfg.config_args["here"], EditTest.c,)
         )
@@ -896,7 +895,7 @@ class EditTest(TestBase):
             edit.assert_called_with(expected_call_arg)
 
     def test_edit_b(self):
-        expected_call_arg = ospath(
+        expected_call_arg = os.path.normpath(
             "%s/scripts/versions/%s_revision_b.py"
             % (EditTest.cfg.config_args["here"], EditTest.b,)
         )
@@ -935,7 +934,7 @@ class EditTest(TestBase):
         )
 
     def test_edit_current(self):
-        expected_call_arg = ospath(
+        expected_call_arg = os.path.normpath(
             "%s/scripts/versions/%s_revision_b.py"
             % (EditTest.cfg.config_args["here"], EditTest.b,)
         )
@@ -1103,7 +1102,10 @@ class CommandLineTest(TestBase):
             "alembic.command.ScriptDirectory"
         ):
             command.init(self.cfg, directory="foobar")
-            eq_(makedirs.mock_calls, [mock.call(ospath("foobar/versions"))])
+            eq_(
+                makedirs.mock_calls,
+                [mock.call(os.path.normpath("foobar/versions"))],
+            )
 
     def test_init_file_doesnt_exist(self):
         def access_(path, mode):
@@ -1120,7 +1122,10 @@ class CommandLineTest(TestBase):
             command.init(self.cfg, directory="foobar")
             eq_(
                 makedirs.mock_calls,
-                [mock.call("foobar"), mock.call(ospath("foobar/versions"))],
+                [
+                    mock.call("foobar"),
+                    mock.call(os.path.normpath("foobar/versions")),
+                ],
             )
 
     def test_init_w_package(self):
