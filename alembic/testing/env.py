@@ -60,6 +60,9 @@ def staging_env(create=True, template="generic", sourceless=False):
 
 
 def clear_staging_env():
+    from sqlalchemy.testing import engines
+
+    engines.testing_reaper.close_all()
     shutil.rmtree(_get_staging_directory(), True)
 
 

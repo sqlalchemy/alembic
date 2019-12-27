@@ -1236,9 +1236,9 @@ def downgrade():
         clear_staging_env()
 
     def test_env_emits_warning(self):
-        with assertions.expect_warnings(
+        msg = (
             "File %s loaded twice! ignoring. "
-            "Please ensure version_locations is unique"
+            "Please ensure version_locations is unique."
             % (
                 os.path.realpath(
                     os.path.join(
@@ -1248,7 +1248,8 @@ def downgrade():
                     )
                 )
             )
-        ):
+        )
+        with assertions.expect_warnings(msg, regex=False):
             script = ScriptDirectory.from_config(self.cfg)
             script.revision_map.heads
             eq_(
