@@ -910,6 +910,18 @@ def _compare_server_default(
     conn_col_default = conn_col.server_default
     if conn_col_default is None and metadata_default is None:
         return False
+
+    if sqla_compat.has_computed and isinstance(
+        metadata_default, sa_schema.Computed
+    ):
+        # return False in case of a computed column as the server
+        # default. Note that DDL for adding or removing "GENERATED AS" from
+        # an existing column is not currently known for any backend.
+        # Once SQLAlchemy can reflect "GENERATED" as the "computed" element,
+        # we would also want to ignore and/or warn for changes vs. the
+        # metadata (or support backend specific DDL if applicable).
+        return False
+
     rendered_metadata_default = _render_server_default_for_compare(
         metadata_default, metadata_col, autogen_context
     )

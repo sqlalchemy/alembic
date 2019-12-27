@@ -1,9 +1,9 @@
 import sys
 
-from sqlalchemy.testing import exclusions
 from sqlalchemy.testing.requirements import Requirements
 
 from alembic import util
+from alembic.testing import exclusions
 from alembic.util import sqla_compat
 
 
@@ -140,3 +140,13 @@ class SuiteRequirements(Requirements):
     @property
     def alter_column(self):
         return exclusions.open()
+
+    @property
+    def computed_columns(self):
+        return exclusions.closed()
+
+    @property
+    def computed_columns_api(self):
+        return exclusions.only_if(
+            exclusions.BooleanPredicate(sqla_compat.has_computed)
+        )

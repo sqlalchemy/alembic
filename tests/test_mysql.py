@@ -19,6 +19,7 @@ from alembic.testing.env import staging_env
 from alembic.testing.fixtures import AlterColRoundTripFixture
 from alembic.testing.fixtures import op_fixture
 from alembic.testing.fixtures import TestBase
+from alembic.util import sqla_compat
 
 
 class MySQLOpTest(TestBase):
@@ -357,6 +358,18 @@ class MySQLOpTest(TestBase):
         context = op_fixture("mysql")
         op.drop_table_comment("t2", existing_comment="t2 table", schema="foo")
         context.assert_("ALTER TABLE foo.t2 COMMENT ''")
+
+    @config.requirements.computed_columns_api
+    def test_add_column_computed(self):
+        context = op_fixture("mysql")
+        op.add_column(
+            "t1",
+            Column("some_column", Integer, sqla_compat.Computed("foo * 5")),
+        )
+        context.assert_(
+            "ALTER TABLE t1 ADD COLUMN some_column "
+            "INTEGER GENERATED ALWAYS AS (foo * 5)"
+        )
 
     def test_drop_fk(self):
         context = op_fixture("mysql")

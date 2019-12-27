@@ -22,7 +22,6 @@ from sqlalchemy import Numeric
 from sqlalchemy import PrimaryKeyConstraint
 from sqlalchemy import String
 from sqlalchemy import Table
-from sqlalchemy import testing
 from sqlalchemy import text
 from sqlalchemy import types
 from sqlalchemy import Unicode
@@ -38,6 +37,7 @@ from sqlalchemy.types import UserDefinedType
 
 from alembic import autogenerate
 from alembic import op  # noqa
+from alembic import testing
 from alembic.autogenerate import api
 from alembic.migration import MigrationContext
 from alembic.operations import ops
@@ -1075,7 +1075,7 @@ class AutogenRenderTest(TestBase):
             "server_default='5', nullable=True))",
         )
 
-    @testing.requires.sqlalchemy_13
+    @config.requirements.sqlalchemy_13
     @testing.emits_warning("Can't validate argument ")
     def test_render_add_column_custom_kwarg(self):
         col = Column(
@@ -2015,6 +2015,84 @@ class AutogenRenderTest(TestBase):
             '   existing_comment="This was john\'s comment",'
             "   schema=None"
             ")",
+        )
+
+    @config.requirements.computed_columns_api
+    def test_render_add_column_computed(self):
+        c = sa.Computed("5")
+        op_obj = ops.AddColumnOp("foo", Column("x", Integer, c))
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.add_column('foo', sa.Column('x', sa.Integer(), "
+            "sa.Computed(!U'5', ), nullable=True))",
+        )
+
+    @config.requirements.computed_columns_api
+    @testing.combinations((True,), (False,))
+    def test_render_add_column_computed_persisted(self, persisted):
+        op_obj = ops.AddColumnOp(
+            "foo", Column("x", Integer, sa.Computed("5", persisted=persisted))
+        )
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.add_column('foo', sa.Column('x', sa.Integer(), "
+            "sa.Computed(!U'5', persisted=%s), nullable=True))" % persisted,
+        )
+
+    @config.requirements.computed_columns_api
+    def test_render_alter_column_computed_modify_default(self):
+        op_obj = ops.AlterColumnOp(
+            "sometable", "somecolumn", modify_server_default=sa.Computed("7")
+        )
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.alter_column('sometable', 'somecolumn', "
+            "server_default=sa.Computed(!U'7', ))",
+        )
+
+    @config.requirements.computed_columns_api
+    def test_render_alter_column_computed_existing_default(self):
+        op_obj = ops.AlterColumnOp(
+            "sometable",
+            "somecolumn",
+            existing_server_default=sa.Computed("42"),
+        )
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.alter_column('sometable', 'somecolumn', "
+            "existing_server_default=sa.Computed(!U'42', ))",
+        )
+
+    @config.requirements.computed_columns_api
+    @testing.combinations((True,), (False,))
+    def test_render_alter_column_computed_modify_default_perisisted(
+        self, persisted
+    ):
+        op_obj = ops.AlterColumnOp(
+            "sometable",
+            "somecolumn",
+            modify_server_default=sa.Computed("7", persisted=persisted),
+        )
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.alter_column('sometable', 'somecolumn', server_default"
+            "=sa.Computed(!U'7', persisted=%s))" % persisted,
+        )
+
+    @config.requirements.computed_columns_api
+    @testing.combinations((True,), (False,))
+    def test_render_alter_column_computed_existing_default_perisisted(
+        self, persisted
+    ):
+        c = sa.Computed("42", persisted=persisted)
+        op_obj = ops.AlterColumnOp(
+            "sometable", "somecolumn", existing_server_default=c
+        )
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.alter_column('sometable', 'somecolumn', "
+            "existing_server_default=sa.Computed(!U'42', persisted=%s))"
+            % persisted,
         )
 
 

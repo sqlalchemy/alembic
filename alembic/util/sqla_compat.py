@@ -31,9 +31,21 @@ sqla_120 = _vers >= (1, 2, 0)
 sqla_1216 = _vers >= (1, 2, 16)
 sqla_13 = _vers >= (1, 3)
 sqla_14 = _vers >= (1, 4)
+try:
+    from sqlalchemy import Computed  # noqa
 
+    has_computed = True
+except ImportError:
+    has_computed = False
 
 AUTOINCREMENT_DEFAULT = "auto"
+
+
+def _server_default_is_computed(column):
+    if not has_computed:
+        return False
+    else:
+        return isinstance(column.computed, Computed)
 
 
 def _table_for_constraint(constraint):

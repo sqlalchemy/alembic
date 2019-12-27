@@ -115,7 +115,7 @@ class PytestFixtureFunctions(plugin_base.FixtureFunctions):
         ids for parameter sets are derived using an optional template.
 
         """
-        from sqlalchemy.testing import exclusions
+        from alembic.testing import exclusions
 
         if sys.version_info.major == 3:
             if len(arg_sets) == 1 and hasattr(arg_sets[0], "__next__"):
@@ -170,14 +170,21 @@ class PytestFixtureFunctions(plugin_base.FixtureFunctions):
                         comb_fn(getter(arg)) for getter, comb_fn in fns
                     )
                 )
-                for arg in arg_sets
+                for arg in [
+                    (arg,) if not isinstance(arg, tuple) else arg
+                    for arg in arg_sets
+                ]
             ]
         else:
             # ensure using pytest.param so that even a 1-arg paramset
             # still needs to be a tuple.  otherwise paramtrize tries to
             # interpret a single arg differently than tuple arg
             arg_sets = [
-                pytest.param(*_filter_exclusions(arg)) for arg in arg_sets
+                pytest.param(*_filter_exclusions(arg))
+                for arg in [
+                    (arg,) if not isinstance(arg, tuple) else arg
+                    for arg in arg_sets
+                ]
             ]
 
         def decorate(fn):

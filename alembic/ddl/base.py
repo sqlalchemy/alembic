@@ -1,5 +1,6 @@
 import functools
 
+from sqlalchemy import exc
 from sqlalchemy import Integer
 from sqlalchemy import types as sqltypes
 from sqlalchemy.ext.compiler import compiles
@@ -7,6 +8,7 @@ from sqlalchemy.schema import Column
 from sqlalchemy.schema import DDLElement
 from sqlalchemy.sql.elements import quoted_name
 
+from ..util import sqla_compat
 from ..util.sqla_compat import _columns_for_constraint  # noqa
 from ..util.sqla_compat import _find_columns  # noqa
 from ..util.sqla_compat import _fk_spec  # noqa
@@ -152,6 +154,15 @@ def visit_column_name(element, compiler, **kw):
 
 @compiles(ColumnDefault)
 def visit_column_default(element, compiler, **kw):
+    if sqla_compat.has_computed and (
+        isinstance(element.default, sqla_compat.Computed)
+        or isinstance(element.existing_server_default, sqla_compat.Computed)
+    ):
+        raise exc.CompileError(
+            'Adding or removing a "computed" construct, e.g. GENERATED '
+            "ALWAYS AS, to or from an existing column is not supported."
+        )
+
     return "%s %s %s" % (
         alter_table(compiler, element.table_name, element.schema),
         alter_column(compiler, element.column_name),

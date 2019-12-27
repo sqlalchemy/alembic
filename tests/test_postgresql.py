@@ -48,6 +48,7 @@ from alembic.testing.env import write_script
 from alembic.testing.fixtures import capture_context_buffer
 from alembic.testing.fixtures import op_fixture
 from alembic.testing.fixtures import TestBase
+from alembic.util import sqla_compat
 
 
 class PostgresqlOpTest(TestBase):
@@ -284,6 +285,18 @@ class PostgresqlOpTest(TestBase):
         context = op_fixture("postgresql")
         op.drop_table_comment("t2", existing_comment="t2 table", schema="foo")
         context.assert_("COMMENT ON TABLE foo.t2 IS NULL")
+
+    @config.requirements.computed_columns_api
+    def test_add_column_computed(self):
+        context = op_fixture("postgresql")
+        op.add_column(
+            "t1",
+            Column("some_column", Integer, sqla_compat.Computed("foo * 5")),
+        )
+        context.assert_(
+            "ALTER TABLE t1 ADD COLUMN some_column "
+            "INTEGER GENERATED ALWAYS AS (foo * 5) STORED"
+        )
 
 
 class PGAutocommitBlockTest(TestBase):

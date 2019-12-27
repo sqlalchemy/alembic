@@ -593,13 +593,20 @@ def _render_column(column, autogen_context):
     if rendered is not False:
         return rendered
 
+    args = []
     opts = []
+
     if column.server_default:
-        rendered = _render_server_default(
-            column.server_default, autogen_context
-        )
-        if rendered:
-            opts.append(("server_default", rendered))
+        if sqla_compat._server_default_is_computed(column):
+            rendered = _render_computed(column.computed, autogen_context)
+            if rendered:
+                args.append(rendered)
+        else:
+            rendered = _render_server_default(
+                column.server_default, autogen_context
+            )
+            if rendered:
+                opts.append(("server_default", rendered))
 
     if (
         column.autoincrement is not None
@@ -618,10 +625,11 @@ def _render_column(column, autogen_context):
         opts.append(("comment", "%r" % comment))
 
     # TODO: for non-ascii colname, assign a "key"
-    return "%(prefix)sColumn(%(name)r, %(type)s, %(kwargs)s)" % {
+    return "%(prefix)sColumn(%(name)r, %(type)s, %(args)s%(kwargs)s)" % {
         "prefix": _sqlalchemy_autogenerate_prefix(autogen_context),
         "name": _ident(column.name),
         "type": _repr_type(column.type, autogen_context),
+        "args": ", ".join([str(arg) for arg in args]) + ", " if args else "",
         "kwargs": (
             ", ".join(
                 ["%s=%s" % (kwname, val) for kwname, val in opts]
@@ -640,7 +648,9 @@ def _render_server_default(default, autogen_context, repr_=True):
     if rendered is not False:
         return rendered
 
-    if isinstance(default, sa_schema.DefaultClause):
+    if sqla_compat.has_computed and isinstance(default, sa_schema.Computed):
+        return _render_computed(default, autogen_context)
+    elif isinstance(default, sa_schema.DefaultClause):
         if isinstance(default.arg, compat.string_types):
             default = default.arg
         else:
@@ -652,6 +662,21 @@ def _render_server_default(default, autogen_context, repr_=True):
         default = repr(re.sub(r"^'|'$", "", default))
 
     return default
+
+
+def _render_computed(computed, autogen_context):
+    text = _render_potential_expr(
+        computed.sqltext, autogen_context, wrap_in_text=False
+    )
+
+    kwargs = {}
+    if computed.persisted is not None:
+        kwargs["persisted"] = computed.persisted
+    return "%(prefix)sComputed(%(text)s, %(kwargs)s)" % {
+        "prefix": _sqlalchemy_autogenerate_prefix(autogen_context),
+        "text": text,
+        "kwargs": (", ".join("%s=%s" % pair for pair in kwargs.items())),
+    }
 
 
 def _repr_type(type_, autogen_context):

@@ -3,6 +3,7 @@
 from sqlalchemy import Boolean
 from sqlalchemy import Column
 from sqlalchemy import event
+from sqlalchemy import exc
 from sqlalchemy import ForeignKey
 from sqlalchemy import Integer
 from sqlalchemy import String
@@ -23,6 +24,7 @@ from alembic.testing import mock
 from alembic.testing.fixtures import AlterColRoundTripFixture
 from alembic.testing.fixtures import op_fixture
 from alembic.testing.fixtures import TestBase
+from alembic.util import sqla_compat
 
 
 @event.listens_for(Table, "after_parent_attach")
@@ -345,6 +347,35 @@ class OpTest(TestBase):
         context = op_fixture()
         op.alter_column("t", "c", server_default=None, schema="foo")
         context.assert_("ALTER TABLE foo.t ALTER COLUMN c DROP DEFAULT")
+
+    @config.requirements.computed_columns_api
+    def test_alter_column_computed_add_not_supported(self):
+        op_fixture()
+        assert_raises_message(
+            exc.CompileError,
+            'Adding or removing a "computed" construct, e.g. '
+            "GENERATED ALWAYS AS, to or from an existing column is not "
+            "supported.",
+            op.alter_column,
+            "t1",
+            "c1",
+            server_default=sqla_compat.Computed("foo * 5"),
+        )
+
+    @config.requirements.computed_columns_api
+    def test_alter_column_computed_remove_not_supported(self):
+        op_fixture()
+        assert_raises_message(
+            exc.CompileError,
+            'Adding or removing a "computed" construct, e.g. '
+            "GENERATED ALWAYS AS, to or from an existing column is not "
+            "supported.",
+            op.alter_column,
+            "t1",
+            "c1",
+            server_default=None,
+            existing_server_default=sqla_compat.Computed("foo * 5"),
+        )
 
     def test_alter_column_schema_type_unnamed(self):
         context = op_fixture("mssql", native_boolean=False)

@@ -11,6 +11,7 @@ from alembic.testing.env import three_rev_fixture
 from alembic.testing.fixtures import capture_context_buffer
 from alembic.testing.fixtures import op_fixture
 from alembic.testing.fixtures import TestBase
+from alembic.util import sqla_compat
 
 
 class FullEnvironmentTests(TestBase):
@@ -65,6 +66,18 @@ class OpTest(TestBase):
         context.assert_(
             "ALTER TABLE t1 ADD c1 INTEGER NOT NULL",
             "COMMENT ON COLUMN t1.c1 IS 'c1 comment'",
+        )
+
+    @config.requirements.computed_columns_api
+    def test_add_column_computed(self):
+        context = op_fixture("oracle")
+        op.add_column(
+            "t1",
+            Column("some_column", Integer, sqla_compat.Computed("foo * 5")),
+        )
+        context.assert_(
+            "ALTER TABLE t1 ADD some_column "
+            "INTEGER GENERATED ALWAYS AS (foo * 5)"
         )
 
     def test_alter_column_rename_oracle(self):

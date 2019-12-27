@@ -7,6 +7,7 @@ from alembic import command
 from alembic import op
 from alembic import util
 from alembic.testing import assert_raises_message
+from alembic.testing import config
 from alembic.testing import eq_
 from alembic.testing.env import _no_sql_testing_config
 from alembic.testing.env import clear_staging_env
@@ -15,6 +16,7 @@ from alembic.testing.env import three_rev_fixture
 from alembic.testing.fixtures import capture_context_buffer
 from alembic.testing.fixtures import op_fixture
 from alembic.testing.fixtures import TestBase
+from alembic.util import sqla_compat
 
 
 class FullEnvironmentTests(TestBase):
@@ -273,6 +275,15 @@ class OpTest(TestBase):
         context.assert_contains(
             "exec('alter table t drop constraint ' + @const_name)"
         )
+
+    @config.requirements.computed_columns_api
+    def test_add_column_computed(self):
+        context = op_fixture("mssql")
+        op.add_column(
+            "t1",
+            Column("some_column", Integer, sqla_compat.Computed("foo * 5")),
+        )
+        context.assert_("ALTER TABLE t1 ADD some_column AS (foo * 5)")
 
     def test_alter_do_everything(self):
         context = op_fixture("mssql")

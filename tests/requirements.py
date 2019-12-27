@@ -1,5 +1,4 @@
-from sqlalchemy.testing import exclusions
-
+from alembic.testing import exclusions
 from alembic.testing.requirements import SuiteRequirements
 from alembic.util import sqla_compat
 
@@ -134,6 +133,36 @@ class DefaultRequirements(SuiteRequirements):
         """target database should support 'AUTOCOMMIT' isolation level"""
 
         return exclusions.only_on("postgresql", "mysql")
+
+    @property
+    def computed_columns(self):
+        # TODO: in theory if these could come from SQLAlchemy dialects
+        # that would be helpful
+        return self.computed_columns_api + exclusions.only_on(
+            ["postgresql >= 12", "oracle", "mssql", "mysql >= 5.7"]
+        )
+
+    @property
+    def computed_reflects_as_server_default(self):
+        # note that this rule will go away when SQLAlchemy correctly
+        # supports reflection of the "computed" construct; the element
+        # will consistently be present as both column.computed and
+        # column.server_default for all supported backends.
+        return self.computed_columns + exclusions.only_if(
+            ["postgresql", "oracle"],
+            "backend reflects computed construct as a server default",
+        )
+
+    @property
+    def computed_doesnt_reflect_as_server_default(self):
+        # note that this rule will go away when SQLAlchemy correctly
+        # supports reflection of the "computed" construct; the element
+        # will consistently be present as both column.computed and
+        # column.server_default for all supported backends.
+        return self.computed_columns + exclusions.skip_if(
+            ["postgresql", "oracle"],
+            "backend reflects computed construct as a server default",
+        )
 
     @property
     def check_constraint_reflection(self):
