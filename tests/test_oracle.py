@@ -104,28 +104,16 @@ class OpTest(TestBase):
     def test_create_table_comment(self):
         # this is handled by SQLAlchemy's compilers
         context = op_fixture("oracle")
-        op.create_table_comment(
-            't2',
-            comment='t2 table',
-            schema='foo'
-        )
-        context.assert_(
-            "COMMENT ON TABLE foo.t2 IS 't2 table'"
-        )
+        op.create_table_comment("t2", comment="t2 table", schema="foo")
+        context.assert_("COMMENT ON TABLE foo.t2 IS 't2 table'")
 
     @config.requirements.comments_api
     @config.requirements.sqlalchemy_issue_4436
     def test_drop_table_comment(self):
         # this is handled by SQLAlchemy's compilers
         context = op_fixture("oracle")
-        op.drop_table_comment(
-            't2',
-            existing_comment='t2 table',
-            schema='foo'
-        )
-        context.assert_(
-            "COMMENT ON TABLE foo.t2 IS ''"
-        )
+        op.drop_table_comment("t2", existing_comment="t2 table", schema="foo")
+        context.assert_("COMMENT ON TABLE foo.t2 IS ''")
 
     def test_drop_index(self):
         context = op_fixture("oracle")
