@@ -76,3 +76,29 @@ The goals of Alembic are:
 
 Documentation and status of Alembic is at https://alembic.sqlalchemy.org/
 
+The SQLAlchemy Project
+======================
+
+Alembic is part of the `SQLAlchemy Project <https://www.sqlalchemy.org>`_ and
+adheres to the same standards and conventions as the core project.
+
+Development / Bug reporting / Pull requests
+___________________________________________
+
+Please refer to the
+`SQLAlchemy Community Guide <https://www.sqlalchemy.org/develop.html>`_ for
+guidelines on coding and participating in this project.
+
+Code of Conduct
+_______________
+
+Above all, SQLAlchemy places great emphasis on polite, thoughtful, and
+constructive communication between users and developers.
+Please see our current Code of Conduct at
+`Code of Conduct <https://www.sqlalchemy.org/codeofconduct.html>`_.
+
+License
+=======
+
+Alembic is distributed under the `MIT license
+<https://opensource.org/licenses/MIT>`_.

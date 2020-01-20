@@ -470,7 +470,7 @@ class MySQLBackendOpTest(AlterColRoundTripFixture, TestBase):
         )
 
     def test_add_timestamp_server_default_current_timestamp_bundle_onupdate(
-        self
+        self,
     ):
         # note SQLAlchemy reflection bundles the ON UPDATE part into the
         # server default reflection see
@@ -485,7 +485,7 @@ class MySQLBackendOpTest(AlterColRoundTripFixture, TestBase):
         )
 
     def test_add_datetime_server_default_current_timestamp_bundle_onupdate(
-        self
+        self,
     ):
         # note SQLAlchemy reflection bundles the ON UPDATE part into the
         # server default reflection see

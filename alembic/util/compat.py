@@ -266,7 +266,7 @@ try:
 except AttributeError:
     # Python 2
     def exec_(func_text, globals_, lcl):
-        exec("exec func_text in globals_, lcl")
+        exec ("exec func_text in globals_, lcl")
 
 
 ################################################
@@ -298,7 +298,7 @@ if py3k:
 
 
 else:
-    exec(
+    exec (
         "def reraise(tp, value, tb=None, cause=None):\n"
         "    raise tp, value, tb\n"
     )

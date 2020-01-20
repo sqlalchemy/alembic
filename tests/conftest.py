@@ -31,5 +31,5 @@ bootstrap_file = os.path.join(
 with open(bootstrap_file) as f:
     code = compile(f.read(), "bootstrap.py", "exec")
     to_bootstrap = "pytest"
-    exec(code, globals(), locals())
+    exec (code, globals(), locals())
     from pytestplugin import *  # noqa
