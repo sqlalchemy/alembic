@@ -41,7 +41,7 @@ class BatchApplyTest(TestBase):
     def setUp(self):
         self.op = Operations(mock.Mock(opts={}))
 
-    def _simple_fixture(self, table_args=(), table_kwargs={}):
+    def _simple_fixture(self, table_args=(), table_kwargs={}, **kw):
         m = MetaData()
         t = Table(
             "tname",
@@ -50,7 +50,7 @@ class BatchApplyTest(TestBase):
             Column("x", String(10)),
             Column("y", Integer),
         )
-        return ApplyBatchImpl(t, table_args, table_kwargs, False)
+        return ApplyBatchImpl(t, table_args, table_kwargs, False, **kw)
 
     def _uq_fixture(self, table_args=(), table_kwargs={}):
         m = MetaData()
@@ -464,6 +464,22 @@ class BatchApplyTest(TestBase):
         t = self.op.schema_obj.table("tname", col)  # noqa
         impl.add_column("tname", col)
         new_table = self._assert_impl(impl, colnames=["id", "x", "y", "g"])
+        eq_(new_table.c.g.name, "g")
+
+    def test_add_col_partial_ordering(self):
+        impl = self._simple_fixture()
+        col = Column("g", Integer)
+        # operations.add_column produces a table
+        t = self.op.schema_obj.table("tname", col)  # noqa
+        impl.add_column("tname", col, partial_ordering=("x", "g", "y"))
+        new_table = self._assert_impl(impl, colnames=["id", "x", "g", "y"])
+        eq_(new_table.c.g.name, "g")
+
+    # TODO: doesn't work, don't know why
+    def test_partial_reordering(self):
+        # MARKMARK
+        impl = self._simple_fixture(partial_reordering=[("x", "id", "y")])
+        new_table = self._assert_impl(impl, colnames=["x", "id", "y"])
         eq_(new_table.c.g.name, "g")
 
     def test_add_server_default(self):

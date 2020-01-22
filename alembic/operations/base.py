@@ -177,6 +177,7 @@ class Operations(util.ModuleClsProxy):
         table_name,
         schema=None,
         recreate="auto",
+        partial_reordering=None,
         copy_from=None,
         table_args=(),
         table_kwargs=util.immutabledict(),
@@ -319,6 +320,7 @@ class Operations(util.ModuleClsProxy):
             reflect_args,
             reflect_kwargs,
             naming_convention,
+            partial_reordering
         )
         batch_op = BatchOperations(self.migration_context, impl=impl)
         yield batch_op

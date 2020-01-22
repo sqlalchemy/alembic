@@ -11,6 +11,7 @@ from sqlalchemy import Table
 from sqlalchemy import types as sqltypes
 from sqlalchemy.events import SchemaEventTarget
 from sqlalchemy.util import OrderedDict
+from sqlalchemy.util import topological
 
 from ..util.sqla_compat import _columns_for_constraint
 from ..util.sqla_compat import _fk_is_self_referential
@@ -31,6 +32,7 @@ class BatchOperationsImpl(object):
         reflect_args,
         reflect_kwargs,
         naming_convention,
+        partial_reordering,
     ):
         self.operations = operations
         self.table_name = table_name
@@ -52,6 +54,7 @@ class BatchOperationsImpl(object):
             ("column_reflect", operations.impl.autogen_column_reflect)
         )
         self.naming_convention = naming_convention
+        self.partial_reordering = partial_reordering
         self.batch = []
 
     @property
@@ -99,7 +102,11 @@ class BatchOperationsImpl(object):
                 reflected = True
 
             batch_impl = ApplyBatchImpl(
-                existing_table, self.table_args, self.table_kwargs, reflected
+                existing_table,
+                self.table_args,
+                self.table_kwargs,
+                reflected,
+                partial_reordering=self.partial_reordering,
             )
             for opname, arg, kw in self.batch:
                 fn = getattr(batch_impl, opname)
@@ -139,12 +146,16 @@ class BatchOperationsImpl(object):
 
 
 class ApplyBatchImpl(object):
-    def __init__(self, table, table_args, table_kwargs, reflected):
+    def __init__(
+        self, table, table_args, table_kwargs, reflected, partial_reordering=()
+    ):
         self.table = table  # this is a Table object
         self.table_args = table_args
         self.table_kwargs = table_kwargs
         self.temp_table_name = self._calc_temp_name(table.name)
         self.new_table = None
+
+        self.partial_reordering = partial_reordering  # list of tuples
         self.column_transfers = OrderedDict(
             (c.name, {"expr": c}) for c in self.table.c
         )
@@ -188,11 +199,39 @@ class ApplyBatchImpl(object):
         for k in self.table.kwargs:
             self.table_kwargs.setdefault(k, self.table.kwargs[k])
 
+    def _adjust_self_columns_for_partial_reordering(self):
+        pairs = set()
+        for tuple_ in self.partial_reordering:
+            for index, elem in enumerate(tuple_):
+                if index > 0:
+                    pairs.add((tuple_[index - 1], elem))
+
+        col_by_idx = list(self.columns)
+
+        sorted_ = topological.sort(pairs, col_by_idx, deterministic_order=True)
+        self.columns = OrderedDict(
+            (k, self.columns[k]) for k in sorted_
+        )
+        #self.dest_column_transfers = self.column_transfers
+        #print(self.column_transfers)
+        #print(self.column_transfers)
+        #sorted_ = topological.sort(pairs, col_by_idx, deterministic_order=True)
+        #self.dest_column_transfers = OrderedDict(
+        #    (k, self.column_transfers[k]) for k in sorted_
+        #)
+        #print(self.dest_column_transfers)
+
+
     def _transfer_elements_to_new_table(self):
         assert self.new_table is None, "Can only create new table once"
 
         m = MetaData()
         schema = self.table.schema
+
+        if self.partial_reordering:
+            self._adjust_self_columns_for_partial_reordering()
+        # else:
+        #     self.dest_column_transfers = self.column_transfers
 
         self.new_table = new_table = Table(
             self.temp_table_name,
@@ -371,11 +410,13 @@ class ApplyBatchImpl(object):
         if autoincrement is not None:
             existing.autoincrement = bool(autoincrement)
 
-    def add_column(self, table_name, column, **kw):
+    def add_column(self, table_name, column, partial_ordering=None, **kw):
         # we copy the column because operations.add_column()
         # gives us a Column that is part of a Table already.
         self.columns[column.name] = column.copy(schema=self.table.schema)
         self.column_transfers[column.name] = {}
+        if partial_ordering:
+            self.partial_reordering += (partial_ordering,)
 
     def drop_column(self, table_name, column, **kw):
         if column.name in self.table.primary_key.columns:
