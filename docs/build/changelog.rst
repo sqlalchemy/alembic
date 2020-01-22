@@ -5,7 +5,36 @@ Changelog
 
 .. changelog::
     :version: 1.3.3
-    :include_notes_from: unreleased
+    :released: January 22, 2020
+
+    .. change::
+        :tags: bug, postgresql
+        :tickets: 637
+
+        Fixed issue where COMMENT directives for PostgreSQL failed to correctly
+        include an explicit schema name, as well as correct quoting rules for
+        schema, table, and column names.  Pull request courtesy Matthew Sills.
+
+    .. change::
+        :tags: usecase, operations
+        :tickets: 624
+
+        Added support for rendering of "computed" elements on :class:`.Column`
+        objects, supported in SQLAlchemy via the new :class:`.Computed` element
+        introduced in version 1.3.11. Pull request courtesy Federico Caselli.
+
+        Note that there is currently no support for ALTER COLUMN to add, remove, or
+        modify the "GENERATED ALWAYS AS" element from a column;  at least for
+        PostgreSQL, it does not seem to be supported by the database. Additionally,
+        SQLAlchemy does not currently reliably reflect the "GENERATED ALWAYS AS"
+        phrase from an existing column, so there is also no autogenerate support
+        for addition or removal of the :class:`.Computed` element to or from an
+        existing column, there is only support for adding new columns that include
+        the :class:`.Computed` element.  In the case that the :class:`.Computed`
+        element is removed from the :class:`.Column` object in the table metadata,
+        PostgreSQL and Oracle currently reflect the "GENERATED ALWAYS AS"
+        expression as the "server default" which will produce an op that tries to
+        drop the element as a default.
 
 .. changelog::
     :version: 1.3.2
