@@ -477,10 +477,9 @@ class BatchApplyTest(TestBase):
 
     # TODO: doesn't work, don't know why
     def test_partial_reordering(self):
-        # MARKMARK
         impl = self._simple_fixture(partial_reordering=[("x", "id", "y")])
         new_table = self._assert_impl(impl, colnames=["x", "id", "y"])
-        eq_(new_table.c.g.name, "g")
+        eq_(new_table.c.x.name, "x")
 
     def test_add_server_default(self):
         impl = self._simple_fixture()

@@ -212,15 +212,10 @@ class ApplyBatchImpl(object):
         self.columns = OrderedDict(
             (k, self.columns[k]) for k in sorted_
         )
-        #self.dest_column_transfers = self.column_transfers
-        #print(self.column_transfers)
-        #print(self.column_transfers)
-        #sorted_ = topological.sort(pairs, col_by_idx, deterministic_order=True)
-        #self.dest_column_transfers = OrderedDict(
-        #    (k, self.column_transfers[k]) for k in sorted_
-        #)
-        #print(self.dest_column_transfers)
-
+        sorted_ = topological.sort(pairs, col_by_idx, deterministic_order=True)
+        self.column_transfers = OrderedDict(
+            (k, self.column_transfers[k]) for k in sorted_
+        )
 
     def _transfer_elements_to_new_table(self):
         assert self.new_table is None, "Can only create new table once"
@@ -230,8 +225,6 @@ class ApplyBatchImpl(object):
 
         if self.partial_reordering:
             self._adjust_self_columns_for_partial_reordering()
-        # else:
-        #     self.dest_column_transfers = self.column_transfers
 
         self.new_table = new_table = Table(
             self.temp_table_name,
