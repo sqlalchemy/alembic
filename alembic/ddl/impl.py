@@ -1,6 +1,8 @@
+from collections import namedtuple
+import re
+
 from sqlalchemy import schema
 from sqlalchemy import text
-from sqlalchemy import types as sqltypes
 
 from . import base
 from .. import util
@@ -21,6 +23,9 @@ class ImplMeta(type):
 _impls = {}
 
 
+Params = namedtuple("Params", ["type", "args", "kwargs"])
+
+
 class DefaultImpl(with_metaclass(ImplMeta)):
 
     """Provide the entrypoint for major migration operations,
@@ -39,6 +44,7 @@ class DefaultImpl(with_metaclass(ImplMeta)):
 
     transactional_ddl = False
     command_terminator = ";"
+    type_synonyms = ({"NUMERIC", "DECIMAL"},)
 
     def __init__(
         self,
@@ -322,32 +328,62 @@ class DefaultImpl(with_metaclass(ImplMeta)):
                     for row in rows:
                         self._exec(table.insert(inline=True).values(**row))
 
-    def compare_type(self, inspector_column, metadata_column):
+    def _tokenize_column_type(self, column):
+        definition = self.dialect.type_compiler.process(column.type).lower()
+        # py27 - py36 - col_type, *param_terms = re.findall...
+        matches = re.findall("[^(),]+", definition)
+        col_type, param_terms = matches[0], matches[1:]
+        params = Params(col_type, [], {})
+        for term in param_terms:
+            if "=" in term:
+                key, val = term.split("=")
+                params.kwargs[key.strip()] = val.strip()
+            else:
+                params.args.append(term.strip())
+        return params
 
-        conn_type = inspector_column.type
-        metadata_type = metadata_column.type
-
-        metadata_impl = metadata_type.dialect_impl(self.dialect)
-        if isinstance(metadata_impl, sqltypes.Variant):
-            metadata_impl = metadata_impl.impl.dialect_impl(self.dialect)
-
-        # work around SQLAlchemy bug "stale value for type affinity"
-        # fixed in 0.7.4
-        metadata_impl.__dict__.pop("_type_affinity", None)
-
-        if hasattr(metadata_impl, "compare_against_backend"):
-            comparison = metadata_impl.compare_against_backend(
-                self.dialect, conn_type
-            )
-            if comparison is not None:
-                return not comparison
-
-        if conn_type._compare_type_affinity(metadata_impl):
-            comparator = _type_comparators.get(conn_type._type_affinity, None)
-
-            return comparator and comparator(metadata_impl, conn_type)
-        else:
+    def _column_types_match(self, inspector_type, metadata_type):
+        if inspector_type == metadata_type:
             return True
+        synonyms = [{t.lower() for t in batch} for batch in self.type_synonyms]
+        for batch in synonyms:
+            if {inspector_type, metadata_type}.issubset(batch):
+                return True
+        return False
+
+    def _column_args_match(self, inspected_params, meta_params):
+        """We want to compare column parameters. However, we only want
+        to compare parameters that are set. If they both have `collation`,
+        we want to make sure they are the same. However, if only one
+        specifies it, dont flag it for being less specific
+        """
+        # py27- .keys is a set in py36
+        for kw in set(inspected_params.kwargs.keys()) & set(
+            meta_params.kwargs.keys()
+        ):
+            if inspected_params.kwargs[kw] != meta_params.kwargs[kw]:
+                return False
+
+        for meta, inspect in zip(inspected_params.args, meta_params.args):
+            if meta != inspect:
+                return False
+
+        return True
+
+    def compare_type(self, inspector_column, metadata_column):
+        """Returns True if there ARE differences between the types of the two
+        columns. Takes impl.type_synonyms into account between retrospected
+        and metadata types
+        """
+        inspector_params = self._tokenize_column_type(inspector_column)
+        metadata_params = self._tokenize_column_type(metadata_column)
+        if not self._column_types_match(
+            inspector_params.type, metadata_params.type
+        ):
+            return True
+        if not self._column_args_match(inspector_params, metadata_params):
+            return True
+        return False
 
     def compare_server_default(
         self,
@@ -425,45 +461,3 @@ class DefaultImpl(with_metaclass(ImplMeta)):
 
     def render_type(self, type_obj, autogen_context):
         return False
-
-
-def _string_compare(t1, t2):
-    return t1.length is not None and t1.length != t2.length
-
-
-def _numeric_compare(t1, t2):
-    return (t1.precision is not None and t1.precision != t2.precision) or (
-        t1.precision is not None
-        and t1.scale is not None
-        and t1.scale != t2.scale
-    )
-
-
-def _integer_compare(t1, t2):
-    t1_small_or_big = (
-        "S"
-        if isinstance(t1, sqltypes.SmallInteger)
-        else "B"
-        if isinstance(t1, sqltypes.BigInteger)
-        else "I"
-    )
-    t2_small_or_big = (
-        "S"
-        if isinstance(t2, sqltypes.SmallInteger)
-        else "B"
-        if isinstance(t2, sqltypes.BigInteger)
-        else "I"
-    )
-    return t1_small_or_big != t2_small_or_big
-
-
-def _datetime_compare(t1, t2):
-    return t1.timezone != t2.timezone
-
-
-_type_comparators = {
-    sqltypes.String: _string_compare,
-    sqltypes.Numeric: _numeric_compare,
-    sqltypes.Integer: _integer_compare,
-    sqltypes.DateTime: _datetime_compare,
-}

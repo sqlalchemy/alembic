@@ -132,10 +132,15 @@ Autogenerate can **optionally detect**:
 * Change of column type.  This will occur if you set
   the :paramref:`.EnvironmentContext.configure.compare_type` parameter
   to ``True``, or to a custom callable function.   The default implementation
-  **only detects major type changes**, such as between ``Numeric`` and
-  ``String``, and does not detect changes in arguments such as lengths, precisions,
-  or enumeration members.  The type comparison logic is extensible to work
-  around these limitations, see :ref:`compare_types` for details.
+  will reliably detect major changes, such as between ``Numeric`` and
+  ``String``.  If both the existing type and the new type have keyword arguments
+  specified (such as lengths, precisions, or enumeration members), they will be
+  compared as well.  However, if keywords are only specified for one,
+  changes in these will be ignored. The type comparison logic is extensible to
+  work around these limitations, see :ref:`compare_types` for details.
+
+.. versionchanged:: 1.4 type comparison code has been enhanced to compare column types more deeply as well as to take arguments into account.
+
 * Change of server default.  This will occur if you set
   the :paramref:`.EnvironmentContext.configure.compare_server_default`
   parameter to ``True``, or to a custom callable function.
@@ -405,18 +410,26 @@ is set to True::
 .. note::
 
    The default type comparison logic (which is end-user extensible) currently
-   works for **major changes in type only**, such as between ``Numeric`` and
-   ``String``.     The logic will **not** detect changes such as:
+   (as of Alembic version 1.4.0) works by comparing the generated SQL for a
+   column. It does this in two steps-
 
-   * changes between types that have the same "type affinity", such as
-     between ``VARCHAR`` and ``TEXT``, or ``FLOAT`` and ``NUMERIC``
+   * First, it compares the outer type of each column such as ``VARCHAR``
+     or ``TEXT``. Dialect implementations can have synonyms that are considered
+     equivalent- this is because some databases support types by converting them
+     to another type. For example, NUMERIC and DECIMAL are considered equivalent
+     on all backends, while on the Oracle backend the additional synonyms
+     BIGINT, INTEGER, NUMBER, SMALLINT are added to this list of equivalents
 
-   * changes between the arguments within the type, such as the lengths of
+   * Next, the arguments within the type, such as the lengths of
      strings, precision values for numerics, the elements inside of an
-     enumeration.
+     enumeration are compared. If BOTH columns have arguments AND they are
+     different, a change will be detected. If one column is just set to the
+     default and the other has arguments, Alembic will pass on attempting to
+     compare these. The rationale is that it is difficult to detect what a
+     database backend sets as a default value without generating false
+     positives.
 
-   Detection of these kinds of parameters is a long term project on the
-   SQLAlchemy side.
+..versionchanged 1.4.0:: Added the text and keyword comparison for column types
 
 Alternatively, the :paramref:`.EnvironmentContext.configure.compare_type`
 parameter accepts a callable function which may be used to implement custom type
@@ -487,6 +500,9 @@ then a basic check for type equivalence is run.
 
 .. versionadded:: 0.7.6 - added support for the ``compare_against_backend()``
    method.
+
+.. versionadded:: 1.4.0 - added column keyword comparisons and the
+   ``type_synonyms`` property.
 
 
 .. _post_write_hooks:

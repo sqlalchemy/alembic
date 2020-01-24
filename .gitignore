@@ -14,3 +14,4 @@ coverage.xml
 /scratch
 /scratch_test_*
 /test_schema.db
+.idea/
