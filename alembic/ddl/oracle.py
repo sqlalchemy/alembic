@@ -19,6 +19,10 @@ class OracleImpl(DefaultImpl):
     transactional_ddl = False
     batch_separator = "/"
     command_terminator = ""
+    type_synonyms = DefaultImpl.type_synonyms + (
+        {"VARCHAR", "VARCHAR2"},
+        {"BIGINT", "INTEGER", "SMALLINT", "DECIMAL", "NUMERIC", "NUMBER"},
+    )
 
     def __init__(self, *arg, **kw):
         super(OracleImpl, self).__init__(*arg, **kw)

@@ -38,6 +38,9 @@ log = logging.getLogger(__name__)
 class PostgresqlImpl(DefaultImpl):
     __dialect__ = "postgresql"
     transactional_ddl = True
+    type_synonyms = DefaultImpl.type_synonyms + (
+        {"FLOAT", "DOUBLE PRECISION"},
+    )
 
     def prep_table_for_batch(self, table):
         for constraint in table.constraints:

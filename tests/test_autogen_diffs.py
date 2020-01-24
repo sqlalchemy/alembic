@@ -2,17 +2,22 @@ import sys
 
 from sqlalchemy import BIGINT
 from sqlalchemy import BigInteger
+from sqlalchemy import Boolean
 from sqlalchemy import CHAR
 from sqlalchemy import CheckConstraint
 from sqlalchemy import Column
+from sqlalchemy import DATE
 from sqlalchemy import DateTime
 from sqlalchemy import DECIMAL
+from sqlalchemy import Enum
+from sqlalchemy import FLOAT
 from sqlalchemy import ForeignKey
 from sqlalchemy import ForeignKeyConstraint
 from sqlalchemy import Index
 from sqlalchemy import inspect
 from sqlalchemy import INTEGER
 from sqlalchemy import Integer
+from sqlalchemy import LargeBinary
 from sqlalchemy import MetaData
 from sqlalchemy import Numeric
 from sqlalchemy import PrimaryKeyConstraint
@@ -21,7 +26,9 @@ from sqlalchemy import String
 from sqlalchemy import Table
 from sqlalchemy import Text
 from sqlalchemy import text
+from sqlalchemy import TIMESTAMP
 from sqlalchemy import TypeDecorator
+from sqlalchemy import Unicode
 from sqlalchemy import UniqueConstraint
 from sqlalchemy import VARCHAR
 from sqlalchemy.dialects import sqlite
@@ -30,6 +37,7 @@ from sqlalchemy.types import VARBINARY
 
 from alembic import autogenerate
 from alembic import testing
+from alembic.autogenerate import api
 from alembic.migration import MigrationContext
 from alembic.operations import ops
 from alembic.testing import assert_raises_message
@@ -39,7 +47,10 @@ from alembic.testing import is_
 from alembic.testing import is_not_
 from alembic.testing import mock
 from alembic.testing import TestBase
+from alembic.testing.env import clear_staging_env
+from alembic.testing.env import staging_env
 from alembic.util import CommandError
+from ._autogen_fixtures import _default_object_filters
 from ._autogen_fixtures import AutogenFixtureTest
 from ._autogen_fixtures import AutogenTest
 
@@ -665,6 +676,21 @@ class CompareTypeSpecificityTest(TestBase):
         (VARCHAR(30), String(30), False),
         (VARCHAR(30), String(40), True),
         (VARCHAR(30), Integer(), True),
+        (Text(), String(255), True),
+        # insp + metadata types same number of
+        # args but are different; they're different
+        (DECIMAL(10, 5), DECIMAL(10, 6), True),
+        # insp + metadata types, inspected type
+        # has an additional arg; assume this is additional
+        # default precision on the part of the DB, assume they are
+        # equivalent
+        (DECIMAL(10, 5), DECIMAL(10), False),
+        # insp + metadata types, metadata type
+        # has an additional arg; this can go either way, either the
+        # metadata has extra precision, or the DB doesn't support the
+        # element, go with consider them equivalent for now
+        (DECIMAL(10), DECIMAL(10, 5), False),
+        (DECIMAL(10, 2), Numeric(10), False),
         (DECIMAL(10, 5), Numeric(10, 5), False),
         (DECIMAL(10, 5), Numeric(12, 5), True),
         (DECIMAL(10, 5), DateTime(), True),
@@ -675,22 +701,150 @@ class CompareTypeSpecificityTest(TestBase):
         (BIGINT(), SmallInteger(), True),
         (INTEGER(), SmallInteger(), True),
         (Integer(), String(), True),
-        (DateTime(), DateTime(timezone=False), False),
-        (DateTime(), DateTime(timezone=True), True),
-        (DateTime(timezone=False), DateTime(timezone=True), True),
         id_="ssa",
-        argnames="compare_from,compare_to,expected",
+        argnames="inspected_type,metadata_type,expected",
     )
     def test_compare_type(
-        self, impl_fixture, compare_from, compare_to, expected
+        self, impl_fixture, inspected_type, metadata_type, expected
     ):
 
         is_(
             impl_fixture.compare_type(
-                Column("x", compare_from), Column("x", compare_to)
+                Column("x", inspected_type), Column("x", metadata_type)
             ),
             expected,
         )
+
+
+class CompareMetadataToInspectorTest(TestBase):
+    __backend__ = True
+
+    @classmethod
+    def _get_bind(cls):
+        return config.db
+
+    configure_opts = {}
+
+    def setUp(self):
+        staging_env()
+        self.bind = self._get_bind()
+        self.m1 = MetaData()
+
+    def tearDown(self):
+        self.m1.drop_all(self.bind)
+        clear_staging_env()
+
+    def _compare_columns(self, cola, colb):
+        Table("sometable", self.m1, Column("col", cola))
+        self.m1.create_all(self.bind)
+        m2 = MetaData()
+        Table("sometable", m2, Column("col", colb))
+
+        ctx_opts = {
+            "compare_type": True,
+            "compare_server_default": True,
+            "target_metadata": m2,
+            "upgrade_token": "upgrades",
+            "downgrade_token": "downgrades",
+            "alembic_module_prefix": "op.",
+            "sqlalchemy_module_prefix": "sa.",
+            "include_object": _default_object_filters,
+        }
+        if self.configure_opts:
+            ctx_opts.update(self.configure_opts)
+        with self.bind.connect() as conn:
+            context = MigrationContext.configure(
+                connection=conn, opts=ctx_opts
+            )
+            autogen_context = api.AutogenContext(context, m2)
+            uo = ops.UpgradeOps(ops=[])
+            autogenerate._produce_net_changes(autogen_context, uo)
+        return bool(uo.as_diffs())
+
+    @testing.combinations(
+        (INTEGER(),),
+        (CHAR(),),
+        (VARCHAR(32),),
+        (Text(),),
+        (FLOAT(),),
+        (Numeric(),),
+        (DECIMAL(),),
+        (TIMESTAMP(),),
+        (DateTime(),),
+        (Boolean(),),
+        (BigInteger(),),
+        (SmallInteger(),),
+        (DATE(),),
+        (String(32),),
+        (LargeBinary(),),
+        (Unicode(32),),
+        (Enum("one", "two", "three", name="the_enum"),),
+    )
+    def test_introspected_columns_match_metadata_columns(self, cola):
+        # this is ensuring false positives aren't generated for types
+        # that have not changed.
+        is_(self._compare_columns(cola, cola), False)
+
+    @testing.combinations(
+        (String(32), VARCHAR(32), False),
+        (VARCHAR(6), String(6), False),
+        (CHAR(), String(1), True),
+        (Text(), VARCHAR(255), True),
+        (Unicode(32), String(32), False, config.requirements.unicode_string),
+        (Unicode(32), VARCHAR(32), False, config.requirements.unicode_string),
+        (VARCHAR(6), VARCHAR(12), True),
+        (VARCHAR(6), String(12), True),
+    )
+    def test_string_comparisons(self, cola, colb, expect_changes):
+        is_(self._compare_columns(cola, colb), expect_changes)
+
+    @testing.combinations(
+        (
+            DateTime(),
+            DateTime(timezone=False),
+            False,
+            config.requirements.datetime_timezone,
+        ),
+        (
+            DateTime(),
+            DateTime(timezone=True),
+            True,
+            config.requirements.datetime_timezone,
+        ),
+        (
+            DateTime(timezone=True),
+            DateTime(timezone=False),
+            True,
+            config.requirements.datetime_timezone,
+        ),
+    )
+    def test_datetime_comparisons(self, cola, colb, expect_changes):
+        is_(self._compare_columns(cola, colb), expect_changes)
+
+    @testing.combinations(
+        (Integer(), Integer(), False),
+        (
+            Integer(),
+            Numeric(8, 0),
+            True,
+            config.requirements.integer_subtype_comparisons,
+        ),
+        (Numeric(8, 0), Numeric(8, 2), True),
+        (
+            BigInteger(),
+            Integer(),
+            True,
+            config.requirements.integer_subtype_comparisons,
+        ),
+        (
+            SmallInteger(),
+            Integer(),
+            True,
+            config.requirements.integer_subtype_comparisons,
+        ),
+    )
+    def test_numeric_comparisons(self, cola, colb, expect_changes):
+        is_(self._compare_columns(cola, colb), expect_changes)
 
 
 class AutogenSystemColTest(AutogenTest, TestBase):
@@ -1013,8 +1167,8 @@ class AutogenerateDiffOrderTest(AutogenTest, TestBase):
 
     def test_diffs_order(self):
         """
-        Added in order to test that child tables(tables with FKs) are generated
-        before their parent tables
+        Added in order to test that child tables(tables with FKs) are
+        generated before their parent tables
         """
 
         ctx = self.autogen_context

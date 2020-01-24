@@ -24,6 +24,7 @@ class MySQLImpl(DefaultImpl):
     __dialect__ = "mysql"
 
     transactional_ddl = False
+    type_synonyms = DefaultImpl.type_synonyms + ({"BOOL", "TINYINT"},)
 
     def alter_column(
         self,

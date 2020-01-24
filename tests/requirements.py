@@ -5,6 +5,10 @@ from alembic.util import sqla_compat
 
 class DefaultRequirements(SuiteRequirements):
     @property
+    def unicode_string(self):
+        return exclusions.skip_if(["oracle"])
+
+    @property
     def alter_column(self):
         return exclusions.skip_if(["sqlite"], "no ALTER COLUMN support")
 
@@ -85,6 +89,12 @@ class DefaultRequirements(SuiteRequirements):
         return exclusions.fails_on_everything_except(
             "postgresql", "oracle", "mssql", "sybase", "sqlite"
         )
+
+    @property
+    def datetime_timezone(self):
+        """target dialect supports timezone with datetime types."""
+
+        return exclusions.only_on(["postgresql"])
 
     @property
     def postgresql_uuid_ossp(self):
