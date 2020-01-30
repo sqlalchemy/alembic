@@ -376,7 +376,9 @@ class _ix_constraint_sig(_constraint_sig):
         self.is_unique = bool(const.unique)
 
     def md_name_to_sql_name(self, context):
-        return sqla_compat._get_index_final_name(context.dialect, self.const)
+        return sqla_compat._get_constraint_final_name(
+            self.const, context.dialect
+        )
 
     @property
     def column_names(self):
@@ -499,6 +501,7 @@ def _compare_indexes_and_uniques(
             conn_indexes,
             metadata_unique_constraints,
             metadata_indexes,
+            autogen_context.dialect,
         )
 
     # 3. give the dialect a chance to omit indexes and constraints that
@@ -537,7 +540,6 @@ def _compare_indexes_and_uniques(
 
     conn_uniques_by_name = dict((c.name, c) for c in conn_unique_constraints)
     conn_indexes_by_name = dict((c.name, c) for c in conn_indexes)
-
     conn_names = dict(
         (c.name, c)
         for c in conn_unique_constraints.union(conn_indexes)
@@ -726,6 +728,7 @@ def _correct_for_uq_duplicates_uix(
     conn_indexes,
     metadata_unique_constraints,
     metadata_indexes,
+    dialect,
 ):
     # dedupe unique indexes vs. constraints, since MySQL / Oracle
     # doesn't really have unique constraints as a separate construct.
@@ -733,25 +736,38 @@ def _correct_for_uq_duplicates_uix(
     # that already seem to be defined one way or the other
     # on that side.  This logic was formerly local to MySQL dialect,
     # generalized to Oracle and others. See #276
+
+    # resolve final rendered name for unique constraints defined in the
+    # metadata.   this includes truncation of long names.  naming convention
+    # names currently should already be set as cons.name, however leave this
+    # to the sqla_compat to decide.
+    metadata_cons_names = [
+        (sqla_compat._get_constraint_final_name(cons, dialect), cons)
+        for cons in metadata_unique_constraints
+    ]
+
     metadata_uq_names = set(
-        [
-            cons.name
-            for cons in metadata_unique_constraints
-            if cons.name is not None
-        ]
+        name for name, cons in metadata_cons_names if name is not None
     )
 
     unnamed_metadata_uqs = set(
         [
             _uq_constraint_sig(cons).sig
-            for cons in metadata_unique_constraints
-            if cons.name is None
+            for name, cons in metadata_cons_names
+            if name is None
         ]
     )
 
     metadata_ix_names = set(
-        [cons.name for cons in metadata_indexes if cons.unique]
+        [
+            sqla_compat._get_constraint_final_name(cons, dialect)
+            for cons in metadata_indexes
+            if cons.unique
+        ]
     )
+
+    # for reflection side, names are in their final database form
+    # already since they're from the database
     conn_ix_names = dict(
         (cons.name, cons) for cons in conn_indexes if cons.unique
     )

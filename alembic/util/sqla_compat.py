@@ -194,26 +194,10 @@ def _column_kwargs(col):
         return {}
 
 
-def _get_index_final_name(dialect, idx):
-    if sqla_14:
-        return _get_constraint_final_name(idx, dialect)
-
-    # prior to SQLAlchemy 1.4, work around quoting logic to get at the
-    # final compiled name without quotes.
-    if hasattr(idx.name, "quote"):
-        # might be quoted_name, might be truncated_name, keep it the
-        # same
-        quoted_name_cls = type(idx.name)
-        new_name = quoted_name_cls(str(idx.name), quote=False)
-        idx = schema.Index(name=new_name)
-    return dialect.ddl_compiler(dialect, None)._prepared_index_name(idx)
-
-
 def _get_constraint_final_name(constraint, dialect):
-    if sqla_14:
-        if constraint.name is None:
-            return None
-
+    if constraint.name is None:
+        return None
+    elif sqla_14:
         # for SQLAlchemy 1.4 we would like to have the option to expand
         # the use of "deferred" names for constraints as well as to have
         # some flexibility with "None" name and similar; make use of new
@@ -223,7 +207,22 @@ def _get_constraint_final_name(constraint, dialect):
             constraint, _alembic_quote=False
         )
     else:
-        return constraint.name
+
+        # prior to SQLAlchemy 1.4, work around quoting logic to get at the
+        # final compiled name without quotes.
+        if hasattr(constraint.name, "quote"):
+            # might be quoted_name, might be truncated_name, keep it the
+            # same
+            quoted_name_cls = type(constraint.name)
+            new_name = quoted_name_cls(str(constraint.name), quote=False)
+            constraint = constraint.__class__(name=new_name)
+
+        if isinstance(constraint, schema.Index):
+            return dialect.ddl_compiler(dialect, None)._prepared_index_name(
+                constraint
+            )
+        else:
+            return dialect.identifier_preparer.format_constraint(constraint)
 
 
 def _constraint_is_named(constraint, dialect):

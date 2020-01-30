@@ -1,0 +1,10 @@
+.. change::
+    :tags: bug, autogenerate
+    :tickets: 647
+
+    Adjusted the unique constraint comparison logic in a similar manner as that
+    of :ticket:`421` did for indexes in order to take into account SQLAlchemy's
+    own truncation of long constraint names when a naming convention is in use.
+    Without this step, a name that is truncated by SQLAlchemy based on a unique
+    constraint naming convention or hardcoded name will not compare properly.
+

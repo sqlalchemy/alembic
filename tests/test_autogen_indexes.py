@@ -297,6 +297,74 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestBase):
         diffs = self._fixture(m1, m2)
         eq_(diffs, [])
 
+    def test_nothing_uq_changed_labels_were_truncated(self):
+        m1 = MetaData(
+            naming_convention={
+                "ix": "index_%(table_name)s_%(column_0_label)s",
+                "uq": "unique_%(table_name)s_%(column_0_label)s",
+            }
+        )
+        m2 = MetaData(
+            naming_convention={
+                "ix": "index_%(table_name)s_%(column_0_label)s",
+                "uq": "unique_%(table_name)s_%(column_0_label)s",
+            }
+        )
+
+        Table(
+            "nothing_changed",
+            m1,
+            Column("id1", Integer, primary_key=True),
+            Column("id2", Integer, primary_key=True),
+            Column("a_long_name", String(20), unique=True),
+            mysql_engine="InnoDB",
+        )
+
+        Table(
+            "nothing_changed",
+            m2,
+            Column("id1", Integer, primary_key=True),
+            Column("id2", Integer, primary_key=True),
+            Column("a_long_name", String(20), unique=True),
+            mysql_engine="InnoDB",
+        )
+        diffs = self._fixture(m1, m2, max_identifier_length=30)
+        eq_(diffs, [])
+
+    def test_nothing_ix_changed_labels_were_truncated(self):
+        m1 = MetaData(
+            naming_convention={
+                "ix": "index_%(table_name)s_%(column_0_label)s",
+                "uq": "unique_%(table_name)s_%(column_0_label)s",
+            }
+        )
+        m2 = MetaData(
+            naming_convention={
+                "ix": "index_%(table_name)s_%(column_0_label)s",
+                "uq": "unique_%(table_name)s_%(column_0_label)s",
+            }
+        )
+
+        Table(
+            "nothing_changed",
+            m1,
+            Column("id1", Integer, primary_key=True),
+            Column("id2", Integer, primary_key=True),
+            Column("a_particularly_long_column_name", String(20), index=True),
+            mysql_engine="InnoDB",
+        )
+
+        Table(
+            "nothing_changed",
+            m2,
+            Column("id1", Integer, primary_key=True),
+            Column("id2", Integer, primary_key=True),
+            Column("a_particularly_long_column_name", String(20), index=True),
+            mysql_engine="InnoDB",
+        )
+        diffs = self._fixture(m1, m2, max_identifier_length=30)
+        eq_(diffs, [])
+
     def test_nothing_changed_two(self):
         m1 = MetaData()
         m2 = MetaData()
