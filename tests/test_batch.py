@@ -34,6 +34,7 @@ from alembic.testing import exclusions
 from alembic.testing import mock
 from alembic.testing import TestBase
 from alembic.testing.fixtures import op_fixture
+from alembic.util import exc as alembic_exc
 from alembic.util.sqla_compat import sqla_14
 
 
@@ -41,7 +42,7 @@ class BatchApplyTest(TestBase):
     def setUp(self):
         self.op = Operations(mock.Mock(opts={}))
 
-    def _simple_fixture(self, table_args=(), table_kwargs={}):
+    def _simple_fixture(self, table_args=(), table_kwargs={}, **kw):
         m = MetaData()
         t = Table(
             "tname",
@@ -50,7 +51,7 @@ class BatchApplyTest(TestBase):
             Column("x", String(10)),
             Column("y", Integer),
         )
-        return ApplyBatchImpl(t, table_args, table_kwargs, False)
+        return ApplyBatchImpl(t, table_args, table_kwargs, False, **kw)
 
     def _uq_fixture(self, table_args=(), table_kwargs={}):
         m = MetaData()
@@ -464,6 +465,98 @@ class BatchApplyTest(TestBase):
         t = self.op.schema_obj.table("tname", col)  # noqa
         impl.add_column("tname", col)
         new_table = self._assert_impl(impl, colnames=["id", "x", "y", "g"])
+        eq_(new_table.c.g.name, "g")
+
+    def test_partial_reordering(self):
+        impl = self._simple_fixture(partial_reordering=[("x", "id", "y")])
+        new_table = self._assert_impl(impl, colnames=["x", "id", "y"])
+        eq_(new_table.c.x.name, "x")
+
+    def test_add_col_partial_reordering(self):
+        impl = self._simple_fixture(partial_reordering=[("id", "x", "g", "y")])
+        col = Column("g", Integer)
+        # operations.add_column produces a table
+        t = self.op.schema_obj.table("tname", col)  # noqa
+        impl.add_column("tname", col)
+        new_table = self._assert_impl(impl, colnames=["id", "x", "g", "y"])
+        eq_(new_table.c.g.name, "g")
+
+    def test_add_col_insert_before(self):
+        impl = self._simple_fixture()
+        col = Column("g", Integer)
+        # operations.add_column produces a table
+        t = self.op.schema_obj.table("tname", col)  # noqa
+        impl.add_column("tname", col, insert_before="x")
+        new_table = self._assert_impl(impl, colnames=["id", "g", "x", "y"])
+        eq_(new_table.c.g.name, "g")
+
+    def test_add_col_insert_before_beginning(self):
+        impl = self._simple_fixture()
+        impl.add_column("tname", Column("g", Integer), insert_before="id")
+        new_table = self._assert_impl(impl, colnames=["g", "id", "x", "y"])
+        eq_(new_table.c.g.name, "g")
+
+    def test_add_col_insert_before_middle(self):
+        impl = self._simple_fixture()
+        impl.add_column("tname", Column("g", Integer), insert_before="y")
+        new_table = self._assert_impl(impl, colnames=["id", "x", "g", "y"])
+        eq_(new_table.c.g.name, "g")
+
+    def test_add_col_insert_after_middle(self):
+        impl = self._simple_fixture()
+        impl.add_column("tname", Column("g", Integer), insert_after="id")
+        new_table = self._assert_impl(impl, colnames=["id", "g", "x", "y"])
+        eq_(new_table.c.g.name, "g")
+
+    def test_add_col_insert_after_penultimate(self):
+        impl = self._simple_fixture()
+        impl.add_column("tname", Column("g", Integer), insert_after="x")
+        self._assert_impl(impl, colnames=["id", "x", "g", "y"])
+
+    def test_add_col_insert_after_end(self):
+        impl = self._simple_fixture()
+        impl.add_column("tname", Column("g", Integer), insert_after="y")
+        new_table = self._assert_impl(impl, colnames=["id", "x", "y", "g"])
+        eq_(new_table.c.g.name, "g")
+
+    def test_add_col_insert_after_plus_no_order(self):
+        impl = self._simple_fixture()
+        # operations.add_column produces a table
+        impl.add_column("tname", Column("g", Integer), insert_after="id")
+        impl.add_column("tname", Column("q", Integer))
+        new_table = self._assert_impl(
+            impl, colnames=["id", "g", "x", "y", "q"]
+        )
+        eq_(new_table.c.g.name, "g")
+
+    def test_add_col_no_order_plus_insert_after(self):
+        impl = self._simple_fixture()
+        col = Column("g", Integer)
+        # operations.add_column produces a table
+        t = self.op.schema_obj.table("tname", col)  # noqa
+        impl.add_column("tname", Column("q", Integer))
+        impl.add_column("tname", Column("g", Integer), insert_after="id")
+        new_table = self._assert_impl(
+            impl, colnames=["id", "g", "x", "y", "q"]
+        )
+        eq_(new_table.c.g.name, "g")
+
+    def test_add_col_insert_after_another_insert(self):
+        impl = self._simple_fixture()
+        impl.add_column("tname", Column("g", Integer), insert_after="id")
+        impl.add_column("tname", Column("q", Integer), insert_after="g")
+        new_table = self._assert_impl(
+            impl, colnames=["id", "g", "q", "x", "y"]
+        )
+        eq_(new_table.c.g.name, "g")
+
+    def test_add_col_insert_before_another_insert(self):
+        impl = self._simple_fixture()
+        impl.add_column("tname", Column("g", Integer), insert_after="id")
+        impl.add_column("tname", Column("q", Integer), insert_before="g")
+        new_table = self._assert_impl(
+            impl, colnames=["id", "q", "g", "x", "y"]
+        )
         eq_(new_table.c.g.name, "g")
 
     def test_add_server_default(self):
@@ -1593,6 +1686,64 @@ class BatchRoundTripTest(TestBase):
                 {"id": 5, "data": "d5", "x": 9, "data2": "hi"},
             ]
         )
+        eq_(
+            [col["name"] for col in inspect(config.db).get_columns("foo")],
+            ["id", "data", "x", "data2"],
+        )
+
+    def test_add_column_insert_before_recreate(self):
+        with self.op.batch_alter_table("foo", recreate="always") as batch_op:
+            batch_op.add_column(
+                Column("data2", String(50), server_default="hi"),
+                insert_before="data",
+            )
+        self._assert_data(
+            [
+                {"id": 1, "data": "d1", "x": 5, "data2": "hi"},
+                {"id": 2, "data": "22", "x": 6, "data2": "hi"},
+                {"id": 3, "data": "8.5", "x": 7, "data2": "hi"},
+                {"id": 4, "data": "9.46", "x": 8, "data2": "hi"},
+                {"id": 5, "data": "d5", "x": 9, "data2": "hi"},
+            ]
+        )
+        eq_(
+            [col["name"] for col in inspect(config.db).get_columns("foo")],
+            ["id", "data2", "data", "x"],
+        )
+
+    def test_add_column_insert_after_recreate(self):
+        with self.op.batch_alter_table("foo", recreate="always") as batch_op:
+            batch_op.add_column(
+                Column("data2", String(50), server_default="hi"),
+                insert_after="data",
+            )
+        self._assert_data(
+            [
+                {"id": 1, "data": "d1", "x": 5, "data2": "hi"},
+                {"id": 2, "data": "22", "x": 6, "data2": "hi"},
+                {"id": 3, "data": "8.5", "x": 7, "data2": "hi"},
+                {"id": 4, "data": "9.46", "x": 8, "data2": "hi"},
+                {"id": 5, "data": "d5", "x": 9, "data2": "hi"},
+            ]
+        )
+        eq_(
+            [col["name"] for col in inspect(config.db).get_columns("foo")],
+            ["id", "data", "data2", "x"],
+        )
+
+    def test_add_column_insert_before_raise_on_alter(self):
+        def go():
+            with self.op.batch_alter_table("foo") as batch_op:
+                batch_op.add_column(
+                    Column("data2", String(50), server_default="hi"),
+                    insert_before="data",
+                )
+
+        assert_raises_message(
+            alembic_exc.CommandError,
+            "Can't specify insert_before or insert_after when using ALTER",
+            go,
+        )
 
     def test_add_column_recreate(self):
         with self.op.batch_alter_table("foo", recreate="always") as batch_op:
@@ -1608,6 +1759,10 @@ class BatchRoundTripTest(TestBase):
                 {"id": 4, "data": "9.46", "x": 8, "data2": "hi"},
                 {"id": 5, "data": "d5", "x": 9, "data2": "hi"},
             ]
+        )
+        eq_(
+            [col["name"] for col in inspect(config.db).get_columns("foo")],
+            ["id", "data", "x", "data2"],
         )
 
     def test_create_drop_index(self):

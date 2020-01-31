@@ -177,6 +177,7 @@ class Operations(util.ModuleClsProxy):
         table_name,
         schema=None,
         recreate="auto",
+        partial_reordering=None,
         copy_from=None,
         table_args=(),
         table_kwargs=util.immutabledict(),
@@ -301,6 +302,33 @@ class Operations(util.ModuleClsProxy):
 
          .. versionadded:: 0.7.1
 
+        :param partial_reordering: a list of tuples, each suggesting a desired
+         ordering of two or more columns in the newly created table.  Requires
+         that :paramref:`.batch_alter_table.recreate` is set to ``"always"``.
+         Examples, given a table with columns "a", "b", "c", and "d":
+
+         Specify the order of all columns::
+
+            with op.batch_alter_table(
+                    "some_table", recreate="always",
+                    partial_reordering=[("c", "d", "a", "b")]
+            ) as batch_op:
+                pass
+
+         Ensure "d" appears before "c", and "b", appears before "a"::
+
+            with op.batch_alter_table(
+                    "some_table", recreate="always",
+                    partial_reordering=[("d", "c"), ("b", "a")]
+            ) as batch_op:
+                pass
+
+         The ordering of columns not included in the partial_reordering
+         set is undefined.   Therefore it is best to specify the complete
+         ordering of all columns for best results.
+
+         .. versionadded:: 1.4.0
+
         .. note:: batch mode requires SQLAlchemy 0.8 or above.
 
         .. seealso::
@@ -319,6 +347,7 @@ class Operations(util.ModuleClsProxy):
             reflect_args,
             reflect_kwargs,
             naming_convention,
+            partial_reordering,
         )
         batch_op = BatchOperations(self.migration_context, impl=impl)
         yield batch_op

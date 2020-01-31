@@ -11,7 +11,9 @@ from sqlalchemy import Table
 from sqlalchemy import types as sqltypes
 from sqlalchemy.events import SchemaEventTarget
 from sqlalchemy.util import OrderedDict
+from sqlalchemy.util import topological
 
+from ..util import exc
 from ..util.sqla_compat import _columns_for_constraint
 from ..util.sqla_compat import _fk_is_self_referential
 from ..util.sqla_compat import _is_type_bound
@@ -31,6 +33,7 @@ class BatchOperationsImpl(object):
         reflect_args,
         reflect_kwargs,
         naming_convention,
+        partial_reordering,
     ):
         self.operations = operations
         self.table_name = table_name
@@ -52,6 +55,7 @@ class BatchOperationsImpl(object):
             ("column_reflect", operations.impl.autogen_column_reflect)
         )
         self.naming_convention = naming_convention
+        self.partial_reordering = partial_reordering
         self.batch = []
 
     @property
@@ -99,7 +103,11 @@ class BatchOperationsImpl(object):
                 reflected = True
 
             batch_impl = ApplyBatchImpl(
-                existing_table, self.table_args, self.table_kwargs, reflected
+                existing_table,
+                self.table_args,
+                self.table_kwargs,
+                reflected,
+                partial_reordering=self.partial_reordering,
             )
             for opname, arg, kw in self.batch:
                 fn = getattr(batch_impl, opname)
@@ -111,6 +119,13 @@ class BatchOperationsImpl(object):
         self.batch.append(("alter_column", arg, kw))
 
     def add_column(self, *arg, **kw):
+        if (
+            "insert_before" in kw or "insert_after" in kw
+        ) and not self._should_recreate():
+            raise exc.CommandError(
+                "Can't specify insert_before or insert_after when using "
+                "ALTER; please specify recreate='always'"
+            )
         self.batch.append(("add_column", arg, kw))
 
     def drop_column(self, *arg, **kw):
@@ -139,15 +154,23 @@ class BatchOperationsImpl(object):
 
 
 class ApplyBatchImpl(object):
-    def __init__(self, table, table_args, table_kwargs, reflected):
+    def __init__(
+        self, table, table_args, table_kwargs, reflected, partial_reordering=()
+    ):
         self.table = table  # this is a Table object
         self.table_args = table_args
         self.table_kwargs = table_kwargs
         self.temp_table_name = self._calc_temp_name(table.name)
         self.new_table = None
+
+        self.partial_reordering = partial_reordering  # tuple of tuples
+        self.add_col_ordering = ()  # tuple of tuples
+
         self.column_transfers = OrderedDict(
             (c.name, {"expr": c}) for c in self.table.c
         )
+        self.existing_ordering = list(self.column_transfers)
+
         self.reflected = reflected
         self._grab_table_elements()
 
@@ -188,11 +211,44 @@ class ApplyBatchImpl(object):
         for k in self.table.kwargs:
             self.table_kwargs.setdefault(k, self.table.kwargs[k])
 
+    def _adjust_self_columns_for_partial_reordering(self):
+        pairs = set()
+
+        col_by_idx = list(self.columns)
+
+        if self.partial_reordering:
+            for tuple_ in self.partial_reordering:
+                for index, elem in enumerate(tuple_):
+                    if index > 0:
+                        pairs.add((tuple_[index - 1], elem))
+        else:
+            for index, elem in enumerate(self.existing_ordering):
+                if index > 0:
+                    pairs.add((col_by_idx[index - 1], elem))
+
+        pairs.update(self.add_col_ordering)
+
+        # this can happen if some columns were dropped and not removed
+        # from existing_ordering.  this should be prevented already, but
+        # conservatively making sure this didn't happen
+        pairs = [p for p in pairs if p[0] != p[1]]
+
+        sorted_ = list(
+            topological.sort(pairs, col_by_idx, deterministic_order=True)
+        )
+        self.columns = OrderedDict((k, self.columns[k]) for k in sorted_)
+        self.column_transfers = OrderedDict(
+            (k, self.column_transfers[k]) for k in sorted_
+        )
+
     def _transfer_elements_to_new_table(self):
         assert self.new_table is None, "Can only create new table once"
 
         m = MetaData()
         schema = self.table.schema
+
+        if self.partial_reordering or self.add_col_ordering:
+            self._adjust_self_columns_for_partial_reordering()
 
         self.new_table = new_table = Table(
             self.temp_table_name,
@@ -371,7 +427,57 @@ class ApplyBatchImpl(object):
         if autoincrement is not None:
             existing.autoincrement = bool(autoincrement)
 
-    def add_column(self, table_name, column, **kw):
+    def _setup_dependencies_for_add_column(
+        self, colname, insert_before, insert_after
+    ):
+        index_cols = self.existing_ordering
+        col_indexes = {name: i for i, name in enumerate(index_cols)}
+
+        if not self.partial_reordering:
+            if insert_after:
+                if not insert_before:
+                    if insert_after in col_indexes:
+                        # insert after an existing column
+                        idx = col_indexes[insert_after] + 1
+                        if idx < len(index_cols):
+                            insert_before = index_cols[idx]
+                    else:
+                        # insert after a column that is also new
+                        insert_before = dict(self.add_col_ordering)[
+                            insert_after
+                        ]
+            if insert_before:
+                if not insert_after:
+                    if insert_before in col_indexes:
+                        # insert before an existing column
+                        idx = col_indexes[insert_before] - 1
+                        if idx >= 0:
+                            insert_after = index_cols[idx]
+                    else:
+                        # insert before a column that is also new
+                        insert_after = dict(
+                            (b, a) for a, b in self.add_col_ordering
+                        )[insert_before]
+
+        if insert_before:
+            self.add_col_ordering += ((colname, insert_before),)
+        if insert_after:
+            self.add_col_ordering += ((insert_after, colname),)
+
+        if (
+            not self.partial_reordering
+            and not insert_before
+            and not insert_after
+            and col_indexes
+        ):
+            self.add_col_ordering += ((index_cols[-1], colname),)
+
+    def add_column(
+        self, table_name, column, insert_before=None, insert_after=None, **kw
+    ):
+        self._setup_dependencies_for_add_column(
+            column.name, insert_before, insert_after
+        )
         # we copy the column because operations.add_column()
         # gives us a Column that is part of a Table already.
         self.columns[column.name] = column.copy(schema=self.table.schema)
@@ -384,6 +490,7 @@ class ApplyBatchImpl(object):
             )
         del self.columns[column.name]
         del self.column_transfers[column.name]
+        self.existing_ordering.remove(column.name)
 
     def add_constraint(self, const):
         if not const.name:

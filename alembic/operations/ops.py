@@ -1790,14 +1790,34 @@ class AlterColumnOp(AlterTableOp):
         existing_server_default=False,
         existing_nullable=None,
         existing_comment=None,
+        insert_before=None,
+        insert_after=None,
         **kw
     ):
         """Issue an "alter column" instruction using the current
         batch migration context.
 
+        Parameters are the same as that of :meth:`.Operations.alter_column`,
+        as well as the following option(s):
+
+        :param insert_before: String name of an existing column which this
+         column should be placed before, when creating the new table.
+
+         .. versionadded:: 1.4.0
+
+        :param insert_before: String name of an existing column which this
+         column should be placed after, when creating the new table.  If
+         both :paramref:`.BatchOperations.alter_column.insert_before`
+         and :paramref:`.BatchOperations.alter_column.insert_after` are
+         omitted, the column is inserted after the last existing column
+         in the table.
+
+         .. versionadded:: 1.4.0
+
         .. seealso::
 
             :meth:`.Operations.alter_column`
+
 
         """
         alt = cls(
@@ -1824,9 +1844,10 @@ class AlterColumnOp(AlterTableOp):
 class AddColumnOp(AlterTableOp):
     """Represent an add column operation."""
 
-    def __init__(self, table_name, column, schema=None):
+    def __init__(self, table_name, column, schema=None, **kw):
         super(AddColumnOp, self).__init__(table_name, schema=schema)
         self.column = column
+        self.kw = kw
 
     def reverse(self):
         return DropColumnOp.from_column_and_tablename(
@@ -1906,7 +1927,9 @@ class AddColumnOp(AlterTableOp):
         return operations.invoke(op)
 
     @classmethod
-    def batch_add_column(cls, operations, column):
+    def batch_add_column(
+        cls, operations, column, insert_before=None, insert_after=None
+    ):
         """Issue an "add column" instruction using the current
         batch migration context.
 
@@ -1915,8 +1938,18 @@ class AddColumnOp(AlterTableOp):
             :meth:`.Operations.add_column`
 
         """
+
+        kw = {}
+        if insert_before:
+            kw["insert_before"] = insert_before
+        if insert_after:
+            kw["insert_after"] = insert_after
+
         op = cls(
-            operations.impl.table_name, column, schema=operations.impl.schema
+            operations.impl.table_name,
+            column,
+            schema=operations.impl.schema,
+            **kw
         )
         return operations.invoke(op)
 

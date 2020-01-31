@@ -1,0 +1,12 @@
+.. change::
+    :tags: feature, batch
+    :tickets: 640
+
+    Added new parameters :paramref:`.BatchOperations.add_column.insert_before`,
+    :paramref:`.BatchOperations.add_column.insert_after` which provide for
+    establishing the specific position in which a new column should be placed.
+    Also added :paramref:`.Operations.batch_alter_table.partial_reordering`
+    which allows the complete set of columns to be reordered when the new table
+    is created.   Both operations apply only to when batch mode is recreating
+    the whole table using ``recreate="always"``.  Thanks to Marcin Szymanski
+    for assistance with the implementation.
