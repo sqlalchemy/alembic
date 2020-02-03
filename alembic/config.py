@@ -4,7 +4,6 @@ import os
 import sys
 
 from . import command
-from . import package_dir
 from . import util
 from .util import compat
 from .util.compat import SafeConfigParser
@@ -210,6 +209,9 @@ class Config(object):
         commands.
 
         """
+        import alembic
+
+        package_dir = os.path.abspath(os.path.dirname(alembic.__file__))
         return os.path.join(package_dir, "templates")
 
     def get_section(self, name, default=None):
