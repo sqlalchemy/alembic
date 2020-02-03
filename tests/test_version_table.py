@@ -1,8 +1,8 @@
 from sqlalchemy import Column
+from sqlalchemy import inspect
 from sqlalchemy import MetaData
 from sqlalchemy import String
 from sqlalchemy import Table
-from sqlalchemy.engine.reflection import Inspector
 
 from alembic import migration
 from alembic.testing import assert_raises
@@ -88,7 +88,7 @@ class TestMigrationContext(TestBase):
             connection=self.connection, opts={"version_table": "version_table"}
         )
         eq_(context.get_current_revision(), None)
-        insp = Inspector(self.connection)
+        insp = inspect(self.connection)
         assert "version_table" not in insp.get_table_names()
 
     def test_get_current_revision(self):
@@ -155,8 +155,7 @@ class TestMigrationContext(TestBase):
     def test_stamp_api_creates_table(self):
         context = self.make_one(connection=self.connection)
         assert (
-            "alembic_version"
-            not in Inspector(self.connection).get_table_names()
+            "alembic_version" not in inspect(self.connection).get_table_names()
         )
 
         script = mock.Mock(
@@ -168,9 +167,7 @@ class TestMigrationContext(TestBase):
 
         context.stamp(script, "b")
         eq_(context.get_current_heads(), ("a", "b"))
-        assert (
-            "alembic_version" in Inspector(self.connection).get_table_names()
-        )
+        assert "alembic_version" in inspect(self.connection).get_table_names()
 
 
 class UpdateRevTest(TestBase):

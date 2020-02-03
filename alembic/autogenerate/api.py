@@ -3,7 +3,7 @@ automatically."""
 
 import contextlib
 
-from sqlalchemy.engine.reflection import Inspector
+from sqlalchemy import inspect
 
 from . import compare
 from . import render
@@ -316,7 +316,7 @@ class AutogenContext(object):
 
     @util.memoized_property
     def inspector(self):
-        return Inspector.from_engine(self.connection)
+        return inspect(self.connection)
 
     @contextlib.contextmanager
     def _within_batch(self):

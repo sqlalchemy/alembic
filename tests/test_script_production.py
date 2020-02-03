@@ -4,7 +4,7 @@ import re
 
 from dateutil import tz
 import sqlalchemy as sa
-from sqlalchemy.engine.reflection import Inspector
+from sqlalchemy import inspect
 
 from alembic import autogenerate
 from alembic import command
@@ -555,10 +555,7 @@ def downgrade():
         with self._env_fixture(process_revision_directives, m):
             command.upgrade(self.cfg, "heads")
 
-            eq_(
-                Inspector.from_engine(self.engine).get_table_names(),
-                ["alembic_version"],
-            )
+            eq_(inspect(self.engine).get_table_names(), ["alembic_version"])
 
             command.revision(
                 self.cfg, message="some message", autogenerate=True
@@ -567,16 +564,13 @@ def downgrade():
             command.upgrade(self.cfg, "model1@head")
 
             eq_(
-                Inspector.from_engine(self.engine).get_table_names(),
+                inspect(self.engine).get_table_names(),
                 ["alembic_version", "t"],
             )
 
             command.upgrade(self.cfg, "model2@head")
 
-            eq_(
-                Inspector.from_engine(self.engine).get_table_names(),
-                ["alembic_version"],
-            )
+            eq_(inspect(self.engine).get_table_names(), ["alembic_version"])
 
     def test_programmatic_command_option(self):
         def process_revision_directives(context, rev, generate_revisions):

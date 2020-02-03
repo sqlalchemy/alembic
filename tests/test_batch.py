@@ -11,13 +11,13 @@ from sqlalchemy import ForeignKey
 from sqlalchemy import ForeignKeyConstraint
 from sqlalchemy import func
 from sqlalchemy import Index
+from sqlalchemy import inspect
 from sqlalchemy import Integer
 from sqlalchemy import MetaData
 from sqlalchemy import PrimaryKeyConstraint
 from sqlalchemy import String
 from sqlalchemy import Table
 from sqlalchemy import UniqueConstraint
-from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.schema import CreateIndex
 from sqlalchemy.schema import CreateTable
 from sqlalchemy.sql import column
@@ -1153,7 +1153,7 @@ class BatchRoundTripTest(TestBase):
                 type_=Integer,
                 existing_type=Boolean(create_constraint=True, name="ck1"),
             )
-        insp = Inspector.from_engine(config.db)
+        insp = inspect(config.db)
 
         eq_(
             [
@@ -1202,7 +1202,7 @@ class BatchRoundTripTest(TestBase):
         self._boolean_fixture()
         with self.op.batch_alter_table("hasbool") as batch_op:
             batch_op.drop_column("x")
-        insp = Inspector.from_engine(config.db)
+        insp = inspect(config.db)
 
         assert "x" not in (c["name"] for c in insp.get_columns("hasbool"))
 
@@ -1212,7 +1212,7 @@ class BatchRoundTripTest(TestBase):
             batch_op.alter_column(
                 "x", type_=Boolean(create_constraint=True, name="ck1")
             )
-        insp = Inspector.from_engine(config.db)
+        insp = inspect(config.db)
 
         if exclusions.against(config, "sqlite"):
             eq_(
@@ -1253,7 +1253,7 @@ class BatchRoundTripTest(TestBase):
             batch_op.alter_column("data", type_=String(30))
             batch_op.create_index("ix_data", ["data"])
 
-        insp = Inspector.from_engine(config.db)
+        insp = inspect(config.db)
         eq_(
             set(
                 (ix["name"], tuple(ix["column_names"]))
@@ -1297,7 +1297,7 @@ class BatchRoundTripTest(TestBase):
                 "data", new_column_name="newdata", existing_type=String(50)
             )
 
-        insp = Inspector.from_engine(self.conn)
+        insp = inspect(self.conn)
         eq_(
             [
                 (
@@ -1344,9 +1344,8 @@ class BatchRoundTripTest(TestBase):
                 "data", new_column_name="newdata", existing_type=String(50)
             )
 
-        insp = Inspector.from_engine(self.conn)
+        insp = inspect(self.conn)
 
-        insp = Inspector.from_engine(self.conn)
         eq_(
             [
                 (
@@ -1394,7 +1393,7 @@ class BatchRoundTripTest(TestBase):
             batch_op.drop_column("id")
             batch_op.add_column(Column("id", Integer))
 
-        pk_const = Inspector.from_engine(self.conn).get_pk_constraint("foo")
+        pk_const = inspect(self.conn).get_pk_constraint("foo")
         eq_(pk_const["constrained_columns"], [])
 
     def test_drop_pk_col_readd_pk_col(self):
@@ -1403,7 +1402,7 @@ class BatchRoundTripTest(TestBase):
             batch_op.drop_column("id")
             batch_op.add_column(Column("id", Integer, primary_key=True))
 
-        pk_const = Inspector.from_engine(self.conn).get_pk_constraint("foo")
+        pk_const = inspect(self.conn).get_pk_constraint("foo")
         eq_(pk_const["constrained_columns"], ["id"])
 
     def test_drop_pk_col_readd_col_also_pk_const(self):
@@ -1414,7 +1413,7 @@ class BatchRoundTripTest(TestBase):
             batch_op.add_column(Column("id", Integer))
             batch_op.create_primary_key("newpk", ["id"])
 
-        pk_const = Inspector.from_engine(self.conn).get_pk_constraint("foo")
+        pk_const = inspect(self.conn).get_pk_constraint("foo")
         eq_(pk_const["constrained_columns"], ["id"])
 
     def test_add_pk_constraint(self):
@@ -1422,7 +1421,7 @@ class BatchRoundTripTest(TestBase):
         with self.op.batch_alter_table("nopk", recreate="always") as batch_op:
             batch_op.create_primary_key("newpk", ["a", "b"])
 
-        pk_const = Inspector.from_engine(self.conn).get_pk_constraint("nopk")
+        pk_const = inspect(self.conn).get_pk_constraint("nopk")
         with config.requirements.reflects_pk_names.fail_if():
             eq_(pk_const["name"], "newpk")
         eq_(pk_const["constrained_columns"], ["a", "b"])
@@ -1463,7 +1462,7 @@ class BatchRoundTripTest(TestBase):
             "bar", naming_convention=naming_convention
         ) as batch_op:
             batch_op.drop_constraint("fk_bar_foo_id_foo", type_="foreignkey")
-        eq_(Inspector.from_engine(self.conn).get_foreign_keys("bar"), [])
+        eq_(inspect(self.conn).get_foreign_keys("bar"), [])
 
     def test_drop_column_fk_recreate(self):
         with self.op.batch_alter_table("foo", recreate="always") as batch_op:
@@ -1612,7 +1611,7 @@ class BatchRoundTripTest(TestBase):
         )
 
     def test_create_drop_index(self):
-        insp = Inspector.from_engine(config.db)
+        insp = inspect(config.db)
         eq_(insp.get_indexes("foo"), [])
 
         with self.op.batch_alter_table("foo", recreate="always") as batch_op:
@@ -1628,7 +1627,7 @@ class BatchRoundTripTest(TestBase):
             ]
         )
 
-        insp = Inspector.from_engine(config.db)
+        insp = inspect(config.db)
         eq_(
             [
                 dict(
@@ -1644,7 +1643,7 @@ class BatchRoundTripTest(TestBase):
         with self.op.batch_alter_table("foo", recreate="always") as batch_op:
             batch_op.drop_index("ix_data")
 
-        insp = Inspector.from_engine(config.db)
+        insp = inspect(config.db)
         eq_(insp.get_indexes("foo"), [])
 
 
