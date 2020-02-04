@@ -4,6 +4,10 @@ Changelog
 ==========
 
 .. changelog::
+    :version: 1.4.1
+    :include_notes_from: unreleased
+
+.. changelog::
     :version: 1.4.0
     :released: February 4, 2020
 
