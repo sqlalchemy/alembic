@@ -3,12 +3,12 @@ from sqlalchemy import Column
 from sqlalchemy import DateTime
 from sqlalchemy import Float
 from sqlalchemy import func
+from sqlalchemy import inspect
 from sqlalchemy import Integer
 from sqlalchemy import MetaData
 from sqlalchemy import String
 from sqlalchemy import Table
 from sqlalchemy import text
-from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.sql import column
 
 from alembic import autogenerate
@@ -130,7 +130,7 @@ class SQLiteDefaultCompareTest(TestBase):
 
         t1.create(self.bind)
 
-        insp = Inspector.from_engine(self.bind)
+        insp = inspect(self.bind)
         cols = insp.get_columns(t1.name)
         insp_col = Column(
             "somecol", cols[0]["type"], server_default=text(cols[0]["default"])
@@ -151,7 +151,7 @@ class SQLiteDefaultCompareTest(TestBase):
 
     def _compare_default(self, t1, t2, col, rendered):
         t1.create(self.bind, checkfirst=True)
-        insp = Inspector.from_engine(self.bind)
+        insp = inspect(self.bind)
         cols = insp.get_columns(t1.name)
         ctx = self.autogen_context.migration_context
 

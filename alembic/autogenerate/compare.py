@@ -3,9 +3,9 @@ import logging
 import re
 
 from sqlalchemy import event
+from sqlalchemy import inspect
 from sqlalchemy import schema as sa_schema
 from sqlalchemy import types as sqltypes
-from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.util import OrderedSet
 
 from alembic.ddl.base import _fk_spec
@@ -34,7 +34,7 @@ def _produce_net_changes(autogen_context, upgrade_ops):
     connection = autogen_context.connection
     include_schemas = autogen_context.opts.get("include_schemas", False)
 
-    inspector = Inspector.from_engine(connection)
+    inspector = inspect(connection)
 
     default_schema = connection.dialect.default_schema_name
     if include_schemas:

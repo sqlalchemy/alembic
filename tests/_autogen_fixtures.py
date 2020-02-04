@@ -4,6 +4,7 @@ from sqlalchemy import Column
 from sqlalchemy import event
 from sqlalchemy import ForeignKey
 from sqlalchemy import Index
+from sqlalchemy import inspect
 from sqlalchemy import Integer
 from sqlalchemy import MetaData
 from sqlalchemy import Numeric
@@ -12,7 +13,6 @@ from sqlalchemy import Table
 from sqlalchemy import Text
 from sqlalchemy import text
 from sqlalchemy import UniqueConstraint
-from sqlalchemy.engine.reflection import Inspector
 
 from alembic import autogenerate
 from alembic import util
@@ -187,9 +187,7 @@ class _ComparesFKs(object):
         eq_([elem.column.name for elem in diff[1].elements], target_columns)
         if conditional_name is not None:
             if conditional_name == "servergenerated":
-                fks = Inspector.from_engine(self.bind).get_foreign_keys(
-                    source_table
-                )
+                fks = inspect(self.bind).get_foreign_keys(source_table)
                 server_fk_name = fks[0]["name"]
                 eq_(diff[1].name, server_fk_name)
             else:
