@@ -69,7 +69,7 @@ def _autogen_for_tables(autogen_context, upgrade_ops, schemas):
             tables = tables.difference(
                 [autogen_context.migration_context.version_table]
             )
-        conn_table_names.update(zip([s] * len(tables), tables))
+            conn_table_names.update(zip([s] * len(tables), tables))
 
     metadata_table_names = OrderedSet(
         [(table.schema, table.name) for table in autogen_context.sorted_tables]
