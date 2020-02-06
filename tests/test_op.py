@@ -1,6 +1,7 @@
 """Test against the builders in the op.* module."""
 
 from sqlalchemy import Boolean
+from sqlalchemy import CheckConstraint
 from sqlalchemy import Column
 from sqlalchemy import event
 from sqlalchemy import exc
@@ -109,6 +110,16 @@ class OpTest(TestBase):
         context = op_fixture()
         op.add_column("t1", Column("c1", Integer, nullable=False))
         context.assert_("ALTER TABLE t1 ADD COLUMN c1 INTEGER NOT NULL")
+
+    def test_add_column_w_check(self):
+        context = op_fixture()
+        op.add_column(
+            "t1",
+            Column("c1", Integer, CheckConstraint("c1 > 5"), nullable=False),
+        )
+        context.assert_(
+            "ALTER TABLE t1 ADD COLUMN c1 INTEGER NOT NULL CHECK (c1 > 5)"
+        )
 
     def test_add_column_schema(self):
         context = op_fixture()

@@ -216,4 +216,12 @@ def alter_column(compiler, name):
 
 
 def add_column(compiler, column, **kw):
-    return "ADD COLUMN %s" % compiler.get_column_specification(column, **kw)
+    text = "ADD COLUMN %s" % compiler.get_column_specification(column, **kw)
+
+    const = " ".join(
+        compiler.process(constraint) for constraint in column.constraints
+    )
+    if const:
+        text += " " + const
+
+    return text

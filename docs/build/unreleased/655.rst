@@ -1,0 +1,10 @@
+.. change::
+    :tags: bug, operations
+    :tickets: 655
+
+    Fixed long-standing bug where an inline column CHECK constraint would not
+    be rendered within an "ADD COLUMN" operation.  The DDL compiler is now
+    consulted for inline constraints within the :meth:`.Operations.add_column`
+    method as is done for regular CREATE TABLE operations.
+
+
