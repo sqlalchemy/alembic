@@ -8,6 +8,7 @@ from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.schema import CheckConstraint
 from sqlalchemy.schema import Column
 from sqlalchemy.schema import ForeignKeyConstraint
+from sqlalchemy.sql.elements import quoted_name
 from sqlalchemy.sql.expression import _BindParamClause
 from sqlalchemy.sql.expression import _TextClause as TextClause
 from sqlalchemy.sql.visitors import traverse
@@ -214,14 +215,19 @@ def _get_constraint_final_name(constraint, dialect):
             # might be quoted_name, might be truncated_name, keep it the
             # same
             quoted_name_cls = type(constraint.name)
-            new_name = quoted_name_cls(str(constraint.name), quote=False)
-            constraint = constraint.__class__(name=new_name)
+        else:
+            quoted_name_cls = quoted_name
+
+        new_name = quoted_name_cls(str(constraint.name), quote=False)
+        constraint = constraint.__class__(name=new_name)
 
         if isinstance(constraint, schema.Index):
+            # name should not be quoted.
             return dialect.ddl_compiler(dialect, None)._prepared_index_name(
                 constraint
             )
         else:
+            # name should not be quoted.
             return dialect.identifier_preparer.format_constraint(constraint)
 
 
