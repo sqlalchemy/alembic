@@ -130,6 +130,7 @@ def add_column(operations, operation):
 
     t = operations.schema_obj.table(table_name, column, schema=schema)
     operations.impl.add_column(table_name, column, schema=schema, **kw)
+
     for constraint in t.constraints:
         if not isinstance(constraint, sa_schema.PrimaryKeyConstraint):
             operations.impl.add_constraint(constraint)
