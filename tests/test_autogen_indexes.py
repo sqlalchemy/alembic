@@ -365,6 +365,122 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestBase):
         diffs = self._fixture(m1, m2, max_identifier_length=30)
         eq_(diffs, [])
 
+    def test_nothing_changed_uq_w_mixed_case_nconv_name(self):
+        m1 = MetaData(
+            naming_convention={
+                "ix": "index_%(table_name)s_%(column_0_label)s",
+                "uq": "unique_%(table_name)s_%(column_0_label)s",
+            }
+        )
+        m2 = MetaData(
+            naming_convention={
+                "ix": "index_%(table_name)s_%(column_0_label)s",
+                "uq": "unique_%(table_name)s_%(column_0_label)s",
+            }
+        )
+
+        Table(
+            "NothingChanged",
+            m1,
+            Column("id", Integer, primary_key=True),
+            Column("XCol", Integer),
+            UniqueConstraint("XCol"),
+            mysql_engine="InnoDB",
+        )
+
+        Table(
+            "NothingChanged",
+            m2,
+            Column("id", Integer, primary_key=True),
+            Column("XCol", Integer),
+            UniqueConstraint("XCol"),
+            mysql_engine="InnoDB",
+        )
+
+        diffs = self._fixture(m1, m2)
+        eq_(diffs, [])
+
+    def test_nothing_changed_uq_w_mixed_case_plain_name(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table(
+            "nothing_changed",
+            m1,
+            Column("id", Integer, primary_key=True),
+            Column("x", Integer),
+            UniqueConstraint("x", name="SomeConstraint"),
+            mysql_engine="InnoDB",
+        )
+
+        Table(
+            "nothing_changed",
+            m2,
+            Column("id", Integer, primary_key=True),
+            Column("x", Integer),
+            UniqueConstraint("x", name="SomeConstraint"),
+            mysql_engine="InnoDB",
+        )
+        diffs = self._fixture(m1, m2)
+        eq_(diffs, [])
+
+    def test_nothing_changed_ix_w_mixed_case_plain_name(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table(
+            "nothing_changed",
+            m1,
+            Column("id", Integer, primary_key=True),
+            Column("x", Integer),
+            Index("SomeIndex", "x"),
+            mysql_engine="InnoDB",
+        )
+
+        Table(
+            "nothing_changed",
+            m2,
+            Column("id", Integer, primary_key=True),
+            Column("x", Integer),
+            Index("SomeIndex", "x"),
+            mysql_engine="InnoDB",
+        )
+        diffs = self._fixture(m1, m2)
+        eq_(diffs, [])
+
+    def test_nothing_changed_ix_w_mixed_case_nconv_name(self):
+        m1 = MetaData(
+            naming_convention={
+                "ix": "index_%(table_name)s_%(column_0_label)s",
+                "uq": "unique_%(table_name)s_%(column_0_label)s",
+            }
+        )
+        m2 = MetaData(
+            naming_convention={
+                "ix": "index_%(table_name)s_%(column_0_label)s",
+                "uq": "unique_%(table_name)s_%(column_0_label)s",
+            }
+        )
+
+        Table(
+            "NothingChanged",
+            m1,
+            Column("id", Integer, primary_key=True),
+            Column("XCol", Integer, index=True),
+            mysql_engine="InnoDB",
+        )
+
+        Table(
+            "NothingChanged",
+            m2,
+            Column("id", Integer, primary_key=True),
+            Column("XCol", Integer, index=True),
+            mysql_engine="InnoDB",
+        )
+
+        diffs = self._fixture(m1, m2)
+        eq_(diffs, [])
+
     def test_nothing_changed_two(self):
         m1 = MetaData()
         m2 = MetaData()
