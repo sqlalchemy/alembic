@@ -1,3 +1,4 @@
+from .compat import raise_from_cause  # noqa
 from .exc import CommandError
 from .langhelpers import _with_legacy_names  # noqa
 from .langhelpers import asbool  # noqa
@@ -22,12 +23,12 @@ from .pyfiles import edit  # noqa
 from .pyfiles import load_python_file  # noqa
 from .pyfiles import pyc_file_from_path  # noqa
 from .pyfiles import template_to_file  # noqa
+from .sqla_compat import has_computed  # noqa
 from .sqla_compat import sqla_110  # noqa
 from .sqla_compat import sqla_1115  # noqa
 from .sqla_compat import sqla_120  # noqa
 from .sqla_compat import sqla_1216  # noqa
 from .sqla_compat import sqla_13  # noqa
-from .sqla_compat import has_computed  # noqa
 
 
 if not sqla_110:
