@@ -2,12 +2,12 @@ from sqlalchemy import Boolean
 from sqlalchemy import Column
 from sqlalchemy import DATETIME
 from sqlalchemy import func
+from sqlalchemy import inspect
 from sqlalchemy import Integer
 from sqlalchemy import MetaData
 from sqlalchemy import Table
 from sqlalchemy import text
 from sqlalchemy import TIMESTAMP
-from sqlalchemy.engine.reflection import Inspector
 
 from alembic import op
 from alembic import util
@@ -556,7 +556,7 @@ class MySQLDefaultCompareTest(TestBase):
 
     def _compare_default(self, t1, t2, col, rendered):
         t1.create(self.bind)
-        insp = Inspector.from_engine(self.bind)
+        insp = inspect(self.bind)
         cols = insp.get_columns(t1.name)
         refl = Table(t1.name, MetaData())
         insp.reflecttable(refl, None)

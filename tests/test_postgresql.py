@@ -5,6 +5,7 @@ from sqlalchemy import DateTime
 from sqlalchemy import Float
 from sqlalchemy import func
 from sqlalchemy import Index
+from sqlalchemy import inspect
 from sqlalchemy import Integer
 from sqlalchemy import Interval
 from sqlalchemy import MetaData
@@ -20,7 +21,6 @@ from sqlalchemy.dialects.postgresql import HSTORE
 from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.sql import column
 from sqlalchemy.sql import false
 from sqlalchemy.sql import table
@@ -523,7 +523,7 @@ class PostgresqlDefaultCompareTest(TestBase):
 
         t1.create(self.bind)
 
-        insp = Inspector.from_engine(self.bind)
+        insp = inspect(self.bind)
         cols = insp.get_columns(t1.name)
         insp_col = Column(
             "somecol", cols[0]["type"], server_default=text(cols[0]["default"])
@@ -544,7 +544,7 @@ class PostgresqlDefaultCompareTest(TestBase):
 
     def _compare_default(self, t1, t2, col, rendered):
         t1.create(self.bind, checkfirst=True)
-        insp = Inspector.from_engine(self.bind)
+        insp = inspect(self.bind)
         cols = insp.get_columns(t1.name)
         ctx = self.autogen_context.migration_context
 
@@ -703,7 +703,7 @@ class PostgresqlDetectSerialTest(TestBase):
             seq._set_metadata(self.metadata)
         self.metadata.create_all(config.db)
 
-        insp = Inspector.from_engine(config.db)
+        insp = inspect(config.db)
 
         uo = ops.UpgradeOps(ops=[])
         _compare_tables(
@@ -719,7 +719,7 @@ class PostgresqlDetectSerialTest(TestBase):
             c_expected,
         )
 
-        insp = Inspector.from_engine(config.db)
+        insp = inspect(config.db)
         uo = ops.UpgradeOps(ops=[])
         m2 = MetaData()
         Table("t", m2, Column("x", BigInteger()))
