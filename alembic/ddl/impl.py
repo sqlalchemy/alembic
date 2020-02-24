@@ -330,11 +330,29 @@ class DefaultImpl(with_metaclass(ImplMeta)):
 
     def _tokenize_column_type(self, column):
         definition = self.dialect.type_compiler.process(column.type).lower()
-        # py27 - py36 - col_type, *param_terms = re.findall...
-        matches = re.findall("[^(),]+", definition)
-        col_type, param_terms = matches[0], matches[1:]
+
+        # tokenize the SQLAlchemy-generated version of a type, so that
+        # the two can be compared.
+        #
+        # examples:
+        # NUMERIC(10, 5)
+        # TIMESTAMP WITH TIMEZONE
+        # INTEGER UNSIGNED
+        # INTEGER (10) UNSIGNED
+        #
+        # "ext" are the words after the parenthesis, if any, but if there
+        # are no parenthesis, then these are part of "col".  so they are
+        # moved together for normalization purposes
+        matches = re.search(
+            r"^(?P<col>[^()]*)(?:\((?P<params>.*?)\))?(?P<ext>[^()]*)?$",
+            definition,
+        ).groupdict(default="")
+        col_type = matches["col"]
+        if matches["ext"]:
+            col_type = col_type.strip() + " " + matches["ext"].strip()
+
         params = Params(col_type, [], {})
-        for term in param_terms:
+        for term in re.findall("[^(),]+", matches["params"] or ""):
             if "=" in term:
                 key, val = term.split("=")
                 params.kwargs[key.strip()] = val.strip()

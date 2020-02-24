@@ -31,6 +31,7 @@ from sqlalchemy import TypeDecorator
 from sqlalchemy import Unicode
 from sqlalchemy import UniqueConstraint
 from sqlalchemy import VARCHAR
+from sqlalchemy.dialects import mysql
 from sqlalchemy.dialects import sqlite
 from sqlalchemy.types import NULLTYPE
 from sqlalchemy.types import VARBINARY
@@ -841,6 +842,25 @@ class CompareMetadataToInspectorTest(TestBase):
             Integer(),
             True,
             config.requirements.integer_subtype_comparisons,
+        ),
+        (  # note that the mysql.INTEGER tests only use these params
+            # if the dialect is "mysql".  however we also test that their
+            # dialect-agnostic representation compares by running this
+            # against other dialects.
+            mysql.INTEGER(unsigned=True, display_width=10),
+            mysql.INTEGER(unsigned=True, display_width=10),
+            False,
+        ),
+        (mysql.INTEGER(unsigned=True), mysql.INTEGER(unsigned=True), False),
+        (
+            mysql.INTEGER(unsigned=True, display_width=10),
+            mysql.INTEGER(unsigned=True),
+            False,
+        ),
+        (
+            mysql.INTEGER(unsigned=True),
+            mysql.INTEGER(unsigned=True, display_width=10),
+            False,
         ),
     )
     def test_numeric_comparisons(self, cola, colb, expect_changes):
