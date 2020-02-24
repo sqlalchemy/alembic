@@ -67,7 +67,7 @@ class ScriptDirectory(object):
             raise util.CommandError(
                 "Path doesn't exist: %r.  Please use "
                 "the 'init' command to create a new "
-                "scripts folder." % dir
+                "scripts folder." % os.path.abspath(dir)
             )
 
     @property
