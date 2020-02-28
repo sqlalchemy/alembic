@@ -109,10 +109,10 @@ What does Autogenerate Detect (and what does it *not* detect?)
 
 The vast majority of user issues with Alembic centers on the topic of what
 kinds of changes autogenerate can and cannot detect reliably, as well as
-how it renders Python code for what it does detect.     it is critical to
+how it renders Python code for what it does detect.     It is critical to
 note that **autogenerate is not intended to be perfect**.   It is *always*
 necessary to manually review and correct the **candidate migrations**
-that autogenererate produces.   The feature is getting more and more
+that autogenerate produces.   The feature is getting more and more
 comprehensive and error-free as releases continue, but one should take
 note of the current limitations.
 
