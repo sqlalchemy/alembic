@@ -262,6 +262,14 @@ class UpdateRevTest(TestBase):
             _up("x", "b"),
         )
 
+    def test_update_no_match_no_sane_rowcount(self):
+        self.updater.update_to_step(_up(None, "a", True))
+        self.updater.heads.add("x")
+        with mock.patch.object(
+            self.connection.dialect, "supports_sane_rowcount", False
+        ):
+            self.updater.update_to_step(_up("x", "b"))
+
     def test_update_multi_match(self):
         self.connection.execute(version_table.insert(), version_num="a")
         self.connection.execute(version_table.insert(), version_num="a")
@@ -275,6 +283,16 @@ class UpdateRevTest(TestBase):
             _up("a", "b"),
         )
 
+    def test_update_multi_match_no_sane_rowcount(self):
+        self.connection.execute(version_table.insert(), version_num="a")
+        self.connection.execute(version_table.insert(), version_num="a")
+
+        self.updater.heads.add("a")
+        with mock.patch.object(
+            self.connection.dialect, "supports_sane_rowcount", False
+        ):
+            self.updater.update_to_step(_up("a", "b"))
+
     def test_delete_no_match(self):
         self.updater.update_to_step(_up(None, "a", True))
 
@@ -286,6 +304,15 @@ class UpdateRevTest(TestBase):
             self.updater.update_to_step,
             _down("x", None, True),
         )
+
+    def test_delete_no_matchno_sane_rowcount(self):
+        self.updater.update_to_step(_up(None, "a", True))
+
+        self.updater.heads.add("x")
+        with mock.patch.object(
+            self.connection.dialect, "supports_sane_rowcount", False
+        ):
+            self.updater.update_to_step(_down("x", None, True))
 
     def test_delete_multi_match(self):
         self.connection.execute(version_table.insert(), version_num="a")
@@ -299,3 +326,13 @@ class UpdateRevTest(TestBase):
             self.updater.update_to_step,
             _down("a", None, True),
         )
+
+    def test_delete_multi_match_no_sane_rowcount(self):
+        self.connection.execute(version_table.insert(), version_num="a")
+        self.connection.execute(version_table.insert(), version_num="a")
+
+        self.updater.heads.add("a")
+        with mock.patch.object(
+            self.connection.dialect, "supports_sane_rowcount", False
+        ):
+            self.updater.update_to_step(_down("a", None, True))

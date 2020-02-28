@@ -676,7 +676,11 @@ class HeadMaintainer(object):
                 == literal_column("'%s'" % version)
             )
         )
-        if not self.context.as_sql and ret.rowcount != 1:
+        if (
+            not self.context.as_sql
+            and self.context.dialect.supports_sane_rowcount
+            and ret.rowcount != 1
+        ):
             raise util.CommandError(
                 "Online migration expected to match one "
                 "row when deleting '%s' in '%s'; "
@@ -697,7 +701,11 @@ class HeadMaintainer(object):
                 == literal_column("'%s'" % from_)
             )
         )
-        if not self.context.as_sql and ret.rowcount != 1:
+        if (
+            not self.context.as_sql
+            and self.context.dialect.supports_sane_rowcount
+            and ret.rowcount != 1
+        ):
             raise util.CommandError(
                 "Online migration expected to match one "
                 "row when updating '%s' to '%s' in '%s'; "
