@@ -676,14 +676,17 @@ class HeadMaintainer(object):
                 == literal_column("'%s'" % version)
             )
         )
-        if not self.context.as_sql and ret.supports_sane_rowcount():
-            if ret.rowcount != 1:
-                raise util.CommandError(
-                    "Online migration expected to match one "
-                    "row when deleting '%s' in '%s'; "
-                    "%d found"
-                    % (version, self.context.version_table, ret.rowcount)
-                )
+        if (
+            not self.context.as_sql
+            and ret.supports_sane_rowcount()
+            and ret.rowcount != 1
+        ):
+            raise util.CommandError(
+                "Online migration expected to match one "
+                "row when deleting '%s' in '%s'; "
+                "%d found"
+                % (version, self.context.version_table, ret.rowcount)
+            )
 
     def _update_version(self, from_, to_):
         assert to_ not in self.heads
@@ -698,14 +701,17 @@ class HeadMaintainer(object):
                 == literal_column("'%s'" % from_)
             )
         )
-        if not self.context.as_sql and ret.supports_sane_rowcount():
-            if ret.rowcount != 1:
-                raise util.CommandError(
-                    "Online migration expected to match one "
-                    "row when updating '%s' to '%s' in '%s'; "
-                    "%d found"
-                    % (from_, to_, self.context.version_table, ret.rowcount)
-                )
+        if (
+            not self.context.as_sql
+            and ret.supports_sane_rowcount()
+            and ret.rowcount != 1
+        ):
+            raise util.CommandError(
+                "Online migration expected to match one "
+                "row when updating '%s' to '%s' in '%s'; "
+                "%d found"
+                % (from_, to_, self.context.version_table, ret.rowcount)
+            )
 
     def update_to_step(self, step):
         if step.should_delete_branch(self.heads):
