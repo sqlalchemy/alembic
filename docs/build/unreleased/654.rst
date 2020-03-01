@@ -1,7 +1,0 @@
-.. change::
-    :tags: bug, autogenerate
-    :tickets: 654
-
-    Fixed regression in 1.4.0 due to :ticket:`647` where unique constraint
-    comparison with mixed case constraint names while not using a naming
-    convention would produce false positives during autogenerate.

@@ -5,7 +5,53 @@ Changelog
 
 .. changelog::
     :version: 1.4.1
-    :include_notes_from: unreleased
+    :released: March 1, 2020
+
+    .. change::
+        :tags: bug, autogenerate
+        :tickets: 661
+
+        Fixed regression caused by the new "type comparison" logic introduced in
+        1.4 as part of :ticket:`605` where comparisons of MySQL "unsigned integer"
+        datatypes would produce false positives, as the regular expression logic
+        was not correctly parsing the "unsigned" token when MySQL's default display
+        width would be returned by the database.  Pull request courtesy Paul
+        Becotte.
+
+    .. change::
+        :tags: bug, environment
+        :tickets: 663
+
+        Error message for "path doesn't exist" when loading up script environment
+        now displays the absolute path.  Pull request courtesy Rowan Hart.
+
+    .. change::
+        :tags: bug, autogenerate
+        :tickets: 654
+
+        Fixed regression in 1.4.0 due to :ticket:`647` where unique constraint
+        comparison with mixed case constraint names while not using a naming
+        convention would produce false positives during autogenerate.
+
+    .. change::
+        :tags: bug, environment
+
+        The check for matched rowcount when the alembic_version table is updated or
+        deleted from is now conditional based on whether or not the dialect
+        supports the concept of "rowcount" for UPDATE or DELETE rows matched.  Some
+        third party dialects do not support this concept.  Pull request courtesy Ke
+        Zhu.
+
+    .. change::
+        :tags: bug, operations
+        :tickets: 655
+
+        Fixed long-standing bug where an inline column CHECK constraint would not
+        be rendered within an "ADD COLUMN" operation.  The DDL compiler is now
+        consulted for inline constraints within the :meth:`.Operations.add_column`
+        method as is done for regular CREATE TABLE operations.
+
+
 
 .. changelog::
     :version: 1.4.0

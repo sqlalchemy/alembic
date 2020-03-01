@@ -1,6 +1,0 @@
-.. change::
-    :tags: bug, environment
-    :tickets: 663
-
-    Error message for "path doesn't exist" when loading up script environment
-    now displays the absolute path.  Pull request courtesy Rowan Hart.
