@@ -203,6 +203,16 @@ structure consisting of zero or more :class:`.MigrationScript` directives.
 The :func:`.command.revision` command will then produce scripts corresponding
 to whatever is in this list.
 
+.. seealso::
+
+    More examples of using :paramref:`.EnvironmentContext.configure.process_revision_directives`
+
+    :ref:`cookbook_no_empty_migrations`
+
+    :ref:`cookbook_dont_emit_drop_index`
+
+    :ref:`cookbook_custom_sorting_create_table`
+
 .. autofunction:: alembic.autogenerate.render_python_code
 
 .. _autogen_rewriter:
