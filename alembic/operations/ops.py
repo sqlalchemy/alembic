@@ -108,6 +108,7 @@ class DropConstraintOp(MigrateOperation):
             "primary_key_constraint": "primary",
             "check_constraint": "check",
             "column_check_constraint": "check",
+            "table_or_column_check_constraint": "check",
         }
 
         constraint_table = sqla_compat._table_for_constraint(constraint)
@@ -707,6 +708,7 @@ class CreateForeignKeyOp(AddConstraintOp):
     "create_check_constraint", "batch_create_check_constraint"
 )
 @AddConstraintOp.register_add_constraint("check_constraint")
+@AddConstraintOp.register_add_constraint("table_or_column_check_constraint")
 @AddConstraintOp.register_add_constraint("column_check_constraint")
 class CreateCheckConstraintOp(AddConstraintOp):
     """Represent a create check constraint operation."""

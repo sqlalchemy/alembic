@@ -2,10 +2,9 @@ from __future__ import absolute_import
 
 import re
 
+from sqlalchemy import util
 from sqlalchemy.engine import default
 from sqlalchemy.testing.assertions import _expect_warnings
-from sqlalchemy.testing.assertions import assert_raises  # noqa
-from sqlalchemy.testing.assertions import assert_raises_message  # noqa
 from sqlalchemy.testing.assertions import eq_  # noqa
 from sqlalchemy.testing.assertions import is_  # noqa
 from sqlalchemy.testing.assertions import is_false  # noqa
@@ -15,6 +14,29 @@ from sqlalchemy.testing.assertions import ne_  # noqa
 from sqlalchemy.util import decorator
 
 from ..util.compat import py3k
+
+
+def assert_raises(except_cls, callable_, *args, **kw):
+    try:
+        callable_(*args, **kw)
+        success = False
+    except except_cls:
+        success = True
+
+    # assert outside the block so it works for AssertionError too !
+    assert success, "Callable did not raise an exception"
+
+
+def assert_raises_message(except_cls, msg, callable_, *args, **kwargs):
+    try:
+        callable_(*args, **kwargs)
+        assert False, "Callable did not raise an exception"
+    except except_cls as e:
+        assert re.search(msg, util.text_type(e), re.UNICODE), "%r !~ %s" % (
+            msg,
+            e,
+        )
+        print(util.text_type(e).encode("utf-8"))
 
 
 def eq_ignore_whitespace(a, b, msg=None):
