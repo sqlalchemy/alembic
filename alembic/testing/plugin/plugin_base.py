@@ -11,9 +11,11 @@ import sys
 
 from sqlalchemy.testing.plugin.plugin_base import *  # noqa
 from sqlalchemy.testing.plugin.plugin_base import post
+from sqlalchemy.testing.plugin.plugin_base import post_begin as sqla_post_begin
 from sqlalchemy.testing.plugin.plugin_base import stop_test_class as sqla_stc
 
 py3k = sys.version_info >= (3, 0)
+
 
 if py3k:
 
@@ -22,6 +24,21 @@ else:
 
     class ABC(object):
         __metaclass__ = abc.ABCMeta
+
+
+def post_begin():
+    sqla_post_begin()
+
+    import warnings
+
+    try:
+        import pytest
+    except ImportError:
+        pass
+    else:
+        warnings.filterwarnings(
+            "once", category=pytest.PytestDeprecationWarning
+        )
 
 
 # override selected SQLAlchemy pytest hooks with vendored functionality

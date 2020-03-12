@@ -33,6 +33,14 @@ def pytest_configure(config):
 def pytest_pycollect_makeitem(collector, name, obj):
 
     if inspect.isclass(obj) and plugin_base.want_class(name, obj):
+
+        # in pytest 5.4.0
+        # return [
+        #     pytest.Class.from_parent(collector,
+        # name=parametrize_cls.__name__)
+        #     for parametrize_cls in _parametrize_cls(collector.module, obj)
+        # ]
+
         return [
             pytest.Class(parametrize_cls.__name__, parent=collector)
             for parametrize_cls in _parametrize_cls(collector.module, obj)
