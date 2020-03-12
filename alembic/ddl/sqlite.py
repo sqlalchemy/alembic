@@ -50,7 +50,6 @@ class SQLiteImpl(DefaultImpl):
                 "No support for ALTER of constraints in SQLite dialect"
                 "Please refer to the batch mode feature which allows for "
                 "SQLite migrations using a copy-and-move strategy."
-
             )
 
     def compare_server_default(

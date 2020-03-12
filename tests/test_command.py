@@ -887,7 +887,7 @@ class EditTest(TestBase):
     def test_edit_head(self):
         expected_call_arg = os.path.normpath(
             "%s/scripts/versions/%s_revision_c.py"
-            % (EditTest.cfg.config_args["here"], EditTest.c,)
+            % (EditTest.cfg.config_args["here"], EditTest.c)
         )
 
         with mock.patch("alembic.util.edit") as edit:
@@ -897,7 +897,7 @@ class EditTest(TestBase):
     def test_edit_b(self):
         expected_call_arg = os.path.normpath(
             "%s/scripts/versions/%s_revision_b.py"
-            % (EditTest.cfg.config_args["here"], EditTest.b,)
+            % (EditTest.cfg.config_args["here"], EditTest.b)
         )
 
         with mock.patch("alembic.util.edit") as edit:
@@ -936,7 +936,7 @@ class EditTest(TestBase):
     def test_edit_current(self):
         expected_call_arg = os.path.normpath(
             "%s/scripts/versions/%s_revision_b.py"
-            % (EditTest.cfg.config_args["here"], EditTest.b,)
+            % (EditTest.cfg.config_args["here"], EditTest.b)
         )
 
         command.stamp(self.cfg, self.b)
