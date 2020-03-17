@@ -40,6 +40,20 @@ def post_begin():
             "once", category=pytest.PytestDeprecationWarning
         )
 
+    from sqlalchemy import exc
+
+    if hasattr(exc, "RemovedIn20Warning"):
+        warnings.filterwarnings(
+            "error",
+            category=exc.RemovedIn20Warning,
+            message=".*Engine.execute",
+        )
+        warnings.filterwarnings(
+            "error",
+            category=exc.RemovedIn20Warning,
+            message=".*Passing a string",
+        )
+
 
 # override selected SQLAlchemy pytest hooks with vendored functionality
 def stop_test_class(cls):

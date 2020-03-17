@@ -1,6 +1,7 @@
 import re
 
 from sqlalchemy import __version__
+from sqlalchemy import inspect
 from sqlalchemy import schema
 from sqlalchemy import sql
 from sqlalchemy import types as sqltypes
@@ -43,6 +44,23 @@ except ImportError:
     has_computed_reflection = False
 
 AUTOINCREMENT_DEFAULT = "auto"
+
+
+def _connectable_has_table(connectable, tablename, schemaname):
+    if sqla_14:
+        return inspect(connectable).has_table(tablename, schemaname)
+    else:
+        return connectable.dialect.has_table(
+            connectable, tablename, schemaname
+        )
+
+
+def _exec_on_inspector(inspector, statement, **params):
+    if sqla_14:
+        with inspector._operation_context() as conn:
+            return conn.execute(statement, params)
+    else:
+        return inspector.bind.execute(statement, params)
 
 
 def _server_default_is_computed(column):

@@ -14,6 +14,7 @@ from sqlalchemy.engine.strategies import MockEngineStrategy
 
 from .. import ddl
 from .. import util
+from ..util import sqla_compat
 from ..util.compat import callable
 from ..util.compat import EncodedIO
 
@@ -205,6 +206,7 @@ class MigrationContext(object):
                     "got %r" % connection,
                     stacklevel=3,
                 )
+
             dialect = connection.dialect
         elif url:
             url = sqla_url.make_url(url)
@@ -442,7 +444,7 @@ class MigrationContext(object):
             self.connection.execute(self._version.delete())
 
     def _has_version_table(self):
-        return self.connection.dialect.has_table(
+        return sqla_compat._connectable_has_table(
             self.connection, self.version_table, self.version_table_schema
         )
 

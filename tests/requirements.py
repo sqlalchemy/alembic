@@ -1,3 +1,5 @@
+from sqlalchemy import text
+
 from alembic.testing import exclusions
 from alembic.testing.requirements import SuiteRequirements
 from alembic.util import sqla_compat
@@ -113,10 +115,13 @@ class DefaultRequirements(SuiteRequirements):
         def check(config):
             if not exclusions.against(config, "postgresql"):
                 return False
-            count = config.db.scalar(
-                "SELECT count(*) FROM pg_extension "
-                "WHERE extname='%s'" % name
-            )
+            with config.db.connect() as conn:
+                count = conn.scalar(
+                    text(
+                        "SELECT count(*) FROM pg_extension "
+                        "WHERE extname='%s'" % name
+                    )
+                )
             return bool(count)
 
         return exclusions.only_if(check, "needs %s extension" % name)

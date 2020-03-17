@@ -1,5 +1,6 @@
 #!coding: utf-8
 from alembic import command
+from alembic import testing
 from alembic.environment import EnvironmentContext
 from alembic.migration import MigrationContext
 from alembic.script import ScriptDirectory
@@ -94,6 +95,9 @@ def upgrade():
             command.upgrade(self.cfg, "arev", sql=True)
         assert "do some SQL thing with a % percent sign %" in buf.getvalue()
 
+    @testing.uses_deprecated(
+        r"The Engine.execute\(\) function/method is considered legacy"
+    )
     def test_warning_on_passing_engine(self):
         env = self._fixture()
 

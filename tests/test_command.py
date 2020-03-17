@@ -6,6 +6,7 @@ import os
 import re
 
 from sqlalchemy import exc as sqla_exc
+from sqlalchemy import text
 
 from alembic import command
 from alembic import config
@@ -371,11 +372,14 @@ finally:
         r2 = command.revision(self.cfg)
         db = _sqlite_file_db()
         command.upgrade(self.cfg, "head")
-        assert_raises(
-            sqla_exc.IntegrityError,
-            db.execute,
-            "insert into alembic_version values ('%s')" % r2.revision,
-        )
+        with db.connect() as conn:
+            assert_raises(
+                sqla_exc.IntegrityError,
+                conn.execute,
+                text(
+                    "insert into alembic_version values ('%s')" % r2.revision
+                ),
+            )
 
     def test_err_correctly_raised_on_dupe_rows_no_pk(self):
         self._env_fixture(version_table_pk=False)
@@ -383,7 +387,10 @@ finally:
         r2 = command.revision(self.cfg)
         db = _sqlite_file_db()
         command.upgrade(self.cfg, "head")
-        db.execute("insert into alembic_version values ('%s')" % r2.revision)
+        with db.connect() as conn:
+            conn.execute(
+                text("insert into alembic_version values ('%s')" % r2.revision)
+            )
         assert_raises_message(
             util.CommandError,
             "Online migration expected to match one row when "
@@ -664,7 +671,7 @@ class StampMultipleHeadsTest(TestBase, _StampTest):
         eng = _sqlite_file_db()
         with eng.connect() as conn:
             result = conn.execute(
-                "update alembic_version set version_num='fake'"
+                text("update alembic_version set version_num='fake'")
             )
             eq_(result.rowcount, 1)
 
@@ -843,31 +850,39 @@ down_revision = '%s'
 
     def test_stamp_creates_table(self):
         command.stamp(self.cfg, "head")
-        eq_(
-            self.bind.scalar("select version_num from alembic_version"), self.b
-        )
+        with self.bind.connect() as conn:
+            eq_(
+                conn.scalar(text("select version_num from alembic_version")),
+                self.b,
+            )
 
     def test_stamp_existing_upgrade(self):
         command.stamp(self.cfg, self.a)
         command.stamp(self.cfg, self.b)
-        eq_(
-            self.bind.scalar("select version_num from alembic_version"), self.b
-        )
+        with self.bind.connect() as conn:
+            eq_(
+                conn.scalar(text("select version_num from alembic_version")),
+                self.b,
+            )
 
     def test_stamp_existing_downgrade(self):
         command.stamp(self.cfg, self.b)
         command.stamp(self.cfg, self.a)
-        eq_(
-            self.bind.scalar("select version_num from alembic_version"), self.a
-        )
+        with self.bind.connect() as conn:
+            eq_(
+                conn.scalar(text("select version_num from alembic_version")),
+                self.a,
+            )
 
     def test_stamp_version_already_there(self):
         command.stamp(self.cfg, self.b)
         command.stamp(self.cfg, self.b)
 
-        eq_(
-            self.bind.scalar("select version_num from alembic_version"), self.b
-        )
+        with self.bind.connect() as conn:
+            eq_(
+                conn.scalar(text("select version_num from alembic_version")),
+                self.b,
+            )
 
 
 class EditTest(TestBase):

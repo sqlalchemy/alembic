@@ -3,6 +3,7 @@ from sqlalchemy.testing import emits_warning  # noqa
 from sqlalchemy.testing import engines  # noqa
 from sqlalchemy.testing import mock  # noqa
 from sqlalchemy.testing import provide_metadata  # noqa
+from sqlalchemy.testing import uses_deprecated  # noqa
 from sqlalchemy.testing.config import requirements as requires  # noqa
 
 from alembic import util  # noqa

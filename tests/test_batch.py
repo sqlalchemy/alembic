@@ -1334,7 +1334,9 @@ class BatchRoundTripTest(TestBase):
         eq_(
             [
                 dict(row)
-                for row in self.conn.execute("select * from %s" % tablename)
+                for row in self.conn.execute(
+                    text("select * from %s" % tablename)
+                )
             ],
             data,
         )

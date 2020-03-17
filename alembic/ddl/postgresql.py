@@ -88,7 +88,10 @@ class PostgresqlImpl(DefaultImpl):
             rendered_metadata_default = "'%s'" % rendered_metadata_default
 
         return not self.connection.scalar(
-            "SELECT %s = %s" % (conn_col_default, rendered_metadata_default)
+            text(
+                "SELECT %s = %s"
+                % (conn_col_default, rendered_metadata_default)
+            )
         )
 
     def alter_column(
@@ -152,7 +155,8 @@ class PostgresqlImpl(DefaultImpl):
                 r"nextval\('(.+?)'::regclass\)", column_info["default"]
             )
             if seq_match:
-                info = inspector.bind.execute(
+                info = sqla_compat._exec_on_inspector(
+                    inspector,
                     text(
                         "select c.relname, a.attname "
                         "from pg_class as c join "

@@ -307,17 +307,19 @@ class PGAutocommitBlockTest(TestBase):
         self.conn = conn = config.db.connect()
 
         with conn.begin():
-            conn.execute("CREATE TYPE mood AS ENUM ('sad', 'ok', 'happy');")
+            conn.execute(
+                text("CREATE TYPE mood AS ENUM ('sad', 'ok', 'happy')")
+            )
 
     def tearDown(self):
         with self.conn.begin():
-            self.conn.execute("DROP TYPE mood")
+            self.conn.execute(text("DROP TYPE mood"))
 
     def test_alter_enum(self):
         context = MigrationContext.configure(connection=self.conn)
         with context.begin_transaction(_per_migration=True):
             with context.autocommit_block():
-                context.execute("ALTER TYPE mood ADD VALUE 'soso'")
+                context.execute(text("ALTER TYPE mood ADD VALUE 'soso'"))
 
 
 class PGOfflineEnumTest(TestBase):
@@ -430,25 +432,31 @@ class PostgresqlInlineLiteralTest(TestBase):
     @classmethod
     def setup_class(cls):
         cls.bind = config.db
-        cls.bind.execute(
+        with config.db.connect() as conn:
+            conn.execute(
+                text(
+                    """
+                create table tab (
+                    col varchar(50)
+                )
             """
-            create table tab (
-                col varchar(50)
+                )
             )
-        """
-        )
-        cls.bind.execute(
+            conn.execute(
+                text(
+                    """
+                insert into tab (col) values
+                    ('old data 1'),
+                    ('old data 2.1'),
+                    ('old data 3')
             """
-            insert into tab (col) values
-                ('old data 1'),
-                ('old data 2.1'),
-                ('old data 3')
-        """
-        )
+                )
+            )
 
     @classmethod
     def teardown_class(cls):
-        cls.bind.execute("drop table tab")
+        with cls.bind.connect() as conn:
+            conn.execute(text("drop table tab"))
 
     def setUp(self):
         self.conn = self.bind.connect()
@@ -469,7 +477,7 @@ class PostgresqlInlineLiteralTest(TestBase):
         )
         eq_(
             self.conn.execute(
-                "select count(*) from tab where col='new data'"
+                text("select count(*) from tab where col='new data'")
             ).scalar(),
             1,
         )
