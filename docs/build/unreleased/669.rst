@@ -1,0 +1,11 @@
+.. change::
+    :tags: usecase, autogenerate
+    :tickets: 669
+
+    Adjusted autogen comparison to accommodate for backends that support
+    computed column reflection, dependent on SQLAlchemy version 1.3.16 or
+    higher. This emits a warning if the SQL expression inside of a
+    :class:`.Computed` value changes between the metadata and the database, as
+    these expressions can't be changed without dropping and recreating the
+    column.
+

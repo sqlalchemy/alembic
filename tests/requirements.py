@@ -153,14 +153,24 @@ class DefaultRequirements(SuiteRequirements):
         )
 
     @property
+    def computed_reflects_normally(self):
+        return exclusions.only_if(
+            exclusions.BooleanPredicate(sqla_compat.has_computed_reflection)
+        )
+
+    @property
     def computed_reflects_as_server_default(self):
         # note that this rule will go away when SQLAlchemy correctly
         # supports reflection of the "computed" construct; the element
         # will consistently be present as both column.computed and
         # column.server_default for all supported backends.
-        return self.computed_columns + exclusions.only_if(
-            ["postgresql", "oracle"],
-            "backend reflects computed construct as a server default",
+        return (
+            self.computed_columns
+            + exclusions.only_if(
+                ["postgresql", "oracle"],
+                "backend reflects computed construct as a server default",
+            )
+            + exclusions.skip_if(self.computed_reflects_normally)
         )
 
     @property
@@ -169,9 +179,13 @@ class DefaultRequirements(SuiteRequirements):
         # supports reflection of the "computed" construct; the element
         # will consistently be present as both column.computed and
         # column.server_default for all supported backends.
-        return self.computed_columns + exclusions.skip_if(
-            ["postgresql", "oracle"],
-            "backend reflects computed construct as a server default",
+        return (
+            self.computed_columns
+            + exclusions.skip_if(
+                ["postgresql", "oracle"],
+                "backend reflects computed construct as a server default",
+            )
+            + exclusions.skip_if(self.computed_reflects_normally)
         )
 
     @property

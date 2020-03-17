@@ -911,6 +911,64 @@ def _render_server_default_for_compare(
         return None
 
 
+def _normalize_computed_default(sqltext):
+    """we want to warn if a computed sql expression has changed.  however
+    we don't want false positives and the warning is not that critical.
+    so filter out most forms of variability from the SQL text.
+
+    """
+
+    return re.sub(r"[ \(\)'\"`\[\]]", "", sqltext).lower()
+
+
+def _compare_computed_default(
+    autogen_context,
+    alter_column_op,
+    schema,
+    tname,
+    cname,
+    conn_col,
+    metadata_col,
+):
+    rendered_metadata_default = str(
+        metadata_col.server_default.sqltext.compile(
+            dialect=autogen_context.dialect,
+            compile_kwargs={"literal_binds": True},
+        )
+    )
+
+    # since we cannot change computed columns, we do only a crude comparison
+    # here where we try to eliminate syntactical differences in order to
+    # get a minimal comparison just to emit a warning.
+
+    rendered_metadata_default = _normalize_computed_default(
+        rendered_metadata_default
+    )
+
+    if isinstance(conn_col.server_default, sa_schema.Computed):
+        rendered_conn_default = str(
+            conn_col.server_default.sqltext.compile(
+                dialect=autogen_context.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+        if rendered_conn_default is None:
+            rendered_conn_default = ""
+        else:
+            rendered_conn_default = _normalize_computed_default(
+                rendered_conn_default
+            )
+    else:
+        rendered_conn_default = ""
+
+    if rendered_metadata_default != rendered_conn_default:
+        _warn_computed_not_supported(tname, cname)
+
+
+def _warn_computed_not_supported(tname, cname):
+    util.warn("Computed default on %s.%s cannot be modified" % (tname, cname))
+
+
 @comparators.dispatch_for("column")
 def _compare_server_default(
     autogen_context,
@@ -936,15 +994,34 @@ def _compare_server_default(
         # Once SQLAlchemy can reflect "GENERATED" as the "computed" element,
         # we would also want to ignore and/or warn for changes vs. the
         # metadata (or support backend specific DDL if applicable).
-        return False
+        if not sqla_compat.has_computed_reflection:
+            return False
 
+        else:
+            return _compare_computed_default(
+                autogen_context,
+                alter_column_op,
+                schema,
+                tname,
+                cname,
+                conn_col,
+                metadata_col,
+            )
     rendered_metadata_default = _render_server_default_for_compare(
         metadata_default, metadata_col, autogen_context
     )
 
-    rendered_conn_default = (
-        conn_col.server_default.arg.text if conn_col.server_default else None
-    )
+    if sqla_compat.has_computed_reflection and isinstance(
+        conn_col.server_default, sa_schema.Computed
+    ):
+        _warn_computed_not_supported(tname, cname)
+        return False
+    else:
+        rendered_conn_default = (
+            conn_col.server_default.arg.text
+            if conn_col.server_default
+            else None
+        )
 
     alter_column_op.existing_server_default = conn_col_default
 

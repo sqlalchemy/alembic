@@ -36,8 +36,11 @@ try:
     from sqlalchemy import Computed  # noqa
 
     has_computed = True
+
+    has_computed_reflection = _vers >= (1, 3, 16)
 except ImportError:
     has_computed = False
+    has_computed_reflection = False
 
 AUTOINCREMENT_DEFAULT = "auto"
 

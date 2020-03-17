@@ -10,6 +10,7 @@ from alembic.testing import eq_
 from alembic.testing import exclusions
 from alembic.testing import is_
 from alembic.testing import is_true
+from alembic.testing import mock
 from alembic.testing import TestBase
 from ._autogen_fixtures import AutogenFixtureTest
 
@@ -62,23 +63,67 @@ class AutogenerateComputedTest(AutogenFixtureTest, TestBase):
         c = diffs[0][3]
         eq_(c.name, "foo")
 
-        is_(c.computed, None)
+        if config.requirements.computed_reflects_normally.enabled:
+            is_true(isinstance(c.computed, sa.Computed))
+        else:
+            is_(c.computed, None)
 
         if config.requirements.computed_reflects_as_server_default.enabled:
             is_true(isinstance(c.server_default, sa.DefaultClause))
             eq_(str(c.server_default.arg.text), "5")
+        elif config.requirements.computed_reflects_normally.enabled:
+            is_true(isinstance(c.computed, sa.Computed))
         else:
-            is_(c.server_default, None)
+            is_(c.computed, None)
 
     @testing.combinations(
-        lambda: (sa.Computed("5"), sa.Computed("5")),
-        lambda: (sa.Computed("bar*5"), sa.Computed("bar*5")),
-        lambda: (sa.Computed("bar*5"), sa.Computed("bar * 42")),
+        lambda: (None, sa.Computed("bar*5")),
+        (lambda: (sa.Computed("bar*5"), None)),
         lambda: (
             sa.Computed("bar*5"),
             sa.Computed("bar * 42", persisted=True),
         ),
-        lambda: (None, sa.Computed("bar*5")),
+        lambda: (sa.Computed("bar*5"), sa.Computed("bar * 42")),
+    )
+    @config.requirements.computed_reflects_normally
+    def test_cant_change_computed_warning(self, test_case):
+        arg_before, arg_after = testing.resolve_lambda(test_case, **locals())
+        m1 = MetaData()
+        m2 = MetaData()
+
+        arg_before = [] if arg_before is None else [arg_before]
+        arg_after = [] if arg_after is None else [arg_after]
+
+        Table(
+            "user",
+            m1,
+            Column("id", Integer, primary_key=True),
+            Column("bar", Integer),
+            Column("foo", Integer, *arg_before),
+        )
+
+        Table(
+            "user",
+            m2,
+            Column("id", Integer, primary_key=True),
+            Column("bar", Integer),
+            Column("foo", Integer, *arg_after),
+        )
+
+        with mock.patch("alembic.util.warn") as mock_warn:
+            diffs = self._fixture(m1, m2)
+
+        eq_(
+            mock_warn.mock_calls,
+            [mock.call("Computed default on user.foo cannot be modified")],
+        )
+
+        eq_(len(diffs), 0)
+
+    @testing.combinations(
+        lambda: (None, None),
+        lambda: (sa.Computed("5"), sa.Computed("5")),
+        lambda: (sa.Computed("bar*5"), sa.Computed("bar*5")),
         (
             lambda: (sa.Computed("bar*5"), None),
             config.requirements.computed_doesnt_reflect_as_server_default,
@@ -108,7 +153,9 @@ class AutogenerateComputedTest(AutogenFixtureTest, TestBase):
             Column("foo", Integer, *arg_after),
         )
 
-        diffs = self._fixture(m1, m2)
+        with mock.patch("alembic.util.warn") as mock_warn:
+            diffs = self._fixture(m1, m2)
+        eq_(mock_warn.mock_calls, [])
 
         eq_(len(diffs), 0)
 
