@@ -1,0 +1,8 @@
+.. change::
+    :tags: bug, op directives, oracle
+    :tickets: 670
+
+    Fixed issue in Oracle backend where a table RENAME with a schema-qualified
+    name would include the schema in the "to" portion, which is rejected by
+    Oracle.
+

@@ -80,6 +80,16 @@ class OpTest(TestBase):
             "INTEGER GENERATED ALWAYS AS (foo * 5)"
         )
 
+    def test_alter_table_rename_oracle(self):
+        context = op_fixture("oracle")
+        op.rename_table("s", "t")
+        context.assert_("ALTER TABLE s RENAME TO t")
+
+    def test_alter_table_rename_schema_oracle(self):
+        context = op_fixture("oracle")
+        op.rename_table("s", "t", schema="myowner")
+        context.assert_("ALTER TABLE myowner.s RENAME TO t")
+
     def test_alter_column_rename_oracle(self):
         context = op_fixture("oracle")
         op.alter_column("t", "c", name="x")
