@@ -99,6 +99,22 @@ class DefaultRequirements(SuiteRequirements):
         return exclusions.only_on(["postgresql"])
 
     @property
+    def postgresql(self):
+        return exclusions.only_on(["postgresql"])
+
+    @property
+    def mysql(self):
+        return exclusions.only_on(["mysql"])
+
+    @property
+    def oracle(self):
+        return exclusions.only_on(["oracle"])
+
+    @property
+    def mssql(self):
+        return exclusions.only_on(["mssql"])
+
+    @property
     def postgresql_uuid_ossp(self):
         def check_uuid_ossp(config):
             if not exclusions.against(config, "postgresql"):

@@ -26,6 +26,8 @@ class MSSQLImpl(DefaultImpl):
     transactional_ddl = True
     batch_separator = "GO"
 
+    type_synonyms = DefaultImpl.type_synonyms + ({"VARCHAR", "NVARCHAR"},)
+
     def __init__(self, *arg, **kw):
         super(MSSQLImpl, self).__init__(*arg, **kw)
         self.batch_separator = self.context_opts.get(
