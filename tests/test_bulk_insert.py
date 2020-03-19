@@ -3,6 +3,7 @@ from sqlalchemy import Integer
 from sqlalchemy import MetaData
 from sqlalchemy import String
 from sqlalchemy import Table
+from sqlalchemy import text
 from sqlalchemy.sql import column
 from sqlalchemy.sql import table
 from sqlalchemy.types import TypeEngine
@@ -237,27 +238,29 @@ class RoundTripTest(TestBase):
     def setUp(self):
         self.conn = config.db.connect()
         self.conn.execute(
-            """
+            text(
+                """
             create table foo(
                 id integer primary key,
                 data varchar(50),
                 x integer
             )
         """
+            )
         )
         context = MigrationContext.configure(self.conn)
         self.op = op.Operations(context)
         self.t1 = table("foo", column("id"), column("data"), column("x"))
 
     def tearDown(self):
-        self.conn.execute("drop table foo")
+        self.conn.execute(text("drop table foo"))
         self.conn.close()
 
     def test_single_insert_round_trip(self):
         self.op.bulk_insert(self.t1, [{"data": "d1", "x": "x1"}])
 
         eq_(
-            self.conn.execute("select id, data, x from foo").fetchall(),
+            self.conn.execute(text("select id, data, x from foo")).fetchall(),
             [(1, "d1", "x1")],
         )
 
@@ -272,7 +275,7 @@ class RoundTripTest(TestBase):
         )
 
         eq_(
-            self.conn.execute("select id, data, x from foo").fetchall(),
+            self.conn.execute(text("select id, data, x from foo")).fetchall(),
             [(1, "d1", "x1"), (2, "d2", "x2"), (3, "d3", "x3")],
         )
 
@@ -292,7 +295,7 @@ class RoundTripTest(TestBase):
         )
 
         eq_(
-            self.conn.execute("select id, data from foo").fetchall(),
+            self.conn.execute(text("select id, data from foo")).fetchall(),
             [(1, "d1"), (2, "d2")],
         )
 
@@ -312,7 +315,7 @@ class RoundTripTest(TestBase):
         )
         eq_(
             self.conn.execute(
-                "select id, v1, v2 from ins_table order by id"
+                text("select id, v1, v2 from ins_table order by id")
             ).fetchall(),
             [(1, u"row v1", u"row v5"), (2, u"row v2", u"row v6")],
         )
