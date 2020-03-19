@@ -5,7 +5,44 @@ Changelog
 
 .. changelog::
     :version: 1.4.2
-    :include_notes_from: unreleased
+    :released: March 19, 2020
+
+    .. change::
+        :tags: usecase, autogenerate
+        :tickets: 669
+
+        Adjusted autogen comparison to accommodate for backends that support
+        computed column reflection, dependent on SQLAlchemy version 1.3.16 or
+        higher. This emits a warning if the SQL expression inside of a
+        :class:`.Computed` value changes between the metadata and the database, as
+        these expressions can't be changed without dropping and recreating the
+        column.
+
+
+    .. change::
+        :tags: bug, tests
+        :tickets: 668
+
+        Fixed an issue that prevented the test suite from running with the
+        recently released py.test 5.4.0.
+
+
+    .. change::
+        :tags: bug, autogenerate, mysql
+        :tickets: 617
+
+        Fixed more false-positive failures produced by the new "compare type" logic
+        first added in :ticket:`605`, particularly impacting MySQL string types
+        regarding flags such as "charset" and "collation".
+
+    .. change::
+        :tags: bug, op directives, oracle
+        :tickets: 670
+
+        Fixed issue in Oracle backend where a table RENAME with a schema-qualified
+        name would include the schema in the "to" portion, which is rejected by
+        Oracle.
+
 
 .. changelog::
     :version: 1.4.1
