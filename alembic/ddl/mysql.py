@@ -25,6 +25,7 @@ class MySQLImpl(DefaultImpl):
 
     transactional_ddl = False
     type_synonyms = DefaultImpl.type_synonyms + ({"BOOL", "TINYINT"},)
+    type_arg_extract = [r"character set ([\w\-_]+)", r"collate ([\w\-_]+)"]
 
     def alter_column(
         self,

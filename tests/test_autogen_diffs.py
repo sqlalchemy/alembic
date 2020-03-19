@@ -786,6 +786,8 @@ class CompareMetadataToInspectorTest(TestBase):
         # that have not changed.
         is_(self._compare_columns(cola, cola), False)
 
+    # TODO: ideally the backend-specific types would be tested
+    # within the test suites for those backends.
     @testing.combinations(
         (String(32), VARCHAR(32), False),
         (VARCHAR(6), String(6), False),
@@ -795,6 +797,40 @@ class CompareMetadataToInspectorTest(TestBase):
         (Unicode(32), VARCHAR(32), False, config.requirements.unicode_string),
         (VARCHAR(6), VARCHAR(12), True),
         (VARCHAR(6), String(12), True),
+        (Integer(), String(10), True),
+        (String(10), Integer(), True),
+        (
+            Unicode(30, collation="en_US"),
+            Unicode(30, collation="en_US"),
+            False,  # unfortunately dialects don't seem to consistently
+            # reflect collations right now so we can't test for
+            # positives here
+            config.requirements.postgresql,
+        ),
+        (
+            mysql.VARCHAR(200, charset="utf8"),
+            Unicode(200),
+            False,
+            config.requirements.mysql,
+        ),
+        (
+            mysql.VARCHAR(200, charset="latin1"),
+            mysql.VARCHAR(200, charset="utf-8"),
+            True,
+            config.requirements.mysql + config.requirements.sqlalchemy_13,
+        ),
+        (
+            String(255, collation="utf8_bin"),
+            String(255),
+            False,
+            config.requirements.mysql,
+        ),
+        (
+            String(255, collation="utf8_bin"),
+            String(255, collation="latin1_bin"),
+            True,
+            config.requirements.mysql + config.requirements.sqlalchemy_13,
+        ),
     )
     def test_string_comparisons(self, cola, colb, expect_changes):
         is_(self._compare_columns(cola, colb), expect_changes)
