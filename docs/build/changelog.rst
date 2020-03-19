@@ -33,7 +33,7 @@ Changelog
 
     .. change::
         :tags: bug, autogenerate, mysql
-        :tickets: 617
+        :tickets: 671
 
         Fixed more false-positive failures produced by the new "compare type" logic
         first added in :ticket:`605`, particularly impacting MySQL string types
