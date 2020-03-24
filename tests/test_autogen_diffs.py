@@ -208,6 +208,10 @@ class AutogenDefaultSchemaIsNoneTest(AutogenFixtureTest, TestBase):
     def setUp(self):
         super(AutogenDefaultSchemaIsNoneTest, self).setUp()
 
+        # in SQLAlchemy 1.4, SQLite dialect is setting this name
+        # to "main" as is the actual default schema name for SQLite.
+        self.bind.dialect.default_schema_name = None
+
         # prerequisite
         eq_(self.bind.dialect.default_schema_name, None)
 
