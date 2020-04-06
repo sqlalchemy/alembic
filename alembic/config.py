@@ -3,6 +3,7 @@ import inspect
 import os
 import sys
 
+from . import __version__
 from . import command
 from . import util
 from .util import compat
@@ -471,6 +472,9 @@ class CommandLine(object):
 
         parser = ArgumentParser(prog=prog)
 
+        parser.add_argument(
+            "--version", action="version", version="%%(prog)s %s" % __version__
+        )
         parser.add_argument(
             "-c",
             "--config",
