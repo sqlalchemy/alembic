@@ -287,7 +287,7 @@ class Operations(util.ModuleClsProxy):
          This may be used to provide for additional table options that may
          not be reflected.
 
-        .. versionadded:: 0.7.0
+         .. versionadded:: 0.7.0
 
         :param naming_convention: a naming convention dictionary of the form
          described at :ref:`autogen_naming_conventions` which will be applied
