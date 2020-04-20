@@ -8,6 +8,7 @@ import re
 from sqlalchemy import exc as sqla_exc
 from sqlalchemy import text
 
+from alembic import __version__
 from alembic import command
 from alembic import config
 from alembic import testing
@@ -16,6 +17,7 @@ from alembic.script import ScriptDirectory
 from alembic.testing import assert_raises
 from alembic.testing import assert_raises_message
 from alembic.testing import eq_
+from alembic.testing import is_true
 from alembic.testing import mock
 from alembic.testing.env import _get_staging_directory
 from alembic.testing.env import _no_sql_testing_config
@@ -30,6 +32,7 @@ from alembic.testing.env import write_script
 from alembic.testing.fixtures import capture_context_buffer
 from alembic.testing.fixtures import capture_engine_context_buffer
 from alembic.testing.fixtures import TestBase
+from alembic.util import compat
 
 
 class _BufMixin(object):
@@ -1165,3 +1168,17 @@ class CommandLineTest(TestBase):
                     mock.call().close(),
                 ],
             )
+
+    def test_version_text(self):
+        buf = compat.StringIO()
+        to_mock = "sys.stdout" if util.compat.py3k else "sys.stderr"
+
+        with mock.patch(to_mock, buf):
+            try:
+                config.CommandLine(prog="test_prog").main(argv=["--version"])
+                assert False
+            except SystemExit:
+                pass
+
+        is_true("test_prog" in str(buf.getvalue()))
+        is_true(__version__ in str(buf.getvalue()))
