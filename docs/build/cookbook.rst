@@ -270,6 +270,14 @@ what we might call a *replaceable* schema object.  A replaceable object
 is a schema object that needs to be created and dropped all at once.
 Examples of such objects include views, stored procedures, and triggers.
 
+.. seealso::
+
+    The Replaceable Object concept has been integrated by the
+    `Alembic Utils <https://github.com/olirice/alembic_utils>`_ project,
+    which provides autogenerate and migration
+    support for PostgreSQL functions and views.   See
+    Alembic Utils at https://github.com/olirice/alembic_utils .
+
 Replaceable objects present a problem in that in order to make incremental
 changes to them, we have to refer to the whole definition at once.
 If we need to add a new column to a view, for example, we have to drop
