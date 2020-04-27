@@ -196,7 +196,7 @@ native boolean types.
 
 We can also use op directives with constraints and not give them a name
 at all, if the naming convention doesn't require one.  The value of
-``None`` will be converted into a name that follows the appopriate naming
+``None`` will be converted into a name that follows the appropriate naming
 conventions::
 
     def upgrade():
