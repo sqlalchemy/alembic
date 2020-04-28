@@ -14,7 +14,7 @@ assignees: ''
 <!-- A clear and concise description of what you expected to happen. -->
 
 **To Reproduce**
-Please provide a [Minimal, Complete, and Verifiable](http://stackoverflow.com/help/mcve) example. 
+Please try to provide a [Minimal, Complete, and Verifiable](http://stackoverflow.com/help/mcve) example, with the migration script and/or the SQLAlchemy tables or models involved.
 See also [Reporting Bugs](https://www.sqlalchemy.org/participate.html#bugs) on the website.
 
 ```py
