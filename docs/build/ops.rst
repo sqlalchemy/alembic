@@ -42,5 +42,7 @@ method.
 .. module:: alembic.operations
 
 .. autoclass:: Operations
+    :members:
 
 .. autoclass:: BatchOperations
+    :members:
