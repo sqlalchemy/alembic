@@ -5,7 +5,7 @@ from io import TextIOWrapper
 import os
 import re
 
-from sqlalchemy import exc as sqla_exc
+from sqlalchemy import exc as sqla_exc, create_engine
 from sqlalchemy import text
 
 from alembic import __version__
@@ -196,6 +196,25 @@ finally:
         self._eq_cmd_output(
             buf, [self.c, self.b, self.a], currents=(self.b,), env_token=True
         )
+
+
+class MutationTest(TestBase):
+    @classmethod
+    def setup_class(cls):
+        cls.env = staging_env()
+        cls.cfg = _sqlite_testing_config()
+
+    @classmethod
+    def teardown_class(cls):
+        clear_staging_env()
+
+    def test_current(self):
+        command.current(self.cfg)
+
+        url = self.cfg.get_main_option("sqlalchemy.url")
+        engine = create_engine(url)
+
+        assert not engine.dialect.has_table(engine, "alembic_version")
 
 
 class CurrentTest(_BufMixin, TestBase):
