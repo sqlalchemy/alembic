@@ -5,7 +5,7 @@ from io import TextIOWrapper
 import os
 import re
 
-from sqlalchemy import create_engine, exc as sqla_exc
+from sqlalchemy import exc as sqla_exc
 from sqlalchemy import text
 
 from alembic import __version__
