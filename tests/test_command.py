@@ -199,8 +199,11 @@ finally:
 
 
 class MutationTest(TestBase):
+    __only_on__ = "sqlite"
+
     @classmethod
     def setup_class(cls):
+        cls.bind = _sqlite_file_db()
         cls.env = staging_env()
         cls.cfg = _sqlite_testing_config()
 
@@ -210,10 +213,7 @@ class MutationTest(TestBase):
 
     def test_current(self):
         command.current(self.cfg)
-
-        url = self.cfg.get_main_option("sqlalchemy.url")
-        engine = create_engine(url)
-
+        engine = self.bind
         assert not engine.dialect.has_table(engine, "alembic_version")
 
 
