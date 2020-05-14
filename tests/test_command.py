@@ -33,6 +33,7 @@ from alembic.testing.fixtures import capture_context_buffer
 from alembic.testing.fixtures import capture_engine_context_buffer
 from alembic.testing.fixtures import TestBase
 from alembic.util import compat
+from alembic.util.sqla_compat import _connectable_has_table
 
 
 class _BufMixin(object):
@@ -214,7 +215,8 @@ class MutationTest(TestBase):
     def test_current(self):
         command.current(self.cfg)
         engine = self.bind
-        is_false(engine.dialect.has_table(engine, "alembic_version"))
+        with engine.connect() as conn:
+            is_false(_connectable_has_table(conn, "alembic_version", None))
 
 
 class CurrentTest(_BufMixin, TestBase):
