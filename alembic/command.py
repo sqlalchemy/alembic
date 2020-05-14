@@ -511,7 +511,9 @@ def current(config, verbose=False, head_only=False):
 
         return []
 
-    with EnvironmentContext(config, script, fn=display_version, dont_mutate=True):
+    with EnvironmentContext(
+        config, script, fn=display_version, dont_mutate=True
+    ):
         script.run_env()
 
 
