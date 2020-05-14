@@ -17,7 +17,7 @@ from alembic.script import ScriptDirectory
 from alembic.testing import assert_raises
 from alembic.testing import assert_raises_message
 from alembic.testing import eq_
-from alembic.testing import is_true
+from alembic.testing import is_false, is_true
 from alembic.testing import mock
 from alembic.testing.env import _get_staging_directory
 from alembic.testing.env import _no_sql_testing_config
@@ -214,7 +214,7 @@ class MutationTest(TestBase):
     def test_current(self):
         command.current(self.cfg)
         engine = self.bind
-        assert not engine.dialect.has_table(engine, "alembic_version")
+        is_false(engine.dialect.has_table(engine, "alembic_version"))
 
 
 class CurrentTest(_BufMixin, TestBase):
