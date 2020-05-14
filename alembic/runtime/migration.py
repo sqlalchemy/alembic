@@ -497,7 +497,9 @@ class MigrationContext(object):
         else:
             heads = self.get_current_heads()
 
-            if not self.as_sql and not heads:
+            dont_mutate = self.opts.get("dont_mutate", False)
+
+            if not self.as_sql and not heads and not dont_mutate:
                 self._ensure_version_table()
 
         head_maintainer = HeadMaintainer(self, heads)
