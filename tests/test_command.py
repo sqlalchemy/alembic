@@ -17,6 +17,7 @@ from alembic.script import ScriptDirectory
 from alembic.testing import assert_raises
 from alembic.testing import assert_raises_message
 from alembic.testing import eq_
+from alembic.testing import is_false
 from alembic.testing import is_true
 from alembic.testing import mock
 from alembic.testing.env import _get_staging_directory
@@ -33,6 +34,7 @@ from alembic.testing.fixtures import capture_context_buffer
 from alembic.testing.fixtures import capture_engine_context_buffer
 from alembic.testing.fixtures import TestBase
 from alembic.util import compat
+from alembic.util.sqla_compat import _connectable_has_table
 
 
 class _BufMixin(object):
@@ -201,6 +203,7 @@ finally:
 class CurrentTest(_BufMixin, TestBase):
     @classmethod
     def setup_class(cls):
+        cls.bind = _sqlite_file_db()
         cls.env = env = staging_env()
         cls.cfg = _sqlite_testing_config()
         cls.a1 = env.generate_revision("a1", "a1")
@@ -231,6 +234,12 @@ class CurrentTest(_BufMixin, TestBase):
         )
 
         eq_(lines, set(revs))
+
+    def test_doesnt_create_alembic_version(self):
+        command.current(self.cfg)
+        engine = self.bind
+        with engine.connect() as conn:
+            is_false(_connectable_has_table(conn, "alembic_version", None))
 
     def test_no_current(self):
         command.stamp(self.cfg, ())

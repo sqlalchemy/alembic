@@ -127,7 +127,6 @@ class Operations(util.ModuleClsProxy):
                     "args": args,
                     "apply_kw": apply_kw,
                     "doc": fn.__doc__,
-                    "meth": fn.__name__,
                 }
             )
             globals_ = {"op_cls": op_cls}

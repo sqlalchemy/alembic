@@ -1,0 +1,10 @@
+.. change::
+    :tags: bug, commands
+    :tickets: 694
+
+    The ``alembic current`` command no longer creates an ``alembic_version``
+    table in the database if one does not exist already, returning no version
+    as the current version. This allows checking for migrations in parallel
+    without introducing race conditions.  Pull request courtesy Nikolay
+    Edigaryev.
+
