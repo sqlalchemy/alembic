@@ -1,0 +1,7 @@
+.. change::
+    :tags: bug, commands
+    :tickets: 695
+
+    ``alembic current`` command no longer creates an ``alembic_version``
+    table in the database. This allows checking for migrations
+    in parallel without introducing race conditions.
