@@ -13,10 +13,12 @@ from sqlalchemy import func
 from sqlalchemy import Index
 from sqlalchemy import inspect
 from sqlalchemy import Integer
+from sqlalchemy import JSON
 from sqlalchemy import MetaData
 from sqlalchemy import PrimaryKeyConstraint
 from sqlalchemy import String
 from sqlalchemy import Table
+from sqlalchemy import Text
 from sqlalchemy import UniqueConstraint
 from sqlalchemy.schema import CreateIndex
 from sqlalchemy.schema import CreateTable
@@ -989,16 +991,24 @@ class CopyFromTest(TestBase):
 
     def test_change_type(self):
         context = self._fixture()
+        self.table.append_column(Column("toj", Text))
+        self.table.append_column(Column("fromj", JSON))
         with self.op.batch_alter_table(
             "foo", copy_from=self.table
         ) as batch_op:
             batch_op.alter_column("data", type_=Integer)
+            batch_op.alter_column("toj", type_=JSON)
+            batch_op.alter_column("fromj", type_=Text)
         context.assert_(
             "CREATE TABLE _alembic_tmp_foo (id INTEGER NOT NULL, "
-            "data INTEGER, x INTEGER, PRIMARY KEY (id))",
-            "INSERT INTO _alembic_tmp_foo (id, data, x) SELECT foo.id, "
-            "CAST(foo.data AS INTEGER) AS %s, foo.x FROM foo"
-            % (("data" if sqla_14 else "anon_1"),),
+            "data INTEGER, x INTEGER, toj JSON, fromj TEXT, PRIMARY KEY (id))",
+            "INSERT INTO _alembic_tmp_foo (id, data, x, toj, fromj) SELECT foo.id, "
+            "CAST(foo.data AS INTEGER) AS %s, foo.x, foo.toj, "
+            "CAST(foo.fromj AS TEXT) AS %s FROM foo"
+            % (
+                ("data" if sqla_14 else "anon_1"),
+                ("fromj" if sqla_14 else "anon_2"),
+            ),
             "DROP TABLE foo",
             "ALTER TABLE _alembic_tmp_foo RENAME TO foo",
         )
