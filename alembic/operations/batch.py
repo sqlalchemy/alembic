@@ -103,6 +103,7 @@ class BatchOperationsImpl(object):
                 reflected = True
 
             batch_impl = ApplyBatchImpl(
+                self.impl,
                 existing_table,
                 self.table_args,
                 self.table_kwargs,
@@ -155,8 +156,9 @@ class BatchOperationsImpl(object):
 
 class ApplyBatchImpl(object):
     def __init__(
-        self, table, table_args, table_kwargs, reflected, partial_reordering=()
+        self, impl, table, table_args, table_kwargs, reflected, partial_reordering=()
     ):
+        self.impl = impl
         self.table = table  # this is a Table object
         self.table_args = table_args
         self.table_kwargs = table_kwargs
@@ -405,12 +407,14 @@ class ApplyBatchImpl(object):
                     existing.type.create_constraint
                 ) = False
 
-            if existing.type._type_affinity is not type_._type_affinity:
-                existing_transfer["expr"] = cast(
-                    existing_transfer["expr"], type_
-                )
+            self.impl.cast_for_batch_migrate(
+                existing,
+                existing_transfer,
+                type_
+            )
 
             existing.type = type_
+
 
             # we *dont* however set events for the new type, because
             # alter_column is invoked from
