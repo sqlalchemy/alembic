@@ -1,6 +1,7 @@
 from collections import namedtuple
 import re
 
+from sqlalchemy import cast
 from sqlalchemy import schema
 from sqlalchemy import text
 
@@ -448,6 +449,12 @@ class DefaultImpl(with_metaclass(ImplMeta)):
         metadata_indexes,
     ):
         pass
+
+    def cast_for_batch_migrate(self, existing, existing_transfer, new_type):
+        if existing.type._type_affinity is not new_type._type_affinity:
+            existing_transfer["expr"] = cast(
+                existing_transfer["expr"], new_type
+            )
 
     def render_ddl_sql_expr(self, expr, is_server_default=False, **kw):
         """Render a SQL expression that is typically a server default,
