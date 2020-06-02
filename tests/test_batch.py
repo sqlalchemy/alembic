@@ -188,7 +188,7 @@ class BatchApplyTest(TestBase):
             "tname",
             m,
             Column("id", Integer, primary_key=True),
-            Column("flag", Boolean),
+            Column("flag", Boolean(create_constraint=True)),
         )
         return ApplyBatchImpl(self.impl, t, table_args, table_kwargs, False)
 
@@ -208,7 +208,7 @@ class BatchApplyTest(TestBase):
             "tname",
             m,
             Column("id", Integer, primary_key=True),
-            Column("thing", Enum("a", "b", "c")),
+            Column("thing", Enum("a", "b", "c", create_constraint=True)),
         )
         return ApplyBatchImpl(self.impl, t, table_args, table_kwargs, False)
 

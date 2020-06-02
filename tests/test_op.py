@@ -181,7 +181,9 @@ class OpTest(TestBase):
     def test_add_column_schema_type(self):
         """Test that a schema type generates its constraints...."""
         context = op_fixture()
-        op.add_column("t1", Column("c1", Boolean, nullable=False))
+        op.add_column(
+            "t1", Column("c1", Boolean(create_constraint=True), nullable=False)
+        )
         context.assert_(
             "ALTER TABLE t1 ADD COLUMN c1 BOOLEAN NOT NULL",
             "ALTER TABLE t1 ADD CHECK (c1 IN (0, 1))",
@@ -191,7 +193,9 @@ class OpTest(TestBase):
         """Test that a schema type generates its constraints...."""
         context = op_fixture()
         op.add_column(
-            "t1", Column("c1", Boolean, nullable=False), schema="foo"
+            "t1",
+            Column("c1", Boolean(create_constraint=True), nullable=False),
+            schema="foo",
         )
         context.assert_(
             "ALTER TABLE foo.t1 ADD COLUMN c1 BOOLEAN NOT NULL",
@@ -202,7 +206,9 @@ class OpTest(TestBase):
         """Test that a schema type doesn't generate a
         constraint based on check rule."""
         context = op_fixture("postgresql")
-        op.add_column("t1", Column("c1", Boolean, nullable=False))
+        op.add_column(
+            "t1", Column("c1", Boolean(create_constraint=True), nullable=False)
+        )
         context.assert_("ALTER TABLE t1 ADD COLUMN c1 BOOLEAN NOT NULL")
 
     def test_add_column_fk_self_referential(self):
@@ -390,7 +396,7 @@ class OpTest(TestBase):
 
     def test_alter_column_schema_type_unnamed(self):
         context = op_fixture("mssql", native_boolean=False)
-        op.alter_column("t", "c", type_=Boolean())
+        op.alter_column("t", "c", type_=Boolean(create_constraint=True))
         context.assert_(
             "ALTER TABLE t ALTER COLUMN c BIT",
             "ALTER TABLE t ADD CHECK (c IN (0, 1))",
@@ -398,7 +404,9 @@ class OpTest(TestBase):
 
     def test_alter_column_schema_schema_type_unnamed(self):
         context = op_fixture("mssql", native_boolean=False)
-        op.alter_column("t", "c", type_=Boolean(), schema="foo")
+        op.alter_column(
+            "t", "c", type_=Boolean(create_constraint=True), schema="foo"
+        )
         context.assert_(
             "ALTER TABLE foo.t ALTER COLUMN c BIT",
             "ALTER TABLE foo.t ADD CHECK (c IN (0, 1))",
@@ -406,7 +414,9 @@ class OpTest(TestBase):
 
     def test_alter_column_schema_type_named(self):
         context = op_fixture("mssql", native_boolean=False)
-        op.alter_column("t", "c", type_=Boolean(name="xyz"))
+        op.alter_column(
+            "t", "c", type_=Boolean(name="xyz", create_constraint=True)
+        )
         context.assert_(
             "ALTER TABLE t ALTER COLUMN c BIT",
             "ALTER TABLE t ADD CONSTRAINT xyz CHECK (c IN (0, 1))",
@@ -414,7 +424,12 @@ class OpTest(TestBase):
 
     def test_alter_column_schema_schema_type_named(self):
         context = op_fixture("mssql", native_boolean=False)
-        op.alter_column("t", "c", type_=Boolean(name="xyz"), schema="foo")
+        op.alter_column(
+            "t",
+            "c",
+            type_=Boolean(name="xyz", create_constraint=True),
+            schema="foo",
+        )
         context.assert_(
             "ALTER TABLE foo.t ALTER COLUMN c BIT",
             "ALTER TABLE foo.t ADD CONSTRAINT xyz CHECK (c IN (0, 1))",
@@ -423,7 +438,10 @@ class OpTest(TestBase):
     def test_alter_column_schema_type_existing_type(self):
         context = op_fixture("mssql", native_boolean=False)
         op.alter_column(
-            "t", "c", type_=String(10), existing_type=Boolean(name="xyz")
+            "t",
+            "c",
+            type_=String(10),
+            existing_type=Boolean(name="xyz", create_constraint=True),
         )
         context.assert_(
             "ALTER TABLE t DROP CONSTRAINT xyz",
@@ -436,7 +454,7 @@ class OpTest(TestBase):
             "t",
             "c",
             type_=String(10),
-            existing_type=Boolean(name="xyz"),
+            existing_type=Boolean(name="xyz", create_constraint=True),
             schema="foo",
         )
         context.assert_(

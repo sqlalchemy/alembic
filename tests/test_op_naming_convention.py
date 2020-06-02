@@ -129,7 +129,14 @@ class AutoNamingConventionTest(TestBase):
         context = op_fixture(
             naming_convention={"ck": "ck_%(table_name)s_%(constraint_name)s"}
         )
-        op.add_column("t1", Column("c1", Boolean(name="foo"), nullable=False))
+        op.add_column(
+            "t1",
+            Column(
+                "c1",
+                Boolean(name="foo", create_constraint=True),
+                nullable=False,
+            ),
+        )
         context.assert_(
             "ALTER TABLE t1 ADD COLUMN c1 BOOLEAN NOT NULL",
             "ALTER TABLE t1 ADD CONSTRAINT ck_t1_foo CHECK (c1 IN (0, 1))",
@@ -140,7 +147,12 @@ class AutoNamingConventionTest(TestBase):
             naming_convention={"ck": "ck_%(table_name)s_%(constraint_name)s"}
         )
         op.add_column(
-            "t1", Column("c1", Boolean(name=op.f("foo")), nullable=False)
+            "t1",
+            Column(
+                "c1",
+                Boolean(name=op.f("foo"), create_constraint=True),
+                nullable=False,
+            ),
         )
         context.assert_(
             "ALTER TABLE t1 ADD COLUMN c1 BOOLEAN NOT NULL",
