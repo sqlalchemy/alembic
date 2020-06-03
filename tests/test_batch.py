@@ -1611,7 +1611,7 @@ class BatchRoundTripTest(TestBase):
             "bar",
             self.metadata,
             Column("id", Integer, primary_key=True),
-            Column("flag", Boolean()),
+            Column("flag", Boolean(create_constraint=True)),
             mysql_engine="InnoDB",
         )
         bar.create(self.conn)
