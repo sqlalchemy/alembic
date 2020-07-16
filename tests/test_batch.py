@@ -74,6 +74,29 @@ class BatchApplyTest(TestBase):
         )
         return ApplyBatchImpl(self.impl, t, table_args, table_kwargs, False)
 
+    def _named_ck_table_fixture(self, table_args=(), table_kwargs={}):
+        m = MetaData()
+        t = Table(
+            "tname",
+            m,
+            Column("id", Integer, primary_key=True),
+            Column("x", String()),
+            Column("y", Integer),
+            CheckConstraint("y > 5", name="ck1"),
+        )
+        return ApplyBatchImpl(self.impl, t, table_args, table_kwargs, False)
+
+    def _named_ck_col_fixture(self, table_args=(), table_kwargs={}):
+        m = MetaData()
+        t = Table(
+            "tname",
+            m,
+            Column("id", Integer, primary_key=True),
+            Column("x", String()),
+            Column("y", Integer, CheckConstraint("y > 5", name="ck1")),
+        )
+        return ApplyBatchImpl(self.impl, t, table_args, table_kwargs, False)
+
     def _ix_fixture(self, table_args=(), table_kwargs={}):
         m = MetaData()
         t = Table(
@@ -729,6 +752,39 @@ class BatchApplyTest(TestBase):
             impl,
             colnames=["id", "x", "y"],
             ddl_not_contains="CONSTRAINT uq1 UNIQUE",
+        )
+
+    def test_add_ck(self):
+        impl = self._simple_fixture()
+        ck = self.op.schema_obj.check_constraint("ck1", "tname", "y > 5")
+
+        impl.add_constraint(ck)
+        self._assert_impl(
+            impl,
+            colnames=["id", "x", "y"],
+            ddl_contains="CONSTRAINT ck1 CHECK (y > 5)",
+        )
+
+    def test_drop_ck_table(self):
+        impl = self._named_ck_table_fixture()
+
+        ck = self.op.schema_obj.check_constraint("ck1", "tname", "y > 5")
+        impl.drop_constraint(ck)
+        self._assert_impl(
+            impl,
+            colnames=["id", "x", "y"],
+            ddl_not_contains="CONSTRAINT ck1 CHECK (y > 5)",
+        )
+
+    def test_drop_ck_col(self):
+        impl = self._named_ck_col_fixture()
+
+        ck = self.op.schema_obj.check_constraint("ck1", "tname", "y > 5")
+        impl.drop_constraint(ck)
+        self._assert_impl(
+            impl,
+            colnames=["id", "x", "y"],
+            ddl_not_contains="CONSTRAINT ck1 CHECK (y > 5)",
         )
 
     def test_create_index(self):

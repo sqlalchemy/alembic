@@ -198,8 +198,10 @@ class ApplyBatchImpl(object):
             self.columns[c.name] = c_copy
         self.named_constraints = {}
         self.unnamed_constraints = []
+        self.col_named_constraints = {}
         self.indexes = {}
         self.new_indexes = {}
+
         for const in self.table.constraints:
             if _is_type_bound(const):
                 continue
@@ -211,6 +213,12 @@ class ApplyBatchImpl(object):
                 self.named_constraints[const.name] = const
             else:
                 self.unnamed_constraints.append(const)
+
+        if not self.reflected:
+            for col in self.table.c:
+                for const in col.constraints:
+                    if const.name:
+                        self.col_named_constraints[const.name] = (col, const)
 
         for idx in self.table.indexes:
             self.indexes[idx.name] = idx
@@ -511,7 +519,14 @@ class ApplyBatchImpl(object):
         if not const.name:
             raise ValueError("Constraint must have a name")
         try:
-            const = self.named_constraints.pop(const.name)
+            if const.name in self.col_named_constraints:
+                col, const = self.col_named_constraints.pop(const.name)
+
+                for col_const in list(self.columns[col.name].constraints):
+                    if col_const.name == const.name:
+                        self.columns[col.name].constraints.remove(col_const)
+            else:
+                const = self.named_constraints.pop(const.name)
         except KeyError:
             if _is_type_bound(const):
                 # type-bound constraints are only included in the new
