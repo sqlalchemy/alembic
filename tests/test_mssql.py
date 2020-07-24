@@ -191,7 +191,7 @@ class OpTest(TestBase):
             "select @const_name = [name] from\n"
             "sys.foreign_keys fk join sys.foreign_key_columns fkcon "
             "fk.object_id=fkc.constraint_object_id\n"
-            "where fkc.parent_object_id = object_id('t1')`and "
+            "where fkc.parent_object_id = object_id('t1')and "
             "col_name(fkc.parent_object_id, fkc.parent_column_id) = 'c1'\n"
             "exec('alter table t1 drop constraint ' + @const_name)"
         )
@@ -208,7 +208,7 @@ class OpTest(TestBase):
             "select @const_name = [name] from\n"
             "sys.foreign_keys fk join sys.foreign_key_columns fkcon "
             "fk.object_id=fkc.constraint_object_id\n"
-            "where fkc.parent_object_id = object_id('xyz.t1')`and "
+            "where fkc.parent_object_id = object_id('xyz.t1')and "
             "col_name(fkc.parent_object_id, fkc.parent_column_id) = 'c1'\n"
             "exec('alter table xyz.t1 drop constraint ' + @const_name)"
         )

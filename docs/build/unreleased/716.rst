@@ -1,0 +1,7 @@
+.. change::
+   :tags: bug, mssql
+   :tickets: 716
+
+   Fixed issue where the ``mssql_drop_foreign_key=True`` flag on ``op.drop_column``
+   would lead to incorrect syntax error.
+   Pull request courtesy Oleg Shigorin(Nuqlear).

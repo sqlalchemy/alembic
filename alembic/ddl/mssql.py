@@ -205,7 +205,7 @@ select @const_name = [name] from
 sys.foreign_keys fk join sys.foreign_key_columns fkc
 on fk.object_id=fkc.constraint_object_id
 where fkc.parent_object_id = object_id('%(schema_dot)s%(tname)s')
-`and col_name(fkc.parent_object_id, fkc.parent_column_id) = '%(colname)s'
+and col_name(fkc.parent_object_id, fkc.parent_column_id) = '%(colname)s'
 exec('alter table %(tname_quoted)s drop constraint ' + @const_name)""" % {
         "tname": tname,
         "colname": colname,
