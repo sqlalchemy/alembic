@@ -244,6 +244,10 @@ class MySQLImpl(DefaultImpl):
                 cnfk.onupdate = "RESTRICT"
 
 
+class MariaDBImpl(MySQLImpl):
+    __dialect__ = "mariadb"
+
+
 class MySQLAlterDefault(AlterColumn):
     def __init__(self, name, column_name, default, schema=None):
         super(AlterColumn, self).__init__(name, schema=schema)
