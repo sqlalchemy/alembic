@@ -65,14 +65,10 @@ def _get_dialect(name):
     if name is None or name == "default":
         return default.DefaultDialect()
     else:
-        try:
-            dialect_mod = _dialect_mods[name]
-        except KeyError:
-            dialect_mod = getattr(
-                __import__("sqlalchemy.dialects.%s" % name).dialects, name
-            )
-            _dialect_mods[name] = dialect_mod
-        d = dialect_mod.dialect()
+        from sqlalchemy.engine import url
+
+        d = url.URL(name).get_dialect()()
+
         if name == "postgresql":
             d.implicit_returning = True
         elif name == "mssql":

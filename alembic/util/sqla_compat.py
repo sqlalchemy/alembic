@@ -281,17 +281,14 @@ def _comment_attribute(obj):
 
 
 def _is_mariadb(mysql_dialect):
-    return (
-        mysql_dialect.server_version_info
-        and "MariaDB" in mysql_dialect.server_version_info
-    )
+    if sqla_14:
+        return mysql_dialect.is_mariadb
+    else:
+        return mysql_dialect.server_version_info and mysql_dialect._is_mariadb
 
 
 def _mariadb_normalized_version_info(mysql_dialect):
-    if len(mysql_dialect.server_version_info) > 5:
-        return mysql_dialect.server_version_info[3:]
-    else:
-        return mysql_dialect.server_version_info
+    return mysql_dialect._mariadb_normalized_version_info
 
 
 if sqla_14:

@@ -24,6 +24,7 @@ from ..util.compat import configparser
 from ..util.compat import string_types
 from ..util.compat import text_type
 from ..util.sqla_compat import create_mock_engine
+from ..util.sqla_compat import sqla_14
 
 testing_config = configparser.ConfigParser()
 testing_config.read(["test.cfg"])
@@ -144,9 +145,9 @@ def op_fixture(
         opts["as_sql"] = as_sql
     if literal_binds:
         opts["literal_binds"] = literal_binds
-    if dialect == "mariadb":
+    if not sqla_14 and dialect == "mariadb":
         ctx_dialect = _get_dialect("mysql")
-        ctx_dialect.server_version_info = (10, 0, 0, "MariaDB")
+        ctx_dialect.server_version_info = (10, 4, 0, "MariaDB")
 
     else:
         ctx_dialect = _get_dialect(dialect)
