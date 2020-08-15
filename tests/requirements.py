@@ -39,7 +39,7 @@ class DefaultRequirements(SuiteRequirements):
 
     @property
     def check_constraints_w_enforcement(self):
-        return exclusions.fails_on("mysql")
+        return exclusions.fails_on(["mysql", "mariadb"])
 
     @property
     def unnamed_constraints(self):
@@ -59,7 +59,7 @@ class DefaultRequirements(SuiteRequirements):
 
     @property
     def reflects_fk_options(self):
-        return exclusions.only_on(["postgresql", "mysql", "sqlite"])
+        return exclusions.only_on(["postgresql", "mysql", "mariadb", "sqlite"])
 
     @property
     def fk_initially(self):
@@ -82,7 +82,7 @@ class DefaultRequirements(SuiteRequirements):
 
     @property
     def reflects_unique_constraints_unambiguously(self):
-        return exclusions.fails_on("mysql", "oracle")
+        return exclusions.fails_on(["mysql", "mariadb", "oracle"])
 
     @property
     def reflects_pk_names(self):
@@ -104,7 +104,7 @@ class DefaultRequirements(SuiteRequirements):
 
     @property
     def mysql(self):
-        return exclusions.only_on(["mysql"])
+        return exclusions.only_on(["mysql", "mariadb"])
 
     @property
     def oracle(self):
@@ -163,14 +163,14 @@ class DefaultRequirements(SuiteRequirements):
     def autocommit_isolation(self):
         """target database should support 'AUTOCOMMIT' isolation level"""
 
-        return exclusions.only_on("postgresql", "mysql")
+        return exclusions.only_on(["postgresql", "mysql", "mariadb"])
 
     @property
     def computed_columns(self):
         # TODO: in theory if these could come from SQLAlchemy dialects
         # that would be helpful
         return self.computed_columns_api + exclusions.only_on(
-            ["postgresql >= 12", "oracle", "mssql", "mysql >= 5.7"]
+            ["postgresql >= 12", "oracle", "mssql", "mysql >= 5.7", "mariadb"]
         )
 
     @property
@@ -242,7 +242,7 @@ class DefaultRequirements(SuiteRequirements):
 
     def _mariadb_102(self, config):
         return (
-            exclusions.against(config, "mysql")
+            exclusions.against(config, ["mysql", "mariadb"])
             and sqla_compat._is_mariadb(config.db.dialect)
             and sqla_compat._mariadb_normalized_version_info(config.db.dialect)
             > (10, 2)
@@ -252,7 +252,7 @@ class DefaultRequirements(SuiteRequirements):
         # MySQL has check constraints that enforce an reflect, however
         # they prevent a column's name from being changed due to a bug in
         # MariaDB 10.2 as well as MySQL 8.0.16
-        if exclusions.against(config, "mysql"):
+        if exclusions.against(config, ["mysql", "mariadb"]):
             if sqla_compat._is_mariadb(config.db.dialect):
                 mnvi = sqla_compat._mariadb_normalized_version_info
                 norm_version_info = mnvi(config.db.dialect)
@@ -271,7 +271,7 @@ class DefaultRequirements(SuiteRequirements):
     def _mysql_and_check_constraints_exist(self, config):
         # 1. we have mysql / mariadb and
         # 2. it enforces check constraints
-        if exclusions.against(config, "mysql"):
+        if exclusions.against(config, ["mysql", "mariadb"]):
             if sqla_compat._is_mariadb(config.db.dialect):
                 mnvi = sqla_compat._mariadb_normalized_version_info
                 norm_version_info = mnvi(config.db.dialect)
@@ -286,7 +286,7 @@ class DefaultRequirements(SuiteRequirements):
         # 1. we dont have mysql / mariadb or
         # 2. we have mysql / mariadb that enforces check constraints
         return not exclusions.against(
-            config, "mysql"
+            config, ["mysql", "mariadb"]
         ) or self._mysql_and_check_constraints_exist(config)
 
     def _mysql_check_constraints_dont_exist(self, config):
@@ -295,7 +295,7 @@ class DefaultRequirements(SuiteRequirements):
         return not self._mysql_check_constraints_exist(config)
 
     def _mysql_not_mariadb_102(self, config):
-        return exclusions.against(config, "mysql") and (
+        return exclusions.against(config, ["mysql", "mariadb"]) and (
             not sqla_compat._is_mariadb(config.db.dialect)
             or sqla_compat._mariadb_normalized_version_info(config.db.dialect)
             < (10, 2)

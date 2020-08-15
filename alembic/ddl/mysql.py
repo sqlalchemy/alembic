@@ -288,17 +288,17 @@ class MySQLModifyColumn(MySQLChangeColumn):
     pass
 
 
-@compiles(ColumnNullable, "mysql")
-@compiles(ColumnName, "mysql")
-@compiles(ColumnDefault, "mysql")
-@compiles(ColumnType, "mysql")
+@compiles(ColumnNullable, "mysql", "mariadb")
+@compiles(ColumnName, "mysql", "mariadb")
+@compiles(ColumnDefault, "mysql", "mariadb")
+@compiles(ColumnType, "mysql", "mariadb")
 def _mysql_doesnt_support_individual(element, compiler, **kw):
     raise NotImplementedError(
         "Individual alter column constructs not supported by MySQL"
     )
 
 
-@compiles(MySQLAlterDefault, "mysql")
+@compiles(MySQLAlterDefault, "mysql", "mariadb")
 def _mysql_alter_default(element, compiler, **kw):
     return "%s ALTER COLUMN %s %s" % (
         alter_table(compiler, element.table_name, element.schema),
@@ -309,7 +309,7 @@ def _mysql_alter_default(element, compiler, **kw):
     )
 
 
-@compiles(MySQLModifyColumn, "mysql")
+@compiles(MySQLModifyColumn, "mysql", "mariadb")
 def _mysql_modify_column(element, compiler, **kw):
     return "%s MODIFY %s %s" % (
         alter_table(compiler, element.table_name, element.schema),
@@ -325,7 +325,7 @@ def _mysql_modify_column(element, compiler, **kw):
     )
 
 
-@compiles(MySQLChangeColumn, "mysql")
+@compiles(MySQLChangeColumn, "mysql", "mariadb")
 def _mysql_change_column(element, compiler, **kw):
     return "%s CHANGE %s %s %s" % (
         alter_table(compiler, element.table_name, element.schema),
@@ -368,7 +368,7 @@ def _mysql_colspec(
     return spec
 
 
-@compiles(schema.DropConstraint, "mysql")
+@compiles(schema.DropConstraint, "mysql", "mariadb")
 def _mysql_drop_constraint(element, compiler, **kw):
     """Redefine SQLAlchemy's drop constraint to
     raise errors for invalid constraint type."""
