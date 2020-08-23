@@ -5,6 +5,7 @@ from sqlalchemy import inspect
 from sqlalchemy import schema
 from sqlalchemy import sql
 from sqlalchemy import types as sqltypes
+from sqlalchemy.engine import url
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.schema import CheckConstraint
 from sqlalchemy.schema import Column
@@ -44,6 +45,13 @@ except ImportError:
     has_computed_reflection = False
 
 AUTOINCREMENT_DEFAULT = "auto"
+
+
+def _create_url(*arg, **kw):
+    if hasattr(url.URL, "create"):
+        return url.URL.create(*arg, **kw)
+    else:
+        return url.URL(*arg, **kw)
 
 
 def _connectable_has_table(connectable, tablename, schemaname):

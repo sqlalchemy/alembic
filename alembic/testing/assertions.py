@@ -13,6 +13,7 @@ from sqlalchemy.testing.assertions import is_true  # noqa
 from sqlalchemy.testing.assertions import ne_  # noqa
 from sqlalchemy.util import decorator
 
+from ..util import sqla_compat
 from ..util.compat import py3k
 
 
@@ -65,9 +66,8 @@ def _get_dialect(name):
     if name is None or name == "default":
         return default.DefaultDialect()
     else:
-        from sqlalchemy.engine import url
 
-        d = url.URL(name).get_dialect()()
+        d = sqla_compat._create_url(name).get_dialect()()
 
         if name == "postgresql":
             d.implicit_returning = True
