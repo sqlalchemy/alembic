@@ -335,7 +335,7 @@ class ApplyBatchImpl(object):
                 t = metadata.tables[key]
                 for elem in constraint.elements:
                     colname = elem._get_colspec().split(".")[-1]
-                    if not t.c.contains_column(colname):
+                    if colname not in t.c:
                         t.append_column(Column(colname, sqltypes.NULLTYPE))
             else:
                 Table(

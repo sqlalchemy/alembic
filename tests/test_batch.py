@@ -35,6 +35,7 @@ from alembic.testing import assert_raises_message
 from alembic.testing import config
 from alembic.testing import eq_
 from alembic.testing import exclusions
+from alembic.testing import is_
 from alembic.testing import mock
 from alembic.testing import TestBase
 from alembic.testing.fixtures import op_fixture
@@ -659,6 +660,21 @@ class BatchApplyTest(TestBase):
             'REFERENCES foo_schema."user" (id, id_version)',
             schema="foo_schema",
         )
+
+    def test_do_not_add_existing_columns_columns(self):
+        impl = self._multi_fk_fixture()
+        meta = impl.table.metadata
+
+        cid = Column("id", Integer())
+        user = Table("user", meta, cid)
+
+        fk = [
+            c
+            for c in impl.unnamed_constraints
+            if isinstance(c, ForeignKeyConstraint)
+        ]
+        impl._setup_referent(meta, fk[0])
+        is_(user.c.id, cid)
 
     def test_drop_col(self):
         impl = self._simple_fixture()
