@@ -202,6 +202,11 @@ def _add_table(autogen_context, op):
         text += ",\ncomment=%r" % _ident(comment)
     for k in sorted(op.kw):
         text += ",\n%s=%r" % (k.replace(" ", "_"), op.kw[k])
+
+    if table._prefixes:
+        prefixes = ", ".join("'%s'" % p for p in table._prefixes)
+        text += ",\nprefixes=[%s]" % prefixes
+
     text += "\n)"
     return text
 
