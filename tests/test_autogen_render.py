@@ -966,6 +966,43 @@ class AutogenRenderTest(TestBase):
             ")",
         )
 
+    def test_render_table_w_prefixes(self):
+        m = MetaData()
+        t = Table(
+            "test",
+            m,
+            Column("id", Integer, primary_key=True),
+            prefixes=["TEST", "PREFIXES"],
+        )
+        op_obj = ops.CreateTableOp.from_table(t)
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.create_table('test',"
+            "sa.Column('id', sa.Integer(), nullable=False),"
+            "sa.PrimaryKeyConstraint('id'),"
+            "prefixes=['TEST', 'PREFIXES']"
+            ")",
+        )
+
+    def test_render_table_w_prefixes_schema(self):
+        m = MetaData(schema="foo")
+        t = Table(
+            "test",
+            m,
+            Column("id", Integer, primary_key=True),
+            prefixes=["TEST", "PREFIXES"],
+        )
+        op_obj = ops.CreateTableOp.from_table(t)
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.create_table('test',"
+            "sa.Column('id', sa.Integer(), nullable=False),"
+            "sa.PrimaryKeyConstraint('id'),"
+            "schema='foo',"
+            "prefixes=['TEST', 'PREFIXES']"
+            ")",
+        )
+
     def test_render_addtl_args(self):
         m = MetaData()
         t = Table(
