@@ -1,7 +1,0 @@
-.. change::
-    :tags: bug, sqlite, batch
-    :tickets: 711
-
-    Added support to drop named CHECK constraints that are specified as part of
-    a column, rather than table wide.  Previously, only constraints associated
-    with the table were considered.

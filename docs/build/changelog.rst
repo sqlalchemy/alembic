@@ -5,7 +5,64 @@ Changelog
 
 .. changelog::
     :version: 1.4.3
-    :include_notes_from: unreleased
+    :released: September 11, 2020
+
+    .. change::
+        :tags: bug, sqlite, batch
+        :tickets: 711
+
+        Added support to drop named CHECK constraints that are specified as part of
+        a column, rather than table wide.  Previously, only constraints associated
+        with the table were considered.
+
+    .. change::
+        :tags: bug, ops, mysql
+        :tickets: 736
+
+        Fixed issue where the MySQL dialect would not correctly render the server
+        default of a column in an alter operation, if the operation were
+        programmatically generated from an autogenerate pass as it would not
+        accommodate for the full structure of the DefaultClause construct.
+
+    .. change::
+        :tags: bug, sqlite, batch
+        :tickets: 697
+
+        Fixed issue where the CAST applied to a JSON column when copying a SQLite
+        table during batch mode would cause the data to be lost, as SQLite's CAST
+        with JSON appears to convert the data to the value "0". The CAST is now
+        skipped in a dialect-specific manner, including for JSON columns on SQLite.
+        Pull request courtesy Sebastián Ramírez.
+
+    .. change::
+        :tags: bug, commands
+        :tickets: 694
+
+        The ``alembic current`` command no longer creates an ``alembic_version``
+        table in the database if one does not exist already, returning no version
+        as the current version. This allows checking for migrations in parallel
+        without introducing race conditions.  Pull request courtesy Nikolay
+        Edigaryev.
+
+
+    .. change::
+        :tags: bug, batch
+
+        Fixed issue where columns in a foreign-key referenced table would be
+        replaced with null-type columns during a batch operation; while this did
+        not generally have any side effects, it could theoretically impact a batch
+        operation that also targets that table directly and also would interfere
+        with future changes to the ``.append_column()`` method to disallow implicit
+        replacement of columns.
+
+    .. change::
+       :tags: bug, mssql
+       :tickets: 716
+
+       Fixed issue where the ``mssql_drop_foreign_key=True`` flag on
+       ``op.drop_column`` would lead to incorrect syntax error due to a typo in the
+       SQL emitted, same typo was present in the test as well so it was not
+       detected. Pull request courtesy Oleg Shigorin.
 
 .. changelog::
     :version: 1.4.2
