@@ -1,0 +1,8 @@
+.. change::
+    :tags: bug, ops, mysql
+    :tickets: 736
+
+    Fixed issue where the MySQL dialect would not correctly render the server
+    default of a column in an alter operation, if the operation were
+    programmatically generated from an autogenerate pass as it would not
+    accommodate for the full structure of the DefaultClause construct.

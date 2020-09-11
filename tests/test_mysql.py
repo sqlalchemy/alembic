@@ -1,6 +1,7 @@
 from sqlalchemy import Boolean
 from sqlalchemy import Column
 from sqlalchemy import DATETIME
+from sqlalchemy import Float
 from sqlalchemy import func
 from sqlalchemy import inspect
 from sqlalchemy import Integer
@@ -11,7 +12,10 @@ from sqlalchemy import TIMESTAMP
 
 from alembic import op
 from alembic import util
+from alembic.autogenerate import api
+from alembic.autogenerate import compare
 from alembic.migration import MigrationContext
+from alembic.operations import ops
 from alembic.testing import assert_raises_message
 from alembic.testing import config
 from alembic.testing.env import clear_staging_env
@@ -196,6 +200,35 @@ class MySQLOpTest(TestBase):
         context.assert_(
             "ALTER TABLE t CHANGE c c DATETIME NULL DEFAULT CURRENT_TIMESTAMP"
         )
+
+    def test_alter_column_modify_programmatic_default(self):
+        # test issue #736
+        # when autogenerate.compare creates the operation object
+        # programmatically, the server_default of the op has the full
+        # DefaultClause present.   make sure the usual renderer works.
+        context = op_fixture("mysql")
+
+        m1 = MetaData()
+
+        autogen_context = api.AutogenContext(context, m1)
+
+        operation = ops.AlterColumnOp("t", "c")
+        for fn in (
+            compare._compare_nullable,
+            compare._compare_type,
+            compare._compare_server_default,
+        ):
+            fn(
+                autogen_context,
+                operation,
+                None,
+                "t",
+                "c",
+                Column("c", Float(), nullable=False, server_default=text("0")),
+                Column("c", Float(), nullable=True, default=0),
+            )
+        op.invoke(operation)
+        context.assert_("ALTER TABLE t MODIFY c FLOAT NULL DEFAULT 0")
 
     def test_col_not_nullable(self):
         context = op_fixture("mysql")

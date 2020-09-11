@@ -15,7 +15,6 @@ from .base import format_server_default
 from .impl import DefaultImpl
 from .. import util
 from ..autogenerate import compare
-from ..util.compat import string_types
 from ..util.sqla_compat import _is_mariadb
 from ..util.sqla_compat import _is_type_bound
 
@@ -342,13 +341,6 @@ def _mysql_change_column(element, compiler, **kw):
     )
 
 
-def _render_value(compiler, expr):
-    if isinstance(expr, string_types):
-        return "'%s'" % expr
-    else:
-        return compiler.sql_compiler.process(expr)
-
-
 def _mysql_colspec(
     compiler, nullable, server_default, type_, autoincrement, comment
 ):
@@ -359,7 +351,7 @@ def _mysql_colspec(
     if autoincrement:
         spec += " AUTO_INCREMENT"
     if server_default is not False and server_default is not None:
-        spec += " DEFAULT %s" % _render_value(compiler, server_default)
+        spec += " DEFAULT %s" % format_server_default(compiler, server_default)
     if comment:
         spec += " COMMENT %s" % compiler.sql_compiler.render_literal_value(
             comment, sqltypes.String()
