@@ -63,21 +63,6 @@ class SuiteRequirements(Requirements):
         return exclusions.closed()
 
     @property
-    def sqlalchemy_issue_3740(self):
-        """Fixes percent sign escaping for paramstyles that don't require it"""
-        return exclusions.skip_if(
-            lambda config: not util.sqla_120,
-            "SQLAlchemy 1.2 or greater required",
-        )
-
-    @property
-    def sqlalchemy_12(self):
-        return exclusions.skip_if(
-            lambda config: not util.sqla_1216,
-            "SQLAlchemy 1.2.16 or greater required",
-        )
-
-    @property
     def sqlalchemy_13(self):
         return exclusions.skip_if(
             lambda config: not util.sqla_13,
@@ -89,36 +74,6 @@ class SuiteRequirements(Requirements):
         return exclusions.skip_if(
             lambda config: not util.sqla_14,
             "SQLAlchemy 1.4 or greater required",
-        )
-
-    @property
-    def sqlalchemy_1115(self):
-        return exclusions.skip_if(
-            lambda config: not util.sqla_1115,
-            "SQLAlchemy 1.1.15 or greater required",
-        )
-
-    @property
-    def sqlalchemy_110(self):
-        return exclusions.skip_if(
-            lambda config: not util.sqla_110,
-            "SQLAlchemy 1.1.0 or greater required",
-        )
-
-    @property
-    def sqlalchemy_issue_4436(self):
-        def check(config):
-            vers = sqla_compat._vers
-
-            if vers == (1, 3, 0, "b1"):
-                return True
-            elif vers >= (1, 2, 16):
-                return False
-            else:
-                return True
-
-        return exclusions.skip_if(
-            check, "SQLAlchemy 1.2.16, 1.3.0b2 or greater required"
         )
 
     @property
@@ -135,14 +90,8 @@ class SuiteRequirements(Requirements):
     @property
     def comments(self):
         return exclusions.only_if(
-            lambda config: sqla_compat._dialect_supports_comments(
-                config.db.dialect
-            )
+            lambda config: config.db.dialect.supports_comments
         )
-
-    @property
-    def comments_api(self):
-        return exclusions.only_if(lambda config: util.sqla_120)
 
     @property
     def alter_column(self):

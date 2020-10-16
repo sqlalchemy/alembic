@@ -123,15 +123,12 @@ class OpTest(TestBase):
             "ALTER TABLE t MODIFY c INTEGER", "COMMENT ON COLUMN t.c IS ''"
         )
 
-    @config.requirements.comments_api
     def test_create_table_comment(self):
         # this is handled by SQLAlchemy's compilers
         context = op_fixture("oracle")
         op.create_table_comment("t2", comment="t2 table", schema="foo")
         context.assert_("COMMENT ON TABLE foo.t2 IS 't2 table'")
 
-    @config.requirements.comments_api
-    @config.requirements.sqlalchemy_issue_4436
     def test_drop_table_comment(self):
         # this is handled by SQLAlchemy's compilers
         context = op_fixture("oracle")

@@ -1358,8 +1358,7 @@ class RenameTableOp(AlterTableOp):
 
 @Operations.register_operation("create_table_comment")
 class CreateTableCommentOp(AlterTableOp):
-    """Represent a COMMENT ON `table` operation.
-    """
+    """Represent a COMMENT ON `table` operation."""
 
     def __init__(
         self, table_name, comment, schema=None, existing_comment=None
@@ -1407,8 +1406,7 @@ class CreateTableCommentOp(AlterTableOp):
         return operations.invoke(op)
 
     def reverse(self):
-        """Reverses the COMMENT ON operation against a table.
-        """
+        """Reverses the COMMENT ON operation against a table."""
         if self.existing_comment is None:
             return DropTableCommentOp(
                 self.table_name,
@@ -1436,8 +1434,7 @@ class CreateTableCommentOp(AlterTableOp):
 
 @Operations.register_operation("drop_table_comment")
 class DropTableCommentOp(AlterTableOp):
-    """Represent an operation to remove the comment from a table.
-    """
+    """Represent an operation to remove the comment from a table."""
 
     def __init__(self, table_name, schema=None, existing_comment=None):
         self.table_name = table_name
@@ -1469,8 +1466,7 @@ class DropTableCommentOp(AlterTableOp):
         return operations.invoke(op)
 
     def reverse(self):
-        """Reverses the COMMENT ON operation against a table.
-        """
+        """Reverses the COMMENT ON operation against a table."""
         return CreateTableCommentOp(
             self.table_name, self.existing_comment, schema=self.schema
         )
@@ -2159,7 +2155,7 @@ class BulkInsertOp(MigrateOperation):
 
            .. versionadded:: 0.6.4
 
-          """
+        """
 
         op = cls(table, rows, multiinsert=multiinsert)
         operations.invoke(op)

@@ -218,36 +218,6 @@ class DefaultRequirements(SuiteRequirements):
             self._mysql_and_check_constraints_exist,
         )
 
-    @property
-    def mysql_check_reflection_or_none(self):
-        # succeed if:
-        # 1. SQLAlchemy does not reflect CHECK constraints
-        # 2. SQLAlchemy does reflect CHECK constraints, but MySQL does not.
-        def go(config):
-            return (
-                not self._mysql_check_constraints_exist(config)
-                or self.sqlalchemy_1115.enabled
-            )
-
-        return exclusions.succeeds_if(go)
-
-    @property
-    def mysql_timestamp_reflection(self):
-        def go(config):
-            return (
-                not self._mariadb_102(config) or self.sqlalchemy_1115.enabled
-            )
-
-        return exclusions.only_if(go)
-
-    def _mariadb_102(self, config):
-        return (
-            exclusions.against(config, ["mysql", "mariadb"])
-            and sqla_compat._is_mariadb(config.db.dialect)
-            and sqla_compat._mariadb_normalized_version_info(config.db.dialect)
-            > (10, 2)
-        )
-
     def mysql_check_col_name_change(self, config):
         # MySQL has check constraints that enforce an reflect, however
         # they prevent a column's name from being changed due to a bug in
@@ -281,22 +251,3 @@ class DefaultRequirements(SuiteRequirements):
                 return norm_version_info >= (8, 0, 16)
         else:
             return False
-
-    def _mysql_check_constraints_exist(self, config):
-        # 1. we dont have mysql / mariadb or
-        # 2. we have mysql / mariadb that enforces check constraints
-        return not exclusions.against(
-            config, ["mysql", "mariadb"]
-        ) or self._mysql_and_check_constraints_exist(config)
-
-    def _mysql_check_constraints_dont_exist(self, config):
-        # 1. we have mysql / mariadb and
-        # 2. they dont enforce check constraints
-        return not self._mysql_check_constraints_exist(config)
-
-    def _mysql_not_mariadb_102(self, config):
-        return exclusions.against(config, ["mysql", "mariadb"]) and (
-            not sqla_compat._is_mariadb(config.db.dialect)
-            or sqla_compat._mariadb_normalized_version_info(config.db.dialect)
-            < (10, 2)
-        )

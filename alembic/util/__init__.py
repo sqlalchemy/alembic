@@ -24,13 +24,9 @@ from .pyfiles import load_python_file  # noqa
 from .pyfiles import pyc_file_from_path  # noqa
 from .pyfiles import template_to_file  # noqa
 from .sqla_compat import has_computed  # noqa
-from .sqla_compat import sqla_110  # noqa
-from .sqla_compat import sqla_1115  # noqa
-from .sqla_compat import sqla_120  # noqa
-from .sqla_compat import sqla_1216  # noqa
 from .sqla_compat import sqla_13  # noqa
 from .sqla_compat import sqla_14  # noqa
 
 
-if not sqla_110:
-    raise CommandError("SQLAlchemy 1.1.0 or greater is required. ")
+if not sqla_13:
+    raise CommandError("SQLAlchemy 1.3.0 or greater is required.")

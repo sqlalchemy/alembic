@@ -48,9 +48,7 @@ def _invoke(name, revision, options):
 
 
 def _run_hooks(path, hook_config):
-    """Invoke hooks for a generated revision.
-
-    """
+    """Invoke hooks for a generated revision."""
 
     from .base import _split_on_space_comma
 

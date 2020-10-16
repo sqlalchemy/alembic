@@ -1168,7 +1168,6 @@ class AutogenRenderTest(TestBase):
             "nullable=False)",
         )
 
-    @config.requirements.comments_api
     def test_render_col_with_comment(self):
         c = Column("some_key", Integer, comment="This is a comment")
         Table("some_table", MetaData(), c)
@@ -1180,7 +1179,6 @@ class AutogenRenderTest(TestBase):
             "comment='This is a comment')",
         )
 
-    @config.requirements.comments_api
     def test_render_col_comment_with_quote(self):
         c = Column("some_key", Integer, comment="This is a john's comment")
         Table("some_table", MetaData(), c)
@@ -1865,7 +1863,6 @@ class AutogenRenderTest(TestBase):
             op_obj,
         )
 
-    @config.requirements.comments_api
     def test_render_alter_column_modify_comment(self):
         op_obj = ops.AlterColumnOp(
             "sometable", "somecolumn", modify_comment="This is a comment"
@@ -1876,7 +1873,6 @@ class AutogenRenderTest(TestBase):
             "comment='This is a comment')",
         )
 
-    @config.requirements.comments_api
     def test_render_alter_column_existing_comment(self):
         op_obj = ops.AlterColumnOp(
             "sometable", "somecolumn", existing_comment="This is a comment"
@@ -1887,7 +1883,6 @@ class AutogenRenderTest(TestBase):
             "existing_comment='This is a comment')",
         )
 
-    @config.requirements.comments_api
     def test_render_col_drop_comment(self):
         op_obj = ops.AlterColumnOp(
             "sometable",
@@ -1902,7 +1897,6 @@ class AutogenRenderTest(TestBase):
             "existing_comment='This is a comment')",
         )
 
-    @config.requirements.comments_api
     def test_render_table_with_comment(self):
         m = MetaData()
         t = Table(
@@ -1924,7 +1918,6 @@ class AutogenRenderTest(TestBase):
             ")",
         )
 
-    @config.requirements.comments_api
     def test_render_add_column_with_comment(self):
         op_obj = ops.AddColumnOp(
             "foo", Column("x", Integer, comment="This is a Column")
@@ -1935,7 +1928,6 @@ class AutogenRenderTest(TestBase):
             "nullable=True, comment='This is a Column'))",
         )
 
-    @config.requirements.comments_api
     def test_render_create_table_comment_op(self):
         op_obj = ops.CreateTableCommentOp("table_name", "comment")
         eq_ignore_whitespace(
@@ -1948,7 +1940,6 @@ class AutogenRenderTest(TestBase):
             ")",
         )
 
-    @config.requirements.comments_api
     def test_render_create_table_comment_with_quote_op(self):
         op_obj = ops.CreateTableCommentOp(
             "table_name",

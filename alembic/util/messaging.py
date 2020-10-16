@@ -7,14 +7,12 @@ from sqlalchemy.engine import url
 
 from .compat import binary_type
 from .compat import collections_abc
-from .compat import py27
 from .compat import string_types
 
 log = logging.getLogger(__name__)
 
-if py27:
-    # disable "no handler found" errors
-    logging.getLogger("alembic").addHandler(logging.NullHandler())
+# disable "no handler found" errors
+logging.getLogger("alembic").addHandler(logging.NullHandler())
 
 
 try:

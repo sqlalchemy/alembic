@@ -155,7 +155,6 @@ class PostgresqlOpTest(TestBase):
             'USING gist ("SomeColumn" WITH >) WHERE ("SomeColumn" > 5)'
         )
 
-    @config.requirements.comments_api
     def test_add_column_with_comment(self):
         context = op_fixture("postgresql")
         op.add_column("t", Column("q", Integer, comment="This is a comment"))
@@ -164,7 +163,6 @@ class PostgresqlOpTest(TestBase):
             "COMMENT ON COLUMN t.q IS 'This is a comment'",
         )
 
-    @config.requirements.comments_api
     def test_alter_column_with_comment(self):
         context = op_fixture("postgresql")
         op.alter_column(
@@ -181,7 +179,6 @@ class PostgresqlOpTest(TestBase):
             "COMMENT ON COLUMN foo.t.c IS 'This is a column comment'",
         )
 
-    @config.requirements.comments_api
     def test_alter_column_add_comment(self):
         context = op_fixture("postgresql")
         op.alter_column(
@@ -196,7 +193,6 @@ class PostgresqlOpTest(TestBase):
             "COMMENT ON COLUMN foo.t.c IS 'This is a column comment'"
         )
 
-    @config.requirements.comments_api
     def test_alter_column_add_comment_table_and_column_quoting(self):
         context = op_fixture("postgresql")
         op.alter_column(
@@ -211,7 +207,6 @@ class PostgresqlOpTest(TestBase):
             'COMMENT ON COLUMN foo."T"."C" IS \'This is a column comment\''
         )
 
-    @config.requirements.comments_api
     def test_alter_column_add_comment_quoting(self):
         context = op_fixture("postgresql")
         op.alter_column(
@@ -226,7 +221,6 @@ class PostgresqlOpTest(TestBase):
             "COMMENT ON COLUMN foo.t.c IS 'This is a column ''comment'''"
         )
 
-    @config.requirements.comments_api
     def test_alter_column_drop_comment(self):
         context = op_fixture("postgresql")
         op.alter_column(
@@ -240,7 +234,6 @@ class PostgresqlOpTest(TestBase):
 
         context.assert_("COMMENT ON COLUMN foo.t.c IS NULL")
 
-    @config.requirements.comments_api
     def test_create_table_with_comment(self):
         context = op_fixture("postgresql")
         op.create_table(
@@ -255,7 +248,6 @@ class PostgresqlOpTest(TestBase):
             "COMMENT ON TABLE t2 IS 't2 comment'",
         )
 
-    @config.requirements.comments_api
     def test_create_table_with_column_comments(self):
         context = op_fixture("postgresql")
         op.create_table(
@@ -272,14 +264,12 @@ class PostgresqlOpTest(TestBase):
             "COMMENT ON COLUMN t2.c2 IS 'c2 comment'",
         )
 
-    @config.requirements.comments_api
     def test_create_table_comment(self):
         # this is handled by SQLAlchemy's compilers
         context = op_fixture("postgresql")
         op.create_table_comment("t2", comment="t2 table", schema="foo")
         context.assert_("COMMENT ON TABLE foo.t2 IS 't2 table'")
 
-    @config.requirements.comments_api
     def test_drop_table_comment(self):
         # this is handled by SQLAlchemy's compilers
         context = op_fixture("postgresql")

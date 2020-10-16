@@ -28,10 +28,6 @@ def _safe_int(value):
 _vers = tuple(
     [_safe_int(x) for x in re.findall(r"(\d+|[abc]\d)", __version__)]
 )
-sqla_110 = _vers >= (1, 1, 0)
-sqla_1115 = _vers >= (1, 1, 15)
-sqla_120 = _vers >= (1, 2, 0)
-sqla_1216 = _vers >= (1, 2, 16)
 sqla_13 = _vers >= (1, 3)
 sqla_14 = _vers >= (1, 4)
 try:
@@ -270,22 +266,6 @@ def _constraint_is_named(constraint, dialect):
         return name is not None
     else:
         return constraint.name is not None
-
-
-def _dialect_supports_comments(dialect):
-    if sqla_120:
-        return dialect.supports_comments
-    else:
-        return False
-
-
-def _comment_attribute(obj):
-    """return the .comment attribute from a Table or Column"""
-
-    if sqla_120:
-        return obj.comment
-    else:
-        return None
 
 
 def _is_mariadb(mysql_dialect):

@@ -182,7 +182,7 @@ class AlterColRoundTripFixture(object):
     # the type / server default compare logic might not work on older
     # SQLAlchemy versions as seems to be the case for SQLAlchemy 1.1 on Oracle
 
-    __requires__ = ("alter_column", "sqlalchemy_12")
+    __requires__ = ("alter_column",)
 
     def setUp(self):
         self.conn = config.db.connect()

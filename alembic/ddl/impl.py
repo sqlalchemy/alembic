@@ -264,15 +264,14 @@ class DefaultImpl(with_metaclass(ImplMeta)):
             self._exec(schema.CreateIndex(index))
 
         with_comment = (
-            sqla_compat._dialect_supports_comments(self.dialect)
-            and not self.dialect.inline_comments
+            self.dialect.supports_comments and not self.dialect.inline_comments
         )
-        comment = sqla_compat._comment_attribute(table)
+        comment = table.comment
         if comment and with_comment:
             self.create_table_comment(table)
 
         for column in table.columns:
-            comment = sqla_compat._comment_attribute(column)
+            comment = column.comment
             if comment and with_comment:
                 self.create_column_comment(column)
 
@@ -426,7 +425,7 @@ class DefaultImpl(with_metaclass(ImplMeta)):
         inspector_params = self._tokenize_column_type(inspector_column)
         metadata_params = self._tokenize_column_type(metadata_column)
 
-        if not self._column_types_match(inspector_params, metadata_params,):
+        if not self._column_types_match(inspector_params, metadata_params):
             return True
         if not self._column_args_match(inspector_params, metadata_params):
             return True

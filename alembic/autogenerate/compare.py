@@ -1047,7 +1047,7 @@ def _compare_column_comment(
     metadata_col,
 ):
 
-    if not sqla_compat._dialect_supports_comments(autogen_context.dialect):
+    if not autogen_context.dialect.supports_comments:
         return
 
     metadata_comment = metadata_col.comment
@@ -1181,7 +1181,7 @@ def _compare_table_comment(
     metadata_table,
 ):
 
-    if not sqla_compat._dialect_supports_comments(autogen_context.dialect):
+    if not autogen_context.dialect.supports_comments:
         return
 
     # if we're doing CREATE TABLE, comments will be created inline

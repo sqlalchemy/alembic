@@ -9,7 +9,7 @@ from .compat import get_current_bytecode_suffixes
 from .compat import has_pep3147
 from .compat import load_module_py
 from .compat import load_module_pyc
-from .compat import py35
+from .compat import py3k
 from .exc import CommandError
 
 
@@ -50,12 +50,10 @@ def coerce_resource_to_filename(fname):
 
 
 def pyc_file_from_path(path):
-    """Given a python source path, locate the .pyc.
-
-    """
+    """Given a python source path, locate the .pyc."""
 
     if has_pep3147():
-        if py35:
+        if py3k:
             import importlib
 
             candidate = importlib.util.cache_from_source(path)

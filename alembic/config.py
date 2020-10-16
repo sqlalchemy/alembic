@@ -100,9 +100,7 @@ class Config(object):
         config_args=util.immutabledict(),
         attributes=None,
     ):
-        """Construct a new :class:`.Config`
-
-        """
+        """Construct a new :class:`.Config`"""
         self.config_file_name = file_
         self.config_ini_section = ini_section
         self.output_buffer = output_buffer
@@ -270,9 +268,7 @@ class Config(object):
         self.file_config.set(section, name, value)
 
     def get_section_option(self, section, name, default=None):
-        """Return an option from the given section of the .ini file.
-
-        """
+        """Return an option from the given section of the .ini file."""
         if not self.file_config.has_section(section):
             raise util.CommandError(
                 "No config file %r found, or file has no "

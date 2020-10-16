@@ -3,10 +3,8 @@ import inspect
 import io
 import sys
 
-py27 = sys.version_info >= (2, 7)
 py2k = sys.version_info.major < 3
 py3k = sys.version_info.major >= 3
-py35 = sys.version_info >= (3, 5)
 py36 = sys.version_info >= (3, 6)
 
 
@@ -88,11 +86,10 @@ if py3k:
 else:
     import collections as collections_abc  # noqa
 
-if py35:
+if py3k:
 
     def _formatannotation(annotation, base_module=None):
-        """vendored from python 3.7
-        """
+        """vendored from python 3.7"""
 
         if getattr(annotation, "__module__", None) == "typing":
             return repr(annotation).replace("typing.", "")
@@ -174,42 +171,22 @@ else:
 if py2k:
     from mako.util import parse_encoding
 
-if py35:
-    import importlib.util
-    import importlib.machinery
-
-    def load_module_py(module_id, path):
-        spec = importlib.util.spec_from_file_location(module_id, path)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        return module
-
-    def load_module_pyc(module_id, path):
-        spec = importlib.util.spec_from_file_location(module_id, path)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        return module
-
-
-elif py3k:
-    import importlib.machinery
-
-    def load_module_py(module_id, path):
-        module = importlib.machinery.SourceFileLoader(
-            module_id, path
-        ).load_module(module_id)
-        del sys.modules[module_id]
-        return module
-
-    def load_module_pyc(module_id, path):
-        module = importlib.machinery.SourcelessFileLoader(
-            module_id, path
-        ).load_module(module_id)
-        del sys.modules[module_id]
-        return module
-
-
 if py3k:
+    import importlib.machinery
+
+    import importlib.util
+
+    def load_module_py(module_id, path):
+        spec = importlib.util.spec_from_file_location(module_id, path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def load_module_pyc(module_id, path):
+        spec = importlib.util.spec_from_file_location(module_id, path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
 
     def get_bytecode_suffixes():
         try:
@@ -218,7 +195,7 @@ if py3k:
             return importlib.machinery.DEBUG_BYTECODE_SUFFIXES
 
     def get_current_bytecode_suffixes():
-        if py35:
+        if py3k:
             suffixes = importlib.machinery.BYTECODE_SUFFIXES
         else:
             if sys.flags.optimize:
@@ -229,17 +206,7 @@ if py3k:
         return suffixes
 
     def has_pep3147():
-
-        if py35:
-            return True
-        else:
-            # TODO: not sure if we are supporting old versions of Python
-            # the import here emits a deprecation warning which the test
-            # suite only catches if imp wasn't imported alreadt
-            # http://www.python.org/dev/peps/pep-3147/#detecting-pep-3147-availability
-            import imp
-
-            return hasattr(imp, "get_tag")
+        return True
 
 
 else:

@@ -563,9 +563,7 @@ class TwinMergeTest(MigrationTest):
 
 
 class NotQuiteTwinMergeTest(MigrationTest):
-    """Test a variant of #297.
-
-    """
+    """Test a variant of #297."""
 
     @classmethod
     def setup_class(cls):

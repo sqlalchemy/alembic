@@ -66,7 +66,6 @@ class EnvironmentTest(TestBase):
         ctx = MigrationContext(ctx.dialect, None, {})
         is_(ctx.config, None)
 
-    @config.requirements.sqlalchemy_issue_3740
     def test_sql_mode_parameters(self):
         env = self._fixture()
 

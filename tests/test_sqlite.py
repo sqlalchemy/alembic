@@ -159,13 +159,11 @@ class SQLiteDefaultCompareTest(TestBase):
             None, col, rendered, cols[0]["default"]
         )
 
-    @config.requirements.sqlalchemy_12
     def test_compare_current_timestamp_func(self):
         self._compare_default_roundtrip(
             DateTime(), func.datetime("now", "localtime")
         )
 
-    @config.requirements.sqlalchemy_12
     def test_compare_current_timestamp_func_now(self):
         self._compare_default_roundtrip(DateTime(), func.now())
 

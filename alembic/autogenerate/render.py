@@ -197,7 +197,7 @@ def _add_table(autogen_context, op):
     if op.schema:
         text += ",\nschema=%r" % _ident(op.schema)
 
-    comment = sqla_compat._comment_attribute(table)
+    comment = table.comment
     if comment:
         text += ",\ncomment=%r" % _ident(comment)
     for k in sorted(op.kw):
@@ -620,7 +620,7 @@ def _render_column(column, autogen_context):
     if column.system:
         opts.append(("system", column.system))
 
-    comment = sqla_compat._comment_attribute(column)
+    comment = column.comment
     if comment:
         opts.append(("comment", "%r" % comment))
 

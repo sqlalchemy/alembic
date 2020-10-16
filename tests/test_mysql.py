@@ -27,7 +27,6 @@ from alembic.util import sqla_compat
 
 
 class MySQLOpTest(TestBase):
-    @config.requirements.comments_api
     def test_create_table_with_comment(self):
         context = op_fixture("mysql")
         op.create_table(
@@ -37,7 +36,6 @@ class MySQLOpTest(TestBase):
         )
         context.assert_contains("COMMENT='This is a table comment'")
 
-    @config.requirements.comments_api
     def test_create_table_with_column_comments(self):
         context = op_fixture("mysql")
         op.create_table(
@@ -56,7 +54,6 @@ class MySQLOpTest(TestBase):
             "COMMENT='This is a table comment'"
         )
 
-    @config.requirements.comments_api
     def test_add_column_with_comment(self):
         context = op_fixture("mysql")
         op.add_column("t", Column("q", Integer, comment="This is a comment"))
@@ -281,7 +278,6 @@ class MySQLOpTest(TestBase):
             server_default="q",
         )
 
-    @config.requirements.comments_api
     def test_alter_column_add_comment(self):
         context = op_fixture("mysql")
         op.alter_column(
@@ -297,7 +293,6 @@ class MySQLOpTest(TestBase):
             "COMMENT 'This is a column comment'"
         )
 
-    @config.requirements.comments_api
     def test_alter_column_add_comment_quoting(self):
         context = op_fixture("mysql")
         op.alter_column(
@@ -313,7 +308,6 @@ class MySQLOpTest(TestBase):
             "COMMENT 'This is a ''column'' comment'"
         )
 
-    @config.requirements.comments_api
     def test_alter_column_drop_comment(self):
         context = op_fixture("mysql")
         op.alter_column(
@@ -327,7 +321,6 @@ class MySQLOpTest(TestBase):
 
         context.assert_("ALTER TABLE foo.t MODIFY c BOOL NULL")
 
-    @config.requirements.comments_api
     def test_alter_column_existing_comment(self):
         context = op_fixture("mysql")
         op.alter_column(
@@ -343,7 +336,6 @@ class MySQLOpTest(TestBase):
             "COMMENT 'existing column comment'"
         )
 
-    @config.requirements.comments_api
     def test_rename_column_existing_comment(self):
         context = op_fixture("mysql")
         op.alter_column(
@@ -360,7 +352,6 @@ class MySQLOpTest(TestBase):
             "COMMENT 'existing column comment'"
         )
 
-    @config.requirements.comments_api
     def test_alter_column_new_comment_replaces_existing(self):
         context = op_fixture("mysql")
         op.alter_column(
@@ -377,15 +368,12 @@ class MySQLOpTest(TestBase):
             "COMMENT 'This is a column comment'"
         )
 
-    @config.requirements.comments_api
     def test_create_table_comment(self):
         # this is handled by SQLAlchemy's compilers
         context = op_fixture("mysql")
         op.create_table_comment("t2", comment="t2 table", schema="foo")
         context.assert_("ALTER TABLE foo.t2 COMMENT 't2 table'")
 
-    @config.requirements.comments_api
-    @config.requirements.sqlalchemy_issue_4436
     def test_drop_table_comment(self):
         # this is handled by SQLAlchemy's compilers
         context = op_fixture("mysql")
@@ -536,8 +524,6 @@ class MySQLBackendOpTest(AlterColRoundTripFixture, TestBase):
 class MySQLDefaultCompareTest(TestBase):
     __only_on__ = "mysql"
     __backend__ = True
-
-    __requires__ = ("mysql_timestamp_reflection",)
 
     @classmethod
     def setup_class(cls):

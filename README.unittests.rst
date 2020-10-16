@@ -34,12 +34,12 @@ against various combinations of databases.  The test suite can be
 run against SQLite with "backend" tests also running against a PostgreSQL
 database::
 
-    tox -e py36-sqlite-postgresql
+    tox -e py38-sqlite-postgresql
 
 Or to run just "backend" tests (NOTE: Alembic has no tests marked this
 way so this option is not important) against a MySQL databases::
 
-    tox -e py36-mysql-backendonly
+    tox -e py38-mysql-backendonly
 
 Running against backends other than SQLite requires that a database of that
 vendor be available at a specific URL.  See "Setting Up Databases" below

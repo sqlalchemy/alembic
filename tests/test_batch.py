@@ -1365,7 +1365,6 @@ class BatchRoundTripTest(TestBase):
             [(datetime.datetime(2012, 5, 18, 15, 32, 5),)],
         )
 
-    @config.requirements.sqlalchemy_12
     def test_no_net_change_timestamp_w_default(self):
         t = self._timestamp_w_expr_default_fixture()
 
@@ -1932,11 +1931,9 @@ class BatchRoundTripMySQLTest(BatchRoundTripTest):
     def test_rename_column_boolean(self):
         super(BatchRoundTripMySQLTest, self).test_rename_column_boolean()
 
-    @config.requirements.mysql_check_reflection_or_none
     def test_change_type_boolean_to_int(self):
         super(BatchRoundTripMySQLTest, self).test_change_type_boolean_to_int()
 
-    @config.requirements.mysql_check_reflection_or_none
     def test_change_type_int_to_boolean(self):
         super(BatchRoundTripMySQLTest, self).test_change_type_int_to_boolean()
 
