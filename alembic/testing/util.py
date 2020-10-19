@@ -95,3 +95,13 @@ def metadata_fixture(ddl="function"):
         return fixture_functions.fixture(scope=ddl)(run_ddl)
 
     return decorate
+
+
+def testing_engine(url=None, options=None, future=False):
+    from sqlalchemy.testing import config
+    from sqlalchemy.testing.engines import testing_engine
+
+    if not future:
+        future = getattr(config._current.options, "future_engine", False)
+    kw = {"future": future} if future else {}
+    return testing_engine(url, options, **kw)

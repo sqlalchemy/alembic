@@ -465,7 +465,7 @@ are being used::
 
 Above, ``inspected_column`` is a :class:`sqlalchemy.schema.Column` as
 returned by
-:meth:`sqlalchemy.engine.reflection.Inspector.reflecttable`, whereas
+:meth:`sqlalchemy.engine.reflection.Inspector.reflect_table`, whereas
 ``metadata_column`` is a :class:`sqlalchemy.schema.Column` from the
 local model environment.  A return value of ``None`` indicates that default
 type comparison to proceed.

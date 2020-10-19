@@ -5,7 +5,6 @@ from sqlalchemy import Index
 from sqlalchemy import MetaData
 from sqlalchemy import PrimaryKeyConstraint
 from sqlalchemy import schema as sql_schema
-from sqlalchemy import select
 from sqlalchemy import Table
 from sqlalchemy import types as sqltypes
 from sqlalchemy.events import SchemaEventTarget
@@ -14,9 +13,12 @@ from sqlalchemy.util import topological
 
 from ..util import exc
 from ..util.sqla_compat import _columns_for_constraint
+from ..util.sqla_compat import _ensure_scope_for_ddl
 from ..util.sqla_compat import _fk_is_self_referential
+from ..util.sqla_compat import _insert_inline
 from ..util.sqla_compat import _is_type_bound
 from ..util.sqla_compat import _remove_column_from_collection
+from ..util.sqla_compat import _select
 
 
 class BatchOperationsImpl(object):
@@ -76,44 +78,44 @@ class BatchOperationsImpl(object):
     def flush(self):
         should_recreate = self._should_recreate()
 
-        if not should_recreate:
-            for opname, arg, kw in self.batch:
-                fn = getattr(self.operations.impl, opname)
-                fn(*arg, **kw)
-        else:
-            if self.naming_convention:
-                m1 = MetaData(naming_convention=self.naming_convention)
+        with _ensure_scope_for_ddl(self.impl.connection):
+            if not should_recreate:
+                for opname, arg, kw in self.batch:
+                    fn = getattr(self.operations.impl, opname)
+                    fn(*arg, **kw)
             else:
-                m1 = MetaData()
+                if self.naming_convention:
+                    m1 = MetaData(naming_convention=self.naming_convention)
+                else:
+                    m1 = MetaData()
 
-            if self.copy_from is not None:
-                existing_table = self.copy_from
-                reflected = False
-            else:
-                existing_table = Table(
-                    self.table_name,
-                    m1,
-                    schema=self.schema,
-                    autoload=True,
-                    autoload_with=self.operations.get_bind(),
-                    *self.reflect_args,
-                    **self.reflect_kwargs
+                if self.copy_from is not None:
+                    existing_table = self.copy_from
+                    reflected = False
+                else:
+                    existing_table = Table(
+                        self.table_name,
+                        m1,
+                        schema=self.schema,
+                        autoload_with=self.operations.get_bind(),
+                        *self.reflect_args,
+                        **self.reflect_kwargs
+                    )
+                    reflected = True
+
+                batch_impl = ApplyBatchImpl(
+                    self.impl,
+                    existing_table,
+                    self.table_args,
+                    self.table_kwargs,
+                    reflected,
+                    partial_reordering=self.partial_reordering,
                 )
-                reflected = True
+                for opname, arg, kw in self.batch:
+                    fn = getattr(batch_impl, opname)
+                    fn(*arg, **kw)
 
-            batch_impl = ApplyBatchImpl(
-                self.impl,
-                existing_table,
-                self.table_args,
-                self.table_kwargs,
-                reflected,
-                partial_reordering=self.partial_reordering,
-            )
-            for opname, arg, kw in self.batch:
-                fn = getattr(batch_impl, opname)
-                fn(*arg, **kw)
-
-            batch_impl._create(self.impl)
+                batch_impl._create(self.impl)
 
     def alter_column(self, *arg, **kw):
         self.batch.append(("alter_column", arg, kw))
@@ -362,14 +364,14 @@ class ApplyBatchImpl(object):
 
         try:
             op_impl._exec(
-                self.new_table.insert(inline=True).from_select(
+                _insert_inline(self.new_table).from_select(
                     list(
                         k
                         for k, transfer in self.column_transfers.items()
                         if "expr" in transfer
                     ),
-                    select(
-                        [
+                    _select(
+                        *[
                             transfer["expr"]
                             for transfer in self.column_transfers.values()
                             if "expr" in transfer

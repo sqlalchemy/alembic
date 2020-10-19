@@ -4,9 +4,10 @@ import os
 import shutil
 import textwrap
 
-from sqlalchemy.testing import engines
+from sqlalchemy.testing import config
 from sqlalchemy.testing import provision
 
+from . import util as testing_util
 from .. import util
 from ..script import Script
 from ..script import ScriptDirectory
@@ -93,15 +94,17 @@ config = context.config
         f.write(txt)
 
 
-def _sqlite_file_db(tempname="foo.db"):
+def _sqlite_file_db(tempname="foo.db", future=False):
     dir_ = os.path.join(_get_staging_directory(), "scripts")
     url = "sqlite:///%s/%s" % (dir_, tempname)
-    return engines.testing_engine(url=url)
+    return testing_util.testing_engine(url=url, future=future)
 
 
-def _sqlite_testing_config(sourceless=False):
+def _sqlite_testing_config(sourceless=False, future=False):
     dir_ = os.path.join(_get_staging_directory(), "scripts")
     url = "sqlite:///%s/foo.db" % dir_
+
+    sqlalchemy_future = future or ("future" in config.db.__class__.__module__)
 
     return _write_config_file(
         """
@@ -109,9 +112,10 @@ def _sqlite_testing_config(sourceless=False):
 script_location = %s
 sqlalchemy.url = %s
 sourceless = %s
+%s
 
 [loggers]
-keys = root
+keys = root,sqlalchemy
 
 [handlers]
 keys = console
@@ -120,6 +124,11 @@ keys = console
 level = WARN
 handlers = console
 qualname =
+
+[logger_sqlalchemy]
+level = DEBUG
+handlers =
+qualname = sqlalchemy.engine
 
 [handler_console]
 class = StreamHandler
@@ -134,12 +143,19 @@ keys = generic
 format = %%(levelname)-5.5s [%%(name)s] %%(message)s
 datefmt = %%H:%%M:%%S
     """
-        % (dir_, url, "true" if sourceless else "false")
+        % (
+            dir_,
+            url,
+            "true" if sourceless else "false",
+            "sqlalchemy.future = true" if sqlalchemy_future else "",
+        )
     )
 
 
 def _multi_dir_testing_config(sourceless=False, extra_version_location=""):
     dir_ = os.path.join(_get_staging_directory(), "scripts")
+    sqlalchemy_future = "future" in config.db.__class__.__module__
+
     url = "sqlite:///%s/foo.db" % dir_
 
     return _write_config_file(
@@ -147,6 +163,7 @@ def _multi_dir_testing_config(sourceless=False, extra_version_location=""):
 [alembic]
 script_location = %s
 sqlalchemy.url = %s
+sqlalchemy.future = %s
 sourceless = %s
 version_locations = %%(here)s/model1/ %%(here)s/model2/ %%(here)s/model3/ %s
 
@@ -177,6 +194,7 @@ datefmt = %%H:%%M:%%S
         % (
             dir_,
             url,
+            "true" if sqlalchemy_future else "false",
             "true" if sourceless else "false",
             extra_version_location,
         )
@@ -463,6 +481,8 @@ def _multidb_testing_config(engines):
 
     dir_ = os.path.join(_get_staging_directory(), "scripts")
 
+    sqlalchemy_future = "future" in config.db.__class__.__module__
+
     databases = ", ".join(engines.keys())
     engines = "\n\n".join(
         "[%s]\n" "sqlalchemy.url = %s" % (key, value.url)
@@ -474,7 +494,7 @@ def _multidb_testing_config(engines):
 [alembic]
 script_location = %s
 sourceless = false
-
+sqlalchemy.future = %s
 databases = %s
 
 %s
@@ -502,5 +522,5 @@ keys = generic
 format = %%(levelname)-5.5s [%%(name)s] %%(message)s
 datefmt = %%H:%%M:%%S
     """
-        % (dir_, databases, engines)
+        % (dir_, "true" if sqlalchemy_future else "false", databases, engines)
     )

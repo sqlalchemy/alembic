@@ -31,22 +31,23 @@ def compare_metadata(context, metadata):
         from sqlalchemy.schema import SchemaItem
         from sqlalchemy.types import TypeEngine
         from sqlalchemy import (create_engine, MetaData, Column,
-                Integer, String, Table)
+                Integer, String, Table, text)
         import pprint
 
         engine = create_engine("sqlite://")
 
-        engine.execute('''
-            create table foo (
-                id integer not null primary key,
-                old_data varchar,
-                x integer
-            )''')
+        with engine.begin() as conn:
+            conn.execute(text('''
+                create table foo (
+                    id integer not null primary key,
+                    old_data varchar,
+                    x integer
+                )'''))
 
-        engine.execute('''
-            create table bar (
-                data varchar
-            )''')
+            conn.execute(text('''
+                create table bar (
+                    data varchar
+                )'''))
 
         metadata = MetaData()
         Table('foo', metadata,

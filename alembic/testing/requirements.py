@@ -44,6 +44,15 @@ class SuiteRequirements(Requirements):
         return exclusions.skip_if(doesnt_have_check_uq_constraints)
 
     @property
+    def sequences(self):
+        """Target database must support SEQUENCEs."""
+
+        return exclusions.only_if(
+            [lambda config: config.db.dialect.supports_sequences],
+            "no sequence support",
+        )
+
+    @property
     def foreign_key_match(self):
         return exclusions.open()
 

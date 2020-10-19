@@ -422,9 +422,12 @@ class RevisionMap(object):
         except KeyError:
             try:
                 nonbranch_rev = self._revision_for_ident(branch_label)
-            except ResolutionError:
-                raise ResolutionError(
-                    "No such branch: '%s'" % branch_label, branch_label
+            except ResolutionError as re:
+                util.raise_(
+                    ResolutionError(
+                        "No such branch: '%s'" % branch_label, branch_label
+                    ),
+                    from_=re,
                 )
             else:
                 return nonbranch_rev
