@@ -1,0 +1,59 @@
+name: Run tests
+
+on:
+  # run on push in master or rel_* branches excluding changes are only on doc or example folders
+  push:
+    branches:
+      - master
+      - "rel_*"
+      # branches used to test the workflow
+      - "workflow_test_*"
+    paths-ignore:
+      - "docs/**"
+
+env:
+  # global env to all steps
+  TOX_WORKERS: -n2
+
+jobs:
+  run-test:
+    name: ${{ matrix.python-version }}-${{ matrix.sqlalchemy }}-${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # run this job using this matrix, excluding some combinations below.
+      matrix:
+        os:
+          - "ubuntu-latest"
+          - "windows-latest"
+          - "macos-latest"
+        python-version:
+          - "2.7"
+          - "3.6"
+          - "3.7"
+          - "3.8"
+          - "3.9"
+        sqlalchemy:
+          - sqla13
+          - sqlamaster
+
+      fail-fast: false
+
+    # steps to run in each job. Some are github actions, others run shell commands
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+
+      - name: Set up python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: ${{ matrix.architecture }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade tox setuptools
+          pip list
+
+      - name: Run tests
+        run: tox -e py-${{ matrix.sqlalchemy }}
