@@ -130,7 +130,6 @@ class DropConstraintOp(MigrateOperation):
             )
 
     @classmethod
-    @util._with_legacy_names([("type", "type_"), ("name", "constraint_name")])
     def drop_constraint(
         cls, operations, constraint_name, table_name, type_=None, schema=None
     ):
@@ -152,6 +151,7 @@ class DropConstraintOp(MigrateOperation):
            have been changed:
 
            * name -> constraint_name
+           * type -> type_
 
         """
 
@@ -174,6 +174,7 @@ class DropConstraintOp(MigrateOperation):
            have been changed:
 
            * name -> constraint_name
+           * type -> type_
 
         """
         op = cls(
@@ -236,9 +237,6 @@ class CreatePrimaryKeyOp(AddConstraintOp):
         )
 
     @classmethod
-    @util._with_legacy_names(
-        [("name", "constraint_name"), ("cols", "columns")]
-    )
     def create_primary_key(
         cls, operations, constraint_name, table_name, columns, schema=None
     ):
@@ -371,13 +369,6 @@ class CreateUniqueConstraintOp(AddConstraintOp):
         )
 
     @classmethod
-    @util._with_legacy_names(
-        [
-            ("name", "constraint_name"),
-            ("source", "table_name"),
-            ("local_cols", "columns"),
-        ]
-    )
     def create_unique_constraint(
         cls,
         operations,
@@ -439,7 +430,6 @@ class CreateUniqueConstraintOp(AddConstraintOp):
         return operations.invoke(op)
 
     @classmethod
-    @util._with_legacy_names([("name", "constraint_name")])
     def batch_create_unique_constraint(
         cls, operations, constraint_name, columns, **kw
     ):
@@ -549,13 +539,6 @@ class CreateForeignKeyOp(AddConstraintOp):
         )
 
     @classmethod
-    @util._with_legacy_names(
-        [
-            ("name", "constraint_name"),
-            ("source", "source_table"),
-            ("referent", "referent_table"),
-        ]
-    )
     def create_foreign_key(
         cls,
         operations,
@@ -643,9 +626,6 @@ class CreateForeignKeyOp(AddConstraintOp):
         return operations.invoke(op)
 
     @classmethod
-    @util._with_legacy_names(
-        [("name", "constraint_name"), ("referent", "referent_table")]
-    )
     def batch_create_foreign_key(
         cls,
         operations,
@@ -756,9 +736,6 @@ class CreateCheckConstraintOp(AddConstraintOp):
         )
 
     @classmethod
-    @util._with_legacy_names(
-        [("name", "constraint_name"), ("source", "table_name")]
-    )
     def create_check_constraint(
         cls,
         operations,
@@ -821,7 +798,6 @@ class CreateCheckConstraintOp(AddConstraintOp):
         return operations.invoke(op)
 
     @classmethod
-    @util._with_legacy_names([("name", "constraint_name")])
     def batch_create_check_constraint(
         cls, operations, constraint_name, condition, **kw
     ):
@@ -906,7 +882,6 @@ class CreateIndexOp(MigrateOperation):
         )
 
     @classmethod
-    @util._with_legacy_names([("name", "index_name")])
     def create_index(
         cls,
         operations,
@@ -1050,9 +1025,6 @@ class DropIndexOp(MigrateOperation):
         )
 
     @classmethod
-    @util._with_legacy_names(
-        [("name", "index_name"), ("tablename", "table_name")]
-    )
     def drop_index(
         cls, operations, index_name, table_name=None, schema=None, **kw
     ):
@@ -1087,13 +1059,13 @@ class DropIndexOp(MigrateOperation):
            have been changed:
 
            * name -> index_name
+           * tablename -> table_name
 
         """
         op = cls(index_name, table_name=table_name, schema=schema, **kw)
         return operations.invoke(op)
 
     @classmethod
-    @util._with_legacy_names([("name", "index_name")])
     def batch_drop_index(cls, operations, index_name, **kw):
         """Issue a "drop index" instruction using the
         current batch migration context.
@@ -1157,7 +1129,6 @@ class CreateTableOp(MigrateOperation):
         )
 
     @classmethod
-    @util._with_legacy_names([("name", "table_name")])
     def create_table(cls, operations, table_name, *columns, **kw):
         r"""Issue a "create table" instruction using the current migration
         context.
@@ -1287,7 +1258,6 @@ class DropTableOp(MigrateOperation):
         )
 
     @classmethod
-    @util._with_legacy_names([("name", "table_name")])
     def drop_table(cls, operations, table_name, schema=None, **kw):
         r"""Issue a "drop table" instruction using the current
         migration context.
@@ -1643,7 +1613,6 @@ class AlterColumnOp(AlterTableOp):
         )
 
     @classmethod
-    @util._with_legacy_names([("name", "new_column_name")])
     def alter_column(
         cls,
         operations,
@@ -1753,6 +1722,11 @@ class AlterColumnOp(AlterTableOp):
          within the expression.
 
          .. versionadded:: 0.8.8
+
+        .. versionchanged:: 0.8.0 The following positional argument names
+           have been changed:
+
+           * name -> new_column_name
 
         """
 

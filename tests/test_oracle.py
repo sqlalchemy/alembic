@@ -92,7 +92,7 @@ class OpTest(TestBase):
 
     def test_alter_column_rename_oracle(self):
         context = op_fixture("oracle")
-        op.alter_column("t", "c", name="x")
+        op.alter_column("t", "c", new_column_name="x")
         context.assert_("ALTER TABLE t RENAME COLUMN c TO x")
 
     def test_alter_column_new_type(self):
@@ -196,7 +196,7 @@ class OpTest(TestBase):
         op.alter_column(
             "t",
             "c",
-            name="c2",
+            new_column_name="c2",
             nullable=True,
             type_=Integer,
             server_default="5",

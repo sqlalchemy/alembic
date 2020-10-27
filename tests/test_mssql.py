@@ -329,7 +329,7 @@ class OpTest(TestBase):
 
     def test_alter_column_rename_mssql_schema(self):
         context = op_fixture("mssql")
-        op.alter_column("t", "c", name="x", schema="y")
+        op.alter_column("t", "c", new_column_name="x", schema="y")
         context.assert_("EXEC sp_rename 'y.t.c', x, 'COLUMN'")
 
     def test_create_index_mssql_include(self):

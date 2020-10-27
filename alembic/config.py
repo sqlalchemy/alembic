@@ -399,14 +399,6 @@ class CommandLine(object):
                         "of database to model.",
                     ),
                 ),
-                "head_only": (
-                    "--head-only",
-                    dict(
-                        action="store_true",
-                        help="Deprecated.  Use --verbose for "
-                        "additional output",
-                    ),
-                ),
                 "rev_range": (
                     "-r",
                     "--rev-range",

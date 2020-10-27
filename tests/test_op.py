@@ -697,62 +697,6 @@ class OpTest(TestBase):
             "ALTER TABLE t1 ADD CONSTRAINT uk_test UNIQUE (foo, bar)"
         )
 
-    def test_add_foreign_key_legacy_kwarg(self):
-        context = op_fixture()
-
-        op.create_foreign_key(
-            name="some_fk",
-            source="some_table",
-            referent="referred_table",
-            local_cols=["a", "b"],
-            remote_cols=["c", "d"],
-            ondelete="CASCADE",
-        )
-        context.assert_(
-            "ALTER TABLE some_table ADD CONSTRAINT some_fk "
-            "FOREIGN KEY(a, b) REFERENCES referred_table (c, d) "
-            "ON DELETE CASCADE"
-        )
-
-    def test_add_unique_constraint_legacy_kwarg(self):
-        context = op_fixture()
-        op.create_unique_constraint(
-            name="uk_test", source="t1", local_cols=["foo", "bar"]
-        )
-        context.assert_(
-            "ALTER TABLE t1 ADD CONSTRAINT uk_test UNIQUE (foo, bar)"
-        )
-
-    def test_drop_constraint_legacy_kwarg(self):
-        context = op_fixture()
-        op.drop_constraint(
-            name="pk_name", table_name="sometable", type_="primary"
-        )
-        context.assert_("ALTER TABLE sometable DROP CONSTRAINT pk_name")
-
-    def test_create_pk_legacy_kwarg(self):
-        context = op_fixture()
-        op.create_primary_key(
-            name=None,
-            table_name="sometable",
-            cols=["router_id", "l3_agent_id"],
-        )
-        context.assert_(
-            "ALTER TABLE sometable ADD PRIMARY KEY (router_id, l3_agent_id)"
-        )
-
-    def test_legacy_kwarg_catches_arg_missing(self):
-        op_fixture()
-
-        assert_raises_message(
-            TypeError,
-            "missing required positional argument: columns",
-            op.create_primary_key,
-            name=None,
-            table_name="sometable",
-            wrong_cols=["router_id", "l3_agent_id"],
-        )
-
     def test_add_unique_constraint_schema(self):
         context = op_fixture()
         op.create_unique_constraint(
@@ -935,16 +879,8 @@ class OpTest(TestBase):
 
     def test_naming_changes(self):
         context = op_fixture()
-        op.alter_column("t", "c", name="x")
-        context.assert_("ALTER TABLE t RENAME c TO x")
-
-        context = op_fixture()
         op.alter_column("t", "c", new_column_name="x")
         context.assert_("ALTER TABLE t RENAME c TO x")
-
-        context = op_fixture("mysql")
-        op.drop_constraint("f1", "t1", type="foreignkey")
-        context.assert_("ALTER TABLE t1 DROP FOREIGN KEY f1")
 
         context = op_fixture("mysql")
         op.drop_constraint("f1", "t1", type_="foreignkey")
@@ -952,7 +888,7 @@ class OpTest(TestBase):
 
     def test_naming_changes_drop_idx(self):
         context = op_fixture("mssql")
-        op.drop_index("ik_test", tablename="t1")
+        op.drop_index("ik_test", table_name="t1")
         context.assert_("DROP INDEX ik_test ON t1")
 
     @config.requirements.comments

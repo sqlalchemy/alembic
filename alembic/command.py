@@ -484,21 +484,16 @@ def branches(config, verbose=False):
             )
 
 
-def current(config, verbose=False, head_only=False):
+def current(config, verbose=False):
     """Display the current revision for a database.
 
     :param config: a :class:`.Config` instance.
 
     :param verbose: output in verbose mode.
 
-    :param head_only: deprecated; use ``verbose`` for additional output.
-
     """
 
     script = ScriptDirectory.from_config(config)
-
-    if head_only:
-        util.warn("--head-only is deprecated", stacklevel=3)
 
     def display_version(rev, context):
         if verbose:
