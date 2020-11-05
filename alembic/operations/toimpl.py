@@ -127,6 +127,9 @@ def add_column(operations, operation):
     schema = operation.schema
     kw = operation.kw
 
+    if column.table is not None:
+        column = column.copy()
+
     t = operations.schema_obj.table(table_name, column, schema=schema)
     operations.impl.add_column(table_name, column, schema=schema, **kw)
 

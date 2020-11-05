@@ -7,6 +7,7 @@ from sqlalchemy import event
 from sqlalchemy import exc
 from sqlalchemy import ForeignKey
 from sqlalchemy import Integer
+from sqlalchemy import MetaData
 from sqlalchemy import String
 from sqlalchemy import Table
 from sqlalchemy.sql import column
@@ -109,6 +110,14 @@ class OpTest(TestBase):
     def test_add_column(self):
         context = op_fixture()
         op.add_column("t1", Column("c1", Integer, nullable=False))
+        context.assert_("ALTER TABLE t1 ADD COLUMN c1 INTEGER NOT NULL")
+
+    def test_add_column_already_attached(self):
+        context = op_fixture()
+        c1 = Column("c1", Integer, nullable=False)
+        Table("t", MetaData(), c1)
+
+        op.add_column("t1", c1)
         context.assert_("ALTER TABLE t1 ADD COLUMN c1 INTEGER NOT NULL")
 
     def test_add_column_w_check(self):
