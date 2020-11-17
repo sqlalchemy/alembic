@@ -1,8 +1,11 @@
 from sqlalchemy import Column
+from sqlalchemy import exc
 from sqlalchemy import Integer
 
 from alembic import command
 from alembic import op
+from alembic.testing import assert_raises_message
+from alembic.testing import combinations
 from alembic.testing import config
 from alembic.testing.env import _no_sql_testing_config
 from alembic.testing.env import clear_staging_env
@@ -68,7 +71,7 @@ class OpTest(TestBase):
             "COMMENT ON COLUMN t1.c1 IS 'c1 comment'",
         )
 
-    @config.requirements.computed_columns_api
+    @config.requirements.computed_columns
     def test_add_column_computed(self):
         context = op_fixture("oracle")
         op.add_column(
@@ -78,6 +81,29 @@ class OpTest(TestBase):
         context.assert_(
             "ALTER TABLE t1 ADD some_column "
             "INTEGER GENERATED ALWAYS AS (foo * 5)"
+        )
+
+    @combinations(
+        (lambda: sqla_compat.Computed("foo * 5"), lambda: None),
+        (lambda: None, lambda: sqla_compat.Computed("foo * 5")),
+        (
+            lambda: sqla_compat.Computed("foo * 42"),
+            lambda: sqla_compat.Computed("foo * 5"),
+        ),
+    )
+    @config.requirements.computed_columns
+    def test_alter_column_computed_not_supported(self, sd, esd):
+        op_fixture("oracle")
+        assert_raises_message(
+            exc.CompileError,
+            'Adding or removing a "computed" construct, e.g. '
+            "GENERATED ALWAYS AS, to or from an existing column is not "
+            "supported.",
+            op.alter_column,
+            "t1",
+            "c1",
+            server_default=sd(),
+            existing_server_default=esd(),
         )
 
     def test_alter_table_rename_oracle(self):
@@ -226,3 +252,125 @@ class OpTest(TestBase):
     #    context.assert_(
     #        'ALTER TABLE y.t RENAME COLUMN c TO c2'
     #    )
+
+    def _identity_qualification(self, kw):
+        always = kw.get("always", False)
+        if always is None:
+            return ""
+        qualification = "ALWAYS" if always else "BY DEFAULT"
+        if kw.get("on_null", False):
+            qualification += " ON NULL"
+        return qualification
+
+    @config.requirements.identity_columns
+    @combinations(
+        ({}, None),
+        (dict(always=True), None),
+        (dict(always=None, order=True), "ORDER"),
+        (
+            dict(start=3, increment=33, maxvalue=99, cycle=True),
+            "INCREMENT BY 33 START WITH 3 MAXVALUE 99 CYCLE",
+        ),
+        (dict(on_null=True, start=42), "START WITH 42"),
+    )
+    def test_add_column_identity(self, kw, text):
+        context = op_fixture("oracle")
+        op.add_column(
+            "t1",
+            Column("some_column", Integer, sqla_compat.Identity(**kw)),
+        )
+        qualification = self._identity_qualification(kw)
+        options = " (%s)" % text if text else ""
+        context.assert_(
+            "ALTER TABLE t1 ADD some_column "
+            "INTEGER GENERATED %s AS IDENTITY%s" % (qualification, options)
+        )
+
+    @config.requirements.identity_columns
+    @combinations(
+        ({}, None),
+        (dict(always=True), None),
+        (dict(always=None, cycle=True), "CYCLE"),
+        (
+            dict(start=3, increment=33, maxvalue=99, cycle=True),
+            "INCREMENT BY 33 START WITH 3 MAXVALUE 99 CYCLE",
+        ),
+        (dict(on_null=True, start=42), "START WITH 42"),
+    )
+    def test_add_identity_to_column(self, kw, text):
+        context = op_fixture("oracle")
+        op.alter_column(
+            "t1",
+            "some_column",
+            server_default=sqla_compat.Identity(**kw),
+            existing_server_default=None,
+        )
+        qualification = self._identity_qualification(kw)
+        options = " (%s)" % text if text else ""
+        context.assert_(
+            "ALTER TABLE t1 MODIFY some_column "
+            "GENERATED %s AS IDENTITY%s" % (qualification, options)
+        )
+
+    @config.requirements.identity_columns
+    def test_remove_identity_from_column(self):
+        context = op_fixture("oracle")
+        op.alter_column(
+            "t1",
+            "some_column",
+            server_default=None,
+            existing_server_default=sqla_compat.Identity(),
+        )
+        context.assert_("ALTER TABLE t1 MODIFY some_column DROP IDENTITY")
+
+    @config.requirements.identity_columns
+    @combinations(
+        ({}, dict(always=True), None),
+        (
+            dict(always=True),
+            dict(always=False, start=3),
+            "START WITH 3",
+        ),
+        (
+            dict(always=True, start=3, increment=2, minvalue=-3, maxvalue=99),
+            dict(
+                always=True,
+                start=3,
+                increment=1,
+                minvalue=-3,
+                maxvalue=99,
+                cycle=True,
+            ),
+            "INCREMENT BY 1 START WITH 3 MINVALUE -3 MAXVALUE 99 CYCLE",
+        ),
+        (
+            dict(
+                always=False,
+                start=3,
+                maxvalue=9999,
+                minvalue=0,
+            ),
+            dict(always=False, start=3, order=True, on_null=False, cache=2),
+            "START WITH 3 CACHE 2 ORDER",
+        ),
+        (
+            dict(always=False),
+            dict(always=None, minvalue=0),
+            "MINVALUE 0",
+        ),
+    )
+    def test_change_identity_in_column(self, existing, updated, text):
+        context = op_fixture("oracle")
+        op.alter_column(
+            "t1",
+            "some_column",
+            server_default=sqla_compat.Identity(**updated),
+            existing_server_default=sqla_compat.Identity(**existing),
+        )
+
+        qualification = self._identity_qualification(updated)
+        options = " (%s)" % text if text else ""
+        context.assert_(
+            "ALTER TABLE t1 MODIFY some_column "
+            "GENERATED %s AS IDENTITY%s" % (qualification, options)
+        )

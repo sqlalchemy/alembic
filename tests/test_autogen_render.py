@@ -2123,6 +2123,93 @@ class AutogenRenderTest(TestBase):
             % persisted,
         )
 
+    @config.requirements.identity_columns
+    @testing.combinations(
+        ({}, "sa.Identity(always=False)"),
+        (dict(always=None), "sa.Identity(always=None)"),
+        (dict(always=True), "sa.Identity(always=True)"),
+        (
+            dict(
+                always=False,
+                on_null=True,
+                start=2,
+                increment=4,
+                minvalue=-3,
+                maxvalue=99,
+                nominvalue=True,
+                nomaxvalue=True,
+                cycle=True,
+                cache=42,
+                order=True,
+            ),
+            "sa.Identity(always=False, on_null=True, start=2, increment=4, "
+            "minvalue=-3, maxvalue=99, nominvalue=True, nomaxvalue=True, "
+            "cycle=True, cache=42, order=True)",
+        ),
+    )
+    def test_render_add_column_identity(self, kw, text):
+        op_obj = ops.AddColumnOp(
+            "foo", Column("x", Integer, sa.Identity(**kw))
+        )
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.add_column('foo', sa.Column('x', sa.Integer(), "
+            "%s, nullable=True))" % text,
+        )
+
+    @config.requirements.identity_columns
+    @testing.combinations(
+        ({}, "sa.Identity(always=False)"),
+        (dict(always=None), "sa.Identity(always=None)"),
+        (dict(always=True), "sa.Identity(always=True)"),
+        (
+            dict(
+                always=False,
+                on_null=True,
+                start=2,
+                increment=4,
+                minvalue=-3,
+                maxvalue=99,
+                nominvalue=True,
+                nomaxvalue=True,
+                cycle=True,
+                cache=42,
+                order=True,
+            ),
+            "sa.Identity(always=False, on_null=True, start=2, increment=4, "
+            "minvalue=-3, maxvalue=99, nominvalue=True, nomaxvalue=True, "
+            "cycle=True, cache=42, order=True)",
+        ),
+    )
+    def test_render_alter_column_add_identity(self, kw, text):
+        op_obj = ops.AlterColumnOp(
+            "foo",
+            "x",
+            existing_type=Integer(),
+            existing_server_default=None,
+            modify_server_default=sa.Identity(**kw),
+        )
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.alter_column('foo', 'x', existing_type=sa.Integer(), "
+            "server_default=%s)" % text,
+        )
+
+    @config.requirements.identity_columns
+    def test_render_alter_column_drop_identity(self):
+        op_obj = ops.AlterColumnOp(
+            "foo",
+            "x",
+            existing_type=Integer(),
+            existing_server_default=sa.Identity(),
+            modify_server_default=None,
+        )
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.alter_column('foo', 'x', existing_type=sa.Integer(), "
+            "server_default=None)",
+        )
+
 
 class RenderNamingConventionTest(TestBase):
     def setUp(self):

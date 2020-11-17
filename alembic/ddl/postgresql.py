@@ -20,6 +20,7 @@ from .base import compiles
 from .base import format_column_name
 from .base import format_table_name
 from .base import format_type
+from .base import IdentityColumnDefault
 from .base import RenameTable
 from .impl import DefaultImpl
 from .. import util
@@ -41,6 +42,7 @@ class PostgresqlImpl(DefaultImpl):
     type_synonyms = DefaultImpl.type_synonyms + (
         {"FLOAT", "DOUBLE PRECISION"},
     )
+    identity_attrs_ignore = ("on_null", "order")
 
     def prep_table_for_batch(self, table):
         for constraint in table.constraints:
@@ -294,6 +296,39 @@ def visit_column_comment(element, compiler, **kw):
         column_name=format_column_name(compiler, element.column_name),
         comment=comment,
     )
+
+
+@compiles(IdentityColumnDefault, "postgresql")
+def visit_identity_column(element, compiler, **kw):
+    text = "%s %s " % (
+        alter_table(compiler, element.table_name, element.schema),
+        alter_column(compiler, element.column_name),
+    )
+    if element.default is None:
+        # drop identity
+        text += "DROP IDENTITY"
+        return text
+    elif element.existing_server_default is None:
+        # add identity options
+        text += "ADD "
+        text += compiler.visit_identity_column(element.default)
+        return text
+    else:
+        # alter identity
+        diff, _ = element.impl._compare_identity_default(
+            element.default, element.existing_server_default
+        )
+        identity = element.default
+        for attr in sorted(diff):
+            if attr == "always":
+                text += "SET GENERATED %s " % (
+                    "ALWAYS" if identity.always else "BY DEFAULT"
+                )
+            else:
+                text += "SET %s " % compiler.get_identity_options(
+                    sqla_compat.Identity(**{attr: getattr(identity, attr)})
+                )
+        return text
 
 
 @Operations.register_operation("create_exclude_constraint")

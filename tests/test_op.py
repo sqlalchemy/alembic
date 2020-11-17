@@ -19,6 +19,7 @@ from alembic import op
 from alembic.operations import ops
 from alembic.operations import schemaobj
 from alembic.testing import assert_raises_message
+from alembic.testing import combinations
 from alembic.testing import config
 from alembic.testing import eq_
 from alembic.testing import is_
@@ -374,8 +375,16 @@ class OpTest(TestBase):
         op.alter_column("t", "c", server_default=None, schema="foo")
         context.assert_("ALTER TABLE foo.t ALTER COLUMN c DROP DEFAULT")
 
+    @combinations(
+        (lambda: sqla_compat.Computed("foo * 5"), lambda: None),
+        (lambda: None, lambda: sqla_compat.Computed("foo * 5")),
+        (
+            lambda: sqla_compat.Computed("foo * 42"),
+            lambda: sqla_compat.Computed("foo * 5"),
+        ),
+    )
     @config.requirements.computed_columns_api
-    def test_alter_column_computed_add_not_supported(self):
+    def test_alter_column_computed_not_supported(self, sd, esd):
         op_fixture()
         assert_raises_message(
             exc.CompileError,
@@ -385,22 +394,31 @@ class OpTest(TestBase):
             op.alter_column,
             "t1",
             "c1",
-            server_default=sqla_compat.Computed("foo * 5"),
+            server_default=sd(),
+            existing_server_default=esd(),
         )
 
-    @config.requirements.computed_columns_api
-    def test_alter_column_computed_remove_not_supported(self):
+    @combinations(
+        (lambda: sqla_compat.Identity(), lambda: None),
+        (lambda: None, lambda: sqla_compat.Identity()),
+        (
+            lambda: sqla_compat.Identity(),
+            lambda: sqla_compat.Identity(),
+        ),
+    )
+    @config.requirements.identity_columns_api
+    def test_alter_column_identity_not_supported(self, sd, esd):
         op_fixture()
         assert_raises_message(
             exc.CompileError,
-            'Adding or removing a "computed" construct, e.g. '
-            "GENERATED ALWAYS AS, to or from an existing column is not "
-            "supported.",
+            'Adding, removing or modifying an "identity" construct, '
+            "e.g. GENERATED AS IDENTITY, to or from an existing "
+            "column is not supported in this dialect.",
             op.alter_column,
             "t1",
             "c1",
-            server_default=None,
-            existing_server_default=sqla_compat.Computed("foo * 5"),
+            server_default=sd(),
+            existing_server_default=esd(),
         )
 
     def test_alter_column_schema_type_unnamed(self):

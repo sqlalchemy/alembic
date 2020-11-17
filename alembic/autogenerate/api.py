@@ -220,7 +220,7 @@ class AutogenContext(object):
     connected to the database backend being compared.
 
     This is obtained from the :attr:`.MigrationContext.bind` and is
-    utimately set up in the ``env.py`` script.
+    ultimately set up in the ``env.py`` script.
 
     """
 

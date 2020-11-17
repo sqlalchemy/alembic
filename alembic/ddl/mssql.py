@@ -19,6 +19,7 @@ from .base import format_type
 from .base import RenameTable
 from .impl import DefaultImpl
 from .. import util
+from ..util import sqla_compat
 
 
 class MSSQLImpl(DefaultImpl):
@@ -27,6 +28,17 @@ class MSSQLImpl(DefaultImpl):
     batch_separator = "GO"
 
     type_synonyms = DefaultImpl.type_synonyms + ({"VARCHAR", "NVARCHAR"},)
+    identity_attrs_ignore = (
+        "minvalue",
+        "maxvalue",
+        "nominvalue",
+        "nomaxvalue",
+        "cycle",
+        "cache",
+        "order",
+        "on_null",
+        "order",
+    )
 
     def __init__(self, *arg, **kw):
         super(MSSQLImpl, self).__init__(*arg, **kw)
@@ -76,6 +88,16 @@ class MSSQLImpl(DefaultImpl):
                     "existing_type or a new type_ be passed."
                 )
 
+        used_default = False
+        if sqla_compat._server_default_is_identity(
+            server_default, existing_server_default
+        ) or sqla_compat._server_default_is_computed(
+            server_default, existing_server_default
+        ):
+            used_default = True
+            kw["server_default"] = server_default
+            kw["existing_server_default"] = existing_server_default
+
         super(MSSQLImpl, self).alter_column(
             table_name,
             column_name,
@@ -87,7 +109,7 @@ class MSSQLImpl(DefaultImpl):
             **kw
         )
 
-        if server_default is not False:
+        if server_default is not False and used_default is False:
             if existing_server_default is not False or server_default is None:
                 self._exec(
                     _ExecDropConstraint(

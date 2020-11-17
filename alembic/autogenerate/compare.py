@@ -161,7 +161,7 @@ def _compare_tables(
                 (inspector),
                 # fmt: on
             )
-            inspector.reflecttable(t, None)
+            sqla_compat._reflect_table(inspector, t, None)
         if autogen_context.run_filters(t, tname, "table", True, None):
 
             modify_table_ops = ops.ModifyTableOps(tname, [], schema=s)
@@ -192,7 +192,7 @@ def _compare_tables(
                 _compat_autogen_column_reflect(inspector),
                 # fmt: on
             )
-            inspector.reflecttable(t, None)
+            sqla_compat._reflect_table(inspector, t, None)
         conn_column_info[(s, tname)] = t
 
     for s, tname in sorted(existing_tables, key=lambda x: (x[0] or "", x[1])):
@@ -810,13 +810,22 @@ def _compare_nullable(
     alter_column_op.existing_nullable = conn_col_nullable
 
     if conn_col_nullable is not metadata_col_nullable:
-        alter_column_op.modify_nullable = metadata_col_nullable
-        log.info(
-            "Detected %s on column '%s.%s'",
-            "NULL" if metadata_col_nullable else "NOT NULL",
-            tname,
-            cname,
-        )
+        if sqla_compat._server_default_is_identity(
+            metadata_col.server_default, conn_col.server_default
+        ):
+            log.info(
+                "Ignoring nullable change on identity column '%s.%s'",
+                tname,
+                cname,
+            )
+        else:
+            alter_column_op.modify_nullable = metadata_col_nullable
+            log.info(
+                "Detected %s on column '%s.%s'",
+                "NULL" if metadata_col_nullable else "NOT NULL",
+                tname,
+                cname,
+            )
 
 
 @comparators.dispatch_for("column")
@@ -969,6 +978,23 @@ def _warn_computed_not_supported(tname, cname):
     util.warn("Computed default on %s.%s cannot be modified" % (tname, cname))
 
 
+def _compare_identity_default(
+    autogen_context,
+    alter_column_op,
+    schema,
+    tname,
+    cname,
+    conn_col,
+    metadata_col,
+):
+    impl = autogen_context.migration_context.impl
+    diff, ignored_attr = impl._compare_identity_default(
+        metadata_col.server_default, conn_col.server_default
+    )
+
+    return diff
+
+
 @comparators.dispatch_for("column")
 def _compare_server_default(
     autogen_context,
@@ -985,9 +1011,7 @@ def _compare_server_default(
     if conn_col_default is None and metadata_default is None:
         return False
 
-    if sqla_compat.has_computed and isinstance(
-        metadata_default, sa_schema.Computed
-    ):
+    if sqla_compat._server_default_is_computed(metadata_default):
         # return False in case of a computed column as the server
         # default. Note that DDL for adding or removing "GENERATED AS" from
         # an existing column is not currently known for any backend.
@@ -1007,33 +1031,53 @@ def _compare_server_default(
                 conn_col,
                 metadata_col,
             )
-    rendered_metadata_default = _render_server_default_for_compare(
-        metadata_default, metadata_col, autogen_context
-    )
-
-    if sqla_compat.has_computed_reflection and isinstance(
-        conn_col.server_default, sa_schema.Computed
-    ):
+    if sqla_compat._server_default_is_computed(conn_col_default):
         _warn_computed_not_supported(tname, cname)
         return False
+
+    if sqla_compat._server_default_is_identity(
+        metadata_default, conn_col_default
+    ):
+        alter_column_op.existing_server_default = conn_col_default
+        is_diff = _compare_identity_default(
+            autogen_context,
+            alter_column_op,
+            schema,
+            tname,
+            cname,
+            conn_col,
+            metadata_col,
+        )
+        if is_diff or (bool(conn_col_default) != bool(metadata_default)):
+            alter_column_op.modify_server_default = metadata_default
+            if is_diff:
+                log.info(
+                    "Detected server default on column '%s.%s': "
+                    "identity options attributes %s",
+                    tname,
+                    cname,
+                    sorted(is_diff),
+                )
     else:
-        rendered_conn_default = (
-            conn_col.server_default.arg.text
-            if conn_col.server_default
-            else None
+        rendered_metadata_default = _render_server_default_for_compare(
+            metadata_default, metadata_col, autogen_context
         )
 
-    alter_column_op.existing_server_default = conn_col_default
+        rendered_conn_default = (
+            conn_col_default.arg.text if conn_col_default else None
+        )
 
-    isdiff = autogen_context.migration_context._compare_server_default(
-        conn_col,
-        metadata_col,
-        rendered_metadata_default,
-        rendered_conn_default,
-    )
-    if isdiff:
-        alter_column_op.modify_server_default = metadata_default
-        log.info("Detected server default on column '%s.%s'", tname, cname)
+        alter_column_op.existing_server_default = conn_col_default
+
+        is_diff = autogen_context.migration_context._compare_server_default(
+            conn_col,
+            metadata_col,
+            rendered_metadata_default,
+            rendered_conn_default,
+        )
+        if is_diff:
+            alter_column_op.modify_server_default = metadata_default
+            log.info("Detected server default on column '%s.%s'", tname, cname)
 
 
 @comparators.dispatch_for("column")

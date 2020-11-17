@@ -251,3 +251,23 @@ class DefaultRequirements(SuiteRequirements):
                 return norm_version_info >= (8, 0, 16)
         else:
             return False
+
+    @property
+    def identity_columns(self):
+        # TODO: in theory if these could come from SQLAlchemy dialects
+        # that would be helpful
+        return self.identity_columns_api + exclusions.only_on(
+            ["postgresql >= 10", "oracle >= 12", "mssql"]
+        )
+
+    @property
+    def identity_columns_alter(self):
+        # TODO: in theory if these could come from SQLAlchemy dialects
+        # that would be helpful
+        return self.identity_columns_api + exclusions.only_on(
+            ["postgresql >= 10", "oracle >= 12"]
+        )
+
+    @property
+    def supports_identity_on_null(self):
+        return self.identity_columns + exclusions.only_on(["oracle"])
