@@ -40,6 +40,38 @@ class ResolutionError(RevisionError):
         self.argument = argument
 
 
+class CycleDetected(RevisionError):
+    kind = "Cycle"
+
+    def __init__(self, revisions):
+        self.revisions = revisions
+        super(CycleDetected, self).__init__(
+            "%s is detected in revisions (%s)"
+            % (self.kind, ", ".join(revisions))
+        )
+
+
+class DependencyCycleDetected(CycleDetected):
+    kind = "Dependency cycle"
+
+    def __init__(self, revisions):
+        super(DependencyCycleDetected, self).__init__(revisions)
+
+
+class LoopDetected(CycleDetected):
+    kind = "Self-loop"
+
+    def __init__(self, revision):
+        super(LoopDetected, self).__init__([revision])
+
+
+class DependencyLoopDetected(DependencyCycleDetected, LoopDetected):
+    kind = "Dependency self-loop"
+
+    def __init__(self, revision):
+        super(DependencyLoopDetected, self).__init__(revision)
+
+
 class RevisionMap(object):
     """Maintains a map of :class:`.Revision` objects.
 
@@ -115,8 +147,8 @@ class RevisionMap(object):
 
         heads = sqlautil.OrderedSet()
         _real_heads = sqlautil.OrderedSet()
-        self.bases = ()
-        self._real_bases = ()
+        bases = ()
+        _real_bases = ()
 
         has_branch_labels = set()
         has_depends_on = set()
@@ -131,15 +163,16 @@ class RevisionMap(object):
                 has_branch_labels.add(revision)
             if revision.dependencies:
                 has_depends_on.add(revision)
-            heads.add(revision.revision)
-            _real_heads.add(revision.revision)
+            heads.add(revision)
+            _real_heads.add(revision)
             if revision.is_base:
-                self.bases += (revision.revision,)
+                bases += (revision,)
             if revision._is_real_base:
-                self._real_bases += (revision.revision,)
+                _real_bases += (revision,)
 
         # add the branch_labels to the map_.  We'll need these
         # to resolve the dependencies.
+        rev_map = map_.copy()
         for revision in has_branch_labels:
             self._map_branch_labels(revision, map_)
 
@@ -156,12 +189,49 @@ class RevisionMap(object):
                 down_revision = map_[downrev]
                 down_revision.add_nextrev(rev)
                 if downrev in rev._versioned_down_revisions:
-                    heads.discard(downrev)
-                _real_heads.discard(downrev)
+                    heads.discard(down_revision)
+                _real_heads.discard(down_revision)
+
+        if rev_map:
+            if not heads or not bases:
+                raise CycleDetected(rev_map.keys())
+            total_space = {
+                rev.revision
+                for rev in self._iterate_related_revisions(
+                    lambda r: r._versioned_down_revisions, heads, map_=rev_map
+                )
+            }.intersection(
+                rev.revision
+                for rev in self._iterate_related_revisions(
+                    lambda r: r.nextrev, bases, map_=rev_map
+                )
+            )
+            deleted_revs = set(rev_map.keys()) - total_space
+            if deleted_revs:
+                raise CycleDetected(sorted(deleted_revs))
+
+            if not _real_heads or not _real_bases:
+                raise DependencyCycleDetected(rev_map.keys())
+            total_space = {
+                rev.revision
+                for rev in self._iterate_related_revisions(
+                    lambda r: r._all_down_revisions, _real_heads, map_=rev_map
+                )
+            }.intersection(
+                rev.revision
+                for rev in self._iterate_related_revisions(
+                    lambda r: r._all_nextrev, _real_bases, map_=rev_map
+                )
+            )
+            deleted_revs = set(rev_map.keys()) - total_space
+            if deleted_revs:
+                raise DependencyCycleDetected(sorted(deleted_revs))
 
         map_[None] = map_[()] = None
-        self.heads = tuple(heads)
-        self._real_heads = tuple(_real_heads)
+        self.heads = tuple(rev.revision for rev in heads)
+        self._real_heads = tuple(rev.revision for rev in _real_heads)
+        self.bases = tuple(rev.revision for rev in bases)
+        self._real_bases = tuple(rev.revision for rev in _real_bases)
 
         for revision in has_branch_labels:
             self._add_branches(revision, map_, map_branch_labels=False)
@@ -964,6 +1034,11 @@ class Revision(object):
     def __init__(
         self, revision, down_revision, dependencies=None, branch_labels=None
     ):
+        if down_revision and revision in down_revision:
+            raise LoopDetected(revision)
+        elif dependencies is not None and revision in dependencies:
+            raise DependencyLoopDetected(revision)
+
         self.verify_rev_id(revision)
         self.revision = revision
         self.down_revision = tuple_rev_as_scalar(down_revision)
