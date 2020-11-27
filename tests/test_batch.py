@@ -348,6 +348,18 @@ class BatchApplyTest(TestBase):
         new_table = self._assert_impl(impl)
         eq_(new_table.c.x.name, "q")
 
+    def test_alter_column_comment(self):
+        impl = self._simple_fixture()
+        impl.alter_column("tname", "x", comment="some comment")
+        new_table = self._assert_impl(impl)
+        eq_(new_table.c.x.comment, "some comment")
+
+    def test_add_column_comment(self):
+        impl = self._simple_fixture()
+        impl.add_column("tname", Column("q", Integer, comment="some comment"))
+        new_table = self._assert_impl(impl, colnames=["id", "x", "y", "q"])
+        eq_(new_table.c.q.comment, "some comment")
+
     def test_rename_col_boolean(self):
         impl = self._boolean_fixture()
         impl.alter_column("tname", "flag", name="bflag")
@@ -1660,6 +1672,82 @@ class BatchRoundTripTest(TestBase):
                 {"id": 3, "x": 7},
                 {"id": 4, "x": 8},
                 {"id": 5, "x": 9},
+            ]
+        )
+
+    def _assert_column_comment(self, tname, cname, comment):
+        insp = inspect(config.db)
+
+        cols = {col["name"]: col for col in insp.get_columns(tname)}
+        eq_(cols[cname]["comment"], comment)
+
+    @config.requirements.comments
+    def test_add_column_comment(self):
+        with self.op.batch_alter_table("foo") as batch_op:
+            batch_op.add_column(Column("y", Integer, comment="some comment"))
+
+        self._assert_column_comment("foo", "y", "some comment")
+
+        self._assert_data(
+            [
+                {"id": 1, "data": "d1", "x": 5, "y": None},
+                {"id": 2, "data": "22", "x": 6, "y": None},
+                {"id": 3, "data": "8.5", "x": 7, "y": None},
+                {"id": 4, "data": "9.46", "x": 8, "y": None},
+                {"id": 5, "data": "d5", "x": 9, "y": None},
+            ]
+        )
+
+    @config.requirements.comments
+    def test_add_column_comment_recreate(self):
+        with self.op.batch_alter_table("foo", recreate="always") as batch_op:
+            batch_op.add_column(Column("y", Integer, comment="some comment"))
+
+        self._assert_column_comment("foo", "y", "some comment")
+
+        self._assert_data(
+            [
+                {"id": 1, "data": "d1", "x": 5, "y": None},
+                {"id": 2, "data": "22", "x": 6, "y": None},
+                {"id": 3, "data": "8.5", "x": 7, "y": None},
+                {"id": 4, "data": "9.46", "x": 8, "y": None},
+                {"id": 5, "data": "d5", "x": 9, "y": None},
+            ]
+        )
+
+    @config.requirements.comments
+    def test_alter_column_comment(self):
+        with self.op.batch_alter_table("foo") as batch_op:
+            batch_op.alter_column(
+                "x", existing_type=Integer(), comment="some comment"
+            )
+
+        self._assert_column_comment("foo", "x", "some comment")
+
+        self._assert_data(
+            [
+                {"id": 1, "data": "d1", "x": 5},
+                {"id": 2, "data": "22", "x": 6},
+                {"id": 3, "data": "8.5", "x": 7},
+                {"id": 4, "data": "9.46", "x": 8},
+                {"id": 5, "data": "d5", "x": 9},
+            ]
+        )
+
+    @config.requirements.comments
+    def test_alter_column_comment_recreate(self):
+        with self.op.batch_alter_table("foo", recreate="always") as batch_op:
+            batch_op.alter_column("x", comment="some comment")
+
+        self._assert_column_comment("foo", "x", "some comment")
+
+        self._assert_data(
+            [
+                {"id": 1, "data": "d1", "x": 5},
+                {"id": 2, "data": "22", "x": 6},
+                {"id": 3, "data": "8.5", "x": 7},
+                {"id": 4, "data": "9.46", "x": 8},
+                {"id": 5, "data": "d5", "x": 9},
             ]
         )
 

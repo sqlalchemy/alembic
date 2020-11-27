@@ -152,6 +152,9 @@ class BatchOperationsImpl(object):
     def drop_table(self, table):
         raise NotImplementedError("Can't drop table in batch mode")
 
+    def create_column_comment(self, column):
+        self.batch.append(("create_column_comment", (column,), {}))
+
 
 class ApplyBatchImpl(object):
     def __init__(
@@ -398,6 +401,7 @@ class ApplyBatchImpl(object):
         name=None,
         type_=None,
         autoincrement=None,
+        comment=False,
         **kw
     ):
         existing = self.columns[column_name]
@@ -440,6 +444,9 @@ class ApplyBatchImpl(object):
                 sql_schema.DefaultClause(server_default)._set_parent(existing)
         if autoincrement is not None:
             existing.autoincrement = bool(autoincrement)
+
+        if comment is not False:
+            existing.comment = comment
 
     def _setup_dependencies_for_add_column(
         self, colname, insert_before, insert_after
@@ -505,6 +512,16 @@ class ApplyBatchImpl(object):
         del self.columns[column.name]
         del self.column_transfers[column.name]
         self.existing_ordering.remove(column.name)
+
+    def create_column_comment(self, column):
+        """the batch table creation function will issue create_column_comment
+        on the real "impl" as part of the create table process.
+
+        That is, the Column object will have the comment on it already,
+        so when it is received by add_column() it will be a normal part of
+        the CREATE TABLE and doesn't need an extra step here.
+
+        """
 
     def add_constraint(self, const):
         if not const.name:

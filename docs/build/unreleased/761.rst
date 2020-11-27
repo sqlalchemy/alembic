@@ -1,0 +1,7 @@
+.. change::
+    :tags: bug, batch
+    :tickets: 761
+
+    Added missing "create comment" feature for columns that are altered in
+    batch migrations.
+
