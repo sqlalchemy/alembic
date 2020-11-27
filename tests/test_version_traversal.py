@@ -308,13 +308,111 @@ class BranchedPathTest(MigrationTest):
             set([self.c2.revision]),
         )
 
-    def test_relative_downgrade(self):
+    def test_relative_downgrade_baseplus2(self):
+        """Fails: alembic.util.exc.CommandError: Can't locate revision
+        identified by 'base'"""
+        # Fail
+        self._assert_downgrade(
+            "base+2",
+            [self.d2.revision, self.d1.revision],
+            [
+                self.down_(self.d2),
+                self.down_(self.c2),
+                self.down_(self.d1),
+                self.down_(self.c1),
+            ],
+            set([self.b.revision]),
+        )
 
+    def test_relative_downgrade_branchplus2(self):
+        """Fails: goes one revision too far forward? Currently behaves as
+        expected for base+3."""
+        # Pass (unexpected?)
         self._assert_downgrade(
             "c2branch@base+2",
             [self.d2.revision, self.d1.revision],
-            [self.down_(self.d2), self.down_(self.c2), self.down_(self.d1)],
+            [
+                self.down_(self.d2),
+                self.down_(self.c2),
+                self.down_(self.d1),
+            ],
             set([self.c1.revision]),
+        )
+        # Fail
+        self._assert_downgrade(
+            "c2branch@base+2",
+            [self.d2.revision, self.d1.revision],
+            [
+                self.down_(self.d2),
+                self.down_(self.c2),
+                self.down_(self.d1),
+                self.down_(self.c1),
+            ],
+            set([self.b.revision]),
+        )
+
+    def test_relative_downgrade_branchplus3(self):
+        """ Fails: Expected c2branch@base+3 to be equivalent to c2. """
+        # Pass (expected)
+        self._assert_downgrade(
+            self.c2.revision,
+            [self.d2.revision, self.d1.revision],
+            [self.down_(self.d2)],
+            set([self.d1.revision, self.c2.revision]),
+        )
+        # Pass (unexpected?)
+        self._assert_downgrade(
+            "c2branch@base+3",
+            [self.d2.revision, self.d1.revision],
+            [self.down_(self.d2), self.down_(self.c2)],
+            set([self.d1.revision]),
+        )
+        # Fail
+        self._assert_downgrade(
+            "c2branch@base+3",
+            [self.d2.revision, self.d1.revision],
+            [self.down_(self.d2)],
+            set([self.d1.revision, self.c2.revision]),
+        )
+
+    # Downgrade -1 behaviour depends on order of branch upgrades
+
+    def test_downgrade_once_order_right(self):
+        # Passes
+        self._assert_downgrade(
+            "-1",
+            [self.d2.revision, self.d1.revision],
+            [self.down_(self.d2)],
+            set([self.d1.revision, self.c2.revision]),
+        )
+
+    def test_downgrade_once_order_left(self):
+        # Fails (downgrades the opposite branch to previous test)
+        self._assert_downgrade(
+            "-1",
+            [self.d1.revision, self.d2.revision],
+            [self.down_(self.d2)],
+            set([self.d1.revision, self.c2.revision]),
+        )
+
+    # Relative revision downgrade downgrades both branches in some cases
+
+    def test_downgrade_relative_order_right(self):
+        # Passes
+        self._assert_downgrade(
+            "{}-1".format(self.d2.revision),
+            [self.d2.revision, self.c1.revision],
+            [self.down_(self.d2)],
+            set([self.c1.revision, self.c2.revision]),
+        )
+
+    def test_downgrade_relative_order_left(self):
+        # Fails: downgrades both branches; behaviour should match previous test
+        self._assert_downgrade(
+            "{}-1".format(self.d2.revision),
+            [self.c1.revision, self.d2.revision],
+            [self.down_(self.d2)],
+            set([self.c1.revision, self.c2.revision]),
         )
 
 
