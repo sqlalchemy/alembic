@@ -462,7 +462,7 @@ class MySQLOpTest(TestBase):
 
 
 class MySQLBackendOpTest(AlterColRoundTripFixture, TestBase):
-    __only_on__ = "mysql"
+    __only_on__ = "mysql", "mariadb"
     __backend__ = True
 
     def test_add_timestamp_server_default_current_timestamp(self):
@@ -522,7 +522,7 @@ class MySQLBackendOpTest(AlterColRoundTripFixture, TestBase):
 
 
 class MySQLDefaultCompareTest(TestBase):
-    __only_on__ = "mysql"
+    __only_on__ = "mysql", "mariadb"
     __backend__ = True
 
     @classmethod

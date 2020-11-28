@@ -1983,7 +1983,7 @@ class BatchRoundTripTest(TestBase):
 
 
 class BatchRoundTripMySQLTest(BatchRoundTripTest):
-    __only_on__ = "mysql"
+    __only_on__ = "mysql", "mariadb"
     __backend__ = True
 
     def _datetime_server_default_fixture(self):

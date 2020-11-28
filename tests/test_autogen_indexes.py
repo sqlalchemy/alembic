@@ -1179,7 +1179,7 @@ class PGUniqueIndexTest(AutogenerateUniqueIndexTest):
 class MySQLUniqueIndexTest(AutogenerateUniqueIndexTest):
     reports_unnamed_constraints = True
     reports_unique_constraints_as_indexes = True
-    __only_on__ = "mysql"
+    __only_on__ = "mysql", "mariadb"
     __backend__ = True
 
     def test_removed_idx_index_named_as_column(self):
