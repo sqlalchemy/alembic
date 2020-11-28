@@ -317,6 +317,54 @@ class BranchedPathTest(MigrationTest):
             set([self.c1.revision]),
         )
 
+    def test_downgrade_single_branch_c1branch(self):
+        """ Use branch label to specify the branch to downgrade. """
+        self._assert_downgrade(
+            "c1branch@{}".format(self.b.revision),
+            (self.c1.revision, self.d2.revision),
+            [
+                self.down_(self.c1),
+            ],
+            set([self.d2.revision]),
+        )
+
+    def test_downgrade_single_branch_c1branch_from_d1_head(self):
+        """Use branch label to specify the branch (where the branch label is
+        not on the head revision)."""
+        self._assert_downgrade(
+            "c2branch@{}".format(self.b.revision),
+            (self.c1.revision, self.d2.revision),
+            [
+                self.down_(self.d2),
+                self.down_(self.c2),
+            ],
+            set([self.c1.revision]),
+        )
+
+    def test_downgrade_single_branch_c2(self):
+        """Use a revision on the branch (not head) to specify the branch."""
+        self._assert_downgrade(
+            "{}@{}".format(self.c2.revision, self.b.revision),
+            (self.d1.revision, self.d2.revision),
+            [
+                self.down_(self.d2),
+                self.down_(self.c2),
+            ],
+            set([self.d1.revision]),
+        )
+
+    def test_downgrade_single_branch_d1(self):
+        """ Use the head revision to specify the branch. """
+        self._assert_downgrade(
+            "{}@{}".format(self.d1.revision, self.b.revision),
+            (self.d1.revision, self.d2.revision),
+            [
+                self.down_(self.d1),
+                self.down_(self.c1),
+            ],
+            set([self.d2.revision]),
+        )
+
 
 class BranchFromMergepointTest(MigrationTest):
 

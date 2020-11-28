@@ -747,6 +747,28 @@ class RevisionMap(object):
                         )
                     )
 
+    def _match_downgrade_branch(
+        self, upper, requested_lowers, branch_label_or_revision_id
+    ):
+        """Find revisions which are both ancestors of :upper and descendents
+        of :requested_lowers. Return True if any match the branch label."""
+        upper_ancestors = set(
+            self._get_ancestor_nodes([upper], include_dependencies=False)
+        )
+        lower_descendents = set(
+            self._get_descendant_nodes(
+                requested_lowers, include_dependencies=False
+            )
+        )
+        check_revisions = upper_ancestors.intersection(
+            lower_descendents
+        ) - set(requested_lowers)
+        return any(
+            branch_label_or_revision_id == rev.revision
+            or branch_label_or_revision_id in rev.branch_labels
+            for rev in check_revisions
+        )
+
     def _iterate_revisions(
         self,
         upper,
@@ -775,6 +797,24 @@ class RevisionMap(object):
         ) and lower.endswith("@base")
 
         uppers = util.dedupe_tuple(self.get_revisions(upper))
+
+        if (
+            select_for_downgrade
+            and lower is not None
+            and "@" in lower
+            and "@" not in upper
+            and len(requested_lowers) == 1
+        ):
+            # Filter uppers to downgrade a specific branch.
+            # Syntax: alembic downgrade branch@target
+            branch = lower.split("@")[0]
+            uppers = set(
+                upper
+                for upper in uppers
+                if self._match_downgrade_branch(
+                    upper, requested_lowers, branch
+                )
+            )
 
         if not uppers and not requested_lowers:
             return
