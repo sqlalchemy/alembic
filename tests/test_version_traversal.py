@@ -1144,3 +1144,71 @@ class MergedPathTest(MigrationTest):
                 self.down_(self.c2),  # c2->b, delete branch
             ],
         )
+
+
+class BranchedPathTestCrossDependencies(MigrationTest):
+    @classmethod
+    def setup_class(cls):
+        cls.env = env = staging_env()
+        cls.a = env.generate_revision(util.rev_id(), "->a")
+        cls.b = env.generate_revision(util.rev_id(), "a->b")
+
+        cls.c1 = env.generate_revision(
+            util.rev_id(), "b->c1", branch_labels="c1branch", refresh=True
+        )
+        cls.d1 = env.generate_revision(util.rev_id(), "c1->d1")
+
+        cls.c2 = env.generate_revision(
+            util.rev_id(),
+            "b->c2",
+            branch_labels="c2branch",
+            head=cls.b.revision,
+            splice=True,
+        )
+        cls.d2 = env.generate_revision(
+            util.rev_id(),
+            "c2->d2",
+            head=cls.c2.revision,
+            depends_on=(cls.c1.revision,),
+        )
+
+    @classmethod
+    def teardown_class(cls):
+        clear_staging_env()
+
+    def test_downgrade_independent_branch(self):
+        """ c2branch depends on c1branch so can be taken down on its own """
+        self._assert_downgrade(
+            "c2branch@{}".format(self.b.revision),
+            (self.d1.revision, self.d2.revision),
+            [
+                self.down_(self.d2),
+                self.down_(self.c2),
+            ],
+            set([self.d1.revision]),
+        )
+
+    def test_downgrade_branch_dependency(self):
+        """c2branch depends on c1branch so taking down c1branch requires taking
+        down both"""
+        destination = "c1branch@{}".format(self.b.revision)
+        source = self.d1.revision, self.d2.revision
+        revs = self.env._downgrade_revs(destination, source)
+        # Full ordering of migrations is not consistent so verify partial
+        # ordering only.
+        rev_ids = [rev.revision.revision for rev in revs]
+        assert rev_ids.index(self.d2.revision) < rev_ids.index(
+            self.c2.revision
+        )
+        assert rev_ids.index(self.d1.revision) < rev_ids.index(
+            self.c1.revision
+        )
+        assert rev_ids.index(self.d2.revision) < rev_ids.index(
+            self.c1.revision
+        )
+        # Verify final state.
+        heads = set(util.to_tuple(source, default=()))
+        head = HeadMaintainer(mock.Mock(), heads)
+        for rev in revs:
+            head.update_to_step(rev)
+        eq_(head.heads, set([self.b.revision]))
