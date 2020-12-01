@@ -1,3 +1,7 @@
+from alembic.script.revision import CycleDetected
+from alembic.script.revision import DependencyCycleDetected
+from alembic.script.revision import DependencyLoopDetected
+from alembic.script.revision import LoopDetected
 from alembic.script.revision import MultipleHeads
 from alembic.script.revision import Revision
 from alembic.script.revision import RevisionError
@@ -123,6 +127,39 @@ class APITest(TestBase):
             "Multiple heads are present",
             map_.get_revision,
             "heads",
+        )
+
+    def test_get_revisions_head_multiple(self):
+        map_ = RevisionMap(
+            lambda: [
+                Revision("a", ()),
+                Revision("b", ("a",)),
+                Revision("c1", ("b",)),
+                Revision("c2", ("b",)),
+            ]
+        )
+        assert_raises_message(
+            MultipleHeads,
+            "Multiple heads are present",
+            map_.get_revisions,
+            "head",
+        )
+
+    def test_get_revisions_heads_multiple(self):
+        map_ = RevisionMap(
+            lambda: [
+                Revision("a", ()),
+                Revision("b", ("a",)),
+                Revision("c1", ("b",)),
+                Revision("c2", ("b",)),
+            ]
+        )
+        eq_(
+            map_.get_revisions("heads"),
+            (
+                map_._revision_map["c1"],
+                map_._revision_map["c2"],
+            ),
         )
 
     def test_get_revision_base_multiple(self):
@@ -1212,4 +1249,240 @@ class DepResolutionFailedTest(DownIterateTest):
         iter_ = self.map.iterate_revisions("c1", "base1")
         assert_raises_message(
             RevisionError, "Dependency resolution failed;", list, iter_
+        )
+
+
+class InvalidRevisionMapTest(TestBase):
+    def _assert_raises_revision_map(self, map_, except_cls, msg):
+        assert_raises_message(except_cls, msg, lambda: map_._revision_map)
+
+    def _assert_raises_revision_map_loop(self, map_, revision):
+        self._assert_raises_revision_map(
+            map_,
+            LoopDetected,
+            r"^Self-loop is detected in revisions \(%s\)$" % revision,
+        )
+
+    def _assert_raises_revision_map_dep_loop(self, map_, revision):
+        self._assert_raises_revision_map(
+            map_,
+            DependencyLoopDetected,
+            r"^Dependency self-loop is detected in revisions \(%s\)$"
+            % revision,
+        )
+
+    def _assert_raises_revision_map_cycle(self, map_, revisions):
+        self._assert_raises_revision_map(
+            map_,
+            CycleDetected,
+            r"^Cycle is detected in revisions \(\(%s\)\(, \)?\)+$"
+            % "|".join(revisions),
+        )
+
+    def _assert_raises_revision_map_dep_cycle(self, map_, revisions):
+        self._assert_raises_revision_map(
+            map_,
+            DependencyCycleDetected,
+            r"^Dependency cycle is detected in revisions \(\(%s\)\(, \)?\)+$"
+            % "|".join(revisions),
+        )
+
+
+class GraphWithLoopTest(InvalidRevisionMapTest):
+    def test_revision_map_solitary_loop(self):
+        map_ = RevisionMap(
+            lambda: [
+                Revision("a", "a"),
+            ]
+        )
+        self._assert_raises_revision_map_loop(map_, "a")
+
+    def test_revision_map_base_loop(self):
+        map_ = RevisionMap(
+            lambda: [
+                Revision("a", "a"),
+                Revision("b", "a"),
+                Revision("c", "b"),
+            ]
+        )
+        self._assert_raises_revision_map_loop(map_, "a")
+
+    def test_revision_map_head_loop(self):
+        map_ = RevisionMap(
+            lambda: [
+                Revision("a", ()),
+                Revision("b", "a"),
+                Revision("c", ("b", "c")),
+            ]
+        )
+        self._assert_raises_revision_map_loop(map_, "c")
+
+    def test_revision_map_branch_point_loop(self):
+        map_ = RevisionMap(
+            lambda: [
+                Revision("a", ()),
+                Revision("b", ("a", "b")),
+                Revision("c1", "b"),
+                Revision("c2", "b"),
+            ]
+        )
+        self._assert_raises_revision_map_loop(map_, "b")
+
+    def test_revision_map_merge_point_loop(self):
+        map_ = RevisionMap(
+            lambda: [
+                Revision("a", ()),
+                Revision("b1", "a"),
+                Revision("b2", "a"),
+                Revision("c", ("b1", "b2", "c")),
+            ]
+        )
+        self._assert_raises_revision_map_loop(map_, "c")
+
+    def test_revision_map_solitary_dependency_loop(self):
+        map_ = RevisionMap(
+            lambda: [
+                Revision("a", (), dependencies="a"),
+            ]
+        )
+        self._assert_raises_revision_map_dep_loop(map_, "a")
+
+    def test_revision_map_base_dependency_loop(self):
+        map_ = RevisionMap(
+            lambda: [
+                Revision("a", (), dependencies="a"),
+                Revision("b", "a"),
+                Revision("c", "b"),
+            ]
+        )
+        self._assert_raises_revision_map_dep_loop(map_, "a")
+
+    def test_revision_map_head_dep_loop(self):
+        map_ = RevisionMap(
+            lambda: [
+                Revision("a", ()),
+                Revision("b", "a"),
+                Revision("c", "b", dependencies="c"),
+            ]
+        )
+        self._assert_raises_revision_map_dep_loop(map_, "c")
+
+    def test_revision_map_branch_point_dep_loop(self):
+        map_ = RevisionMap(
+            lambda: [
+                Revision("a", ()),
+                Revision("b", "a", dependencies="b"),
+                Revision("c1", "b"),
+                Revision("c2", "b"),
+            ]
+        )
+        self._assert_raises_revision_map_dep_loop(map_, "b")
+
+    def test_revision_map_merge_point_dep_loop(self):
+        map_ = RevisionMap(
+            lambda: [
+                Revision("a", ()),
+                Revision("b1", "a"),
+                Revision("b2", "a"),
+                Revision("c", ("b1", "b2"), dependencies="c"),
+            ]
+        )
+        self._assert_raises_revision_map_dep_loop(map_, "c")
+
+
+class GraphWithCycleTest(InvalidRevisionMapTest):
+    def test_revision_map_simple_cycle(self):
+        map_ = RevisionMap(
+            lambda: [
+                Revision("a", "c"),
+                Revision("b", "a"),
+                Revision("c", "b"),
+            ]
+        )
+        self._assert_raises_revision_map_cycle(map_, ["a", "b", "c"])
+
+    def test_revision_map_extra_simple_cycle(self):
+        map_ = RevisionMap(
+            lambda: [
+                Revision("a", "c"),
+                Revision("b", "a"),
+                Revision("c", "b"),
+                Revision("d", ()),
+                Revision("e", "d"),
+            ]
+        )
+        self._assert_raises_revision_map_cycle(map_, ["a", "b", "c"])
+
+    def test_revision_map_lower_simple_cycle(self):
+        map_ = RevisionMap(
+            lambda: [
+                Revision("a", "c"),
+                Revision("b", "a"),
+                Revision("c", "b"),
+                Revision("d", "c"),
+                Revision("e", "d"),
+            ]
+        )
+        self._assert_raises_revision_map_cycle(map_, ["a", "b", "c", "d", "e"])
+
+    def test_revision_map_upper_simple_cycle(self):
+        map_ = RevisionMap(
+            lambda: [
+                Revision("a", ()),
+                Revision("b", "a"),
+                Revision("c", ("b", "e")),
+                Revision("d", "c"),
+                Revision("e", "d"),
+            ]
+        )
+        self._assert_raises_revision_map_cycle(map_, ["a", "b", "c", "d", "e"])
+
+    def test_revision_map_simple_dep_cycle(self):
+        map_ = RevisionMap(
+            lambda: [
+                Revision("a", (), dependencies="c"),
+                Revision("b", "a"),
+                Revision("c", "b"),
+            ]
+        )
+        self._assert_raises_revision_map_dep_cycle(map_, ["a", "b", "c"])
+
+    def test_revision_map_extra_simple_dep_cycle(self):
+        map_ = RevisionMap(
+            lambda: [
+                Revision("a", (), dependencies="c"),
+                Revision("b", "a"),
+                Revision("c", "b"),
+                Revision("d", ()),
+                Revision("e", "d"),
+            ]
+        )
+        self._assert_raises_revision_map_dep_cycle(map_, ["a", "b", "c"])
+
+    def test_revision_map_lower_simple_dep_cycle(self):
+        map_ = RevisionMap(
+            lambda: [
+                Revision("a", (), dependencies="c"),
+                Revision("b", "a"),
+                Revision("c", "b"),
+                Revision("d", "c"),
+                Revision("e", "d"),
+            ]
+        )
+        self._assert_raises_revision_map_dep_cycle(
+            map_, ["a", "b", "c", "d", "e"]
+        )
+
+    def test_revision_map_upper_simple_dep_cycle(self):
+        map_ = RevisionMap(
+            lambda: [
+                Revision("a", ()),
+                Revision("b", "a"),
+                Revision("c", "b", dependencies="e"),
+                Revision("d", "c"),
+                Revision("e", "d"),
+            ]
+        )
+        self._assert_raises_revision_map_dep_cycle(
+            map_, ["a", "b", "c", "d", "e"]
         )

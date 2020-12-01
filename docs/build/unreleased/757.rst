@@ -1,0 +1,14 @@
+.. change::
+    :tags: feature, versioning
+    :tickets: 757
+
+    The revision tree is now checked for cycles and loops between revision
+    files when the revision environment is loaded up.  Scenarios such as a
+    revision pointing to itself, or a revision that can reach itself via a
+    loop, are handled and will raise the :class:`.CycleDetected` exception when
+    the environment is loaded (expressed from the Alembic commandline as a
+    failure message and nonzero return code). Previously, these situations were
+    silently ignored up front, and the behavior of revision traversal would
+    either be silently incorrect, or would produce errors such as
+    :class:`.RangeNotAncestorError`.  Pull request courtesy Koichiro Den.
+
