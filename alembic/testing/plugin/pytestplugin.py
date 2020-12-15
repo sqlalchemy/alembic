@@ -11,6 +11,7 @@ except ImportError:
     # assume we're a package, use traditional import
     from . import plugin_base
 
+from functools import update_wrapper
 import inspect
 import itertools
 import operator
@@ -21,6 +22,16 @@ import sys
 import pytest
 from sqlalchemy.testing.plugin.pytestplugin import *  # noqa
 from sqlalchemy.testing.plugin.pytestplugin import pytest_configure as spc
+
+py3k = sys.version_info.major >= 3
+
+if py3k:
+    from typing import TYPE_CHECKING
+else:
+    TYPE_CHECKING = False
+
+if TYPE_CHECKING:
+    from typing import Sequence
 
 
 # override selected SQLAlchemy pytest hooks with vendored functionality
@@ -97,6 +108,50 @@ def getargspec(fn):
         return inspect.getargspec(fn)
 
 
+def _pytest_fn_decorator(target):
+    """Port of langhelpers.decorator with pytest-specific tricks."""
+    # from sqlalchemy rel_1_3_14
+
+    from sqlalchemy.util.langhelpers import format_argspec_plus
+    from sqlalchemy.util.compat import inspect_getfullargspec
+
+    def _exec_code_in_env(code, env, fn_name):
+        exec(code, env)
+        return env[fn_name]
+
+    def decorate(fn, add_positional_parameters=()):
+
+        spec = inspect_getfullargspec(fn)
+        if add_positional_parameters:
+            spec.args.extend(add_positional_parameters)
+
+        metadata = dict(target="target", fn="__fn", name=fn.__name__)
+        metadata.update(format_argspec_plus(spec, grouped=False))
+        code = (
+            """\
+def %(name)s(%(args)s):
+    return %(target)s(%(fn)s, %(apply_kw)s)
+"""
+            % metadata
+        )
+        decorated = _exec_code_in_env(
+            code, {"target": target, "__fn": fn}, fn.__name__
+        )
+        if not add_positional_parameters:
+            decorated.__defaults__ = getattr(fn, "__func__", fn).__defaults__
+            decorated.__wrapped__ = fn
+            return update_wrapper(decorated, fn)
+        else:
+            # this is the pytest hacky part.  don't do a full update wrapper
+            # because pytest is really being sneaky about finding the args
+            # for the wrapped function
+            decorated.__module__ = fn.__module__
+            decorated.__name__ = fn.__name__
+            return decorated
+
+    return decorate
+
+
 class PytestFixtureFunctions(plugin_base.FixtureFunctions):
     def skip_test_exception(self, *arg, **kw):
         return pytest.skip.Exception(*arg, **kw)
@@ -109,7 +164,7 @@ class PytestFixtureFunctions(plugin_base.FixtureFunctions):
     }
 
     def combinations(self, *arg_sets, **kw):
-        """facade for pytest.mark.paramtrize.
+        """Facade for pytest.mark.parametrize.
 
         Automatically derives argument names from the callable which in our
         case is always a method on a class with positional arguments.
@@ -117,6 +172,7 @@ class PytestFixtureFunctions(plugin_base.FixtureFunctions):
         ids for parameter sets are derived using an optional template.
 
         """
+        # from sqlalchemy rel_1_3_14
         from alembic.testing import exclusions
 
         if sys.version_info.major == 3:
@@ -128,8 +184,6 @@ class PytestFixtureFunctions(plugin_base.FixtureFunctions):
 
         argnames = kw.pop("argnames", None)
 
-        exclusion_combinations = []
-
         def _filter_exclusions(args):
             result = []
             gathered_exclusions = []
@@ -139,13 +193,12 @@ class PytestFixtureFunctions(plugin_base.FixtureFunctions):
                 else:
                     result.append(a)
 
-            exclusion_combinations.extend(
-                [(exclusion, result) for exclusion in gathered_exclusions]
-            )
-            return result
+            return result, gathered_exclusions
 
         id_ = kw.pop("id_", None)
 
+        tobuild_pytest_params = []
+        has_exclusions = False
         if id_:
             _combination_id_fns = self._combination_id_fns
 
@@ -165,53 +218,88 @@ class PytestFixtureFunctions(plugin_base.FixtureFunctions):
                 for idx, char in enumerate(id_)
                 if char in _combination_id_fns
             ]
-            arg_sets = [
-                pytest.param(
-                    *_arg_getter(_filter_exclusions(arg))[1:],
-                    id="-".join(
-                        comb_fn(getter(arg)) for getter, comb_fn in fns
+
+            for arg in arg_sets:
+                if not isinstance(arg, tuple):
+                    arg = (arg,)
+
+                fn_params, param_exclusions = _filter_exclusions(arg)
+
+                parameters = _arg_getter(fn_params)[1:]
+
+                if param_exclusions:
+                    has_exclusions = True
+
+                tobuild_pytest_params.append(
+                    (
+                        parameters,
+                        param_exclusions,
+                        "-".join(
+                            comb_fn(getter(arg)) for getter, comb_fn in fns
+                        ),
                     )
                 )
-                for arg in [
-                    (arg,) if not isinstance(arg, tuple) else arg
-                    for arg in arg_sets
-                ]
-            ]
+
         else:
-            # ensure using pytest.param so that even a 1-arg paramset
-            # still needs to be a tuple.  otherwise paramtrize tries to
-            # interpret a single arg differently than tuple arg
-            arg_sets = [
-                pytest.param(*_filter_exclusions(arg))
-                for arg in [
-                    (arg,) if not isinstance(arg, tuple) else arg
-                    for arg in arg_sets
-                ]
-            ]
+
+            for arg in arg_sets:
+                if not isinstance(arg, tuple):
+                    arg = (arg,)
+
+                fn_params, param_exclusions = _filter_exclusions(arg)
+
+                if param_exclusions:
+                    has_exclusions = True
+
+                tobuild_pytest_params.append(
+                    (fn_params, param_exclusions, None)
+                )
+
+        pytest_params = []
+        for parameters, param_exclusions, id_ in tobuild_pytest_params:
+            if has_exclusions:
+                parameters += (param_exclusions,)
+
+            param = pytest.param(*parameters, id=id_)
+            pytest_params.append(param)
 
         def decorate(fn):
             if inspect.isclass(fn):
+                if has_exclusions:
+                    raise NotImplementedError(
+                        "exclusions not supported for class level combinations"
+                    )
                 if "_sa_parametrize" not in fn.__dict__:
                     fn._sa_parametrize = []
-                fn._sa_parametrize.append((argnames, arg_sets))
+                fn._sa_parametrize.append((argnames, pytest_params))
                 return fn
             else:
                 if argnames is None:
-                    _argnames = getargspec(fn).args[1:]
+                    _argnames = getargspec(fn).args[1:]  # type: Sequence(str)
                 else:
-                    _argnames = argnames
+                    _argnames = re.split(
+                        r", *", argnames
+                    )  # type: Sequence(str)
 
-                if exclusion_combinations:
-                    for exclusion, combination in exclusion_combinations:
-                        combination_by_kw = {
-                            argname: val
-                            for argname, val in zip(_argnames, combination)
-                        }
-                        exclusion = exclusion.with_combination(
-                            **combination_by_kw
-                        )
-                        fn = exclusion(fn)
-                return pytest.mark.parametrize(_argnames, arg_sets)(fn)
+                if has_exclusions:
+                    _argnames += ["_exclusions"]
+
+                    @_pytest_fn_decorator
+                    def check_exclusions(fn, *args, **kw):
+                        _exclusions = args[-1]
+                        if _exclusions:
+                            exlu = exclusions.compound().add(*_exclusions)
+                            fn = exlu(fn)
+                        return fn(*args[0:-1], **kw)
+
+                    def process_metadata(spec):
+                        spec.args.append("_exclusions")
+
+                    fn = check_exclusions(
+                        fn, add_positional_parameters=("_exclusions",)
+                    )
+
+                return pytest.mark.parametrize(_argnames, pytest_params)(fn)
 
         return decorate
 

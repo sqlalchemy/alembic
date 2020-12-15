@@ -169,8 +169,8 @@ class DefaultRequirements(SuiteRequirements):
     def computed_columns(self):
         # TODO: in theory if these could come from SQLAlchemy dialects
         # that would be helpful
-        return self.computed_columns_api + exclusions.only_on(
-            ["postgresql >= 12", "oracle", "mssql", "mysql >= 5.7", "mariadb"]
+        return self.computed_columns_api + exclusions.skip_if(
+            ["postgresql < 12", "sqlite < 3.31", "mysql < 5.7"]
         )
 
     @property
