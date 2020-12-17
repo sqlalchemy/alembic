@@ -30,15 +30,36 @@ _vers = tuple(
 )
 sqla_13 = _vers >= (1, 3)
 sqla_14 = _vers >= (1, 4)
+
 try:
     from sqlalchemy import Computed  # noqa
-
-    has_computed = True
-
-    has_computed_reflection = _vers >= (1, 3, 16)
 except ImportError:
     has_computed = False
     has_computed_reflection = False
+else:
+    has_computed = True
+    has_computed_reflection = _vers >= (1, 3, 16)
+
+try:
+    from sqlalchemy import Identity  # noqa
+except ImportError:
+    has_identity = False
+else:
+    # attributes common to Indentity and Sequence
+    _identity_options_attrs = (
+        "start",
+        "increment",
+        "minvalue",
+        "maxvalue",
+        "nominvalue",
+        "nomaxvalue",
+        "cycle",
+        "cache",
+        "order",
+    )
+    # attributes of Indentity
+    _identity_attrs = _identity_options_attrs + ("on_null",)
+    has_identity = True
 
 AUTOINCREMENT_DEFAULT = "auto"
 
@@ -67,11 +88,18 @@ def _exec_on_inspector(inspector, statement, **params):
         return inspector.bind.execute(statement, params)
 
 
-def _server_default_is_computed(column):
+def _server_default_is_computed(*server_default):
     if not has_computed:
         return False
     else:
-        return isinstance(column.computed, Computed)
+        return any(isinstance(sd, Computed) for sd in server_default)
+
+
+def _server_default_is_identity(*server_default):
+    if not sqla_14:
+        return False
+    else:
+        return any(isinstance(sd, Identity) for sd in server_default)
 
 
 def _table_for_constraint(constraint):
@@ -88,6 +116,13 @@ def _columns_for_constraint(constraint):
         return _find_columns(constraint.sqltext)
     else:
         return list(constraint.columns)
+
+
+def _reflect_table(inspector, table, include_cols):
+    if sqla_14:
+        return inspector.reflect_table(table, None)
+    else:
+        return inspector.reflecttable(table, None)
 
 
 def _fk_spec(constraint):

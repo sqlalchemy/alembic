@@ -12,6 +12,7 @@ from .base import format_column_name
 from .base import format_server_default
 from .base import format_table_name
 from .base import format_type
+from .base import IdentityColumnDefault
 from .base import RenameTable
 from .impl import DefaultImpl
 
@@ -25,6 +26,7 @@ class OracleImpl(DefaultImpl):
         {"VARCHAR", "VARCHAR2"},
         {"BIGINT", "INTEGER", "SMALLINT", "DECIMAL", "NUMERIC", "NUMBER"},
     )
+    identity_attrs_ignore = ()
 
     def __init__(self, *arg, **kw):
         super(OracleImpl, self).__init__(*arg, **kw)
@@ -121,3 +123,18 @@ def alter_column(compiler, name):
 
 def add_column(compiler, column, **kw):
     return "ADD %s" % compiler.get_column_specification(column, **kw)
+
+
+@compiles(IdentityColumnDefault, "oracle")
+def visit_identity_column(element, compiler, **kw):
+    text = "%s %s " % (
+        alter_table(compiler, element.table_name, element.schema),
+        alter_column(compiler, element.column_name),
+    )
+    if element.default is None:
+        # drop identity
+        text += "DROP IDENTITY"
+        return text
+    else:
+        text += compiler.visit_identity_column(element.default)
+        return text

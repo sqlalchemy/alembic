@@ -1,12 +1,14 @@
 """Test op functions against MSSQL."""
 
 from sqlalchemy import Column
+from sqlalchemy import exc
 from sqlalchemy import Integer
 
 from alembic import command
 from alembic import op
 from alembic import util
 from alembic.testing import assert_raises_message
+from alembic.testing import combinations
 from alembic.testing import config
 from alembic.testing import eq_
 from alembic.testing.env import _no_sql_testing_config
@@ -353,4 +355,75 @@ class OpTest(TestBase):
         )
         context.assert_contains(
             "CREATE INDEX ix_mytable_a_b ON mytable " "(col_a, col_b)"
+        )
+
+    @combinations(
+        (lambda: sqla_compat.Computed("foo * 5"), lambda: None),
+        (lambda: None, lambda: sqla_compat.Computed("foo * 5")),
+        (
+            lambda: sqla_compat.Computed("foo * 42"),
+            lambda: sqla_compat.Computed("foo * 5"),
+        ),
+    )
+    @config.requirements.computed_columns
+    def test_alter_column_computed_not_supported(self, sd, esd):
+        op_fixture("mssql")
+        assert_raises_message(
+            exc.CompileError,
+            'Adding or removing a "computed" construct, e.g. '
+            "GENERATED ALWAYS AS, to or from an existing column is not "
+            "supported.",
+            op.alter_column,
+            "t1",
+            "c1",
+            server_default=sd(),
+            existing_server_default=esd(),
+        )
+
+    @config.requirements.identity_columns
+    @combinations(
+        ({},),
+        (dict(always=True),),
+        (dict(start=3),),
+        (dict(start=3, increment=3),),
+    )
+    def test_add_column_identity(self, kw):
+        context = op_fixture("mssql")
+        op.add_column(
+            "t1",
+            Column("some_column", Integer, sqla_compat.Identity(**kw)),
+        )
+        if "start" in kw or "increment" in kw:
+            options = "(%s,%s)" % (
+                kw.get("start", 1),
+                kw.get("increment", 1),
+            )
+        else:
+            options = ""
+        context.assert_(
+            "ALTER TABLE t1 ADD some_column INTEGER NOT NULL IDENTITY%s"
+            % options
+        )
+
+    @combinations(
+        (lambda: sqla_compat.Identity(), lambda: None),
+        (lambda: None, lambda: sqla_compat.Identity()),
+        (
+            lambda: sqla_compat.Identity(),
+            lambda: sqla_compat.Identity(),
+        ),
+    )
+    @config.requirements.identity_columns
+    def test_alter_column_identity_add_not_supported(self, sd, esd):
+        op_fixture("mssql")
+        assert_raises_message(
+            exc.CompileError,
+            'Adding, removing or modifying an "identity" construct, '
+            "e.g. GENERATED AS IDENTITY, to or from an existing "
+            "column is not supported in this dialect.",
+            op.alter_column,
+            "t1",
+            "c1",
+            server_default=sd(),
+            existing_server_default=esd(),
         )

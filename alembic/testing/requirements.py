@@ -106,3 +106,21 @@ class SuiteRequirements(Requirements):
         return exclusions.only_if(
             exclusions.BooleanPredicate(sqla_compat.has_computed)
         )
+
+    @property
+    def identity_columns(self):
+        return exclusions.closed()
+
+    @property
+    def identity_columns_alter(self):
+        return exclusions.closed()
+
+    @property
+    def identity_columns_api(self):
+        return exclusions.only_if(
+            exclusions.BooleanPredicate(sqla_compat.has_identity)
+        )
+
+    @property
+    def supports_identity_on_null(self):
+        return exclusions.closed()

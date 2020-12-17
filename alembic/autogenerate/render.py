@@ -1,3 +1,4 @@
+from collections import OrderedDict
 import re
 
 from mako.pygen import PythonPrinter
@@ -602,15 +603,16 @@ def _render_column(column, autogen_context):
     opts = []
 
     if column.server_default:
-        if sqla_compat._server_default_is_computed(column):
-            rendered = _render_computed(column.computed, autogen_context)
-            if rendered:
+
+        rendered = _render_server_default(
+            column.server_default, autogen_context
+        )
+        if rendered:
+            if _should_render_server_default_positionally(
+                column.server_default
+            ):
                 args.append(rendered)
-        else:
-            rendered = _render_server_default(
-                column.server_default, autogen_context
-            )
-            if rendered:
+            else:
                 opts.append(("server_default", rendered))
 
     if (
@@ -648,13 +650,21 @@ def _render_column(column, autogen_context):
     }
 
 
+def _should_render_server_default_positionally(server_default):
+    return sqla_compat._server_default_is_computed(
+        server_default
+    ) or sqla_compat._server_default_is_identity(server_default)
+
+
 def _render_server_default(default, autogen_context, repr_=True):
     rendered = _user_defined_render("server_default", default, autogen_context)
     if rendered is not False:
         return rendered
 
-    if sqla_compat.has_computed and isinstance(default, sa_schema.Computed):
+    if sqla_compat._server_default_is_computed(default):
         return _render_computed(default, autogen_context)
+    elif sqla_compat._server_default_is_identity(default):
+        return _render_identity(default, autogen_context)
     elif isinstance(default, sa_schema.DefaultClause):
         if isinstance(default.arg, compat.string_types):
             default = default.arg
@@ -682,6 +692,28 @@ def _render_computed(computed, autogen_context):
         "text": text,
         "kwargs": (", ".join("%s=%s" % pair for pair in kwargs.items())),
     }
+
+
+def _render_identity(identity, autogen_context):
+    # always=None means something different than always=False
+    kwargs = OrderedDict(always=identity.always)
+    if identity.on_null is not None:
+        kwargs["on_null"] = identity.on_null
+    kwargs.update(_get_identity_options(identity))
+
+    return "%(prefix)sIdentity(%(kwargs)s)" % {
+        "prefix": _sqlalchemy_autogenerate_prefix(autogen_context),
+        "kwargs": (", ".join("%s=%s" % pair for pair in kwargs.items())),
+    }
+
+
+def _get_identity_options(identity_options):
+    kwargs = OrderedDict()
+    for attr in sqla_compat._identity_options_attrs:
+        value = getattr(identity_options, attr, None)
+        if value is not None:
+            kwargs[attr] = value
+    return kwargs
 
 
 def _repr_type(type_, autogen_context):

@@ -15,6 +15,7 @@ from .base import format_server_default
 from .impl import DefaultImpl
 from .. import util
 from ..autogenerate import compare
+from ..util import sqla_compat
 from ..util.sqla_compat import _is_mariadb
 from ..util.sqla_compat import _is_type_bound
 
@@ -44,6 +45,25 @@ class MySQLImpl(DefaultImpl):
         existing_comment=None,
         **kw
     ):
+        if sqla_compat._server_default_is_identity(
+            server_default, existing_server_default
+        ) or sqla_compat._server_default_is_computed(
+            server_default, existing_server_default
+        ):
+            # modifying computed or identity columns is not supported
+            # the default will raise
+            super(MySQLImpl, self).alter_column(
+                table_name,
+                column_name,
+                nullable=nullable,
+                type_=type_,
+                schema=schema,
+                existing_type=existing_type,
+                existing_nullable=existing_nullable,
+                server_default=server_default,
+                existing_server_default=existing_server_default,
+                **kw
+            )
         if name is not None or self._is_mysql_allowed_functional_default(
             type_ if type_ is not None else existing_type, server_default
         ):

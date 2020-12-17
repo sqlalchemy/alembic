@@ -1,6 +1,7 @@
 from sqlalchemy import Boolean
 from sqlalchemy import Column
 from sqlalchemy import DATETIME
+from sqlalchemy import exc
 from sqlalchemy import Float
 from sqlalchemy import func
 from sqlalchemy import inspect
@@ -17,6 +18,7 @@ from alembic.autogenerate import compare
 from alembic.migration import MigrationContext
 from alembic.operations import ops
 from alembic.testing import assert_raises_message
+from alembic.testing import combinations
 from alembic.testing import config
 from alembic.testing.env import clear_staging_env
 from alembic.testing.env import staging_env
@@ -460,6 +462,52 @@ class MySQLOpTest(TestBase):
             "t1",
         )
 
+    @combinations(
+        (lambda: sqla_compat.Computed("foo * 5"), lambda: None),
+        (lambda: None, lambda: sqla_compat.Computed("foo * 5")),
+        (
+            lambda: sqla_compat.Computed("foo * 42"),
+            lambda: sqla_compat.Computed("foo * 5"),
+        ),
+    )
+    @config.requirements.computed_columns_api
+    def test_alter_column_computed_not_supported(self, sd, esd):
+        op_fixture("mssql")
+        assert_raises_message(
+            exc.CompileError,
+            'Adding or removing a "computed" construct, e.g. '
+            "GENERATED ALWAYS AS, to or from an existing column is not "
+            "supported.",
+            op.alter_column,
+            "t1",
+            "c1",
+            server_default=sd(),
+            existing_server_default=esd(),
+        )
+
+    @combinations(
+        (lambda: sqla_compat.Identity(), lambda: None),
+        (lambda: None, lambda: sqla_compat.Identity()),
+        (
+            lambda: sqla_compat.Identity(),
+            lambda: sqla_compat.Identity(),
+        ),
+    )
+    @config.requirements.identity_columns_api
+    def test_alter_column_identity_not_supported(self, sd, esd):
+        op_fixture()
+        assert_raises_message(
+            exc.CompileError,
+            'Adding, removing or modifying an "identity" construct, '
+            "e.g. GENERATED AS IDENTITY, to or from an existing "
+            "column is not supported in this dialect.",
+            op.alter_column,
+            "t1",
+            "c1",
+            server_default=sd(),
+            existing_server_default=esd(),
+        )
+
 
 class MySQLBackendOpTest(AlterColRoundTripFixture, TestBase):
     __only_on__ = "mysql", "mariadb"
@@ -578,7 +626,7 @@ class MySQLDefaultCompareTest(TestBase):
         insp = inspect(self.bind)
         cols = insp.get_columns(t1.name)
         refl = Table(t1.name, MetaData())
-        insp.reflecttable(refl, None)
+        sqla_compat._reflect_table(insp, refl, None)
         ctx = self.autogen_context["context"]
         return ctx.impl.compare_server_default(
             refl.c[cols[0]["name"]], col, rendered, cols[0]["default"]

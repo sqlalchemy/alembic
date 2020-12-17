@@ -46,6 +46,8 @@ class DefaultImpl(with_metaclass(ImplMeta)):
     command_terminator = ";"
     type_synonyms = ({"NUMERIC", "DECIMAL"},)
     type_arg_extract = ()
+    # on_null is known to be supported only by oracle
+    identity_attrs_ignore = ("on_null",)
 
     def __init__(
         self,
@@ -180,8 +182,20 @@ class DefaultImpl(with_metaclass(ImplMeta)):
                 )
             )
         if server_default is not False:
+            kw = {}
+            if sqla_compat._server_default_is_computed(
+                server_default, existing_server_default
+            ):
+                cls_ = base.ComputedColumnDefault
+            elif sqla_compat._server_default_is_identity(
+                server_default, existing_server_default
+            ):
+                cls_ = base.IdentityColumnDefault
+                kw["impl"] = self
+            else:
+                cls_ = base.ColumnDefault
             self._exec(
-                base.ColumnDefault(
+                cls_(
                     table_name,
                     column_name,
                     server_default,
@@ -190,6 +204,7 @@ class DefaultImpl(with_metaclass(ImplMeta)):
                     existing_server_default=existing_server_default,
                     existing_nullable=existing_nullable,
                     existing_comment=existing_comment,
+                    **kw
                 )
             )
         if type_ is not None:
@@ -513,3 +528,44 @@ class DefaultImpl(with_metaclass(ImplMeta)):
 
     def render_type(self, type_obj, autogen_context):
         return False
+
+    def _compare_identity_default(self, metadata_identity, inspector_identity):
+
+        # ignored contains the attributes that were not considered
+        # because assumed to their default values in the db.
+        diff, ignored = _compare_identity_options(
+            sqla_compat._identity_attrs,
+            metadata_identity,
+            inspector_identity,
+            sqla_compat.Identity(),
+        )
+
+        meta_always = getattr(metadata_identity, "always", None)
+        inspector_always = getattr(inspector_identity, "always", None)
+        # None and False are the same in this comparison
+        if bool(meta_always) != bool(inspector_always):
+            diff.add("always")
+
+        diff.difference_update(self.identity_attrs_ignore)
+
+        return diff, ignored
+
+
+def _compare_identity_options(
+    attributes, metadata_io, inspector_io, default_io
+):
+    # this can be used for identity or sequence compare.
+    # default_io is an instance of IdentityOption with all attributes to the
+    # default value.
+    diff = set()
+    ignored_attr = set()
+    for attr in attributes:
+        meta_value = getattr(metadata_io, attr, None)
+        default_value = getattr(default_io, attr, None)
+        conn_value = getattr(inspector_io, attr, None)
+        if conn_value != meta_value:
+            if meta_value == default_value:
+                ignored_attr.add(attr)
+            else:
+                diff.add(attr)
+    return diff, ignored_attr

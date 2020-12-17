@@ -8,7 +8,6 @@ from sqlalchemy.schema import Column
 from sqlalchemy.schema import DDLElement
 from sqlalchemy.sql.elements import quoted_name
 
-from ..util import sqla_compat
 from ..util.sqla_compat import _columns_for_constraint  # noqa
 from ..util.sqla_compat import _find_columns  # noqa
 from ..util.sqla_compat import _fk_spec  # noqa
@@ -83,6 +82,19 @@ class ColumnDefault(AlterColumn):
         self.default = default
 
 
+class ComputedColumnDefault(AlterColumn):
+    def __init__(self, name, column_name, default, **kw):
+        super(ComputedColumnDefault, self).__init__(name, column_name, **kw)
+        self.default = default
+
+
+class IdentityColumnDefault(AlterColumn):
+    def __init__(self, name, column_name, default, impl, **kw):
+        super(IdentityColumnDefault, self).__init__(name, column_name, **kw)
+        self.default = default
+        self.impl = impl
+
+
 class AddColumn(AlterTable):
     def __init__(self, name, column, schema=None):
         super(AddColumn, self).__init__(name, schema=schema)
@@ -154,21 +166,29 @@ def visit_column_name(element, compiler, **kw):
 
 @compiles(ColumnDefault)
 def visit_column_default(element, compiler, **kw):
-    if sqla_compat.has_computed and (
-        isinstance(element.default, sqla_compat.Computed)
-        or isinstance(element.existing_server_default, sqla_compat.Computed)
-    ):
-        raise exc.CompileError(
-            'Adding or removing a "computed" construct, e.g. GENERATED '
-            "ALWAYS AS, to or from an existing column is not supported."
-        )
-
     return "%s %s %s" % (
         alter_table(compiler, element.table_name, element.schema),
         alter_column(compiler, element.column_name),
         "SET DEFAULT %s" % format_server_default(compiler, element.default)
         if element.default is not None
         else "DROP DEFAULT",
+    )
+
+
+@compiles(ComputedColumnDefault)
+def visit_computed_column(element, compiler, **kw):
+    raise exc.CompileError(
+        'Adding or removing a "computed" construct, e.g. GENERATED '
+        "ALWAYS AS, to or from an existing column is not supported."
+    )
+
+
+@compiles(IdentityColumnDefault)
+def visit_identity_column(element, compiler, **kw):
+    raise exc.CompileError(
+        'Adding, removing or modifying an "identity" construct, '
+        "e.g. GENERATED AS IDENTITY, to or from an existing "
+        "column is not supported in this dialect."
     )
 
 
