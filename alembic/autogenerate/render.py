@@ -188,7 +188,7 @@ def _add_table(autogen_context, op):
     if len(args) > MAX_PYTHON_ARGS:
         args = "*[" + ",\n".join(args) + "]"
     else:
-        args = ",\n".join(args)
+        args = "    " + ",\n    ".join(args)
 
     text = "%(prefix)screate_table(%(tablename)r,\n%(args)s" % {
         "tablename": _ident(op.table_name),
