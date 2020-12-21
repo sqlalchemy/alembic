@@ -274,8 +274,8 @@ class AutogenFixtureTest(_ComparesFKs):
                 dialect._user_defined_max_identifier_length
             ) = max_identifier_length
         try:
-            self.metadata, model_metadata = m1, m2
-            for m in util.to_list(self.metadata):
+            self._alembic_metadata, model_metadata = m1, m2
+            for m in util.to_list(self._alembic_metadata):
                 m.create_all(self.bind)
 
             with self.bind.connect() as conn:
@@ -318,7 +318,7 @@ class AutogenFixtureTest(_ComparesFKs):
         self.bind = config.db
 
     def tearDown(self):
-        if hasattr(self, "metadata"):
-            for m in util.to_list(self.metadata):
+        if hasattr(self, "_alembic_metadata"):
+            for m in util.to_list(self._alembic_metadata):
                 m.drop_all(self.bind)
         clear_staging_env()
