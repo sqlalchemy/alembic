@@ -2030,6 +2030,20 @@ class BatchRoundTripPostgresqlTest(BatchRoundTripTest):
     __only_on__ = "postgresql"
     __backend__ = True
 
+    def _native_boolean_fixture(self):
+        t = Table(
+            "has_native_bool",
+            self.metadata,
+            Column(
+                "x",
+                Boolean(create_constraint=True),
+                server_default="false",
+                nullable=False,
+            ),
+            Column("y", Integer),
+        )
+        t.create(self.conn)
+
     def _datetime_server_default_fixture(self):
         return func.current_timestamp()
 
@@ -2063,3 +2077,42 @@ class BatchRoundTripPostgresqlTest(BatchRoundTripTest):
         super(
             BatchRoundTripPostgresqlTest, self
         ).test_change_type_boolean_to_int()
+
+    def test_add_col_table_has_native_boolean(self):
+        self._native_boolean_fixture()
+
+        # to ensure test coverage on SQLAlchemy 1.4 and above,
+        # force the create_constraint flag to True even though it
+        # defaults to false in 1.4.  this test wants to ensure that the
+        # "should create" rule is consulted
+        def listen_for_reflect(inspector, table, column_info):
+            if isinstance(column_info["type"], Boolean):
+                column_info["type"].create_constraint = True
+
+        with self.op.batch_alter_table(
+            "has_native_bool",
+            recreate="always",
+            reflect_kwargs={
+                "listeners": [("column_reflect", listen_for_reflect)]
+            },
+        ) as batch_op:
+            batch_op.add_column(Column("data", Integer))
+
+        insp = inspect(config.db)
+
+        eq_(
+            [
+                c["type"]._type_affinity
+                for c in insp.get_columns("has_native_bool")
+                if c["name"] == "data"
+            ],
+            [Integer],
+        )
+        eq_(
+            [
+                c["type"]._type_affinity
+                for c in insp.get_columns("has_native_bool")
+                if c["name"] == "x"
+            ],
+            [Boolean],
+        )

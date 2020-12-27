@@ -94,7 +94,7 @@ class DefaultImpl(with_metaclass(ImplMeta)):
         """
         return False
 
-    def prep_table_for_batch(self, table):
+    def prep_table_for_batch(self, batch_impl, table):
         """perform any operations needed on a table before a new
         one is created to replace it in batch mode.
 

@@ -44,9 +44,13 @@ class PostgresqlImpl(DefaultImpl):
     )
     identity_attrs_ignore = ("on_null", "order")
 
-    def prep_table_for_batch(self, table):
+    def prep_table_for_batch(self, batch_impl, table):
+
         for constraint in table.constraints:
-            if constraint.name is not None:
+            if (
+                constraint.name is not None
+                and constraint.name in batch_impl.named_constraints
+            ):
                 self.drop_constraint(constraint)
 
     def compare_server_default(
