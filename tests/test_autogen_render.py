@@ -2123,7 +2123,7 @@ class AutogenRenderTest(TestBase):
             % persisted,
         )
 
-    @config.requirements.identity_columns
+    @config.requirements.identity_columns_api
     @testing.combinations(
         ({}, "sa.Identity(always=False)"),
         (dict(always=None), "sa.Identity(always=None)"),
@@ -2148,16 +2148,15 @@ class AutogenRenderTest(TestBase):
         ),
     )
     def test_render_add_column_identity(self, kw, text):
-        op_obj = ops.AddColumnOp(
-            "foo", Column("x", Integer, sa.Identity(**kw))
-        )
+        col = Column("x", Integer, sa.Identity(**kw))
+        op_obj = ops.AddColumnOp("foo", col)
         eq_ignore_whitespace(
             autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.add_column('foo', sa.Column('x', sa.Integer(), "
-            "%s, nullable=True))" % text,
+            "%s, nullable=%r))" % (text, col.nullable),
         )
 
-    @config.requirements.identity_columns
+    @config.requirements.identity_columns_api
     @testing.combinations(
         ({}, "sa.Identity(always=False)"),
         (dict(always=None), "sa.Identity(always=None)"),
@@ -2195,7 +2194,7 @@ class AutogenRenderTest(TestBase):
             "server_default=%s)" % text,
         )
 
-    @config.requirements.identity_columns
+    @config.requirements.identity_columns_api
     def test_render_alter_column_drop_identity(self):
         op_obj = ops.AlterColumnOp(
             "foo",
