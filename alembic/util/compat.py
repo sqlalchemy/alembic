@@ -261,33 +261,53 @@ def with_metaclass(meta, base=object):
 
 if py3k:
 
-    def reraise(tp, value, tb=None, cause=None):
-        if cause is not None:
-            value.__cause__ = cause
-        if value.__traceback__ is not tb:
-            raise value.with_traceback(tb)
-        raise value
+    def raise_(
+        exception, with_traceback=None, replace_context=None, from_=False
+    ):
+        r"""implement "raise" with cause support.
 
-    def raise_from_cause(exception, exc_info=None):
-        if exc_info is None:
-            exc_info = sys.exc_info()
-        exc_type, exc_value, exc_tb = exc_info
-        reraise(type(exception), exception, tb=exc_tb, cause=exc_value)
+        :param exception: exception to raise
+        :param with_traceback: will call exception.with_traceback()
+        :param replace_context: an as-yet-unsupported feature.  This is
+         an exception object which we are "replacing", e.g., it's our
+         "cause" but we don't want it printed.    Basically just what
+         ``__suppress_context__`` does but we don't want to suppress
+         the enclosing context, if any.  So for now we make it the
+         cause.
+        :param from\_: the cause.  this actually sets the cause and doesn't
+         hope to hide it someday.
+
+        """
+        if with_traceback is not None:
+            exception = exception.with_traceback(with_traceback)
+
+        if from_ is not False:
+            exception.__cause__ = from_
+        elif replace_context is not None:
+            # no good solution here, we would like to have the exception
+            # have only the context of replace_context.__context__ so that the
+            # intermediary exception does not change, but we can't figure
+            # that out.
+            exception.__cause__ = replace_context
+
+        try:
+            raise exception
+        finally:
+            # credit to
+            # https://cosmicpercolator.com/2016/01/13/exception-leaks-in-python-2-and-3/
+            # as the __traceback__ object creates a cycle
+            del exception, replace_context, from_, with_traceback
 
 
 else:
     exec(
-        "def reraise(tp, value, tb=None, cause=None):\n"
-        "    raise tp, value, tb\n"
+        "def raise_(exception, with_traceback=None, replace_context=None, "
+        "from_=False):\n"
+        "    if with_traceback:\n"
+        "        raise type(exception), exception, with_traceback\n"
+        "    else:\n"
+        "        raise exception\n"
     )
-
-    def raise_from_cause(exception, exc_info=None):
-        # not as nice as that of Py3K, but at least preserves
-        # the code line where the issue occurred
-        if exc_info is None:
-            exc_info = sys.exc_info()
-        exc_type, exc_value, exc_tb = exc_info
-        reraise(type(exception), exception, tb=exc_tb)
 
 
 # produce a wrapper that allows encoded text to stream

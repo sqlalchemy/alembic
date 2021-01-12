@@ -140,7 +140,10 @@ class DefaultImpl(with_metaclass(ImplMeta)):
             conn = self.connection
             if execution_options:
                 conn = conn.execution_options(**execution_options)
-            return conn.execute(construct, *multiparams, **params)
+            if params:
+                multiparams += (params,)
+
+            return conn.execute(construct, multiparams)
 
     def execute(self, sql, execution_options=None):
         self._exec(sql, execution_options)
@@ -316,7 +319,7 @@ class DefaultImpl(with_metaclass(ImplMeta)):
         if self.as_sql:
             for row in rows:
                 self._exec(
-                    table.insert(inline=True).values(
+                    sqla_compat._insert_inline(table).values(
                         **dict(
                             (
                                 k,
@@ -338,10 +341,14 @@ class DefaultImpl(with_metaclass(ImplMeta)):
                 table._autoincrement_column = None
             if rows:
                 if multiinsert:
-                    self._exec(table.insert(inline=True), multiparams=rows)
+                    self._exec(
+                        sqla_compat._insert_inline(table), multiparams=rows
+                    )
                 else:
                     for row in rows:
-                        self._exec(table.insert(inline=True).values(**row))
+                        self._exec(
+                            sqla_compat._insert_inline(table).values(**row)
+                        )
 
     def _tokenize_column_type(self, column):
         definition = self.dialect.type_compiler.process(column.type).lower()

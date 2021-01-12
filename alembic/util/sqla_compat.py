@@ -1,3 +1,4 @@
+import contextlib
 import re
 
 from sqlalchemy import __version__
@@ -62,6 +63,46 @@ else:
     has_identity = True
 
 AUTOINCREMENT_DEFAULT = "auto"
+
+
+@contextlib.contextmanager
+def _ensure_scope_for_ddl(connection):
+    try:
+        in_transaction = connection.in_transaction
+    except AttributeError:
+        # catch for MockConnection
+        yield
+    else:
+        if not in_transaction():
+            with connection.begin():
+                yield
+        else:
+            yield
+
+
+def _safe_begin_connection_transaction(connection):
+    transaction = _get_connection_transaction(connection)
+    if transaction:
+        return transaction
+    else:
+        return connection.begin()
+
+
+def _get_connection_in_transaction(connection):
+    try:
+        in_transaction = connection.in_transaction
+    except AttributeError:
+        # catch for MockConnection
+        return False
+    else:
+        return in_transaction()
+
+
+def _get_connection_transaction(connection):
+    if sqla_14:
+        return connection.get_transaction()
+    else:
+        return connection._Connection__transaction
 
 
 def _create_url(*arg, **kw):
@@ -314,8 +355,16 @@ def _mariadb_normalized_version_info(mysql_dialect):
     return mysql_dialect._mariadb_normalized_version_info
 
 
+def _insert_inline(table):
+    if sqla_14:
+        return table.insert().inline()
+    else:
+        return table.insert(inline=True)
+
+
 if sqla_14:
     from sqlalchemy import create_mock_engine
+    from sqlalchemy import select as _select
 else:
     from sqlalchemy import create_engine
 
@@ -323,3 +372,6 @@ else:
         return create_engine(
             "postgresql://", strategy="mock", executor=executor
         )
+
+    def _select(*columns):
+        return sql.select(list(columns))

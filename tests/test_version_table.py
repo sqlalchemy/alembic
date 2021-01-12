@@ -39,7 +39,8 @@ class TestMigrationContext(TestBase):
 
     def tearDown(self):
         self.transaction.rollback()
-        version_table.drop(self.connection, checkfirst=True)
+        with self.connection.begin():
+            version_table.drop(self.connection, checkfirst=True)
         self.connection.close()
 
     def make_one(self, **kwargs):
@@ -182,11 +183,16 @@ class UpdateRevTest(TestBase):
         self.context = migration.MigrationContext.configure(
             connection=self.connection, opts={"version_table": "version_table"}
         )
-        version_table.create(self.connection)
+        with self.connection.begin():
+            version_table.create(self.connection)
         self.updater = migration.HeadMaintainer(self.context, ())
 
     def tearDown(self):
-        version_table.drop(self.connection, checkfirst=True)
+        in_t = getattr(self.connection, "in_transaction", lambda: False)
+        if in_t():
+            self.connection.rollback()
+        with self.connection.begin():
+            version_table.drop(self.connection, checkfirst=True)
         self.connection.close()
 
     def _assert_heads(self, heads):
@@ -194,145 +200,176 @@ class UpdateRevTest(TestBase):
         eq_(self.updater.heads, set(heads))
 
     def test_update_none_to_single(self):
-        self.updater.update_to_step(_up(None, "a", True))
-        self._assert_heads(("a",))
+        with self.connection.begin():
+            self.updater.update_to_step(_up(None, "a", True))
+            self._assert_heads(("a",))
 
     def test_update_single_to_single(self):
-        self.updater.update_to_step(_up(None, "a", True))
-        self.updater.update_to_step(_up("a", "b"))
-        self._assert_heads(("b",))
+        with self.connection.begin():
+            self.updater.update_to_step(_up(None, "a", True))
+            self.updater.update_to_step(_up("a", "b"))
+            self._assert_heads(("b",))
 
     def test_update_single_to_none(self):
-        self.updater.update_to_step(_up(None, "a", True))
-        self.updater.update_to_step(_down("a", None, True))
-        self._assert_heads(())
+        with self.connection.begin():
+            self.updater.update_to_step(_up(None, "a", True))
+            self.updater.update_to_step(_down("a", None, True))
+            self._assert_heads(())
 
     def test_add_branches(self):
-        self.updater.update_to_step(_up(None, "a", True))
-        self.updater.update_to_step(_up("a", "b"))
-        self.updater.update_to_step(_up(None, "c", True))
-        self._assert_heads(("b", "c"))
-        self.updater.update_to_step(_up("c", "d"))
-        self.updater.update_to_step(_up("d", "e1"))
-        self.updater.update_to_step(_up("d", "e2", True))
-        self._assert_heads(("b", "e1", "e2"))
+        with self.connection.begin():
+            self.updater.update_to_step(_up(None, "a", True))
+            self.updater.update_to_step(_up("a", "b"))
+            self.updater.update_to_step(_up(None, "c", True))
+            self._assert_heads(("b", "c"))
+            self.updater.update_to_step(_up("c", "d"))
+            self.updater.update_to_step(_up("d", "e1"))
+            self.updater.update_to_step(_up("d", "e2", True))
+            self._assert_heads(("b", "e1", "e2"))
 
     def test_teardown_branches(self):
-        self.updater.update_to_step(_up(None, "d1", True))
-        self.updater.update_to_step(_up(None, "d2", True))
-        self._assert_heads(("d1", "d2"))
+        with self.connection.begin():
+            self.updater.update_to_step(_up(None, "d1", True))
+            self.updater.update_to_step(_up(None, "d2", True))
+            self._assert_heads(("d1", "d2"))
 
-        self.updater.update_to_step(_down("d1", "c"))
-        self._assert_heads(("c", "d2"))
+            self.updater.update_to_step(_down("d1", "c"))
+            self._assert_heads(("c", "d2"))
 
-        self.updater.update_to_step(_down("d2", "c", True))
+            self.updater.update_to_step(_down("d2", "c", True))
 
-        self._assert_heads(("c",))
-        self.updater.update_to_step(_down("c", "b"))
-        self._assert_heads(("b",))
+            self._assert_heads(("c",))
+            self.updater.update_to_step(_down("c", "b"))
+            self._assert_heads(("b",))
 
     def test_resolve_merges(self):
-        self.updater.update_to_step(_up(None, "a", True))
-        self.updater.update_to_step(_up("a", "b"))
-        self.updater.update_to_step(_up("b", "c1"))
-        self.updater.update_to_step(_up("b", "c2", True))
-        self.updater.update_to_step(_up("c1", "d1"))
-        self.updater.update_to_step(_up("c2", "d2"))
-        self._assert_heads(("d1", "d2"))
-        self.updater.update_to_step(_up(("d1", "d2"), "e"))
-        self._assert_heads(("e",))
+        with self.connection.begin():
+            self.updater.update_to_step(_up(None, "a", True))
+            self.updater.update_to_step(_up("a", "b"))
+            self.updater.update_to_step(_up("b", "c1"))
+            self.updater.update_to_step(_up("b", "c2", True))
+            self.updater.update_to_step(_up("c1", "d1"))
+            self.updater.update_to_step(_up("c2", "d2"))
+            self._assert_heads(("d1", "d2"))
+            self.updater.update_to_step(_up(("d1", "d2"), "e"))
+            self._assert_heads(("e",))
 
     def test_unresolve_merges(self):
-        self.updater.update_to_step(_up(None, "e", True))
+        with self.connection.begin():
+            self.updater.update_to_step(_up(None, "e", True))
 
-        self.updater.update_to_step(_down("e", ("d1", "d2")))
-        self._assert_heads(("d2", "d1"))
+            self.updater.update_to_step(_down("e", ("d1", "d2")))
+            self._assert_heads(("d2", "d1"))
 
-        self.updater.update_to_step(_down("d2", "c2"))
-        self._assert_heads(("c2", "d1"))
+            self.updater.update_to_step(_down("d2", "c2"))
+            self._assert_heads(("c2", "d1"))
 
     def test_update_no_match(self):
-        self.updater.update_to_step(_up(None, "a", True))
-        self.updater.heads.add("x")
-        assert_raises_message(
-            CommandError,
-            "Online migration expected to match one row when updating "
-            "'x' to 'b' in 'version_table'; 0 found",
-            self.updater.update_to_step,
-            _up("x", "b"),
-        )
+        with self.connection.begin():
+            self.updater.update_to_step(_up(None, "a", True))
+            self.updater.heads.add("x")
+            assert_raises_message(
+                CommandError,
+                "Online migration expected to match one row when updating "
+                "'x' to 'b' in 'version_table'; 0 found",
+                self.updater.update_to_step,
+                _up("x", "b"),
+            )
 
     def test_update_no_match_no_sane_rowcount(self):
-        self.updater.update_to_step(_up(None, "a", True))
-        self.updater.heads.add("x")
-        with mock.patch.object(
-            self.connection.dialect, "supports_sane_rowcount", False
-        ):
-            self.updater.update_to_step(_up("x", "b"))
+        with self.connection.begin():
+            self.updater.update_to_step(_up(None, "a", True))
+            self.updater.heads.add("x")
+            with mock.patch.object(
+                self.connection.dialect, "supports_sane_rowcount", False
+            ):
+                self.updater.update_to_step(_up("x", "b"))
 
     def test_update_multi_match(self):
-        self.connection.execute(version_table.insert(), version_num="a")
-        self.connection.execute(version_table.insert(), version_num="a")
+        with self.connection.begin():
+            self.connection.execute(
+                version_table.insert(), dict(version_num="a")
+            )
+            self.connection.execute(
+                version_table.insert(), dict(version_num="a")
+            )
 
-        self.updater.heads.add("a")
-        assert_raises_message(
-            CommandError,
-            "Online migration expected to match one row when updating "
-            "'a' to 'b' in 'version_table'; 2 found",
-            self.updater.update_to_step,
-            _up("a", "b"),
-        )
+            self.updater.heads.add("a")
+            assert_raises_message(
+                CommandError,
+                "Online migration expected to match one row when updating "
+                "'a' to 'b' in 'version_table'; 2 found",
+                self.updater.update_to_step,
+                _up("a", "b"),
+            )
 
     def test_update_multi_match_no_sane_rowcount(self):
-        self.connection.execute(version_table.insert(), version_num="a")
-        self.connection.execute(version_table.insert(), version_num="a")
+        with self.connection.begin():
+            self.connection.execute(
+                version_table.insert(), dict(version_num="a")
+            )
+            self.connection.execute(
+                version_table.insert(), dict(version_num="a")
+            )
 
-        self.updater.heads.add("a")
-        with mock.patch.object(
-            self.connection.dialect, "supports_sane_rowcount", False
-        ):
-            self.updater.update_to_step(_up("a", "b"))
+            self.updater.heads.add("a")
+            with mock.patch.object(
+                self.connection.dialect, "supports_sane_rowcount", False
+            ):
+                self.updater.update_to_step(_up("a", "b"))
 
     def test_delete_no_match(self):
-        self.updater.update_to_step(_up(None, "a", True))
+        with self.connection.begin():
+            self.updater.update_to_step(_up(None, "a", True))
 
-        self.updater.heads.add("x")
-        assert_raises_message(
-            CommandError,
-            "Online migration expected to match one row when "
-            "deleting 'x' in 'version_table'; 0 found",
-            self.updater.update_to_step,
-            _down("x", None, True),
-        )
+            self.updater.heads.add("x")
+            assert_raises_message(
+                CommandError,
+                "Online migration expected to match one row when "
+                "deleting 'x' in 'version_table'; 0 found",
+                self.updater.update_to_step,
+                _down("x", None, True),
+            )
 
     def test_delete_no_matchno_sane_rowcount(self):
-        self.updater.update_to_step(_up(None, "a", True))
+        with self.connection.begin():
+            self.updater.update_to_step(_up(None, "a", True))
 
-        self.updater.heads.add("x")
-        with mock.patch.object(
-            self.connection.dialect, "supports_sane_rowcount", False
-        ):
-            self.updater.update_to_step(_down("x", None, True))
+            self.updater.heads.add("x")
+            with mock.patch.object(
+                self.connection.dialect, "supports_sane_rowcount", False
+            ):
+                self.updater.update_to_step(_down("x", None, True))
 
     def test_delete_multi_match(self):
-        self.connection.execute(version_table.insert(), version_num="a")
-        self.connection.execute(version_table.insert(), version_num="a")
+        with self.connection.begin():
+            self.connection.execute(
+                version_table.insert(), dict(version_num="a")
+            )
+            self.connection.execute(
+                version_table.insert(), dict(version_num="a")
+            )
 
-        self.updater.heads.add("a")
-        assert_raises_message(
-            CommandError,
-            "Online migration expected to match one row when "
-            "deleting 'a' in 'version_table'; 2 found",
-            self.updater.update_to_step,
-            _down("a", None, True),
-        )
+            self.updater.heads.add("a")
+            assert_raises_message(
+                CommandError,
+                "Online migration expected to match one row when "
+                "deleting 'a' in 'version_table'; 2 found",
+                self.updater.update_to_step,
+                _down("a", None, True),
+            )
 
     def test_delete_multi_match_no_sane_rowcount(self):
-        self.connection.execute(version_table.insert(), version_num="a")
-        self.connection.execute(version_table.insert(), version_num="a")
+        with self.connection.begin():
+            self.connection.execute(
+                version_table.insert(), dict(version_num="a")
+            )
+            self.connection.execute(
+                version_table.insert(), dict(version_num="a")
+            )
 
-        self.updater.heads.add("a")
-        with mock.patch.object(
-            self.connection.dialect, "supports_sane_rowcount", False
-        ):
-            self.updater.update_to_step(_down("a", None, True))
+            self.updater.heads.add("a")
+            with mock.patch.object(
+                self.connection.dialect, "supports_sane_rowcount", False
+            ):
+                self.updater.update_to_step(_down("a", None, True))

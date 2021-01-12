@@ -10,6 +10,8 @@ import os
 
 import pytest
 
+os.environ["SQLALCHEMY_WARN_20"] = "true"
+
 pytest.register_assert_rewrite("sqlalchemy.testing.assertions")
 
 
@@ -32,4 +34,12 @@ with open(bootstrap_file) as f:
     code = compile(f.read(), "bootstrap.py", "exec")
     to_bootstrap = "pytest"
     exec(code, globals(), locals())
-    from pytestplugin import *  # noqa
+    from sqlalchemy.testing.plugin.pytestplugin import *  # noqa
+
+    wrap_pytest_sessionstart = pytest_sessionstart  # noqa
+
+    def pytest_sessionstart(session):
+        wrap_pytest_sessionstart(session)
+        from alembic.testing import warnings
+
+        warnings.setup_filters()

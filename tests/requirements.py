@@ -271,3 +271,9 @@ class DefaultRequirements(SuiteRequirements):
     @property
     def supports_identity_on_null(self):
         return self.identity_columns + exclusions.only_on(["oracle"])
+
+    @property
+    def legacy_engine(self):
+        return exclusions.only_if(
+            lambda config: not getattr(config.db, "_is_future", False)
+        )

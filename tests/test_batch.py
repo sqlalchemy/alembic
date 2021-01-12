@@ -24,7 +24,6 @@ from sqlalchemy.dialects import sqlite as sqlite_dialect
 from sqlalchemy.schema import CreateIndex
 from sqlalchemy.schema import CreateTable
 from sqlalchemy.sql import column
-from sqlalchemy.sql import select
 from sqlalchemy.sql import text
 
 from alembic.ddl import sqlite
@@ -40,6 +39,7 @@ from alembic.testing import mock
 from alembic.testing import TestBase
 from alembic.testing.fixtures import op_fixture
 from alembic.util import exc as alembic_exc
+from alembic.util.sqla_compat import _select
 from alembic.util.sqla_compat import sqla_14
 
 
@@ -851,8 +851,10 @@ class BatchApplyTest(TestBase):
 class BatchAPITest(TestBase):
     @contextmanager
     def _fixture(self, schema=None):
+
         migration_context = mock.Mock(
-            opts={}, impl=mock.MagicMock(__dialect__="sqlite")
+            opts={},
+            impl=mock.MagicMock(__dialect__="sqlite", connection=object()),
         )
         op = Operations(migration_context)
         batch = op.batch_alter_table(
@@ -1256,90 +1258,105 @@ class BatchRoundTripTest(TestBase):
             Column("x", Integer),
             mysql_engine="InnoDB",
         )
-        t1.create(self.conn)
+        with self.conn.begin():
+            t1.create(self.conn)
 
-        self.conn.execute(
-            t1.insert(),
-            [
-                {"id": 1, "data": "d1", "x": 5},
-                {"id": 2, "data": "22", "x": 6},
-                {"id": 3, "data": "8.5", "x": 7},
-                {"id": 4, "data": "9.46", "x": 8},
-                {"id": 5, "data": "d5", "x": 9},
-            ],
-        )
+            self.conn.execute(
+                t1.insert(),
+                [
+                    {"id": 1, "data": "d1", "x": 5},
+                    {"id": 2, "data": "22", "x": 6},
+                    {"id": 3, "data": "8.5", "x": 7},
+                    {"id": 4, "data": "9.46", "x": 8},
+                    {"id": 5, "data": "d5", "x": 9},
+                ],
+            )
         context = MigrationContext.configure(self.conn)
         self.op = Operations(context)
 
     @contextmanager
     def _sqlite_referential_integrity(self):
-        self.conn.execute("PRAGMA foreign_keys=ON")
+        self.conn.exec_driver_sql("PRAGMA foreign_keys=ON")
         try:
             yield
         finally:
-            self.conn.execute("PRAGMA foreign_keys=OFF")
+            self.conn.exec_driver_sql("PRAGMA foreign_keys=OFF")
+
+            # as these tests are typically intentional fails, clean out
+            # tables left over
+            m = MetaData()
+            m.reflect(self.conn)
+            with self.conn.begin():
+                m.drop_all(self.conn)
 
     def _no_pk_fixture(self):
-        nopk = Table(
-            "nopk",
-            self.metadata,
-            Column("a", Integer),
-            Column("b", Integer),
-            Column("c", Integer),
-            mysql_engine="InnoDB",
-        )
-        nopk.create(self.conn)
-        self.conn.execute(
-            nopk.insert(), [{"a": 1, "b": 2, "c": 3}, {"a": 2, "b": 4, "c": 5}]
-        )
-        return nopk
+        with self.conn.begin():
+            nopk = Table(
+                "nopk",
+                self.metadata,
+                Column("a", Integer),
+                Column("b", Integer),
+                Column("c", Integer),
+                mysql_engine="InnoDB",
+            )
+            nopk.create(self.conn)
+            self.conn.execute(
+                nopk.insert(),
+                [{"a": 1, "b": 2, "c": 3}, {"a": 2, "b": 4, "c": 5}],
+            )
+            return nopk
 
     def _table_w_index_fixture(self):
-        t = Table(
-            "t_w_ix",
-            self.metadata,
-            Column("id", Integer, primary_key=True),
-            Column("thing", Integer),
-            Column("data", String(20)),
-        )
-        Index("ix_thing", t.c.thing)
-        t.create(self.conn)
-        return t
+        with self.conn.begin():
+            t = Table(
+                "t_w_ix",
+                self.metadata,
+                Column("id", Integer, primary_key=True),
+                Column("thing", Integer),
+                Column("data", String(20)),
+            )
+            Index("ix_thing", t.c.thing)
+            t.create(self.conn)
+            return t
 
     def _boolean_fixture(self):
-        t = Table(
-            "hasbool",
-            self.metadata,
-            Column("x", Boolean(create_constraint=True, name="ck1")),
-            Column("y", Integer),
-        )
-        t.create(self.conn)
+        with self.conn.begin():
+            t = Table(
+                "hasbool",
+                self.metadata,
+                Column("x", Boolean(create_constraint=True, name="ck1")),
+                Column("y", Integer),
+            )
+            t.create(self.conn)
 
     def _timestamp_fixture(self):
-        t = Table("hasts", self.metadata, Column("x", DateTime()))
-        t.create(self.conn)
-        return t
+        with self.conn.begin():
+            t = Table("hasts", self.metadata, Column("x", DateTime()))
+            t.create(self.conn)
+            return t
 
     def _datetime_server_default_fixture(self):
         return func.datetime("now", "localtime")
 
     def _timestamp_w_expr_default_fixture(self):
-        t = Table(
-            "hasts",
-            self.metadata,
-            Column(
-                "x",
-                DateTime(),
-                server_default=self._datetime_server_default_fixture(),
-                nullable=False,
-            ),
-        )
-        t.create(self.conn)
-        return t
+        with self.conn.begin():
+            t = Table(
+                "hasts",
+                self.metadata,
+                Column(
+                    "x",
+                    DateTime(),
+                    server_default=self._datetime_server_default_fixture(),
+                    nullable=False,
+                ),
+            )
+            t.create(self.conn)
+            return t
 
     def _int_to_boolean_fixture(self):
-        t = Table("hasbool", self.metadata, Column("x", Integer))
-        t.create(self.conn)
+        with self.conn.begin():
+            t = Table("hasbool", self.metadata, Column("x", Integer))
+            t.create(self.conn)
 
     def test_change_type_boolean_to_int(self):
         self._boolean_fixture()
@@ -1365,15 +1382,16 @@ class BatchRoundTripTest(TestBase):
 
         import datetime
 
-        self.conn.execute(
-            t.insert(), {"x": datetime.datetime(2012, 5, 18, 15, 32, 5)}
-        )
+        with self.conn.begin():
+            self.conn.execute(
+                t.insert(), {"x": datetime.datetime(2012, 5, 18, 15, 32, 5)}
+            )
 
         with self.op.batch_alter_table("hasts") as batch_op:
             batch_op.alter_column("x", type_=DateTime())
 
         eq_(
-            self.conn.execute(select([t.c.x])).fetchall(),
+            self.conn.execute(_select(t.c.x)).fetchall(),
             [(datetime.datetime(2012, 5, 18, 15, 32, 5),)],
         )
 
@@ -1388,10 +1406,14 @@ class BatchRoundTripTest(TestBase):
                 server_default=self._datetime_server_default_fixture(),
             )
 
-        self.conn.execute(t.insert())
-
-        row = self.conn.execute(select([t.c.x])).fetchone()
-        assert row["x"] is not None
+        with self.conn.begin():
+            self.conn.execute(t.insert())
+        res = self.conn.execute(_select(t.c.x))
+        if sqla_14:
+            assert res.scalar_one_or_none() is not None
+        else:
+            row = res.fetchone()
+            assert row["x"] is not None
 
     def test_drop_col_schematype(self):
         self._boolean_fixture()
@@ -1429,19 +1451,18 @@ class BatchRoundTripTest(TestBase):
             )
 
     def tearDown(self):
-        self.metadata.drop_all(self.conn)
+        in_t = getattr(self.conn, "in_transaction", lambda: False)
+        if in_t():
+            self.conn.rollback()
+        with self.conn.begin():
+            self.metadata.drop_all(self.conn)
         self.conn.close()
 
     def _assert_data(self, data, tablename="foo"):
-        eq_(
-            [
-                dict(row)
-                for row in self.conn.execute(
-                    text("select * from %s" % tablename)
-                )
-            ],
-            data,
-        )
+        res = self.conn.execute(text("select * from %s" % tablename))
+        if sqla_14:
+            res = res.mappings()
+        eq_([dict(row) for row in res], data)
 
     def test_ix_existing(self):
         self._table_w_index_fixture()
@@ -1486,8 +1507,9 @@ class BatchRoundTripTest(TestBase):
             Column("foo_id", Integer, ForeignKey("foo.id")),
             mysql_engine="InnoDB",
         )
-        bar.create(self.conn)
-        self.conn.execute(bar.insert(), {"id": 1, "foo_id": 3})
+        with self.conn.begin():
+            bar.create(self.conn)
+            self.conn.execute(bar.insert(), {"id": 1, "foo_id": 3})
 
         with self.op.batch_alter_table("foo", recreate=recreate) as batch_op:
             batch_op.alter_column(
@@ -1532,9 +1554,14 @@ class BatchRoundTripTest(TestBase):
             Column("data", String(50)),
             mysql_engine="InnoDB",
         )
-        bar.create(self.conn)
-        self.conn.execute(bar.insert(), {"id": 1, "data": "x", "bar_id": None})
-        self.conn.execute(bar.insert(), {"id": 2, "data": "y", "bar_id": 1})
+        with self.conn.begin():
+            bar.create(self.conn)
+            self.conn.execute(
+                bar.insert(), {"id": 1, "data": "x", "bar_id": None}
+            )
+            self.conn.execute(
+                bar.insert(), {"id": 2, "data": "y", "bar_id": 1}
+            )
 
         with self.op.batch_alter_table("bar", recreate=recreate) as batch_op:
             batch_op.alter_column(
@@ -1649,8 +1676,9 @@ class BatchRoundTripTest(TestBase):
             Column("foo_id", Integer, ForeignKey("foo.id")),
             mysql_engine="InnoDB",
         )
-        bar.create(self.conn)
-        self.conn.execute(bar.insert(), {"id": 1, "foo_id": 3})
+        with self.conn.begin():
+            bar.create(self.conn)
+            self.conn.execute(bar.insert(), {"id": 1, "foo_id": 3})
 
         naming_convention = {
             "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s"
@@ -1773,9 +1801,10 @@ class BatchRoundTripTest(TestBase):
             Column("flag", Boolean(create_constraint=True)),
             mysql_engine="InnoDB",
         )
-        bar.create(self.conn)
-        self.conn.execute(bar.insert(), {"id": 1, "flag": True})
-        self.conn.execute(bar.insert(), {"id": 2, "flag": False})
+        with self.conn.begin():
+            bar.create(self.conn)
+            self.conn.execute(bar.insert(), {"id": 1, "flag": True})
+            self.conn.execute(bar.insert(), {"id": 2, "flag": False})
 
         with self.op.batch_alter_table("bar") as batch_op:
             batch_op.alter_column(
@@ -1795,15 +1824,16 @@ class BatchRoundTripTest(TestBase):
             Column("flag", Boolean(create_constraint=False)),
             mysql_engine="InnoDB",
         )
-        bar.create(self.conn)
-        self.conn.execute(bar.insert(), {"id": 1, "flag": True})
-        self.conn.execute(bar.insert(), {"id": 2, "flag": False})
-        self.conn.execute(
-            # override Boolean type which as of 1.1 coerces numerics
-            # to 1/0
-            text("insert into bar (id, flag) values (:id, :flag)"),
-            {"id": 3, "flag": 5},
-        )
+        with self.conn.begin():
+            bar.create(self.conn)
+            self.conn.execute(bar.insert(), {"id": 1, "flag": True})
+            self.conn.execute(bar.insert(), {"id": 2, "flag": False})
+            self.conn.execute(
+                # override Boolean type which as of 1.1 coerces numerics
+                # to 1/0
+                text("insert into bar (id, flag) values (:id, :flag)"),
+                {"id": 3, "flag": 5},
+            )
 
         with self.op.batch_alter_table(
             "bar",
@@ -2042,7 +2072,8 @@ class BatchRoundTripPostgresqlTest(BatchRoundTripTest):
             ),
             Column("y", Integer),
         )
-        t.create(self.conn)
+        with self.conn.begin():
+            t.create(self.conn)
 
     def _datetime_server_default_fixture(self):
         return func.current_timestamp()

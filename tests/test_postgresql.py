@@ -35,7 +35,6 @@ from alembic.autogenerate.compare import _compare_server_default
 from alembic.autogenerate.compare import _compare_tables
 from alembic.autogenerate.compare import _render_server_default_for_compare
 from alembic.migration import MigrationContext
-from alembic.operations import Operations
 from alembic.operations import ops
 from alembic.script import ScriptDirectory
 from alembic.testing import assert_raises_message
@@ -50,6 +49,7 @@ from alembic.testing.env import staging_env
 from alembic.testing.env import write_script
 from alembic.testing.fixtures import capture_context_buffer
 from alembic.testing.fixtures import op_fixture
+from alembic.testing.fixtures import TablesTest
 from alembic.testing.fixtures import TestBase
 from alembic.util import sqla_compat
 
@@ -436,11 +436,12 @@ class PGAutocommitBlockTest(TestBase):
         with self.conn.begin():
             self.conn.execute(text("DROP TYPE mood"))
 
-    def test_alter_enum(self):
-        context = MigrationContext.configure(connection=self.conn)
-        with context.begin_transaction(_per_migration=True):
-            with context.autocommit_block():
-                context.execute(text("ALTER TYPE mood ADD VALUE 'soso'"))
+    def test_alter_enum(self, migration_context):
+        with migration_context.begin_transaction(_per_migration=True):
+            with migration_context.autocommit_block():
+                migration_context.execute(
+                    text("ALTER TYPE mood ADD VALUE 'soso'")
+                )
 
 
 class PGOfflineEnumTest(TestBase):
@@ -546,58 +547,38 @@ def downgrade():
         assert "DROP TYPE pgenum" in buf.getvalue()
 
 
-class PostgresqlInlineLiteralTest(TestBase):
+class PostgresqlInlineLiteralTest(TablesTest):
     __only_on__ = "postgresql"
     __backend__ = True
 
     @classmethod
-    def setup_class(cls):
-        cls.bind = config.db
-        with config.db.connect() as conn:
-            conn.execute(
-                text(
-                    """
-                create table tab (
-                    col varchar(50)
-                )
-            """
-                )
-            )
-            conn.execute(
-                text(
-                    """
+    def define_tables(cls, metadata):
+        Table("tab", metadata, Column("col", String(50)))
+
+    @classmethod
+    def insert_data(cls, connection):
+        connection.execute(
+            text(
+                """
                 insert into tab (col) values
                     ('old data 1'),
                     ('old data 2.1'),
                     ('old data 3')
             """
-                )
             )
+        )
 
-    @classmethod
-    def teardown_class(cls):
-        with cls.bind.connect() as conn:
-            conn.execute(text("drop table tab"))
-
-    def setUp(self):
-        self.conn = self.bind.connect()
-        ctx = MigrationContext.configure(self.conn)
-        self.op = Operations(ctx)
-
-    def tearDown(self):
-        self.conn.close()
-
-    def test_inline_percent(self):
+    def test_inline_percent(self, connection, ops_context):
         # TODO: here's the issue, you need to escape this.
         tab = table("tab", column("col"))
-        self.op.execute(
+        ops_context.execute(
             tab.update()
-            .where(tab.c.col.like(self.op.inline_literal("%.%")))
-            .values(col=self.op.inline_literal("new data")),
+            .where(tab.c.col.like(ops_context.inline_literal("%.%")))
+            .values(col=ops_context.inline_literal("new data")),
             execution_options={"no_parameters": True},
         )
         eq_(
-            self.conn.execute(
+            connection.execute(
                 text("select count(*) from tab where col='new data'")
             ).scalar(),
             1,
@@ -618,7 +599,7 @@ class PostgresqlDefaultCompareTest(TestBase):
         )
 
     def setUp(self):
-        self.metadata = MetaData(self.bind)
+        self.metadata = MetaData()
         self.autogen_context = api.AutogenContext(self.migration_context)
 
     @classmethod
@@ -626,7 +607,8 @@ class PostgresqlDefaultCompareTest(TestBase):
         clear_staging_env()
 
     def tearDown(self):
-        self.metadata.drop_all()
+        with config.db.begin() as conn:
+            self.metadata.drop_all(conn)
 
     def _compare_default_roundtrip(
         self, type_, orig_default, alternate=None, diff_expected=None

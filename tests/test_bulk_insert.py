@@ -237,23 +237,28 @@ class RoundTripTest(TestBase):
 
     def setUp(self):
         self.conn = config.db.connect()
-        self.conn.execute(
-            text(
-                """
-            create table foo(
-                id integer primary key,
-                data varchar(50),
-                x integer
+        with self.conn.begin():
+            self.conn.execute(
+                text(
+                    """
+                create table foo(
+                    id integer primary key,
+                    data varchar(50),
+                    x integer
+                )
+            """
+                )
             )
-        """
-            )
-        )
         context = MigrationContext.configure(self.conn)
         self.op = op.Operations(context)
         self.t1 = table("foo", column("id"), column("data"), column("x"))
 
+        self.trans = self.conn.begin()
+
     def tearDown(self):
-        self.conn.execute(text("drop table foo"))
+        self.trans.rollback()
+        with self.conn.begin():
+            self.conn.execute(text("drop table foo"))
         self.conn.close()
 
     def test_single_insert_round_trip(self):

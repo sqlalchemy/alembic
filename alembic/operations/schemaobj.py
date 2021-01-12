@@ -3,6 +3,7 @@ from sqlalchemy.types import Integer
 from sqlalchemy.types import NULLTYPE
 
 from .. import util
+from ..util.compat import raise_
 from ..util.compat import string_types
 
 
@@ -113,10 +114,13 @@ class SchemaObjects(object):
         }
         try:
             const = types[type_]
-        except KeyError:
-            raise TypeError(
-                "'type' can be one of %s"
-                % ", ".join(sorted(repr(x) for x in types))
+        except KeyError as ke:
+            raise_(
+                TypeError(
+                    "'type' can be one of %s"
+                    % ", ".join(sorted(repr(x) for x in types))
+                ),
+                from_=ke,
             )
         else:
             const = const(name=name)

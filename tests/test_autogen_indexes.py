@@ -14,9 +14,9 @@ from sqlalchemy import UniqueConstraint
 
 from alembic.testing import assertions
 from alembic.testing import config
-from alembic.testing import engines
 from alembic.testing import eq_
 from alembic.testing import TestBase
+from alembic.testing import util
 from alembic.testing.env import staging_env
 from alembic.util import sqla_compat
 from ._autogen_fixtures import AutogenFixtureTest
@@ -29,7 +29,7 @@ class NoUqReflection(object):
 
     def setUp(self):
         staging_env()
-        self.bind = eng = engines.testing_engine()
+        self.bind = eng = util.testing_engine()
 
         def unimpl(*arg, **kw):
             raise NotImplementedError()
@@ -1508,7 +1508,7 @@ class IncludeHooksTest(AutogenFixtureTest, TestBase):
 
 class TruncatedIdxTest(AutogenFixtureTest, TestBase):
     def setUp(self):
-        self.bind = engines.testing_engine()
+        self.bind = util.testing_engine()
         self.bind.dialect.max_identifier_length = 30
 
     def test_idx_matches_long(self):

@@ -96,7 +96,7 @@ class SQLiteDefaultCompareTest(TestBase):
         )
 
     def setUp(self):
-        self.metadata = MetaData(self.bind)
+        self.metadata = MetaData()
         self.autogen_context = api.AutogenContext(self.migration_context)
 
     @classmethod
@@ -104,7 +104,7 @@ class SQLiteDefaultCompareTest(TestBase):
         clear_staging_env()
 
     def tearDown(self):
-        self.metadata.drop_all()
+        self.metadata.drop_all(config.db)
 
     def _compare_default_roundtrip(
         self, type_, orig_default, alternate=None, diff_expected=None

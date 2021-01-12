@@ -5,12 +5,16 @@ import os
 import re
 import textwrap
 
+import sqlalchemy as sa
+
 from alembic import command
+from alembic import testing
 from alembic import util
 from alembic.environment import EnvironmentContext
 from alembic.script import Script
 from alembic.script import ScriptDirectory
 from alembic.testing import assert_raises_message
+from alembic.testing import config
 from alembic.testing import eq_
 from alembic.testing import mock
 from alembic.testing.env import _no_sql_testing_config
@@ -22,31 +26,81 @@ from alembic.testing.env import staging_env
 from alembic.testing.env import three_rev_fixture
 from alembic.testing.env import write_script
 from alembic.testing.fixtures import capture_context_buffer
+from alembic.testing.fixtures import FutureEngineMixin
 from alembic.testing.fixtures import TestBase
 from alembic.util import compat
 
 
-class ApplyVersionsFunctionalTest(TestBase):
+class PatchEnvironment(object):
+    @contextmanager
+    def _patch_environment(self, transactional_ddl, transaction_per_migration):
+        conf = EnvironmentContext.configure
+
+        conn = [None]
+
+        def configure(*arg, **opt):
+            opt.update(
+                transactional_ddl=transactional_ddl,
+                transaction_per_migration=transaction_per_migration,
+            )
+            conn[0] = opt["connection"]
+            return conf(*arg, **opt)
+
+        with mock.patch.object(EnvironmentContext, "configure", configure):
+            yield
+
+            # it's no longer possible for the conn to be in a transaction
+            # assuming normal env.py as context.begin_transaction()
+            # will always run a real DB transaction, no longer uses autocommit
+            # mode
+            assert not conn[0].in_transaction()
+
+
+@testing.combinations(
+    (
+        False,
+        True,
+    ),
+    (
+        True,
+        False,
+    ),
+    (
+        True,
+        True,
+    ),
+    argnames="transactional_ddl,transaction_per_migration",
+    id_="rr",
+)
+class ApplyVersionsFunctionalTest(PatchEnvironment, TestBase):
     __only_on__ = "sqlite"
 
     sourceless = False
+    future = False
+    transactional_ddl = False
+    transaction_per_migration = True
 
     def setUp(self):
-        self.bind = _sqlite_file_db()
+        self.bind = _sqlite_file_db(future=self.future)
         self.env = staging_env(sourceless=self.sourceless)
-        self.cfg = _sqlite_testing_config(sourceless=self.sourceless)
+        self.cfg = _sqlite_testing_config(
+            sourceless=self.sourceless, future=self.future
+        )
 
     def tearDown(self):
         clear_staging_env()
 
     def test_steps(self):
-        self._test_001_revisions()
-        self._test_002_upgrade()
-        self._test_003_downgrade()
-        self._test_004_downgrade()
-        self._test_005_upgrade()
-        self._test_006_upgrade_again()
-        self._test_007_stamp_upgrade()
+        with self._patch_environment(
+            self.transactional_ddl, self.transaction_per_migration
+        ):
+            self._test_001_revisions()
+            self._test_002_upgrade()
+            self._test_003_downgrade()
+            self._test_004_downgrade()
+            self._test_005_upgrade()
+            self._test_006_upgrade_again()
+            self._test_007_stamp_upgrade()
 
     def _test_001_revisions(self):
         self.a = a = util.rev_id()
@@ -166,22 +220,39 @@ class ApplyVersionsFunctionalTest(TestBase):
         assert not db.dialect.has_table(db.connect(), "bat")
 
 
+# class level combinations can't do the skips for SQLAlchemy 1.3
+# so we have a separate class
+@testing.combinations(
+    (
+        False,
+        True,
+    ),
+    (
+        True,
+        False,
+    ),
+    (
+        True,
+        True,
+    ),
+    argnames="transactional_ddl,transaction_per_migration",
+    id_="rr",
+)
+class FutureApplyVersionsTest(FutureEngineMixin, ApplyVersionsFunctionalTest):
+    future = True
+
+
 class SimpleSourcelessApplyVersionsTest(ApplyVersionsFunctionalTest):
     sourceless = "simple"
 
 
-class NewFangledSourcelessEnvOnlyApplyVersionsTest(
-    ApplyVersionsFunctionalTest
-):
-    sourceless = "pep3147_envonly"
-
-    __requires__ = ("pep3147",)
-
-
-class NewFangledSourcelessEverythingApplyVersionsTest(
-    ApplyVersionsFunctionalTest
-):
-    sourceless = "pep3147_everything"
+@testing.combinations(
+    ("pep3147_envonly",),
+    ("pep3147_everything",),
+    argnames="sourceless",
+    id_="r",
+)
+class NewFangledSourcelessApplyVersionsTest(ApplyVersionsFunctionalTest):
 
     __requires__ = ("pep3147",)
 
@@ -313,13 +384,17 @@ class OfflineTransactionalDDLTest(TestBase):
         )
 
 
-class OnlineTransactionalDDLTest(TestBase):
+class OnlineTransactionalDDLTest(PatchEnvironment, TestBase):
     def tearDown(self):
         clear_staging_env()
 
-    def _opened_transaction_fixture(self):
+    def _opened_transaction_fixture(self, future=False):
         self.env = staging_env()
-        self.cfg = _sqlite_testing_config()
+
+        if future:
+            self.cfg = _sqlite_testing_config(future=future)
+        else:
+            self.cfg = _sqlite_testing_config()
 
         script = ScriptDirectory.from_config(self.cfg)
         a = util.rev_id()
@@ -358,6 +433,8 @@ from alembic import op
 
 def upgrade():
     conn = op.get_bind()
+    # this should fail for a SQLAlchemy 2.0 connection b.c. there is
+    # already a transaction.
     trans = conn.begin()
 
 
@@ -391,59 +468,89 @@ def downgrade():
         )
         return a, b, c
 
-    @contextmanager
-    def _patch_environment(self, transactional_ddl, transaction_per_migration):
-        conf = EnvironmentContext.configure
+    # these tests might not be supported anymore; the connection is always
+    # going to be in a transaction now even on 1.3.
 
-        def configure(*arg, **opt):
-            opt.update(
-                transactional_ddl=transactional_ddl,
-                transaction_per_migration=transaction_per_migration,
-            )
-            return conf(*arg, **opt)
-
-        with mock.patch.object(EnvironmentContext, "configure", configure):
-            yield
-
-    def test_raise_when_rev_leaves_open_transaction(self):
-        a, b, c = self._opened_transaction_fixture()
+    @testing.combinations((False,), (True, config.requirements.sqlalchemy_14))
+    def test_raise_when_rev_leaves_open_transaction(self, future):
+        a, b, c = self._opened_transaction_fixture(future)
 
         with self._patch_environment(
             transactional_ddl=False, transaction_per_migration=False
         ):
-            assert_raises_message(
-                util.CommandError,
-                r'Migration "upgrade .*, rev b" has left an uncommitted '
-                r"transaction opened; transactional_ddl is False so Alembic "
-                r"is not committing transactions",
-                command.upgrade,
-                self.cfg,
-                c,
-            )
+            if future:
+                with testing.expect_raises_message(
+                    sa.exc.InvalidRequestError,
+                    "a transaction is already begun",
+                ):
+                    command.upgrade(self.cfg, c)
+            elif config.requirements.sqlalchemy_14.enabled:
+                if self.is_sqlalchemy_future:
+                    with testing.expect_raises_message(
+                        sa.exc.InvalidRequestError,
+                        r"a transaction is already begun for this connection",
+                    ):
+                        command.upgrade(self.cfg, c)
+                else:
+                    with testing.expect_sqlalchemy_deprecated_20(
+                        r"Calling .begin\(\) when a transaction "
+                        "is already begun"
+                    ):
+                        command.upgrade(self.cfg, c)
+            else:
+                command.upgrade(self.cfg, c)
 
-    def test_raise_when_rev_leaves_open_transaction_tpm(self):
-        a, b, c = self._opened_transaction_fixture()
+    @testing.combinations((False,), (True, config.requirements.sqlalchemy_14))
+    def test_raise_when_rev_leaves_open_transaction_tpm(self, future):
+        a, b, c = self._opened_transaction_fixture(future)
 
         with self._patch_environment(
             transactional_ddl=False, transaction_per_migration=True
         ):
-            assert_raises_message(
-                util.CommandError,
-                r'Migration "upgrade .*, rev b" has left an uncommitted '
-                r"transaction opened; transactional_ddl is False so Alembic "
-                r"is not committing transactions",
-                command.upgrade,
-                self.cfg,
-                c,
-            )
+            if future:
+                with testing.expect_raises_message(
+                    sa.exc.InvalidRequestError,
+                    "a transaction is already begun",
+                ):
+                    command.upgrade(self.cfg, c)
+            elif config.requirements.sqlalchemy_14.enabled:
+                if self.is_sqlalchemy_future:
+                    with testing.expect_raises_message(
+                        sa.exc.InvalidRequestError,
+                        r"a transaction is already begun for this connection",
+                    ):
+                        command.upgrade(self.cfg, c)
+                else:
+                    with testing.expect_sqlalchemy_deprecated_20(
+                        r"Calling .begin\(\) when a transaction is "
+                        "already begun"
+                    ):
+                        command.upgrade(self.cfg, c)
+            else:
+                command.upgrade(self.cfg, c)
 
-    def test_noerr_rev_leaves_open_transaction_transactional_ddl(self):
+    @testing.combinations((False,), (True, config.requirements.sqlalchemy_14))
+    def test_noerr_rev_leaves_open_transaction_transactional_ddl(self, future):
         a, b, c = self._opened_transaction_fixture()
 
         with self._patch_environment(
             transactional_ddl=True, transaction_per_migration=False
         ):
-            command.upgrade(self.cfg, c)
+            if config.requirements.sqlalchemy_14.enabled:
+                if self.is_sqlalchemy_future:
+                    with testing.expect_raises_message(
+                        sa.exc.InvalidRequestError,
+                        r"a transaction is already begun for this connection",
+                    ):
+                        command.upgrade(self.cfg, c)
+                else:
+                    with testing.expect_sqlalchemy_deprecated_20(
+                        r"Calling .begin\(\) when a transaction "
+                        "is already begun"
+                    ):
+                        command.upgrade(self.cfg, c)
+            else:
+                command.upgrade(self.cfg, c)
 
     def test_noerr_transaction_opened_externally(self):
         a, b, c = self._opened_transaction_fixture()
@@ -475,6 +582,12 @@ run_migrations_online()
         )
 
         command.stamp(self.cfg, c)
+
+
+class FutureOnlineTransactionalDDLTest(
+    FutureEngineMixin, OnlineTransactionalDDLTest
+):
+    pass
 
 
 class EncodingTest(TestBase):

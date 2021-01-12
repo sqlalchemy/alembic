@@ -1,4 +1,4 @@
-from .compat import raise_from_cause  # noqa
+from .compat import raise_  # noqa
 from .exc import CommandError
 from .langhelpers import _with_legacy_names  # noqa
 from .langhelpers import asbool  # noqa

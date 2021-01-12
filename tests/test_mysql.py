@@ -594,10 +594,11 @@ class MySQLDefaultCompareTest(TestBase):
         clear_staging_env()
 
     def setUp(self):
-        self.metadata = MetaData(self.bind)
+        self.metadata = MetaData()
 
     def tearDown(self):
-        self.metadata.drop_all()
+        with config.db.begin() as conn:
+            self.metadata.drop_all(conn)
 
     def _compare_default_roundtrip(self, type_, txt, alternate=None):
         if alternate:

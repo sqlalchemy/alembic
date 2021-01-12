@@ -10,6 +10,7 @@ from .compat import has_pep3147
 from .compat import load_module_py
 from .compat import load_module_pyc
 from .compat import py3k
+from .compat import raise_
 from .exc import CommandError
 
 
@@ -82,7 +83,7 @@ def edit(path):
     try:
         editor.edit(path)
     except Exception as exc:
-        raise CommandError("Error executing editor (%s)" % (exc,))
+        raise_(CommandError("Error executing editor (%s)" % (exc,)), from_=exc)
 
 
 def load_python_file(dir_, filename):

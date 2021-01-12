@@ -7,6 +7,7 @@ from .compat import callable
 from .compat import collections_abc
 from .compat import exec_
 from .compat import inspect_getargspec
+from .compat import raise_
 from .compat import string_types
 from .compat import with_metaclass
 
@@ -74,13 +75,16 @@ class ModuleClsProxy(with_metaclass(_ModuleClsMeta)):
     def _create_method_proxy(cls, name, globals_, locals_):
         fn = getattr(cls, name)
 
-        def _name_error(name):
-            raise NameError(
-                "Can't invoke function '%s', as the proxy object has "
-                "not yet been "
-                "established for the Alembic '%s' class.  "
-                "Try placing this code inside a callable."
-                % (name, cls.__name__)
+        def _name_error(name, from_):
+            raise_(
+                NameError(
+                    "Can't invoke function '%s', as the proxy object has "
+                    "not yet been "
+                    "established for the Alembic '%s' class.  "
+                    "Try placing this code inside a callable."
+                    % (name, cls.__name__)
+                ),
+                from_=from_,
             )
 
         globals_["_name_error"] = _name_error
@@ -142,8 +146,8 @@ class ModuleClsProxy(with_metaclass(_ModuleClsMeta)):
             %(translate)s
             try:
                 p = _proxy
-            except NameError:
-                _name_error('%(name)s')
+            except NameError as ne:
+                _name_error('%(name)s', ne)
             return _proxy.%(name)s(%(apply_kw)s)
             e
         """

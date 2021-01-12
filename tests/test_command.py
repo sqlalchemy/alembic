@@ -399,7 +399,7 @@ finally:
         r2 = command.revision(self.cfg)
         db = _sqlite_file_db()
         command.upgrade(self.cfg, "head")
-        with db.connect() as conn:
+        with db.begin() as conn:
             conn.execute(
                 text("insert into alembic_version values ('%s')" % r2.revision)
             )
@@ -681,7 +681,7 @@ class StampMultipleHeadsTest(TestBase, _StampTest):
         command.stamp(self.cfg, [self.a])
 
         eng = _sqlite_file_db()
-        with eng.connect() as conn:
+        with eng.begin() as conn:
             result = conn.execute(
                 text("update alembic_version set version_num='fake'")
             )
