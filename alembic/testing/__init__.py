@@ -26,3 +26,10 @@ from .assertions import is_true  # noqa
 from .assertions import ne_  # noqa
 from .fixtures import TestBase  # noqa
 from .util import resolve_lambda  # noqa
+
+try:
+    from sqlalchemy.testing import asyncio
+except ImportError:
+    pass
+else:
+    asyncio.ENABLE_ASYNCIO = False
