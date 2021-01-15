@@ -249,6 +249,6 @@ latex_documents = [
 autoclass_content = "both"
 
 intersphinx_mapping = {
-    "sqla": ("http://www.sqlalchemy.org/docs/", None),
+    "sqla": ("https://docs.sqlalchemy.org/en/latest/", None),
     "python": ("http://docs.python.org/", None),
 }

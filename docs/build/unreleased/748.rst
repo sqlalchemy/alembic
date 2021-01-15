@@ -1,6 +1,6 @@
 .. change::
-    :tags: change
-    :tickets: 711
+    :tags: changed
+    :tickets: 748
 
     Alembic 1.5.0 now supports **Python 2.7 and Python 3.6 and above**, as well
     as **SQLAlchemy 1.3.0 and above**.  Support is removed for Python 3

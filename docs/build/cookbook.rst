@@ -827,6 +827,7 @@ schema or another.
             __table_args__ = {
                 "schema": None
             }
+
    ..
 
 2. The :paramref:`.EnvironmentContext.configure.include_schemas` flag must
