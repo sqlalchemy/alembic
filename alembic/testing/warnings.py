@@ -30,19 +30,3 @@ def setup_filters():
         warnings.filterwarnings(
             "once", category=pytest.PytestDeprecationWarning
         )
-
-    if hasattr(sa_exc, "RemovedIn20Warning"):
-        for msg in [
-            #
-            # Core execution - need to remove this after SQLAlchemy
-            # repairs it in provisioning
-            #
-            r"The connection.execute\(\) method in SQLAlchemy 2.0 will accept "
-            "parameters as a single dictionary or a single sequence of "
-            "dictionaries only.",
-        ]:
-            warnings.filterwarnings(
-                "ignore",
-                message=msg,
-                category=sa_exc.RemovedIn20Warning,
-            )
