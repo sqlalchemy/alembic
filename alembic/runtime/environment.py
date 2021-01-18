@@ -298,7 +298,7 @@ class EnvironmentContext(util.ModuleClsProxy):
         template_args=None,
         render_as_batch=False,
         target_metadata=None,
-        include_symbol=None,
+        include_name=None,
         include_object=None,
         include_schemas=False,
         process_revision_directives=None,
@@ -521,6 +521,49 @@ class EnvironmentContext(util.ModuleClsProxy):
 
             :paramref:`.EnvironmentContext.configure.compare_type`
 
+        :param include_name: A callable function which is given
+         the chance to return ``True`` or ``False`` for any database reflected
+         object based on its name, including database schema names when
+         the :paramref:`.EnvironmentContext.configure.include_schemas` flag
+         is set to ``True``.
+
+         The function accepts the following positional arguments:
+
+         * ``name``: the name of the object, such as schema name or table name.
+           Will be ``None`` when indicating the default schema name of the
+           database connection.
+         * ``type``: a string describing the type of object; currently
+           ``"schema"``, ``"table"``, ``"column"``, ``"index"``,
+           ``"unique_constraint"``, or ``"foreign_key_constraint"``
+         * ``parent_names``: a dictionary of "parent" object names, that are
+           relative to the name being given.  Keys in this dictionary may
+           include:  ``"schema_name"``, ``"table_name"``.
+
+         E.g.::
+
+            def include_name(name, type_, parent_names):
+                if type_ == "schema":
+                    return name in ["schema_one", "schema_two"]
+                else:
+                    return True
+
+            context.configure(
+                # ...
+                include_schemas = True,
+                include_name = include_name
+            )
+
+         .. versionadded:: 1.5
+
+         .. seealso::
+
+            :ref:`autogenerate_include_hooks`
+
+            :paramref:`.EnvironmentContext.configure.include_object`
+
+            :paramref:`.EnvironmentContext.configure.include_schemas`
+
+
         :param include_object: A callable function which is given
          the chance to return ``True`` or ``False`` for any object,
          indicating if the given object should be considered in the
@@ -539,14 +582,6 @@ class EnvironmentContext(util.ModuleClsProxy):
          * ``type``: a string describing the type of object; currently
            ``"table"``, ``"column"``, ``"index"``, ``"unique_constraint"``,
            or ``"foreign_key_constraint"``
-
-           .. versionadded:: 0.7.0 Support for indexes and unique constraints
-              within the
-              :paramref:`~.EnvironmentContext.configure.include_object` hook.
-
-           .. versionadded:: 0.7.1 Support for foreign keys within the
-              :paramref:`~.EnvironmentContext.configure.include_object` hook.
-
          * ``reflected``: ``True`` if the given object was produced based on
            table reflection, ``False`` if it's from a local :class:`.MetaData`
            object.
@@ -568,45 +603,24 @@ class EnvironmentContext(util.ModuleClsProxy):
                 include_object = include_object
             )
 
-         :paramref:`.EnvironmentContext.configure.include_object` can also
-         be used to filter on specific schemas to include or omit, when
-         the :paramref:`.EnvironmentContext.configure.include_schemas`
-         flag is set to ``True``.   The :attr:`.Table.schema` attribute
-         on each :class:`.Table` object reflected will indicate the name of the
-         schema from which the :class:`.Table` originates.
+         For the use case of omitting specific schemas from a target database
+         when :paramref:`.EnvironmentContext.configure.include_schemas` is
+         set to ``True``, the :attr:`~sqlalchemy.schema.Table.schema`
+         attribute can be checked for each :class:`~sqlalchemy.schema.Table`
+         object passed to the hook, however it is much more efficient
+         to filter on schemas before reflection of objects takes place
+         using the :paramref:`.EnvironmentContext.configure.include_name`
+         hook.
 
          .. versionadded:: 0.6.0
 
          .. seealso::
 
-            :paramref:`.EnvironmentContext.configure.include_schemas`
+            :ref:`autogenerate_include_hooks`
 
-        :param include_symbol: A callable function which, given a table name
-         and schema name (may be ``None``), returns ``True`` or ``False``,
-         indicating if the given table should be considered in the
-         autogenerate sweep.
-
-         .. deprecated:: 0.6.0
-            :paramref:`.EnvironmentContext.configure.include_symbol`
-            is superceded by the more generic
-            :paramref:`.EnvironmentContext.configure.include_object`
-            parameter.
-
-         E.g.::
-
-            def include_symbol(tablename, schema):
-                return tablename not in ("skip_table_one", "skip_table_two")
-
-            context.configure(
-                # ...
-                include_symbol = include_symbol
-            )
-
-         .. seealso::
+            :paramref:`.EnvironmentContext.configure.include_name`
 
             :paramref:`.EnvironmentContext.configure.include_schemas`
-
-            :paramref:`.EnvironmentContext.configure.include_object`
 
         :param render_as_batch: if True, commands which alter elements
          within a table will be placed under a ``with batch_alter_table():``
@@ -623,11 +637,15 @@ class EnvironmentContext(util.ModuleClsProxy):
          :meth:`~sqlalchemy.engine.reflection.Inspector.get_schema_names`
          method, and include all differences in tables found across all
          those schemas.  When using this option, you may want to also
-         use the :paramref:`.EnvironmentContext.configure.include_object`
-         option to specify a callable which
+         use the :paramref:`.EnvironmentContext.configure.include_name`
+         parameter to specify a callable which
          can filter the tables/schemas that get included.
 
          .. seealso::
+
+            :ref:`autogenerate_include_hooks`
+
+            :paramref:`.EnvironmentContext.configure.include_name`
 
             :paramref:`.EnvironmentContext.configure.include_object`
 
@@ -790,7 +808,7 @@ class EnvironmentContext(util.ModuleClsProxy):
             opts["template_args"].update(template_args)
         opts["transaction_per_migration"] = transaction_per_migration
         opts["target_metadata"] = target_metadata
-        opts["include_symbol"] = include_symbol
+        opts["include_name"] = include_name
         opts["include_object"] = include_object
         opts["include_schemas"] = include_schemas
         opts["render_as_batch"] = render_as_batch

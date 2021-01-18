@@ -13,6 +13,7 @@ from sqlalchemy import Table
 from sqlalchemy import UniqueConstraint
 
 from alembic.testing import assertions
+from alembic.testing import combinations
 from alembic.testing import config
 from alembic.testing import eq_
 from alembic.testing import TestBase
@@ -1308,7 +1309,8 @@ class NoUqReportsIndAsUqTest(NoUqReflectionIndexTest):
 class IncludeHooksTest(AutogenFixtureTest, TestBase):
     __backend__ = True
 
-    def test_remove_connection_index(self):
+    @combinations(("name",), ("object",))
+    def test_remove_connection_index(self, hook_type):
         m1 = MetaData()
         m2 = MetaData()
 
@@ -1318,25 +1320,59 @@ class IncludeHooksTest(AutogenFixtureTest, TestBase):
 
         Table("t", m2, Column("x", Integer), Column("y", Integer))
 
-        def include_object(object_, name, type_, reflected, compare_to):
-            if type_ == "unique_constraint":
-                return False
-            return not (
-                isinstance(object_, Index)
-                and type_ == "index"
-                and reflected
-                and name == "ix1"
-            )
+        if hook_type == "object":
 
-        diffs = self._fixture(m1, m2, object_filters=include_object)
+            def include_object(object_, name, type_, reflected, compare_to):
+                if type_ == "unique_constraint":
+                    return False
+                return not (
+                    isinstance(object_, Index)
+                    and type_ == "index"
+                    and reflected
+                    and name == "ix1"
+                )
+
+            diffs = self._fixture(m1, m2, object_filters=include_object)
+        elif hook_type == "name":
+            all_names = set()
+
+            def include_name(name, type_, parent_names):
+                all_names.add((name, type_))
+                if name == "ix1":
+                    eq_(type_, "index")
+                    eq_(
+                        parent_names,
+                        {
+                            "table_name": "t",
+                            "schema_name": None,
+                            "schema_qualified_table_name": "t",
+                        },
+                    )
+                    return False
+                else:
+                    return True
+
+            diffs = self._fixture(m1, m2, name_filters=include_name)
+            eq_(
+                all_names,
+                {
+                    ("ix1", "index"),
+                    ("ix2", "index"),
+                    ("y", "column"),
+                    ("t", "table"),
+                    (None, "schema"),
+                    ("x", "column"),
+                },
+            )
 
         eq_(diffs[0][0], "remove_index")
         eq_(diffs[0][1].name, "ix2")
         eq_(len(diffs), 1)
 
+    @combinations(("name",), ("object",))
     @config.requirements.unique_constraint_reflection
     @config.requirements.reflects_unique_constraints_unambiguously
-    def test_remove_connection_uq(self):
+    def test_remove_connection_uq(self, hook_type):
         m1 = MetaData()
         m2 = MetaData()
 
@@ -1351,17 +1387,53 @@ class IncludeHooksTest(AutogenFixtureTest, TestBase):
 
         Table("t", m2, Column("x", Integer), Column("y", Integer))
 
-        def include_object(object_, name, type_, reflected, compare_to):
-            if type_ == "index":
-                return False
-            return not (
-                isinstance(object_, UniqueConstraint)
-                and type_ == "unique_constraint"
-                and reflected
-                and name == "uq1"
-            )
+        if hook_type == "object":
 
-        diffs = self._fixture(m1, m2, object_filters=include_object)
+            def include_object(object_, name, type_, reflected, compare_to):
+                if type_ == "index":
+                    return False
+                return not (
+                    isinstance(object_, UniqueConstraint)
+                    and type_ == "unique_constraint"
+                    and reflected
+                    and name == "uq1"
+                )
+
+            diffs = self._fixture(m1, m2, object_filters=include_object)
+        elif hook_type == "name":
+            all_names = set()
+
+            def include_name(name, type_, parent_names):
+                if type_ == "index":
+                    return False  # PostgreSQL thing
+
+                all_names.add((name, type_))
+
+                if name == "uq1":
+                    eq_(type_, "unique_constraint")
+                    eq_(
+                        parent_names,
+                        {
+                            "table_name": "t",
+                            "schema_name": None,
+                            "schema_qualified_table_name": "t",
+                        },
+                    )
+                    return False
+                return True
+
+            diffs = self._fixture(m1, m2, name_filters=include_name)
+            eq_(
+                all_names,
+                {
+                    ("t", "table"),
+                    (None, "schema"),
+                    ("uq2", "unique_constraint"),
+                    ("x", "column"),
+                    ("y", "column"),
+                    ("uq1", "unique_constraint"),
+                },
+            )
 
         eq_(diffs[0][0], "remove_constraint")
         eq_(diffs[0][1].name, "uq2")

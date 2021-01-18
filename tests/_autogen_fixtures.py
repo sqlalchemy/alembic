@@ -42,6 +42,8 @@ def _default_include_object(obj, name, type_, reflected, compare_to):
 
 _default_object_filters = _default_include_object
 
+_default_name_filters = None
+
 
 class ModelOne(object):
     __requires__ = ("unique_constraint_reflection",)
@@ -235,6 +237,7 @@ class AutogenTest(_ComparesFKs):
             "alembic_module_prefix": "op.",
             "sqlalchemy_module_prefix": "sa.",
             "include_object": _default_object_filters,
+            "include_name": _default_name_filters,
         }
         if self.configure_opts:
             ctx_opts.update(self.configure_opts)
@@ -247,11 +250,15 @@ class AutogenTest(_ComparesFKs):
     def tearDown(self):
         self.conn.close()
 
-    def _update_context(self, object_filters=None, include_schemas=None):
+    def _update_context(
+        self, object_filters=None, name_filters=None, include_schemas=None
+    ):
         if include_schemas is not None:
             self.autogen_context.opts["include_schemas"] = include_schemas
         if object_filters is not None:
             self.autogen_context._object_filters = [object_filters]
+        if name_filters is not None:
+            self.autogen_context._name_filters = [name_filters]
         return self.autogen_context
 
 
@@ -263,6 +270,7 @@ class AutogenFixtureTest(_ComparesFKs):
         include_schemas=False,
         opts=None,
         object_filters=_default_object_filters,
+        name_filters=_default_name_filters,
         return_ops=False,
         max_identifier_length=None,
     ):
@@ -288,6 +296,7 @@ class AutogenFixtureTest(_ComparesFKs):
                     "alembic_module_prefix": "op.",
                     "sqlalchemy_module_prefix": "sa.",
                     "include_object": object_filters,
+                    "include_name": name_filters,
                     "include_schemas": include_schemas,
                 }
                 if opts:

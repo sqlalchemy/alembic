@@ -286,25 +286,18 @@ class AutogenContext(object):
                 % (migration_context.script.env_py_location)
             )
 
-        include_symbol = opts.get("include_symbol", None)
         include_object = opts.get("include_object", None)
+        include_name = opts.get("include_name", None)
 
         object_filters = []
-        if include_symbol:
-
-            def include_symbol_filter(
-                object_, name, type_, reflected, compare_to
-            ):
-                if type_ == "table":
-                    return include_symbol(name, object_.schema)
-                else:
-                    return True
-
-            object_filters.append(include_symbol_filter)
+        name_filters = []
         if include_object:
             object_filters.append(include_object)
+        if include_name:
+            name_filters.append(include_name)
 
         self._object_filters = object_filters
+        self._name_filters = name_filters
 
         self.migration_context = migration_context
         if self.migration_context is not None:
@@ -325,7 +318,40 @@ class AutogenContext(object):
         yield
         self._has_batch = False
 
-    def run_filters(self, object_, name, type_, reflected, compare_to):
+    def run_name_filters(self, name, type_, parent_names):
+        """Run the context's name filters and return True if the targets
+        should be part of the autogenerate operation.
+
+        This method should be run for every kind of name encountered within the
+        reflection side of an autogenerate operation, giving the environment
+        the chance to filter what names should be reflected as database
+        objects.  The filters here are produced directly via the
+        :paramref:`.EnvironmentContext.configure.include_name` parameter.
+
+        """
+
+        if "schema_name" in parent_names:
+            if type_ == "table":
+                table_name = name
+            else:
+                table_name = parent_names["table_name"]
+            schema_name = parent_names["schema_name"]
+            if schema_name:
+                parent_names["schema_qualified_table_name"] = "%s.%s" % (
+                    schema_name,
+                    table_name,
+                )
+            else:
+                parent_names["schema_qualified_table_name"] = table_name
+
+        for fn in self._name_filters:
+
+            if not fn(name, type_, parent_names):
+                return False
+        else:
+            return True
+
+    def run_object_filters(self, object_, name, type_, reflected, compare_to):
         """Run the context's object filters and return True if the targets
         should be part of the autogenerate operation.
 
@@ -333,9 +359,7 @@ class AutogenContext(object):
         an autogenerate operation, giving the environment the chance
         to filter what objects should be included in the comparison.
         The filters here are produced directly via the
-        :paramref:`.EnvironmentContext.configure.include_object`
-        and :paramref:`.EnvironmentContext.configure.include_symbol`
-        functions, if present.
+        :paramref:`.EnvironmentContext.configure.include_object` parameter.
 
         """
         for fn in self._object_filters:
@@ -343,6 +367,8 @@ class AutogenContext(object):
                 return False
         else:
             return True
+
+    run_filters = run_object_filters
 
     @util.memoized_property
     def sorted_tables(self):

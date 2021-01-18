@@ -47,6 +47,10 @@ def _produce_net_changes(autogen_context, upgrade_ops):
     else:
         schemas = [None]
 
+    schemas = {
+        s for s in schemas if autogen_context.run_name_filters(s, "schema", {})
+    }
+
     comparators.dispatch("schema", autogen_context.dialect.name)(
         autogen_context, upgrade_ops, schemas
     )
@@ -63,13 +67,20 @@ def _autogen_for_tables(autogen_context, upgrade_ops, schemas):
     )
     version_table = autogen_context.migration_context.version_table
 
-    for s in schemas:
-        tables = set(inspector.get_table_names(schema=s))
-        if s == version_table_schema:
+    for schema_name in schemas:
+        tables = set(inspector.get_table_names(schema=schema_name))
+        if schema_name == version_table_schema:
             tables = tables.difference(
                 [autogen_context.migration_context.version_table]
             )
-        conn_table_names.update(zip([s] * len(tables), tables))
+
+        conn_table_names.update(
+            (schema_name, tname)
+            for tname in tables
+            if autogen_context.run_name_filters(
+                tname, "table", {"schema_name": schema_name}
+            )
+        )
 
     metadata_table_names = OrderedSet(
         [(table.schema, table.name) for table in autogen_context.sorted_tables]
@@ -125,7 +136,7 @@ def _compare_tables(
     for s, tname in metadata_table_names.difference(conn_table_names):
         name = "%s.%s" % (s, tname) if s else tname
         metadata_table = tname_to_table[(s, tname)]
-        if autogen_context.run_filters(
+        if autogen_context.run_object_filters(
             metadata_table, tname, "table", False, None
         ):
             upgrade_ops.ops.append(
@@ -162,7 +173,7 @@ def _compare_tables(
                 # fmt: on
             )
             sqla_compat._reflect_table(inspector, t, None)
-        if autogen_context.run_filters(t, tname, "table", True, None):
+        if autogen_context.run_object_filters(t, tname, "table", True, None):
 
             modify_table_ops = ops.ModifyTableOps(tname, [], schema=s)
 
@@ -201,7 +212,7 @@ def _compare_tables(
         metadata_table = tname_to_table[(s, tname)]
         conn_table = existing_metadata.tables[name]
 
-        if autogen_context.run_filters(
+        if autogen_context.run_object_filters(
             metadata_table, tname, "table", False, conn_table
         ):
 
@@ -286,11 +297,17 @@ def _compare_columns(
     metadata_cols_by_name = dict(
         (c.name, c) for c in metadata_table.c if not c.system
     )
-    conn_col_names = dict((c.name, c) for c in conn_table.c)
+    conn_col_names = dict(
+        (c.name, c)
+        for c in conn_table.c
+        if autogen_context.run_name_filters(
+            c.name, "column", {"table_name": tname, "schema_name": schema}
+        )
+    )
     metadata_col_names = OrderedSet(sorted(metadata_cols_by_name))
 
     for cname in metadata_col_names.difference(conn_col_names):
-        if autogen_context.run_filters(
+        if autogen_context.run_object_filters(
             metadata_cols_by_name[cname], cname, "column", False, None
         ):
             modify_table_ops.ops.append(
@@ -303,7 +320,7 @@ def _compare_columns(
     for colname in metadata_col_names.intersection(conn_col_names):
         metadata_col = metadata_cols_by_name[colname]
         conn_col = conn_table.c[colname]
-        if not autogen_context.run_filters(
+        if not autogen_context.run_object_filters(
             metadata_col, colname, "column", False, conn_col
         ):
             continue
@@ -325,7 +342,7 @@ def _compare_columns(
     yield
 
     for cname in set(conn_col_names).difference(metadata_col_names):
-        if autogen_context.run_filters(
+        if autogen_context.run_object_filters(
             conn_table.c[cname], cname, "column", True, None
         ):
             modify_table_ops.ops.append(
@@ -471,6 +488,15 @@ def _compare_indexes_and_uniques(
                 # not being present
                 pass
             else:
+                conn_uniques = [
+                    uq
+                    for uq in conn_uniques
+                    if autogen_context.run_name_filters(
+                        uq["name"],
+                        "unique_constraint",
+                        {"table_name": tname, "schema_name": schema},
+                    )
+                ]
                 for uq in conn_uniques:
                     if uq.get("duplicates_index"):
                         unique_constraints_duplicate_unique_indexes = True
@@ -478,6 +504,16 @@ def _compare_indexes_and_uniques(
             conn_indexes = inspector.get_indexes(tname, schema=schema)
         except NotImplementedError:
             pass
+        else:
+            conn_indexes = [
+                ix
+                for ix in conn_indexes
+                if autogen_context.run_name_filters(
+                    ix["name"],
+                    "index",
+                    {"table_name": tname, "schema_name": schema},
+                )
+            ]
 
         # 2. convert conn-level objects from raw inspector records
         # into schema objects
@@ -578,7 +614,7 @@ def _compare_indexes_and_uniques(
 
     def obj_added(obj):
         if obj.is_index:
-            if autogen_context.run_filters(
+            if autogen_context.run_object_filters(
                 obj.const, obj.name, "index", False, None
             ):
                 modify_ops.ops.append(ops.CreateIndexOp.from_index(obj.const))
@@ -595,7 +631,7 @@ def _compare_indexes_and_uniques(
             if is_create_table or is_drop_table:
                 # unique constraints are created inline with table defs
                 return
-            if autogen_context.run_filters(
+            if autogen_context.run_object_filters(
                 obj.const, obj.name, "unique_constraint", False, None
             ):
                 modify_ops.ops.append(
@@ -615,7 +651,7 @@ def _compare_indexes_and_uniques(
                 # be sure what we're doing here
                 return
 
-            if autogen_context.run_filters(
+            if autogen_context.run_object_filters(
                 obj.const, obj.name, "index", True, None
             ):
                 modify_ops.ops.append(ops.DropIndexOp.from_index(obj.const))
@@ -627,7 +663,7 @@ def _compare_indexes_and_uniques(
                 # if the whole table is being dropped, we don't need to
                 # consider unique constraint separately
                 return
-            if autogen_context.run_filters(
+            if autogen_context.run_object_filters(
                 obj.const, obj.name, "unique_constraint", True, None
             ):
                 modify_ops.ops.append(
@@ -641,7 +677,7 @@ def _compare_indexes_and_uniques(
 
     def obj_changed(old, new, msg):
         if old.is_index:
-            if autogen_context.run_filters(
+            if autogen_context.run_object_filters(
                 new.const, new.name, "index", False, old.const
             ):
                 log.info(
@@ -653,7 +689,7 @@ def _compare_indexes_and_uniques(
                 modify_ops.ops.append(ops.DropIndexOp.from_index(old.const))
                 modify_ops.ops.append(ops.CreateIndexOp.from_index(new.const))
         else:
-            if autogen_context.run_filters(
+            if autogen_context.run_object_filters(
                 new.const, new.name, "unique_constraint", False, old.const
             ):
                 log.info(
@@ -1128,7 +1164,15 @@ def _compare_foreign_keys(
         if isinstance(fk, sa_schema.ForeignKeyConstraint)
     )
 
-    conn_fks = inspector.get_foreign_keys(tname, schema=schema)
+    conn_fks = [
+        fk
+        for fk in inspector.get_foreign_keys(tname, schema=schema)
+        if autogen_context.run_name_filters(
+            fk["name"],
+            "foreign_key_constraint",
+            {"table_name": tname, "schema_name": schema},
+        )
+    ]
 
     backend_reflects_fk_options = conn_fks and "options" in conn_fks[0]
 
@@ -1161,7 +1205,7 @@ def _compare_foreign_keys(
     )
 
     def _add_fk(obj, compare_to):
-        if autogen_context.run_filters(
+        if autogen_context.run_object_filters(
             obj.const, obj.name, "foreign_key_constraint", False, compare_to
         ):
             modify_table_ops.ops.append(
@@ -1177,7 +1221,7 @@ def _compare_foreign_keys(
             )
 
     def _remove_fk(obj, compare_to):
-        if autogen_context.run_filters(
+        if autogen_context.run_object_filters(
             obj.const, obj.name, "foreign_key_constraint", True, compare_to
         ):
             modify_table_ops.ops.append(
