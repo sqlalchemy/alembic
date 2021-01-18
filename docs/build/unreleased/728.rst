@@ -1,5 +1,0 @@
-.. change::
-    :tags: usecase, commands
-
-    Add ``__main__.py`` file to alembic package to support invocation
-    with ``python -m alembic``.

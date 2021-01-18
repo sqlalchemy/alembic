@@ -1,7 +1,0 @@
-.. change::
-    :tags: bug, autogenerate
-    :tickets: 721
-
-    Added rendering for the ``Table.prefixes`` element to autogenerate so that
-    the rendered Python code includes these directives. Pull request courtesy
-    Rodrigo Ce Moretto.
