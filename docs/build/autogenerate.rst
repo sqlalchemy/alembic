@@ -122,12 +122,7 @@ Autogenerate **will detect**:
 * Column additions, removals.
 * Change of nullable status on columns.
 * Basic changes in indexes and explicitly-named unique constraints
-
-.. versionadded:: 0.6.1 Support for autogenerate of indexes and unique constraints.
-
 * Basic changes in foreign key constraints
-
-.. versionadded:: 0.7.1 Support for autogenerate of foreign key constraints.
 
 Autogenerate can **optionally detect**:
 
@@ -216,13 +211,6 @@ consulted in order during the autogenerate process.  Note that each
 (e.g. the "key" is the combination of the table's name and schema);
 if two :class:`~sqlalchemy.schema.MetaData` objects contain a table
 with the same schema/name combination, an error is raised.
-
-.. versionchanged:: 0.9.0 the
-  :paramref:`.EnvironmentContext.configure.target_metadata`
-  parameter may now be passed a sequence of
-  :class:`~sqlalchemy.schema.MetaData` objects to support
-  autogeneration of multiple :class:`~sqlalchemy.schema.MetaData`
-  collections.
 
 .. _autogenerate_include_hooks:
 
@@ -481,13 +469,6 @@ use the **value of __module__ for the custom type**::
 The imports for the above type again must be made present within the migration,
 either manually, or by adding it to ``script.py.mako``.
 
-.. versionchanged:: 0.7.0
-   The default module prefix rendering for a user-defined type now makes use
-   of the type's ``__module__`` attribute to retrieve the prefix, rather than
-   using the value of
-   :paramref:`~.EnvironmentContext.configure.sqlalchemy_module_prefix`.
-
-
 The above custom type has a long and cumbersome name based on the use
 of ``__module__`` directly, which also implies that lots of imports would
 be needed in order to accomodate lots of types.  For this reason, it is
@@ -528,8 +509,6 @@ Above, we now would get a migration like::
 Now, when we inevitably refactor our application to move ``MyCustomType``
 somewhere else, we only need modify the ``myapp.migration_types`` module,
 instead of searching and replacing all instances within our migration scripts.
-
-.. versionadded:: 0.6.3 Added :paramref:`.EnvironmentContext.configure.user_module_prefix`.
 
 .. _autogen_render_types:
 
@@ -593,13 +572,6 @@ as we encounter the type::
 
         # default rendering for other objects
         return False
-
-.. versionchanged:: 0.8 The ``autogen_context`` data member passed to
-   the ``render_item`` callable is now an instance of :class:`.AutogenContext`.
-
-.. versionchanged:: 0.8.3 The "imports" data member of the autogen context
-   is restored to the new :class:`.AutogenContext` object as
-   :attr:`.AutogenContext.imports`.
 
 The finished migration script will include our imports where the
 ``${imports}`` expression is used, producing output such as::
@@ -717,9 +689,6 @@ type itself implementing ``compare_against_backend`` is that the
 first; if it returns ``None``, then the ``compare_against_backend`` method
 will be used, if present on the metadata type.  If that returns ``None``,
 then a basic check for type equivalence is run.
-
-.. versionadded:: 0.7.6 - added support for the ``compare_against_backend()``
-   method.
 
 .. versionadded:: 1.4.0 - added column keyword comparisons and the
    ``type_synonyms`` property.

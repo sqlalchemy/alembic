@@ -115,8 +115,6 @@ def produce_migrations(context, metadata):
     :class:`.MigrationScript` object.   For an example of what this looks like,
     see the example in :ref:`customizing_revision`.
 
-    .. versionadded:: 0.8.0
-
     .. seealso::
 
         :func:`.compare_metadata` - returns more fundamental "diff"
@@ -240,8 +238,6 @@ class AutogenContext(object):
     of a script template.  The set is normally empty and can be modified
     within hooks such as the
     :paramref:`.EnvironmentContext.configure.render_item` hook.
-
-    .. versionadded:: 0.8.3
 
     .. seealso::
 
@@ -379,8 +375,6 @@ class AutogenContext(object):
         for each individual :class:`.MetaData`  in the order of the
         sequence.  It does **not** collate the sorted tables collections.
 
-        .. versionadded:: 0.9.0
-
         """
         result = []
         for m in util.to_list(self.metadata):
@@ -397,8 +391,6 @@ class AutogenContext(object):
 
         Duplicate table keys are **not** supported; if two :class:`.MetaData`
         objects contain the same table key, an exception is raised.
-
-        .. versionadded:: 0.9.0
 
         """
         result = {}

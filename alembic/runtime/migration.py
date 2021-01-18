@@ -455,8 +455,6 @@ class MigrationContext(object):
         If no version table is present, or if there are no revisions
         present, an empty tuple is returned.
 
-        .. versionadded:: 0.7.0
-
         """
         if self.as_sql:
             start_from_rev = self._start_from_rev
@@ -500,8 +498,6 @@ class MigrationContext(object):
         can apply, and updates those branches as though they were migrated
         towards that revision (either up or down).  If no current branches
         include the revision, it is added as a new branch head.
-
-        .. versionadded:: 0.7.0
 
         """
         heads = self.get_current_heads()
@@ -628,11 +624,9 @@ class MigrationContext(object):
 
     @property
     def config(self):
-        """Return the :class:`.Config` used by the current environment, if any.
+        """Return the :class:`.Config` used by the current environment,
+        if any."""
 
-        .. versionadded:: 0.6.6
-
-        """
         if self.environment_context:
             return self.environment_context.config
         else:
@@ -800,8 +794,6 @@ class MigrationInfo(object):
     benefit of the :paramref:`.EnvironmentContext.on_version_apply`
     callback hook.
 
-    .. versionadded:: 0.9.3
-
     """
 
     is_upgrade = None
@@ -834,8 +826,6 @@ class MigrationInfo(object):
     It can be multiple revision identifiers only in the case of an
     ``alembic stamp`` operation which is moving downwards from multiple
     branches down to their common branch point.
-
-    .. versionadded:: 0.9.4
 
     """
 
@@ -900,11 +890,8 @@ class MigrationInfo(object):
 
     @property
     def up_revisions(self):
-        """Get :attr:`~.MigrationInfo.up_revision_ids` as a :class:`.Revision`.
-
-        .. versionadded:: 0.9.4
-
-        """
+        """Get :attr:`~.MigrationInfo.up_revision_ids` as a
+        :class:`.Revision`."""
         return self.revision_map.get_revisions(self.up_revision_ids)
 
     @property

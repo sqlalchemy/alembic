@@ -258,8 +258,6 @@ Then in ``env.py``::
     connection doesn't actually close the outer connection, which stays
     active for continued use.
 
-.. versionadded:: 0.7.5 Added :attr:`.Config.attributes`.
-
 .. _replaceable_objects:
 
 Replaceable Objects

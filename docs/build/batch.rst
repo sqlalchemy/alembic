@@ -3,12 +3,6 @@
 Running "Batch" Migrations for SQLite and Other Databases
 =========================================================
 
-.. note:: "Batch mode" for SQLite and other databases is a new and intricate
-   feature within the 0.7.0 series of Alembic, and should be
-   considered as "beta" for the next several releases.
-
-.. versionadded:: 0.7.0
-
 The SQLite database presents a challenge to migration tools
 in that it has almost no support for the ALTER statement upon which
 relational schema migrations rely upon.  The rationale for this stems from
@@ -106,10 +100,6 @@ The reflection process may also be bypassed entirely by sending a
 pre-fabricated :class:`~sqlalchemy.schema.Table` object; see
 :ref:`batch_offline_mode` for an example.
 
-.. versionadded:: 0.7.1
-   added :paramref:`.Operations.batch_alter_table.reflect_args`
-   and :paramref:`.Operations.batch_alter_table.reflect_kwargs` options.
-
 .. _sqlite_batch_constraints:
 
 Dealing with Constraints
@@ -167,10 +157,6 @@ as described in :ref:`autogen_naming_conventions`.   Usage is as follows::
 
 Note that the naming convention feature requires at least
 **SQLAlchemy 0.9.4** for support.
-
-.. versionadded:: 0.7.1
-   added :paramref:`~.Operations.batch_alter_table.naming_convention` to
-   :meth:`.Operations.batch_alter_table`.
 
 Including unnamed UNIQUE constraints
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -249,11 +235,6 @@ again references the correct table.   This operation only works when
 referential integrity is disabled, consistent with the same requirement
 for referring foreign keys from other tables.
 
-.. versionchanged:: 0.8.4 Self-referring foreign keys are created with the
-   target table name in batch mode, even though this table will temporarily
-   not exist when dropped.  This requires that the target database is not
-   enforcing referential integrity.
-
 When SQLite's ``PRAGMA FOREIGN KEYS`` mode is turned on, it does provide
 the service that foreign key constraints, including self-referential, will
 automatically be modified to point to their table across table renames,
@@ -295,10 +276,6 @@ The above use pattern is pretty tedious and quite far off from Alembic's
 preferred style of working; however, if one needs to do SQLite-compatible
 "move and copy" migrations and need them to generate flat SQL files in
 "offline" mode, there's not much alternative.
-
-.. versionadded:: 0.7.6 Fully implemented the
-   :paramref:`~.Operations.batch_alter_table.copy_from`
-   parameter.
 
 
 Batch mode with Autogenerate

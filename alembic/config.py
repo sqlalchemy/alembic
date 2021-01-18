@@ -67,8 +67,6 @@ class Config(object):
     :param stdout: buffer where the "print" output of commands will be sent.
      Defaults to ``sys.stdout``.
 
-     .. versionadded:: 0.4
-
     :param config_args: A dictionary of keys and values that will be used
      for substitution in the alembic config file.  The dictionary as given
      is **copied** to a new one, stored locally as the attribute
@@ -77,12 +75,8 @@ class Config(object):
      dictionary before the dictionary is passed to ``SafeConfigParser()``
      to parse the .ini file.
 
-     .. versionadded:: 0.7.0
-
     :param attributes: optional dictionary of arbitrary Python keys/values,
      which will be populated into the :attr:`.Config.attributes` dictionary.
-
-     .. versionadded:: 0.7.5
 
      .. seealso::
 
@@ -116,8 +110,6 @@ class Config(object):
     Within an ``env.py`` script this can be accessed via the
     :attr:`.EnvironmentContext.config` attribute.
 
-    .. versionadded:: 0.6.0
-
     .. seealso::
 
         :meth:`.EnvironmentContext.get_x_argument`
@@ -145,8 +137,6 @@ class Config(object):
         Use this to pass objects into an env.py script, such as passing
         a :class:`sqlalchemy.engine.base.Connection` when calling
         commands from :mod:`alembic.command` programmatically.
-
-        .. versionadded:: 0.7.5
 
         .. seealso::
 

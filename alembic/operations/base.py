@@ -76,8 +76,6 @@ class Operations(util.ModuleClsProxy):
         is also available as a public API to facilitate adding custom
         operations.
 
-        .. versionadded:: 0.8.0
-
         .. seealso::
 
             :ref:`operation_plugins`
@@ -245,10 +243,6 @@ class Operations(util.ModuleClsProxy):
          that will act as the structure of the table being copied.  If omitted,
          table reflection is used to retrieve the structure of the table.
 
-         .. versionadded:: 0.7.6 Fully implemented the
-            :paramref:`~.Operations.batch_alter_table.copy_from`
-            parameter.
-
          .. seealso::
 
             :ref:`batch_offline_mode`
@@ -263,18 +257,12 @@ class Operations(util.ModuleClsProxy):
          table that will be reflected, in lieu of passing the whole
          :class:`~sqlalchemy.schema.Table` using
          :paramref:`~.Operations.batch_alter_table.copy_from`.
-
-         .. versionadded:: 0.7.1
-
         :param reflect_kwargs: a dictionary of additional keyword arguments
          that will be applied to the table structure being copied; this may be
          used to pass additional table and reflection options to the table that
          will be reflected, in lieu of passing the whole
          :class:`~sqlalchemy.schema.Table` using
          :paramref:`~.Operations.batch_alter_table.copy_from`.
-
-         .. versionadded:: 0.7.1
-
         :param table_args: a sequence of additional positional arguments that
          will be applied to the new :class:`~sqlalchemy.schema.Table` when
          created, in addition to those copied from the source table.
@@ -285,9 +273,6 @@ class Operations(util.ModuleClsProxy):
          when created, in addition to those copied from the source table.
          This may be used to provide for additional table options that may
          not be reflected.
-
-         .. versionadded:: 0.7.0
-
         :param naming_convention: a naming convention dictionary of the form
          described at :ref:`autogen_naming_conventions` which will be applied
          to the :class:`~sqlalchemy.schema.MetaData` during the reflection
@@ -298,8 +283,6 @@ class Operations(util.ModuleClsProxy):
          .. seealso::
 
             :ref:`dropping_sqlite_foreign_keys`
-
-         .. versionadded:: 0.7.1
 
         :param partial_reordering: a list of tuples, each suggesting a desired
          ordering of two or more columns in the newly created table.  Requires
@@ -364,8 +347,6 @@ class Operations(util.ModuleClsProxy):
         """Given a :class:`.MigrateOperation`, invoke it in terms of
         this :class:`.Operations` instance.
 
-        .. versionadded:: 0.8.0
-
         """
         fn = self._to_impl.dispatch(
             operation, self.migration_context.impl.__dialect__
@@ -409,8 +390,6 @@ class Operations(util.ModuleClsProxy):
         version **0.9.4 and greater only**.   Even though ``naming_convention``
         was introduced in 0.9.2, the string disambiguation service is new
         as of 0.9.4.
-
-        .. versionadded:: 0.6.4
 
         """
         if conv:

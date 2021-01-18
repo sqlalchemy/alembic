@@ -40,10 +40,6 @@ steps to use this system are to first create a subclass of
 class decorator, then build a default "implementation" function which is
 established using the :meth:`.Operations.implementation_for` decorator.
 
-.. versionadded:: 0.8.0 - the :class:`.Operations` class is now an
-   open namespace that is extensible via the creation of new
-   :class:`.MigrateOperation` subclasses.
-
 Below we illustrate a very simple operation ``CreateSequenceOp`` which
 will implement a new method ``op.create_sequence()`` for use in
 migration scripts::
@@ -142,11 +138,6 @@ within the module level of the ``env.py`` script is sufficient.
 
     :ref:`autogen_custom_ops` - how to add autogenerate support to
     custom operations.
-
-.. versionadded:: 0.8 - the migration operations available via the
-   :class:`.Operations` class as well as the ``alembic.op`` namespace
-   is now extensible using a plugin system.
-
 
 .. _operation_objects:
 .. _alembic.operations.ops.toplevel:

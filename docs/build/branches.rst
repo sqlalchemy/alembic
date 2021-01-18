@@ -3,23 +3,6 @@
 Working with Branches
 =====================
 
-.. note:: Alembic 0.7.0 features an all-new versioning model that fully
-   supports branch points, merge points, and long-lived, labeled branches,
-   including independent branches originating from multiple bases.
-   A great emphasis has been placed on there being almost no impact on the
-   existing Alembic workflow, including that all commands work pretty much
-   the same as they did before, the format of migration files doesn't require
-   any change (though there are some changes that are recommended),
-   and even the structure of the ``alembic_version``
-   table does not change at all.  However, most alembic commands now offer
-   new features which will break out an Alembic environment into
-   "branch mode", where things become a lot more intricate.   Working in
-   "branch mode" should be considered as a "beta" feature, with many new
-   paradigms and use cases still to be stress tested in the wild.
-   Please tread lightly!
-
-.. versionadded:: 0.7.0
-
 A **branch** describes a point in a migration stream when two or more
 versions refer to the same parent migration as their anscestor.  Branches
 occur naturally when two divergent source trees, both containing Alembic
@@ -705,13 +688,6 @@ We'd see inside the file::
 
 We also can of course add or alter this value within the file manually after
 it is generated, rather than using the ``--depends-on`` argument.
-
-.. versionadded:: 0.8 The ``depends_on`` attribute may be set directly
-   from the ``alembic revision`` command, rather than editing the file
-   directly.  ``depends_on`` identifiers may also be specified as
-   branch names at the command line or directly within the migration file.
-   The values may be specified as partial revision numbers from the command
-   line which will be resolved to full revision numbers in the output file.
 
 We can see the effect this directive has when we view the history
 of the ``networking`` branch in terms of "heads", e.g., all the revisions that

@@ -26,8 +26,6 @@ class Rewriter(object):
 
         :ref:`autogen_rewriter` - usage example
 
-    .. versionadded:: 0.8
-
     """
 
     _traverse = util.Dispatcher()

@@ -152,8 +152,6 @@ def revision(
      the other parameters, this option is only available via programmatic
      use of :func:`.command.revision`
 
-     .. versionadded:: 0.9.0
-
     """
 
     script_directory = ScriptDirectory.from_config(config)
@@ -227,8 +225,6 @@ def revision(
 
 def merge(config, revisions, message=None, branch_label=None, rev_id=None):
     """Merge two revisions together.  Creates a new migration file.
-
-    .. versionadded:: 0.7.0
 
     :param config: a :class:`.Config` instance
 
@@ -374,8 +370,6 @@ def history(config, rev_range=None, verbose=False, indicate_current=False):
     :param verbose: output in verbose mode.
 
     :param indicate_current: indicate current revision.
-
-     ..versionadded:: 0.9.9
 
     """
 

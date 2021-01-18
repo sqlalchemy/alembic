@@ -48,8 +48,6 @@ which produces a structure consisting of operation directives detailed in
 Customizing Revision Generation
 ==========================================
 
-.. versionadded:: 0.8.0 - the ``alembic revision`` system is now customizable.
-
 The ``alembic revision`` command, also available programmatically
 via :func:`.command.revision`, essentially produces a single migration
 script after being run.  Whether or not the ``--autogenerate`` option
@@ -405,13 +403,6 @@ mutiple times when running autogenerate:
   when referring to the collection of :class:`.UpgradeOps` and
   :class:`.DowngradeOps` objects.
 
-.. versionchanged:: 0.8.1 - multiple calls to
-   :meth:`.MigrationContext.run_migrations` within an autogenerate operation,
-   such as that proposed within the ``multidb`` script template,
-   are now accommodated by the new extensible migration system
-   introduced in 0.8.0.
-
-
 .. _autogen_custom_ops:
 
 Autogenerating Custom Operation Directives
@@ -430,9 +421,6 @@ The following sections will detail an example of this using the
 the ``CreateSequenceOp`` and ``DropSequenceOp`` directives
 we created in :ref:`operation_plugins`, which correspond to the
 SQLAlchemy :class:`~sqlalchemy.schema.Sequence` construct.
-
-.. versionadded:: 0.8.0 - custom operations can be added to the
-   autogenerate system to support new kinds of database objects.
 
 Tracking our Object with the Model
 ----------------------------------

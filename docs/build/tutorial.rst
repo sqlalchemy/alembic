@@ -258,12 +258,8 @@ This file contains the following features:
           dateutil.tz.gettz(<timezone>)
       )
 
-  .. versionadded:: 0.9.2
-
 * ``truncate_slug_length`` - defaults to 40, the max number of characters
   to include in the "slug" field.
-
-  .. versionadded:: 0.6.1 - added ``truncate_slug_length`` configuration
 
 * ``sqlalchemy.url`` - A URL to connect to the database via SQLAlchemy.  This
   configuration value is only used if the ``env.py`` file calls upon them;
@@ -283,26 +279,17 @@ This file contains the following features:
   generating new revision files, as well as when running the ``alembic history``
   command.
 
-  .. versionchanged:: 0.9.6 the ``alembic history`` command uses the environment
-     unconditionally when ``revision_environment`` is set to true.
-
 * ``sourceless`` - when set to 'true', revision files that only exist as .pyc
   or .pyo files in the versions directory will be used as versions, allowing
   "sourceless" versioning folders.  When left at the default of 'false',
   only .py files are consumed as version files.
 
-  .. versionadded:: 0.6.4
-
 * ``version_locations`` - an optional list of revision file locations, to
   allow revisions to exist in multiple directories simultaneously.
   See :ref:`multiple_bases` for examples.
 
-  .. versionadded:: 0.7.0
-
 * ``output_encoding`` - the encoding to use when Alembic writes the
   ``script.py.mako`` file into a new migration file.  Defaults to ``'utf-8'``.
-
-  .. versionadded:: 0.7.0
 
 * ``[loggers]``, ``[handlers]``, ``[formatters]``, ``[logger_*]``, ``[handler_*]``,
   ``[formatter_*]`` - these sections are all part of Python's standard logging configuration,
@@ -498,9 +485,6 @@ to upgrade to revision ``ae1027a6acf`` plus two additional steps::
 
     $ alembic upgrade ae10+2
 
-.. versionadded:: 0.7.0 Support for relative migrations in terms of a specific
-   revision.
-
 Getting Information
 ===================
 
@@ -561,10 +545,6 @@ to get the current migration::
 View all revisions from 1975 to the head::
 
   $ alembic history -r1975ea:
-
-.. versionadded:: 0.6.0  ``alembic revision`` now accepts the ``-r`` argument to
-   specify specific ranges based on version numbers, symbols, or relative deltas.
-
 
 Downgrading
 ===========

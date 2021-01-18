@@ -163,8 +163,6 @@ class EnvironmentContext(util.ModuleClsProxy):
         This function does not require that the :class:`.MigrationContext`
         has been configured.
 
-        .. versionadded:: 0.7.0
-
         """
         return self.script.as_revision_number("heads")
 
@@ -267,8 +265,6 @@ class EnvironmentContext(util.ModuleClsProxy):
         This function does not require that the :class:`.MigrationContext`
         has been configured.
 
-        .. versionadded:: 0.6.0
-
         .. seealso::
 
             :meth:`.EnvironmentContext.get_tag_argument`
@@ -368,9 +364,6 @@ class EnvironmentContext(util.ModuleClsProxy):
         :param transaction_per_migration: if True, nest each migration script
          in a transaction rather than the full series of migrations to
          run.
-
-         .. versionadded:: 0.6.5
-
         :param output_buffer: a file-like object that will be used
          for textual output
          when the ``--sql`` option is used to generate SQL scripts.
@@ -393,8 +386,6 @@ class EnvironmentContext(util.ModuleClsProxy):
 
          .. note:: the ``literal_binds`` flag is ignored on SQLAlchemy
             versions prior to 0.8 where this feature is not supported.
-
-         .. versionadded:: 0.7.6
 
          .. seealso::
 
@@ -420,12 +411,6 @@ class EnvironmentContext(util.ModuleClsProxy):
          only takes effect when the table is first created.
          Defaults to True; setting to False should not be necessary and is
          here for backwards compatibility reasons.
-
-         .. versionadded:: 0.8.10  Added the
-            :paramref:`.EnvironmentContext.configure.version_table_pk`
-            flag and additionally established that the Alembic version table
-            has a primary key constraint by default.
-
         :param on_version_apply: a callable or collection of callables to be
             run for each migration step.
             The callables will be run in the order they are given, once for
@@ -441,9 +426,6 @@ class EnvironmentContext(util.ModuleClsProxy):
               current heads,
             * ``run_args``: the ``**kwargs`` passed to :meth:`.run_migrations`.
 
-            .. versionadded:: 0.9.3
-
-
         Parameters specific to the autogenerate feature, when
         ``alembic revision`` is run with the ``--autogenerate`` feature:
 
@@ -455,14 +437,6 @@ class EnvironmentContext(util.ModuleClsProxy):
          what is locally available on the target
          :class:`~sqlalchemy.engine.Connection`
          to produce candidate upgrade/downgrade operations.
-
-         .. versionchanged:: 0.9.0 the
-            :paramref:`.EnvironmentContext.configure.target_metadata`
-            parameter may now be passed a sequence of
-            :class:`~sqlalchemy.schema.MetaData` objects to support
-            autogeneration of multiple :class:`~sqlalchemy.schema.MetaData`
-            collections.
-
         :param compare_type: Indicates type comparison behavior during
          an autogenerate
          operation.  Defaults to ``False`` which disables type
@@ -612,8 +586,6 @@ class EnvironmentContext(util.ModuleClsProxy):
          using the :paramref:`.EnvironmentContext.configure.include_name`
          hook.
 
-         .. versionadded:: 0.6.0
-
          .. seealso::
 
             :ref:`autogenerate_include_hooks`
@@ -625,8 +597,6 @@ class EnvironmentContext(util.ModuleClsProxy):
         :param render_as_batch: if True, commands which alter elements
          within a table will be placed under a ``with batch_alter_table():``
          directive, so that batch migrations will take place.
-
-         .. versionadded:: 0.7.0
 
          .. seealso::
 
@@ -712,15 +682,6 @@ class EnvironmentContext(util.ModuleClsProxy):
          in order to future-proof migration files against reorganizations
          in modules.
 
-         .. versionchanged:: 0.7.0
-            :paramref:`.EnvironmentContext.configure.user_module_prefix`
-            no longer defaults to the value of
-            :paramref:`.EnvironmentContext.configure.sqlalchemy_module_prefix`
-            when left at ``None``; the ``__module__`` attribute is now used.
-
-         .. versionadded:: 0.6.3 added
-            :paramref:`.EnvironmentContext.configure.user_module_prefix`
-
          .. seealso::
 
             :ref:`autogen_module_prefix`
@@ -757,18 +718,6 @@ class EnvironmentContext(util.ModuleClsProxy):
          The callable function may optionally be an instance of
          a :class:`.Rewriter` object.  This is a helper object that
          assists in the production of autogenerate-stream rewriter functions.
-
-
-         .. versionadded:: 0.8.0
-
-         .. versionchanged:: 0.8.1 - The
-            :paramref:`.EnvironmentContext.configure.process_revision_directives`
-            hook can append op directives into :class:`.UpgradeOps` and
-            :class:`.DowngradeOps` which will be rendered in Python regardless
-            of whether the ``--autogenerate`` option is in use or not;
-            the ``revision_environment`` configuration variable should be
-            set to "true" in the config to enable this.
-
 
          .. seealso::
 

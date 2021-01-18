@@ -434,8 +434,6 @@ class CreateExcludeConstraintOp(ops.AddConstraintOp):
          when issuing DDL for this constraint.
         :param schema: Optional schema name to operate within.
 
-        .. versionadded:: 0.9.0
-
         """
         op = cls(constraint_name, table_name, elements, **kw)
         return operations.invoke(op)
@@ -449,8 +447,6 @@ class CreateExcludeConstraintOp(ops.AddConstraintOp):
 
         .. note::  This method is Postgresql specific, and additionally
            requires at least SQLAlchemy 1.0.
-
-        .. versionadded:: 0.9.0
 
         .. seealso::
 

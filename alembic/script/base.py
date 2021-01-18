@@ -205,10 +205,6 @@ class ScriptDirectory(object):
          all head revisions.  May also be "head" to indicate a single
          head revision.
 
-         .. versionchanged:: 0.7.0 the "head" identifier now refers to
-            the head of a non-branched repository only; use "heads" to
-            refer to the set of all head branches simultaneously.
-
         """
         with self._catch_revision_errors(start=base, end=head):
             for rev in self.revision_map.iterate_revisions(
@@ -219,8 +215,6 @@ class ScriptDirectory(object):
     def get_revisions(self, id_):
         """Return the :class:`.Script` instance with the given rev identifier,
         symbolic name, or sequence of identifiers.
-
-        .. versionadded:: 0.7.0
 
         """
         with self._catch_revision_errors():
@@ -346,8 +340,6 @@ class ScriptDirectory(object):
 
         This is the revision number of all scripts that
         have a ``down_revision`` of None.
-
-        .. versionadded:: 0.7.0
 
         """
         return list(self.revision_map.bases)
@@ -556,9 +548,6 @@ class ScriptDirectory(object):
         :param head: the head revision to generate against.  Defaults
          to the current "head" if no branches are present, else raises
          an exception.
-
-         .. versionadded:: 0.7.0
-
         :param splice: if True, allow the "head" version to not be an
          actual head; otherwise, the selected head must be a head
          (e.g. endpoint) revision.
