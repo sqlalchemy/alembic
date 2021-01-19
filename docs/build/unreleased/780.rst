@@ -1,0 +1,7 @@
+.. change::
+    :tags: bug, installation, commands
+    :tickets: 780
+
+    Fixed installation issue where the "templates" directory was not being
+    installed, preventing commands like "list-templates" and "init" from
+    working.
