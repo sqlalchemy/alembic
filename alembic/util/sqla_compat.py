@@ -102,7 +102,7 @@ def _get_connection_transaction(connection):
     if sqla_14:
         return connection.get_transaction()
     else:
-        return connection._Connection__transaction
+        return connection._root._Connection__transaction
 
 
 def _create_url(*arg, **kw):

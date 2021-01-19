@@ -1,0 +1,8 @@
+.. change::
+    :tags: bug, environment
+    :tickets: 782
+
+    Fixed regression where Alembic would fail to create a transaction properly
+    if the :class:`sqlalchemy.engine.Connection` were a so-called "branched"
+    connection, that is, one where the ``.connect()`` method had been called to
+    create a "sub" connection.
