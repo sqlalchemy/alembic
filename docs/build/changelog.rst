@@ -5,7 +5,15 @@ Changelog
 
 .. changelog::
     :version: 1.5.1
-    :include_notes_from: unreleased
+    :released: January 19, 2021
+
+    .. change::
+        :tags: bug, installation, commands
+        :tickets: 780
+
+        Fixed installation issue where the "templates" directory was not being
+        installed, preventing commands like "list_templates" and "init" from
+        working.
 
 .. changelog::
     :version: 1.5.0
