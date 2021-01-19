@@ -34,6 +34,14 @@ with open(bootstrap_file) as f:
     code = compile(f.read(), "bootstrap.py", "exec")
     to_bootstrap = "pytest"
     exec(code, globals(), locals())
+
+    try:
+        from sqlalchemy.testing import asyncio
+    except ImportError:
+        pass
+    else:
+        asyncio.ENABLE_ASYNCIO = False
+
     from sqlalchemy.testing.plugin.pytestplugin import *  # noqa
 
     wrap_pytest_sessionstart = pytest_sessionstart  # noqa
