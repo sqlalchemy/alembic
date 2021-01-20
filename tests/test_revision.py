@@ -1288,7 +1288,7 @@ class InvalidRevisionMapTest(TestBase):
         )
 
 
-class GraphWithLoopTest(InvalidRevisionMapTest):
+class GraphWithLoopTest(DownIterateTest, InvalidRevisionMapTest):
     def test_revision_map_solitary_loop(self):
         map_ = RevisionMap(
             lambda: [
@@ -1296,6 +1296,22 @@ class GraphWithLoopTest(InvalidRevisionMapTest):
             ]
         )
         self._assert_raises_revision_map_loop(map_, "a")
+
+    def test_revision_map_no_loop_w_overlapping_substrings(self):
+        r1 = Revision("user_foo", None)
+        r2 = Revision("user", "user_foo")
+
+        self.map = RevisionMap(lambda: [r1, r2])
+
+        self._assert_iteration("heads", None, ["user", "user_foo"])
+
+    def test_revision_map_no_loop_w_overlapping_substrings_dependencies(self):
+        r1 = Revision("user_foo", None)
+        r2 = Revision("user", None, dependencies="user_foo")
+
+        self.map = RevisionMap(lambda: [r1, r2])
+
+        self._assert_iteration("heads", None, ["user", "user_foo"])
 
     def test_revision_map_base_loop(self):
         map_ = RevisionMap(

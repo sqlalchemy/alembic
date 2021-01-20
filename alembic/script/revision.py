@@ -1037,9 +1037,11 @@ class Revision(object):
     def __init__(
         self, revision, down_revision, dependencies=None, branch_labels=None
     ):
-        if down_revision and revision in down_revision:
+        if down_revision and revision in util.to_tuple(down_revision):
             raise LoopDetected(revision)
-        elif dependencies is not None and revision in dependencies:
+        elif dependencies is not None and revision in util.to_tuple(
+            dependencies
+        ):
             raise DependencyLoopDetected(revision)
 
         self.verify_rev_id(revision)
