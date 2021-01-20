@@ -1,8 +1,0 @@
-.. change::
-    :tags: bug, versioning, regression
-    :tickets: 784
-
-    Fixed regression where new "loop detection" feature introduced in
-    :ticket:`757` produced false positives for revision names that have
-    overlapping substrings between revision number and down revision and/or
-    dependency, if the downrev/dependency were not in sequence form.

@@ -5,7 +5,25 @@ Changelog
 
 .. changelog::
     :version: 1.5.2
-    :include_notes_from: unreleased
+    :released: January 20, 2021
+
+    .. change::
+        :tags: bug, versioning, regression
+        :tickets: 784
+
+        Fixed regression where new "loop detection" feature introduced in
+        :ticket:`757` produced false positives for revision names that have
+        overlapping substrings between revision number and down revision and/or
+        dependency, if the downrev/dependency were not in sequence form.
+
+    .. change::
+        :tags: bug, environment
+        :tickets: 782
+
+        Fixed regression where Alembic would fail to create a transaction properly
+        if the :class:`sqlalchemy.engine.Connection` were a so-called "branched"
+        connection, that is, one where the ``.connect()`` method had been called to
+        create a "sub" connection.
 
 .. changelog::
     :version: 1.5.1
