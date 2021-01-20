@@ -5,7 +5,7 @@ from . import op  # noqa
 from .runtime import environment
 from .runtime import migration
 
-__version__ = "1.5.2"
+__version__ = "1.5.3"
 
 sys.modules["alembic.migration"] = migration
 sys.modules["alembic.environment"] = environment
