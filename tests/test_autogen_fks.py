@@ -218,6 +218,71 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
 
         eq_(diffs, [])
 
+    def test_casing_convention_changed_so_put_drops_first(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table(
+            "some_table",
+            m1,
+            Column("test", String(10), primary_key=True),
+            mysql_engine="InnoDB",
+        )
+
+        Table(
+            "user",
+            m1,
+            Column("id", Integer, primary_key=True),
+            Column("name", String(50), nullable=False),
+            Column("a1", String(10), server_default="x"),
+            Column("test2", String(10)),
+            ForeignKeyConstraint(["test2"], ["some_table.test"], name="MyFK"),
+            mysql_engine="InnoDB",
+        )
+
+        Table(
+            "some_table",
+            m2,
+            Column("test", String(10), primary_key=True),
+            mysql_engine="InnoDB",
+        )
+
+        # foreign key autogen currently does not take "name" into account,
+        # so change the def just for the purposes of testing the
+        # add/drop order for now.
+        Table(
+            "user",
+            m2,
+            Column("id", Integer, primary_key=True),
+            Column("name", String(50), nullable=False),
+            Column("a1", String(10), server_default="x"),
+            Column("test2", String(10)),
+            ForeignKeyConstraint(["a1"], ["some_table.test"], name="myfk"),
+            mysql_engine="InnoDB",
+        )
+
+        diffs = self._fixture(m1, m2)
+
+        self._assert_fk_diff(
+            diffs[0],
+            "remove_fk",
+            "user",
+            ["test2"],
+            "some_table",
+            ["test"],
+            name="MyFK" if config.requirements.fk_names.enabled else None,
+        )
+
+        self._assert_fk_diff(
+            diffs[1],
+            "add_fk",
+            "user",
+            ["a1"],
+            "some_table",
+            ["test"],
+            name="myfk",
+        )
+
     def test_add_composite_fk_with_name(self):
         m1 = MetaData()
         m2 = MetaData()

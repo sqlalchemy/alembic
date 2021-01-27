@@ -26,10 +26,6 @@ class SuiteRequirements(Requirements):
         def doesnt_have_check_uq_constraints(config):
             from sqlalchemy import inspect
 
-            # temporary
-            if config.db.name == "oracle":
-                return True
-
             insp = inspect(config.db)
             try:
                 insp.get_unique_constraints("x")

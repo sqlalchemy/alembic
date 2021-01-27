@@ -75,11 +75,12 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestBase):
         diffs = self._fixture(m1, m2)
 
         if self.reports_unique_constraints:
-            eq_(diffs[0][0], "add_constraint")
-            eq_(diffs[0][1].name, "uq_user_name")
+            eq_(diffs[0][0], "remove_index")
+            eq_(diffs[0][1].name, "ix_user_name")
 
-            eq_(diffs[1][0], "remove_index")
-            eq_(diffs[1][1].name, "ix_user_name")
+            eq_(diffs[1][0], "add_constraint")
+            eq_(diffs[1][1].name, "uq_user_name")
+
         else:
             eq_(diffs[0][0], "remove_index")
             eq_(diffs[0][1].name, "ix_user_name")
@@ -332,6 +333,7 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestBase):
         diffs = self._fixture(m1, m2, max_identifier_length=30)
         eq_(diffs, [])
 
+    @config.requirements.long_names
     def test_nothing_ix_changed_labels_were_truncated(self):
         m1 = MetaData(
             naming_convention={
@@ -366,6 +368,7 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestBase):
         diffs = self._fixture(m1, m2, max_identifier_length=30)
         eq_(diffs, [])
 
+    @config.requirements.long_names
     def test_nothing_changed_uq_w_mixed_case_nconv_name(self):
         m1 = MetaData(
             naming_convention={
@@ -449,6 +452,7 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestBase):
         diffs = self._fixture(m1, m2)
         eq_(diffs, [])
 
+    @config.requirements.long_names
     def test_nothing_changed_ix_w_mixed_case_nconv_name(self):
         m1 = MetaData(
             naming_convention={
@@ -688,6 +692,79 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestBase):
         diffs = self._fixture(m1, m2)
         eq_(diffs, [])
 
+    def test_ix_casing_convention_changed_so_put_drops_first(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        ix1 = Index("SomeCasingConvention", "x")
+        Table(
+            "new_idx",
+            m1,
+            Column("id1", Integer, primary_key=True),
+            Column("x", String(20)),
+            ix1,
+        )
+
+        ix2 = Index("somecasingconvention", "x")
+        Table(
+            "new_idx",
+            m2,
+            Column("id1", Integer, primary_key=True),
+            Column("x", String(20)),
+            ix2,
+        )
+
+        diffs = self._fixture(m1, m2)
+
+        eq_(
+            [(d[0], d[1].name) for d in diffs],
+            [
+                ("remove_index", "SomeCasingConvention"),
+                ("add_index", "somecasingconvention"),
+            ],
+        )
+
+    def test_uq_casing_convention_changed_so_put_drops_first(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        uq1 = UniqueConstraint("x", name="SomeCasingConvention")
+        Table(
+            "new_idx",
+            m1,
+            Column("id1", Integer, primary_key=True),
+            Column("x", String(20)),
+            uq1,
+        )
+
+        uq2 = UniqueConstraint("x", name="somecasingconvention")
+        Table(
+            "new_idx",
+            m2,
+            Column("id1", Integer, primary_key=True),
+            Column("x", String(20)),
+            uq2,
+        )
+
+        diffs = self._fixture(m1, m2)
+
+        if self.reports_unique_constraints_as_indexes:
+            eq_(
+                [(d[0], d[1].name) for d in diffs],
+                [
+                    ("remove_index", "SomeCasingConvention"),
+                    ("add_constraint", "somecasingconvention"),
+                ],
+            )
+        else:
+            eq_(
+                [(d[0], d[1].name) for d in diffs],
+                [
+                    ("remove_constraint", "SomeCasingConvention"),
+                    ("add_constraint", "somecasingconvention"),
+                ],
+            )
+
     def test_new_idx_index_named_as_column(self):
         m1 = MetaData()
         m2 = MetaData()
@@ -822,7 +899,12 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestBase):
         diffs = self._fixture(m1, m2)
 
         diffs = set(
-            (cmd, ("x" in obj.name) if obj.name is not None else False)
+            (
+                cmd,
+                isinstance(obj, (UniqueConstraint, Index))
+                if obj.name is not None
+                else False,
+            )
             for cmd, obj in diffs
         )
         if self.reports_unnamed_constraints:
@@ -935,6 +1017,7 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestBase):
 
         eq_(diffs[0][0], "add_index")
 
+    @config.requirements.reflects_indexes_w_sorting
     def test_unchanged_idx_non_col(self):
         m1 = MetaData()
         m2 = MetaData()
@@ -1204,6 +1287,11 @@ class OracleUniqueIndexTest(AutogenerateUniqueIndexTest):
 class NoUqReflectionIndexTest(NoUqReflection, AutogenerateUniqueIndexTest):
     reports_unique_constraints = False
     __only_on__ = "sqlite"
+
+    def test_uq_casing_convention_changed_so_put_drops_first(self):
+        config.skip_test(
+            "unique constraint reflection disabled for this suite"
+        )
 
     def test_unique_not_reported(self):
         m1 = MetaData()

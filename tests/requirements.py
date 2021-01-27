@@ -85,6 +85,19 @@ class DefaultRequirements(SuiteRequirements):
         return exclusions.fails_on(["mysql", "mariadb", "oracle"])
 
     @property
+    def reflects_indexes_w_sorting(self):
+        # TODO: figure out what's happening on the SQLAlchemy side
+        # when we reflect an index that has asc() / desc() on the column
+        return exclusions.fails_on(["oracle"])
+
+    @property
+    def long_names(self):
+        if sqla_compat.sqla_14:
+            return exclusions.skip_if("oracle<18")
+        else:
+            return exclusions.skip_if("oracle")
+
+    @property
     def reflects_pk_names(self):
         """Target driver reflects the name of primary key constraints."""
 

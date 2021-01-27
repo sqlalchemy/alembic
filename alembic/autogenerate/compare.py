@@ -244,7 +244,8 @@ def _make_index(params, conn_table):
     ix = sa_schema.Index(
         params["name"],
         *[conn_table.c[cname] for cname in params["column_names"]],
-        unique=params["unique"]
+        unique=params["unique"],
+        _table=conn_table
     )
     if "duplicates_constraint" in params:
         ix.info["duplicates_constraint"] = params["duplicates_constraint"]
@@ -705,9 +706,20 @@ def _compare_indexes_and_uniques(
                     ops.AddConstraintOp.from_constraint(new.const)
                 )
 
-    for added_name in sorted(set(metadata_names).difference(conn_names)):
-        obj = metadata_names[added_name]
-        obj_added(obj)
+    for removed_name in sorted(set(conn_names).difference(metadata_names)):
+        conn_obj = conn_names[removed_name]
+        if not conn_obj.is_index and conn_obj.sig in unnamed_metadata_uniques:
+            continue
+        elif removed_name in doubled_constraints:
+            if (
+                conn_obj.sig not in metadata_indexes_by_sig
+                and conn_obj.sig not in metadata_uniques_by_sig
+            ):
+                conn_uq, conn_idx = doubled_constraints[removed_name]
+                obj_removed(conn_uq)
+                obj_removed(conn_idx)
+        else:
+            obj_removed(conn_obj)
 
     for existing_name in sorted(set(metadata_names).intersection(conn_names)):
         metadata_obj = metadata_names[existing_name]
@@ -739,20 +751,9 @@ def _compare_indexes_and_uniques(
             if msg:
                 obj_changed(conn_obj, metadata_obj, msg)
 
-    for removed_name in sorted(set(conn_names).difference(metadata_names)):
-        conn_obj = conn_names[removed_name]
-        if not conn_obj.is_index and conn_obj.sig in unnamed_metadata_uniques:
-            continue
-        elif removed_name in doubled_constraints:
-            if (
-                conn_obj.sig not in metadata_indexes_by_sig
-                and conn_obj.sig not in metadata_uniques_by_sig
-            ):
-                conn_uq, conn_idx = doubled_constraints[removed_name]
-                obj_removed(conn_uq)
-                obj_removed(conn_idx)
-        else:
-            obj_removed(conn_obj)
+    for added_name in sorted(set(metadata_names).difference(conn_names)):
+        obj = metadata_names[added_name]
+        obj_added(obj)
 
     for uq_sig in unnamed_metadata_uniques:
         if uq_sig not in conn_uniques_by_sig:
