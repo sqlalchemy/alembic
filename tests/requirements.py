@@ -59,7 +59,7 @@ class DefaultRequirements(SuiteRequirements):
 
     @property
     def reflects_fk_options(self):
-        return exclusions.only_on(["postgresql", "mysql", "mariadb", "sqlite"])
+        return exclusions.open()
 
     @property
     def fk_initially(self):
@@ -69,15 +69,38 @@ class DefaultRequirements(SuiteRequirements):
     @property
     def fk_deferrable(self):
         """backend supports DEFERRABLE option in foreign keys"""
-        return exclusions.only_on(["postgresql"])
+        return exclusions.only_on(["postgresql", "oracle"])
 
     @property
-    def flexible_fk_cascades(self):
-        """target database must support ON UPDATE/DELETE..CASCADE with the
-        full range of keywords (e.g. NO ACTION, etc.)"""
+    def fk_deferrable_is_reflected(self):
+        return self.fk_deferrable + exclusions.fails_on("oracle")
 
-        return exclusions.skip_if(
-            ["oracle"], "target backend has poor FK cascade syntax"
+    @property
+    def fk_ondelete_restrict(self):
+        return exclusions.only_on(["postgresql", "sqlite", "mysql"])
+
+    @property
+    def fk_onupdate_restrict(self):
+        return self.fk_onupdate + exclusions.fails_on(["mssql"])
+
+    @property
+    def fk_ondelete_noaction(self):
+        return exclusions.only_on(
+            ["postgresql", "mysql", "mariadb", "sqlite", "mssql"]
+        )
+
+    @property
+    def fk_ondelete_is_reflected(self):
+        return exclusions.fails_on(["mssql"])
+
+    @property
+    def fk_onupdate_is_reflected(self):
+        return self.fk_onupdate + exclusions.fails_on(["mssql"])
+
+    @property
+    def fk_onupdate(self):
+        return exclusions.only_on(
+            ["postgresql", "mysql", "mariadb", "sqlite", "mssql"]
         )
 
     @property

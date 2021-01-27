@@ -129,6 +129,17 @@ def _exec_on_inspector(inspector, statement, **params):
         return inspector.bind.execute(statement, params)
 
 
+def _nullability_might_be_unset(metadata_column):
+    if not sqla_14:
+        return metadata_column.nullable
+    else:
+        from sqlalchemy.sql import schema
+
+        return (
+            metadata_column._user_defined_nullable is schema.NULL_UNSPECIFIED
+        )
+
+
 def _server_default_is_computed(*server_default):
     if not has_computed:
         return False

@@ -555,7 +555,15 @@ class DefaultImpl(with_metaclass(ImplMeta)):
 
         diff.difference_update(self.identity_attrs_ignore)
 
-        return diff, ignored
+        # returns 3 values:
+        return (
+            # different identity attributes
+            diff,
+            # ignored identity attributes
+            ignored,
+            # if the two identity should be considered different
+            bool(diff) or bool(metadata_identity) != bool(inspector_identity),
+        )
 
 
 def _compare_identity_options(

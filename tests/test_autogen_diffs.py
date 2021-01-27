@@ -1880,13 +1880,13 @@ class AutoincrementTest(AutogenFixtureTest, TestBase):
         Table(
             "a",
             m1,
-            Column("id", Integer, primary_key=True),
+            Column("id", Integer, primary_key=True, autoincrement=False),
             Column("x", Integer, autoincrement=True),
         )
         Table(
             "a",
             m2,
-            Column("id", Integer, primary_key=True),
+            Column("id", Integer, primary_key=True, autoincrement=False),
             Column("x", BigInteger, autoincrement=True),
         )
 

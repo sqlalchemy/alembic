@@ -319,7 +319,7 @@ def visit_identity_column(element, compiler, **kw):
         return text
     else:
         # alter identity
-        diff, _ = element.impl._compare_identity_default(
+        diff, _, _ = element.impl._compare_identity_default(
             element.default, element.existing_server_default
         )
         identity = element.default

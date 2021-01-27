@@ -118,7 +118,7 @@ class AutogenerateComputedTest(AutogenFixtureTest, TestBase):
             [mock.call("Computed default on user.foo cannot be modified")],
         )
 
-        eq_(len(diffs), 0)
+        eq_(list(diffs), [])
 
     @testing.combinations(
         lambda: (None, None),
@@ -157,7 +157,7 @@ class AutogenerateComputedTest(AutogenFixtureTest, TestBase):
             diffs = self._fixture(m1, m2)
         eq_(mock_warn.mock_calls, [])
 
-        eq_(len(diffs), 0)
+        eq_(list(diffs), [])
 
     @config.requirements.computed_reflects_as_server_default
     def test_remove_computed_default_on_computed(self):

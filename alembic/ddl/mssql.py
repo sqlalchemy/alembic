@@ -178,6 +178,42 @@ class MSSQLImpl(DefaultImpl):
             table_name, column, schema=schema, **kw
         )
 
+    def compare_server_default(
+        self,
+        inspector_column,
+        metadata_column,
+        rendered_metadata_default,
+        rendered_inspector_default,
+    ):
+        def clean(value):
+            if value is not None:
+                value = value.strip()
+                while value[0] == "(" and value[-1] == ")":
+                    value = value[1:-1]
+            return value
+
+        return clean(rendered_inspector_default) != clean(
+            rendered_metadata_default
+        )
+
+    def _compare_identity_default(self, metadata_identity, inspector_identity):
+        diff, ignored, is_alter = super(
+            MSSQLImpl, self
+        )._compare_identity_default(metadata_identity, inspector_identity)
+
+        if (
+            metadata_identity is None
+            and inspector_identity is not None
+            and not diff
+            and inspector_identity.column is not None
+            and inspector_identity.column.primary_key
+        ):
+            # mssql reflect primary keys with autoincrement as identity
+            # columns. if no different attributes are present ignore them
+            is_alter = False
+
+        return diff, ignored, is_alter
+
 
 class _ExecDropConstraint(Executable, ClauseElement):
     def __init__(self, tname, colname, type_, schema):

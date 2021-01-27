@@ -847,8 +847,16 @@ def _compare_nullable(
     alter_column_op.existing_nullable = conn_col_nullable
 
     if conn_col_nullable is not metadata_col_nullable:
-        if sqla_compat._server_default_is_identity(
-            metadata_col.server_default, conn_col.server_default
+        if (
+            sqla_compat._server_default_is_computed(
+                metadata_col.server_default, conn_col.server_default
+            )
+            and sqla_compat._nullability_might_be_unset(metadata_col)
+            or (
+                sqla_compat._server_default_is_identity(
+                    metadata_col.server_default, conn_col.server_default
+                )
+            )
         ):
             log.info(
                 "Ignoring nullable change on identity column '%s.%s'",
@@ -1025,11 +1033,11 @@ def _compare_identity_default(
     metadata_col,
 ):
     impl = autogen_context.migration_context.impl
-    diff, ignored_attr = impl._compare_identity_default(
+    diff, ignored_attr, is_alter = impl._compare_identity_default(
         metadata_col.server_default, conn_col.server_default
     )
 
-    return diff
+    return diff, is_alter
 
 
 @comparators.dispatch_for("column")
@@ -1076,7 +1084,7 @@ def _compare_server_default(
         metadata_default, conn_col_default
     ):
         alter_column_op.existing_server_default = conn_col_default
-        is_diff = _compare_identity_default(
+        diff, is_alter = _compare_identity_default(
             autogen_context,
             alter_column_op,
             schema,
@@ -1085,15 +1093,15 @@ def _compare_server_default(
             conn_col,
             metadata_col,
         )
-        if is_diff or (bool(conn_col_default) != bool(metadata_default)):
+        if is_alter:
             alter_column_op.modify_server_default = metadata_default
-            if is_diff:
+            if diff:
                 log.info(
                     "Detected server default on column '%s.%s': "
                     "identity options attributes %s",
                     tname,
                     cname,
-                    sorted(is_diff),
+                    sorted(diff),
                 )
     else:
         rendered_metadata_default = _render_server_default_for_compare(
