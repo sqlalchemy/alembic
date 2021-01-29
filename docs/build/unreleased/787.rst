@@ -1,8 +1,0 @@
-.. change::
-    :tags: bug, autogenerate, mssql
-    :tickets: 787
-
-    Fixed assorted autogenerate issues with SQL Server:
-
-    * ignore default reflected identity on primary_key columns
-    * improve server default comparison

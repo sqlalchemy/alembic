@@ -1,7 +1,0 @@
-.. change::
-    :tags: bug, mysql, autogenerate
-    :tickets: 788
-
-    Fixed issue where autogenerate rendering of ``op.alter_column()`` would
-    fail to include MySQL ``existing_nullable=False`` if the column were part
-    of a primary key constraint within the table metadata.

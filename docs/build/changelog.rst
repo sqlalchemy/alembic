@@ -5,7 +5,36 @@ Changelog
 
 .. changelog::
     :version: 1.5.3
-    :include_notes_from: unreleased
+    :released: January 29, 2021
+
+    .. change::
+        :tags: bug, autogenerate
+        :tickets: 786
+
+        Changed the default ordering of "CREATE" and "DROP" statements indexes and
+        unique constraints within the autogenerate process, so that for example in
+        an upgrade() operation, a particular index or constraint that is to be
+        replaced such as for a casing convention change will not produce any naming
+        conflicts. For foreign key constraint objects, this is already how
+        constraints are ordered, and for table objects, users would normally want
+        to use :meth:`.Operations.rename_table` in any case.
+
+    .. change::
+        :tags: bug, autogenerate, mssql
+        :tickets: 787
+
+        Fixed assorted autogenerate issues with SQL Server:
+
+        * ignore default reflected identity on primary_key columns
+        * improve server default comparison
+
+    .. change::
+        :tags: bug, mysql, autogenerate
+        :tickets: 788
+
+        Fixed issue where autogenerate rendering of ``op.alter_column()`` would
+        fail to include MySQL ``existing_nullable=False`` if the column were part
+        of a primary key constraint within the table metadata.
 
 .. changelog::
     :version: 1.5.2
