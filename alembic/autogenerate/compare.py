@@ -838,10 +838,6 @@ def _compare_nullable(
     metadata_col,
 ):
 
-    # work around SQLAlchemy issue #3023
-    if metadata_col.primary_key:
-        return
-
     metadata_col_nullable = metadata_col.nullable
     conn_col_nullable = conn_col.nullable
     alter_column_op.existing_nullable = conn_col_nullable
