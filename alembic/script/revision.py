@@ -771,6 +771,15 @@ class RevisionMap(object):
 
         """
 
+        if select_for_downgrade:
+            return self._iterate_revisions(
+                upper,
+                lower,
+                inclusive=inclusive,
+                implicit_base=implicit_base,
+                select_for_downgrade=select_for_downgrade,
+            )
+
         relative_upper = self._relative_iterate(
             upper,
             lower,
@@ -886,6 +895,122 @@ class RevisionMap(object):
                         )
                     )
 
+    def topological_sort(self, revisions, reverse=False):
+        """Yield revision ids of a collection of Revision objects in
+        topological sorted order (i.e. revisions always come after their
+        down_revisions and dependencies)."""
+        allitems = [d.revision for d in revisions]
+        edges = [
+            (rev, child.revision)
+            for child in revisions
+            if child.down_revision is not None
+            for rev in util.to_tuple(child.down_revision)
+        ] + [
+            (parent, child.revision)
+            for child in revisions
+            if child.dependencies is not None
+            for parent in util.to_tuple(child.dependencies)
+        ]
+        return sqlautil.topological.sort(edges, allitems)
+
+    def walk_down(self, start, steps, label):
+        """ Walk down the tree along a single path. """
+        assert steps <= 0
+        if isinstance(start, compat.string_types):
+            start = self.get_revision(start)
+        if steps == 0:
+            return start
+        if start is None:
+            raise ValueError("Can't walk back past base.")
+        children = self.get_revisions(start.down_revision)
+        if len(children) == 0:
+            raise util.CommandError(
+                f"Relative revision {label} didn't produce "
+                f"{abs(int(label))} migrations"
+            )
+        assert len(children) == 1
+        return self.walk_down(next(iter(children)), steps + 1, label)
+
+    def walk(self, start, steps, branch_label):
+        """ Walk up the tree along a single path. """
+        assert steps >= 0
+        if isinstance(start, compat.string_types):
+            start = self.get_revision(start)
+        if steps == 0:
+            return start
+        if start is None:
+            roots = [
+                rev
+                for rev in self._revision_map.values()
+                if rev is not None and rev.down_revision is None
+            ]
+            assert len(roots) == 1
+            return self.walk(roots[0], steps - 1, branch_label)
+        children = [
+            rev
+            for rev in self.get_revisions(start.nextrev)
+            if branch_label is None or branch_label in rev.branch_labels
+        ]
+        assert len(children) == 1
+        return self.walk(next(iter(children)), steps - 1, branch_label)
+
+    def _drop_inclusive(self, branch_revision, upper):
+        # Aim then is to drop :branch_revision; to do so we also need
+        # to drop its descendents and anything dependent on it.
+        drop_revisions = set(
+            self._get_descendant_nodes(
+                branch_revision,
+                include_dependencies=True,
+                omit_immediate_dependencies=False,
+            )
+        )
+        # Set logic/walking full tree might get expensive?
+        active_revisions = set(
+            self._get_ancestor_nodes(
+                self.get_revisions(upper), include_dependencies=True
+            )
+        )
+
+        # Emit revisions to drop in reverse topological sorted order.
+        drop_revisions = drop_revisions.intersection(active_revisions)
+
+        if len(drop_revisions) == 0:
+            # Empty intersection: target revs are not present.
+            raise RangeNotAncestorError(None, upper)
+
+        drop_reverse_topo_sorted = list(
+            reversed(list(self.topological_sort(drop_revisions)))
+        )
+        yield from self.get_revisions(drop_reverse_topo_sorted)
+
+    def _parse_downgrade(self, upper, lower):
+        # Parse lower: target revision + branch labels.
+        if lower is None:
+            return None, None
+        if isinstance(lower, compat.string_types):
+            match = _relative_destination.match(lower)
+            if match:
+                branch_label, symbol, relative = match.groups()
+                rel_int = int(relative)
+                if rel_int >= 0:
+                    return branch_label, self.walk(
+                        symbol, rel_int, branch_label
+                    )
+                else:
+                    if symbol is None:
+                        uppers = util.to_tuple(upper)
+                        assert len(uppers) == 1
+                        symbol = uppers[0]
+                    return branch_label, self.walk_down(
+                        symbol, rel_int, relative
+                    )
+            elif "@" in lower:
+                branch_label, _, symbol = lower.partition("@")
+                return branch_label, self.get_revision(symbol)
+            else:
+                return None, self.get_revision(lower)
+        raise ValueError(f"Failed to parse downgrade input '{lower}'")
+
     def _iterate_revisions(
         self,
         upper,
@@ -900,6 +1025,44 @@ class RevisionMap(object):
         across branches as a whole.
 
         """
+
+        if select_for_downgrade:
+
+            branch_label, target_revision = self._parse_downgrade(upper, lower)
+            # Find candidates to drop.
+            if target_revision is None:
+                # Downgrading back to base: find all tree roots.
+                roots = [
+                    rev
+                    for rev in self._revision_map.values()
+                    if rev is not None and rev.down_revision is None
+                ]
+            else:
+                # Downgrading to fixed target: find all direct children.
+                roots = list(self.get_revisions(target_revision.nextrev))
+
+            if branch_label and len(roots) > 1:
+                # Need to filter roots.
+                ancestors = {
+                    rev.revision
+                    for rev in self._get_ancestor_nodes(
+                        [self._resolve_branch(branch_label)],
+                        include_dependencies=False,
+                    )
+                }
+                # Intersection gives the root revisions we are trying to
+                # rollback with the downgrade.
+                roots = list(
+                    self.get_revisions(
+                        {rev.revision for rev in roots}.intersection(ancestors)
+                    )
+                )
+
+            # Ensure we didn't throw everything away.
+            assert len(roots) > 0, "No revisions identified to downgrade."
+
+            yield from self._drop_inclusive(roots, upper)
+            return
 
         requested_lowers = self.get_revisions(lower)
 
