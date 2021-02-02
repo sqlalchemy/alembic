@@ -1,3 +1,5 @@
+import pytest
+
 from alembic import util
 from alembic.migration import HeadMaintainer
 from alembic.migration import MigrationStep
@@ -308,13 +310,169 @@ class BranchedPathTest(MigrationTest):
             set([self.c2.revision]),
         )
 
-    def test_relative_downgrade(self):
+    @pytest.mark.xfail
+    def test_relative_downgrade_baseplus2(self):
+        """Fails: alembic.util.exc.CommandError: Can't locate revision
+        identified by 'base'; even though it can find 'base' as a revision
+        marker on its own or with @branch syntax"""
+        # Fail
+        self._assert_downgrade(
+            "base+2",
+            [self.d2.revision, self.d1.revision],
+            [
+                self.down_(self.d2),
+                self.down_(self.c2),
+                self.down_(self.d1),
+                self.down_(self.c1),
+            ],
+            set([self.b.revision]),
+        )
 
+    @pytest.mark.xfail
+    def test_relative_downgrade_branchplus2(self):
+        """Fails: goes one revision too far forward? Currently behaves as
+        expected for base+3."""
+        # Previous passing behaviour (downgrades both branches but leaves one stray)
+        # self._assert_downgrade(
+        #     "c2branch@base+2",
+        #     [self.d2.revision, self.d1.revision],
+        #     [
+        #         self.down_(self.d2),
+        #         self.down_(self.c2),
+        #         self.down_(self.d1),
+        #     ],
+        #     set([self.c1.revision]),
+        # )
+        # Correct behaviour (per https://github.com/sqlalchemy/alembic/pull/763#issuecomment-738741297)
+        # Only the c2branch should be downgraded, right back to base+2 = b
         self._assert_downgrade(
             "c2branch@base+2",
             [self.d2.revision, self.d1.revision],
-            [self.down_(self.d2), self.down_(self.c2), self.down_(self.d1)],
+            [
+                self.down_(self.d2),
+                self.down_(self.c2),
+            ],
+            set([self.d1.revision]),
+        )
+
+    @pytest.mark.xfail
+    def test_relative_downgrade_branchplus3(self):
+        """ Fails: Expected c2branch@base+3 to be equivalent to c2. """
+        # Pass (expected)
+        self._assert_downgrade(
+            self.c2.revision,
+            [self.d2.revision, self.d1.revision],
+            [self.down_(self.d2)],
+            set([self.d1.revision, self.c2.revision]),
+        )
+        # Previous passing behaviour
+        # self._assert_downgrade(
+        #     "c2branch@base+3",
+        #     [self.d2.revision, self.d1.revision],
+        #     [self.down_(self.d2), self.down_(self.c2)],
+        #     set([self.d1.revision]),
+        # )
+        # Fail
+        self._assert_downgrade(
+            "c2branch@base+3",
+            [self.d2.revision, self.d1.revision],
+            [self.down_(self.d2)],
+            set([self.d1.revision, self.c2.revision]),
+        )
+
+    # Downgrade -1 behaviour depends on order of branch upgrades
+    # This should probably fail (ambiguous) but is currently documented.
+
+    def test_downgrade_once_order_right(self):
+        # Passes
+        self._assert_downgrade(
+            "-1",
+            [self.d2.revision, self.d1.revision],
+            [self.down_(self.d2)],
+            set([self.d1.revision, self.c2.revision]),
+        )
+
+    @pytest.mark.xfail
+    def test_downgrade_once_order_left(self):
+        # Fails (downgrades the opposite branch to previous test)
+        self._assert_downgrade(
+            "-1",
+            [self.d1.revision, self.d2.revision],
+            [self.down_(self.d2)],
+            set([self.d1.revision, self.c2.revision]),
+        )
+
+    # Relative revision downgrade downgrades both branches in some cases
+
+    def test_downgrade_relative_order_right(self):
+        # Passes
+        self._assert_downgrade(
+            "{}-1".format(self.d2.revision),
+            [self.d2.revision, self.c1.revision],
+            [self.down_(self.d2)],
+            set([self.c1.revision, self.c2.revision]),
+        )
+
+    @pytest.mark.xfail
+    def test_downgrade_relative_order_left(self):
+        # Fails: downgrades both branches; behaviour should match previous test
+        self._assert_downgrade(
+            "{}-1".format(self.d2.revision),
+            [self.c1.revision, self.d2.revision],
+            [self.down_(self.d2)],
+            set([self.c1.revision, self.c2.revision]),
+        )
+
+    @pytest.mark.xfail
+    def test_downgrade_single_branch_c1branch(self):
+        """ Use branch label to specify the branch to downgrade. """
+        self._assert_downgrade(
+            "c1branch@{}".format(self.b.revision),
+            (self.c1.revision, self.d2.revision),
+            [
+                self.down_(self.c1),
+            ],
+            set([self.d2.revision]),
+        )
+
+    @pytest.mark.xfail
+    def test_downgrade_single_branch_c1branch_from_d1_head(self):
+        """Use branch label to specify the branch (where the branch label is
+        not on the head revision)."""
+        self._assert_downgrade(
+            "c2branch@{}".format(self.b.revision),
+            (self.c1.revision, self.d2.revision),
+            [
+                self.down_(self.d2),
+                self.down_(self.c2),
+            ],
             set([self.c1.revision]),
+        )
+
+    @pytest.mark.xfail
+    def test_downgrade_single_branch_c2(self):
+        """Use a revision on the branch (not head) to specify the branch."""
+        self._assert_downgrade(
+            "{}@{}".format(self.c2.revision, self.b.revision),
+            (self.d1.revision, self.d2.revision),
+            [
+                self.down_(self.d2),
+                self.down_(self.c2),
+            ],
+            set([self.d1.revision]),
+        )
+
+    @pytest.mark.xfail
+    def test_downgrade_single_branch_d1(self):
+        """ Use the head revision to specify the branch. """
+        self._assert_downgrade(
+            "{}@{}".format(self.d1.revision, self.b.revision),
+            (self.d1.revision, self.d2.revision),
+            [
+                self.down_(self.d1),
+                self.down_(self.c1),
+            ],
+            set([self.d2.revision]),
         )
 
 
@@ -1134,3 +1292,73 @@ class MergedPathTest(MigrationTest):
                 self.down_(self.c2),  # c2->b, delete branch
             ],
         )
+
+
+class BranchedPathTestCrossDependencies(MigrationTest):
+    @classmethod
+    def setup_class(cls):
+        cls.env = env = staging_env()
+        cls.a = env.generate_revision(util.rev_id(), "->a")
+        cls.b = env.generate_revision(util.rev_id(), "a->b")
+
+        cls.c1 = env.generate_revision(
+            util.rev_id(), "b->c1", branch_labels="c1branch", refresh=True
+        )
+        cls.d1 = env.generate_revision(util.rev_id(), "c1->d1")
+
+        cls.c2 = env.generate_revision(
+            util.rev_id(),
+            "b->c2",
+            branch_labels="c2branch",
+            head=cls.b.revision,
+            splice=True,
+        )
+        cls.d2 = env.generate_revision(
+            util.rev_id(),
+            "c2->d2",
+            head=cls.c2.revision,
+            depends_on=(cls.c1.revision,),
+        )
+
+    @classmethod
+    def teardown_class(cls):
+        clear_staging_env()
+
+    @pytest.mark.xfail
+    def test_downgrade_independent_branch(self):
+        """ c2branch depends on c1branch so can be taken down on its own.
+        Current behaviour also takes down the dependency unnecessarily. """
+        self._assert_downgrade(
+            "c2branch@{}".format(self.b.revision),
+            (self.d1.revision, self.d2.revision),
+            [
+                self.down_(self.d2),
+                self.down_(self.c2),
+            ],
+            set([self.d1.revision]),
+        )
+
+    def test_downgrade_branch_dependency(self):
+        """c2branch depends on c1branch so taking down c1branch requires taking
+        down both"""
+        destination = "c1branch@{}".format(self.b.revision)
+        source = self.d1.revision, self.d2.revision
+        revs = self.env._downgrade_revs(destination, source)
+        # Full ordering of migrations is not consistent so verify partial
+        # ordering only.
+        rev_ids = [rev.revision.revision for rev in revs]
+        assert rev_ids.index(self.d2.revision) < rev_ids.index(
+            self.c2.revision
+        )
+        assert rev_ids.index(self.d1.revision) < rev_ids.index(
+            self.c1.revision
+        )
+        assert rev_ids.index(self.d2.revision) < rev_ids.index(
+            self.c1.revision
+        )
+        # Verify final state.
+        heads = set(util.to_tuple(source, default=()))
+        head = HeadMaintainer(mock.Mock(), heads)
+        for rev in revs:
+            head.update_to_step(rev)
+        eq_(head.heads, set([self.b.revision]))
