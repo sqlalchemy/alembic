@@ -1244,6 +1244,9 @@ class DepResolutionFailedTest(DownIterateTest):
         self.map._revision_map["fake"] = self.map._revision_map["a2"]
         self.map._revision_map["b1"].dependencies = "fake"
         self.map._revision_map["b1"]._resolved_dependencies = ("fake",)
+        self.map._revision_map["b1"]._normalized_resolved_dependencies = (
+            "fake",
+        )
 
     def test_failure_message(self):
         iter_ = self.map.iterate_revisions("c1", "base1")
@@ -1501,4 +1504,91 @@ class GraphWithCycleTest(InvalidRevisionMapTest):
         )
         self._assert_raises_revision_map_dep_cycle(
             map_, ["a", "b", "c", "d", "e"]
+        )
+
+
+class NormalizedDownRevTest(DownIterateTest):
+    def setUp(self):
+        self.map = RevisionMap(
+            lambda: [
+                Revision("a1", ()),
+                Revision("a2", "a1"),
+                Revision("a3", "a2"),
+                Revision("b1", ()),
+                Revision("b2", "b1", dependencies="a3"),
+                Revision("b3", "b2"),
+                Revision("b4", "b3", dependencies="a3"),
+                Revision("b5", "b4"),
+            ]
+        )
+
+    def test_normalized_down_revisions(self):
+        b4 = self.map.get_revision("b4")
+
+        eq_(b4._all_down_revisions, ("b3", "a3"))
+
+        # "a3" is not included because ancestor b2 is also dependent
+        eq_(b4._normalized_down_revisions, ("b3",))
+
+    def test_branch_traversal(self):
+        self._assert_iteration(
+            "b4",
+            "b1@base",
+            ["b4", "b3", "b2", "b1"],
+            select_for_downgrade=True,
+        )
+
+    def test_all_traversal(self):
+        self._assert_iteration(
+            "heads",
+            "base",
+            ["b5", "b4", "b3", "b2", "b1", "a3", "a2", "a1"],
+            select_for_downgrade=True,
+        )
+
+    def test_partial_traversal(self):
+        self._assert_iteration(
+            "heads",
+            "a2",
+            ["b5", "b4", "b3", "b2", "a3", "a2"],
+            select_for_downgrade=True,
+        )
+
+    def test_partial_traversal_implicit_base_one(self):
+        self._assert_iteration(
+            "heads",
+            "a2",
+            ["b5", "b4", "b3", "b2", "b1", "a3", "a2"],
+            select_for_downgrade=True,
+            implicit_base=True,
+        )
+
+    def test_partial_traversal_implicit_base_two(self):
+        self._assert_iteration(
+            "b5",
+            ("b1",),
+            ["b5", "b4", "b3", "b2", "b1", "a3", "a2", "a1"],
+            implicit_base=True,
+        )
+
+    def test_partial_traversal_implicit_base_three(self):
+        map_ = RevisionMap(
+            lambda: [
+                Revision("c1", ()),
+                Revision("a1", ()),
+                Revision("a2", "a1", dependencies="c1"),
+                Revision("a3", "a2", dependencies="c1"),
+                Revision("b1", ()),
+                Revision("b2", "b1", dependencies="a3"),
+                Revision("b3", "b2"),
+                Revision("b4", "b3", dependencies="a3"),
+                Revision("b5", "b4"),
+            ]
+        )
+        self._assert_iteration(
+            "b5",
+            ("b1",),
+            ["b5", "b4", "b3", "b2", "b1", "a3", "a2", "a1", "c1"],
+            implicit_base=True,
+            map_=map_,
         )

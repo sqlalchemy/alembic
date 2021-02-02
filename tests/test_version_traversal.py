@@ -771,6 +771,7 @@ class DependsOnBranchTestTwo(MigrationTest):
                     self.amerge.revision,
                     self.b1.revision,
                     self.cmerge.revision,
+                    # b2 isn't here, but d1 is, which implies b2. OK!
                     self.d1.revision,
                 ]
             ),
@@ -789,11 +790,11 @@ class DependsOnBranchTestTwo(MigrationTest):
             "d1@base",
             heads,
             [self.down_(self.d1)],
-            # b2 has to be INSERTed, because it was implied by d1
             set(
                 [
                     self.amerge.revision,
                     self.b1.revision,
+                    # b2 has to be INSERTed, because it was implied by d1
                     self.b2.revision,
                     self.cmerge.revision,
                 ]
@@ -875,6 +876,43 @@ class DependsOnBranchTestThree(MigrationTest):
             ["a3", "b2"],
             [self.down_(self.b2)],
             set(["a3"]),  # we have b1 also, which is implied by a3
+        )
+
+
+class DependsOnBranchTestFour(MigrationTest):
+    @classmethod
+    def setup_class(cls):
+        """
+        test issue #789
+        """
+        cls.env = env = staging_env()
+        cls.a1 = env.generate_revision("a1", "->a1", head="base")
+        cls.a2 = env.generate_revision("a2", "->a2")
+        cls.a3 = env.generate_revision("a3", "->a3")
+
+        cls.b1 = env.generate_revision("b1", "->b1", head="base")
+        cls.b2 = env.generate_revision(
+            "b2", "->b2", head="b1", depends_on="a3"
+        )
+        cls.b3 = env.generate_revision("b3", "->b3", head="b2")
+        cls.b4 = env.generate_revision(
+            "b4", "->b4", head="b3", depends_on="a3"
+        )
+
+    @classmethod
+    def teardown_class(cls):
+        clear_staging_env()
+
+    def test_dependencies_are_normalized(self):
+
+        heads = [self.b4.revision]
+
+        self._assert_downgrade(
+            self.b3.revision,
+            heads,
+            [self.down_(self.b4)],
+            # a3 isn't here, because b3 still implies a3
+            set([self.b3.revision]),
         )
 
 

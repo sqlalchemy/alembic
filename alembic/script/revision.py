@@ -151,8 +151,10 @@ class RevisionMap(object):
         _real_bases = ()
 
         has_branch_labels = set()
-        has_depends_on = set()
+        all_revisions = set()
+
         for revision in self._generator():
+            all_revisions.add(revision)
 
             if revision.revision in map_:
                 util.warn(
@@ -161,8 +163,7 @@ class RevisionMap(object):
             map_[revision.revision] = revision
             if revision.branch_labels:
                 has_branch_labels.add(revision)
-            if revision.dependencies:
-                has_depends_on.add(revision)
+
             heads.add(revision)
             _real_heads.add(revision)
             if revision.is_base:
@@ -173,11 +174,11 @@ class RevisionMap(object):
         # add the branch_labels to the map_.  We'll need these
         # to resolve the dependencies.
         rev_map = map_.copy()
-        for revision in has_branch_labels:
-            self._map_branch_labels(revision, map_)
+        self._map_branch_labels(has_branch_labels, map_)
 
-        for revision in has_depends_on:
-            self._add_depends_on(revision, map_)
+        # resolve dependency names from branch labels and symbolic
+        # names
+        self._add_depends_on(all_revisions, map_)
 
         for rev in map_.values():
             for downrev in rev._all_down_revisions:
@@ -192,40 +193,11 @@ class RevisionMap(object):
                     heads.discard(down_revision)
                 _real_heads.discard(down_revision)
 
-        if rev_map:
-            if not heads or not bases:
-                raise CycleDetected(rev_map.keys())
-            total_space = {
-                rev.revision
-                for rev in self._iterate_related_revisions(
-                    lambda r: r._versioned_down_revisions, heads, map_=rev_map
-                )
-            }.intersection(
-                rev.revision
-                for rev in self._iterate_related_revisions(
-                    lambda r: r.nextrev, bases, map_=rev_map
-                )
-            )
-            deleted_revs = set(rev_map.keys()) - total_space
-            if deleted_revs:
-                raise CycleDetected(sorted(deleted_revs))
-
-            if not _real_heads or not _real_bases:
-                raise DependencyCycleDetected(rev_map.keys())
-            total_space = {
-                rev.revision
-                for rev in self._iterate_related_revisions(
-                    lambda r: r._all_down_revisions, _real_heads, map_=rev_map
-                )
-            }.intersection(
-                rev.revision
-                for rev in self._iterate_related_revisions(
-                    lambda r: r._all_nextrev, _real_bases, map_=rev_map
-                )
-            )
-            deleted_revs = set(rev_map.keys()) - total_space
-            if deleted_revs:
-                raise DependencyCycleDetected(sorted(deleted_revs))
+        # once the map has downrevisions populated, the dependencies
+        # can be further refined to include only those which are not
+        # already ancestors
+        self._normalize_depends_on(all_revisions, map_)
+        self._detect_cycles(rev_map, heads, bases, _real_heads, _real_bases)
 
         map_[None] = map_[()] = None
         self.heads = tuple(rev.revision for rev in heads)
@@ -233,53 +205,140 @@ class RevisionMap(object):
         self.bases = tuple(rev.revision for rev in bases)
         self._real_bases = tuple(rev.revision for rev in _real_bases)
 
-        for revision in has_branch_labels:
-            self._add_branches(revision, map_, map_branch_labels=False)
+        self._add_branches(has_branch_labels, map_)
         return map_
 
-    def _map_branch_labels(self, revision, map_):
-        if revision.branch_labels:
-            for branch_label in revision._orig_branch_labels:
-                if branch_label in map_:
-                    raise RevisionError(
-                        "Branch name '%s' in revision %s already "
-                        "used by revision %s"
-                        % (
-                            branch_label,
-                            revision.revision,
-                            map_[branch_label].revision,
+    def _detect_cycles(self, rev_map, heads, bases, _real_heads, _real_bases):
+        if not rev_map:
+            return
+        if not heads or not bases:
+            raise CycleDetected(rev_map.keys())
+        total_space = {
+            rev.revision
+            for rev in self._iterate_related_revisions(
+                lambda r: r._versioned_down_revisions, heads, map_=rev_map
+            )
+        }.intersection(
+            rev.revision
+            for rev in self._iterate_related_revisions(
+                lambda r: r.nextrev, bases, map_=rev_map
+            )
+        )
+        deleted_revs = set(rev_map.keys()) - total_space
+        if deleted_revs:
+            raise CycleDetected(sorted(deleted_revs))
+
+        if not _real_heads or not _real_bases:
+            raise DependencyCycleDetected(rev_map.keys())
+        total_space = {
+            rev.revision
+            for rev in self._iterate_related_revisions(
+                lambda r: r._all_down_revisions, _real_heads, map_=rev_map
+            )
+        }.intersection(
+            rev.revision
+            for rev in self._iterate_related_revisions(
+                lambda r: r._all_nextrev, _real_bases, map_=rev_map
+            )
+        )
+        deleted_revs = set(rev_map.keys()) - total_space
+        if deleted_revs:
+            raise DependencyCycleDetected(sorted(deleted_revs))
+
+    def _map_branch_labels(self, revisions, map_):
+        for revision in revisions:
+            if revision.branch_labels:
+                for branch_label in revision._orig_branch_labels:
+                    if branch_label in map_:
+                        raise RevisionError(
+                            "Branch name '%s' in revision %s already "
+                            "used by revision %s"
+                            % (
+                                branch_label,
+                                revision.revision,
+                                map_[branch_label].revision,
+                            )
                         )
-                    )
-                map_[branch_label] = revision
+                    map_[branch_label] = revision
 
-    def _add_branches(self, revision, map_, map_branch_labels=True):
-        if map_branch_labels:
-            self._map_branch_labels(revision, map_)
+    def _add_branches(self, revisions, map_):
+        for revision in revisions:
+            if revision.branch_labels:
+                revision.branch_labels.update(revision.branch_labels)
+                for node in self._get_descendant_nodes(
+                    [revision], map_, include_dependencies=False
+                ):
+                    node.branch_labels.update(revision.branch_labels)
 
-        if revision.branch_labels:
-            revision.branch_labels.update(revision.branch_labels)
-            for node in self._get_descendant_nodes(
-                [revision], map_, include_dependencies=False
-            ):
-                node.branch_labels.update(revision.branch_labels)
+                parent = node
+                while (
+                    parent
+                    and not parent._is_real_branch_point
+                    and not parent.is_merge_point
+                ):
 
-            parent = node
-            while (
-                parent
-                and not parent._is_real_branch_point
-                and not parent.is_merge_point
-            ):
+                    parent.branch_labels.update(revision.branch_labels)
+                    if parent.down_revision:
+                        parent = map_[parent.down_revision]
+                    else:
+                        break
 
-                parent.branch_labels.update(revision.branch_labels)
-                if parent.down_revision:
-                    parent = map_[parent.down_revision]
-                else:
-                    break
+    def _add_depends_on(self, revisions, map_):
+        """Resolve the 'dependencies' for each revision in a collection
+        in terms of actual revision ids, as opposed to branch labels or other
+        symbolic names.
 
-    def _add_depends_on(self, revision, map_):
-        if revision.dependencies:
-            deps = [map_[dep] for dep in util.to_tuple(revision.dependencies)]
-            revision._resolved_dependencies = tuple([d.revision for d in deps])
+        The collection is then assigned to the _resolved_dependencies
+        attribute on each revision object.
+
+        """
+
+        for revision in revisions:
+            if revision.dependencies:
+                deps = [
+                    map_[dep] for dep in util.to_tuple(revision.dependencies)
+                ]
+                revision._resolved_dependencies = tuple(
+                    [d.revision for d in deps]
+                )
+            else:
+                revision._resolved_dependencies = ()
+
+    def _normalize_depends_on(self, revisions, map_):
+        """Create a collection of "dependencies" that omits dependencies
+        that are already ancestor nodes for each revision in a given
+        collection.
+
+        This builds upon the _resolved_dependencies collection created in the
+        _add_depends_on() method, looking in the fully populated revision map
+        for ancestors, and omitting them as the _resolved_dependencies
+        collection as it is copied to a new collection. The new collection is
+        then assigned to the _normalized_resolved_dependencies attribute on
+        each revision object.
+
+        The collection is then used to determine the immediate "down revision"
+        identifiers for this revision.
+
+        """
+
+        for revision in revisions:
+            if revision._resolved_dependencies:
+                normalized_resolved = set(revision._resolved_dependencies)
+                for rev in self._get_ancestor_nodes(
+                    [revision], include_dependencies=False, map_=map_
+                ):
+                    if rev is revision:
+                        continue
+                    elif rev._resolved_dependencies:
+                        normalized_resolved.difference_update(
+                            rev._resolved_dependencies
+                        )
+
+                revision._normalized_resolved_dependencies = tuple(
+                    normalized_resolved
+                )
+            else:
+                revision._normalized_resolved_dependencies = ()
 
     def add_revision(self, revision, _replace=False):
         """add a single revision to an existing map.
@@ -297,13 +356,17 @@ class RevisionMap(object):
             raise Exception("revision %s not in map" % revision.revision)
 
         map_[revision.revision] = revision
-        self._add_branches(revision, map_)
-        self._add_depends_on(revision, map_)
+
+        revisions = [revision]
+        self._add_branches(revisions, map_)
+        self._map_branch_labels(revisions, map_)
+        self._add_depends_on(revisions, map_)
 
         if revision.is_base:
             self.bases += (revision.revision,)
         if revision._is_real_base:
             self._real_bases += (revision.revision,)
+
         for downrev in revision._all_down_revisions:
             if downrev not in map_:
                 util.warn(
@@ -311,6 +374,9 @@ class RevisionMap(object):
                     % (downrev, revision)
                 )
             map_[downrev].add_nextrev(revision)
+
+        self._normalize_depends_on(revisions, map_)
+
         if revision._is_real_head:
             self._real_heads = tuple(
                 head
@@ -773,7 +839,7 @@ class RevisionMap(object):
         if include_dependencies:
 
             def fn(rev):
-                return rev._all_down_revisions
+                return rev._normalized_down_revisions
 
         else:
 
@@ -866,7 +932,15 @@ class RevisionMap(object):
                 lower_ancestors
             ).difference(lower_descendants)
             for rev in candidate_lowers:
-                for downrev in rev._all_down_revisions:
+                # note: the use of _normalized_down_revisions as opposed
+                # to _all_down_revisions repairs
+                # an issue related to looking at a revision in isolation
+                # when updating the alembic_version table (issue #789).
+                # however, while it seems likely that using
+                # _normalized_down_revisions within traversal is more correct
+                # than _all_down_revisions, we don't yet have any case to
+                # show that it actually makes a difference.
+                for downrev in rev._normalized_down_revisions:
                     if self._revision_map[downrev] in candidate_lowers:
                         break
                 else:
@@ -971,7 +1045,7 @@ class RevisionMap(object):
                 todo.extendleft(
                     [
                         self._revision_map[downrev]
-                        for downrev in reversed(rev._all_down_revisions)
+                        for downrev in reversed(rev._normalized_down_revisions)
                         if self._revision_map[downrev] not in branch_todo
                         and downrev in total_space
                     ]
@@ -1048,7 +1122,6 @@ class Revision(object):
         self.revision = revision
         self.down_revision = tuple_rev_as_scalar(down_revision)
         self.dependencies = tuple_rev_as_scalar(dependencies)
-        self._resolved_dependencies = ()
         self._orig_branch_labels = util.to_tuple(branch_labels, default=())
         self.branch_labels = set(self._orig_branch_labels)
 
@@ -1070,6 +1143,17 @@ class Revision(object):
         return (
             util.to_tuple(self.down_revision, default=())
             + self._resolved_dependencies
+        )
+
+    @property
+    def _normalized_down_revisions(self):
+        """return immediate down revisions for a rev, omitting dependencies
+        that are still dependencies of ancestors.
+
+        """
+        return (
+            util.to_tuple(self.down_revision, default=())
+            + self._normalized_resolved_dependencies
         )
 
     @property

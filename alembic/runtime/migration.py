@@ -980,7 +980,7 @@ class RevisionStep(MigrationStep):
     @property
     def from_revisions(self):
         if self.is_upgrade:
-            return self.revision._all_down_revisions
+            return self.revision._normalized_down_revisions
         else:
             return (self.revision.revision,)
 
@@ -996,7 +996,7 @@ class RevisionStep(MigrationStep):
         if self.is_upgrade:
             return (self.revision.revision,)
         else:
-            return self.revision._all_down_revisions
+            return self.revision._normalized_down_revisions
 
     @property
     def to_revisions_no_deps(self):
@@ -1007,7 +1007,7 @@ class RevisionStep(MigrationStep):
 
     @property
     def _has_scalar_down_revision(self):
-        return len(self.revision._all_down_revisions) == 1
+        return len(self.revision._normalized_down_revisions) == 1
 
     def should_delete_branch(self, heads):
         """A delete is when we are a. in a downgrade and b.
@@ -1021,7 +1021,7 @@ class RevisionStep(MigrationStep):
         if self.revision.revision not in heads:
             return False
 
-        downrevs = self.revision._all_down_revisions
+        downrevs = self.revision._normalized_down_revisions
 
         if not downrevs:
             # is a base
@@ -1082,7 +1082,7 @@ class RevisionStep(MigrationStep):
         if not self.is_upgrade:
             return False
 
-        downrevs = self.revision._all_down_revisions
+        downrevs = self.revision._normalized_down_revisions
 
         if not downrevs:
             # is a base
@@ -1101,7 +1101,7 @@ class RevisionStep(MigrationStep):
         if not self.is_upgrade:
             return False
 
-        downrevs = self.revision._all_down_revisions
+        downrevs = self.revision._normalized_down_revisions
 
         if len(downrevs) > 1 and len(heads.intersection(downrevs)) > 1:
             return True
@@ -1112,7 +1112,7 @@ class RevisionStep(MigrationStep):
         if not self.is_downgrade:
             return False
 
-        downrevs = self.revision._all_down_revisions
+        downrevs = self.revision._normalized_down_revisions
 
         if self.revision.revision in heads and len(downrevs) > 1:
             return True
@@ -1121,13 +1121,15 @@ class RevisionStep(MigrationStep):
 
     def update_version_num(self, heads):
         if not self._has_scalar_down_revision:
-            downrev = heads.intersection(self.revision._all_down_revisions)
+            downrev = heads.intersection(
+                self.revision._normalized_down_revisions
+            )
             assert (
                 len(downrev) == 1
             ), "Can't do an UPDATE because downrevision is ambiguous"
             down_revision = list(downrev)[0]
         else:
-            down_revision = self.revision._all_down_revisions[0]
+            down_revision = self.revision._normalized_down_revisions[0]
 
         if self.is_upgrade:
             return down_revision, self.revision.revision
@@ -1147,7 +1149,7 @@ class RevisionStep(MigrationStep):
         return MigrationInfo(
             revision_map=self.revision_map,
             up_revisions=self.revision.revision,
-            down_revisions=self.revision._all_down_revisions,
+            down_revisions=self.revision._normalized_down_revisions,
             is_upgrade=self.is_upgrade,
             is_stamp=False,
         )
