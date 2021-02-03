@@ -1,3 +1,5 @@
+from sqlalchemy.testing import util as sqla_testing_util
+
 from alembic.script.revision import CycleDetected
 from alembic.script.revision import DependencyCycleDetected
 from alembic.script.revision import DependencyLoopDetected
@@ -183,8 +185,14 @@ class APITest(TestBase):
         )
 
         eq_(
-            [r.revision for r in map_._iterate_revisions(("c", "c"), "a")],
-            ["c", "b", "a"],
+            [
+                r.revision
+                for r in map_.iterate_revisions(
+                    ("c", "c"), "a", inclusive=False
+                )
+            ],
+            # Not inclusive so should not traverse a
+            ["c", "b"],
         )
 
     def test_repr_revs(self):
@@ -212,17 +220,31 @@ class DownIterateTest(TestBase):
     ):
         if map_ is None:
             map_ = self.map
+
+        result = [
+            rev.revision
+            for rev in map_.iterate_revisions(
+                upper,
+                lower,
+                inclusive=inclusive,
+                implicit_base=implicit_base,
+                select_for_downgrade=select_for_downgrade,
+            )
+        ]
+
+        edges = [
+            (rev, child.revision)
+            for child in map_._revision_map.values()
+            if child is not None
+            for rev in child._normalized_down_revisions
+        ]
+
+        assert sqla_testing_util.conforms_partial_ordering(
+            edges, list(reversed(result))
+        )
+
         eq_(
-            [
-                rev.revision
-                for rev in map_.iterate_revisions(
-                    upper,
-                    lower,
-                    inclusive=inclusive,
-                    implicit_base=implicit_base,
-                    select_for_downgrade=select_for_downgrade,
-                )
-            ],
+            result,
             assertion,
         )
 
@@ -368,9 +390,9 @@ class LabeledBranchTest(DownIterateTest):
         )
 
     def test_branch_w_up_relative(self):
-        self._assert_iteration(
-            "ebranch@+2", "base", ["someothername", "e", "d"]
-        )
+        # In the absence of a branch point surely the +2 is relative to base?
+        # So 'someothername' would be referenced by ebranch@+3?
+        self._assert_iteration("ebranch@+2", "base", ["e", "d"])
 
     def test_partial_id_resolve(self):
         eq_(self.map.get_revision("ebranch@some").revision, "someothername")
@@ -505,7 +527,7 @@ class MultipleBranchTest(DownIterateTest):
 
     def test_iterate_multiple_branch_to_base(self):
         self._assert_iteration(
-            ["d3cb2", "cb1"], "base", ["d3cb2", "cb2", "b2", "cb1", "b1", "a"]
+            ["d3cb2", "cb1"], "base", ["cb1", "b1", "d3cb2", "cb2", "b2", "a"]
         )
 
     def test_iterate_multiple_heads_single_base(self):
@@ -522,7 +544,7 @@ class MultipleBranchTest(DownIterateTest):
             RevisionError,
             r"Revision d1cb1 is not an ancestor of revision b1",
             list,
-            self.map._iterate_revisions("b1", "d1cb1"),
+            self.map.iterate_revisions("b1", "d1cb1"),
         )
 
     def test_distinct_branches(self):
@@ -531,7 +553,7 @@ class MultipleBranchTest(DownIterateTest):
             RevisionError,
             r"Revision b1 is not an ancestor of revision d2cb2",
             list,
-            self.map._iterate_revisions("d2cb2", "b1"),
+            self.map.iterate_revisions("d2cb2", "b1"),
         )
 
     def test_wrong_direction_to_base_as_none(self):
@@ -541,7 +563,7 @@ class MultipleBranchTest(DownIterateTest):
             RevisionError,
             r"Revision d1cb1 is not an ancestor of revision base",
             list,
-            self.map._iterate_revisions(None, "d1cb1"),
+            self.map.iterate_revisions(None, "d1cb1"),
         )
 
     def test_wrong_direction_to_base_as_empty(self):
@@ -551,7 +573,7 @@ class MultipleBranchTest(DownIterateTest):
             RevisionError,
             r"Revision d1cb1 is not an ancestor of revision base",
             list,
-            self.map._iterate_revisions((), "d1cb1"),
+            self.map.iterate_revisions((), "d1cb1"),
         )
 
 
@@ -600,17 +622,17 @@ class BranchTravellingTest(DownIterateTest):
             ["merge", "fe1b1"],
             "a3",
             [
+                "fe1b1",
+                "e1b1",
                 "merge",
                 "e2b1",
+                "db1",
+                "cb1",
+                "b1",
                 "e2b2",
                 "db2",
                 "cb2",
                 "b2",
-                "fe1b1",
-                "e1b1",
-                "db1",
-                "cb1",
-                "b1",
                 "a3",
             ],
         )
@@ -673,18 +695,18 @@ class BranchTravellingTest(DownIterateTest):
             ["merge", "fe1b1"],
             "a1",
             [
-                "merge",
-                "e2b1",  # e2b1 branch
-                "e2b2",
-                "db2",
-                "cb2",
-                "b2",  # e2b2 branch
                 "fe1b1",
                 "e1b1",  # fe1b1 branch
+                "merge",
+                "e2b1",  # e2b1 branch
                 "db1",  # fe1b1 and e2b1 branches terminate at db1
                 "cb1",
                 "b1",  # e2b1 branch continued....might be nicer
                 # if this was before the e2b2 branch...
+                "e2b2",
+                "db2",
+                "cb2",
+                "b2",  # e2b2 branch
                 "a3",  # e2b1 and e2b2 branches terminate at a3
                 "a2",
                 "a1",  # finish out
@@ -698,15 +720,15 @@ class BranchTravellingTest(DownIterateTest):
             ["merge", "fe1b1"],
             ["cb1", "cb2"],
             [
+                "fe1b1",
+                "e1b1",
                 "merge",
                 "e2b1",
+                "db1",
+                "cb1",
                 "e2b2",
                 "db2",
                 "cb2",
-                "fe1b1",
-                "e1b1",
-                "db1",
-                "cb1",
             ],
         )
 
@@ -715,7 +737,7 @@ class BranchTravellingTest(DownIterateTest):
         self._assert_iteration(
             ["merge", "fe1b1"],
             ["cb1", "cb2"],
-            ["merge", "e2b1", "e2b2", "db2", "fe1b1", "e1b1", "db1"],
+            ["fe1b1", "e1b1", "merge", "e2b1", "db1", "e2b2", "db2"],
             inclusive=False,
         )
 
@@ -726,7 +748,7 @@ class BranchTravellingTest(DownIterateTest):
             "Requested revision fe1b1 overlaps "
             "with other requested revisions",
             list,
-            self.map._iterate_revisions(["db1", "b2", "fe1b1"], ()),
+            self.map.iterate_revisions(["db1", "b2", "fe1b1"], ()),
         )
 
     def test_three_branches_end_multiple_bases_exclusive_blank(self):
@@ -734,10 +756,10 @@ class BranchTravellingTest(DownIterateTest):
             ["e2b1", "b2", "fe1b1"],
             (),
             [
-                "e2b1",
                 "b2",
                 "fe1b1",
                 "e1b1",
+                "e2b1",
                 "db1",
                 "cb1",
                 "b1",
@@ -759,26 +781,24 @@ class BranchTravellingTest(DownIterateTest):
     def test_ancestor_nodes(self):
         merge = self.map.get_revision("merge")
         eq_(
-            set(
+            {
                 rev.revision
                 for rev in self.map._get_ancestor_nodes([merge], check=True)
-            ),
-            set(
-                [
-                    "a1",
-                    "e2b2",
-                    "e2b1",
-                    "cb2",
-                    "merge",
-                    "a3",
-                    "a2",
-                    "b1",
-                    "b2",
-                    "db1",
-                    "db2",
-                    "cb1",
-                ]
-            ),
+            },
+            {
+                "a1",
+                "e2b2",
+                "e2b1",
+                "cb2",
+                "merge",
+                "a3",
+                "a2",
+                "b1",
+                "b2",
+                "db1",
+                "db2",
+                "cb1",
+            },
         )
 
 
@@ -812,6 +832,7 @@ class MultipleBaseTest(DownIterateTest):
                 "a1a",
                 "b1b",
                 "a1b",
+                "base1",
                 "mergeb3d2",
                 "b3",
                 "a3",
@@ -821,7 +842,6 @@ class MultipleBaseTest(DownIterateTest):
                 "b2",
                 "a2",
                 "base2",
-                "base1",
             ],
         )
 
@@ -834,6 +854,7 @@ class MultipleBaseTest(DownIterateTest):
                 "a1a",
                 "b1b",
                 "a1b",
+                "base1",
                 "mergeb3d2",
                 "b3",
                 "a3",
@@ -843,7 +864,6 @@ class MultipleBaseTest(DownIterateTest):
                 "b2",
                 "a2",
                 "base2",
-                "base1",
             ],
             inclusive=False,
         )
@@ -857,6 +877,7 @@ class MultipleBaseTest(DownIterateTest):
                 "a1a",
                 "b1b",
                 "a1b",
+                "base1",
                 "mergeb3d2",
                 "b3",
                 "a3",
@@ -866,16 +887,15 @@ class MultipleBaseTest(DownIterateTest):
                 "b2",
                 "a2",
                 "base2",
-                "base1",
             ],
         )
 
     def test_detect_invalid_base_selection(self):
         assert_raises_message(
             RevisionError,
-            "Requested revision a2 overlaps with " "other requested revisions",
+            "overlaps with other requested revisions",
             list,
-            self.map._iterate_revisions(["c2"], ["a2", "b2"]),
+            self.map.iterate_revisions(["c2"], ["a2", "b2"]),
         )
 
     def test_heads_to_revs_plus_implicit_base_exclusive(self):
@@ -887,12 +907,12 @@ class MultipleBaseTest(DownIterateTest):
                 "a1a",
                 "b1b",
                 "a1b",
+                "base1",
                 "mergeb3d2",
                 "b3",
                 "a3",
                 "base3",
                 "d2",
-                "base1",
             ],
             inclusive=False,
             implicit_base=True,
@@ -912,13 +932,13 @@ class MultipleBaseTest(DownIterateTest):
                 "a1a",
                 "b1b",
                 "a1b",
+                "base1",
                 "mergeb3d2",
                 "b3",
                 "a3",
                 "base3",
                 "d2",
                 "c2",
-                "base1",
             ],
             implicit_base=True,
         )
@@ -930,7 +950,7 @@ class MultipleBaseTest(DownIterateTest):
         self._assert_iteration(
             ["b3", "b2"],
             "base3",
-            ["b3", "a3", "b2", "a2", "base2"],
+            ["b2", "a2", "base2", "b3", "a3"],
             inclusive=False,
             implicit_base=True,
         )
@@ -985,6 +1005,7 @@ class MultipleBaseCrossDependencyTestOne(DownIterateTest):
                 "a1a",
                 "b1b",
                 "a1b",
+                "base1",
                 "d2",
                 "c2",
                 "b2",
@@ -993,7 +1014,6 @@ class MultipleBaseCrossDependencyTestOne(DownIterateTest):
                 "b3",
                 "a3",
                 "base3",
-                "base1",
             ],
         )
 
@@ -1006,6 +1026,7 @@ class MultipleBaseCrossDependencyTestOne(DownIterateTest):
                 "a1a",
                 "b1b",
                 "a1b",
+                "base1",
                 "d2",
                 "c2",
                 "b2",
@@ -1014,7 +1035,6 @@ class MultipleBaseCrossDependencyTestOne(DownIterateTest):
                 "b3",
                 "a3",
                 "base3",
-                "base1",
             ],
             select_for_downgrade=True,
         )
@@ -1024,11 +1044,19 @@ class MultipleBaseCrossDependencyTestOne(DownIterateTest):
             RevisionError,
             r"Revision d2 is not an ancestor of revision b2",
             list,
-            self.map._iterate_revisions("b2", "d2"),
+            self.map.iterate_revisions("b2", "d2"),
         )
 
     def test_different_branch_not_wrong_direction(self):
-        self._assert_iteration("b3", "d2", [])
+        # Changed from empty list. Expect this should raise an error in
+        # --sql mode (since there is not a direct path), or in upgrade mode
+        # it should return revision b3, not an empty list.
+        assert_raises_message(
+            RevisionError,
+            r"Revision d2 is not an ancestor of revision b3",
+            list,
+            self.map.iterate_revisions("b3", "d2"),
+        )
 
     def test_we_need_head2_upgrade(self):
         # the 2 branch relies on the 3 branch
@@ -1078,10 +1106,12 @@ class MultipleBaseCrossDependencyTestOne(DownIterateTest):
         )
 
     def test_we_need_base2_upgrade(self):
-        # consider a downgrade to b_2@base - we
-        # want to run through all the "2"s alone, and we're done.
+        # This is an upgrade from base, so deps should be included and
+        # the result should be different to the downgrade case below
         self._assert_iteration(
-            "heads", "b_2@base", ["d2", "c2", "b2", "a2", "base2"]
+            "heads",
+            "b_2@base",
+            ["d2", "c2", "b2", "a2", "base2", "a3", "base3"],
         )
 
     def test_we_need_base2_downgrade(self):
@@ -1095,9 +1125,8 @@ class MultipleBaseCrossDependencyTestOne(DownIterateTest):
         )
 
     def test_we_need_base3_upgrade(self):
-        self._assert_iteration(
-            "heads", "b_3@base", ["b1b", "d2", "c2", "b3", "a3", "base3"]
-        )
+        # branch b_3 has no dependencies, so b1b/d2/c2 not needed
+        self._assert_iteration("heads", "b_3@base", ["b3", "a3", "base3"])
 
     def test_we_need_base3_downgrade(self):
         # consider a downgrade to b_3@base - due to the a3 dependency, we
@@ -1174,6 +1203,7 @@ class MultipleBaseCrossDependencyTestTwo(DownIterateTest):
         self._assert_iteration("b_1@head", "base", ["c1", "b1", "a1", "base1"])
 
     def test_we_need_base1(self):
+        # b_1 has no dependencies
         self._assert_iteration(
             "heads",
             "b_1@base",
@@ -1181,25 +1211,42 @@ class MultipleBaseCrossDependencyTestTwo(DownIterateTest):
                 "c1",
                 "b1",
                 "a1",
-                "d2",
-                "c2",
-                "d3",
-                "c3",
-                "b2",
-                "a2",
-                "base2",
                 "base1",
             ],
         )
 
     def test_we_need_base2(self):
+        # base2 depends on base1, nobody depends on b_3 so removed d3,c3
         self._assert_iteration(
-            "heads", "b_2@base", ["d2", "c2", "d3", "c3", "b2", "a2", "base2"]
+            "heads", "b_2@base", ["d2", "c2", "b2", "a2", "base2", "base1"]
         )
 
     def test_we_need_base3(self):
+        # c3 depends on b2 -> add b2,a2,base2, base2 depends on base1
         self._assert_iteration(
-            "heads", "b_3@base", ["d3", "c3", "b3", "a3", "base3"]
+            "heads",
+            "b_3@base",
+            ["d3", "c3", "b3", "a3", "base3", "b2", "a2", "base2", "base1"],
+        )
+
+
+class MultipleBaseCrossDependencyTestThree(DownIterateTest):
+    def setUp(self):
+        self.map = RevisionMap(
+            lambda: [
+                Revision("base1", ()),
+                Revision("a1", "base1"),
+                Revision("b1", "a1"),
+                Revision("c2", (), dependencies="a1"),
+                Revision("c3", "c2"),
+            ]
+        )
+
+    def test_traverse_no_parent_but_a_dep(self):
+        self._assert_iteration(
+            "heads",
+            "base",
+            ["b1", "c3", "c2", "a1", "base1"],
         )
 
 

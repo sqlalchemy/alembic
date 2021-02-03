@@ -1,0 +1,16 @@
+.. change::
+    :tags: bug, versioning
+    :tickets: 765, 464
+
+    The algorithm used for calculating downgrades/upgrades/iterating
+    revisions has been rewritten, to resolve ongoing issues of branches
+    not being handled consistently particularly within downgrade operations,
+    as well as for overall clarity and maintainability.  This change includes
+    that a deprecation warning is emitted if an ambiguous command such
+    as "downgrade -1" when multiple heads are present is given.
+
+    In particular, the change implements a long-requested use case of allowing
+    downgrades of a single branch to a branchpoint.
+
+    Huge thanks to Simon Bowly for their impressive efforts in successfully
+    tackling this very difficult problem.

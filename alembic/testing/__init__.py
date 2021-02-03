@@ -19,6 +19,7 @@ from .assertions import expect_raises  # noqa
 from .assertions import expect_raises_message  # noqa
 from .assertions import expect_sqlalchemy_deprecated  # noqa
 from .assertions import expect_sqlalchemy_deprecated_20  # noqa
+from .assertions import expect_warnings  # noqa
 from .assertions import is_  # noqa
 from .assertions import is_false  # noqa
 from .assertions import is_not_  # noqa

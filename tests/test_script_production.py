@@ -1188,9 +1188,9 @@ class DuplicateVersionLocationsTest(TestBase):
         )
 
         script = ScriptDirectory.from_config(self.cfg)
-        self.model1 = util.rev_id()
-        self.model2 = util.rev_id()
-        self.model3 = util.rev_id()
+        self.model1 = "ccc" + util.rev_id()
+        self.model2 = "bbb" + util.rev_id()
+        self.model3 = "aaa" + util.rev_id()
         for model, name in [
             (self.model1, "model1"),
             (self.model2, "model2"),
