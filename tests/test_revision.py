@@ -212,19 +212,34 @@ class DownIterateTest(TestBase):
     ):
         if map_ is None:
             map_ = self.map
-        eq_(
-            [
-                rev.revision
-                for rev in map_.iterate_revisions(
-                    upper,
-                    lower,
-                    inclusive=inclusive,
-                    implicit_base=implicit_base,
-                    select_for_downgrade=select_for_downgrade,
-                )
-            ],
-            assertion,
-        )
+        if select_for_downgrade:
+            eq_(
+                {
+                    rev.revision
+                    for rev in map_.iterate_revisions(
+                        upper,
+                        lower,
+                        inclusive=inclusive,
+                        implicit_base=implicit_base,
+                        select_for_downgrade=select_for_downgrade,
+                    )
+                },
+                set(assertion),
+            )
+        else:
+            eq_(
+                [
+                    rev.revision
+                    for rev in map_.iterate_revisions(
+                        upper,
+                        lower,
+                        inclusive=inclusive,
+                        implicit_base=implicit_base,
+                        select_for_downgrade=select_for_downgrade,
+                    )
+                ],
+                assertion,
+            )
 
 
 class DiamondTest(DownIterateTest):

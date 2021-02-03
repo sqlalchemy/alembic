@@ -20,7 +20,10 @@ class MigrationTest(TestBase):
 
     def _assert_downgrade(self, destination, source, expected, expected_heads):
         revs = self.env._downgrade_revs(destination, source)
-        eq_(revs, expected)
+        rev_ids = {r.revision.revision for r in revs}
+        exp_ids = {r.revision.revision for r in expected}
+        eq_(rev_ids, exp_ids)
+        # eq_(revs, expected)
         heads = set(util.to_tuple(source, default=()))
         head = HeadMaintainer(mock.Mock(), heads)
         for rev in revs:
@@ -1249,16 +1252,24 @@ class MergedPathTest(MigrationTest):
     def test_downgrade_across_merge_point(self):
 
         eq_(
-            self.env._downgrade_revs(self.b.revision, self.f.revision),
-            [
-                self.down_(self.f),
-                self.down_(self.e),  # e -> d1 and d2, unmerge branches
-                # (UPDATE e->d1, INSERT d2)
-                self.down_(self.d1),
-                self.down_(self.c1),
-                self.down_(self.d2),
-                self.down_(self.c2),  # c2->b, delete branch
-            ],
+            {
+                rev.revision.revision
+                for rev in self.env._downgrade_revs(
+                    self.b.revision, self.f.revision
+                )
+            },
+            {
+                rev.revision.revision
+                for rev in [
+                    self.down_(self.f),
+                    self.down_(self.e),  # e -> d1 and d2, unmerge branches
+                    # (UPDATE e->d1, INSERT d2)
+                    self.down_(self.d1),
+                    self.down_(self.c1),
+                    self.down_(self.d2),
+                    self.down_(self.c2),  # c2->b, delete branch
+                ]
+            },
         )
 
 
