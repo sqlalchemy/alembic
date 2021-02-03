@@ -5,7 +5,16 @@ Changelog
 
 .. changelog::
     :version: 1.5.4
-    :include_notes_from: unreleased
+    :released: February 3, 2021
+
+    .. change::
+        :tags: bug, versioning
+        :tickets: 789
+
+        Fixed bug in versioning model where a downgrade across a revision with a
+        dependency on another branch, yet an ancestor is also dependent on that
+        branch, would produce an erroneous state in the alembic_version table,
+        making upgrades impossible without manually repairing the table.
 
 .. changelog::
     :version: 1.5.3
