@@ -1550,7 +1550,8 @@ class NormalizedDownRevTest(DownIterateTest):
         self._assert_iteration(
             "heads",
             "a2",
-            ["b5", "b4", "b3", "b2", "a3", "a2"],
+            # 2021-02-03 change: a2 should not be dropped?
+            ["b5", "b4", "b3", "b2", "a3"],
             select_for_downgrade=True,
         )
 
@@ -1558,7 +1559,8 @@ class NormalizedDownRevTest(DownIterateTest):
         self._assert_iteration(
             "heads",
             "a2",
-            ["b5", "b4", "b3", "b2", "b1", "a3", "a2"],
+            # 2021-02-03 change: a2 and b1 should not be dropped?
+            ["b5", "b4", "b3", "b2", "a3"],
             select_for_downgrade=True,
             implicit_base=True,
         )
