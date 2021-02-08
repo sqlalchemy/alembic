@@ -114,7 +114,7 @@ class EnvironmentContext(util.ModuleClsProxy):
         is running in "offline mode".
 
         This is ``True`` or ``False`` depending
-        on the the ``--sql`` flag passed.
+        on the ``--sql`` flag passed.
 
         This function does not require that the :class:`.MigrationContext`
         has been configured.
