@@ -13,6 +13,7 @@ from sqlalchemy.util import topological
 
 from ..util import exc
 from ..util.sqla_compat import _columns_for_constraint
+from ..util.sqla_compat import _copy
 from ..util.sqla_compat import _ensure_scope_for_ddl
 from ..util.sqla_compat import _fk_is_self_referential
 from ..util.sqla_compat import _insert_inline
@@ -194,7 +195,7 @@ class ApplyBatchImpl(object):
         schema = self.table.schema
         self.columns = OrderedDict()
         for c in self.table.c:
-            c_copy = c.copy(schema=schema)
+            c_copy = _copy(c, schema=schema)
             c_copy.unique = c_copy.index = False
             # ensure that the type object was copied,
             # as we may need to modify it in-place
@@ -297,16 +298,18 @@ class ApplyBatchImpl(object):
                     # FK constraints from other tables; we assume SQLite
                     # no foreign keys just keeps the names unchanged, so
                     # when we rename back, they match again.
-                    const_copy = const.copy(
-                        schema=schema, target_table=self.table
+                    const_copy = _copy(
+                        const, schema=schema, target_table=self.table
                     )
                 else:
                     # "target_table" for ForeignKeyConstraint.copy() is
                     # only used if the FK is detected as being
                     # self-referential, which we are handling above.
-                    const_copy = const.copy(schema=schema)
+                    const_copy = _copy(const, schema=schema)
             else:
-                const_copy = const.copy(schema=schema, target_table=new_table)
+                const_copy = _copy(
+                    const, schema=schema, target_table=new_table
+                )
             if isinstance(const, ForeignKeyConstraint):
                 self._setup_referent(m, const)
             new_table.append_constraint(const_copy)
@@ -503,7 +506,7 @@ class ApplyBatchImpl(object):
         )
         # we copy the column because operations.add_column()
         # gives us a Column that is part of a Table already.
-        self.columns[column.name] = column.copy(schema=self.table.schema)
+        self.columns[column.name] = _copy(column, schema=self.table.schema)
         self.column_transfers[column.name] = {}
 
     def drop_column(self, table_name, column, **kw):

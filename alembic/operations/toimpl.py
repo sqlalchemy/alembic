@@ -2,6 +2,7 @@ from sqlalchemy import schema as sa_schema
 
 from . import ops
 from .base import Operations
+from ..util.sqla_compat import _copy
 
 
 @Operations.implementation_for(ops.AlterColumnOp)
@@ -128,7 +129,7 @@ def add_column(operations, operation):
     kw = operation.kw
 
     if column.table is not None:
-        column = column.copy()
+        column = _copy(column)
 
     t = operations.schema_obj.table(table_name, column, schema=schema)
     operations.impl.add_column(table_name, column, schema=schema, **kw)

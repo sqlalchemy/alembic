@@ -98,6 +98,13 @@ def _get_connection_in_transaction(connection):
         return in_transaction()
 
 
+def _copy(schema_item, **kw):
+    if hasattr(schema_item, "_copy"):
+        return schema_item._copy(**kw)
+    else:
+        return schema_item.copy(**kw)
+
+
 def _get_connection_transaction(connection):
     if sqla_14:
         return connection.get_transaction()
