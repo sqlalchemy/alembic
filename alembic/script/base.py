@@ -3,6 +3,7 @@ import datetime
 import os
 import re
 import shutil
+import sys
 
 from dateutil import tz
 
@@ -19,6 +20,8 @@ _mod_def_re = re.compile(r"(upgrade|downgrade)_([a-z0-9]+)")
 _slug_re = re.compile(r"\w+")
 _default_file_template = "%(rev)s_%(slug)s"
 _split_on_space_comma = re.compile(r", *|(?: +)")
+
+_split_on_space_comma_colon = re.compile(r", *|(?: +)|\:")
 
 
 class ScriptDirectory(object):
@@ -135,6 +138,12 @@ class ScriptDirectory(object):
         version_locations = config.get_main_option("version_locations")
         if version_locations:
             version_locations = _split_on_space_comma.split(version_locations)
+
+        prepend_sys_path = config.get_main_option("prepend_sys_path")
+        if prepend_sys_path:
+            sys.path[:0] = list(
+                _split_on_space_comma_colon.split(prepend_sys_path)
+            )
 
         return ScriptDirectory(
             util.coerce_resource_to_filename(script_location),

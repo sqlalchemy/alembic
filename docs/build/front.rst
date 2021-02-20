@@ -19,26 +19,14 @@ The most recent published version of this documentation should be at https://ale
 Installation
 ============
 
-Installation of Alembic is typically local to a project setup and it is usually
-assumed that an approach like `virtual environments
-<https://docs.python.org/3/tutorial/venv.html>`_ are used, which would include
-that the target project also `has a setup.py script
-<https://packaging.python.org/tutorials/packaging-projects/>`_.
+While Alembic can be installed system wide, it's more common that it's
+installed local to a `virtual environment
+<https://docs.python.org/3/tutorial/venv.html>`_ , as it also uses libraries
+such as SQLAlchemy and database drivers that are more appropriate for
+local installations.
 
-.. note::
-
-    While the ``alembic`` command line tool runs perfectly fine no matter where
-    its installed, the rationale for project-local setup is that the Alembic
-    command line tool runs most of its key operations through a Python file
-    ``env.py`` that is established as part of a project's setup when the
-    ``alembic init`` command is run for that project;  the purpose of
-    ``env.py`` is to establish database connectivity and optionally model
-    definitions for the migration process, the latter of which in particular
-    usually rely upon being able to import the modules of the project itself.
-
-
-The documentation below is **only one kind of approach to installing Alembic for a
-project**; there are many such approaches.   The documentation below is
+The documentation below is **only one kind of approach to installing Alembic
+for a project**; there are many such approaches. The documentation below is
 provided only for those users who otherwise have no specific project setup
 chosen.
 
@@ -64,10 +52,21 @@ proceed through the usage of this command, as in::
 
     $ /path/to/your/project/.venv/bin/alembic init .
 
-Next, we ensure that the local project is also installed, in a development environment
-this would be in `editable mode <https://pip.pypa.io/en/stable/reference/pip_install/#editable-installs>`_::
+The next step is **optional**.   If our project itself has a ``setup.py``
+file, we can also install it in the local virtual environment in
+`editable mode <https://pip.pypa.io/en/stable/reference/pip_install/#editable-installs>`_::
 
     $ /path/to/your/project/.venv/bin/pip install -e .
+
+If we don't "install" the project locally, that's fine as well; the default
+``alembic.ini`` file includes a directive ``prepend_sys_path = .`` so that the
+local path is also in ``sys.path``. This allows us to run the ``alembic``
+command line tool from this directory without our project being "installed" in
+that environment.
+
+.. versionchanged:: 1.5.5  Fixed a long-standing issue where the ``alembic``
+   command-line tool would not preserve the default ``sys.path`` of ``.``
+   by implementing ``prepend_sys_path`` option.
 
 As a final step, the `virtualenv activate <https://virtualenv.pypa.io/en/latest/userguide/#activate-script>`_
 tool can be used so that the ``alembic`` command is available without any

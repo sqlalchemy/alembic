@@ -1,0 +1,25 @@
+.. change::
+    :tags: bug, environment
+    :tickets: 797
+
+    Added new config file option ``prepend_sys_path``, which is a series of
+    paths that will be prepended to sys.path; the default value in newly
+    generated alembic.ini files is ".".  This fixes a long-standing issue
+    where for some reason running the alembic command line would not place the
+    local "." path in sys.path, meaning an application locally present in "."
+    and importable through normal channels, e.g. python interpreter, pytest,
+    etc. would not be located by Alembic, even though the ``env.py`` file is
+    loaded relative to the current path when ``alembic.ini`` contains a
+    relative path. To enable for existing installations, add the option to the
+    alembic.ini file as follows::
+
+      # sys.path path, will be prepended to sys.path if present.
+      # defaults to the current working directory.
+      prepend_sys_path = .
+
+    .. seealso::
+
+        :ref:`installation` - updated documentation reflecting that local
+        installation of the project is not necessary if running the Alembic cli
+        from the local path.
+
