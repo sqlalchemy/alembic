@@ -1,4 +1,7 @@
 #!coding: utf-8
+import os
+import sys
+
 from alembic import command
 from alembic import testing
 from alembic import util
@@ -13,8 +16,10 @@ from alembic.testing import is_false
 from alembic.testing import is_true
 from alembic.testing import mock
 from alembic.testing.assertions import expect_raises_message
+from alembic.testing.env import _get_staging_directory
 from alembic.testing.env import _no_sql_testing_config
 from alembic.testing.env import _sqlite_file_db
+from alembic.testing.env import _sqlite_testing_config
 from alembic.testing.env import clear_staging_env
 from alembic.testing.env import staging_env
 from alembic.testing.env import write_script
@@ -141,6 +146,46 @@ def downgrade():
             env.configure(
                 connection=engine, fn=upgrade, transactional_ddl=False
             )
+
+
+class CWDTest(TestBase):
+    def setUp(self):
+        self.env = staging_env()
+        self.cfg = _sqlite_testing_config()
+
+    def tearDown(self):
+        clear_staging_env()
+
+    @testing.combinations(
+        (
+            ".",
+            ["."],
+        ),
+        ("/tmp/foo:/tmp/bar", ["/tmp/foo", "/tmp/bar"]),
+        ("/tmp/foo /tmp/bar", ["/tmp/foo", "/tmp/bar"]),
+        ("/tmp/foo,/tmp/bar", ["/tmp/foo", "/tmp/bar"]),
+        (". /tmp/foo", [".", "/tmp/foo"]),
+    )
+    def test_sys_path_prepend(self, config_value, expected):
+        self.cfg.set_main_option("prepend_sys_path", config_value)
+
+        script = ScriptDirectory.from_config(self.cfg)
+        env = EnvironmentContext(self.cfg, script)
+
+        target = os.path.abspath(_get_staging_directory())
+
+        def assert_(heads, context):
+            eq_(
+                [os.path.abspath(p) for p in sys.path[0 : len(expected)]],
+                [os.path.abspath(p) for p in expected],
+            )
+            return []
+
+        p = [p for p in sys.path if os.path.abspath(p) != target]
+        with mock.patch.object(sys, "path", p):
+            env.configure(url="sqlite://", fn=assert_)
+            with env:
+                script.run_env()
 
 
 class MigrationTransactionTest(TestBase):

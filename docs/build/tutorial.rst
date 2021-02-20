@@ -132,6 +132,11 @@ The file generated with the "generic" configuration looks like::
     # template used to generate migration files
     # file_template = %%(rev)s_%%(slug)s
 
+    # sys.path path, will be prepended to sys.path if present.
+    # defaults to the current working directory.
+    # (new in 1.5.5)
+    prepend_sys_path = .
+
     # timezone to use when rendering the date
     # within the migration file as well as the filename.
     # string value is passed to dateutil.tz.gettz()
