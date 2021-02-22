@@ -621,7 +621,7 @@ is set to True::
      database backend sets as a default value without generating false
      positives.
 
-..versionchanged 1.4.0:: Added the text and keyword comparison for column types
+.. versionchanged:: 1.4.0 Added the text and keyword comparison for column types
 
 Alternatively, the :paramref:`.EnvironmentContext.configure.compare_type`
 parameter accepts a callable function which may be used to implement custom type
