@@ -16,6 +16,7 @@ from alembic import util
 from alembic.script import ScriptDirectory
 from alembic.testing import assert_raises
 from alembic.testing import assert_raises_message
+from alembic.testing import config as testing_config
 from alembic.testing import eq_
 from alembic.testing import is_false
 from alembic.testing import is_true
@@ -937,6 +938,7 @@ class EditTest(TestBase):
             command.edit(self.cfg, self.b[0:3])
             edit.assert_called_with(expected_call_arg)
 
+    @testing_config.requirements.editor_installed
     @testing.emits_python_deprecation_warning("the imp module is deprecated")
     def test_edit_with_missing_editor(self):
         with mock.patch("editor.edit") as edit_mock:

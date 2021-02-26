@@ -11,6 +11,7 @@ from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.schema import CheckConstraint
 from sqlalchemy.schema import Column
 from sqlalchemy.schema import ForeignKeyConstraint
+from sqlalchemy.sql import visitors
 from sqlalchemy.sql.elements import quoted_name
 from sqlalchemy.sql.expression import _BindParamClause
 from sqlalchemy.sql.expression import _TextClause as TextClause
@@ -252,8 +253,29 @@ def _textual_index_column(table, text_):
         return c
     elif isinstance(text_, TextClause):
         return _textual_index_element(table, text_)
+    elif isinstance(text_, sql.ColumnElement):
+        return _copy_expression(text_, table)
     else:
         raise ValueError("String or text() construct expected")
+
+
+def _copy_expression(expression, target_table):
+    def replace(col):
+        if (
+            isinstance(col, Column)
+            and col.table is not None
+            and col.table is not target_table
+        ):
+            if col.name in target_table.c:
+                return target_table.c[col.name]
+            else:
+                c = _copy(col)
+                target_table.append_column(c)
+                return c
+        else:
+            return None
+
+    return visitors.replacement_traverse(expression, {}, replace)
 
 
 class _textual_index_element(sql.ColumnElement):

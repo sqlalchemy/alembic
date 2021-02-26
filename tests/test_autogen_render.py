@@ -1244,6 +1244,7 @@ class AutogenRenderTest(TestBase):
 
         def render(type_, obj, context):
             if type_ == "foreign_key":
+                # causes it not to render
                 return None
             if type_ == "column":
                 if obj.name == "y":
@@ -1269,7 +1270,7 @@ class AutogenRenderTest(TestBase):
             Column("y", Integer),
             Column("q", MySpecialType()),
             PrimaryKeyConstraint("x"),
-            ForeignKeyConstraint(["x"], ["y"]),
+            ForeignKeyConstraint(["x"], ["remote.y"]),
         )
         op_obj = ops.CreateTableOp.from_table(t)
         result = autogenerate.render_op_text(self.autogen_context, op_obj)
@@ -1380,7 +1381,7 @@ class AutogenRenderTest(TestBase):
                 r"u'",
                 "'",
                 autogenerate.render._render_constraint(
-                    fk, self.autogen_context
+                    fk, self.autogen_context, m
                 ),
             ),
             "sa.ForeignKeyConstraint(['c'], ['t2.c_rem'], onupdate='CASCADE')",
@@ -1393,7 +1394,7 @@ class AutogenRenderTest(TestBase):
                 r"u'",
                 "'",
                 autogenerate.render._render_constraint(
-                    fk, self.autogen_context
+                    fk, self.autogen_context, m
                 ),
             ),
             "sa.ForeignKeyConstraint(['c'], ['t2.c_rem'], ondelete='CASCADE')",
@@ -1405,7 +1406,7 @@ class AutogenRenderTest(TestBase):
                 r"u'",
                 "'",
                 autogenerate.render._render_constraint(
-                    fk, self.autogen_context
+                    fk, self.autogen_context, m
                 ),
             ),
             "sa.ForeignKeyConstraint(['c'], ['t2.c_rem'], deferrable=True)",
@@ -1417,7 +1418,7 @@ class AutogenRenderTest(TestBase):
                 r"u'",
                 "'",
                 autogenerate.render._render_constraint(
-                    fk, self.autogen_context
+                    fk, self.autogen_context, m
                 ),
             ),
             "sa.ForeignKeyConstraint(['c'], ['t2.c_rem'], initially='XYZ')",
@@ -1435,7 +1436,7 @@ class AutogenRenderTest(TestBase):
                 r"u'",
                 "'",
                 autogenerate.render._render_constraint(
-                    fk, self.autogen_context
+                    fk, self.autogen_context, m
                 ),
             ),
             "sa.ForeignKeyConstraint(['c'], ['t2.c_rem'], "
@@ -1455,7 +1456,7 @@ class AutogenRenderTest(TestBase):
                 r"u'",
                 "'",
                 autogenerate.render._render_constraint(
-                    fk, self.autogen_context
+                    fk, self.autogen_context, m
                 ),
             ),
             "sa.ForeignKeyConstraint(['c'], ['t2.c_rem'], )",
@@ -1474,7 +1475,7 @@ class AutogenRenderTest(TestBase):
                 r"u'",
                 "'",
                 autogenerate.render._render_constraint(
-                    fk, self.autogen_context
+                    fk, self.autogen_context, m
                 ),
             ),
             "sa.ForeignKeyConstraint(['c'], ['t2.nonexistent'], )",
@@ -1498,7 +1499,7 @@ class AutogenRenderTest(TestBase):
                 r"u'",
                 "'",
                 autogenerate.render._render_constraint(
-                    fk, self.autogen_context
+                    fk, self.autogen_context, m
                 ),
             ),
             "sa.ForeignKeyConstraint(['c'], ['t2.c_rem'], )",
@@ -1517,7 +1518,7 @@ class AutogenRenderTest(TestBase):
                 r"u'",
                 "'",
                 autogenerate.render._render_constraint(
-                    fk, self.autogen_context
+                    fk, self.autogen_context, m
                 ),
             ),
             "sa.ForeignKeyConstraint(['c'], ['t2.c_rem'], )",
@@ -1537,7 +1538,7 @@ class AutogenRenderTest(TestBase):
 
         eq_ignore_whitespace(
             autogenerate.render._render_constraint(
-                const, self.autogen_context
+                const, self.autogen_context, m
             ),
             "sa.ForeignKeyConstraint(['c_rem'], ['t.c'], "
             "name='fk1', use_alter=True)",
@@ -1555,7 +1556,7 @@ class AutogenRenderTest(TestBase):
                 r"u'",
                 "'",
                 autogenerate.render._render_constraint(
-                    fk, self.autogen_context
+                    fk, self.autogen_context, m
                 ),
             ),
             "sa.ForeignKeyConstraint(['c'], ['foo.t2.c_rem'], "
@@ -1567,6 +1568,7 @@ class AutogenRenderTest(TestBase):
             autogenerate.render._render_check_constraint(
                 CheckConstraint("im a constraint", name="cc1"),
                 self.autogen_context,
+                None,
             ),
             "sa.CheckConstraint(!U'im a constraint', name='cc1')",
         )
@@ -1577,7 +1579,9 @@ class AutogenRenderTest(TestBase):
         ten = literal_column("10")
         eq_ignore_whitespace(
             autogenerate.render._render_check_constraint(
-                CheckConstraint(and_(c > five, c < ten)), self.autogen_context
+                CheckConstraint(and_(c > five, c < ten)),
+                self.autogen_context,
+                None,
             ),
             "sa.CheckConstraint(!U'c > 5 AND c < 10')",
         )
@@ -1586,7 +1590,9 @@ class AutogenRenderTest(TestBase):
         c = column("c")
         eq_ignore_whitespace(
             autogenerate.render._render_check_constraint(
-                CheckConstraint(and_(c > 5, c < 10)), self.autogen_context
+                CheckConstraint(and_(c > 5, c < 10)),
+                self.autogen_context,
+                None,
             ),
             "sa.CheckConstraint(!U'c > 5 AND c < 10')",
         )
@@ -1598,6 +1604,7 @@ class AutogenRenderTest(TestBase):
             autogenerate.render._render_unique_constraint(
                 UniqueConstraint(t.c.c, name="uq_1", deferrable="XYZ"),
                 self.autogen_context,
+                None,
             ),
             "sa.UniqueConstraint('c', deferrable='XYZ', name='uq_1')",
         )
@@ -2248,7 +2255,9 @@ class RenderNamingConventionTest(TestBase):
         t = Table("t", self.metadata, Column("c", Integer))
         eq_ignore_whitespace(
             autogenerate.render._render_unique_constraint(
-                UniqueConstraint(t.c.c, deferrable="XYZ"), self.autogen_context
+                UniqueConstraint(t.c.c, deferrable="XYZ"),
+                self.autogen_context,
+                None,
             ),
             "sa.UniqueConstraint('c', deferrable='XYZ', "
             "name=op.f('uq_ct_t_c'))",
@@ -2258,7 +2267,7 @@ class RenderNamingConventionTest(TestBase):
         t = Table("t", self.metadata, Column("c", Integer))
         eq_ignore_whitespace(
             autogenerate.render._render_unique_constraint(
-                UniqueConstraint(t.c.c, name="q"), self.autogen_context
+                UniqueConstraint(t.c.c, name="q"), self.autogen_context, None
             ),
             "sa.UniqueConstraint('c', name='q')",
         )
@@ -2316,7 +2325,7 @@ class RenderNamingConventionTest(TestBase):
         uq = [c for c in t.constraints if isinstance(c, UniqueConstraint)][0]
         eq_ignore_whitespace(
             autogenerate.render._render_unique_constraint(
-                uq, self.autogen_context
+                uq, self.autogen_context, None
             ),
             "sa.UniqueConstraint('c', name=op.f('uq_ct_t_c'))",
         )
@@ -2370,7 +2379,7 @@ class RenderNamingConventionTest(TestBase):
 
         eq_ignore_whitespace(
             autogenerate.render._render_check_constraint(
-                ck, self.autogen_context
+                ck, self.autogen_context, None
             ),
             "sa.CheckConstraint(!U'im a constraint', name=op.f('ck_t_cc1'))",
         )

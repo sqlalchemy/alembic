@@ -68,6 +68,18 @@ class SuiteRequirements(Requirements):
         return exclusions.closed()
 
     @property
+    def editor_installed(self):
+        def go():
+            try:
+                import editor  # noqa
+            except ImportError:
+                return False
+            else:
+                return True
+
+        return exclusions.only_if(go, "editor package not installed")
+
+    @property
     def sqlalchemy_13(self):
         return exclusions.skip_if(
             lambda config: not util.sqla_13,

@@ -16,6 +16,7 @@ from alembic.testing import assertions
 from alembic.testing import combinations
 from alembic.testing import config
 from alembic.testing import eq_
+from alembic.testing import schemacompare
 from alembic.testing import TestBase
 from alembic.testing import util
 from alembic.testing.env import staging_env
@@ -788,7 +789,7 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestBase):
         )
 
         diffs = self._fixture(m1, m2)
-        eq_(diffs, [("add_index", idx)])
+        eq_(diffs, [("add_index", schemacompare.CompareIndex(idx))])
 
     def test_removed_idx_index_named_as_column(self):
         m1 = MetaData()
@@ -869,7 +870,6 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestBase):
         else:
             eq_(diffs[0][0], "remove_table")
             eq_(len(diffs), 1)
-
             constraints = [
                 c
                 for c in diffs[0][1].constraints

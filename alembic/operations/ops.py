@@ -76,21 +76,16 @@ class DropConstraintOp(MigrateOperation):
         table_name,
         type_=None,
         schema=None,
-        _orig_constraint=None,
+        _reverse=None,
     ):
         self.constraint_name = constraint_name
         self.table_name = table_name
         self.constraint_type = type_
         self.schema = schema
-        self._orig_constraint = _orig_constraint
+        self._reverse = _reverse
 
     def reverse(self):
-        if self._orig_constraint is None:
-            raise ValueError(
-                "operation is not reversible; "
-                "original constraint is not present"
-            )
-        return AddConstraintOp.from_constraint(self._orig_constraint)
+        return AddConstraintOp.from_constraint(self.to_constraint())
 
     def to_diff_tuple(self):
         if self.constraint_type == "foreignkey":
@@ -115,12 +110,19 @@ class DropConstraintOp(MigrateOperation):
             constraint_table.name,
             schema=constraint_table.schema,
             type_=types[constraint.__visit_name__],
-            _orig_constraint=constraint,
+            _reverse=AddConstraintOp.from_constraint(constraint),
         )
 
     def to_constraint(self):
-        if self._orig_constraint is not None:
-            return self._orig_constraint
+
+        if self._reverse is not None:
+            constraint = self._reverse.to_constraint()
+            constraint.name = self.constraint_name
+            constraint_table = sqla_compat._table_for_constraint(constraint)
+            constraint_table.name = self.table_name
+            constraint_table.schema = self.schema
+
+            return constraint
         else:
             raise ValueError(
                 "constraint cannot be produced; "
@@ -180,43 +182,33 @@ class CreatePrimaryKeyOp(AddConstraintOp):
     constraint_type = "primarykey"
 
     def __init__(
-        self,
-        constraint_name,
-        table_name,
-        columns,
-        schema=None,
-        _orig_constraint=None,
-        **kw
+        self, constraint_name, table_name, columns, schema=None, **kw
     ):
         self.constraint_name = constraint_name
         self.table_name = table_name
         self.columns = columns
         self.schema = schema
-        self._orig_constraint = _orig_constraint
         self.kw = kw
 
     @classmethod
     def from_constraint(cls, constraint):
         constraint_table = sqla_compat._table_for_constraint(constraint)
-
         return cls(
             constraint.name,
             constraint_table.name,
-            constraint.columns,
+            constraint.columns.keys(),
             schema=constraint_table.schema,
-            _orig_constraint=constraint,
+            **constraint.dialect_kwargs
         )
 
     def to_constraint(self, migration_context=None):
-        if self._orig_constraint is not None:
-            return self._orig_constraint
-
         schema_obj = schemaobj.SchemaObjects(migration_context)
         return schema_obj.primary_key_constraint(
             self.constraint_name,
             self.table_name,
             self.columns,
             schema=self.schema,
+            **self.kw
         )
 
     @classmethod
@@ -295,19 +287,12 @@ class CreateUniqueConstraintOp(AddConstraintOp):
     constraint_type = "unique"
 
     def __init__(
-        self,
-        constraint_name,
-        table_name,
-        columns,
-        schema=None,
-        _orig_constraint=None,
-        **kw
+        self, constraint_name, table_name, columns, schema=None, **kw
     ):
         self.constraint_name = constraint_name
         self.table_name = table_name
         self.columns = columns
         self.schema = schema
-        self._orig_constraint = _orig_constraint
         self.kw = kw
 
     @classmethod
@@ -319,20 +304,16 @@ class CreateUniqueConstraintOp(AddConstraintOp):
             kw["deferrable"] = constraint.deferrable
         if constraint.initially:
             kw["initially"] = constraint.initially
-
+        kw.update(constraint.dialect_kwargs)
         return cls(
             constraint.name,
             constraint_table.name,
             [c.name for c in constraint.columns],
             schema=constraint_table.schema,
-            _orig_constraint=constraint,
             **kw
         )
 
     def to_constraint(self, migration_context=None):
-        if self._orig_constraint is not None:
-            return self._orig_constraint
-
         schema_obj = schemaobj.SchemaObjects(migration_context)
         return schema_obj.unique_constraint(
             self.constraint_name,
@@ -430,7 +411,6 @@ class CreateForeignKeyOp(AddConstraintOp):
         referent_table,
         local_cols,
         remote_cols,
-        _orig_constraint=None,
         **kw
     ):
         self.constraint_name = constraint_name
@@ -438,7 +418,6 @@ class CreateForeignKeyOp(AddConstraintOp):
         self.referent_table = referent_table
         self.local_cols = local_cols
         self.remote_cols = remote_cols
-        self._orig_constraint = _orig_constraint
         self.kw = kw
 
     def to_diff_tuple(self):
@@ -473,20 +452,17 @@ class CreateForeignKeyOp(AddConstraintOp):
 
         kw["source_schema"] = source_schema
         kw["referent_schema"] = target_schema
-
+        kw.update(constraint.dialect_kwargs)
         return cls(
             constraint.name,
             source_table,
             target_table,
             source_columns,
             target_columns,
-            _orig_constraint=constraint,
             **kw
         )
 
     def to_constraint(self, migration_context=None):
-        if self._orig_constraint is not None:
-            return self._orig_constraint
         schema_obj = schemaobj.SchemaObjects(migration_context)
         return schema_obj.foreign_key_constraint(
             self.constraint_name,
@@ -642,19 +618,12 @@ class CreateCheckConstraintOp(AddConstraintOp):
     constraint_type = "check"
 
     def __init__(
-        self,
-        constraint_name,
-        table_name,
-        condition,
-        schema=None,
-        _orig_constraint=None,
-        **kw
+        self, constraint_name, table_name, condition, schema=None, **kw
     ):
         self.constraint_name = constraint_name
         self.table_name = table_name
         self.condition = condition
         self.schema = schema
-        self._orig_constraint = _orig_constraint
         self.kw = kw
 
     @classmethod
@@ -666,12 +635,10 @@ class CreateCheckConstraintOp(AddConstraintOp):
             constraint_table.name,
             constraint.sqltext,
             schema=constraint_table.schema,
-            _orig_constraint=constraint,
+            **constraint.dialect_kwargs
         )
 
     def to_constraint(self, migration_context=None):
-        if self._orig_constraint is not None:
-            return self._orig_constraint
         schema_obj = schemaobj.SchemaObjects(migration_context)
         return schema_obj.check_constraint(
             self.constraint_name,
@@ -765,14 +732,7 @@ class CreateIndexOp(MigrateOperation):
     """Represent a create index operation."""
 
     def __init__(
-        self,
-        index_name,
-        table_name,
-        columns,
-        schema=None,
-        unique=False,
-        _orig_index=None,
-        **kw
+        self, index_name, table_name, columns, schema=None, unique=False, **kw
     ):
         self.index_name = index_name
         self.table_name = table_name
@@ -780,7 +740,6 @@ class CreateIndexOp(MigrateOperation):
         self.schema = schema
         self.unique = unique
         self.kw = kw
-        self._orig_index = _orig_index
 
     def reverse(self):
         return DropIndexOp.from_index(self.to_index())
@@ -796,15 +755,13 @@ class CreateIndexOp(MigrateOperation):
             sqla_compat._get_index_expressions(index),
             schema=index.table.schema,
             unique=index.unique,
-            _orig_index=index,
             **index.kwargs
         )
 
     def to_index(self, migration_context=None):
-        if self._orig_index:
-            return self._orig_index
         schema_obj = schemaobj.SchemaObjects(migration_context)
-        return schema_obj.index(
+
+        idx = schema_obj.index(
             self.index_name,
             self.table_name,
             self.columns,
@@ -812,6 +769,7 @@ class CreateIndexOp(MigrateOperation):
             unique=self.unique,
             **self.kw
         )
+        return idx
 
     @classmethod
     def create_index(
@@ -897,23 +855,19 @@ class DropIndexOp(MigrateOperation):
     """Represent a drop index operation."""
 
     def __init__(
-        self, index_name, table_name=None, schema=None, _orig_index=None, **kw
+        self, index_name, table_name=None, schema=None, _reverse=None, **kw
     ):
         self.index_name = index_name
         self.table_name = table_name
         self.schema = schema
-        self._orig_index = _orig_index
+        self._reverse = _reverse
         self.kw = kw
 
     def to_diff_tuple(self):
         return ("remove_index", self.to_index())
 
     def reverse(self):
-        if self._orig_index is None:
-            raise ValueError(
-                "operation is not reversible; " "original index is not present"
-            )
-        return CreateIndexOp.from_index(self._orig_index)
+        return CreateIndexOp.from_index(self.to_index())
 
     @classmethod
     def from_index(cls, index):
@@ -921,14 +875,11 @@ class DropIndexOp(MigrateOperation):
             index.name,
             index.table.name,
             schema=index.table.schema,
-            _orig_index=index,
+            _reverse=CreateIndexOp.from_index(index),
             **index.kwargs
         )
 
     def to_index(self, migration_context=None):
-        if self._orig_index is not None:
-            return self._orig_index
-
         schema_obj = schemaobj.SchemaObjects(migration_context)
 
         # need a dummy column name here since SQLAlchemy
@@ -936,7 +887,7 @@ class DropIndexOp(MigrateOperation):
         return schema_obj.index(
             self.index_name,
             self.table_name,
-            ["x"],
+            self._reverse.columns if self._reverse else ["x"],
             schema=self.schema,
             **self.kw
         )
@@ -994,37 +945,49 @@ class CreateTableOp(MigrateOperation):
     """Represent a create table operation."""
 
     def __init__(
-        self, table_name, columns, schema=None, _orig_table=None, **kw
+        self, table_name, columns, schema=None, _namespace_metadata=None, **kw
     ):
         self.table_name = table_name
         self.columns = columns
         self.schema = schema
+        self.comment = kw.pop("comment", None)
+        self.prefixes = kw.pop("prefixes", None)
         self.kw = kw
-        self._orig_table = _orig_table
+        self._namespace_metadata = _namespace_metadata
 
     def reverse(self):
-        return DropTableOp.from_table(self.to_table())
+        return DropTableOp.from_table(
+            self.to_table(), _namespace_metadata=self._namespace_metadata
+        )
 
     def to_diff_tuple(self):
         return ("add_table", self.to_table())
 
     @classmethod
-    def from_table(cls, table):
+    def from_table(cls, table, _namespace_metadata=None):
+        if _namespace_metadata is None:
+            _namespace_metadata = table.metadata
+
         return cls(
             table.name,
             list(table.c) + list(table.constraints),
             schema=table.schema,
-            _orig_table=table,
+            _namespace_metadata=_namespace_metadata,
+            comment=table.comment,
+            prefixes=table._prefixes,
             **table.kwargs
         )
 
     def to_table(self, migration_context=None):
-        if self._orig_table is not None:
-            return self._orig_table
         schema_obj = schemaobj.SchemaObjects(migration_context)
 
         return schema_obj.table(
-            self.table_name, *self.columns, schema=self.schema, **self.kw
+            self.table_name,
+            *self.columns,
+            schema=self.schema,
+            prefixes=self.prefixes,
+            comment=self.comment,
+            **self.kw
         )
 
     @classmethod
@@ -1113,35 +1076,43 @@ class CreateTableOp(MigrateOperation):
 class DropTableOp(MigrateOperation):
     """Represent a drop table operation."""
 
-    def __init__(
-        self, table_name, schema=None, table_kw=None, _orig_table=None
-    ):
+    def __init__(self, table_name, schema=None, table_kw=None, _reverse=None):
         self.table_name = table_name
         self.schema = schema
         self.table_kw = table_kw or {}
-        self._orig_table = _orig_table
+        self._reverse = _reverse
 
     def to_diff_tuple(self):
         return ("remove_table", self.to_table())
 
     def reverse(self):
-        if self._orig_table is None:
-            raise ValueError(
-                "operation is not reversible; " "original table is not present"
-            )
-        return CreateTableOp.from_table(self._orig_table)
+        return CreateTableOp.from_table(self.to_table())
 
     @classmethod
-    def from_table(cls, table):
-        return cls(table.name, schema=table.schema, _orig_table=table)
+    def from_table(cls, table, _namespace_metadata=None):
+        return cls(
+            table.name,
+            schema=table.schema,
+            table_kw=table.kwargs,
+            _reverse=CreateTableOp.from_table(
+                table, _namespace_metadata=_namespace_metadata
+            ),
+        )
 
     def to_table(self, migration_context=None):
-        if self._orig_table is not None:
-            return self._orig_table
+        if self._reverse:
+            cols_and_constraints = self._reverse.columns
+        else:
+            cols_and_constraints = []
+
         schema_obj = schemaobj.SchemaObjects(migration_context)
-        return schema_obj.table(
-            self.table_name, schema=self.schema, **self.table_kw
+        t = schema_obj.table(
+            self.table_name,
+            *cols_and_constraints,
+            schema=self.schema,
+            **self.table_kw
         )
+        return t
 
     @classmethod
     def drop_table(cls, operations, table_name, schema=None, **kw):
@@ -1791,12 +1762,12 @@ class DropColumnOp(AlterTableOp):
     """Represent a drop column operation."""
 
     def __init__(
-        self, table_name, column_name, schema=None, _orig_column=None, **kw
+        self, table_name, column_name, schema=None, _reverse=None, **kw
     ):
         super(DropColumnOp, self).__init__(table_name, schema=schema)
         self.column_name = column_name
         self.kw = kw
-        self._orig_column = _orig_column
+        self._reverse = _reverse
 
     def to_diff_tuple(self):
         return (
@@ -1807,23 +1778,28 @@ class DropColumnOp(AlterTableOp):
         )
 
     def reverse(self):
-        if self._orig_column is None:
+        if self._reverse is None:
             raise ValueError(
                 "operation is not reversible; "
                 "original column is not present"
             )
 
         return AddColumnOp.from_column_and_tablename(
-            self.schema, self.table_name, self._orig_column
+            self.schema, self.table_name, self._reverse.column
         )
 
     @classmethod
     def from_column_and_tablename(cls, schema, tname, col):
-        return cls(tname, col.name, schema=schema, _orig_column=col)
+        return cls(
+            tname,
+            col.name,
+            schema=schema,
+            _reverse=AddColumnOp.from_column_and_tablename(schema, tname, col),
+        )
 
     def to_column(self, migration_context=None):
-        if self._orig_column is not None:
-            return self._orig_column
+        if self._reverse is not None:
+            return self._reverse.column
         schema_obj = schemaobj.SchemaObjects(migration_context)
         return schema_obj.column(self.column_name, NULLTYPE)
 

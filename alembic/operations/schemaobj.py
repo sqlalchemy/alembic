@@ -1,8 +1,12 @@
 from sqlalchemy import schema as sa_schema
+from sqlalchemy.sql.schema import Column
+from sqlalchemy.sql.schema import Constraint
+from sqlalchemy.sql.schema import Index
 from sqlalchemy.types import Integer
 from sqlalchemy.types import NULLTYPE
 
 from .. import util
+from ..util import sqla_compat
 from ..util.compat import raise_
 from ..util.compat import string_types
 
@@ -16,7 +20,6 @@ class SchemaObjects(object):
         columns = [sa_schema.Column(n, NULLTYPE) for n in cols]
         t = sa_schema.Table(table_name, m, *columns, schema=schema)
         p = sa_schema.PrimaryKeyConstraint(*[t.c[n] for n in cols], name=name)
-        t.append_constraint(p)
         return p
 
     def foreign_key_constraint(
@@ -140,7 +143,25 @@ class SchemaObjects(object):
 
     def table(self, name, *columns, **kw):
         m = self.metadata()
-        t = sa_schema.Table(name, m, *columns, **kw)
+
+        cols = [
+            sqla_compat._copy(c) if c.table is not None else c
+            for c in columns
+            if isinstance(c, Column)
+        ]
+        t = sa_schema.Table(name, m, *cols, **kw)
+
+        constraints = [
+            sqla_compat._copy(elem, target_table=t)
+            if getattr(elem, "parent", None) is not None
+            else elem
+            for elem in columns
+            if isinstance(elem, (Constraint, Index))
+        ]
+
+        for const in constraints:
+            t.append_constraint(const)
+
         for f in t.foreign_keys:
             self._ensure_table_for_fk(m, f)
         return t
@@ -150,8 +171,11 @@ class SchemaObjects(object):
 
     def index(self, name, tablename, columns, schema=None, **kw):
         t = sa_schema.Table(
-            tablename or "no_table", self.metadata(), schema=schema
+            tablename or "no_table",
+            self.metadata(),
+            schema=schema,
         )
+        kw["_table"] = t
         idx = sa_schema.Index(
             name,
             *[util.sqla_compat._textual_index_column(t, n) for n in columns],

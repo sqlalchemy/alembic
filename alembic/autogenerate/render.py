@@ -178,7 +178,9 @@ def _add_table(autogen_context, op):
         [
             rcons
             for rcons in [
-                _render_constraint(cons, autogen_context)
+                _render_constraint(
+                    cons, autogen_context, op._namespace_metadata
+                )
                 for cons in table.constraints
             ]
             if rcons is not None
@@ -308,7 +310,6 @@ def _add_fk_constraint(autogen_context, op):
             repr([_ident(col) for col in op.remote_cols]),
         ]
     )
-
     kwargs = [
         "referent_schema",
         "onupdate",
@@ -802,18 +803,18 @@ def _render_type_w_subtype(
 _constraint_renderers = util.Dispatcher()
 
 
-def _render_constraint(constraint, autogen_context):
+def _render_constraint(constraint, autogen_context, namespace_metadata):
     try:
         renderer = _constraint_renderers.dispatch(constraint)
     except ValueError:
         util.warn("No renderer is established for object %r" % constraint)
         return "[Unknown Python object %r]" % constraint
     else:
-        return renderer(constraint, autogen_context)
+        return renderer(constraint, autogen_context, namespace_metadata)
 
 
 @_constraint_renderers.dispatch_for(sa_schema.PrimaryKeyConstraint)
-def _render_primary_key(constraint, autogen_context):
+def _render_primary_key(constraint, autogen_context, namespace_metadata):
     rendered = _user_defined_render("primary_key", constraint, autogen_context)
     if rendered is not False:
         return rendered
@@ -835,7 +836,7 @@ def _render_primary_key(constraint, autogen_context):
     }
 
 
-def _fk_colspec(fk, metadata_schema):
+def _fk_colspec(fk, metadata_schema, namespace_metadata):
     """Implement a 'safe' version of ForeignKey._get_colspec() that
     won't fail if the remote table can't be resolved.
 
@@ -857,9 +858,9 @@ def _fk_colspec(fk, metadata_schema):
         # try to resolve the remote table in order to adjust for column.key.
         # the FK constraint needs to be rendered in terms of the column
         # name.
-        parent_metadata = fk.parent.table.metadata
-        if table_fullname in parent_metadata.tables:
-            col = parent_metadata.tables[table_fullname].c.get(colname)
+
+        if table_fullname in namespace_metadata.tables:
+            col = namespace_metadata.tables[table_fullname].c.get(colname)
             if col is not None:
                 colname = _ident(col.name)
 
@@ -883,7 +884,7 @@ def _populate_render_fk_opts(constraint, opts):
 
 
 @_constraint_renderers.dispatch_for(sa_schema.ForeignKeyConstraint)
-def _render_foreign_key(constraint, autogen_context):
+def _render_foreign_key(constraint, autogen_context, namespace_metadata):
     rendered = _user_defined_render("foreign_key", constraint, autogen_context)
     if rendered is not False:
         return rendered
@@ -896,7 +897,7 @@ def _render_foreign_key(constraint, autogen_context):
 
     _populate_render_fk_opts(constraint, opts)
 
-    apply_metadata_schema = constraint.parent.metadata.schema
+    apply_metadata_schema = namespace_metadata.schema
     return (
         "%(prefix)sForeignKeyConstraint([%(cols)s], "
         "[%(refcols)s], %(args)s)"
@@ -906,7 +907,7 @@ def _render_foreign_key(constraint, autogen_context):
                 "%r" % _ident(f.parent.name) for f in constraint.elements
             ),
             "refcols": ", ".join(
-                repr(_fk_colspec(f, apply_metadata_schema))
+                repr(_fk_colspec(f, apply_metadata_schema, namespace_metadata))
                 for f in constraint.elements
             ),
             "args": ", ".join(
@@ -917,7 +918,7 @@ def _render_foreign_key(constraint, autogen_context):
 
 
 @_constraint_renderers.dispatch_for(sa_schema.UniqueConstraint)
-def _render_unique_constraint(constraint, autogen_context):
+def _render_unique_constraint(constraint, autogen_context, namespace_metadata):
     rendered = _user_defined_render("unique", constraint, autogen_context)
     if rendered is not False:
         return rendered
@@ -926,7 +927,7 @@ def _render_unique_constraint(constraint, autogen_context):
 
 
 @_constraint_renderers.dispatch_for(sa_schema.CheckConstraint)
-def _render_check_constraint(constraint, autogen_context):
+def _render_check_constraint(constraint, autogen_context, namespace_metadata):
     rendered = _user_defined_render("check", constraint, autogen_context)
     if rendered is not False:
         return rendered

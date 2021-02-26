@@ -464,7 +464,9 @@ def _add_exclude_constraint(autogen_context, op):
 
 
 @render._constraint_renderers.dispatch_for(ExcludeConstraint)
-def _render_inline_exclude_constraint(constraint, autogen_context):
+def _render_inline_exclude_constraint(
+    constraint, autogen_context, namespace_metadata
+):
     rendered = render._user_defined_render(
         "exclude", constraint, autogen_context
     )
