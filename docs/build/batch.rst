@@ -4,7 +4,7 @@ Running "Batch" Migrations for SQLite and Other Databases
 =========================================================
 
 The SQLite database presents a challenge to migration tools
-in that it has almost no support for the ALTER statement upon which
+in that it has almost no support for the ALTER statement
 relational schema migrations rely upon.  The rationale for this stems from
 philosophical and architectural concerns within SQLite, and they are unlikely
 to be changed.
