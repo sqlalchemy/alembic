@@ -4,7 +4,7 @@ Running "Batch" Migrations for SQLite and Other Databases
 =========================================================
 
 The SQLite database presents a challenge to migration tools
-in that it has almost no support for the ALTER statement
+in that it has almost no support for the ALTER statement which
 relational schema migrations rely upon.  The rationale for this stems from
 philosophical and architectural concerns within SQLite, and they are unlikely
 to be changed.
@@ -349,4 +349,3 @@ transactional DDL.
 Note that also as is the case with SQLite, CHECK constraints need to be
 moved over between old and new table manually using the
 :paramref:`.Operations.batch_alter_table.table_args` parameter.
-
