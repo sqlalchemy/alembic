@@ -75,18 +75,24 @@ class MSSQLImpl(DefaultImpl):
         **kw
     ):
 
-        if nullable is not None and existing_type is None:
-            if type_ is not None:
-                existing_type = type_
+        if nullable is not None:
+            if existing_type is None:
+                if type_ is not None:
+                    existing_type = type_
+                    # the NULL/NOT NULL alter will handle
+                    # the type alteration
+                    type_ = None
+                else:
+                    raise util.CommandError(
+                        "MS-SQL ALTER COLUMN operations "
+                        "with NULL or NOT NULL require the "
+                        "existing_type or a new type_ be passed."
+                    )
+            elif type_ is not None:
                 # the NULL/NOT NULL alter will handle
                 # the type alteration
+                existing_type = type_
                 type_ = None
-            else:
-                raise util.CommandError(
-                    "MS-SQL ALTER COLUMN operations "
-                    "with NULL or NOT NULL require the "
-                    "existing_type or a new type_ be passed."
-                )
 
         used_default = False
         if sqla_compat._server_default_is_identity(

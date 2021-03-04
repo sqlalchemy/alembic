@@ -3,6 +3,7 @@
 from sqlalchemy import Column
 from sqlalchemy import exc
 from sqlalchemy import Integer
+from sqlalchemy import String
 
 from alembic import command
 from alembic import op
@@ -79,10 +80,26 @@ class OpTest(TestBase):
         op.alter_column("t", "c", new_column_name="SomeFancyName")
         context.assert_("EXEC sp_rename 't.c', [SomeFancyName], 'COLUMN'")
 
-    def test_alter_column_new_type(self):
+    @combinations((True,), (False,), argnames="pass_existing_type")
+    @combinations((True,), (False,), argnames="change_nullability")
+    def test_alter_column_type_and_nullability(
+        self, pass_existing_type, change_nullability
+    ):
         context = op_fixture("mssql")
-        op.alter_column("t", "c", type_=Integer)
-        context.assert_("ALTER TABLE t ALTER COLUMN c INTEGER")
+
+        args = dict(type_=Integer)
+        if pass_existing_type:
+            args["existing_type"] = String(15)
+
+        if change_nullability:
+            args["nullable"] = False
+
+        op.alter_column("t", "c", **args)
+
+        if change_nullability:
+            context.assert_("ALTER TABLE t ALTER COLUMN c INTEGER NOT NULL")
+        else:
+            context.assert_("ALTER TABLE t ALTER COLUMN c INTEGER")
 
     def test_alter_column_dont_touch_constraints(self):
         context = op_fixture("mssql")

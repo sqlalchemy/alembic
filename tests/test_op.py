@@ -462,6 +462,31 @@ class OpTest(TestBase):
             "ALTER TABLE foo.t ADD CONSTRAINT xyz CHECK (c IN (0, 1))",
         )
 
+    @combinations((True,), (False,), argnames="pass_existing_type")
+    @combinations((True,), (False,), argnames="change_nullability")
+    def test_generic_alter_column_type_and_nullability(
+        self, pass_existing_type, change_nullability
+    ):
+        # this test is also on the mssql dialect in test_mssql
+        context = op_fixture()
+
+        args = dict(type_=Integer)
+        if pass_existing_type:
+            args["existing_type"] = String(15)
+
+        if change_nullability:
+            args["nullable"] = False
+
+        op.alter_column("t", "c", **args)
+
+        if change_nullability:
+            context.assert_(
+                "ALTER TABLE t ALTER COLUMN c SET NOT NULL",
+                "ALTER TABLE t ALTER COLUMN c TYPE INTEGER",
+            )
+        else:
+            context.assert_("ALTER TABLE t ALTER COLUMN c TYPE INTEGER")
+
     def test_alter_column_schema_type_existing_type(self):
         context = op_fixture("mssql", native_boolean=False)
         op.alter_column(
