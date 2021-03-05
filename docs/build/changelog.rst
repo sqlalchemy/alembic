@@ -5,7 +5,28 @@ Changelog
 
 .. changelog::
     :version: 1.5.6
-    :include_notes_from: unreleased
+    :released: March 5, 2021
+
+    .. change::
+        :tags: bug, mssql, operations
+        :tickets: 812
+
+        Fixed bug where the "existing_type" parameter, which the MSSQL dialect
+        requires in order to change the nullability of a column in the absence of
+        also changing the column type, would cause an ALTER COLUMN operation to
+        incorrectly render a second ALTER statement without the nullability if a
+        new type were also present, as the MSSQL-specific contract did not
+        anticipate all three of "nullability", "type_" and "existing_type" being
+        sent at the same time.
+
+
+    .. change::
+        :tags: template
+        :ticket: 805
+
+        Add async template to Alembic to bootstrap environments that use
+        async DBAPI. Updated the cookbook to include a migration guide
+        on how to adapt an existing enviroment for use with DBAPI drivers.
 
 .. changelog::
     :version: 1.5.5

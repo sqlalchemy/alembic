@@ -1,7 +1,0 @@
-.. change::
-    :tags: template
-    :ticket: 805
-
-    Add async template to Alembic to bootstrap environments that use
-    async DBAPI. Updated the cookbook to include a migration guide
-    on how to adapt an existing enviroment for use with DBAPI drivers.
