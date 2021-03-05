@@ -1188,6 +1188,60 @@ class AutogenerateCustomCompareTypeTest(AutogenTest, TestBase):
         eq_(diffs[1][0][0], "modify_type")
 
 
+class IncludeFiltersAPITest(AutogenTest, TestBase):
+    @classmethod
+    def _get_db_schema(cls):
+        return MetaData()
+
+    @classmethod
+    def _get_model_schema(cls):
+        return MetaData()
+
+    def test_run_name_filters_supports_extension_types(self):
+        include_name = mock.Mock()
+
+        self._update_context(name_filters=include_name, include_schemas=True)
+
+        self.autogen_context.run_name_filters(
+            name="some_function",
+            type_="function",
+            parent_names={"schema_name": "public"},
+        )
+
+        eq_(
+            include_name.mock_calls,
+            [
+                mock.call(
+                    "some_function", "function", {"schema_name": "public"}
+                )
+            ],
+        )
+
+    def test_run_object_filters_supports_extension_types(self):
+        include_object = mock.Mock()
+
+        self._update_context(
+            object_filters=include_object, include_schemas=True
+        )
+
+        class ExtFunction(object):
+            pass
+
+        extfunc = ExtFunction()
+        self.autogen_context.run_object_filters(
+            object_=extfunc,
+            name="some_function",
+            type_="function",
+            reflected=False,
+            compare_to=None,
+        )
+
+        eq_(
+            include_object.mock_calls,
+            [mock.call(extfunc, "some_function", "function", False, None)],
+        )
+
+
 class PKConstraintUpgradesIgnoresNullableTest(AutogenTest, TestBase):
     __backend__ = True
 
