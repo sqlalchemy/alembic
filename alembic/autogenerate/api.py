@@ -330,15 +330,16 @@ class AutogenContext(object):
             if type_ == "table":
                 table_name = name
             else:
-                table_name = parent_names["table_name"]
-            schema_name = parent_names["schema_name"]
-            if schema_name:
-                parent_names["schema_qualified_table_name"] = "%s.%s" % (
-                    schema_name,
-                    table_name,
-                )
-            else:
-                parent_names["schema_qualified_table_name"] = table_name
+                table_name = parent_names.get("table_name", None)
+            if table_name:
+                schema_name = parent_names["schema_name"]
+                if schema_name:
+                    parent_names["schema_qualified_table_name"] = "%s.%s" % (
+                        schema_name,
+                        table_name,
+                    )
+                else:
+                    parent_names["schema_qualified_table_name"] = table_name
 
         for fn in self._name_filters:
 

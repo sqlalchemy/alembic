@@ -198,6 +198,36 @@ class AutogenCrossSchemaTest(AutogenTest, TestBase):
             },
         )
 
+    def test_run_name_filters_supports_extension_types(self):
+        def include_name(name, type_, parent_names):
+            # extension type successfully passed through
+            # `AutogenContext.run_name_filters`
+            assert True
+
+        self._update_context(name_filters=include_name, include_schemas=True)
+
+        self.autogen_context.run_name_filters(
+            name="some_function",
+            type_="function",
+            parent_names={"schema_name": "public"},
+        )
+
+    def test_run_object_filters_supports_extension_types(self):
+        def include_object(obj, name, type_, reflected, compare_to):
+            # extension type successfully passed through
+            # `AutogenContext.run_object_filters`
+            assert True
+
+        self._update_context(
+            object_filters=include_object, include_schemas=True
+        )
+
+        self.autogen_context.run_name_filters(
+            name="some_function",
+            type_="function",
+            parent_names={"schema_name": "public"},
+        )
+
     def test_default_schema_omitted_downgrade(self):
         def include_object(obj, name, type_, reflected, compare_to):
             if type_ == "table":
