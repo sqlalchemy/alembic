@@ -222,10 +222,15 @@ class AutogenCrossSchemaTest(AutogenTest, TestBase):
             object_filters=include_object, include_schemas=True
         )
 
-        self.autogen_context.run_name_filters(
+        class ExtFunction(object):
+            pass
+
+        self.autogen_context.run_object_filters(
+            object_=ExtFunction(),
             name="some_function",
             type_="function",
-            parent_names={"schema_name": "public"},
+            reflected=False,
+            compare_to=None,
         )
 
     def test_default_schema_omitted_downgrade(self):
