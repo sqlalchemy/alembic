@@ -5,7 +5,17 @@ Changelog
 
 .. changelog::
     :version: 1.5.7
-    :include_notes_from: unreleased
+    :released: March 11, 2021
+
+    .. change::
+        :tags: bug, autogenerate
+        :tickets: 813
+
+        Adjusted the recently added
+        :paramref:`.EnvironmentContext.configure.include_name` hook to accommodate
+        for additional object types such as "views" that don't have a parent table,
+        to support third party recipes and extensions. Pull request courtesy Oliver
+        Rice.
 
 .. changelog::
     :version: 1.5.6
