@@ -5,7 +5,15 @@ Changelog
 
 .. changelog::
     :version: 1.5.8
-    :include_notes_from: unreleased
+    :released: March 23, 2021
+
+    .. change::
+        :tags: bug, environment
+        :tickets: 816
+
+        Fixed regression caused by SQLAlchemy 1.4 where the "alembic current"
+        command would fail due to changes in the ``URL`` object.
+
 
 .. changelog::
     :version: 1.5.7
