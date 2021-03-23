@@ -5,6 +5,7 @@ import warnings
 
 from sqlalchemy.engine import url
 
+from . import sqla_compat
 from .compat import binary_type
 from .compat import collections_abc
 from .compat import string_types
@@ -64,7 +65,10 @@ def err(message):
 def obfuscate_url_pw(u):
     u = url.make_url(u)
     if u.password:
-        u.password = "XXXXX"
+        if sqla_compat.sqla_14:
+            u = u.set(password="XXXXX")
+        else:
+            u.password = "XXXXX"
     return str(u)
 
 
