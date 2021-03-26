@@ -738,9 +738,9 @@ generated file path.    Example::
   # format using "black"
   hooks=black
 
-  black.type=console_scripts
-  black.entrypoint=black
-  black.options=-l 79
+  black.type = console_scripts
+  black.entrypoint = black
+  black.options = -l 79 REVISION_SCRIPT_FILENAME
 
 Above, we configure a single post write hook that we call ``"black"``. Note
 that this name is arbitrary.  We then define the configuration for the
@@ -762,18 +762,19 @@ that this name is arbitrary.  We then define the configuration for the
 * ``options`` - this is also specific to the ``"console_scripts"`` hook runner.
   This is a line of command-line options that will be passed to the
   code formatting tool.  In this case, we want to run the command
-  as ``black -l 79 /path/to/revision.py``.   The path of the revision file
-  is sent as a single positional argument to the script after the options.
+  as ``black -l 79 /path/to/revision.py``.   If the ``REVISION_SCRIPT_FILENAME``
+  token is not present, then the path of the revision file is prepended as a
+  single positional argument, i.e. ``black /path/to/revision.py -l 79``.
 
   .. note:: Make sure options for the script are provided such that it will
      rewrite the input file **in place**.  For example, when running
      ``autopep8``, the ``--in-place`` option should be provided::
 
         [post_write_hooks]
-        hooks=autopep8
-        autopep8.type=console_scripts
-        autopep8.entrypoint=autopep8
-        autopep8.options=--in-place
+        hooks = autopep8
+        autopep8.type = console_scripts
+        autopep8.entrypoint = autopep8
+        autopep8.options = --in-place REVISION_SCRIPT_FILENAME
 
 
 When running ``alembic revision -m "rev1"``, we will now see the ``black``
@@ -798,13 +799,13 @@ configuration as follows::
   # format using "black", then "zimports"
   hooks=black, zimports
 
-  black.type=console_scripts
-  black.entrypoint=black
-  black.options=-l 79
+  black.type = console_scripts
+  black.entrypoint = black
+  black.options = -l 79 REVISION_SCRIPT_FILENAME
 
-  zimports.type=console_scripts
-  zimports.entrypoint=zimports
-  zimports.options=--style google
+  zimports.type = console_scripts
+  zimports.entrypoint = zimports
+  zimports.options = --style google REVISION_SCRIPT_FILENAME
 
 When using the above configuration, a newly generated revision file will
 be processed first by the "black" tool, then by the "zimports" tool.
@@ -855,9 +856,9 @@ Our new ``"spaces_to_tabs"`` hook can be configured in alembic.ini as follows::
 
   [post_write_hooks]
 
-  hooks=spaces_to_tabs
+  hooks = spaces_to_tabs
 
-  spaces_to_tabs.type=spaces_to_tabs
+  spaces_to_tabs.type = spaces_to_tabs
 
 
 When ``alembic revision`` is run, the ``env.py`` file will be loaded in all

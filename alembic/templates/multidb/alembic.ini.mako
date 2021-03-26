@@ -53,10 +53,10 @@ sqlalchemy.url = driver://user:pass@localhost/dbname2
 # detail and examples
 
 # format using "black" - use the console_scripts runner, against the "black" entrypoint
-# hooks=black
-# black.type=console_scripts
-# black.entrypoint=black
-# black.options=-l 79
+# hooks = black
+# black.type = console_scripts
+# black.entrypoint = black
+# black.options = -l 79 REVISION_SCRIPT_FILENAME
 
 # Logging configuration
 [loggers]
