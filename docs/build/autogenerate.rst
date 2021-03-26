@@ -740,31 +740,32 @@ generated file path.    Example::
 
   black.type = console_scripts
   black.entrypoint = black
-  black.options = -l 79 REVISION_SCRIPT_FILENAME
+  black.options = -l 79
 
-Above, we configure a single post write hook that we call ``"black"``. Note
-that this name is arbitrary.  We then define the configuration for the
-``"black"`` post write hook, which includes:
+Above, we configure ``hooks`` to be a single post write hook labeled
+``"black"``.   Note that this label is arbitrary.   We then define the
+configuration for the ``"black"`` post write hook, which includes:
 
-* ``type`` - this is the type of hook we are running.   Alembic includes
+* ``type`` - this is the type of hook we are running.  Alembic includes
   a hook runner called ``"console_scripts"``, which is specifically a
   Python function that uses ``subprocess.run()`` to invoke a separate
-  Python script against the revision file.    For a custom-written hook
+  Python script against the revision file.  For a custom-written hook
   function, this configuration variable would refer to the name under
   which the custom hook was registered; see the next section for an example.
 
 * ``entrypoint`` - this part of the configuration is specific to the
   ``"console_scripts"`` hook runner.  This is the name of the `setuptools entrypoint <https://setuptools.readthedocs.io/en/latest/pkg_resources.html#entry-points>`_
-  that is used to define the console script.    Within the scope of standard
+  that is used to define the console script.   Within the scope of standard
   Python console scripts, this name will match the name of the shell command
   that is usually run for the code formatting tool, in this case ``black``.
 
 * ``options`` - this is also specific to the ``"console_scripts"`` hook runner.
   This is a line of command-line options that will be passed to the
   code formatting tool.  In this case, we want to run the command
-  as ``black -l 79 /path/to/revision.py``.   If the ``REVISION_SCRIPT_FILENAME``
-  token is not present, then the path of the revision file is prepended as a
-  single positional argument, i.e. ``black /path/to/revision.py -l 79``.
+  ``black /path/to/revision.py -l 79``.  By default, the revision path is
+  positioned as the first argument.  In order specify a different position,
+  we can use the ``REVISION_SCRIPT_FILENAME`` token as illustrated by the
+  subsequent examples.
 
   .. note:: Make sure options for the script are provided such that it will
      rewrite the input file **in place**.  For example, when running
