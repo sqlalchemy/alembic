@@ -1,0 +1,9 @@
+.. change::
+    :tags: bug, feature, documentation
+    :tickets: 819
+
+    Fix the documentation regarding the default command-line argument position of
+    the revision script filename within the post-write hook arguments. Implement a
+    ``REVISION_SCRIPT_FILENAME`` token, enabling the position to be changed. Switch
+    from ``str.split()`` to ``shlex.split()`` for more robust command-line argument
+    parsing.
