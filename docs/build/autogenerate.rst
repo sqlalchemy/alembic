@@ -738,42 +738,44 @@ generated file path.    Example::
   # format using "black"
   hooks=black
 
-  black.type=console_scripts
-  black.entrypoint=black
-  black.options=-l 79
+  black.type = console_scripts
+  black.entrypoint = black
+  black.options = -l 79
 
-Above, we configure a single post write hook that we call ``"black"``. Note
-that this name is arbitrary.  We then define the configuration for the
-``"black"`` post write hook, which includes:
+Above, we configure ``hooks`` to be a single post write hook labeled
+``"black"``.   Note that this label is arbitrary.   We then define the
+configuration for the ``"black"`` post write hook, which includes:
 
-* ``type`` - this is the type of hook we are running.   Alembic includes
+* ``type`` - this is the type of hook we are running.  Alembic includes
   a hook runner called ``"console_scripts"``, which is specifically a
   Python function that uses ``subprocess.run()`` to invoke a separate
-  Python script against the revision file.    For a custom-written hook
+  Python script against the revision file.  For a custom-written hook
   function, this configuration variable would refer to the name under
   which the custom hook was registered; see the next section for an example.
 
 * ``entrypoint`` - this part of the configuration is specific to the
   ``"console_scripts"`` hook runner.  This is the name of the `setuptools entrypoint <https://setuptools.readthedocs.io/en/latest/pkg_resources.html#entry-points>`_
-  that is used to define the console script.    Within the scope of standard
+  that is used to define the console script.   Within the scope of standard
   Python console scripts, this name will match the name of the shell command
   that is usually run for the code formatting tool, in this case ``black``.
 
 * ``options`` - this is also specific to the ``"console_scripts"`` hook runner.
   This is a line of command-line options that will be passed to the
   code formatting tool.  In this case, we want to run the command
-  as ``black -l 79 /path/to/revision.py``.   The path of the revision file
-  is sent as a single positional argument to the script after the options.
+  ``black /path/to/revision.py -l 79``.  By default, the revision path is
+  positioned as the first argument.  In order specify a different position,
+  we can use the ``REVISION_SCRIPT_FILENAME`` token as illustrated by the
+  subsequent examples.
 
   .. note:: Make sure options for the script are provided such that it will
      rewrite the input file **in place**.  For example, when running
      ``autopep8``, the ``--in-place`` option should be provided::
 
         [post_write_hooks]
-        hooks=autopep8
-        autopep8.type=console_scripts
-        autopep8.entrypoint=autopep8
-        autopep8.options=--in-place
+        hooks = autopep8
+        autopep8.type = console_scripts
+        autopep8.entrypoint = autopep8
+        autopep8.options = --in-place REVISION_SCRIPT_FILENAME
 
 
 When running ``alembic revision -m "rev1"``, we will now see the ``black``
@@ -798,13 +800,13 @@ configuration as follows::
   # format using "black", then "zimports"
   hooks=black, zimports
 
-  black.type=console_scripts
-  black.entrypoint=black
-  black.options=-l 79
+  black.type = console_scripts
+  black.entrypoint = black
+  black.options = -l 79 REVISION_SCRIPT_FILENAME
 
-  zimports.type=console_scripts
-  zimports.entrypoint=zimports
-  zimports.options=--style google
+  zimports.type = console_scripts
+  zimports.entrypoint = zimports
+  zimports.options = --style google REVISION_SCRIPT_FILENAME
 
 When using the above configuration, a newly generated revision file will
 be processed first by the "black" tool, then by the "zimports" tool.
@@ -855,9 +857,9 @@ Our new ``"spaces_to_tabs"`` hook can be configured in alembic.ini as follows::
 
   [post_write_hooks]
 
-  hooks=spaces_to_tabs
+  hooks = spaces_to_tabs
 
-  spaces_to_tabs.type=spaces_to_tabs
+  spaces_to_tabs.type = spaces_to_tabs
 
 
 When ``alembic revision`` is run, the ``env.py`` file will be loaded in all

@@ -125,17 +125,10 @@ class RunHookTest(TestBase):
             message="x",
         )
 
-    def test_console_scripts(self):
-        self.cfg = _no_sql_testing_config(
-            directives=(
-                "\n[post_write_hooks]\n"
-                "hooks=black\n"
-                "black.type=console_scripts\n"
-                "black.entrypoint=black\n"
-                "black.options=-l 79\n"
-            )
-        )
-
+    def _run_black_with_config(
+        self, input_config, expected_additional_arguments_fn
+    ):
+        self.cfg = _no_sql_testing_config(directives=input_config)
         impl = mock.Mock(attrs=("foo", "bar"), module_name="black_module")
         entrypoints = mock.Mock(return_value=iter([impl]))
         with mock.patch(
@@ -155,10 +148,41 @@ class RunHookTest(TestBase):
                         sys.executable,
                         "-c",
                         "import black_module; black_module.foo.bar()",
-                        rev.path,
-                        "-l",
-                        "79",
                     ]
+                    + expected_additional_arguments_fn(rev.path)
                 )
             ],
+        )
+
+    def test_console_scripts(self):
+        input_config = """
+[post_write_hooks]
+hooks = black
+black.type = console_scripts
+black.entrypoint = black
+black.options = -l 79
+        """
+
+        def expected_additional_arguments_fn(rev_path):
+            return [rev_path, "-l", "79"]
+
+        self._run_black_with_config(
+            input_config, expected_additional_arguments_fn
+        )
+
+    def test_filename_interpolation(self):
+        input_config = """
+[post_write_hooks]
+hooks = black
+black.type = console_scripts
+black.entrypoint = black
+black.options = arg1 REVISION_SCRIPT_FILENAME 'multi-word arg' \
+    --flag1='REVISION_SCRIPT_FILENAME'
+        """
+
+        def expected_additional_arguments_fn(rev_path):
+            return ["arg1", rev_path, "multi-word arg", "--flag1=" + rev_path]
+
+        self._run_black_with_config(
+            input_config, expected_additional_arguments_fn
         )
