@@ -88,7 +88,7 @@ def _run_hooks(path, hook_config):
             )
 
 
-def _parse_options(options_str, path):
+def _parse_cmdline_options(cmdline_options_str, path):
     """Parse options from a string into a list.
 
     Also substitutes the revision script token with the actual filename of
@@ -97,13 +97,14 @@ def _parse_options(options_str, path):
     If the revision script token doesn't occur in the options string, it is
     automatically prepended.
     """
-    if REVISION_SCRIPT_TOKEN not in options_str:
-        options_str = REVISION_SCRIPT_TOKEN + " " + options_str
-    options_list = shlex.split(options_str)
-    options_list = [
-        option.replace(REVISION_SCRIPT_TOKEN, path) for option in options_list
+    if REVISION_SCRIPT_TOKEN not in cmdline_options_str:
+        cmdline_options_str = REVISION_SCRIPT_TOKEN + " " + cmdline_options_str
+    cmdline_options_list = shlex.split(cmdline_options_str)
+    cmdline_options_list = [
+        option.replace(REVISION_SCRIPT_TOKEN, path)
+        for option in cmdline_options_list
     ]
-    return options_list
+    return cmdline_options_list
 
 
 @register("console_scripts")
@@ -122,8 +123,9 @@ def console_scripts(path, options):
         )
     iter_ = pkg_resources.iter_entry_points("console_scripts", entrypoint_name)
     impl = next(iter_)
-    options_str = options.get("options", "")
-    options_list = _parse_options(options_str, path)
+    cwd = options.get("cwd", None)
+    cmdline_options_str = options.get("options", "")
+    cmdline_options_list = _parse_cmdline_options(cmdline_options_str, path)
 
     subprocess.run(
         [
@@ -132,5 +134,6 @@ def console_scripts(path, options):
             "import %s; %s()"
             % (impl.module_name, ".".join((impl.module_name,) + impl.attrs)),
         ]
-        + options_list
+        + cmdline_options_list,
+        cwd=cwd,
     )

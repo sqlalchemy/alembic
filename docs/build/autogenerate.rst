@@ -753,15 +753,16 @@ configuration for the ``"black"`` post write hook, which includes:
   function, this configuration variable would refer to the name under
   which the custom hook was registered; see the next section for an example.
 
-* ``entrypoint`` - this part of the configuration is specific to the
-  ``"console_scripts"`` hook runner.  This is the name of the `setuptools entrypoint <https://setuptools.readthedocs.io/en/latest/pkg_resources.html#entry-points>`_
+The following configuration options are specific to the ``"console_scripts"``
+hook runner:
+
+* ``entrypoint`` - the name of the `setuptools entrypoint <https://setuptools.readthedocs.io/en/latest/pkg_resources.html#entry-points>`_
   that is used to define the console script.   Within the scope of standard
   Python console scripts, this name will match the name of the shell command
   that is usually run for the code formatting tool, in this case ``black``.
 
-* ``options`` - this is also specific to the ``"console_scripts"`` hook runner.
-  This is a line of command-line options that will be passed to the
-  code formatting tool.  In this case, we want to run the command
+* ``options`` - a line of command-line options that will be passed to
+  the code formatting tool.  In this case, we want to run the command
   ``black /path/to/revision.py -l 79``.  By default, the revision path is
   positioned as the first argument.  In order specify a different position,
   we can use the ``REVISION_SCRIPT_FILENAME`` token as illustrated by the
@@ -777,6 +778,7 @@ configuration for the ``"black"`` post write hook, which includes:
         autopep8.entrypoint = autopep8
         autopep8.options = --in-place REVISION_SCRIPT_FILENAME
 
+* ``cwd`` - optional working directory from which the console script is run.
 
 When running ``alembic revision -m "rev1"``, we will now see the ``black``
 tool's output as well::
@@ -810,6 +812,20 @@ configuration as follows::
 
 When using the above configuration, a newly generated revision file will
 be processed first by the "black" tool, then by the "zimports" tool.
+
+Alternatively, one can run pre-commit itself as follows::
+
+  [post_write_hooks]
+
+  hooks = pre-commit
+
+  pre-commit.type = console_scripts
+  pre-commit.entrypoint = pre-commit
+  pre-commit.options = run --files REVISION_SCRIPT_FILENAME
+  pre-commit.cwd = %(here)s
+
+(The last line helps to ensure that the ``.pre-commit-config.yaml`` file
+will always be found, regardless of from where the hook was called.)
 
 .. _post_write_hooks_custom:
 

@@ -126,7 +126,7 @@ class RunHookTest(TestBase):
         )
 
     def _run_black_with_config(
-        self, input_config, expected_additional_arguments_fn
+        self, input_config, expected_additional_arguments_fn, cwd=None
     ):
         self.cfg = _no_sql_testing_config(directives=input_config)
         impl = mock.Mock(attrs=("foo", "bar"), module_name="black_module")
@@ -149,7 +149,8 @@ class RunHookTest(TestBase):
                         "-c",
                         "import black_module; black_module.foo.bar()",
                     ]
-                    + expected_additional_arguments_fn(rev.path)
+                    + expected_additional_arguments_fn(rev.path),
+                    cwd=cwd,
                 )
             ],
         )
@@ -185,4 +186,20 @@ black.options = arg1 REVISION_SCRIPT_FILENAME 'multi-word arg' \
 
         self._run_black_with_config(
             input_config, expected_additional_arguments_fn
+        )
+
+    def test_black_with_cwd(self):
+        input_config = """
+[post_write_hooks]
+hooks = black
+black.type = console_scripts
+black.entrypoint = black
+black.cwd = /path/to/cwd
+        """
+
+        def expected_additional_arguments_fn(rev_path):
+            return [rev_path]
+
+        self._run_black_with_config(
+            input_config, expected_additional_arguments_fn, cwd="/path/to/cwd"
         )
