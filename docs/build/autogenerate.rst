@@ -813,6 +813,20 @@ configuration as follows::
 When using the above configuration, a newly generated revision file will
 be processed first by the "black" tool, then by the "zimports" tool.
 
+Alternatively, one can run pre-commit itself as follows::
+
+  [post_write_hooks]
+
+  hooks = pre-commit
+
+  pre-commit.type = console_scripts
+  pre-commit.entrypoint = pre-commit
+  pre-commit.options = run --files REVISION_SCRIPT_FILENAME
+  pre-commit.cwd = %(here)s
+
+(The last line helps to ensure that the ``.pre-commit-config.yaml`` file
+will always be found, regardless of from where the hook was called.)
+
 .. _post_write_hooks_custom:
 
 Writing Custom Hooks as Python Functions
