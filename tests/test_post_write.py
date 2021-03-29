@@ -149,7 +149,8 @@ class RunHookTest(TestBase):
                         "-c",
                         "import black_module; black_module.foo.bar()",
                     ]
-                    + expected_additional_arguments_fn(rev.path)
+                    + expected_additional_arguments_fn(rev.path),
+                    cwd=None,
                 )
             ],
         )
