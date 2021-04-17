@@ -257,6 +257,34 @@ class MigrationTransactionTest(TestBase):
         assert_raises(Exception, go)
         is_false(self.conn.in_transaction())
 
+    def test_proxy_transaction_contextmanager_explicit_rollback(self):
+        context = self._fixture(
+            {"transaction_per_migration": True, "transactional_ddl": True}
+        )
+        proxy = context.begin_transaction(_per_migration=True)
+        is_true(self.conn.in_transaction())
+
+        with proxy:
+            is_true(self.conn.in_transaction())
+            proxy.rollback()
+            is_false(self.conn.in_transaction())
+
+        is_false(self.conn.in_transaction())
+
+    def test_proxy_transaction_contextmanager_explicit_commit(self):
+        context = self._fixture(
+            {"transaction_per_migration": True, "transactional_ddl": True}
+        )
+        proxy = context.begin_transaction(_per_migration=True)
+        is_true(self.conn.in_transaction())
+
+        with proxy:
+            is_true(self.conn.in_transaction())
+            proxy.commit()
+            is_false(self.conn.in_transaction())
+
+        is_false(self.conn.in_transaction())
+
     def test_transaction_per_migration_transactional_ddl(self):
         context = self._fixture(
             {"transaction_per_migration": True, "transactional_ddl": True}
