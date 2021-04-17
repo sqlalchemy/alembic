@@ -1,0 +1,9 @@
+.. change::
+    :tags: bug, environment
+    :tickets: 829
+
+    Fixed regression caused by the SQLAlchemy 1.4/2.0 compatibility switch
+    where calling ``.rollback()`` or ``.commit()`` explicitly within the
+    ``context.begin_transaction()`` context manager would cause it to fail when
+    the block ended, as it did not expect that the transaction was manually
+    closed.

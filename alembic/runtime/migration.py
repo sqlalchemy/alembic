@@ -41,8 +41,9 @@ class _ProxyTransaction(object):
         return self
 
     def __exit__(self, type_, value, traceback):
-        self._proxied_transaction.__exit__(type_, value, traceback)
-        self.migration_context._transaction = None
+        if self._proxied_transaction is not None:
+            self._proxied_transaction.__exit__(type_, value, traceback)
+            self.migration_context._transaction = None
 
 
 class MigrationContext(object):
