@@ -9,7 +9,7 @@ from .. import util
 from ..util import sqla_compat
 
 
-class MigrateOperation(object):
+class MigrateOperation:
     """base class for migration command and organization objects.
 
     This system is part of the operation extensibility API.

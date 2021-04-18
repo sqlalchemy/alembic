@@ -1,6 +1,7 @@
 from contextlib import contextmanager
 import inspect
 from io import BytesIO
+from io import StringIO
 from io import TextIOWrapper
 import os
 import re
@@ -32,11 +33,10 @@ from alembic.testing.env import write_script
 from alembic.testing.fixtures import capture_context_buffer
 from alembic.testing.fixtures import capture_engine_context_buffer
 from alembic.testing.fixtures import TestBase
-from alembic.util import compat
 from alembic.util.sqla_compat import _connectable_has_table
 
 
-class _BufMixin(object):
+class _BufMixin:
     def _buf_fixture(self):
         # try to simulate how sys.stdout looks - we send it u''
         # but then it's trying to encode to something.
@@ -536,7 +536,7 @@ finally:
         command.revision(self.cfg, sql=True)
 
 
-class _StampTest(object):
+class _StampTest:
     def _assert_sql(self, emitted_sql, origin, destinations):
         ins_expr = (
             r"INSERT INTO alembic_version \(version_num\) "
@@ -1173,8 +1173,8 @@ class CommandLineTest(TestBase):
             )
 
     def test_version_text(self):
-        buf = compat.StringIO()
-        to_mock = "sys.stdout" if util.compat.py3k else "sys.stderr"
+        buf = StringIO()
+        to_mock = "sys.stdout"
 
         with mock.patch(to_mock, buf):
             try:

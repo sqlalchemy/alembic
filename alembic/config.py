@@ -1,4 +1,5 @@
 from argparse import ArgumentParser
+from configparser import ConfigParser
 import inspect
 import os
 import sys
@@ -7,10 +8,9 @@ from . import __version__
 from . import command
 from . import util
 from .util import compat
-from .util.compat import SafeConfigParser
 
 
-class Config(object):
+class Config:
 
     r"""Represent an Alembic configuration.
 
@@ -72,7 +72,7 @@ class Config(object):
      is **copied** to a new one, stored locally as the attribute
      ``.config_args``. When the :attr:`.Config.file_config` attribute is
      first invoked, the replacement variable ``here`` will be added to this
-     dictionary before the dictionary is passed to ``SafeConfigParser()``
+     dictionary before the dictionary is passed to ``ConfigParser()``
      to parse the .ini file.
 
     :param attributes: optional dictionary of arbitrary Python keys/values,
@@ -184,7 +184,7 @@ class Config(object):
         else:
             here = ""
         self.config_args["here"] = here
-        file_config = SafeConfigParser(self.config_args)
+        file_config = ConfigParser(self.config_args)
         if self.config_file_name:
             file_config.read([self.config_file_name])
         else:
@@ -280,7 +280,7 @@ class Config(object):
         return self.get_section_option(self.config_ini_section, name, default)
 
 
-class CommandLine(object):
+class CommandLine:
     def __init__(self, prog=None):
         self._generate_args(prog)
 

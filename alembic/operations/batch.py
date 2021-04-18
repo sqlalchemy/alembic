@@ -22,7 +22,7 @@ from ..util.sqla_compat import _remove_column_from_collection
 from ..util.sqla_compat import _select
 
 
-class BatchOperationsImpl(object):
+class BatchOperationsImpl:
     def __init__(
         self,
         operations,
@@ -165,7 +165,7 @@ class BatchOperationsImpl(object):
         self.batch.append(("create_column_comment", (column,), {}))
 
 
-class ApplyBatchImpl(object):
+class ApplyBatchImpl:
     def __init__(
         self,
         impl,

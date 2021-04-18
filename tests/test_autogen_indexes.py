@@ -1,5 +1,3 @@
-import sys
-
 from sqlalchemy import Column
 from sqlalchemy import ForeignKey
 from sqlalchemy import ForeignKeyConstraint
@@ -29,10 +27,8 @@ from alembic.util import sqla_compat
 #       subset of the tests here. @zzzeek can work on this at a later point.
 #       (2021-06-10)
 
-py3k = sys.version_info >= (3,)
 
-
-class NoUqReflection(object):
+class NoUqReflection:
     __requires__ = ()
 
     def setUp(self):

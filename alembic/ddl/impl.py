@@ -10,7 +10,6 @@ from .. import util
 from ..util import sqla_compat
 from ..util.compat import string_types
 from ..util.compat import text_type
-from ..util.compat import with_metaclass
 
 
 class ImplMeta(type):
@@ -26,7 +25,7 @@ _impls = {}
 Params = namedtuple("Params", ["token0", "tokens", "args", "kwargs"])
 
 
-class DefaultImpl(with_metaclass(ImplMeta)):
+class DefaultImpl(metaclass=ImplMeta):
 
     """Provide the entrypoint for major migration operations,
     including database-specific behavioral variances.

@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 import logging
 import sys
 import textwrap
@@ -7,7 +8,6 @@ from sqlalchemy.engine import url
 
 from . import sqla_compat
 from .compat import binary_type
-from .compat import collections_abc
 from .compat import string_types
 
 log = logging.getLogger(__name__)
@@ -97,7 +97,7 @@ def format_as_comma(value):
         return ""
     elif isinstance(value, string_types):
         return value
-    elif isinstance(value, collections_abc.Iterable):
+    elif isinstance(value, Iterable):
         return ", ".join(value)
     else:
         raise ValueError("Don't know how to comma-format %r" % value)

@@ -83,9 +83,10 @@ SQLAlchemy as of version **1.3.0**.
 
 .. versionchanged:: 1.5.0 Support for SQLAlchemy older than 1.3.0 was dropped.
 
-Alembic supports Python versions 2.7, 3.6 and above.
+Alembic supports Python versions **3.6 and above**.
 
-.. versionchanged::  1.5.0  Support for Python 3.5 was dropped.
+.. versionchanged::  1.7  Alembic now supports Python 3.6 and newer; support
+   for Python 2.7 has been dropped.
 
 Community
 =========

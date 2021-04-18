@@ -31,7 +31,7 @@ from alembic.testing.fixtures import TestBase
 from alembic.util import compat
 
 
-class PatchEnvironment(object):
+class PatchEnvironment:
     branched_connection = False
 
     @contextmanager
@@ -301,8 +301,7 @@ class SimpleSourcelessApplyVersionsTest(ApplyVersionsFunctionalTest):
     id_="r",
 )
 class NewFangledSourcelessApplyVersionsTest(ApplyVersionsFunctionalTest):
-
-    __requires__ = ("pep3147",)
+    pass
 
 
 class CallbackEnvironmentTest(ApplyVersionsFunctionalTest):
@@ -644,8 +643,7 @@ class EncodingTest(TestBase):
             script,
             self.a,
             (
-                compat.u(
-                    """# coding: utf-8
+                """# coding: utf-8
 from __future__ import unicode_literals
 revision = '%s'
 down_revision = None
@@ -659,7 +657,6 @@ def downgrade():
     op.execute("drôle de petite voix m’a réveillé")
 
 """
-                )
                 % self.a
             ),
             encoding="utf-8",
@@ -673,7 +670,7 @@ def downgrade():
             bytes_io=True, output_encoding="utf-8"
         ) as buf:
             command.upgrade(self.cfg, self.a, sql=True)
-        assert compat.u("« S’il vous plaît…").encode("utf-8") in buf.getvalue()
+        assert "« S’il vous plaît…".encode("utf-8") in buf.getvalue()
 
 
 class VersionNameTemplateTest(TestBase):
@@ -847,13 +844,9 @@ class SimpleSourcelessIgnoreFilesTest(IgnoreFilesTest):
 class NewFangledEnvOnlySourcelessIgnoreFilesTest(IgnoreFilesTest):
     sourceless = "pep3147_envonly"
 
-    __requires__ = ("pep3147",)
-
 
 class NewFangledEverythingSourcelessIgnoreFilesTest(IgnoreFilesTest):
     sourceless = "pep3147_everything"
-
-    __requires__ = ("pep3147",)
 
 
 class SourcelessNeedsFlagTest(TestBase):

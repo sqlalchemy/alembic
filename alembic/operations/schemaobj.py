@@ -7,11 +7,10 @@ from sqlalchemy.types import NULLTYPE
 
 from .. import util
 from ..util import sqla_compat
-from ..util.compat import raise_
 from ..util.compat import string_types
 
 
-class SchemaObjects(object):
+class SchemaObjects:
     def __init__(self, migration_context=None):
         self.migration_context = migration_context
 
@@ -118,13 +117,10 @@ class SchemaObjects(object):
         try:
             const = types[type_]
         except KeyError as ke:
-            raise_(
-                TypeError(
-                    "'type' can be one of %s"
-                    % ", ".join(sorted(repr(x) for x in types))
-                ),
-                from_=ke,
-            )
+            raise TypeError(
+                "'type' can be one of %s"
+                % ", ".join(sorted(repr(x) for x in types))
+            ) from ke
         else:
             const = const(name=name)
             t.append_constraint(const)

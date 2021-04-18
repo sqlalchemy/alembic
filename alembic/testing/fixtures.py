@@ -1,4 +1,5 @@
 # coding: utf-8
+import configparser
 from contextlib import contextmanager
 import io
 import re
@@ -21,9 +22,7 @@ from .assertions import _get_dialect
 from ..environment import EnvironmentContext
 from ..migration import MigrationContext
 from ..operations import Operations
-from ..util import compat
 from ..util import sqla_compat
-from ..util.compat import configparser
 from ..util.compat import string_types
 from ..util.compat import text_type
 from ..util.sqla_compat import create_mock_engine
@@ -62,7 +61,7 @@ if sqla_14:
     from sqlalchemy.testing.fixtures import FutureEngineMixin
 else:
 
-    class FutureEngineMixin(object):
+    class FutureEngineMixin:
         __requires__ = ("sqlalchemy_14",)
 
 
@@ -105,7 +104,7 @@ def capture_engine_context_buffer(**kw):
     from .env import _sqlite_file_db
     from sqlalchemy import event
 
-    buf = compat.StringIO()
+    buf = io.StringIO()
 
     eng = _sqlite_file_db()
 
@@ -138,7 +137,7 @@ def op_fixture(
     if naming_convention:
         opts["target_metadata"] = MetaData(naming_convention=naming_convention)
 
-    class buffer_(object):
+    class buffer_:
         def __init__(self):
             self.lines = []
 
@@ -215,7 +214,7 @@ def op_fixture(
     return context
 
 
-class AlterColRoundTripFixture(object):
+class AlterColRoundTripFixture:
 
     # since these tests are about syntax, use more recent SQLAlchemy as some of
     # the type / server default compare logic might not work on older

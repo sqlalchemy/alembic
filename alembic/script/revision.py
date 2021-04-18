@@ -72,7 +72,7 @@ class DependencyLoopDetected(DependencyCycleDetected, LoopDetected):
         super(DependencyLoopDetected, self).__init__(revision)
 
 
-class RevisionMap(object):
+class RevisionMap:
     """Maintains a map of :class:`.Revision` objects.
 
     :class:`.RevisionMap` is used by :class:`.ScriptDirectory` to maintain
@@ -510,12 +510,10 @@ class RevisionMap(object):
             try:
                 nonbranch_rev = self._revision_for_ident(branch_label)
             except ResolutionError as re:
-                util.raise_(
-                    ResolutionError(
-                        "No such branch: '%s'" % branch_label, branch_label
-                    ),
-                    from_=re,
-                )
+                raise ResolutionError(
+                    "No such branch: '%s'" % branch_label, branch_label
+                ) from re
+
             else:
                 return nonbranch_rev
         else:
@@ -1047,7 +1045,7 @@ class RevisionMap(object):
         # No relative destination given, revision specified is absolute.
         branch_label, _, symbol = target.rpartition("@")
         if not branch_label:
-            branch_label is None
+            branch_label = None
         return branch_label, self.get_revision(symbol)
 
     def _parse_upgrade_target(
@@ -1337,7 +1335,7 @@ class RevisionMap(object):
         return needs, targets
 
 
-class Revision(object):
+class Revision:
     """Base class for revisioned objects.
 
     The :class:`.Revision` class is the base of the more public-facing

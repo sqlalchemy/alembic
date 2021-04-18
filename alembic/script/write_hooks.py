@@ -43,10 +43,9 @@ def _invoke(name, revision, options):
     try:
         hook = _registry[name]
     except KeyError as ke:
-        compat.raise_(
-            util.CommandError("No formatter with name '%s' registered" % name),
-            from_=ke,
-        )
+        raise util.CommandError(
+            "No formatter with name '%s' registered" % name
+        ) from ke
     else:
         return hook(revision, options)
 
@@ -70,13 +69,9 @@ def _run_hooks(path, hook_config):
         try:
             type_ = opts["type"]
         except KeyError as ke:
-            compat.raise_(
-                util.CommandError(
-                    "Key %s.type is required for post write hook %r"
-                    % (name, name)
-                ),
-                from_=ke,
-            )
+            raise util.CommandError(
+                "Key %s.type is required for post write hook %r" % (name, name)
+            ) from ke
         else:
             util.status(
                 'Running post write hook "%s"' % name,
@@ -116,13 +111,10 @@ def console_scripts(path, options):
     try:
         entrypoint_name = options["entrypoint"]
     except KeyError as ke:
-        compat.raise_(
-            util.CommandError(
-                "Key %s.entrypoint is required for post write hook %r"
-                % (options["_hook_name"], options["_hook_name"])
-            ),
-            from_=ke,
-        )
+        raise util.CommandError(
+            "Key %s.entrypoint is required for post write hook %r"
+            % (options["_hook_name"], options["_hook_name"])
+        ) from ke
     iter_ = pkg_resources.iter_entry_points("console_scripts", entrypoint_name)
     impl = next(iter_)
     cwd = options.get("cwd", None)

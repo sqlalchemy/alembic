@@ -11,9 +11,6 @@ from ...testing import config
 from ...testing import eq_
 from ...testing import is_
 from ...testing import TestBase
-from ...util import compat
-
-py3k = compat.py3k
 
 
 class AlterColumnTest(AutogenFixtureTest, TestBase):

@@ -17,7 +17,6 @@ from sqlalchemy.testing.assertions import ne_  # noqa
 from sqlalchemy.util import decorator
 
 from ..util import sqla_compat
-from ..util.compat import py3k
 
 
 def _assert_proper_exception_context(exception):
@@ -29,9 +28,6 @@ def _assert_proper_exception_context(exception):
     these exceptions in a cause chain.
 
     """
-
-    if not util.py3k:
-        return
 
     if (
         exception.__context__ is not exception.__cause__
@@ -73,7 +69,7 @@ def _assert_raises(
     return ec.error
 
 
-class _ErrorContainer(object):
+class _ErrorContainer:
     error = None
 
 
@@ -109,20 +105,11 @@ def expect_raises_message(except_cls, msg, check_context=True):
 
 
 def eq_ignore_whitespace(a, b, msg=None):
-    # sqlalchemy.testing.assertion has this function
-    # but not with the special "!U" detection part
 
     a = re.sub(r"^\s+?|\n", "", a)
     a = re.sub(r" {2,}", " ", a)
     b = re.sub(r"^\s+?|\n", "", b)
     b = re.sub(r" {2,}", " ", b)
-
-    # convert for unicode string rendering,
-    # using special escape character "!U"
-    if py3k:
-        b = re.sub(r"!U", "", b)
-    else:
-        b = re.sub(r"!U", "u", b)
 
     assert a == b, msg or "%r != %r" % (a, b)
 

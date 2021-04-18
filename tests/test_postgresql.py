@@ -912,7 +912,7 @@ class PostgresqlAutogenRenderTest(TestBase):
             autogenerate.render_op_text(autogen_context, op_obj),
             """op.create_index('foo_idx', 't', \
 ['x', 'y'], unique=False, """
-            """postgresql_where=sa.text(!U"y = 'something'"))""",
+            """postgresql_where=sa.text("y = 'something'"))""",
         )
 
     def test_render_server_default_native_boolean(self):
@@ -923,7 +923,7 @@ class PostgresqlAutogenRenderTest(TestBase):
         eq_ignore_whitespace(
             result,
             "sa.Column('updated_at', sa.Boolean(), "
-            "server_default=sa.text(!U'false'), "
+            "server_default=sa.text('false'), "
             "nullable=False)",
         )
 
@@ -1049,7 +1049,7 @@ class PostgresqlAutogenRenderTest(TestBase):
             autogenerate.render_op_text(autogen_context, op_obj),
             "op.create_exclude_constraint('t_excl_x', "
             "'t', (sa.column('x'), '>'), "
-            "where=sa.text(!U'x != 2'), using='gist')",
+            "where=sa.text('x != 2'), using='gist')",
         )
 
     def test_add_exclude_constraint_case_sensitive(self):
@@ -1075,7 +1075,7 @@ class PostgresqlAutogenRenderTest(TestBase):
             autogenerate.render_op_text(autogen_context, op_obj),
             "op.create_exclude_constraint('t_excl_x', 'TTAble', "
             "(sa.column('XColumn'), '>'), "
-            "where=sa.text(!U'\"XColumn\" != 2'), using='gist')",
+            "where=sa.text('\"XColumn\" != 2'), using='gist')",
         )
 
     def test_inline_exclude_constraint(self):
@@ -1104,7 +1104,7 @@ class PostgresqlAutogenRenderTest(TestBase):
             "op.create_table('t',sa.Column('x', sa.String(), nullable=True),"
             "sa.Column('y', sa.String(), nullable=True),"
             "postgresql.ExcludeConstraint((sa.column('x'), '>'), "
-            "where=sa.text(!U'x != 2'), using='gist', name='t_excl_x')"
+            "where=sa.text('x != 2'), using='gist', name='t_excl_x')"
             ")",
         )
 
@@ -1132,7 +1132,7 @@ class PostgresqlAutogenRenderTest(TestBase):
             "nullable=True),"
             "sa.Column('YColumn', sa.String(), nullable=True),"
             "postgresql.ExcludeConstraint((sa.column('XColumn'), '>'), "
-            "where=sa.text(!U'\"XColumn\" != 2'), using='gist', "
+            "where=sa.text('\"XColumn\" != 2'), using='gist', "
             "name='TExclX'))",
         )
 

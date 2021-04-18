@@ -76,12 +76,6 @@ class PostgresqlImpl(DefaultImpl):
         if None in (conn_col_default, rendered_metadata_default):
             return not defaults_equal
 
-        if compat.py2k:
-            # look for a python 2 "u''" string and filter
-            m = re.match(r"^u'(.*)'$", rendered_metadata_default)
-            if m:
-                rendered_metadata_default = "'%s'" % m.group(1)
-
         # check for unquoted string and quote for PG String types
         if (
             not isinstance(inspector_column.type, Numeric)
