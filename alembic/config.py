@@ -1,8 +1,13 @@
 from argparse import ArgumentParser
+from argparse import Namespace
 from configparser import ConfigParser
 import inspect
 import os
 import sys
+from typing import Dict
+from typing import Optional
+from typing import overload
+from typing import TextIO
 
 from . import __version__
 from . import command
@@ -86,14 +91,14 @@ class Config:
 
     def __init__(
         self,
-        file_=None,
-        ini_section="alembic",
-        output_buffer=None,
-        stdout=sys.stdout,
-        cmd_opts=None,
-        config_args=util.immutabledict(),
-        attributes=None,
-    ):
+        file_: Optional[str] = None,
+        ini_section: str = "alembic",
+        output_buffer: Optional[TextIO] = None,
+        stdout: TextIO = sys.stdout,
+        cmd_opts: Optional[Namespace] = None,
+        config_args: util.immutabledict = util.immutabledict(),
+        attributes: dict = None,
+    ) -> None:
         """Construct a new :class:`.Config`"""
         self.config_file_name = file_
         self.config_ini_section = ini_section
@@ -104,7 +109,7 @@ class Config:
         if attributes:
             self.attributes.update(attributes)
 
-    cmd_opts = None
+    cmd_opts: Optional[Namespace] = None
     """The command-line options passed to the ``alembic`` script.
 
     Within an ``env.py`` script this can be accessed via the
@@ -116,10 +121,10 @@ class Config:
 
     """
 
-    config_file_name = None
+    config_file_name: Optional[str] = None
     """Filesystem path to the .ini file in use."""
 
-    config_ini_section = None
+    config_ini_section: str = None  # type:ignore[assignment]
     """Name of the config file section to read basic configuration
     from.  Defaults to ``alembic``, that is the ``[alembic]`` section
     of the .ini file.  This value is modified using the ``-n/--name``
@@ -147,7 +152,7 @@ class Config:
         """
         return {}
 
-    def print_stdout(self, text, *arg):
+    def print_stdout(self, text: str, *arg) -> None:
         """Render a message to standard out.
 
         When :meth:`.Config.print_stdout` is called with additional args
@@ -191,7 +196,7 @@ class Config:
             file_config.add_section(self.config_ini_section)
         return file_config
 
-    def get_template_directory(self):
+    def get_template_directory(self) -> str:
         """Return the directory where Alembic setup templates are found.
 
         This method is used by the alembic ``init`` and ``list_templates``
@@ -203,7 +208,19 @@ class Config:
         package_dir = os.path.abspath(os.path.dirname(alembic.__file__))
         return os.path.join(package_dir, "templates")
 
-    def get_section(self, name, default=None):
+    @overload
+    def get_section(
+        self, name: str, default: Dict[str, str]
+    ) -> Dict[str, str]:
+        ...
+
+    @overload
+    def get_section(
+        self, name: str, default: Optional[Dict[str, str]] = ...
+    ) -> Optional[Dict[str, str]]:
+        ...
+
+    def get_section(self, name: str, default=None):
         """Return all the configuration options from a given .ini file section
         as a dictionary.
 
@@ -213,7 +230,7 @@ class Config:
 
         return dict(self.file_config.items(name))
 
-    def set_main_option(self, name, value):
+    def set_main_option(self, name: str, value: str) -> None:
         """Set an option programmatically within the 'main' section.
 
         This overrides whatever was in the .ini file.
@@ -230,10 +247,10 @@ class Config:
         """
         self.set_section_option(self.config_ini_section, name, value)
 
-    def remove_main_option(self, name):
+    def remove_main_option(self, name: str) -> None:
         self.file_config.remove_option(self.config_ini_section, name)
 
-    def set_section_option(self, section, name, value):
+    def set_section_option(self, section: str, name: str, value: str) -> None:
         """Set an option programmatically within the given section.
 
         The section is created if it doesn't exist already.
@@ -257,7 +274,9 @@ class Config:
             self.file_config.add_section(section)
         self.file_config.set(section, name, value)
 
-    def get_section_option(self, section, name, default=None):
+    def get_section_option(
+        self, section: str, name: str, default: Optional[str] = None
+    ) -> Optional[str]:
         """Return an option from the given section of the .ini file."""
         if not self.file_config.has_section(section):
             raise util.CommandError(
@@ -268,6 +287,16 @@ class Config:
             return self.file_config.get(section, name)
         else:
             return default
+
+    @overload
+    def get_main_option(self, name: str, default: str) -> str:
+        ...
+
+    @overload
+    def get_main_option(
+        self, name: str, default: Optional[str] = None
+    ) -> Optional[str]:
+        ...
 
     def get_main_option(self, name, default=None):
         """Return an option from the 'main' section of the .ini file.
@@ -281,10 +310,10 @@ class Config:
 
 
 class CommandLine:
-    def __init__(self, prog=None):
+    def __init__(self, prog: Optional[str] = None) -> None:
         self._generate_args(prog)
 
-    def _generate_args(self, prog):
+    def _generate_args(self, prog: Optional[str]) -> None:
         def add_options(fn, parser, positional, kwargs):
             kwargs_opts = {
                 "template": (
@@ -515,7 +544,7 @@ class CommandLine:
                         else:
                             help_text.append(line.strip())
                 else:
-                    help_text = ""
+                    help_text = []
                 subparser = subparsers.add_parser(
                     fn.__name__, help=" ".join(help_text)
                 )
@@ -523,7 +552,7 @@ class CommandLine:
                 subparser.set_defaults(cmd=(fn, positional, kwarg))
         self.parser = parser
 
-    def run_cmd(self, config, options):
+    def run_cmd(self, config: Config, options: Namespace) -> None:
         fn, positional, kwarg = options.cmd
 
         try:

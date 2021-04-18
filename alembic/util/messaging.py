@@ -2,6 +2,11 @@ from collections.abc import Iterable
 import logging
 import sys
 import textwrap
+from typing import Any
+from typing import Callable
+from typing import Optional
+from typing import TextIO
+from typing import Union
 import warnings
 
 from sqlalchemy.engine import url
@@ -29,7 +34,7 @@ except (ImportError, IOError):
     TERMWIDTH = None
 
 
-def write_outstream(stream, *text):
+def write_outstream(stream: TextIO, *text) -> None:
     encoding = getattr(stream, "encoding", "ascii") or "ascii"
     for t in text:
         if not isinstance(t, binary_type):
@@ -44,7 +49,7 @@ def write_outstream(stream, *text):
             break
 
 
-def status(_statmsg, fn, *arg, **kw):
+def status(_statmsg: str, fn: Callable, *arg, **kw) -> Any:
     newline = kw.pop("newline", False)
     msg(_statmsg + " ...", newline, True)
     try:
@@ -56,27 +61,27 @@ def status(_statmsg, fn, *arg, **kw):
         raise
 
 
-def err(message):
+def err(message: str):
     log.error(message)
     msg("FAILED: %s" % message)
     sys.exit(-1)
 
 
-def obfuscate_url_pw(u):
-    u = url.make_url(u)
+def obfuscate_url_pw(input_url: str) -> str:
+    u = url.make_url(input_url)
     if u.password:
         if sqla_compat.sqla_14:
             u = u.set(password="XXXXX")
         else:
-            u.password = "XXXXX"
+            u.password = "XXXXX"  # type: ignore[misc]
     return str(u)
 
 
-def warn(msg, stacklevel=2):
+def warn(msg: str, stacklevel: int = 2) -> None:
     warnings.warn(msg, UserWarning, stacklevel=stacklevel)
 
 
-def msg(msg, newline=True, flush=False):
+def msg(msg: str, newline: bool = True, flush: bool = False) -> None:
     if TERMWIDTH is None:
         write_outstream(sys.stdout, msg)
         if newline:
@@ -92,7 +97,7 @@ def msg(msg, newline=True, flush=False):
         sys.stdout.flush()
 
 
-def format_as_comma(value):
+def format_as_comma(value: Optional[Union[str, "Iterable[str]"]]) -> str:
     if value is None:
         return ""
     elif isinstance(value, string_types):

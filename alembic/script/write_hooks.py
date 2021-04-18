@@ -1,6 +1,11 @@
 import shlex
 import subprocess
 import sys
+from typing import Any
+from typing import Callable
+from typing import Dict
+from typing import List
+from typing import Union
 
 from .. import util
 from ..util import compat
@@ -11,7 +16,7 @@ REVISION_SCRIPT_TOKEN = "REVISION_SCRIPT_FILENAME"
 _registry = {}
 
 
-def register(name):
+def register(name: str) -> Callable:
     """A function decorator that will register that function as a write hook.
 
     See the documentation linked below for an example.
@@ -31,7 +36,9 @@ def register(name):
     return decorate
 
 
-def _invoke(name, revision, options):
+def _invoke(
+    name: str, revision: str, options: Dict[str, Union[str, int]]
+) -> Any:
     """Invokes the formatter registered for the given name.
 
     :param name: The name of a formatter in the registry
@@ -50,7 +57,7 @@ def _invoke(name, revision, options):
         return hook(revision, options)
 
 
-def _run_hooks(path, hook_config):
+def _run_hooks(path: str, hook_config: Dict[str, str]) -> None:
     """Invoke hooks for a generated revision."""
 
     from .base import _split_on_space_comma
@@ -83,7 +90,7 @@ def _run_hooks(path, hook_config):
             )
 
 
-def _parse_cmdline_options(cmdline_options_str, path):
+def _parse_cmdline_options(cmdline_options_str: str, path: str) -> List[str]:
     """Parse options from a string into a list.
 
     Also substitutes the revision script token with the actual filename of

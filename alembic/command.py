@@ -1,9 +1,19 @@
 import os
+from typing import Callable
+from typing import cast
+from typing import List
+from typing import Optional
+from typing import TYPE_CHECKING
+from typing import Union
 
 from . import autogenerate as autogen
 from . import util
 from .runtime.environment import EnvironmentContext
 from .script import ScriptDirectory
+
+if TYPE_CHECKING:
+    from alembic.config import Config
+    from alembic.script.base import Script
 
 
 def list_templates(config):
@@ -25,7 +35,12 @@ def list_templates(config):
     config.print_stdout("\n  alembic init --template generic ./scripts")
 
 
-def init(config, directory, template="generic", package=False):
+def init(
+    config: "Config",
+    directory: str,
+    template: str = "generic",
+    package: bool = False,
+) -> None:
     """Initialize a new scripts directory.
 
     :param config: a :class:`.Config` object.
@@ -71,8 +86,8 @@ def init(config, directory, template="generic", package=False):
     for file_ in os.listdir(template_dir):
         file_path = os.path.join(template_dir, file_)
         if file_ == "alembic.ini.mako":
-            config_file = os.path.abspath(config.config_file_name)
-            if os.access(config_file, os.F_OK):
+            config_file = os.path.abspath(cast(str, config.config_file_name))
+            if os.access(cast(str, config_file), os.F_OK):
                 util.msg("File %s already exists, skipping" % config_file)
             else:
                 script._generate_template(
@@ -88,7 +103,7 @@ def init(config, directory, template="generic", package=False):
             os.path.join(os.path.abspath(versions), "__init__.py"),
         ]:
             file_ = util.status("Adding %s" % path, open, path, "w")
-            file_.close()
+            file_.close()  # type:ignore[attr-defined]
 
     util.msg(
         "Please edit configuration/connection/logging "
@@ -97,18 +112,18 @@ def init(config, directory, template="generic", package=False):
 
 
 def revision(
-    config,
-    message=None,
-    autogenerate=False,
-    sql=False,
-    head="head",
-    splice=False,
-    branch_label=None,
-    version_path=None,
-    rev_id=None,
-    depends_on=None,
-    process_revision_directives=None,
-):
+    config: "Config",
+    message: Optional[str] = None,
+    autogenerate: bool = False,
+    sql: bool = False,
+    head: str = "head",
+    splice: bool = False,
+    branch_label: Optional[str] = None,
+    version_path: Optional[str] = None,
+    rev_id: Optional[str] = None,
+    depends_on: Optional[str] = None,
+    process_revision_directives: Callable = None,
+) -> Union[Optional["Script"], List[Optional["Script"]]]:
     """Create a new revision file.
 
     :param config: a :class:`.Config` object.
@@ -223,7 +238,13 @@ def revision(
         return scripts
 
 
-def merge(config, revisions, message=None, branch_label=None, rev_id=None):
+def merge(
+    config: "Config",
+    revisions: str,
+    message: str = None,
+    branch_label: str = None,
+    rev_id: str = None,
+) -> Optional["Script"]:
     """Merge two revisions together.  Creates a new migration file.
 
     :param config: a :class:`.Config` instance
@@ -243,7 +264,7 @@ def merge(config, revisions, message=None, branch_label=None, rev_id=None):
 
     script = ScriptDirectory.from_config(config)
     template_args = {
-        "config": config  # Let templates use config for
+        "config": "config"  # Let templates use config for
         # e.g. multiple databases
     }
     return script.generate_revision(
@@ -252,11 +273,16 @@ def merge(config, revisions, message=None, branch_label=None, rev_id=None):
         refresh=True,
         head=revisions,
         branch_labels=branch_label,
-        **template_args
+        **template_args  # type:ignore[arg-type]
     )
 
 
-def upgrade(config, revision, sql=False, tag=None):
+def upgrade(
+    config: "Config",
+    revision: str,
+    sql: bool = False,
+    tag: Optional[str] = None,
+) -> None:
     """Upgrade to a later version.
 
     :param config: a :class:`.Config` instance.
@@ -294,7 +320,12 @@ def upgrade(config, revision, sql=False, tag=None):
         script.run_env()
 
 
-def downgrade(config, revision, sql=False, tag=None):
+def downgrade(
+    config: "Config",
+    revision: str,
+    sql: bool = False,
+    tag: Optional[str] = None,
+) -> None:
     """Revert to a previous version.
 
     :param config: a :class:`.Config` instance.
@@ -360,7 +391,12 @@ def show(config, rev):
             config.print_stdout(sc.log_entry)
 
 
-def history(config, rev_range=None, verbose=False, indicate_current=False):
+def history(
+    config: "Config",
+    rev_range: Optional[str] = None,
+    verbose: bool = False,
+    indicate_current: bool = False,
+) -> None:
     """List changeset scripts in chronological order.
 
     :param config: a :class:`.Config` instance.
@@ -372,7 +408,8 @@ def history(config, rev_range=None, verbose=False, indicate_current=False):
     :param indicate_current: indicate current revision.
 
     """
-
+    base: Optional[str]
+    head: Optional[str]
     script = ScriptDirectory.from_config(config)
     if rev_range is not None:
         if ":" not in rev_range:
@@ -478,7 +515,7 @@ def branches(config, verbose=False):
             )
 
 
-def current(config, verbose=False):
+def current(config: "Config", verbose: bool = False) -> None:
     """Display the current revision for a database.
 
     :param config: a :class:`.Config` instance.
@@ -506,7 +543,13 @@ def current(config, verbose=False):
         script.run_env()
 
 
-def stamp(config, revision, sql=False, tag=None, purge=False):
+def stamp(
+    config: "Config",
+    revision: str,
+    sql: bool = False,
+    tag: Optional[str] = None,
+    purge: bool = False,
+) -> None:
     """'stamp' the revision table with the given revision; don't
     run any migrations.
 
@@ -570,7 +613,7 @@ def stamp(config, revision, sql=False, tag=None, purge=False):
         script.run_env()
 
 
-def edit(config, rev):
+def edit(config: "Config", rev: str) -> None:
     """Edit revision script(s) using $EDITOR.
 
     :param config: a :class:`.Config` instance.

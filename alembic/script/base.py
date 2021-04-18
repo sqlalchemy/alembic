@@ -4,16 +4,35 @@ import os
 import re
 import shutil
 import sys
+from types import ModuleType
+from typing import Any
+from typing import cast
+from typing import Dict
+from typing import Iterator
+from typing import List
+from typing import Optional
+from typing import Sequence
+from typing import Set
+from typing import Tuple
+from typing import TYPE_CHECKING
+from typing import Union
 
 from . import revision
 from . import write_hooks
 from .. import util
 from ..runtime import migration
 
+if TYPE_CHECKING:
+    from ..config import Config
+    from ..runtime.migration import RevisionStep
+    from ..runtime.migration import StampStep
+
 try:
     from dateutil import tz
 except ImportError:
-    tz = None  # noqa
+    tz = None  # type: ignore[assignment]
+
+_RevIdType = Union[str, Sequence[str]]
 
 _sourceless_rev_file = re.compile(r"(?!\.\#|__init__)(.*\.py)(c|o)?$")
 _only_source_rev_file = re.compile(r"(?!\.\#|__init__)(.*\.py)$")
@@ -49,15 +68,15 @@ class ScriptDirectory:
 
     def __init__(
         self,
-        dir,  # noqa
-        file_template=_default_file_template,
-        truncate_slug_length=40,
-        version_locations=None,
-        sourceless=False,
-        output_encoding="utf-8",
-        timezone=None,
-        hook_config=None,
-    ):
+        dir: str,  # noqa
+        file_template: str = _default_file_template,
+        truncate_slug_length: Optional[int] = 40,
+        version_locations: Optional[List[str]] = None,
+        sourceless: bool = False,
+        output_encoding: str = "utf-8",
+        timezone: Optional[str] = None,
+        hook_config: Optional[Dict[str, str]] = None,
+    ) -> None:
         self.dir = dir
         self.file_template = file_template
         self.version_locations = version_locations
@@ -76,7 +95,7 @@ class ScriptDirectory:
             )
 
     @property
-    def versions(self):
+    def versions(self) -> str:
         loc = self._version_locations
         if len(loc) > 1:
             raise util.CommandError("Multiple version_locations present")
@@ -93,7 +112,7 @@ class ScriptDirectory:
         else:
             return (os.path.abspath(os.path.join(self.dir, "versions")),)
 
-    def _load_revisions(self):
+    def _load_revisions(self) -> Iterator["Script"]:
         if self.version_locations:
             paths = [
                 vers
@@ -120,7 +139,7 @@ class ScriptDirectory:
                 yield script
 
     @classmethod
-    def from_config(cls, config):
+    def from_config(cls, config: "Config") -> "ScriptDirectory":
         """Produce a new :class:`.ScriptDirectory` given a :class:`.Config`
         instance.
 
@@ -133,7 +152,9 @@ class ScriptDirectory:
             raise util.CommandError(
                 "No 'script_location' key " "found in configuration."
             )
-        truncate_slug_length = config.get_main_option("truncate_slug_length")
+        truncate_slug_length = cast(
+            Optional[int], config.get_main_option("truncate_slug_length")
+        )
         if truncate_slug_length is not None:
             truncate_slug_length = int(truncate_slug_length)
 
@@ -162,13 +183,17 @@ class ScriptDirectory:
             else:
                 if split_char is None:
                     # legacy behaviour for backwards compatibility
-                    version_locations = _split_on_space_comma.split(
-                        version_locations
+                    vl = _split_on_space_comma.split(
+                        cast(str, version_locations)
                     )
+                    version_locations: List[str] = vl  # type: ignore[no-redef]
                 else:
-                    version_locations = [
-                        x for x in version_locations.split(split_char) if x
+                    vl = [
+                        x
+                        for x in cast(str, version_locations).split(split_char)
+                        if x
                     ]
+                    version_locations: List[str] = vl  # type: ignore[no-redef]
 
         prepend_sys_path = config.get_main_option("prepend_sys_path")
         if prepend_sys_path:
@@ -184,7 +209,7 @@ class ScriptDirectory:
             truncate_slug_length=truncate_slug_length,
             sourceless=config.get_main_option("sourceless") == "true",
             output_encoding=config.get_main_option("output_encoding", "utf-8"),
-            version_locations=version_locations,
+            version_locations=cast("Optional[List[str]]", version_locations),
             timezone=config.get_main_option("timezone"),
             hook_config=config.get_section("post_write_hooks", {}),
         )
@@ -192,19 +217,19 @@ class ScriptDirectory:
     @contextmanager
     def _catch_revision_errors(
         self,
-        ancestor=None,
-        multiple_heads=None,
-        start=None,
-        end=None,
-        resolution=None,
-    ):
+        ancestor: Optional[str] = None,
+        multiple_heads: Optional[str] = None,
+        start: Optional[str] = None,
+        end: Optional[str] = None,
+        resolution: Optional[str] = None,
+    ) -> Iterator[None]:
         try:
             yield
         except revision.RangeNotAncestorError as rna:
             if start is None:
-                start = rna.lower
+                start = cast(Any, rna.lower)
             if end is None:
-                end = rna.upper
+                end = cast(Any, rna.upper)
             if not ancestor:
                 ancestor = (
                     "Requested range %(start)s:%(end)s does not refer to "
@@ -235,7 +260,9 @@ class ScriptDirectory:
         except revision.RevisionError as err:
             raise util.CommandError(err.args[0]) from err
 
-    def walk_revisions(self, base="base", head="heads"):
+    def walk_revisions(
+        self, base: str = "base", head: str = "heads"
+    ) -> Iterator["Script"]:
         """Iterate through all revisions.
 
         :param base: the base revision, or "base" to start from the
@@ -250,28 +277,36 @@ class ScriptDirectory:
             for rev in self.revision_map.iterate_revisions(
                 head, base, inclusive=True, assert_relative_length=False
             ):
-                yield rev
+                yield cast(Script, rev)
 
-    def get_revisions(self, id_):
+    def get_revisions(self, id_: _RevIdType) -> Tuple["Script", ...]:
         """Return the :class:`.Script` instance with the given rev identifier,
         symbolic name, or sequence of identifiers.
 
         """
         with self._catch_revision_errors():
-            return self.revision_map.get_revisions(id_)
+            return cast(
+                "Tuple[Script, ...]", self.revision_map.get_revisions(id_)
+            )
 
-    def get_all_current(self, id_):
+    def get_all_current(self, id_: Tuple[str, ...]) -> Set["Script"]:
         with self._catch_revision_errors():
-            top_revs = set(self.revision_map.get_revisions(id_))
+            top_revs = cast(
+                "Set[Script]",
+                set(self.revision_map.get_revisions(id_)),
+            )
             top_revs.update(
-                self.revision_map._get_ancestor_nodes(
-                    list(top_revs), include_dependencies=True
+                cast(
+                    "Iterator[Script]",
+                    self.revision_map._get_ancestor_nodes(
+                        list(top_revs), include_dependencies=True
+                    ),
                 )
             )
             top_revs = self.revision_map._filter_into_branch_heads(top_revs)
             return top_revs
 
-    def get_revision(self, id_):
+    def get_revision(self, id_: str) -> "Script":
         """Return the :class:`.Script` instance with the given rev id.
 
         .. seealso::
@@ -281,9 +316,11 @@ class ScriptDirectory:
         """
 
         with self._catch_revision_errors():
-            return self.revision_map.get_revision(id_)
+            return cast(Script, self.revision_map.get_revision(id_))
 
-    def as_revision_number(self, id_):
+    def as_revision_number(
+        self, id_: Optional[str]
+    ) -> Optional[Union[str, Tuple[str, ...]]]:
         """Convert a symbolic revision, i.e. 'head' or 'base', into
         an actual revision number."""
 
@@ -340,7 +377,7 @@ class ScriptDirectory:
         ):
             return self.revision_map.get_current_head()
 
-    def get_heads(self):
+    def get_heads(self) -> List[str]:
         """Return all "versioned head" revisions as strings.
 
         This is normally a list of length one,
@@ -353,7 +390,7 @@ class ScriptDirectory:
         """
         return list(self.revision_map.heads)
 
-    def get_base(self):
+    def get_base(self) -> Optional[str]:
         """Return the "base" revision as a string.
 
         This is the revision number of the script that
@@ -375,7 +412,7 @@ class ScriptDirectory:
         else:
             return None
 
-    def get_bases(self):
+    def get_bases(self) -> List[str]:
         """return all "base" revisions as strings.
 
         This is the revision number of all scripts that
@@ -384,7 +421,9 @@ class ScriptDirectory:
         """
         return list(self.revision_map.bases)
 
-    def _upgrade_revs(self, destination, current_rev):
+    def _upgrade_revs(
+        self, destination: str, current_rev: str
+    ) -> List["RevisionStep"]:
         with self._catch_revision_errors(
             ancestor="Destination %(end)s is not a valid upgrade "
             "target from current head(s)",
@@ -393,15 +432,16 @@ class ScriptDirectory:
             revs = self.revision_map.iterate_revisions(
                 destination, current_rev, implicit_base=True
             )
-            revs = list(revs)
             return [
                 migration.MigrationStep.upgrade_from_script(
-                    self.revision_map, script
+                    self.revision_map, cast(Script, script)
                 )
                 for script in reversed(list(revs))
             ]
 
-    def _downgrade_revs(self, destination, current_rev):
+    def _downgrade_revs(
+        self, destination: str, current_rev: Optional[str]
+    ) -> List["RevisionStep"]:
         with self._catch_revision_errors(
             ancestor="Destination %(end)s is not a valid downgrade "
             "target from current head(s)",
@@ -412,30 +452,32 @@ class ScriptDirectory:
             )
             return [
                 migration.MigrationStep.downgrade_from_script(
-                    self.revision_map, script
+                    self.revision_map, cast(Script, script)
                 )
                 for script in revs
             ]
 
-    def _stamp_revs(self, revision, heads):
+    def _stamp_revs(
+        self, revision: _RevIdType, heads: _RevIdType
+    ) -> List["StampStep"]:
         with self._catch_revision_errors(
             multiple_heads="Multiple heads are present; please specify a "
             "single target revision"
         ):
 
-            heads = self.get_revisions(heads)
+            heads_revs = self.get_revisions(heads)
 
             steps = []
 
             if not revision:
                 revision = "base"
 
-            filtered_heads = []
+            filtered_heads: List["Script"] = []
             for rev in util.to_tuple(revision):
                 if rev:
                     filtered_heads.extend(
                         self.revision_map.filter_for_lineage(
-                            heads, rev, include_dependencies=True
+                            heads_revs, rev, include_dependencies=True
                         )
                     )
             filtered_heads = util.unique_list(filtered_heads)
@@ -509,7 +551,7 @@ class ScriptDirectory:
 
             return steps
 
-    def run_env(self):
+    def run_env(self) -> None:
         """Run the script environment.
 
         This basically runs the ``env.py`` script present
@@ -524,7 +566,7 @@ class ScriptDirectory:
     def env_py_location(self):
         return os.path.abspath(os.path.join(self.dir, "env.py"))
 
-    def _generate_template(self, src, dest, **kw):
+    def _generate_template(self, src: str, dest: str, **kw: Any) -> None:
         util.status(
             "Generating %s" % os.path.abspath(dest),
             util.template_to_file,
@@ -534,17 +576,17 @@ class ScriptDirectory:
             **kw
         )
 
-    def _copy_file(self, src, dest):
+    def _copy_file(self, src: str, dest: str) -> None:
         util.status(
             "Generating %s" % os.path.abspath(dest), shutil.copy, src, dest
         )
 
-    def _ensure_directory(self, path):
+    def _ensure_directory(self, path: str) -> None:
         path = os.path.abspath(path)
         if not os.path.exists(path):
             util.status("Creating directory %s" % path, os.makedirs, path)
 
-    def _generate_create_date(self):
+    def _generate_create_date(self) -> "datetime.datetime":
         if self.timezone is not None:
             if tz is None:
                 raise util.CommandError(
@@ -571,16 +613,16 @@ class ScriptDirectory:
 
     def generate_revision(
         self,
-        revid,
-        message,
-        head=None,
-        refresh=False,
-        splice=False,
-        branch_labels=None,
-        version_path=None,
-        depends_on=None,
-        **kw
-    ):
+        revid: str,
+        message: Optional[str],
+        head: Optional[str] = None,
+        refresh: bool = False,
+        splice: Optional[bool] = False,
+        branch_labels: Optional[str] = None,
+        version_path: Optional[str] = None,
+        depends_on: Optional[_RevIdType] = None,
+        **kw: Any
+    ) -> Optional["Script"]:
         """Generate a new revision file.
 
         This runs the ``script.py.mako`` template, given
@@ -623,9 +665,10 @@ class ScriptDirectory:
 
         if version_path is None:
             if len(self._version_locations) > 1:
-                for head in heads:
-                    if head is not None:
-                        version_path = os.path.dirname(head.path)
+                for head_ in heads:
+                    if head_ is not None:
+                        assert isinstance(head_, Script)
+                        version_path = os.path.dirname(head_.path)
                         break
                 else:
                     raise util.CommandError(
@@ -651,12 +694,12 @@ class ScriptDirectory:
         path = self._rev_path(version_path, revid, message, create_date)
 
         if not splice:
-            for head in heads:
-                if head is not None and not head.is_head:
+            for head_ in heads:
+                if head_ is not None and not head_.is_head:
                     raise util.CommandError(
                         "Revision %s is not a head revision; please specify "
                         "--splice to create a new branch from this revision"
-                        % head.revision
+                        % head_.revision
                     )
 
         if depends_on:
@@ -679,7 +722,9 @@ class ScriptDirectory:
                 tuple(h.revision if h is not None else None for h in heads)
             ),
             branch_labels=util.to_tuple(branch_labels),
-            depends_on=revision.tuple_rev_as_scalar(depends_on),
+            depends_on=revision.tuple_rev_as_scalar(
+                cast("Optional[List[str]]", depends_on)
+            ),
             create_date=create_date,
             comma=util.format_as_comma,
             message=message if message is not None else ("empty message"),
@@ -694,6 +739,8 @@ class ScriptDirectory:
             script = Script._from_path(self, path)
         except revision.RevisionError as err:
             raise util.CommandError(err.args[0]) from err
+        if script is None:
+            return None
         if branch_labels and not script.branch_labels:
             raise util.CommandError(
                 "Version %s specified branch_labels %s, however the "
@@ -702,11 +749,16 @@ class ScriptDirectory:
                 "'branch_labels' section?"
                 % (script.revision, branch_labels, script.path)
             )
-
         self.revision_map.add_revision(script)
         return script
 
-    def _rev_path(self, path, rev_id, message, create_date):
+    def _rev_path(
+        self,
+        path: str,
+        rev_id: str,
+        message: Optional[str],
+        create_date: "datetime.datetime",
+    ) -> str:
         slug = "_".join(_slug_re.findall(message or "")).lower()
         if len(slug) > self.truncate_slug_length:
             slug = slug[: self.truncate_slug_length].rsplit("_", 1)[0] + "_"
@@ -735,12 +787,12 @@ class Script(revision.Revision):
 
     """
 
-    def __init__(self, module, rev_id, path):
+    def __init__(self, module: ModuleType, rev_id: str, path: str):
         self.module = module
         self.path = path
         super(Script, self).__init__(
             rev_id,
-            module.down_revision,
+            module.down_revision,  # type: ignore[attr-defined]
             branch_labels=util.to_tuple(
                 getattr(module, "branch_labels", None), default=()
             ),
@@ -749,10 +801,10 @@ class Script(revision.Revision):
             ),
         )
 
-    module = None
+    module: ModuleType = None  # type: ignore[assignment]
     """The Python module representing the actual script itself."""
 
-    path = None
+    path: str = None  # type: ignore[assignment]
     """Filesystem path of the script."""
 
     _db_current_indicator = None
@@ -760,25 +812,27 @@ class Script(revision.Revision):
     this is a "current" version in some database"""
 
     @property
-    def doc(self):
+    def doc(self) -> str:
         """Return the docstring given in the script."""
 
         return re.split("\n\n", self.longdoc)[0]
 
     @property
-    def longdoc(self):
+    def longdoc(self) -> str:
         """Return the docstring given in the script."""
 
         doc = self.module.__doc__
         if doc:
             if hasattr(self.module, "_alembic_source_encoding"):
-                doc = doc.decode(self.module._alembic_source_encoding)
-            return doc.strip()
+                doc = doc.decode(  # type: ignore[attr-defined]
+                    self.module._alembic_source_encoding  # type: ignore[attr-defined] # noqa
+                )
+            return doc.strip()  # type: ignore[union-attr]
         else:
             return ""
 
     @property
-    def log_entry(self):
+    def log_entry(self) -> str:
         entry = "Rev: %s%s%s%s%s\n" % (
             self.revision,
             " (head)" if self.is_head else "",
@@ -825,12 +879,12 @@ class Script(revision.Revision):
 
     def _head_only(
         self,
-        include_branches=False,
-        include_doc=False,
-        include_parents=False,
-        tree_indicators=True,
-        head_indicators=True,
-    ):
+        include_branches: bool = False,
+        include_doc: bool = False,
+        include_parents: bool = False,
+        tree_indicators: bool = True,
+        head_indicators: bool = True,
+    ) -> str:
         text = self.revision
         if include_parents:
             if self.dependencies:
@@ -841,6 +895,7 @@ class Script(revision.Revision):
                 )
             else:
                 text = "%s -> %s" % (self._format_down_revision(), text)
+        assert text is not None
         if include_branches and self.branch_labels:
             text += " (%s)" % util.format_as_comma(self.branch_labels)
         if head_indicators or tree_indicators:
@@ -862,12 +917,12 @@ class Script(revision.Revision):
 
     def cmd_format(
         self,
-        verbose,
-        include_branches=False,
-        include_doc=False,
-        include_parents=False,
-        tree_indicators=True,
-    ):
+        verbose: bool,
+        include_branches: bool = False,
+        include_doc: bool = False,
+        include_parents: bool = False,
+        tree_indicators: bool = True,
+    ) -> str:
         if verbose:
             return self.log_entry
         else:
@@ -875,19 +930,21 @@ class Script(revision.Revision):
                 include_branches, include_doc, include_parents, tree_indicators
             )
 
-    def _format_down_revision(self):
+    def _format_down_revision(self) -> str:
         if not self.down_revision:
             return "<base>"
         else:
             return util.format_as_comma(self._versioned_down_revisions)
 
     @classmethod
-    def _from_path(cls, scriptdir, path):
+    def _from_path(
+        cls, scriptdir: ScriptDirectory, path: str
+    ) -> Optional["Script"]:
         dir_, filename = os.path.split(path)
         return cls._from_filename(scriptdir, dir_, filename)
 
     @classmethod
-    def _list_py_dir(cls, scriptdir, path):
+    def _list_py_dir(cls, scriptdir: ScriptDirectory, path: str) -> List[str]:
         if scriptdir.sourceless:
             # read files in version path, e.g. pyc or pyo files
             # in the immediate path
@@ -910,7 +967,9 @@ class Script(revision.Revision):
             return os.listdir(path)
 
     @classmethod
-    def _from_filename(cls, scriptdir, dir_, filename):
+    def _from_filename(
+        cls, scriptdir: ScriptDirectory, dir_: str, filename: str
+    ) -> Optional["Script"]:
         if scriptdir.sourceless:
             py_match = _sourceless_rev_file.match(filename)
         else:

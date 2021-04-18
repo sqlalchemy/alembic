@@ -1,3 +1,6 @@
+from typing import Any
+from typing import Dict
+
 from sqlalchemy import CHAR
 from sqlalchemy import CheckConstraint
 from sqlalchemy import Column
@@ -211,7 +214,7 @@ class AutogenTest(_ComparesFKs):
     def _get_bind(cls):
         return config.db
 
-    configure_opts = {}
+    configure_opts: Dict[Any, Any] = {}
 
     @classmethod
     def setup_class(cls):

@@ -1,5 +1,13 @@
 from contextlib import contextmanager
 import textwrap
+from typing import Any
+from typing import Callable
+from typing import Iterator
+from typing import Optional
+from typing import TYPE_CHECKING
+from typing import Union
+
+from sqlalchemy.sql.elements import conv
 
 from . import batch
 from . import schemaobj
@@ -8,12 +16,15 @@ from ..util import sqla_compat
 from ..util.compat import inspect_formatargspec
 from ..util.compat import inspect_getargspec
 
-__all__ = ("Operations", "BatchOperations")
+if TYPE_CHECKING:
+    from sqlalchemy.engine import Connection
 
-try:
-    from sqlalchemy.sql.naming import conv
-except:
-    conv = None
+    from .batch import BatchOperationsImpl
+    from .ops import MigrateOperation
+    from ..runtime.migration import MigrationContext
+    from ..util.sqla_compat import _literal_bindparam
+
+__all__ = ("Operations", "BatchOperations")
 
 
 class Operations(util.ModuleClsProxy):
@@ -49,7 +60,11 @@ class Operations(util.ModuleClsProxy):
 
     _to_impl = util.Dispatcher()
 
-    def __init__(self, migration_context, impl=None):
+    def __init__(
+        self,
+        migration_context: "MigrationContext",
+        impl: Optional["BatchOperationsImpl"] = None,
+    ) -> None:
         """Construct a new :class:`.Operations`
 
         :param migration_context: a :class:`.MigrationContext`
@@ -65,7 +80,9 @@ class Operations(util.ModuleClsProxy):
         self.schema_obj = schemaobj.SchemaObjects(migration_context)
 
     @classmethod
-    def register_operation(cls, name, sourcename=None):
+    def register_operation(
+        cls, name: str, sourcename: Optional[str] = None
+    ) -> Callable:
         """Register a new operation for this class.
 
         This method is normally used to add new operations
@@ -142,7 +159,7 @@ class Operations(util.ModuleClsProxy):
         return register
 
     @classmethod
-    def implementation_for(cls, op_cls):
+    def implementation_for(cls, op_cls: Any) -> Callable:
         """Register an implementation for a given :class:`.MigrateOperation`.
 
         This is part of the operation extensibility API.
@@ -161,7 +178,9 @@ class Operations(util.ModuleClsProxy):
 
     @classmethod
     @contextmanager
-    def context(cls, migration_context):
+    def context(
+        cls, migration_context: "MigrationContext"
+    ) -> Iterator["Operations"]:
         op = Operations(migration_context)
         op._install_proxy()
         yield op
@@ -342,7 +361,7 @@ class Operations(util.ModuleClsProxy):
 
         return self.migration_context
 
-    def invoke(self, operation):
+    def invoke(self, operation: "MigrateOperation") -> Any:
         """Given a :class:`.MigrateOperation`, invoke it in terms of
         this :class:`.Operations` instance.
 
@@ -352,7 +371,7 @@ class Operations(util.ModuleClsProxy):
         )
         return fn(self, operation)
 
-    def f(self, name):
+    def f(self, name: str) -> "conv":
         """Indicate a string name that has already had a naming convention
         applied to it.
 
@@ -385,20 +404,14 @@ class Operations(util.ModuleClsProxy):
             CONSTRAINT ck_bool_t_x CHECK (x in (1, 0)))
 
         The function is rendered in the output of autogenerate when
-        a particular constraint name is already converted, for SQLAlchemy
-        version **0.9.4 and greater only**.   Even though ``naming_convention``
-        was introduced in 0.9.2, the string disambiguation service is new
-        as of 0.9.4.
+        a particular constraint name is already converted.
 
         """
-        if conv:
-            return conv(name)
-        else:
-            raise NotImplementedError(
-                "op.f() feature requires SQLAlchemy 0.9.4 or greater."
-            )
+        return conv(name)
 
-    def inline_literal(self, value, type_=None):
+    def inline_literal(
+        self, value: Union[str, int], type_: None = None
+    ) -> "_literal_bindparam":
         r"""Produce an 'inline literal' expression, suitable for
         using in an INSERT, UPDATE, or DELETE statement.
 
@@ -442,7 +455,7 @@ class Operations(util.ModuleClsProxy):
         """
         return sqla_compat._literal_bindparam(None, value, type_=type_)
 
-    def get_bind(self):
+    def get_bind(self) -> "Connection":
         """Return the current 'bind'.
 
         Under normal circumstances, this is the

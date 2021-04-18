@@ -1,3 +1,12 @@
+from typing import Any
+from typing import cast
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Tuple
+from typing import TYPE_CHECKING
+from typing import Union
+
 from sqlalchemy import CheckConstraint
 from sqlalchemy import Column
 from sqlalchemy import ForeignKeyConstraint
@@ -20,6 +29,18 @@ from ..util.sqla_compat import _insert_inline
 from ..util.sqla_compat import _is_type_bound
 from ..util.sqla_compat import _remove_column_from_collection
 from ..util.sqla_compat import _select
+
+if TYPE_CHECKING:
+    from typing import Literal
+
+    from sqlalchemy.engine import Dialect
+    from sqlalchemy.sql.elements import ColumnClause
+    from sqlalchemy.sql.elements import quoted_name
+    from sqlalchemy.sql.functions import Function
+    from sqlalchemy.sql.schema import Constraint
+    from sqlalchemy.sql.type_api import TypeEngine
+
+    from ..ddl.impl import DefaultImpl
 
 
 class BatchOperationsImpl:
@@ -61,14 +82,14 @@ class BatchOperationsImpl:
         self.batch = []
 
     @property
-    def dialect(self):
+    def dialect(self) -> "Dialect":
         return self.operations.impl.dialect
 
     @property
-    def impl(self):
+    def impl(self) -> "DefaultImpl":
         return self.operations.impl
 
-    def _should_recreate(self):
+    def _should_recreate(self) -> bool:
         if self.recreate == "auto":
             return self.operations.impl.requires_recreate_in_batch(self)
         elif self.recreate == "always":
@@ -76,7 +97,7 @@ class BatchOperationsImpl:
         else:
             return False
 
-    def flush(self):
+    def flush(self) -> None:
         should_recreate = self._should_recreate()
 
         with _ensure_scope_for_ddl(self.impl.connection):
@@ -118,10 +139,10 @@ class BatchOperationsImpl:
 
                 batch_impl._create(self.impl)
 
-    def alter_column(self, *arg, **kw):
+    def alter_column(self, *arg, **kw) -> None:
         self.batch.append(("alter_column", arg, kw))
 
-    def add_column(self, *arg, **kw):
+    def add_column(self, *arg, **kw) -> None:
         if (
             "insert_before" in kw or "insert_after" in kw
         ) and not self._should_recreate():
@@ -131,22 +152,22 @@ class BatchOperationsImpl:
             )
         self.batch.append(("add_column", arg, kw))
 
-    def drop_column(self, *arg, **kw):
+    def drop_column(self, *arg, **kw) -> None:
         self.batch.append(("drop_column", arg, kw))
 
-    def add_constraint(self, const):
+    def add_constraint(self, const: "Constraint") -> None:
         self.batch.append(("add_constraint", (const,), {}))
 
-    def drop_constraint(self, const):
+    def drop_constraint(self, const: "Constraint") -> None:
         self.batch.append(("drop_constraint", (const,), {}))
 
     def rename_table(self, *arg, **kw):
         self.batch.append(("rename_table", arg, kw))
 
-    def create_index(self, idx):
+    def create_index(self, idx: "Index") -> None:
         self.batch.append(("create_index", (idx,), {}))
 
-    def drop_index(self, idx):
+    def drop_index(self, idx: "Index") -> None:
         self.batch.append(("drop_index", (idx,), {}))
 
     def create_table_comment(self, table):
@@ -168,22 +189,24 @@ class BatchOperationsImpl:
 class ApplyBatchImpl:
     def __init__(
         self,
-        impl,
-        table,
-        table_args,
-        table_kwargs,
-        reflected,
-        partial_reordering=(),
-    ):
+        impl: "DefaultImpl",
+        table: "Table",
+        table_args: tuple,
+        table_kwargs: Dict[str, Any],
+        reflected: bool,
+        partial_reordering: tuple = (),
+    ) -> None:
         self.impl = impl
         self.table = table  # this is a Table object
         self.table_args = table_args
         self.table_kwargs = table_kwargs
         self.temp_table_name = self._calc_temp_name(table.name)
-        self.new_table = None
+        self.new_table: Optional[Table] = None
 
         self.partial_reordering = partial_reordering  # tuple of tuples
-        self.add_col_ordering = ()  # tuple of tuples
+        self.add_col_ordering: Tuple[
+            Tuple[str, str], ...
+        ] = ()  # tuple of tuples
 
         self.column_transfers = OrderedDict(
             (c.name, {"expr": c}) for c in self.table.c
@@ -194,12 +217,12 @@ class ApplyBatchImpl:
         self._grab_table_elements()
 
     @classmethod
-    def _calc_temp_name(cls, tablename):
+    def _calc_temp_name(cls, tablename: "quoted_name") -> str:
         return ("_alembic_tmp_%s" % tablename)[0:50]
 
-    def _grab_table_elements(self):
+    def _grab_table_elements(self) -> None:
         schema = self.table.schema
-        self.columns = OrderedDict()
+        self.columns: Dict[str, "Column"] = OrderedDict()
         for c in self.table.c:
             c_copy = _copy(c, schema=schema)
             c_copy.unique = c_copy.index = False
@@ -208,11 +231,11 @@ class ApplyBatchImpl:
             if isinstance(c.type, SchemaEventTarget):
                 assert c_copy.type is not c.type
             self.columns[c.name] = c_copy
-        self.named_constraints = {}
+        self.named_constraints: Dict[str, "Constraint"] = {}
         self.unnamed_constraints = []
         self.col_named_constraints = {}
-        self.indexes = {}
-        self.new_indexes = {}
+        self.indexes: Dict[str, "Index"] = {}
+        self.new_indexes: Dict[str, "Index"] = {}
 
         for const in self.table.constraints:
             if _is_type_bound(const):
@@ -238,7 +261,7 @@ class ApplyBatchImpl:
         for k in self.table.kwargs:
             self.table_kwargs.setdefault(k, self.table.kwargs[k])
 
-    def _adjust_self_columns_for_partial_reordering(self):
+    def _adjust_self_columns_for_partial_reordering(self) -> None:
         pairs = set()
 
         col_by_idx = list(self.columns)
@@ -258,17 +281,17 @@ class ApplyBatchImpl:
         # this can happen if some columns were dropped and not removed
         # from existing_ordering.  this should be prevented already, but
         # conservatively making sure this didn't happen
-        pairs = [p for p in pairs if p[0] != p[1]]
+        pairs_list = [p for p in pairs if p[0] != p[1]]
 
         sorted_ = list(
-            topological.sort(pairs, col_by_idx, deterministic_order=True)
+            topological.sort(pairs_list, col_by_idx, deterministic_order=True)
         )
         self.columns = OrderedDict((k, self.columns[k]) for k in sorted_)
         self.column_transfers = OrderedDict(
             (k, self.column_transfers[k]) for k in sorted_
         )
 
-    def _transfer_elements_to_new_table(self):
+    def _transfer_elements_to_new_table(self) -> None:
         assert self.new_table is None, "Can only create new table once"
 
         m = MetaData()
@@ -296,6 +319,7 @@ class ApplyBatchImpl:
             if not const_columns.issubset(self.column_transfers):
                 continue
 
+            const_copy: "Constraint"
             if isinstance(const, ForeignKeyConstraint):
                 if _fk_is_self_referential(const):
                     # for self-referential constraint, refer to the
@@ -320,8 +344,9 @@ class ApplyBatchImpl:
                 self._setup_referent(m, const)
             new_table.append_constraint(const_copy)
 
-    def _gather_indexes_from_both_tables(self):
-        idx = []
+    def _gather_indexes_from_both_tables(self) -> List["Index"]:
+        assert self.new_table is not None
+        idx: List[Index] = []
         idx.extend(self.indexes.values())
         for index in self.new_indexes.values():
             idx.append(
@@ -334,8 +359,12 @@ class ApplyBatchImpl:
             )
         return idx
 
-    def _setup_referent(self, metadata, constraint):
-        spec = constraint.elements[0]._get_colspec()
+    def _setup_referent(
+        self, metadata: "MetaData", constraint: "ForeignKeyConstraint"
+    ) -> None:
+        spec = constraint.elements[
+            0
+        ]._get_colspec()  # type:ignore[attr-defined]
         parts = spec.split(".")
         tname = parts[-2]
         if len(parts) == 3:
@@ -345,10 +374,14 @@ class ApplyBatchImpl:
 
         if tname != self.temp_table_name:
             key = sql_schema._get_table_key(tname, referent_schema)
+
+            def colspec(elem: Any):
+                return elem._get_colspec()
+
             if key in metadata.tables:
                 t = metadata.tables[key]
                 for elem in constraint.elements:
-                    colname = elem._get_colspec().split(".")[-1]
+                    colname = colspec(elem).split(".")[-1]
                     if colname not in t.c:
                         t.append_column(Column(colname, sqltypes.NULLTYPE))
             else:
@@ -358,17 +391,18 @@ class ApplyBatchImpl:
                     *[
                         Column(n, sqltypes.NULLTYPE)
                         for n in [
-                            elem._get_colspec().split(".")[-1]
+                            colspec(elem).split(".")[-1]
                             for elem in constraint.elements
                         ]
                     ],
                     schema=referent_schema
                 )
 
-    def _create(self, op_impl):
+    def _create(self, op_impl: "DefaultImpl") -> None:
         self._transfer_elements_to_new_table()
 
         op_impl.prep_table_for_batch(self, self.table)
+        assert self.new_table is not None
         op_impl.create_table(self.new_table)
 
         try:
@@ -405,18 +439,18 @@ class ApplyBatchImpl:
 
     def alter_column(
         self,
-        table_name,
-        column_name,
-        nullable=None,
-        server_default=False,
-        name=None,
-        type_=None,
-        autoincrement=None,
-        comment=False,
+        table_name: str,
+        column_name: str,
+        nullable: Optional[bool] = None,
+        server_default: Optional[Union["Function", str, bool]] = False,
+        name: Optional[str] = None,
+        type_: Optional["TypeEngine"] = None,
+        autoincrement: None = None,
+        comment: Union[str, "Literal[False]"] = False,
         **kw
-    ):
+    ) -> None:
         existing = self.columns[column_name]
-        existing_transfer = self.column_transfers[column_name]
+        existing_transfer: Dict[str, Any] = self.column_transfers[column_name]
         if name is not None and name != column_name:
             # note that we don't change '.key' - we keep referring
             # to the renamed column by its old key in _create().  neat!
@@ -431,8 +465,8 @@ class ApplyBatchImpl:
             # we also ignore the drop_constraint that will come here from
             # Operations.implementation_for(alter_column)
             if isinstance(existing.type, SchemaEventTarget):
-                existing.type._create_events = (
-                    existing.type.create_constraint
+                existing.type._create_events = (  # type:ignore[attr-defined]
+                    existing.type.create_constraint  # type:ignore[attr-defined] # noqa
                 ) = False
 
             self.impl.cast_for_batch_migrate(
@@ -452,7 +486,11 @@ class ApplyBatchImpl:
             if server_default is None:
                 existing.server_default = None
             else:
-                sql_schema.DefaultClause(server_default)._set_parent(existing)
+                sql_schema.DefaultClause(
+                    server_default
+                )._set_parent(  # type:ignore[attr-defined]
+                    existing
+                )
         if autoincrement is not None:
             existing.autoincrement = bool(autoincrement)
 
@@ -460,8 +498,11 @@ class ApplyBatchImpl:
             existing.comment = comment
 
     def _setup_dependencies_for_add_column(
-        self, colname, insert_before, insert_after
-    ):
+        self,
+        colname: str,
+        insert_before: Optional[str],
+        insert_after: Optional[str],
+    ) -> None:
         index_cols = self.existing_ordering
         col_indexes = {name: i for i, name in enumerate(index_cols)}
 
@@ -505,8 +546,13 @@ class ApplyBatchImpl:
             self.add_col_ordering += ((index_cols[-1], colname),)
 
     def add_column(
-        self, table_name, column, insert_before=None, insert_after=None, **kw
-    ):
+        self,
+        table_name: str,
+        column: "Column",
+        insert_before: Optional[str] = None,
+        insert_after: Optional[str] = None,
+        **kw
+    ) -> None:
         self._setup_dependencies_for_add_column(
             column.name, insert_before, insert_after
         )
@@ -515,7 +561,9 @@ class ApplyBatchImpl:
         self.columns[column.name] = _copy(column, schema=self.table.schema)
         self.column_transfers[column.name] = {}
 
-    def drop_column(self, table_name, column, **kw):
+    def drop_column(
+        self, table_name: str, column: Union["ColumnClause", "Column"], **kw
+    ) -> None:
         if column.name in self.table.primary_key.columns:
             _remove_column_from_collection(
                 self.table.primary_key.columns, column
@@ -546,7 +594,7 @@ class ApplyBatchImpl:
 
         """
 
-    def add_constraint(self, const):
+    def add_constraint(self, const: "Constraint") -> None:
         if not const.name:
             raise ValueError("Constraint must have a name")
         if isinstance(const, sql_schema.PrimaryKeyConstraint):
@@ -555,7 +603,7 @@ class ApplyBatchImpl:
 
         self.named_constraints[const.name] = const
 
-    def drop_constraint(self, const):
+    def drop_constraint(self, const: "Constraint") -> None:
         if not const.name:
             raise ValueError("Constraint must have a name")
         try:
@@ -566,7 +614,7 @@ class ApplyBatchImpl:
                     if col_const.name == const.name:
                         self.columns[col.name].constraints.remove(col_const)
             else:
-                const = self.named_constraints.pop(const.name)
+                const = self.named_constraints.pop(cast(str, const.name))
         except KeyError:
             if _is_type_bound(const):
                 # type-bound constraints are only included in the new
@@ -580,10 +628,10 @@ class ApplyBatchImpl:
                 for col in const.columns:
                     self.columns[col.name].primary_key = False
 
-    def create_index(self, idx):
+    def create_index(self, idx: "Index") -> None:
         self.new_indexes[idx.name] = idx
 
-    def drop_index(self, idx):
+    def drop_index(self, idx: "Index") -> None:
         try:
             del self.indexes[idx.name]
         except KeyError:

@@ -2,6 +2,12 @@ import collections
 import inspect
 import io
 import os
+from typing import Any
+from typing import Callable
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Type
 
 is_posix = os.name == "posix"
 
@@ -10,11 +16,11 @@ ArgSpec = collections.namedtuple(
 )
 
 
-def inspect_getargspec(func):
+def inspect_getargspec(func: Callable) -> ArgSpec:
     """getargspec based on fully vendored getfullargspec from Python 3.3."""
 
     if inspect.ismethod(func):
-        func = func.__func__
+        func = func.__func__  # type: ignore
     if not inspect.isfunction(func):
         raise TypeError("{!r} is not a Python function".format(func))
 
@@ -36,7 +42,7 @@ def inspect_getargspec(func):
     if co.co_flags & inspect.CO_VARKEYWORDS:
         varkw = co.co_varnames[nargs]
 
-    return ArgSpec(args, varargs, varkw, func.__defaults__)
+    return ArgSpec(args, varargs, varkw, func.__defaults__)  # type: ignore
 
 
 string_types = (str,)
@@ -57,20 +63,20 @@ def _formatannotation(annotation, base_module=None):
 
 
 def inspect_formatargspec(
-    args,
-    varargs=None,
-    varkw=None,
-    defaults=None,
-    kwonlyargs=(),
-    kwonlydefaults={},
-    annotations={},
-    formatarg=str,
-    formatvarargs=lambda name: "*" + name,
-    formatvarkw=lambda name: "**" + name,
-    formatvalue=lambda value: "=" + repr(value),
-    formatreturns=lambda text: " -> " + text,
-    formatannotation=_formatannotation,
-):
+    args: List[str],
+    varargs: Optional[str] = None,
+    varkw: Optional[str] = None,
+    defaults: Optional[Any] = None,
+    kwonlyargs: tuple = (),
+    kwonlydefaults: Dict[Any, Any] = {},
+    annotations: Dict[Any, Any] = {},
+    formatarg: Type[str] = str,
+    formatvarargs: Callable = lambda name: "*" + name,
+    formatvarkw: Callable = lambda name: "**" + name,
+    formatvalue: Callable = lambda value: "=" + repr(value),
+    formatreturns: Callable = lambda text: " -> " + text,
+    formatannotation: Callable = _formatannotation,
+) -> str:
     """Copy formatargspec from python 3.7 standard library.
 
     Python 3 has deprecated formatargspec and requested that Signature
@@ -118,5 +124,5 @@ def inspect_formatargspec(
 # into a given buffer, but doesn't close it.
 # not sure of a more idiomatic approach to this.
 class EncodedIO(io.TextIOWrapper):
-    def close(self):
+    def close(self) -> None:
         pass

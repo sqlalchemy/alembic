@@ -1,6 +1,16 @@
 import collections
 from collections.abc import Iterable
 import textwrap
+from typing import Any
+from typing import Callable
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import overload
+from typing import Sequence
+from typing import Tuple
+from typing import TypeVar
+from typing import Union
 import uuid
 import warnings
 
@@ -14,10 +24,13 @@ from .compat import inspect_getargspec
 from .compat import string_types
 
 
+_T = TypeVar("_T")
+
+
 class _ModuleClsMeta(type):
-    def __setattr__(cls, key, value):
+    def __setattr__(cls, key: str, value: Callable) -> None:
         super(_ModuleClsMeta, cls).__setattr__(key, value)
-        cls._update_module_proxies(key)
+        cls._update_module_proxies(key)  # type: ignore
 
 
 class ModuleClsProxy(metaclass=_ModuleClsMeta):
@@ -29,22 +42,24 @@ class ModuleClsProxy(metaclass=_ModuleClsMeta):
 
     """
 
-    _setups = collections.defaultdict(lambda: (set(), []))
+    _setups: Dict[type, Tuple[set, list]] = collections.defaultdict(
+        lambda: (set(), [])
+    )
 
     @classmethod
-    def _update_module_proxies(cls, name):
+    def _update_module_proxies(cls, name: str) -> None:
         attr_names, modules = cls._setups[cls]
         for globals_, locals_ in modules:
             cls._add_proxied_attribute(name, globals_, locals_, attr_names)
 
-    def _install_proxy(self):
+    def _install_proxy(self) -> None:
         attr_names, modules = self._setups[self.__class__]
         for globals_, locals_ in modules:
             globals_["_proxy"] = self
             for attr_name in attr_names:
                 globals_[attr_name] = getattr(self, attr_name)
 
-    def _remove_proxy(self):
+    def _remove_proxy(self) -> None:
         attr_names, modules = self._setups[self.__class__]
         for globals_, locals_ in modules:
             globals_["_proxy"] = None
@@ -171,8 +186,23 @@ def _with_legacy_names(translations):
     return decorate
 
 
-def rev_id():
+def rev_id() -> str:
     return uuid.uuid4().hex[-12:]
+
+
+@overload
+def to_tuple(x: Any, default: tuple) -> tuple:
+    ...
+
+
+@overload
+def to_tuple(x: None, default: _T = None) -> _T:
+    ...
+
+
+@overload
+def to_tuple(x: Any, default: Optional[tuple] = None) -> tuple:
+    ...
 
 
 def to_tuple(x, default=None):
@@ -186,16 +216,18 @@ def to_tuple(x, default=None):
         return (x,)
 
 
-def dedupe_tuple(tup):
+def dedupe_tuple(tup: Tuple[str, ...]) -> Tuple[str, ...]:
     return tuple(unique_list(tup))
 
 
 class Dispatcher:
-    def __init__(self, uselist=False):
-        self._registry = {}
+    def __init__(self, uselist: bool = False) -> None:
+        self._registry: Dict[tuple, Any] = {}
         self.uselist = uselist
 
-    def dispatch_for(self, target, qualifier="default"):
+    def dispatch_for(
+        self, target: Any, qualifier: str = "default"
+    ) -> Callable:
         def decorate(fn):
             if self.uselist:
                 self._registry.setdefault((target, qualifier), []).append(fn)
@@ -206,10 +238,10 @@ class Dispatcher:
 
         return decorate
 
-    def dispatch(self, obj, qualifier="default"):
+    def dispatch(self, obj: Any, qualifier: str = "default") -> Any:
 
         if isinstance(obj, string_types):
-            targets = [obj]
+            targets: Sequence = [obj]
         elif isinstance(obj, type):
             targets = obj.__mro__
         else:
@@ -223,7 +255,9 @@ class Dispatcher:
         else:
             raise ValueError("no dispatch function for object: %s" % obj)
 
-    def _fn_or_list(self, fn_or_list):
+    def _fn_or_list(
+        self, fn_or_list: Union[List[Callable], Callable]
+    ) -> Callable:
         if self.uselist:
 
             def go(*arg, **kw):
@@ -232,9 +266,9 @@ class Dispatcher:
 
             return go
         else:
-            return fn_or_list
+            return fn_or_list  # type: ignore
 
-    def branch(self):
+    def branch(self) -> "Dispatcher":
         """Return a copy of this dispatcher that is independently
         writable."""
 

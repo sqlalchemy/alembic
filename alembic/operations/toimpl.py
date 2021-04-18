@@ -1,12 +1,19 @@
+from typing import TYPE_CHECKING
+
 from sqlalchemy import schema as sa_schema
 
 from . import ops
 from .base import Operations
 from ..util.sqla_compat import _copy
 
+if TYPE_CHECKING:
+    from sqlalchemy.sql.schema import Table
+
 
 @Operations.implementation_for(ops.AlterColumnOp)
-def alter_column(operations, operation):
+def alter_column(
+    operations: "Operations", operation: "ops.AlterColumnOp"
+) -> None:
 
     compiler = operations.impl.dialect.statement_compiler(
         operations.impl.dialect, None
@@ -68,14 +75,16 @@ def alter_column(operations, operation):
 
 
 @Operations.implementation_for(ops.DropTableOp)
-def drop_table(operations, operation):
+def drop_table(operations: "Operations", operation: "ops.DropTableOp") -> None:
     operations.impl.drop_table(
         operation.to_table(operations.migration_context)
     )
 
 
 @Operations.implementation_for(ops.DropColumnOp)
-def drop_column(operations, operation):
+def drop_column(
+    operations: "Operations", operation: "ops.DropColumnOp"
+) -> None:
     column = operation.to_column(operations.migration_context)
     operations.impl.drop_column(
         operation.table_name, column, schema=operation.schema, **operation.kw
@@ -83,46 +92,56 @@ def drop_column(operations, operation):
 
 
 @Operations.implementation_for(ops.CreateIndexOp)
-def create_index(operations, operation):
+def create_index(
+    operations: "Operations", operation: "ops.CreateIndexOp"
+) -> None:
     idx = operation.to_index(operations.migration_context)
     operations.impl.create_index(idx)
 
 
 @Operations.implementation_for(ops.DropIndexOp)
-def drop_index(operations, operation):
+def drop_index(operations: "Operations", operation: "ops.DropIndexOp") -> None:
     operations.impl.drop_index(
         operation.to_index(operations.migration_context)
     )
 
 
 @Operations.implementation_for(ops.CreateTableOp)
-def create_table(operations, operation):
+def create_table(
+    operations: "Operations", operation: "ops.CreateTableOp"
+) -> "Table":
     table = operation.to_table(operations.migration_context)
     operations.impl.create_table(table)
     return table
 
 
 @Operations.implementation_for(ops.RenameTableOp)
-def rename_table(operations, operation):
+def rename_table(
+    operations: "Operations", operation: "ops.RenameTableOp"
+) -> None:
     operations.impl.rename_table(
         operation.table_name, operation.new_table_name, schema=operation.schema
     )
 
 
 @Operations.implementation_for(ops.CreateTableCommentOp)
-def create_table_comment(operations, operation):
+def create_table_comment(
+    operations: "Operations", operation: "ops.CreateTableCommentOp"
+) -> None:
     table = operation.to_table(operations.migration_context)
     operations.impl.create_table_comment(table)
 
 
 @Operations.implementation_for(ops.DropTableCommentOp)
-def drop_table_comment(operations, operation):
+def drop_table_comment(
+    operations: "Operations", operation: "ops.DropTableCommentOp"
+) -> None:
     table = operation.to_table(operations.migration_context)
     operations.impl.drop_table_comment(table)
 
 
 @Operations.implementation_for(ops.AddColumnOp)
-def add_column(operations, operation):
+def add_column(operations: "Operations", operation: "ops.AddColumnOp") -> None:
     table_name = operation.table_name
     column = operation.column
     schema = operation.schema
@@ -150,14 +169,18 @@ def add_column(operations, operation):
 
 
 @Operations.implementation_for(ops.AddConstraintOp)
-def create_constraint(operations, operation):
+def create_constraint(
+    operations: "Operations", operation: "ops.AddConstraintOp"
+) -> None:
     operations.impl.add_constraint(
         operation.to_constraint(operations.migration_context)
     )
 
 
 @Operations.implementation_for(ops.DropConstraintOp)
-def drop_constraint(operations, operation):
+def drop_constraint(
+    operations: "Operations", operation: "ops.DropConstraintOp"
+) -> None:
     operations.impl.drop_constraint(
         operations.schema_obj.generic_constraint(
             operation.constraint_name,
@@ -169,14 +192,18 @@ def drop_constraint(operations, operation):
 
 
 @Operations.implementation_for(ops.BulkInsertOp)
-def bulk_insert(operations, operation):
+def bulk_insert(
+    operations: "Operations", operation: "ops.BulkInsertOp"
+) -> None:
     operations.impl.bulk_insert(
         operation.table, operation.rows, multiinsert=operation.multiinsert
     )
 
 
 @Operations.implementation_for(ops.ExecuteSQLOp)
-def execute_sql(operations, operation):
+def execute_sql(
+    operations: "Operations", operation: "ops.ExecuteSQLOp"
+) -> None:
     operations.migration_context.impl.execute(
         operation.sqltext, execution_options=operation.execution_options
     )

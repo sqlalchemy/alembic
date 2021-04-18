@@ -1,5 +1,3 @@
-import sys
-
 from sqlalchemy.testing.requirements import Requirements
 
 from alembic import util
@@ -83,12 +81,6 @@ class SuiteRequirements(Requirements):
         return exclusions.skip_if(
             lambda config: not util.sqla_14,
             "SQLAlchemy 1.4 or greater required",
-        )
-
-    @property
-    def python3(self):
-        return exclusions.skip_if(
-            lambda: sys.version_info < (3,), "Python version 3.xx is required."
         )
 
     @property

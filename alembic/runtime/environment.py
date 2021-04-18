@@ -1,6 +1,29 @@
+from typing import Callable
+from typing import ContextManager
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import overload
+from typing import TextIO
+from typing import Tuple
+from typing import TYPE_CHECKING
+from typing import Union
+
 from .migration import MigrationContext
 from .. import util
 from ..operations import Operations
+
+if TYPE_CHECKING:
+    from typing import Literal
+
+    from sqlalchemy.engine.base import Connection
+    from sqlalchemy.sql.schema import MetaData
+
+    from .migration import _ProxyTransaction
+    from ..config import Config
+    from ..script.base import ScriptDirectory
+
+_RevNumber = Optional[Union[str, Tuple[str, ...]]]
 
 
 class EnvironmentContext(util.ModuleClsProxy):
@@ -66,21 +89,23 @@ class EnvironmentContext(util.ModuleClsProxy):
 
     """
 
-    _migration_context = None
+    _migration_context: Optional["MigrationContext"] = None
 
-    config = None
+    config: "Config" = None  # type:ignore[assignment]
     """An instance of :class:`.Config` representing the
     configuration file contents as well as other variables
     set programmatically within it."""
 
-    script = None
+    script: "ScriptDirectory" = None  # type:ignore[assignment]
     """An instance of :class:`.ScriptDirectory` which provides
     programmatic access to version files within the ``versions/``
     directory.
 
     """
 
-    def __init__(self, config, script, **kw):
+    def __init__(
+        self, config: "Config", script: "ScriptDirectory", **kw
+    ) -> None:
         r"""Construct a new :class:`.EnvironmentContext`.
 
         :param config: a :class:`.Config` instance.
@@ -94,7 +119,7 @@ class EnvironmentContext(util.ModuleClsProxy):
         self.script = script
         self.context_opts = kw
 
-    def __enter__(self):
+    def __enter__(self) -> "EnvironmentContext":
         """Establish a context which provides a
         :class:`.EnvironmentContext` object to
         env.py scripts.
@@ -106,10 +131,10 @@ class EnvironmentContext(util.ModuleClsProxy):
         self._install_proxy()
         return self
 
-    def __exit__(self, *arg, **kw):
+    def __exit__(self, *arg, **kw) -> None:
         self._remove_proxy()
 
-    def is_offline_mode(self):
+    def is_offline_mode(self) -> bool:
         """Return True if the current migrations environment
         is running in "offline mode".
 
@@ -136,10 +161,10 @@ class EnvironmentContext(util.ModuleClsProxy):
         """
         return self.get_context().impl.transactional_ddl
 
-    def requires_connection(self):
+    def requires_connection(self) -> bool:
         return not self.is_offline_mode()
 
-    def get_head_revision(self):
+    def get_head_revision(self) -> _RevNumber:
         """Return the hex identifier of the 'head' script revision.
 
         If the script directory has multiple heads, this
@@ -154,7 +179,7 @@ class EnvironmentContext(util.ModuleClsProxy):
         """
         return self.script.as_revision_number("head")
 
-    def get_head_revisions(self):
+    def get_head_revisions(self) -> _RevNumber:
         """Return the hex identifier of the 'heads' script revision(s).
 
         This returns a tuple containing the version number of all
@@ -166,7 +191,7 @@ class EnvironmentContext(util.ModuleClsProxy):
         """
         return self.script.as_revision_number("heads")
 
-    def get_starting_revision_argument(self):
+    def get_starting_revision_argument(self) -> _RevNumber:
         """Return the 'starting revision' argument,
         if the revision was passed using ``start:end``.
 
@@ -195,7 +220,7 @@ class EnvironmentContext(util.ModuleClsProxy):
                 "No starting revision argument is available."
             )
 
-    def get_revision_argument(self):
+    def get_revision_argument(self) -> _RevNumber:
         """Get the 'destination' revision argument.
 
         This is typically the argument passed to the
@@ -213,7 +238,7 @@ class EnvironmentContext(util.ModuleClsProxy):
             self.context_opts["destination_rev"]
         )
 
-    def get_tag_argument(self):
+    def get_tag_argument(self) -> Optional[str]:
         """Return the value passed for the ``--tag`` argument, if any.
 
         The ``--tag`` argument is not used directly by Alembic,
@@ -233,7 +258,19 @@ class EnvironmentContext(util.ModuleClsProxy):
         """
         return self.context_opts.get("tag", None)
 
-    def get_x_argument(self, as_dictionary=False):
+    @overload
+    def get_x_argument(  # type:ignore[misc]
+        self, as_dictionary: "Literal[False]" = ...
+    ) -> List[str]:
+        ...
+
+    @overload
+    def get_x_argument(  # type:ignore[misc]
+        self, as_dictionary: "Literal[True]" = ...
+    ) -> Dict[str, str]:
+        ...
+
+    def get_x_argument(self, as_dictionary: bool = False):
         """Return the value(s) passed for the ``-x`` argument, if any.
 
         The ``-x`` argument is an open ended flag that allows any user-defined
@@ -282,34 +319,34 @@ class EnvironmentContext(util.ModuleClsProxy):
 
     def configure(
         self,
-        connection=None,
-        url=None,
-        dialect_name=None,
-        dialect_opts=None,
-        transactional_ddl=None,
-        transaction_per_migration=False,
-        output_buffer=None,
-        starting_rev=None,
-        tag=None,
-        template_args=None,
-        render_as_batch=False,
-        target_metadata=None,
-        include_name=None,
-        include_object=None,
-        include_schemas=False,
-        process_revision_directives=None,
-        compare_type=False,
-        compare_server_default=False,
-        render_item=None,
-        literal_binds=False,
-        upgrade_token="upgrades",
-        downgrade_token="downgrades",
-        alembic_module_prefix="op.",
-        sqlalchemy_module_prefix="sa.",
-        user_module_prefix=None,
-        on_version_apply=None,
+        connection: Optional["Connection"] = None,
+        url: Optional[str] = None,
+        dialect_name: Optional[str] = None,
+        dialect_opts: Optional[dict] = None,
+        transactional_ddl: Optional[bool] = None,
+        transaction_per_migration: bool = False,
+        output_buffer: Optional[TextIO] = None,
+        starting_rev: Optional[str] = None,
+        tag: Optional[str] = None,
+        template_args: Optional[dict] = None,
+        render_as_batch: bool = False,
+        target_metadata: Optional["MetaData"] = None,
+        include_name: Optional[Callable] = None,
+        include_object: Optional[Callable] = None,
+        include_schemas: bool = False,
+        process_revision_directives: Optional[Callable] = None,
+        compare_type: bool = False,
+        compare_server_default: bool = False,
+        render_item: Optional[Callable] = None,
+        literal_binds: bool = False,
+        upgrade_token: str = "upgrades",
+        downgrade_token: str = "downgrades",
+        alembic_module_prefix: str = "op.",
+        sqlalchemy_module_prefix: str = "sa.",
+        user_module_prefix: Optional[str] = None,
+        on_version_apply: Optional[Callable] = None,
         **kw
-    ):
+    ) -> None:
         """Configure a :class:`.MigrationContext` within this
         :class:`.EnvironmentContext` which will provide database
         connectivity and other configuration to a series of
@@ -789,7 +826,7 @@ class EnvironmentContext(util.ModuleClsProxy):
             opts=opts,
         )
 
-    def run_migrations(self, **kw):
+    def run_migrations(self, **kw) -> None:
         """Run migrations as determined by the current command line
         configuration
         as well as versioning information present (or not) in the current
@@ -809,6 +846,7 @@ class EnvironmentContext(util.ModuleClsProxy):
         first been made available via :meth:`.configure`.
 
         """
+        assert self._migration_context is not None
         with Operations.context(self._migration_context):
             self.get_context().run_migrations(**kw)
 
@@ -837,7 +875,9 @@ class EnvironmentContext(util.ModuleClsProxy):
         """
         self.get_context().impl.static_output(text)
 
-    def begin_transaction(self):
+    def begin_transaction(
+        self,
+    ) -> Union["_ProxyTransaction", ContextManager]:
         """Return a context manager that will
         enclose an operation within a "transaction",
         as defined by the environment's offline
@@ -883,7 +923,7 @@ class EnvironmentContext(util.ModuleClsProxy):
 
         return self.get_context().begin_transaction()
 
-    def get_context(self):
+    def get_context(self) -> "MigrationContext":
         """Return the current :class:`.MigrationContext` object.
 
         If :meth:`.EnvironmentContext.configure` has not been

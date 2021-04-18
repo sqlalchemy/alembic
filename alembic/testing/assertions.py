@@ -1,8 +1,8 @@
-from __future__ import absolute_import
-
 import contextlib
 import re
 import sys
+from typing import Any
+from typing import Dict
 
 from sqlalchemy import exc as sa_exc
 from sqlalchemy import util
@@ -114,7 +114,7 @@ def eq_ignore_whitespace(a, b, msg=None):
     assert a == b, msg or "%r != %r" % (a, b)
 
 
-_dialect_mods = {}
+_dialect_mods: Dict[Any, Any] = {}
 
 
 def _get_dialect(name):

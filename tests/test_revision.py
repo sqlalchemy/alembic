@@ -9,14 +9,13 @@ from alembic.script.revision import Revision
 from alembic.script.revision import RevisionError
 from alembic.script.revision import RevisionMap
 from alembic.testing import assert_raises_message
-from alembic.testing import config
 from alembic.testing import eq_
+from alembic.testing import expect_raises_message
 from alembic.testing.fixtures import TestBase
 from . import _large_map
 
 
 class APITest(TestBase):
-    @config.requirements.python3
     def test_invalid_datatype(self):
         map_ = RevisionMap(
             lambda: [
@@ -25,29 +24,26 @@ class APITest(TestBase):
                 Revision("c", ("b",)),
             ]
         )
-        assert_raises_message(
+        with expect_raises_message(
             RevisionError,
             "revision identifier b'12345' is not a string; "
             "ensure database driver settings are correct",
-            map_.get_revisions,
-            b"12345",
-        )
+        ):
+            map_.get_revisions(b"12345")
 
-        assert_raises_message(
+        with expect_raises_message(
             RevisionError,
             "revision identifier b'12345' is not a string; "
             "ensure database driver settings are correct",
-            map_.get_revision,
-            b"12345",
-        )
+        ):
+            map_.get_revision(b"12345")
 
-        assert_raises_message(
+        with expect_raises_message(
             RevisionError,
             r"revision identifier \(b'12345',\) is not a string; "
             "ensure database driver settings are correct",
-            map_.get_revision,
-            (b"12345",),
-        )
+        ):
+            map_.get_revision((b"12345",))
 
         map_.get_revision(("a",))
         map_.get_revision("a")
@@ -310,12 +306,12 @@ class LabeledBranchTest(DownIterateTest):
         c1 = map_.get_revision("c1")
         c2 = map_.get_revision("c2")
         d = map_.get_revision("d")
-        eq_(map_.filter_for_lineage([c1, c2, d], "c1branch@head"), [c1, c2, d])
+        eq_(map_.filter_for_lineage([c1, c2, d], "c1branch@head"), (c1, c2, d))
 
     def test_filter_for_lineage_heads(self):
         eq_(
             self.map.filter_for_lineage([self.map.get_revision("f")], "heads"),
-            [self.map.get_revision("f")],
+            (self.map.get_revision("f"),),
         )
 
     def setUp(self):
@@ -333,13 +329,13 @@ class LabeledBranchTest(DownIterateTest):
         )
 
     def test_get_base_revisions_labeled(self):
-        eq_(self.map._get_base_revisions("somelongername@base"), ["a"])
+        eq_(self.map._get_base_revisions("somelongername@base"), ("a",))
 
     def test_get_current_named_rev(self):
         eq_(self.map.get_revision("ebranch@head"), self.map.get_revision("f"))
 
     def test_get_base_revisions(self):
-        eq_(self.map._get_base_revisions("base"), ["a", "d"])
+        eq_(self.map._get_base_revisions("base"), ("a", "d"))
 
     def test_iterate_head_to_named_base(self):
         self._assert_iteration(

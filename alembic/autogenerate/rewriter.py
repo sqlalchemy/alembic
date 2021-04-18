@@ -1,5 +1,24 @@
+from typing import Any
+from typing import Callable
+from typing import Iterator
+from typing import List
+from typing import Type
+from typing import TYPE_CHECKING
+from typing import Union
+
 from alembic import util
 from alembic.operations import ops
+
+if TYPE_CHECKING:
+    from alembic.operations.ops import AddColumnOp
+    from alembic.operations.ops import AlterColumnOp
+    from alembic.operations.ops import CreateTableOp
+    from alembic.operations.ops import MigrateOperation
+    from alembic.operations.ops import MigrationScript
+    from alembic.operations.ops import ModifyTableOps
+    from alembic.operations.ops import OpContainer
+    from alembic.runtime.migration import MigrationContext
+    from alembic.script.revision import Revision
 
 
 class Rewriter:
@@ -32,10 +51,10 @@ class Rewriter:
 
     _chained = None
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.dispatch = util.Dispatcher()
 
-    def chain(self, other):
+    def chain(self, other: "Rewriter") -> "Rewriter":
         """Produce a "chain" of this :class:`.Rewriter` to another.
 
         This allows two rewriters to operate serially on a stream,
@@ -70,7 +89,16 @@ class Rewriter:
         wr._chained = other
         return wr
 
-    def rewrites(self, operator):
+    def rewrites(
+        self,
+        operator: Union[
+            Type["AddColumnOp"],
+            Type["MigrateOperation"],
+            Type["AlterColumnOp"],
+            Type["CreateTableOp"],
+            Type["ModifyTableOps"],
+        ],
+    ) -> Callable:
         """Register a function as rewriter for a given type.
 
         The function should receive three arguments, which are
@@ -85,7 +113,12 @@ class Rewriter:
         """
         return self.dispatch.dispatch_for(operator)
 
-    def _rewrite(self, context, revision, directive):
+    def _rewrite(
+        self,
+        context: "MigrationContext",
+        revision: "Revision",
+        directive: "MigrateOperation",
+    ) -> Iterator["MigrateOperation"]:
         try:
             _rewriter = self.dispatch.dispatch(directive)
         except ValueError:
@@ -96,20 +129,30 @@ class Rewriter:
                 yield directive
             else:
                 for r_directive in util.to_list(
-                    _rewriter(context, revision, directive)
+                    _rewriter(context, revision, directive), []
                 ):
                     r_directive._mutations = r_directive._mutations.union(
                         [self]
                     )
                     yield r_directive
 
-    def __call__(self, context, revision, directives):
+    def __call__(
+        self,
+        context: "MigrationContext",
+        revision: "Revision",
+        directives: List["MigrationScript"],
+    ) -> None:
         self.process_revision_directives(context, revision, directives)
         if self._chained:
             self._chained(context, revision, directives)
 
     @_traverse.dispatch_for(ops.MigrationScript)
-    def _traverse_script(self, context, revision, directive):
+    def _traverse_script(
+        self,
+        context: "MigrationContext",
+        revision: "Revision",
+        directive: "MigrationScript",
+    ) -> None:
         upgrade_ops_list = []
         for upgrade_ops in directive.upgrade_ops_list:
             ret = self._traverse_for(context, revision, upgrade_ops)
@@ -131,26 +174,51 @@ class Rewriter:
         directive.downgrade_ops = downgrade_ops_list
 
     @_traverse.dispatch_for(ops.OpContainer)
-    def _traverse_op_container(self, context, revision, directive):
+    def _traverse_op_container(
+        self,
+        context: "MigrationContext",
+        revision: "Revision",
+        directive: "OpContainer",
+    ) -> None:
         self._traverse_list(context, revision, directive.ops)
 
     @_traverse.dispatch_for(ops.MigrateOperation)
-    def _traverse_any_directive(self, context, revision, directive):
+    def _traverse_any_directive(
+        self,
+        context: "MigrationContext",
+        revision: "Revision",
+        directive: "MigrateOperation",
+    ) -> None:
         pass
 
-    def _traverse_for(self, context, revision, directive):
+    def _traverse_for(
+        self,
+        context: "MigrationContext",
+        revision: "Revision",
+        directive: "MigrateOperation",
+    ) -> Any:
         directives = list(self._rewrite(context, revision, directive))
         for directive in directives:
             traverser = self._traverse.dispatch(directive)
             traverser(self, context, revision, directive)
         return directives
 
-    def _traverse_list(self, context, revision, directives):
+    def _traverse_list(
+        self,
+        context: "MigrationContext",
+        revision: "Revision",
+        directives: Any,
+    ) -> None:
         dest = []
         for directive in directives:
             dest.extend(self._traverse_for(context, revision, directive))
 
         directives[:] = dest
 
-    def process_revision_directives(self, context, revision, directives):
+    def process_revision_directives(
+        self,
+        context: "MigrationContext",
+        revision: "Revision",
+        directives: List["MigrationScript"],
+    ) -> None:
         self._traverse_list(context, revision, directives)

@@ -3,6 +3,8 @@ import configparser
 from contextlib import contextmanager
 import io
 import re
+from typing import Any
+from typing import Dict
 
 from sqlalchemy import Column
 from sqlalchemy import inspect
@@ -61,7 +63,7 @@ if sqla_14:
     from sqlalchemy.testing.fixtures import FutureEngineMixin
 else:
 
-    class FutureEngineMixin:
+    class FutureEngineMixin:  # type:ignore[no-redef]
         __requires__ = ("sqlalchemy_14",)
 
 
@@ -78,7 +80,7 @@ def capture_db(dialect="postgresql://"):
     return engine, buf
 
 
-_engs = {}
+_engs: Dict[Any, Any] = {}
 
 
 @contextmanager

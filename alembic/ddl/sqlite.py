@@ -1,4 +1,9 @@
 import re
+from typing import Any
+from typing import Dict
+from typing import Optional
+from typing import TYPE_CHECKING
+from typing import Union
 
 from sqlalchemy import cast
 from sqlalchemy import JSON
@@ -7,6 +12,17 @@ from sqlalchemy import sql
 
 from .impl import DefaultImpl
 from .. import util
+
+if TYPE_CHECKING:
+    from sqlalchemy.engine.reflection import Inspector
+    from sqlalchemy.sql.elements import Cast
+    from sqlalchemy.sql.elements import ClauseElement
+    from sqlalchemy.sql.schema import Column
+    from sqlalchemy.sql.schema import Constraint
+    from sqlalchemy.sql.schema import Table
+    from sqlalchemy.sql.type_api import TypeEngine
+
+    from ..operations.batch import BatchOperationsImpl
 
 
 class SQLiteImpl(DefaultImpl):
@@ -17,7 +33,9 @@ class SQLiteImpl(DefaultImpl):
     see: http://bugs.python.org/issue10740
     """
 
-    def requires_recreate_in_batch(self, batch_op):
+    def requires_recreate_in_batch(
+        self, batch_op: "BatchOperationsImpl"
+    ) -> bool:
         """Return True if the given :class:`.BatchOperationsImpl`
         would need the table to be recreated and copied in order to
         proceed.
@@ -44,16 +62,16 @@ class SQLiteImpl(DefaultImpl):
         else:
             return False
 
-    def add_constraint(self, const):
+    def add_constraint(self, const: "Constraint"):
         # attempt to distinguish between an
         # auto-gen constraint and an explicit one
-        if const._create_rule is None:
+        if const._create_rule is None:  # type:ignore[attr-defined]
             raise NotImplementedError(
                 "No support for ALTER of constraints in SQLite dialect"
                 "Please refer to the batch mode feature which allows for "
                 "SQLite migrations using a copy-and-move strategy."
             )
-        elif const._create_rule(self):
+        elif const._create_rule(self):  # type:ignore[attr-defined]
             util.warn(
                 "Skipping unsupported ALTER for "
                 "creation of implicit constraint"
@@ -61,8 +79,8 @@ class SQLiteImpl(DefaultImpl):
                 "SQLite migrations using a copy-and-move strategy."
             )
 
-    def drop_constraint(self, const):
-        if const._create_rule is None:
+    def drop_constraint(self, const: "Constraint"):
+        if const._create_rule is None:  # type:ignore[attr-defined]
             raise NotImplementedError(
                 "No support for ALTER of constraints in SQLite dialect"
                 "Please refer to the batch mode feature which allows for "
@@ -71,11 +89,11 @@ class SQLiteImpl(DefaultImpl):
 
     def compare_server_default(
         self,
-        inspector_column,
-        metadata_column,
-        rendered_metadata_default,
-        rendered_inspector_default,
-    ):
+        inspector_column: "Column",
+        metadata_column: "Column",
+        rendered_metadata_default: Optional[str],
+        rendered_inspector_default: Optional[str],
+    ) -> bool:
 
         if rendered_metadata_default is not None:
             rendered_metadata_default = re.sub(
@@ -93,7 +111,9 @@ class SQLiteImpl(DefaultImpl):
 
         return rendered_inspector_default != rendered_metadata_default
 
-    def _guess_if_default_is_unparenthesized_sql_expr(self, expr):
+    def _guess_if_default_is_unparenthesized_sql_expr(
+        self, expr: Optional[str]
+    ) -> bool:
         """Determine if a server default is a SQL expression or a constant.
 
         There are too many assertions that expect server defaults to round-trip
@@ -112,7 +132,12 @@ class SQLiteImpl(DefaultImpl):
         else:
             return True
 
-    def autogen_column_reflect(self, inspector, table, column_info):
+    def autogen_column_reflect(
+        self,
+        inspector: "Inspector",
+        table: "Table",
+        column_info: Dict[str, Any],
+    ) -> None:
         # SQLite expression defaults require parenthesis when sent
         # as DDL
         if self._guess_if_default_is_unparenthesized_sql_expr(
@@ -120,7 +145,9 @@ class SQLiteImpl(DefaultImpl):
         ):
             column_info["default"] = "(%s)" % (column_info["default"],)
 
-    def render_ddl_sql_expr(self, expr, is_server_default=False, **kw):
+    def render_ddl_sql_expr(
+        self, expr: "ClauseElement", is_server_default: bool = False, **kw
+    ) -> str:
         # SQLite expression defaults require parenthesis when sent
         # as DDL
         str_expr = super(SQLiteImpl, self).render_ddl_sql_expr(
@@ -134,9 +161,15 @@ class SQLiteImpl(DefaultImpl):
             str_expr = "(%s)" % (str_expr,)
         return str_expr
 
-    def cast_for_batch_migrate(self, existing, existing_transfer, new_type):
+    def cast_for_batch_migrate(
+        self,
+        existing: "Column",
+        existing_transfer: Dict[str, Union["TypeEngine", "Cast"]],
+        new_type: "TypeEngine",
+    ) -> None:
         if (
-            existing.type._type_affinity is not new_type._type_affinity
+            existing.type._type_affinity  # type:ignore[attr-defined]
+            is not new_type._type_affinity  # type:ignore[attr-defined]
             and not isinstance(new_type, JSON)
         ):
             existing_transfer["expr"] = cast(

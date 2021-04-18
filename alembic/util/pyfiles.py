@@ -4,6 +4,7 @@ import importlib.util
 import os
 import re
 import tempfile
+from typing import Optional
 
 from mako import exceptions
 from mako.template import Template
@@ -11,7 +12,9 @@ from mako.template import Template
 from .exc import CommandError
 
 
-def template_to_file(template_file, dest, output_encoding, **kw):
+def template_to_file(
+    template_file: str, dest: str, output_encoding: str, **kw
+) -> None:
     template = Template(filename=template_file)
     try:
         output = template.render_unicode(**kw).encode(output_encoding)
@@ -32,7 +35,7 @@ def template_to_file(template_file, dest, output_encoding, **kw):
             f.write(output)
 
 
-def coerce_resource_to_filename(fname):
+def coerce_resource_to_filename(fname: str) -> str:
     """Interpret a filename as either a filesystem location or as a package
     resource.
 
@@ -47,7 +50,7 @@ def coerce_resource_to_filename(fname):
     return fname
 
 
-def pyc_file_from_path(path):
+def pyc_file_from_path(path: str) -> Optional[str]:
     """Given a python source path, locate the .pyc."""
 
     candidate = importlib.util.cache_from_source(path)
@@ -64,7 +67,7 @@ def pyc_file_from_path(path):
         return None
 
 
-def load_python_file(dir_, filename):
+def load_python_file(dir_: str, filename: str):
     """Load a file from the given path as a Python module."""
 
     module_id = re.sub(r"\W", "_", filename)
@@ -78,21 +81,15 @@ def load_python_file(dir_, filename):
             if pyc_path is None:
                 raise ImportError("Can't find Python file %s" % path)
             else:
-                module = load_module_pyc(module_id, pyc_path)
+                module = load_module_py(module_id, pyc_path)
     elif ext in (".pyc", ".pyo"):
-        module = load_module_pyc(module_id, path)
+        module = load_module_py(module_id, path)
     return module
 
 
-def load_module_py(module_id, path):
+def load_module_py(module_id: str, path: str):
     spec = importlib.util.spec_from_file_location(module_id, path)
+    assert spec
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-def load_module_pyc(module_id, path):
-    spec = importlib.util.spec_from_file_location(module_id, path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    spec.loader.exec_module(module)  # type: ignore
     return module

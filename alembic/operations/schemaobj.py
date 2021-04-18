@@ -1,3 +1,12 @@
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Sequence
+from typing import Tuple
+from typing import TYPE_CHECKING
+from typing import Union
+
 from sqlalchemy import schema as sa_schema
 from sqlalchemy.sql.schema import Column
 from sqlalchemy.sql.schema import Constraint
@@ -9,34 +18,59 @@ from .. import util
 from ..util import sqla_compat
 from ..util.compat import string_types
 
+if TYPE_CHECKING:
+    from sqlalchemy.sql.elements import ColumnElement
+    from sqlalchemy.sql.elements import TextClause
+    from sqlalchemy.sql.schema import CheckConstraint
+    from sqlalchemy.sql.schema import ForeignKey
+    from sqlalchemy.sql.schema import ForeignKeyConstraint
+    from sqlalchemy.sql.schema import MetaData
+    from sqlalchemy.sql.schema import PrimaryKeyConstraint
+    from sqlalchemy.sql.schema import Table
+    from sqlalchemy.sql.schema import UniqueConstraint
+    from sqlalchemy.sql.type_api import TypeEngine
+
+    from ..runtime.migration import MigrationContext
+
 
 class SchemaObjects:
-    def __init__(self, migration_context=None):
+    def __init__(
+        self, migration_context: Optional["MigrationContext"] = None
+    ) -> None:
         self.migration_context = migration_context
 
-    def primary_key_constraint(self, name, table_name, cols, schema=None):
+    def primary_key_constraint(
+        self,
+        name: Optional[str],
+        table_name: str,
+        cols: Sequence[str],
+        schema: Optional[str] = None,
+        **dialect_kw
+    ) -> "PrimaryKeyConstraint":
         m = self.metadata()
         columns = [sa_schema.Column(n, NULLTYPE) for n in cols]
         t = sa_schema.Table(table_name, m, *columns, schema=schema)
-        p = sa_schema.PrimaryKeyConstraint(*[t.c[n] for n in cols], name=name)
+        p = sa_schema.PrimaryKeyConstraint(
+            *[t.c[n] for n in cols], name=name, **dialect_kw
+        )
         return p
 
     def foreign_key_constraint(
         self,
-        name,
-        source,
-        referent,
-        local_cols,
-        remote_cols,
-        onupdate=None,
-        ondelete=None,
-        deferrable=None,
-        source_schema=None,
-        referent_schema=None,
-        initially=None,
-        match=None,
+        name: Optional[str],
+        source: str,
+        referent: str,
+        local_cols: List[str],
+        remote_cols: List[str],
+        onupdate: Optional[str] = None,
+        ondelete: Optional[str] = None,
+        deferrable: Optional[bool] = None,
+        source_schema: Optional[str] = None,
+        referent_schema: Optional[str] = None,
+        initially: Optional[str] = None,
+        match: Optional[str] = None,
         **dialect_kw
-    ):
+    ) -> "ForeignKeyConstraint":
         m = self.metadata()
         if source == referent and source_schema == referent_schema:
             t1_cols = local_cols + remote_cols
@@ -78,7 +112,14 @@ class SchemaObjects:
 
         return f
 
-    def unique_constraint(self, name, source, local_cols, schema=None, **kw):
+    def unique_constraint(
+        self,
+        name: Optional[str],
+        source: str,
+        local_cols: Sequence[str],
+        schema: Optional[str] = None,
+        **kw
+    ) -> "UniqueConstraint":
         t = sa_schema.Table(
             source,
             self.metadata(),
@@ -92,7 +133,14 @@ class SchemaObjects:
         t.append_constraint(uq)
         return uq
 
-    def check_constraint(self, name, source, condition, schema=None, **kw):
+    def check_constraint(
+        self,
+        name: Optional[str],
+        source: str,
+        condition: Union["TextClause", "ColumnElement[Any]"],
+        schema: Optional[str] = None,
+        **kw
+    ) -> Union["CheckConstraint"]:
         t = sa_schema.Table(
             source,
             self.metadata(),
@@ -103,9 +151,16 @@ class SchemaObjects:
         t.append_constraint(ck)
         return ck
 
-    def generic_constraint(self, name, table_name, type_, schema=None, **kw):
+    def generic_constraint(
+        self,
+        name: Optional[str],
+        table_name: str,
+        type_: Optional[str],
+        schema: Optional[str] = None,
+        **kw
+    ) -> Any:
         t = self.table(table_name, schema=schema)
-        types = {
+        types: Dict[Optional[str], Any] = {
             "foreignkey": lambda name: sa_schema.ForeignKeyConstraint(
                 [], [], name=name
             ),
@@ -126,7 +181,7 @@ class SchemaObjects:
             t.append_constraint(const)
             return const
 
-    def metadata(self):
+    def metadata(self) -> "MetaData":
         kw = {}
         if (
             self.migration_context is not None
@@ -137,7 +192,7 @@ class SchemaObjects:
                 kw["naming_convention"] = mt.naming_convention
         return sa_schema.MetaData(**kw)
 
-    def table(self, name, *columns, **kw):
+    def table(self, name: str, *columns, **kw) -> "Table":
         m = self.metadata()
 
         cols = [
@@ -173,10 +228,17 @@ class SchemaObjects:
             self._ensure_table_for_fk(m, f)
         return t
 
-    def column(self, name, type_, **kw):
+    def column(self, name: str, type_: "TypeEngine", **kw) -> "Column":
         return sa_schema.Column(name, type_, **kw)
 
-    def index(self, name, tablename, columns, schema=None, **kw):
+    def index(
+        self,
+        name: str,
+        tablename: Optional[str],
+        columns: Sequence[Union[str, "TextClause", "ColumnElement[Any]"]],
+        schema: Optional[str] = None,
+        **kw
+    ) -> "Index":
         t = sa_schema.Table(
             tablename or "no_table",
             self.metadata(),
@@ -190,23 +252,27 @@ class SchemaObjects:
         )
         return idx
 
-    def _parse_table_key(self, table_key):
+    def _parse_table_key(self, table_key: str) -> Tuple[Optional[str], str]:
         if "." in table_key:
             tokens = table_key.split(".")
-            sname = ".".join(tokens[0:-1])
+            sname: Optional[str] = ".".join(tokens[0:-1])
             tname = tokens[-1]
         else:
             tname = table_key
             sname = None
         return (sname, tname)
 
-    def _ensure_table_for_fk(self, metadata, fk):
+    def _ensure_table_for_fk(
+        self, metadata: "MetaData", fk: "ForeignKey"
+    ) -> None:
         """create a placeholder Table object for the referent of a
         ForeignKey.
 
         """
-        if isinstance(fk._colspec, string_types):
-            table_key, cname = fk._colspec.rsplit(".", 1)
+        if isinstance(fk._colspec, string_types):  # type:ignore[attr-defined]
+            table_key, cname = fk._colspec.rsplit(  # type:ignore[attr-defined]
+                ".", 1
+            )
             sname, tname = self._parse_table_key(table_key)
             if table_key not in metadata.tables:
                 rel_t = sa_schema.Table(tname, metadata, schema=sname)

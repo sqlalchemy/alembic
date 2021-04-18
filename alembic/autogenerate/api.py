@@ -2,6 +2,15 @@
 automatically."""
 
 import contextlib
+from typing import Any
+from typing import Callable
+from typing import Dict
+from typing import Iterator
+from typing import Optional
+from typing import Set
+from typing import Tuple
+from typing import TYPE_CHECKING
+from typing import Union
 
 from sqlalchemy import inspect
 
@@ -10,8 +19,26 @@ from . import render
 from .. import util
 from ..operations import ops
 
+if TYPE_CHECKING:
+    from sqlalchemy.engine import Connection
+    from sqlalchemy.engine import Dialect
+    from sqlalchemy.engine import Inspector
+    from sqlalchemy.sql.schema import Column
+    from sqlalchemy.sql.schema import ForeignKeyConstraint
+    from sqlalchemy.sql.schema import Index
+    from sqlalchemy.sql.schema import MetaData
+    from sqlalchemy.sql.schema import Table
+    from sqlalchemy.sql.schema import UniqueConstraint
 
-def compare_metadata(context, metadata):
+    from alembic.config import Config
+    from alembic.operations.ops import MigrationScript
+    from alembic.operations.ops import UpgradeOps
+    from alembic.runtime.migration import MigrationContext
+    from alembic.script.base import Script
+    from alembic.script.base import ScriptDirectory
+
+
+def compare_metadata(context: "MigrationContext", metadata: "MetaData") -> Any:
     """Compare a database schema to that given in a
     :class:`~sqlalchemy.schema.MetaData` instance.
 
@@ -106,7 +133,9 @@ def compare_metadata(context, metadata):
     return migration_script.upgrade_ops.as_diffs()
 
 
-def produce_migrations(context, metadata):
+def produce_migrations(
+    context: "MigrationContext", metadata: "MetaData"
+) -> "MigrationScript":
     """Produce a :class:`.MigrationScript` structure based on schema
     comparison.
 
@@ -136,14 +165,14 @@ def produce_migrations(context, metadata):
 
 
 def render_python_code(
-    up_or_down_op,
-    sqlalchemy_module_prefix="sa.",
-    alembic_module_prefix="op.",
-    render_as_batch=False,
-    imports=(),
-    render_item=None,
-    migration_context=None,
-):
+    up_or_down_op: "UpgradeOps",
+    sqlalchemy_module_prefix: str = "sa.",
+    alembic_module_prefix: str = "op.",
+    render_as_batch: bool = False,
+    imports: Tuple[str, ...] = (),
+    render_item: None = None,
+    migration_context: Optional["MigrationContext"] = None,
+) -> str:
     """Render Python code given an :class:`.UpgradeOps` or
     :class:`.DowngradeOps` object.
 
@@ -173,7 +202,9 @@ def render_python_code(
     )
 
 
-def _render_migration_diffs(context, template_args):
+def _render_migration_diffs(
+    context: "MigrationContext", template_args: Dict[Any, Any]
+) -> None:
     """legacy, used by test_autogen_composition at the moment"""
 
     autogen_context = AutogenContext(context)
@@ -196,7 +227,7 @@ class AutogenContext:
     """Maintains configuration and state that's specific to an
     autogenerate operation."""
 
-    metadata = None
+    metadata: Optional["MetaData"] = None
     """The :class:`~sqlalchemy.schema.MetaData` object
     representing the destination.
 
@@ -214,7 +245,7 @@ class AutogenContext:
 
     """
 
-    connection = None
+    connection: Optional["Connection"] = None
     """The :class:`~sqlalchemy.engine.base.Connection` object currently
     connected to the database backend being compared.
 
@@ -223,7 +254,7 @@ class AutogenContext:
 
     """
 
-    dialect = None
+    dialect: Optional["Dialect"] = None
     """The :class:`~sqlalchemy.engine.Dialect` object currently in use.
 
     This is normally obtained from the
@@ -231,7 +262,7 @@ class AutogenContext:
 
     """
 
-    imports = None
+    imports: Set[str] = None  # type: ignore[assignment]
     """A ``set()`` which contains string Python import directives.
 
     The directives are to be rendered into the ``${imports}`` section
@@ -245,12 +276,16 @@ class AutogenContext:
 
     """
 
-    migration_context = None
+    migration_context: "MigrationContext" = None  # type: ignore[assignment]
     """The :class:`.MigrationContext` established by the ``env.py`` script."""
 
     def __init__(
-        self, migration_context, metadata=None, opts=None, autogenerate=True
-    ):
+        self,
+        migration_context: "MigrationContext",
+        metadata: Optional["MetaData"] = None,
+        opts: Optional[dict] = None,
+        autogenerate: bool = True,
+    ) -> None:
 
         if (
             autogenerate
@@ -301,20 +336,25 @@ class AutogenContext:
             self.dialect = self.migration_context.dialect
 
         self.imports = set()
-        self.opts = opts
-        self._has_batch = False
+        self.opts: Dict[str, Any] = opts
+        self._has_batch: bool = False
 
     @util.memoized_property
-    def inspector(self):
+    def inspector(self) -> "Inspector":
         return inspect(self.connection)
 
     @contextlib.contextmanager
-    def _within_batch(self):
+    def _within_batch(self) -> Iterator[None]:
         self._has_batch = True
         yield
         self._has_batch = False
 
-    def run_name_filters(self, name, type_, parent_names):
+    def run_name_filters(
+        self,
+        name: Optional[str],
+        type_: str,
+        parent_names: Dict[str, Optional[str]],
+    ) -> bool:
         """Run the context's name filters and return True if the targets
         should be part of the autogenerate operation.
 
@@ -348,7 +388,22 @@ class AutogenContext:
         else:
             return True
 
-    def run_object_filters(self, object_, name, type_, reflected, compare_to):
+    def run_object_filters(
+        self,
+        object_: Union[
+            "Table",
+            "Index",
+            "Column",
+            "UniqueConstraint",
+            "ForeignKeyConstraint",
+        ],
+        name: Optional[str],
+        type_: str,
+        reflected: bool,
+        compare_to: Optional[
+            Union["Table", "Index", "Column", "UniqueConstraint"]
+        ],
+    ) -> bool:
         """Run the context's object filters and return True if the targets
         should be part of the autogenerate operation.
 
@@ -414,11 +469,11 @@ class RevisionContext:
 
     def __init__(
         self,
-        config,
-        script_directory,
-        command_args,
-        process_revision_directives=None,
-    ):
+        config: "Config",
+        script_directory: "ScriptDirectory",
+        command_args: Dict[str, Any],
+        process_revision_directives: Optional[Callable] = None,
+    ) -> None:
         self.config = config
         self.script_directory = script_directory
         self.command_args = command_args
@@ -429,10 +484,10 @@ class RevisionContext:
         }
         self.generated_revisions = [self._default_revision()]
 
-    def _to_script(self, migration_script):
-        template_args = {}
-        for k, v in self.template_args.items():
-            template_args.setdefault(k, v)
+    def _to_script(
+        self, migration_script: "MigrationScript"
+    ) -> Optional["Script"]:
+        template_args: Dict[str, Any] = self.template_args.copy()
 
         if getattr(migration_script, "_needs_render", False):
             autogen_context = self._last_autogen_context
@@ -446,6 +501,7 @@ class RevisionContext:
                 autogen_context, migration_script, template_args
             )
 
+        assert migration_script.rev_id is not None
         return self.script_directory.generate_revision(
             migration_script.rev_id,
             migration_script.message,
@@ -458,13 +514,22 @@ class RevisionContext:
             **template_args
         )
 
-    def run_autogenerate(self, rev, migration_context):
+    def run_autogenerate(
+        self, rev: tuple, migration_context: "MigrationContext"
+    ):
         self._run_environment(rev, migration_context, True)
 
-    def run_no_autogenerate(self, rev, migration_context):
+    def run_no_autogenerate(
+        self, rev: tuple, migration_context: "MigrationContext"
+    ):
         self._run_environment(rev, migration_context, False)
 
-    def _run_environment(self, rev, migration_context, autogenerate):
+    def _run_environment(
+        self,
+        rev: tuple,
+        migration_context: "MigrationContext",
+        autogenerate: bool,
+    ):
         if autogenerate:
             if self.command_args["sql"]:
                 raise util.CommandError(
@@ -493,9 +558,10 @@ class RevisionContext:
                 ops.DowngradeOps([], downgrade_token=downgrade_token)
             )
 
-        self._last_autogen_context = autogen_context = AutogenContext(
+        autogen_context = AutogenContext(
             migration_context, autogenerate=autogenerate
         )
+        self._last_autogen_context: AutogenContext = autogen_context
 
         if autogenerate:
             compare._populate_migration_script(
@@ -514,20 +580,21 @@ class RevisionContext:
         for migration_script in self.generated_revisions:
             migration_script._needs_render = True
 
-    def _default_revision(self):
+    def _default_revision(self) -> "MigrationScript":
+        command_args: Dict[str, Any] = self.command_args
         op = ops.MigrationScript(
-            rev_id=self.command_args["rev_id"] or util.rev_id(),
-            message=self.command_args["message"],
+            rev_id=command_args["rev_id"] or util.rev_id(),
+            message=command_args["message"],
             upgrade_ops=ops.UpgradeOps([]),
             downgrade_ops=ops.DowngradeOps([]),
-            head=self.command_args["head"],
-            splice=self.command_args["splice"],
-            branch_label=self.command_args["branch_label"],
-            version_path=self.command_args["version_path"],
-            depends_on=self.command_args["depends_on"],
+            head=command_args["head"],
+            splice=command_args["splice"],
+            branch_label=command_args["branch_label"],
+            version_path=command_args["version_path"],
+            depends_on=command_args["depends_on"],
         )
         return op
 
-    def generate_scripts(self):
+    def generate_scripts(self) -> Iterator[Optional["Script"]]:
         for generated_revision in self.generated_revisions:
             yield self._to_script(generated_revision)
