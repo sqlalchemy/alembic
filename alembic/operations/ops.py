@@ -1172,6 +1172,9 @@ class RenameTableOp(AlterTableOp):
 
 
 @Operations.register_operation("create_table_comment")
+@BatchOperations.register_operation(
+    "create_table_comment", "batch_create_table_comment"
+)
 class CreateTableCommentOp(AlterTableOp):
     """Represent a COMMENT ON `table` operation."""
 
@@ -1220,6 +1223,35 @@ class CreateTableCommentOp(AlterTableOp):
         )
         return operations.invoke(op)
 
+    @classmethod
+    def batch_create_table_comment(
+        cls,
+        operations,
+        comment,
+        existing_comment=None,
+    ):
+        """Emit a COMMENT ON operation to set the comment for a table
+        using the current batch migration context.
+
+        .. versionadded:: 1.6.0
+
+        :param comment: string value of the comment being registered against
+         the specified table.
+        :param existing_comment: String value of a comment
+         already registered on the specified table, used within autogenerate
+         so that the operation is reversible, but not required for direct
+         use.
+
+        """
+
+        op = cls(
+            operations.impl.table_name,
+            comment,
+            existing_comment=existing_comment,
+            schema=operations.impl.schema,
+        )
+        return operations.invoke(op)
+
     def reverse(self):
         """Reverses the COMMENT ON operation against a table."""
         if self.existing_comment is None:
@@ -1248,6 +1280,9 @@ class CreateTableCommentOp(AlterTableOp):
 
 
 @Operations.register_operation("drop_table_comment")
+@BatchOperations.register_operation(
+    "drop_table_comment", "batch_drop_table_comment"
+)
 class DropTableCommentOp(AlterTableOp):
     """Represent an operation to remove the comment from a table."""
 
@@ -1278,6 +1313,26 @@ class DropTableCommentOp(AlterTableOp):
         """
 
         op = cls(table_name, existing_comment=existing_comment, schema=schema)
+        return operations.invoke(op)
+
+    @classmethod
+    def batch_drop_table_comment(cls, operations, existing_comment=None):
+        """Issue a "drop table comment" operation to
+        remove an existing comment set on a table using the current
+        batch operations context.
+
+        .. versionadded:: 1.6.0
+
+        :param existing_comment: An optional string value of a comment already
+         registered on the specified table.
+
+        """
+
+        op = cls(
+            operations.impl.table_name,
+            existing_comment=existing_comment,
+            schema=operations.impl.schema,
+        )
         return operations.invoke(op)
 
     def reverse(self):
