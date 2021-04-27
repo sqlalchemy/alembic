@@ -149,6 +149,12 @@ class BatchOperationsImpl(object):
     def drop_index(self, idx):
         self.batch.append(("drop_index", (idx,), {}))
 
+    def create_table_comment(self, table):
+        self.batch.append(("create_table_comment", (table,), {}))
+
+    def drop_table_comment(self, table):
+        self.batch.append(("drop_table_comment", (table,), {}))
+
     def create_table(self, table):
         raise NotImplementedError("Can't create table in batch mode")
 
@@ -525,6 +531,18 @@ class ApplyBatchImpl(object):
         That is, the Column object will have the comment on it already,
         so when it is received by add_column() it will be a normal part of
         the CREATE TABLE and doesn't need an extra step here.
+
+        """
+
+    def create_table_comment(self, table):
+        """the batch table creation function will issue create_table_comment
+        on the real "impl" as part of the create table process.
+
+        """
+
+    def drop_table_comment(self, table):
+        """the batch table creation function will issue drop_table_comment
+        on the real "impl" as part of the create table process.
 
         """
 

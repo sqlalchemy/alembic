@@ -1703,6 +1703,36 @@ class BatchRoundTripTest(TestBase):
             ]
         )
 
+    def _assert_table_comment(self, tname, comment):
+        insp = inspect(config.db)
+
+        tcomment = insp.get_table_comment(tname)
+        eq_(tcomment, {"text": comment})
+
+    @config.requirements.comments
+    def test_add_table_comment(self):
+        with self.op.batch_alter_table("foo") as batch_op:
+            batch_op.create_table_comment("some comment")
+
+        self._assert_table_comment("foo", "some comment")
+
+        with self.op.batch_alter_table("foo") as batch_op:
+            batch_op.create_table_comment(
+                "some new comment", existing_comment="some comment"
+            )
+
+        self._assert_table_comment("foo", "some new comment")
+
+    @config.requirements.comments
+    def test_drop_table_comment(self):
+        with self.op.batch_alter_table("foo") as batch_op:
+            batch_op.create_table_comment("some comment")
+
+        with self.op.batch_alter_table("foo") as batch_op:
+            batch_op.drop_table_comment(existing_comment="some comment")
+
+        self._assert_table_comment("foo", None)
+
     def _assert_column_comment(self, tname, cname, comment):
         insp = inspect(config.db)
 

@@ -1,0 +1,6 @@
+.. change::
+    :tags: bug, batch
+    :tickets: 799
+
+    Added missing ``batch_op.create_table_comment()``,
+    ``batch_op.drop_table_comment()`` directives to batch ops.
