@@ -1,0 +1,10 @@
+.. change::
+    :tags: bug, autogenerate
+    :tickets: 827
+
+    Improved the rendering of ``op.add_column()`` operations when adding
+    multiple columns to an existing table, so that the order of these
+    statements matches the order in which the columns were declared in the
+    application's table metadata. Previously the added columns were being
+    sorted alphabetically.
+

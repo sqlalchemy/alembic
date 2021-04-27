@@ -295,17 +295,20 @@ def _compare_columns(
     inspector,
 ):
     name = "%s.%s" % (schema, tname) if schema else tname
-    metadata_cols_by_name = dict(
-        (c.name, c) for c in metadata_table.c if not c.system
+    metadata_col_names = OrderedSet(
+        c.name for c in metadata_table.c if not c.system
     )
-    conn_col_names = dict(
-        (c.name, c)
+    metadata_cols_by_name = {
+        c.name: c for c in metadata_table.c if not c.system
+    }
+
+    conn_col_names = {
+        c.name: c
         for c in conn_table.c
         if autogen_context.run_name_filters(
             c.name, "column", {"table_name": tname, "schema_name": schema}
         )
-    )
-    metadata_col_names = OrderedSet(sorted(metadata_cols_by_name))
+    }
 
     for cname in metadata_col_names.difference(conn_col_names):
         if autogen_context.run_object_filters(
