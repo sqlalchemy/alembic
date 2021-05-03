@@ -5,7 +5,95 @@ Changelog
 
 .. changelog::
     :version: 1.6.0
-    :include_notes_from: unreleased
+    :released: May 3, 2021
+
+    .. change::
+        :tags: bug, autogenerate
+        :tickets: 803
+
+        Refactored the implementation of :class:`.MigrateOperation` constructs such
+        as :class:`.CreateIndexOp`, :class:`.CreateTableOp`, etc. so that they no
+        longer rely upon maintaining a persistent version of each schema object
+        internally; instead, the state variables of each operation object will be
+        used to produce the corresponding construct when the operation is invoked.
+        The rationale is so that environments which make use of
+        operation-manipulation schemes such as those those discussed in
+        :ref:`autogen_rewriter` are better supported, allowing end-user code to
+        manipulate the public attributes of these objects which will then be
+        expressed in the final output, an example is
+        ``some_create_index_op.kw["postgresql_concurrently"] = True``.
+
+        Previously, these objects when generated from autogenerate would typically
+        hold onto the original, reflected element internally without honoring the
+        other state variables of each construct, preventing the public API from
+        working.
+
+
+
+    .. change::
+        :tags: bug, environment
+        :tickets: 829
+
+        Fixed regression caused by the SQLAlchemy 1.4/2.0 compatibility switch
+        where calling ``.rollback()`` or ``.commit()`` explicitly within the
+        ``context.begin_transaction()`` context manager would cause it to fail when
+        the block ended, as it did not expect that the transaction was manually
+        closed.
+
+    .. change::
+        :tags: bug, autogenerate
+        :tickets: 827
+
+        Improved the rendering of ``op.add_column()`` operations when adding
+        multiple columns to an existing table, so that the order of these
+        statements matches the order in which the columns were declared in the
+        application's table metadata. Previously the added columns were being
+        sorted alphabetically.
+
+
+    .. change::
+        :tags: feature, autogenerate
+        :tickets: 819
+
+        Fix the documentation regarding the default command-line argument position of
+        the revision script filename within the post-write hook arguments. Implement a
+        ``REVISION_SCRIPT_FILENAME`` token, enabling the position to be changed. Switch
+        from ``str.split()`` to ``shlex.split()`` for more robust command-line argument
+        parsing.
+
+    .. change::
+        :tags: feature
+        :tickets: 822
+
+        Implement a ``.cwd`` (current working directory) suboption for post-write hooks
+        (of type ``console_scripts``). This is useful for tools like pre-commit, which
+        rely on the working directory to locate the necessary config files. Add
+        pre-commit as an example to the documentation. Minor change: rename some variables
+        from ticket #819 to improve readability.
+
+    .. change::
+        :tags: bug, versioning
+        :tickets: 765, 464
+
+        The algorithm used for calculating downgrades/upgrades/iterating
+        revisions has been rewritten, to resolve ongoing issues of branches
+        not being handled consistently particularly within downgrade operations,
+        as well as for overall clarity and maintainability.  This change includes
+        that a deprecation warning is emitted if an ambiguous command such
+        as "downgrade -1" when multiple heads are present is given.
+
+        In particular, the change implements a long-requested use case of allowing
+        downgrades of a single branch to a branchpoint.
+
+        Huge thanks to Simon Bowly for their impressive efforts in successfully
+        tackling this very difficult problem.
+
+    .. change::
+        :tags: bug, batch
+        :tickets: 799
+
+        Added missing ``batch_op.create_table_comment()``,
+        ``batch_op.drop_table_comment()`` directives to batch ops.
 
 .. changelog::
     :version: 1.5.8

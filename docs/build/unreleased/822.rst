@@ -1,9 +1,0 @@
-.. change::
-    :tags: feature
-    :tickets: 822
-
-    Implement a ``.cwd`` (current working directory) suboption for post-write hooks
-    (of type ``console_scripts``). This is useful for tools like pre-commit, which
-    rely on the working directory to locate the necessary config files. Add
-    pre-commit as an example to the documentation. Minor change: rename some variables
-    from ticket #819 to improve readability.
