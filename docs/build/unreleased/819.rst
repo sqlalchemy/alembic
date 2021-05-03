@@ -1,5 +1,5 @@
 .. change::
-    :tags: bug, feature, documentation
+    :tags: feature, autogenerate
     :tickets: 819
 
     Fix the documentation regarding the default command-line argument position of
