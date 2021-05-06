@@ -50,6 +50,14 @@ class RevisionPathTest(MigrationTest):
     def teardown_class(cls):
         clear_staging_env()
 
+    def test_downgrade_base_no_version(self):
+        self._assert_downgrade("base", [], [], set())
+
+    def test_downgrade_to_existing(self):
+        self._assert_downgrade(
+            self.a.revision, [self.a.revision], [], {self.a.revision}
+        )
+
     def test_upgrade_path(self):
         self._assert_upgrade(
             self.e.revision,

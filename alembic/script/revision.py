@@ -1226,6 +1226,7 @@ class RevisionMap(object):
         active_revisions = set(
             self._get_ancestor_nodes(heads, include_dependencies=True)
         )
+
         # Emit revisions to drop in reverse topological sorted order.
         downgrade_revisions.intersection_update(active_revisions)
 
@@ -1235,8 +1236,13 @@ class RevisionMap(object):
                 active_revisions.difference(self._get_ancestor_nodes(roots))
             )
 
-        if not downgrade_revisions:
+        if (
+            target_revision is not None
+            and not downgrade_revisions
+            and target_revision not in heads
+        ):
             # Empty intersection: target revs are not present.
+
             raise RangeNotAncestorError("Nothing to drop", upper)
 
         return downgrade_revisions, heads
