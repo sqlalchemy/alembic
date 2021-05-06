@@ -5,7 +5,16 @@ Changelog
 
 .. changelog::
     :version: 1.6.1
-    :include_notes_from: unreleased
+    :released: May 6, 2021
+
+    .. change::
+        :tags: bug, versioning, regression
+        :tickets: 838
+
+        Fixed regression in new revisioning traversal where "alembic downgrade
+        base" would fail if the database itself were clean and unversioned;
+        additionally repairs the case where downgrade would fail if attempting
+        to downgrade to the current head that is already present.
 
 .. changelog::
     :version: 1.6.0

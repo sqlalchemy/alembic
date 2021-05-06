@@ -1,8 +1,0 @@
-.. change::
-    :tags: bug, versioning, regression
-    :tickets: 838
-
-    Fixed regression in new revisioning traversal where "alembic downgrade
-    base" would fail if the database itself were clean and unversioned;
-    additionally repairs the case where downgrade would fail if attempting
-    to downgrade to the current head that is already present.
