@@ -5,7 +5,16 @@ Changelog
 
 .. changelog::
     :version: 1.6.2
-    :include_notes_from: unreleased
+    :released: May 6, 2021
+
+    .. change::
+        :tags: bug, versioning, regression
+        :tickets: 839
+
+        Fixed additional regression nearly the same as that of :ticket:`838` just
+        released in 1.6.1 but within a slightly different codepath, where "alembic
+        downgrade head" (or equivalent) would fail instead of iterating no
+        revisions.
 
 .. changelog::
     :version: 1.6.1
