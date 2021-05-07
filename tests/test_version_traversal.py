@@ -58,6 +58,11 @@ class RevisionPathTest(MigrationTest):
             self.a.revision, [self.a.revision], [], {self.a.revision}
         )
 
+    def test_downgrade_to_existing_head(self):
+        self._assert_downgrade(
+            self.e.revision, [self.e.revision], [], {self.e.revision}
+        )
+
     def test_upgrade_path(self):
         self._assert_upgrade(
             self.e.revision,
@@ -511,15 +516,6 @@ class BranchedPathTest(MigrationTest):
             [self.c1.revision, self.c2.revision],
         )
 
-    def test_not_a_downgrade(self):
-        assert_raises_message(
-            util.CommandError,
-            "Not a valid downgrade target from current heads",
-            self.env._downgrade_revs,
-            self.d2.revision,
-            [self.d1.revision, self.d2.revision],
-        )
-
     def test_upgrade_from_base(self):
         self._assert_upgrade(
             "base+1", [], [self.up_(self.a)], set([self.a.revision])
@@ -542,6 +538,21 @@ class BranchedPathTest(MigrationTest):
             self.env._downgrade_revs,
             "-1",
             [],
+        )
+
+    def test_downgrade_no_effect_branched(self):
+        """Added for good measure when there are multiple branches. """
+        self._assert_downgrade(
+            self.c2.revision,
+            [self.d1.revision, self.c2.revision],
+            [],
+            set([self.d1.revision, self.c2.revision]),
+        )
+        self._assert_downgrade(
+            self.d1.revision,
+            [self.d1.revision, self.c2.revision],
+            [],
+            set([self.d1.revision, self.c2.revision]),
         )
 
 

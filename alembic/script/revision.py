@@ -1206,11 +1206,11 @@ class RevisionMap(object):
                 )
             )
 
-        # Ensure we didn't throw everything away.
-        if len(roots) == 0:
-            raise RevisionError(
-                "Not a valid downgrade target from current heads"
-            )
+            # Ensure we didn't throw everything away when filtering branches.
+            if len(roots) == 0:
+                raise RevisionError(
+                    "Not a valid downgrade target from current heads"
+                )
 
         heads = self.get_revisions(upper)
 

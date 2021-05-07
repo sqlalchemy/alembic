@@ -1,0 +1,6 @@
+.. change::
+    :tags: bug, versioning, regression
+    :tickets: 839
+
+    Fixed regression in new versioning traversal where "alembic downgrade head"
+    (or equivalent) fails instead of iterating no revisions.
