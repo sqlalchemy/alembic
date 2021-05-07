@@ -54,11 +54,17 @@ class RevisionPathTest(MigrationTest):
         self._assert_downgrade("base", [], [], set())
 
     def test_downgrade_to_existing(self):
+        """test for #838; downgrade to a revision that's already in
+        current heads, but is not itself a head."""
+
         self._assert_downgrade(
             self.a.revision, [self.a.revision], [], {self.a.revision}
         )
 
     def test_downgrade_to_existing_head(self):
+        """test for #839; downgrade to a revision that's already in current
+        heads, which *is* itself a head."""
+
         self._assert_downgrade(
             self.e.revision, [self.e.revision], [], {self.e.revision}
         )
