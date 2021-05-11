@@ -1,15 +1,19 @@
+import os
 import sys
 
 from alembic import command
 from alembic import util
 from alembic.script import write_hooks
 from alembic.testing import assert_raises_message
+from alembic.testing import combinations
 from alembic.testing import eq_
 from alembic.testing import mock
 from alembic.testing import TestBase
+from alembic.testing.env import _get_staging_directory
 from alembic.testing.env import _no_sql_testing_config
 from alembic.testing.env import clear_staging_env
 from alembic.testing.env import staging_env
+from alembic.util import compat
 
 
 class HookTest(TestBase):
@@ -171,7 +175,9 @@ black.options = -l 79
             input_config, expected_additional_arguments_fn
         )
 
-    def test_filename_interpolation(self):
+    @combinations(True, False)
+    def test_filename_interpolation(self, posix):
+
         input_config = """
 [post_write_hooks]
 hooks = black
@@ -182,7 +188,43 @@ black.options = arg1 REVISION_SCRIPT_FILENAME 'multi-word arg' \
         """
 
         def expected_additional_arguments_fn(rev_path):
-            return ["arg1", rev_path, "multi-word arg", "--flag1=" + rev_path]
+            if compat.is_posix:
+                return [
+                    "arg1",
+                    rev_path,
+                    "multi-word arg",
+                    "--flag1=" + rev_path,
+                ]
+            else:
+                return [
+                    "arg1",
+                    rev_path,
+                    "'multi-word arg'",
+                    "--flag1='%s'" % rev_path,
+                ]
+
+        with mock.patch("alembic.util.compat.is_posix", posix):
+            self._run_black_with_config(
+                input_config, expected_additional_arguments_fn
+            )
+
+    def test_path_in_config(self):
+
+        input_config = """
+[post_write_hooks]
+hooks = black
+black.type = console_scripts
+black.entrypoint = black
+black.options = arg1 REVISION_SCRIPT_FILENAME --config %(here)s/pyproject.toml
+        """
+
+        def expected_additional_arguments_fn(rev_path):
+            return [
+                "arg1",
+                rev_path,
+                "--config",
+                os.path.abspath(_get_staging_directory()) + "/pyproject.toml",
+            ]
 
         self._run_black_with_config(
             input_config, expected_additional_arguments_fn

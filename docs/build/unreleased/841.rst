@@ -1,0 +1,6 @@
+.. change::
+    :tags: bug, autogenerate
+    :tickets: 839
+
+    Fixed a bug where paths defined in post-write hook options
+    would be wrongly escaped in non posix environment (Windows).

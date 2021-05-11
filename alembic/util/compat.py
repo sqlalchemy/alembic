@@ -1,11 +1,13 @@
 import collections
 import inspect
 import io
+import os
 import sys
 
 py2k = sys.version_info.major < 3
 py3k = sys.version_info.major >= 3
 py36 = sys.version_info >= (3, 6)
+is_posix = os.name == "posix"
 
 
 ArgSpec = collections.namedtuple(
