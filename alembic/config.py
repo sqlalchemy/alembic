@@ -123,7 +123,7 @@ class Config(object):
     """Name of the config file section to read basic configuration
     from.  Defaults to ``alembic``, that is the ``[alembic]`` section
     of the .ini file.  This value is modified using the ``-n/--name``
-    option to the Alembic runnier.
+    option to the Alembic runner.
 
     """
 
