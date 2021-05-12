@@ -329,7 +329,7 @@ class BranchedPathTest(MigrationTest):
         )
 
     def test_relative_downgrade_baseplus2(self):
-        """ base+2 points to b, no branch label, drop everything above b. """
+        """base+2 points to b, no branch label, drop everything above b."""
         self._assert_downgrade(
             "base+2",
             [self.d2.revision, self.d1.revision],
@@ -356,7 +356,7 @@ class BranchedPathTest(MigrationTest):
         )
 
     def test_relative_downgrade_branchplus3(self):
-        """ c2branch@base+3 equivalent to c2. """
+        """c2branch@base+3 equivalent to c2."""
         self._assert_downgrade(
             self.c2.revision,
             [self.d2.revision, self.d1.revision],
@@ -437,7 +437,7 @@ class BranchedPathTest(MigrationTest):
         )
 
     def test_downgrade_single_branch_c1branch(self):
-        """ Use branch label to specify the branch to downgrade. """
+        """Use branch label to specify the branch to downgrade."""
         self._assert_downgrade(
             "c1branch@{}".format(self.b.revision),
             (self.c1.revision, self.d2.revision),
@@ -473,7 +473,7 @@ class BranchedPathTest(MigrationTest):
         )
 
     def test_downgrade_single_branch_d1(self):
-        """ Use the head revision to specify the branch. """
+        """Use the head revision to specify the branch."""
         self._assert_downgrade(
             "{}@{}".format(self.d1.revision, self.b.revision),
             (self.d1.revision, self.d2.revision),
@@ -547,7 +547,7 @@ class BranchedPathTest(MigrationTest):
         )
 
     def test_downgrade_no_effect_branched(self):
-        """Added for good measure when there are multiple branches. """
+        """Added for good measure when there are multiple branches."""
         self._assert_downgrade(
             self.c2.revision,
             [self.d1.revision, self.c2.revision],
