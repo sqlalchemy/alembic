@@ -1,0 +1,7 @@
+.. change::
+    :tags: bug, regression, autogenerate
+    :tickets: 844
+
+    Fixed 1.6-series regression where ``UniqueConstraint`` and to a lesser
+    extent ``Index`` objects would be doubled up in the generated model when
+    the ``unique=True`` / ``index=True`` flags were used.
