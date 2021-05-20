@@ -833,7 +833,6 @@ class RevisionMap(object):
                 key=inserted_order.index,
             )
         )
-
         ancestors_by_idx = [get_ancestors(rev_id) for rev_id in current_heads]
 
         output = []
@@ -864,11 +863,15 @@ class RevisionMap(object):
 
                 candidate_rev = id_to_rev[candidate]
 
-                # immediate ancestor nodes
+                # immediate ancestor nodes, use a set to uniquify
+                _u = set()
                 heads_to_add = [
                     r
                     for r in candidate_rev._normalized_down_revisions
-                    if r in todo and r not in current_heads
+                    if r in todo
+                    and r not in current_heads
+                    and r not in _u
+                    and (_u.add(r) or True)
                 ]
 
                 if not heads_to_add:

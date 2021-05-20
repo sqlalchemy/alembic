@@ -1125,6 +1125,29 @@ class DependsOnBranchTestThree(MigrationTest):
         )
 
 
+class DependsOnOwnDownrevTest(MigrationTest):
+    @classmethod
+    def setup_class(cls):
+        """
+        test #843
+        """
+        cls.env = env = staging_env()
+        cls.a1 = env.generate_revision("a1", "->a1", head="base")
+        cls.a2 = env.generate_revision("a2", "->a2", depends_on="a1")
+
+    @classmethod
+    def teardown_class(cls):
+        clear_staging_env()
+
+    def test_traverse(self):
+        self._assert_upgrade(
+            self.a2.revision,
+            None,
+            [self.up_(self.a1), self.up_(self.a2)],
+            set(["a2"]),
+        )
+
+
 class DependsOnBranchTestFour(MigrationTest):
     @classmethod
     def setup_class(cls):

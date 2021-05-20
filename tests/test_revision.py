@@ -1347,6 +1347,16 @@ class GraphWithLoopTest(DownIterateTest, InvalidRevisionMapTest):
         )
         self._assert_raises_revision_map_loop(map_, "a")
 
+    def test_revision_dupe_head(self):
+        r1 = Revision("user_foo", None)
+        r2 = Revision("user", "user_foo", dependencies="user_foo")
+
+        self.map = RevisionMap(lambda: [r1, r2])
+
+        self._assert_iteration("heads", None, ["user", "user_foo"])
+
+        eq_(self.map._topological_sort([r1, r2], [r2]), ["user", "user_foo"])
+
     def test_revision_map_no_loop_w_overlapping_substrings(self):
         r1 = Revision("user_foo", None)
         r2 = Revision("user", "user_foo")
