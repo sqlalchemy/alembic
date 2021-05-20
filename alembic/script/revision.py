@@ -863,15 +863,10 @@ class RevisionMap(object):
 
                 candidate_rev = id_to_rev[candidate]
 
-                # immediate ancestor nodes, use a set to uniquify
-                _u = set()
                 heads_to_add = [
                     r
                     for r in candidate_rev._normalized_down_revisions
-                    if r in todo
-                    and r not in current_heads
-                    and r not in _u
-                    and (_u.add(r) or True)
+                    if r in todo and r not in current_heads
                 ]
 
                 if not heads_to_add:
@@ -1424,7 +1419,7 @@ class Revision(object):
 
     @property
     def _all_down_revisions(self):
-        return (
+        return util.dedupe_tuple(
             util.to_tuple(self.down_revision, default=())
             + self._resolved_dependencies
         )
@@ -1435,7 +1430,7 @@ class Revision(object):
         that are still dependencies of ancestors.
 
         """
-        return (
+        return util.dedupe_tuple(
             util.to_tuple(self.down_revision, default=())
             + self._normalized_resolved_dependencies
         )
