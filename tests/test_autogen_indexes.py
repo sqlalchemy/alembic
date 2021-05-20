@@ -8,6 +8,7 @@ from sqlalchemy import Index
 from sqlalchemy import Integer
 from sqlalchemy import MetaData
 from sqlalchemy import Numeric
+from sqlalchemy import PrimaryKeyConstraint
 from sqlalchemy import String
 from sqlalchemy import Table
 from sqlalchemy import UniqueConstraint
@@ -975,8 +976,34 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestBase):
 
         eq_(diffs[0][0], "add_table")
         eq_(len(diffs), 1)
-        assert UniqueConstraint in set(
-            type(c) for c in diffs[0][1].constraints
+
+        # checking for dupes also
+        eq_(
+            sorted(
+                [type(cons) for cons in diffs[0][1].constraints],
+                key=lambda c: c.__name__,
+            ),
+            [PrimaryKeyConstraint, UniqueConstraint],
+        )
+
+    @config.requirements.reflects_unique_constraints_unambiguously
+    def test_dont_add_uq_on_reverse_table_drop(self):
+        m1 = MetaData()
+        m2 = MetaData()
+        Table("no_uq", m1, Column("x", String(50), unique=True))
+        diffs = self._fixture(m1, m2)
+
+        eq_(diffs[0][0], "remove_table")
+        eq_(len(diffs), 1)
+
+        # because the drop comes from reflection, the "unique=True" flag
+        # is lost in any case.
+        eq_(
+            sorted(
+                [type(cons) for cons in diffs[0][1].constraints],
+                key=lambda c: c.__name__,
+            ),
+            [PrimaryKeyConstraint, UniqueConstraint],
         )
 
     def test_add_uq_ix_on_table_create(self):
@@ -990,8 +1017,15 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestBase):
         assert UniqueConstraint not in set(
             type(c) for c in diffs[0][1].constraints
         )
+
         eq_(diffs[1][0], "add_index")
-        eq_(diffs[1][1].unique, True)
+        d_table = diffs[0][1]
+        d_idx = diffs[1][1]
+        eq_(d_idx.unique, True)
+
+        # check for dupes
+        eq_(len(diffs), 2)
+        assert not d_table.indexes
 
     def test_add_ix_on_table_create(self):
         m1 = MetaData()
@@ -1289,6 +1323,11 @@ class NoUqReflectionIndexTest(NoUqReflection, AutogenerateUniqueIndexTest):
     __only_on__ = "sqlite"
 
     def test_uq_casing_convention_changed_so_put_drops_first(self):
+        config.skip_test(
+            "unique constraint reflection disabled for this suite"
+        )
+
+    def test_dont_add_uq_on_reverse_table_drop(self):
         config.skip_test(
             "unique constraint reflection disabled for this suite"
         )

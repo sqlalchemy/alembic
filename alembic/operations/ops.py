@@ -987,6 +987,7 @@ class CreateTableOp(MigrateOperation):
             schema=self.schema,
             prefixes=self.prefixes,
             comment=self.comment,
+            _constraints_included=True,
             **self.kw
         )
 
@@ -1110,6 +1111,7 @@ class DropTableOp(MigrateOperation):
             self.table_name,
             *cols_and_constraints,
             schema=self.schema,
+            _constraints_included=True,
             **self.table_kw
         )
         return t

@@ -149,6 +149,17 @@ class SchemaObjects(object):
             for c in columns
             if isinstance(c, Column)
         ]
+        # these flags have already added their UniqueConstraint /
+        # Index objects to the table, so flip them off here.
+        # SQLAlchemy tometadata() avoids this instead by preserving the
+        # flags and skipping the constraints that have _type_bound on them,
+        # but for a migration we'd rather list out the constraints
+        # explicitly.
+        _constraints_included = kw.pop("_constraints_included", False)
+        if _constraints_included:
+            for c in cols:
+                c.unique = c.index = False
+
         t = sa_schema.Table(name, m, *cols, **kw)
 
         constraints = [
