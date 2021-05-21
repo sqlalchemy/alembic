@@ -1147,6 +1147,14 @@ class DependsOnOwnDownrevTest(MigrationTest):
             set(["a2"]),
         )
 
+    def test_traverse_down(self):
+        self._assert_downgrade(
+            self.a1.revision,
+            self.a2.revision,
+            [self.down_(self.a2)],
+            set(["a1"]),
+        )
+
 
 class DependsOnBranchTestFour(MigrationTest):
     @classmethod

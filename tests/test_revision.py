@@ -1575,7 +1575,7 @@ class NormalizedDownRevTest(DownIterateTest):
                 Revision("b2", "b1", dependencies="a3"),
                 Revision("b3", "b2"),
                 Revision("b4", "b3", dependencies="a3"),
-                Revision("b5", "b4"),
+                Revision("b5", "b4", dependencies="b4"),
             ]
         )
 
@@ -1586,6 +1586,11 @@ class NormalizedDownRevTest(DownIterateTest):
 
         # "a3" is not included because ancestor b2 is also dependent
         eq_(b4._normalized_down_revisions, ("b3",))
+
+    def test_dupe_dependency(self):
+        b5 = self.map.get_revision("b5")
+        eq_(b5._all_down_revisions, ("b4",))
+        eq_(b5._normalized_down_revisions, ("b4",))
 
     def test_branch_traversal(self):
         self._assert_iteration(
