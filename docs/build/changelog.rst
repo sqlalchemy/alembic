@@ -5,7 +5,29 @@ Changelog
 
 .. changelog::
     :version: 1.6.3
-    :include_notes_from: unreleased
+    :released: May 21, 2021
+
+    .. change::
+        :tags: bug, regression, autogenerate
+        :tickets: 844
+
+        Fixed 1.6-series regression where ``UniqueConstraint`` and to a lesser
+        extent ``Index`` objects would be doubled up in the generated model when
+        the ``unique=True`` / ``index=True`` flags were used.
+
+    .. change::
+        :tags: bug, autogenerate
+        :tickets: 839
+
+        Fixed a bug where paths defined in post-write hook options
+        would be wrongly escaped in non posix environment (Windows).
+
+    .. change::
+        :tags: bug, regression, versioning
+        :tickets: 843
+
+        Fixed regression where a revision file that contained its own down revision
+        as a dependency would cause an endless loop in the traversal logic.
 
 .. changelog::
     :version: 1.6.2

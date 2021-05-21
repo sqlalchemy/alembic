@@ -1,6 +1,0 @@
-.. change::
-    :tags: bug, regression, versioning
-    :tickets: 843
-
-    Fixed regression where a revision file that contained its own down revision
-    as a dependency would cause an endless loop in the traversal logic.
