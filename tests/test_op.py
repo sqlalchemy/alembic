@@ -877,6 +877,36 @@ class OpTest(TestBase):
         uq = [c for c in t1.constraints if isinstance(c, UniqueConstraint)]
         eq_(uq[0].name, "uq_1")
 
+    def test_create_table_unique_flag(self):
+        context = op_fixture()
+        t1 = op.create_table(
+            "some_table",
+            Column("id", Integer, primary_key=True),
+            Column("foo_id", Integer, unique=True),
+        )
+        context.assert_(
+            "CREATE TABLE some_table (id INTEGER NOT NULL, foo_id INTEGER, "
+            "PRIMARY KEY (id), UNIQUE (foo_id))"
+        )
+
+        uq = [c for c in t1.constraints if isinstance(c, UniqueConstraint)]
+        assert uq
+
+    def test_create_table_index_flag(self):
+        context = op_fixture()
+        t1 = op.create_table(
+            "some_table",
+            Column("id", Integer, primary_key=True),
+            Column("foo_id", Integer, index=True),
+        )
+        context.assert_(
+            "CREATE TABLE some_table (id INTEGER NOT NULL, foo_id INTEGER, "
+            "PRIMARY KEY (id))",
+            "CREATE INDEX ix_some_table_foo_id ON some_table (foo_id)",
+        )
+
+        assert t1.indexes
+
     def test_create_table_index(self):
         context = op_fixture()
         t1 = op.create_table(

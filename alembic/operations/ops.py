@@ -945,7 +945,13 @@ class CreateTableOp(MigrateOperation):
     """Represent a create table operation."""
 
     def __init__(
-        self, table_name, columns, schema=None, _namespace_metadata=None, **kw
+        self,
+        table_name,
+        columns,
+        schema=None,
+        _namespace_metadata=None,
+        _constraints_included=False,
+        **kw
     ):
         self.table_name = table_name
         self.columns = columns
@@ -954,6 +960,7 @@ class CreateTableOp(MigrateOperation):
         self.prefixes = kw.pop("prefixes", None)
         self.kw = kw
         self._namespace_metadata = _namespace_metadata
+        self._constraints_included = _constraints_included
 
     def reverse(self):
         return DropTableOp.from_table(
@@ -973,6 +980,13 @@ class CreateTableOp(MigrateOperation):
             list(table.c) + list(table.constraints),
             schema=table.schema,
             _namespace_metadata=_namespace_metadata,
+            # given a Table() object, this Table will contain full Index()
+            # and UniqueConstraint objects already constructed in response to
+            # each unique=True / index=True flag on a Column.  Carry this
+            # state along so that when we re-convert back into a Table, we
+            # skip unique=True/index=True so that these constraints are
+            # not doubled up. see #844 #848
+            _constraints_included=True,
             comment=table.comment,
             prefixes=table._prefixes,
             **table.kwargs
@@ -987,7 +1001,7 @@ class CreateTableOp(MigrateOperation):
             schema=self.schema,
             prefixes=self.prefixes,
             comment=self.comment,
-            _constraints_included=True,
+            _constraints_included=self._constraints_included,
             **self.kw
         )
 
@@ -1111,7 +1125,8 @@ class DropTableOp(MigrateOperation):
             self.table_name,
             *cols_and_constraints,
             schema=self.schema,
-            _constraints_included=True,
+            _constraints_included=bool(self._reverse)
+            and self._reverse._constraints_included,
             **self.table_kw
         )
         return t
