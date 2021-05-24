@@ -5,7 +5,15 @@ Changelog
 
 .. changelog::
     :version: 1.6.4
-    :include_notes_from: unreleased
+    :released: May 24, 2021
+
+    .. change::
+        :tags: bug, regression, op directives
+        :tickets: 848
+
+        Fixed regression caused by just fixed :ticket:`844` that scaled back the
+        filter for ``unique=True/index=True`` too far such that these directives no
+        longer worked for the ``op.create_table()`` op, this has been fixed.
 
 .. changelog::
     :version: 1.6.3
