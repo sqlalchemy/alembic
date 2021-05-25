@@ -240,6 +240,23 @@ class AutogenRenderTest(TestBase):
             "op.drop_index('test_active_code_idx', table_name='test')",
         )
 
+    @testing.emits_warning("Can't validate argument ")
+    def test_render_drop_index_custom_kwarg(self):
+        t = Table(
+            "test",
+            MetaData(),
+            Column("id", Integer, primary_key=True),
+            Column("active", Boolean()),
+            Column("code", String(255)),
+        )
+        idx = Index(None, t.c.active, t.c.code, somedialect_foobar="option")
+        op_obj = ops.DropIndexOp.from_index(idx)
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.drop_index(op.f('ix_test_active'), table_name='test', "
+            "somedialect_foobar='option')",
+        )
+
     def test_drop_index_batch(self):
         """
         autogenerate.render._drop_index
