@@ -272,14 +272,16 @@ def _add_index(autogen_context, op):
 
 @renderers.dispatch_for(ops.DropIndexOp)
 def _drop_index(autogen_context, op):
+    index = op.to_index()
+
     has_batch = autogen_context._has_batch
 
     if has_batch:
-        tmpl = "%(prefix)sdrop_index(%(name)r)"
+        tmpl = "%(prefix)sdrop_index(%(name)r%(kwargs)s)"
     else:
         tmpl = (
             "%(prefix)sdrop_index(%(name)r, "
-            "table_name=%(table_name)r%(schema)s)"
+            "table_name=%(table_name)r%(schema)s%(kwargs)s)"
         )
 
     text = tmpl % {
@@ -287,6 +289,18 @@ def _drop_index(autogen_context, op):
         "name": _render_gen_name(autogen_context, op.index_name),
         "table_name": _ident(op.table_name),
         "schema": ((", schema=%r" % _ident(op.schema)) if op.schema else ""),
+        "kwargs": (
+            ", "
+            + ", ".join(
+                [
+                    "%s=%s"
+                    % (key, _render_potential_expr(val, autogen_context))
+                    for key, val in index.kwargs.items()
+                ]
+            )
+        )
+        if len(index.kwargs)
+        else "",
     }
     return text
 
