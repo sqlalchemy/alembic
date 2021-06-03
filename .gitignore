@@ -6,6 +6,7 @@ dist/
 *.orig
 alembic.ini
 .venv
+/venv/
 *.egg-info
 .coverage
 coverage.xml
@@ -14,6 +15,7 @@ coverage.xml
 /scratch
 /scratch_test_*
 /test_schema.db
+/test.cfg
 .idea/
 .vscode/
 .pytest_cache/
