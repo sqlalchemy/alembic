@@ -3,7 +3,6 @@
 from sqlalchemy import Boolean
 from sqlalchemy import CheckConstraint
 from sqlalchemy import Column
-from sqlalchemy import event
 from sqlalchemy import exc
 from sqlalchemy import ForeignKey
 from sqlalchemy import Index
@@ -26,16 +25,9 @@ from alembic.testing import config
 from alembic.testing import eq_
 from alembic.testing import is_not_
 from alembic.testing import mock
-from alembic.testing.fixtures import AlterColRoundTripFixture
 from alembic.testing.fixtures import op_fixture
 from alembic.testing.fixtures import TestBase
 from alembic.util import sqla_compat
-
-
-@event.listens_for(Table, "after_parent_attach")
-def _add_cols(table, metadata):
-    if table.name == "tbl_with_auto_appended_column":
-        table.append_column(Column("bat", Integer))
 
 
 class OpTest(TestBase):
@@ -1235,28 +1227,3 @@ class ObjectFromToTest(TestBase):
         assert_raises_message(
             ValueError, "constraint cannot be produced", op.to_constraint
         )
-
-
-class BackendAlterColumnTest(AlterColRoundTripFixture, TestBase):
-    __backend__ = True
-
-    def test_rename_column(self):
-        self._run_alter_col({}, {"name": "newname"})
-
-    def test_modify_type_int_str(self):
-        self._run_alter_col({"type": Integer()}, {"type": String(50)})
-
-    def test_add_server_default_int(self):
-        self._run_alter_col({"type": Integer}, {"server_default": text("5")})
-
-    def test_modify_server_default_int(self):
-        self._run_alter_col(
-            {"type": Integer, "server_default": text("2")},
-            {"server_default": text("5")},
-        )
-
-    def test_modify_nullable_to_non(self):
-        self._run_alter_col({}, {"nullable": False})
-
-    def test_modify_non_nullable_to_nullable(self):
-        self._run_alter_col({"nullable": False}, {"nullable": True})

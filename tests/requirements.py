@@ -52,12 +52,6 @@ class DefaultRequirements(SuiteRequirements):
         return exclusions.fails_on("sqlite")
 
     @property
-    def no_name_normalize(self):
-        return exclusions.skip_if(
-            lambda config: config.db.dialect.requires_name_normalize
-        )
-
-    @property
     def reflects_fk_options(self):
         return exclusions.open()
 
@@ -207,12 +201,6 @@ class DefaultRequirements(SuiteRequirements):
         # that would be helpful
         return self.computed_columns_api + exclusions.skip_if(
             ["postgresql < 12", "sqlite < 3.31", "mysql < 5.7"]
-        )
-
-    @property
-    def computed_reflects_normally(self):
-        return exclusions.only_if(
-            exclusions.BooleanPredicate(sqla_compat.has_computed_reflection)
         )
 
     @property

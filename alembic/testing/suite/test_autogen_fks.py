@@ -1,5 +1,3 @@
-import sys
-
 from sqlalchemy import Column
 from sqlalchemy import ForeignKeyConstraint
 from sqlalchemy import Integer
@@ -7,14 +5,15 @@ from sqlalchemy import MetaData
 from sqlalchemy import String
 from sqlalchemy import Table
 
-from alembic.testing import combinations
-from alembic.testing import config
-from alembic.testing import eq_
-from alembic.testing import mock
-from alembic.testing import TestBase
 from ._autogen_fixtures import AutogenFixtureTest
+from ...testing import combinations
+from ...testing import config
+from ...testing import eq_
+from ...testing import mock
+from ...testing import TestBase
+from ...util import compat
 
-py3k = sys.version_info.major >= 3
+py3k = compat.py3k
 
 
 class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
@@ -28,7 +27,6 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
             "some_table",
             m1,
             Column("test", String(10), primary_key=True),
-            mysql_engine="InnoDB",
         )
 
         Table(
@@ -39,14 +37,12 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
             Column("a1", String(10), server_default="x"),
             Column("test2", String(10)),
             ForeignKeyConstraint(["test2"], ["some_table.test"]),
-            mysql_engine="InnoDB",
         )
 
         Table(
             "some_table",
             m2,
             Column("test", String(10), primary_key=True),
-            mysql_engine="InnoDB",
         )
 
         Table(
@@ -56,7 +52,6 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
             Column("name", String(50), nullable=False),
             Column("a1", String(10), server_default="x"),
             Column("test2", String(10)),
-            mysql_engine="InnoDB",
         )
 
         diffs = self._fixture(m1, m2)
@@ -80,7 +75,6 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
             m1,
             Column("id", Integer, primary_key=True),
             Column("test", String(10)),
-            mysql_engine="InnoDB",
         )
 
         Table(
@@ -90,7 +84,6 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
             Column("name", String(50), nullable=False),
             Column("a1", String(10), server_default="x"),
             Column("test2", String(10)),
-            mysql_engine="InnoDB",
         )
 
         Table(
@@ -98,7 +91,6 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
             m2,
             Column("id", Integer, primary_key=True),
             Column("test", String(10)),
-            mysql_engine="InnoDB",
         )
 
         Table(
@@ -109,7 +101,6 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
             Column("a1", String(10), server_default="x"),
             Column("test2", String(10)),
             ForeignKeyConstraint(["test2"], ["some_table.test"]),
-            mysql_engine="InnoDB",
         )
 
         diffs = self._fixture(m1, m2)
@@ -127,7 +118,6 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
             m1,
             Column("id", Integer, primary_key=True),
             Column("test", String(10)),
-            mysql_engine="InnoDB",
         )
 
         Table(
@@ -138,7 +128,6 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
             Column("a1", String(10), server_default="x"),
             Column("test2", Integer),
             ForeignKeyConstraint(["test2"], ["some_table.id"]),
-            mysql_engine="InnoDB",
         )
 
         Table(
@@ -146,7 +135,6 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
             m2,
             Column("id", Integer, primary_key=True),
             Column("test", String(10)),
-            mysql_engine="InnoDB",
         )
 
         Table(
@@ -157,7 +145,6 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
             Column("a1", String(10), server_default="x"),
             Column("test2", Integer),
             ForeignKeyConstraint(["test2"], ["some_table.id"]),
-            mysql_engine="InnoDB",
         )
 
         diffs = self._fixture(m1, m2)
@@ -173,7 +160,6 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
             m1,
             Column("id_1", String(10), primary_key=True),
             Column("id_2", String(10), primary_key=True),
-            mysql_engine="InnoDB",
         )
 
         Table(
@@ -188,7 +174,6 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
                 ["other_id_1", "other_id_2"],
                 ["some_table.id_1", "some_table.id_2"],
             ),
-            mysql_engine="InnoDB",
         )
 
         Table(
@@ -196,7 +181,6 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
             m2,
             Column("id_1", String(10), primary_key=True),
             Column("id_2", String(10), primary_key=True),
-            mysql_engine="InnoDB",
         )
 
         Table(
@@ -211,7 +195,6 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
                 ["other_id_1", "other_id_2"],
                 ["some_table.id_1", "some_table.id_2"],
             ),
-            mysql_engine="InnoDB",
         )
 
         diffs = self._fixture(m1, m2)
@@ -226,7 +209,6 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
             "some_table",
             m1,
             Column("test", String(10), primary_key=True),
-            mysql_engine="InnoDB",
         )
 
         Table(
@@ -237,14 +219,12 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
             Column("a1", String(10), server_default="x"),
             Column("test2", String(10)),
             ForeignKeyConstraint(["test2"], ["some_table.test"], name="MyFK"),
-            mysql_engine="InnoDB",
         )
 
         Table(
             "some_table",
             m2,
             Column("test", String(10), primary_key=True),
-            mysql_engine="InnoDB",
         )
 
         # foreign key autogen currently does not take "name" into account,
@@ -258,7 +238,6 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
             Column("a1", String(10), server_default="x"),
             Column("test2", String(10)),
             ForeignKeyConstraint(["a1"], ["some_table.test"], name="myfk"),
-            mysql_engine="InnoDB",
         )
 
         diffs = self._fixture(m1, m2)
@@ -292,7 +271,6 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
             m1,
             Column("id_1", String(10), primary_key=True),
             Column("id_2", String(10), primary_key=True),
-            mysql_engine="InnoDB",
         )
 
         Table(
@@ -303,7 +281,6 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
             Column("a1", String(10), server_default="x"),
             Column("other_id_1", String(10)),
             Column("other_id_2", String(10)),
-            mysql_engine="InnoDB",
         )
 
         Table(
@@ -311,7 +288,6 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
             m2,
             Column("id_1", String(10), primary_key=True),
             Column("id_2", String(10), primary_key=True),
-            mysql_engine="InnoDB",
         )
 
         Table(
@@ -327,7 +303,6 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
                 ["some_table.id_1", "some_table.id_2"],
                 name="fk_test_name",
             ),
-            mysql_engine="InnoDB",
         )
 
         diffs = self._fixture(m1, m2)
@@ -351,7 +326,6 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
             m1,
             Column("id_1", String(10), primary_key=True),
             Column("id_2", String(10), primary_key=True),
-            mysql_engine="InnoDB",
         )
 
         Table(
@@ -367,7 +341,6 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
                 ["some_table.id_1", "some_table.id_2"],
                 name="fk_test_name",
             ),
-            mysql_engine="InnoDB",
         )
 
         Table(
@@ -375,7 +348,6 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
             m2,
             Column("id_1", String(10), primary_key=True),
             Column("id_2", String(10), primary_key=True),
-            mysql_engine="InnoDB",
         )
 
         Table(
@@ -386,7 +358,6 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
             Column("a1", String(10), server_default="x"),
             Column("other_id_1", String(10)),
             Column("other_id_2", String(10)),
-            mysql_engine="InnoDB",
         )
 
         diffs = self._fixture(m1, m2)
@@ -410,7 +381,6 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
             m1,
             Column("id_1", String(10), primary_key=True),
             Column("id_2", String(10), primary_key=True),
-            mysql_engine="InnoDB",
         )
 
         Table(
@@ -419,7 +389,6 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
             Column("id", Integer, primary_key=True),
             Column("other_id_1", String(10)),
             Column("other_id_2", String(10)),
-            mysql_engine="InnoDB",
         )
 
         Table(
@@ -427,7 +396,6 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
             m2,
             Column("id_1", String(10), key="tid1", primary_key=True),
             Column("id_2", String(10), key="tid2", primary_key=True),
-            mysql_engine="InnoDB",
         )
 
         Table(
@@ -441,7 +409,6 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
                 ["some_table.tid1", "some_table.tid2"],
                 name="fk_test_name",
             ),
-            mysql_engine="InnoDB",
         )
 
         diffs = self._fixture(m1, m2)
@@ -465,7 +432,6 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
             m1,
             Column("id_1", String(10), primary_key=True),
             Column("id_2", String(10), primary_key=True),
-            mysql_engine="InnoDB",
         )
 
         Table(
@@ -478,7 +444,6 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
                 ["other_id_1", "other_id_2"],
                 ["some_table.id_1", "some_table.id_2"],
             ),
-            mysql_engine="InnoDB",
         )
 
         Table(
@@ -486,7 +451,6 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
             m2,
             Column("id_1", String(10), key="tid1", primary_key=True),
             Column("id_2", String(10), key="tid2", primary_key=True),
-            mysql_engine="InnoDB",
         )
 
         Table(
@@ -498,7 +462,6 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
             ForeignKeyConstraint(
                 ["oid1", "oid2"], ["some_table.tid1", "some_table.tid2"]
             ),
-            mysql_engine="InnoDB",
         )
 
         diffs = self._fixture(m1, m2)
@@ -520,14 +483,12 @@ class IncludeHooksTest(AutogenFixtureTest, TestBase):
             "ref",
             m1,
             Column("id", Integer, primary_key=True),
-            mysql_engine="InnoDB",
         )
         t1 = Table(
             "t",
             m1,
             Column("x", Integer),
             Column("y", Integer),
-            mysql_engine="InnoDB",
         )
         t1.append_constraint(
             ForeignKeyConstraint([t1.c.x], [ref.c.id], name="fk1")
@@ -540,14 +501,12 @@ class IncludeHooksTest(AutogenFixtureTest, TestBase):
             "ref",
             m2,
             Column("id", Integer, primary_key=True),
-            mysql_engine="InnoDB",
         )
         Table(
             "t",
             m2,
             Column("x", Integer),
             Column("y", Integer),
-            mysql_engine="InnoDB",
         )
 
         if hook_type == "object":
@@ -601,28 +560,24 @@ class IncludeHooksTest(AutogenFixtureTest, TestBase):
             "ref",
             m1,
             Column("id", Integer, primary_key=True),
-            mysql_engine="InnoDB",
         )
         Table(
             "t",
             m1,
             Column("x", Integer),
             Column("y", Integer),
-            mysql_engine="InnoDB",
         )
 
         ref = Table(
             "ref",
             m2,
             Column("id", Integer, primary_key=True),
-            mysql_engine="InnoDB",
         )
         t2 = Table(
             "t",
             m2,
             Column("x", Integer),
             Column("y", Integer),
-            mysql_engine="InnoDB",
         )
         t2.append_constraint(
             ForeignKeyConstraint([t2.c.x], [ref.c.id], name="fk1")
@@ -656,14 +611,12 @@ class IncludeHooksTest(AutogenFixtureTest, TestBase):
             "ref_a",
             m1,
             Column("a", Integer, primary_key=True),
-            mysql_engine="InnoDB",
         )
         Table(
             "ref_b",
             m1,
             Column("a", Integer, primary_key=True),
             Column("b", Integer, primary_key=True),
-            mysql_engine="InnoDB",
         )
         t1 = Table(
             "t",
@@ -671,7 +624,6 @@ class IncludeHooksTest(AutogenFixtureTest, TestBase):
             Column("x", Integer),
             Column("y", Integer),
             Column("z", Integer),
-            mysql_engine="InnoDB",
         )
         t1.append_constraint(
             ForeignKeyConstraint([t1.c.x], [r1a.c.a], name="fk1")
@@ -684,14 +636,12 @@ class IncludeHooksTest(AutogenFixtureTest, TestBase):
             "ref_a",
             m2,
             Column("a", Integer, primary_key=True),
-            mysql_engine="InnoDB",
         )
         r2b = Table(
             "ref_b",
             m2,
             Column("a", Integer, primary_key=True),
             Column("b", Integer, primary_key=True),
-            mysql_engine="InnoDB",
         )
         t2 = Table(
             "t",
@@ -699,7 +649,6 @@ class IncludeHooksTest(AutogenFixtureTest, TestBase):
             Column("x", Integer),
             Column("y", Integer),
             Column("z", Integer),
-            mysql_engine="InnoDB",
         )
         t2.append_constraint(
             ForeignKeyConstraint(
@@ -777,7 +726,6 @@ class AutogenerateFKOptionsTest(AutogenFixtureTest, TestBase):
             m1,
             Column("id", Integer, primary_key=True),
             Column("test", String(10)),
-            mysql_engine="InnoDB",
         )
 
         Table(
@@ -787,7 +735,6 @@ class AutogenerateFKOptionsTest(AutogenFixtureTest, TestBase):
             Column("name", String(50), nullable=False),
             Column("tid", Integer),
             ForeignKeyConstraint(["tid"], ["some_table.id"], **old_opts),
-            mysql_engine="InnoDB",
         )
 
         Table(
@@ -795,7 +742,6 @@ class AutogenerateFKOptionsTest(AutogenFixtureTest, TestBase):
             m2,
             Column("id", Integer, primary_key=True),
             Column("test", String(10)),
-            mysql_engine="InnoDB",
         )
 
         Table(
@@ -805,7 +751,6 @@ class AutogenerateFKOptionsTest(AutogenFixtureTest, TestBase):
             Column("name", String(50), nullable=False),
             Column("tid", Integer),
             ForeignKeyConstraint(["tid"], ["some_table.id"], **new_opts),
-            mysql_engine="InnoDB",
         )
 
         return self._fixture(m1, m2)

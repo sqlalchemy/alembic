@@ -21,8 +21,13 @@ from alembic.testing import schemacompare
 from alembic.testing import TestBase
 from alembic.testing import util
 from alembic.testing.env import staging_env
+from alembic.testing.suite._autogen_fixtures import AutogenFixtureTest
 from alembic.util import sqla_compat
-from ._autogen_fixtures import AutogenFixtureTest
+
+# TODO: create new suites that are taking tests from this suite, with a
+#       separate class for AutogenIndexes, AutogenUniqueConstraint, and a
+#       subset of the tests here. @zzzeek can work on this at a later point.
+#       (2021-06-10)
 
 py3k = sys.version_info >= (3,)
 

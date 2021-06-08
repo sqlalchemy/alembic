@@ -3,8 +3,8 @@ import sys
 from sqlalchemy.testing.requirements import Requirements
 
 from alembic import util
-from alembic.testing import exclusions
 from alembic.util import sqla_compat
+from ..testing import exclusions
 
 
 class SuiteRequirements(Requirements):
@@ -110,6 +110,74 @@ class SuiteRequirements(Requirements):
     def computed_columns_api(self):
         return exclusions.only_if(
             exclusions.BooleanPredicate(sqla_compat.has_computed)
+        )
+
+    @property
+    def computed_reflects_normally(self):
+        return exclusions.only_if(
+            exclusions.BooleanPredicate(sqla_compat.has_computed_reflection)
+        )
+
+    @property
+    def computed_reflects_as_server_default(self):
+        return exclusions.closed()
+
+    @property
+    def computed_doesnt_reflect_as_server_default(self):
+        return exclusions.closed()
+
+    @property
+    def autoincrement_on_composite_pk(self):
+        return exclusions.closed()
+
+    @property
+    def fk_ondelete_is_reflected(self):
+        return exclusions.closed()
+
+    @property
+    def fk_onupdate_is_reflected(self):
+        return exclusions.closed()
+
+    @property
+    def fk_onupdate(self):
+        return exclusions.open()
+
+    @property
+    def fk_ondelete_restrict(self):
+        return exclusions.open()
+
+    @property
+    def fk_onupdate_restrict(self):
+        return exclusions.open()
+
+    @property
+    def fk_ondelete_noaction(self):
+        return exclusions.open()
+
+    @property
+    def fk_initially(self):
+        return exclusions.closed()
+
+    @property
+    def fk_deferrable(self):
+        return exclusions.closed()
+
+    @property
+    def fk_deferrable_is_reflected(self):
+        return exclusions.closed()
+
+    @property
+    def fk_names(self):
+        return exclusions.open()
+
+    @property
+    def integer_subtype_comparisons(self):
+        return exclusions.open()
+
+    @property
+    def no_name_normalize(self):
+        return exclusions.skip_if(
+            lambda config: config.db.dialect.requires_name_normalize
         )
 
     @property

@@ -4,15 +4,15 @@ from sqlalchemy import Integer
 from sqlalchemy import MetaData
 from sqlalchemy import Table
 
-from alembic import testing
-from alembic.testing import config
-from alembic.testing import eq_
-from alembic.testing import exclusions
-from alembic.testing import is_
-from alembic.testing import is_true
-from alembic.testing import mock
-from alembic.testing import TestBase
 from ._autogen_fixtures import AutogenFixtureTest
+from ... import testing
+from ...testing import config
+from ...testing import eq_
+from ...testing import exclusions
+from ...testing import is_
+from ...testing import is_true
+from ...testing import mock
+from ...testing import TestBase
 
 
 class AutogenerateComputedTest(AutogenFixtureTest, TestBase):

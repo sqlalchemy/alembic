@@ -14,16 +14,16 @@ from sqlalchemy import Text
 from sqlalchemy import text
 from sqlalchemy import UniqueConstraint
 
-from alembic import autogenerate
-from alembic import util
-from alembic.autogenerate import api
-from alembic.ddl.base import _fk_spec
-from alembic.migration import MigrationContext
-from alembic.operations import ops
-from alembic.testing import config
-from alembic.testing import eq_
-from alembic.testing.env import clear_staging_env
-from alembic.testing.env import staging_env
+from ... import autogenerate
+from ... import util
+from ...autogenerate import api
+from ...ddl.base import _fk_spec
+from ...migration import MigrationContext
+from ...operations import ops
+from ...testing import config
+from ...testing import eq_
+from ...testing.env import clear_staging_env
+from ...testing.env import staging_env
 
 names_in_this_test = set()
 
