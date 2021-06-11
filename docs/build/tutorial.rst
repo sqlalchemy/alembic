@@ -106,6 +106,7 @@ command::
     Available templates:
 
     generic - Generic single-database configuration.
+    async - Generic single-database configuration with an async dbapi.
     multidb - Rudimentary multi-database configuration.
     pylons - Configuration that reads from a Pylons project environment.
 
