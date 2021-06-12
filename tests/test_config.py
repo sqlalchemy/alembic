@@ -1,7 +1,9 @@
 #!coding: utf-8
-
+import os
+import tempfile
 
 from alembic import config
+from alembic import testing
 from alembic import util
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
@@ -9,6 +11,7 @@ from alembic.script import ScriptDirectory
 from alembic.testing import assert_raises_message
 from alembic.testing import eq_
 from alembic.testing import mock
+from alembic.testing.assertions import expect_raises_message
 from alembic.testing.env import _no_sql_testing_config
 from alembic.testing.env import _write_config_file
 from alembic.testing.env import clear_staging_env
@@ -107,6 +110,91 @@ class ConfigTest(TestBase):
         cfg = config.Config(attributes={"m1": m1})
         cfg.attributes["connection"] = m2
         eq_(cfg.attributes, {"m1": m1, "connection": m2})
+
+    @testing.combinations(
+        (
+            "legacy raw string 1",
+            None,
+            "/foo",
+            ["/foo"],
+        ),
+        (
+            "legacy raw string 2",
+            None,
+            "/foo /bar",
+            ["/foo", "/bar"],
+        ),
+        (
+            "legacy raw string 3",
+            "space",
+            "/foo",
+            ["/foo"],
+        ),
+        (
+            "legacy raw string 4",
+            "space",
+            "/foo /bar",
+            ["/foo", "/bar"],
+        ),
+        (
+            "Linux pathsep 1",
+            ":",
+            "/Project A",
+            ["/Project A"],
+        ),
+        (
+            "Linux pathsep 2",
+            ":",
+            "/Project A:/Project B",
+            ["/Project A", "/Project B"],
+        ),
+        (
+            "Windows pathsep 1",
+            ";",
+            r"C:\Project A",
+            [r"C:\Project A"],
+        ),
+        (
+            "Windows pathsep 2",
+            ";",
+            r"C:\Project A;C:\Project B",
+            [r"C:\Project A", r"C:\Project B"],
+        ),
+        (
+            "os pathsep",
+            "os",
+            r"path_number_one%(sep)spath_number_two%(sep)s"
+            % {"sep": os.pathsep},
+            [r"path_number_one", r"path_number_two"],
+        ),
+        (
+            "invalid pathsep 2",
+            "|",
+            "/foo|/bar",
+            ValueError(
+                "'|' is not a valid value for version_path_separator; "
+                "expected 'space', 'os', ':', ';'"
+            ),
+        ),
+        id_="iaaa",
+        argnames="separator, string_value, expected_result",
+    )
+    def test_version_locations(self, separator, string_value, expected_result):
+        cfg = config.Config()
+        if separator is not None:
+            cfg.set_main_option(
+                "version_path_separator",
+                separator,
+            )
+        cfg.set_main_option("script_location", tempfile.gettempdir())
+        cfg.set_main_option("version_locations", string_value)
+
+        if isinstance(expected_result, ValueError):
+            with expect_raises_message(ValueError, expected_result.args[0]):
+                ScriptDirectory.from_config(cfg)
+        else:
+            s = ScriptDirectory.from_config(cfg)
+            eq_(s.version_locations, expected_result)
 
 
 class StdoutOutputEncodingTest(TestBase):

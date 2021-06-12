@@ -140,7 +140,40 @@ class ScriptDirectory(object):
 
         version_locations = config.get_main_option("version_locations")
         if version_locations:
-            version_locations = _split_on_space_comma.split(version_locations)
+            version_path_separator = config.get_main_option(
+                "version_path_separator"
+            )
+
+            split_on_path = {
+                None: None,
+                "space": " ",
+                "os": os.pathsep,
+                ":": ":",
+                ";": ";",
+            }
+
+            try:
+                split_char = split_on_path[version_path_separator]
+            except KeyError as ke:
+                util.raise_(
+                    ValueError(
+                        "'%s' is not a valid value for "
+                        "version_path_separator; "
+                        "expected 'space', 'os', ':', ';'"
+                        % version_path_separator
+                    ),
+                    from_=ke,
+                )
+            else:
+                if split_char is None:
+                    # legacy behaviour for backwards compatibility
+                    version_locations = _split_on_space_comma.split(
+                        version_locations
+                    )
+                else:
+                    version_locations = [
+                        x for x in version_locations.split(split_char) if x
+                    ]
 
         prepend_sys_path = config.get_main_option("prepend_sys_path")
         if prepend_sys_path:

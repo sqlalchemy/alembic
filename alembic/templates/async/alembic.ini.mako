@@ -32,10 +32,19 @@ prepend_sys_path = .
 # versions/ directory
 # sourceless = false
 
-# version location specification; this defaults
+# version location specification; This defaults
 # to ${script_location}/versions.  When using multiple version
-# directories, initial revisions must be specified with --version-path
-# version_locations = %(here)s/bar %(here)s/bat ${script_location}/versions
+# directories, initial revisions must be specified with --version-path.
+# The path separator used here should be the separator specified by "version_path_separator"
+# version_locations = %(here)s/bar:%(here)s/bat:${script_location}/versions
+
+# version path separator; As mentioned above, this is the character used to split
+# version_locations. Valid values are:
+#
+# version_path_separator = :
+# version_path_separator = ;
+# version_path_separator = space
+version_path_separator = os  # default: use os.pathsep
 
 # the output encoding used when revision files
 # are written from script.py.mako
