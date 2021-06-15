@@ -11,8 +11,10 @@ script_location = ${script_location}
 # defaults to the current working directory.
 prepend_sys_path = .
 
-# timezone to use when rendering the date
-# within the migration file as well as the filename.
+# timezone to use when rendering the date within the migration file
+# as well as the filename.
+# If specified, requires the python-dateutil library that can be
+# installed by adding `alembic[tz]` to the pip requirements
 # string value is passed to dateutil.tz.gettz()
 # leave blank for localtime
 # timezone =

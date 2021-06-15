@@ -5,13 +5,16 @@ import re
 import shutil
 import sys
 
-from dateutil import tz
-
 from . import revision
 from . import write_hooks
 from .. import util
 from ..runtime import migration
 from ..util import compat
+
+try:
+    from dateutil import tz
+except ImportError:
+    tz = None  # noqa
 
 _sourceless_rev_file = re.compile(r"(?!\.\#|__init__)(.*\.py)(c|o)?$")
 _only_source_rev_file = re.compile(r"(?!\.\#|__init__)(.*\.py)$")
@@ -515,6 +518,11 @@ class ScriptDirectory(object):
 
     def _generate_create_date(self):
         if self.timezone is not None:
+            if tz is None:
+                raise util.CommandError(
+                    "The library 'python-dateutil' is required "
+                    "for timezone support"
+                )
             # First, assume correct capitalization
             tzinfo = tz.gettz(self.timezone)
             if tzinfo is None:

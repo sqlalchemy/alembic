@@ -11,12 +11,10 @@ from sqlalchemy import text
 from alembic import __version__
 from alembic import command
 from alembic import config
-from alembic import testing
 from alembic import util
 from alembic.script import ScriptDirectory
 from alembic.testing import assert_raises
 from alembic.testing import assert_raises_message
-from alembic.testing import config as testing_config
 from alembic.testing import eq_
 from alembic.testing import is_false
 from alembic.testing import is_true
@@ -924,7 +922,7 @@ class EditTest(TestBase):
             % (EditTest.cfg.config_args["here"], EditTest.c)
         )
 
-        with mock.patch("alembic.util.edit") as edit:
+        with mock.patch("alembic.util.open_in_editor") as edit:
             command.edit(self.cfg, "head")
             edit.assert_called_with(expected_call_arg)
 
@@ -934,21 +932,9 @@ class EditTest(TestBase):
             % (EditTest.cfg.config_args["here"], EditTest.b)
         )
 
-        with mock.patch("alembic.util.edit") as edit:
+        with mock.patch("alembic.util.open_in_editor") as edit:
             command.edit(self.cfg, self.b[0:3])
             edit.assert_called_with(expected_call_arg)
-
-    @testing_config.requirements.editor_installed
-    @testing.emits_python_deprecation_warning("the imp module is deprecated")
-    def test_edit_with_missing_editor(self):
-        with mock.patch("editor.edit") as edit_mock:
-            edit_mock.side_effect = OSError("file not found")
-            assert_raises_message(
-                util.CommandError,
-                "file not found",
-                util.edit,
-                "/not/a/file.txt",
-            )
 
     def test_edit_no_revs(self):
         assert_raises_message(
@@ -975,7 +961,7 @@ class EditTest(TestBase):
         )
 
         command.stamp(self.cfg, self.b)
-        with mock.patch("alembic.util.edit") as edit:
+        with mock.patch("alembic.util.open_in_editor") as edit:
             command.edit(self.cfg, "current")
             edit.assert_called_with(expected_call_arg)
 

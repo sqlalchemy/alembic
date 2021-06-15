@@ -587,7 +587,7 @@ def edit(config, rev):
             if not rev:
                 raise util.CommandError("No current revisions")
             for sc in script.get_revisions(rev):
-                util.edit(sc.path)
+                util.open_in_editor(sc.path)
             return []
 
         with EnvironmentContext(config, script, fn=edit_current):
@@ -599,4 +599,4 @@ def edit(config, rev):
                 "No revision files indicated by symbol '%s'" % rev
             )
         for sc in revs:
-            util.edit(sc.path)
+            util.open_in_editor(sc.path)

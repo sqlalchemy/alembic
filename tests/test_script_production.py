@@ -15,6 +15,7 @@ from alembic.script import ScriptDirectory
 from alembic.testing import assert_raises_message
 from alembic.testing import assertions
 from alembic.testing import eq_
+from alembic.testing import expect_raises_message
 from alembic.testing import is_
 from alembic.testing import mock
 from alembic.testing import ne_
@@ -34,6 +35,10 @@ from alembic.testing.env import write_script
 from alembic.testing.fixtures import TestBase
 from alembic.util import CommandError
 
+try:
+    from unittest.mock import patch
+except ImportError:
+    from mock import patch  # noqa
 env, abc, def_ = None, None, None
 
 
@@ -249,6 +254,17 @@ class ScriptNamingTest(TestBase):
             datetime.datetime(2012, 7, 25, 15, 8, 5),
             datetime.datetime(2012, 7, 25, 15, 8, 5),
         )
+
+    def test_no_dateutil_module(self):
+        with patch("alembic.script.base.tz", new=None):
+            with expect_raises_message(
+                CommandError, "The library 'python-dateutil' is required"
+            ):
+                self._test_tz(
+                    "utc",
+                    datetime.datetime(2012, 7, 25, 15, 8, 5),
+                    datetime.datetime(2012, 7, 25, 15, 8, 5),
+                )
 
 
 class RevisionCommandTest(TestBase):
