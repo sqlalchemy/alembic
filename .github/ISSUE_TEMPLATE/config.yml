@@ -1,0 +1,15 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Usage Questions (GitHub Discussions)
+    url: https://github.com/sqlalchemy/alembic/discussions/new?category=Usage-Questions
+    about: Questions and Answers for Alembic Users
+  - name: Live Chat on Gitter
+    url: https://gitter.im/sqlalchemy/community
+    about: Searchable Web-Based Chat
+  - name: Ideas / Feature Proposal (GitHub Discussions)
+    url: https://github.com/sqlalchemy/alembic/discussions/new?category=Ideas
+    about: Use this for initial discussion for new features and suggestions
+  - name: SQLAlchemy Community Guide
+    url: https://www.sqlalchemy.org/support.html
+    about: Start here for an overview of SQLAlchemy's support network and posting guidelines
+
