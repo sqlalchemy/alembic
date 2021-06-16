@@ -5,6 +5,7 @@ from os.path import splitext
 from subprocess import check_call
 
 from .compat import is_posix
+from .compat import raise_
 from .exc import CommandError
 
 
@@ -27,7 +28,7 @@ def open_in_editor(filename, environ=None):
         editor = _find_editor(environ)
         check_call([editor, filename])
     except Exception as exc:
-        raise CommandError("Error executing editor (%s)" % (exc,)) from exc
+        raise_(CommandError("Error executing editor (%s)" % (exc,)), from_=exc)
 
 
 def _find_editor(environ=None):

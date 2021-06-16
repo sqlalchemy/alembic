@@ -1,21 +1,23 @@
 import os
 from os.path import join
-from unittest.mock import patch
 
 from alembic import util
 from alembic.testing import combinations
 from alembic.testing import expect_raises_message
+from alembic.testing import mock
 from alembic.testing.fixtures import TestBase
 
 
 class TestHelpers(TestBase):
     def common(self, cb, is_posix=True):
-        with patch("alembic.util.editor.check_call") as check_call, patch(
+        with mock.patch(
+            "alembic.util.editor.check_call"
+        ) as check_call, mock.patch(
             "alembic.util.editor.exists"
-        ) as exists, patch(
+        ) as exists, mock.patch(
             "alembic.util.editor.is_posix",
             new=is_posix,
-        ), patch(
+        ), mock.patch(
             "os.pathsep", new=":" if is_posix else ";"
         ):
             cb(check_call, exists)
