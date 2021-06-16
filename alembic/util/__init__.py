@@ -1,4 +1,5 @@
 from .compat import raise_  # noqa
+from .editor import open_in_editor  # noqa
 from .exc import CommandError
 from .langhelpers import _with_legacy_names  # noqa
 from .langhelpers import asbool  # noqa
@@ -19,7 +20,6 @@ from .messaging import status  # noqa
 from .messaging import warn  # noqa
 from .messaging import write_outstream  # noqa
 from .pyfiles import coerce_resource_to_filename  # noqa
-from .pyfiles import edit  # noqa
 from .pyfiles import load_python_file  # noqa
 from .pyfiles import pyc_file_from_path  # noqa
 from .pyfiles import template_to_file  # noqa
