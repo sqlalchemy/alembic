@@ -142,7 +142,7 @@ of what SQLAlchemy and Alembic test is creating and dropping lots of tables
 as well as running database introspection to see what is there.  If there
 are pre-existing tables or other objects in the target database already,
 these will get in the way.   A failed test run can also be followed by
- a run that includes the "--dropfirst" option, which will try to drop
+a run that includes the "--dropfirst" option, which will try to drop
 all existing tables in the target database.
 
 The above paragraph changes somewhat when the multiprocessing option
@@ -317,9 +317,29 @@ as::
 Above we add the pytest "-s" flag so that standard out is not suppressed.
 
 
-DEVELOPING AND TESTING NEW DIALECTS  (SQLAlchemy Only)
+DEVELOPING AND TESTING NEW DIALECTS
 -------------------------------------------------------
 
-See the file README.dialects.rst for detail on dialects.
+Starting with Alembic 1.7, developers of third-party dialects can include the
+Alembic test suite using a method similar to that of the SQLAlchemy test
+suite. See the SQLAlchemy README for third-party dialects …
 
+https://github.com/sqlalchemy/sqlalchemy/blob/master/README.dialects.rst
+
+… for detail on the overall structure of a third-party dialect and how to
+incorporate the SQLAlchemy test suite.
+
+To add the Alembic test suite, simply add::
+
+    from alembic.testing.suite import *  # noqa
+
+to your "test_suite.py" file. Or you can use two separate files::
+
+    # in test_suite_sqlalchemy.py
+    from sqlalchemy.testing.suite import *  # noqa
+
+and::
+
+    # in test_suite_alembic.py
+    from alembic.testing.suite import *  # noqa
 
