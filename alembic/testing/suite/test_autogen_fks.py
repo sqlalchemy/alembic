@@ -18,6 +18,7 @@ py3k = compat.py3k
 
 class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
     __backend__ = True
+    __requires__ = ("foreign_key_constraint_reflection",)
 
     def test_remove_fk(self):
         m1 = MetaData()
