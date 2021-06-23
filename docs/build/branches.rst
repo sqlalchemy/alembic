@@ -524,6 +524,7 @@ directory as one of them::
   # version location specification; this defaults
   # to foo/versions.  When using multiple version
   # directories, initial revisions must be specified with --version-path
+  version_path_separator = space
   version_locations = %(here)s/model/networking %(here)s/alembic/versions
 
 The new directory ``%(here)s/model/networking`` is in terms of where
