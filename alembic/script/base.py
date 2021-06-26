@@ -154,15 +154,11 @@ class ScriptDirectory:
             try:
                 split_char = split_on_path[version_path_separator]
             except KeyError as ke:
-                util.raise_(
-                    ValueError(
-                        "'%s' is not a valid value for "
-                        "version_path_separator; "
-                        "expected 'space', 'os', ':', ';'"
-                        % version_path_separator
-                    ),
-                    from_=ke,
-                )
+                raise ValueError(
+                    "'%s' is not a valid value for "
+                    "version_path_separator; "
+                    "expected 'space', 'os', ':', ';'" % version_path_separator
+                ) from ke
             else:
                 if split_char is None:
                     # legacy behaviour for backwards compatibility
