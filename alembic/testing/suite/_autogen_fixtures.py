@@ -45,7 +45,7 @@ _default_object_filters = _default_include_object
 _default_name_filters = None
 
 
-class ModelOne(object):
+class ModelOne:
     __requires__ = ("unique_constraint_reflection",)
 
     schema = None
@@ -143,7 +143,7 @@ class ModelOne(object):
         return m
 
 
-class _ComparesFKs(object):
+class _ComparesFKs:
     def _assert_fk_diff(
         self,
         diff,

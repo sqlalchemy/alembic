@@ -15,13 +15,12 @@ from sqlalchemy.engine.strategies import MockEngineStrategy
 from .. import ddl
 from .. import util
 from ..util import sqla_compat
-from ..util.compat import callable
 from ..util.compat import EncodedIO
 
 log = logging.getLogger(__name__)
 
 
-class _ProxyTransaction(object):
+class _ProxyTransaction:
     def __init__(self, migration_context):
         self.migration_context = migration_context
 
@@ -46,7 +45,7 @@ class _ProxyTransaction(object):
             self.migration_context._transaction = None
 
 
-class MigrationContext(object):
+class MigrationContext:
 
     """Represent the database state made available to a migration
     script.
@@ -681,7 +680,7 @@ class MigrationContext(object):
         )
 
 
-class HeadMaintainer(object):
+class HeadMaintainer:
     def __init__(self, context, heads):
         self.context = context
         self.heads = set(heads)
@@ -788,7 +787,7 @@ class HeadMaintainer(object):
             self._update_version(from_, to_)
 
 
-class MigrationInfo(object):
+class MigrationInfo:
     """Exposes information about a migration step to a callback listener.
 
     The :class:`.MigrationInfo` object is available exclusively for the
@@ -914,7 +913,7 @@ class MigrationInfo(object):
         return self.revision_map.get_revisions(self.destination_revision_ids)
 
 
-class MigrationStep(object):
+class MigrationStep:
     @property
     def name(self):
         return self.migration_fn.__name__

@@ -2,7 +2,7 @@ from alembic import util
 from alembic.operations import ops
 
 
-class Rewriter(object):
+class Rewriter:
     """A helper object that allows easy 'rewriting' of ops streams.
 
     The :class:`.Rewriter` object is intended to be passed along

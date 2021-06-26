@@ -8,9 +8,6 @@ from ._autogen_fixtures import AutogenFixtureTest
 from ...testing import eq_
 from ...testing import mock
 from ...testing import TestBase
-from ...util import compat
-
-py3k = compat.py3k
 
 
 class AutogenerateCommentsTest(AutogenFixtureTest, TestBase):

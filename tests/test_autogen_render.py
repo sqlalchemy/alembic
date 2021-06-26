@@ -1,5 +1,4 @@
 import re
-import sys
 
 import sqlalchemy as sa  # noqa
 from sqlalchemy import BigInteger
@@ -49,9 +48,6 @@ from alembic.testing import eq_ignore_whitespace
 from alembic.testing import mock
 from alembic.testing import TestBase
 from alembic.testing.fixtures import op_fixture
-from alembic.util import compat
-
-py3k = sys.version_info >= (3,)
 
 
 class AutogenRenderTest(TestBase):
@@ -185,7 +181,7 @@ class AutogenRenderTest(TestBase):
         eq_ignore_whitespace(
             autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.create_index('test_lower_code_idx', 'test', "
-            "[sa.text(!U'lower(code)')], unique=False)",
+            "[sa.text('lower(code)')], unique=False)",
         )
 
     def test_render_add_index_cast(self):
@@ -202,7 +198,7 @@ class AutogenRenderTest(TestBase):
         eq_ignore_whitespace(
             autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.create_index('test_lower_code_idx', 'test', "
-            "[sa.text(!U'CAST(code AS VARCHAR)')], unique=False)",
+            "[sa.text('CAST(code AS VARCHAR)')], unique=False)",
         )
 
     def test_render_add_index_desc(self):
@@ -218,7 +214,7 @@ class AutogenRenderTest(TestBase):
         eq_ignore_whitespace(
             autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.create_index('test_desc_code_idx', 'test', "
-            "[sa.text(!U'code DESC')], unique=False)",
+            "[sa.text('code DESC')], unique=False)",
         )
 
     def test_drop_index(self):
@@ -832,7 +828,7 @@ class AutogenRenderTest(TestBase):
     def test_render_table_w_unicode_name(self):
         m = MetaData()
         t = Table(
-            compat.ue("\u0411\u0435\u0437"),
+            "\u0411\u0435\u0437",
             m,
             Column("id", Integer, primary_key=True),
         )
@@ -841,7 +837,7 @@ class AutogenRenderTest(TestBase):
             autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.create_table(%r,"
             "sa.Column('id', sa.Integer(), nullable=False),"
-            "sa.PrimaryKeyConstraint('id'))" % compat.ue("\u0411\u0435\u0437"),
+            "sa.PrimaryKeyConstraint('id'))" % "\u0411\u0435\u0437",
         )
 
     def test_render_table_w_unicode_schema(self):
@@ -850,7 +846,7 @@ class AutogenRenderTest(TestBase):
             "test",
             m,
             Column("id", Integer, primary_key=True),
-            schema=compat.ue("\u0411\u0435\u0437"),
+            schema="\u0411\u0435\u0437",
         )
         op_obj = ops.CreateTableOp.from_table(t)
         eq_ignore_whitespace(
@@ -858,7 +854,7 @@ class AutogenRenderTest(TestBase):
             "op.create_table('test',"
             "sa.Column('id', sa.Integer(), nullable=False),"
             "sa.PrimaryKeyConstraint('id'),"
-            "schema=%r)" % compat.ue("\u0411\u0435\u0437"),
+            "schema=%r)" % "\u0411\u0435\u0437",
         )
 
     def test_render_table_w_unsupported_constraint(self):
@@ -1193,7 +1189,7 @@ class AutogenRenderTest(TestBase):
         )
 
     def test_render_unicode_server_default(self):
-        default = compat.ue(
+        default = (
             "\u0411\u0435\u0437 "
             "\u043d\u0430\u0437\u0432\u0430\u043d\u0438\u044f"
         )
@@ -1587,7 +1583,7 @@ class AutogenRenderTest(TestBase):
                 self.autogen_context,
                 None,
             ),
-            "sa.CheckConstraint(!U'im a constraint', name='cc1')",
+            "sa.CheckConstraint('im a constraint', name='cc1')",
         )
 
     def test_render_check_constraint_sqlexpr(self):
@@ -1600,7 +1596,7 @@ class AutogenRenderTest(TestBase):
                 self.autogen_context,
                 None,
             ),
-            "sa.CheckConstraint(!U'c > 5 AND c < 10')",
+            "sa.CheckConstraint('c > 5 AND c < 10')",
         )
 
     def test_render_check_constraint_literal_binds(self):
@@ -1611,7 +1607,7 @@ class AutogenRenderTest(TestBase):
                 self.autogen_context,
                 None,
             ),
-            "sa.CheckConstraint(!U'c > 5 AND c < 10')",
+            "sa.CheckConstraint('c > 5 AND c < 10')",
         )
 
     def test_render_unique_constraint_opts(self):
@@ -1632,13 +1628,13 @@ class AutogenRenderTest(TestBase):
             "t",
             m,
             Column("c", Integer),
-            schema=compat.ue("\u0411\u0435\u0437"),
+            schema="\u0411\u0435\u0437",
         )
         op_obj = ops.AddConstraintOp.from_constraint(UniqueConstraint(t.c.c))
         eq_ignore_whitespace(
             autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.create_unique_constraint(None, 't', ['c'], "
-            "schema=%r)" % compat.ue("\u0411\u0435\u0437"),
+            "schema=%r)" % "\u0411\u0435\u0437",
         )
 
     def test_render_modify_nullable_w_default(self):
@@ -1736,7 +1732,7 @@ class AutogenRenderTest(TestBase):
             "# ### commands auto generated by Alembic - please adjust! ###\n"
             "    op.create_table('sometable',\n"
             "    sa.Column('x', sa.DateTime(), "
-            "server_default=sa.text(!U'now()'), nullable=True)\n"
+            "server_default=sa.text('now()'), nullable=True)\n"
             "    )\n"
             "    # ### end Alembic commands ###",
         )
@@ -1756,7 +1752,7 @@ class AutogenRenderTest(TestBase):
             "# ### commands auto generated by Alembic - please adjust! ###\n"
             "    op.create_table('sometable',\n"
             "    sa.Column('x', sa.DateTime(), "
-            "server_default=sa.text(!U'(CURRENT_TIMESTAMP)'), nullable=True)\n"
+            "server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=True)\n"
             "    )\n"
             "    # ### end Alembic commands ###",
         )
@@ -1851,7 +1847,7 @@ class AutogenRenderTest(TestBase):
         eq_ignore_whitespace(
             result,
             "sa.Column('updated_at', sa.TIMESTAMP(), "
-            "server_default=sa.text(!U'now()'), "
+            "server_default=sa.text('now()'), "
             "nullable=False)",
         )
 
@@ -1864,7 +1860,7 @@ class AutogenRenderTest(TestBase):
         eq_ignore_whitespace(
             result,
             "sa.Column('updated_at', sa.Boolean(), "
-            "server_default=sa.text(!U'0'), "
+            "server_default=sa.text('0'), "
             "nullable=False)",
         )
 
@@ -1879,7 +1875,7 @@ class AutogenRenderTest(TestBase):
         eq_ignore_whitespace(
             result,
             "sa.Column('updated_at', sa.TIMESTAMP(), "
-            "server_default=sa.text(!U'now()'), "
+            "server_default=sa.text('now()'), "
             "nullable=False)",
         )
 
@@ -1904,7 +1900,7 @@ class AutogenRenderTest(TestBase):
             autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.alter_column('sometable', 'somecolumn', "
             "existing_type=sa.Integer(), nullable=True, "
-            "existing_server_default=sa.text(!U'5'))",
+            "existing_server_default=sa.text('5'))",
         )
 
     def test_render_executesql_plaintext(self):
@@ -2076,7 +2072,7 @@ class AutogenRenderTest(TestBase):
         eq_ignore_whitespace(
             autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.add_column('foo', sa.Column('x', sa.Integer(), "
-            "sa.Computed(!U'5', ), nullable=True))",
+            "sa.Computed('5', ), nullable=True))",
         )
 
     @config.requirements.computed_columns_api
@@ -2088,7 +2084,7 @@ class AutogenRenderTest(TestBase):
         eq_ignore_whitespace(
             autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.add_column('foo', sa.Column('x', sa.Integer(), "
-            "sa.Computed(!U'5', persisted=%s), nullable=True))" % persisted,
+            "sa.Computed('5', persisted=%s), nullable=True))" % persisted,
         )
 
     @config.requirements.computed_columns_api
@@ -2099,7 +2095,7 @@ class AutogenRenderTest(TestBase):
         eq_ignore_whitespace(
             autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.alter_column('sometable', 'somecolumn', "
-            "server_default=sa.Computed(!U'7', ))",
+            "server_default=sa.Computed('7', ))",
         )
 
     @config.requirements.computed_columns_api
@@ -2112,7 +2108,7 @@ class AutogenRenderTest(TestBase):
         eq_ignore_whitespace(
             autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.alter_column('sometable', 'somecolumn', "
-            "existing_server_default=sa.Computed(!U'42', ))",
+            "existing_server_default=sa.Computed('42', ))",
         )
 
     @config.requirements.computed_columns_api
@@ -2128,7 +2124,7 @@ class AutogenRenderTest(TestBase):
         eq_ignore_whitespace(
             autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.alter_column('sometable', 'somecolumn', server_default"
-            "=sa.Computed(!U'7', persisted=%s))" % persisted,
+            "=sa.Computed('7', persisted=%s))" % persisted,
         )
 
     @config.requirements.computed_columns_api
@@ -2143,7 +2139,7 @@ class AutogenRenderTest(TestBase):
         eq_ignore_whitespace(
             autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.alter_column('sometable', 'somecolumn', "
-            "existing_server_default=sa.Computed(!U'42', persisted=%s))"
+            "existing_server_default=sa.Computed('42', persisted=%s))"
             % persisted,
         )
 
@@ -2364,7 +2360,7 @@ class RenderNamingConventionTest(TestBase):
         eq_ignore_whitespace(
             autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.create_table('t',sa.Column('c', sa.Integer(), nullable=True),"
-            "sa.CheckConstraint(!U'c > 5', name=op.f('ck_ct_t')))",
+            "sa.CheckConstraint('c > 5', name=op.f('ck_ct_t')))",
         )
 
     def test_inline_fk(self):
@@ -2398,7 +2394,7 @@ class RenderNamingConventionTest(TestBase):
             autogenerate.render._render_check_constraint(
                 ck, self.autogen_context, None
             ),
-            "sa.CheckConstraint(!U'im a constraint', name=op.f('ck_t_cc1'))",
+            "sa.CheckConstraint('im a constraint', name=op.f('ck_t_cc1'))",
         )
 
     def test_create_table_plus_add_index_in_modify(self):

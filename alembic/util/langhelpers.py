@@ -1,15 +1,17 @@
 import collections
+from collections.abc import Iterable
 import textwrap
 import uuid
 import warnings
 
-from .compat import callable
-from .compat import collections_abc
-from .compat import exec_
+from sqlalchemy.util import asbool  # noqa
+from sqlalchemy.util import immutabledict  # noqa
+from sqlalchemy.util import memoized_property  # noqa
+from sqlalchemy.util import to_list  # noqa
+from sqlalchemy.util import unique_list  # noqa
+
 from .compat import inspect_getargspec
-from .compat import raise_
 from .compat import string_types
-from .compat import with_metaclass
 
 
 class _ModuleClsMeta(type):
@@ -18,7 +20,7 @@ class _ModuleClsMeta(type):
         cls._update_module_proxies(key)
 
 
-class ModuleClsProxy(with_metaclass(_ModuleClsMeta)):
+class ModuleClsProxy(metaclass=_ModuleClsMeta):
     """Create module level proxy functions for the
     methods on a given class.
 
@@ -76,16 +78,13 @@ class ModuleClsProxy(with_metaclass(_ModuleClsMeta)):
         fn = getattr(cls, name)
 
         def _name_error(name, from_):
-            raise_(
-                NameError(
-                    "Can't invoke function '%s', as the proxy object has "
-                    "not yet been "
-                    "established for the Alembic '%s' class.  "
-                    "Try placing this code inside a callable."
-                    % (name, cls.__name__)
-                ),
-                from_=from_,
-            )
+            raise NameError(
+                "Can't invoke function '%s', as the proxy object has "
+                "not yet been "
+                "established for the Alembic '%s' class.  "
+                "Try placing this code inside a callable."
+                % (name, cls.__name__)
+            ) from from_
 
         globals_["_name_error"] = _name_error
 
@@ -160,7 +159,7 @@ class ModuleClsProxy(with_metaclass(_ModuleClsMeta)):
             }
         )
         lcl = {}
-        exec_(func_text, globals_, lcl)
+        exec(func_text, globals_, lcl)
         return lcl[name]
 
 
@@ -172,23 +171,8 @@ def _with_legacy_names(translations):
     return decorate
 
 
-def asbool(value):
-    return value is not None and value.lower() == "true"
-
-
 def rev_id():
     return uuid.uuid4().hex[-12:]
-
-
-def to_list(x, default=None):
-    if x is None:
-        return default
-    elif isinstance(x, string_types):
-        return [x]
-    elif isinstance(x, collections_abc.Iterable):
-        return list(x)
-    else:
-        return [x]
 
 
 def to_tuple(x, default=None):
@@ -196,77 +180,17 @@ def to_tuple(x, default=None):
         return default
     elif isinstance(x, string_types):
         return (x,)
-    elif isinstance(x, collections_abc.Iterable):
+    elif isinstance(x, Iterable):
         return tuple(x)
     else:
         return (x,)
-
-
-def unique_list(seq, hashfunc=None):
-    seen = set()
-    seen_add = seen.add
-    if not hashfunc:
-        return [x for x in seq if x not in seen and not seen_add(x)]
-    else:
-        return [
-            x
-            for x in seq
-            if hashfunc(x) not in seen and not seen_add(hashfunc(x))
-        ]
 
 
 def dedupe_tuple(tup):
     return tuple(unique_list(tup))
 
 
-class memoized_property(object):
-
-    """A read-only @property that is only evaluated once."""
-
-    def __init__(self, fget, doc=None):
-        self.fget = fget
-        self.__doc__ = doc or fget.__doc__
-        self.__name__ = fget.__name__
-
-    def __get__(self, obj, cls):
-        if obj is None:
-            return self
-        obj.__dict__[self.__name__] = result = self.fget(obj)
-        return result
-
-
-class immutabledict(dict):
-    def _immutable(self, *arg, **kw):
-        raise TypeError("%s object is immutable" % self.__class__.__name__)
-
-    __delitem__ = (
-        __setitem__
-    ) = __setattr__ = clear = pop = popitem = setdefault = update = _immutable
-
-    def __new__(cls, *args):
-        new = dict.__new__(cls)
-        dict.__init__(new, *args)
-        return new
-
-    def __init__(self, *args):
-        pass
-
-    def __reduce__(self):
-        return immutabledict, (dict(self),)
-
-    def union(self, d):
-        if not self:
-            return immutabledict(d)
-        else:
-            d2 = immutabledict(self)
-            dict.update(d2, d)
-            return d2
-
-    def __repr__(self):
-        return "immutabledict(%s)" % dict.__repr__(self)
-
-
-class Dispatcher(object):
+class Dispatcher:
     def __init__(self, uselist=False):
         self._registry = {}
         self.uselist = uselist

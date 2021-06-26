@@ -2,7 +2,7 @@ from sqlalchemy import schema
 from sqlalchemy import util
 
 
-class CompareTable(object):
+class CompareTable:
     def __init__(self, table):
         self.table = table
 
@@ -26,7 +26,7 @@ class CompareTable(object):
         return not self.__eq__(other)
 
 
-class CompareColumn(object):
+class CompareColumn:
     def __init__(self, column):
         self.column = column
 
@@ -41,7 +41,7 @@ class CompareColumn(object):
         return not self.__eq__(other)
 
 
-class CompareIndex(object):
+class CompareIndex:
     def __init__(self, index):
         self.index = index
 
@@ -56,7 +56,7 @@ class CompareIndex(object):
         return not self.__eq__(other)
 
 
-class CompareCheckConstraint(object):
+class CompareCheckConstraint:
     def __init__(self, constraint):
         self.constraint = constraint
 
@@ -73,7 +73,7 @@ class CompareCheckConstraint(object):
         return not self.__eq__(other)
 
 
-class CompareForeignKey(object):
+class CompareForeignKey:
     def __init__(self, constraint):
         self.constraint = constraint
 
@@ -99,7 +99,7 @@ class CompareForeignKey(object):
         return not self.__eq__(other)
 
 
-class ComparePrimaryKey(object):
+class ComparePrimaryKey:
     def __init__(self, constraint):
         self.constraint = constraint
 
@@ -127,7 +127,7 @@ class ComparePrimaryKey(object):
         return not self.__eq__(other)
 
 
-class CompareUniqueConstraint(object):
+class CompareUniqueConstraint:
     def __init__(self, constraint):
         self.constraint = constraint
 

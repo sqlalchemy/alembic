@@ -1,3 +1,6 @@
+import importlib
+import importlib.machinery
+import importlib.util
 import os
 import re
 import tempfile
@@ -5,11 +8,6 @@ import tempfile
 from mako import exceptions
 from mako.template import Template
 
-from .compat import get_current_bytecode_suffixes
-from .compat import has_pep3147
-from .compat import load_module_py
-from .compat import load_module_pyc
-from .compat import py3k
 from .exc import CommandError
 
 
@@ -52,22 +50,14 @@ def coerce_resource_to_filename(fname):
 def pyc_file_from_path(path):
     """Given a python source path, locate the .pyc."""
 
-    if has_pep3147():
-        if py3k:
-            import importlib
-
-            candidate = importlib.util.cache_from_source(path)
-        else:
-            import imp
-
-            candidate = imp.cache_from_source(path)
-        if os.path.exists(candidate):
-            return candidate
+    candidate = importlib.util.cache_from_source(path)
+    if os.path.exists(candidate):
+        return candidate
 
     # even for pep3147, fall back to the old way of finding .pyc files,
     # to support sourceless operation
     filepath, ext = os.path.splitext(path)
-    for ext in get_current_bytecode_suffixes():
+    for ext in importlib.machinery.BYTECODE_SUFFIXES:
         if os.path.exists(filepath + ext):
             return filepath + ext
     else:
@@ -91,4 +81,18 @@ def load_python_file(dir_, filename):
                 module = load_module_pyc(module_id, pyc_path)
     elif ext in (".pyc", ".pyo"):
         module = load_module_pyc(module_id, path)
+    return module
+
+
+def load_module_py(module_id, path):
+    spec = importlib.util.spec_from_file_location(module_id, path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def load_module_pyc(module_id, path):
+    spec = importlib.util.spec_from_file_location(module_id, path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
     return module

@@ -1,5 +1,3 @@
-import sys
-
 from sqlalchemy import BIGINT
 from sqlalchemy import BigInteger
 from sqlalchemy import Boolean
@@ -59,8 +57,6 @@ from alembic.util import CommandError
 
 # TODO: we should make an adaptation of CompareMetadataToInspectorTest that is
 #       more well suited towards generic backends (2021-06-10)
-
-py3k = sys.version_info >= (3,)
 
 
 class AutogenCrossSchemaTest(AutogenTest, TestBase):
@@ -321,7 +317,7 @@ class AutogenDefaultSchemaIsNoneTest(AutogenFixtureTest, TestBase):
         eq_(len(diffs), 0)
 
 
-class ModelOne(object):
+class ModelOne:
     __requires__ = ("unique_constraint_reflection",)
 
     schema = None
@@ -1248,7 +1244,7 @@ class IncludeFiltersAPITest(AutogenTest, TestBase):
             object_filters=include_object, include_schemas=True
         )
 
-        class ExtFunction(object):
+        class ExtFunction:
             pass
 
         extfunc = ExtFunction()

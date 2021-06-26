@@ -1,4 +1,5 @@
-#!coding: utf-8
+import io
+
 from ...migration import MigrationContext
 from ...testing import assert_raises
 from ...testing import config
@@ -6,7 +7,6 @@ from ...testing import eq_
 from ...testing import is_false
 from ...testing import is_true
 from ...testing.fixtures import TestBase
-from ...util import compat
 
 
 class MigrationTransactionTest(TestBase):
@@ -23,7 +23,7 @@ class MigrationTransactionTest(TestBase):
             )
             self.context.output_buffer = (
                 self.context.impl.output_buffer
-            ) = compat.StringIO()
+            ) = io.StringIO()
         else:
             self.context = MigrationContext.configure(
                 connection=conn, opts=opts
@@ -308,7 +308,7 @@ class MigrationTransactionTest(TestBase):
     def _assert_impl_steps(self, *steps):
         to_check = self.context.output_buffer.getvalue()
 
-        self.context.impl.output_buffer = buf = compat.StringIO()
+        self.context.impl.output_buffer = buf = io.StringIO()
         for step in steps:
             if step == "BEGIN":
                 self.context.impl.emit_begin()

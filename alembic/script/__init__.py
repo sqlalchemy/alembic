@@ -1,4 +1,4 @@
-from .base import Script  # noqa
-from .base import ScriptDirectory  # noqa
+from .base import Script
+from .base import ScriptDirectory
 
 __all__ = ["ScriptDirectory", "Script"]

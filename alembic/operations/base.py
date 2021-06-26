@@ -5,7 +5,6 @@ from . import batch
 from . import schemaobj
 from .. import util
 from ..util import sqla_compat
-from ..util.compat import exec_
 from ..util.compat import inspect_formatargspec
 from ..util.compat import inspect_getargspec
 
@@ -129,7 +128,7 @@ class Operations(util.ModuleClsProxy):
             )
             globals_ = {"op_cls": op_cls}
             lcl = {}
-            exec_(func_text, globals_, lcl)
+            exec(func_text, globals_, lcl)
             setattr(cls, name, lcl[name])
             fn.__func__.__doc__ = (
                 "This method is proxied on "

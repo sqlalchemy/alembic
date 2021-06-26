@@ -12,7 +12,6 @@ from alembic.ddl.base import _fk_spec
 from .render import _user_defined_render
 from .. import util
 from ..operations import ops
-from ..util import compat
 from ..util import sqla_compat
 
 log = logging.getLogger(__name__)
@@ -357,7 +356,7 @@ def _compare_columns(
             log.info("Detected removed column '%s.%s'", name, cname)
 
 
-class _constraint_sig(object):
+class _constraint_sig:
     def md_name_to_sql_name(self, context):
         return sqla_compat._get_constraint_final_name(
             self.const, context.dialect
@@ -945,7 +944,7 @@ def _render_server_default_for_compare(
         return rendered
 
     if isinstance(metadata_default, sa_schema.DefaultClause):
-        if isinstance(metadata_default.arg, compat.string_types):
+        if isinstance(metadata_default.arg, str):
             metadata_default = metadata_default.arg
         else:
             metadata_default = str(
@@ -954,7 +953,7 @@ def _render_server_default_for_compare(
                     compile_kwargs={"literal_binds": True},
                 )
             )
-    if isinstance(metadata_default, compat.string_types):
+    if isinstance(metadata_default, str):
         if metadata_col.type._type_affinity is sqltypes.String:
             metadata_default = re.sub(r"^'|'$", "", metadata_default)
             return repr(metadata_default)

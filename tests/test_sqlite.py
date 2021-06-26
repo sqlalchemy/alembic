@@ -230,7 +230,7 @@ class SQLiteAutogenRenderTest(TestBase):
         eq_ignore_whitespace(
             result,
             "sa.Column('date_value', sa.DateTime(), "
-            "server_default=sa.text(!U\"(datetime('now', 'localtime'))\"), "
+            "server_default=sa.text(\"(datetime('now', 'localtime'))\"), "
             "nullable=True)",
         )
 
@@ -245,7 +245,7 @@ class SQLiteAutogenRenderTest(TestBase):
         eq_ignore_whitespace(
             result,
             "sa.Column('date_value', sa.DateTime(), "
-            "server_default=sa.text(!U\"(datetime('now', 'localtime'))\"), "
+            "server_default=sa.text(\"(datetime('now', 'localtime'))\"), "
             "nullable=True)",
         )
 

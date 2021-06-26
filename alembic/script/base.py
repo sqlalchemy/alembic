@@ -9,7 +9,6 @@ from . import revision
 from . import write_hooks
 from .. import util
 from ..runtime import migration
-from ..util import compat
 
 try:
     from dateutil import tz
@@ -27,7 +26,7 @@ _split_on_space_comma = re.compile(r", *|(?: +)")
 _split_on_space_comma_colon = re.compile(r", *|(?: +)|\:")
 
 
-class ScriptDirectory(object):
+class ScriptDirectory:
 
     """Provides operations upon an Alembic script directory.
 
@@ -216,7 +215,7 @@ class ScriptDirectory(object):
                     "ancestor/descendant revisions along the same branch"
                 )
             ancestor = ancestor % {"start": start, "end": end}
-            compat.raise_(util.CommandError(ancestor), from_=rna)
+            raise util.CommandError(ancestor) from rna
         except revision.MultipleHeads as mh:
             if not multiple_heads:
                 multiple_heads = (
@@ -230,15 +229,15 @@ class ScriptDirectory(object):
                 "head_arg": end or mh.argument,
                 "heads": util.format_as_comma(mh.heads),
             }
-            compat.raise_(util.CommandError(multiple_heads), from_=mh)
+            raise util.CommandError(multiple_heads) from mh
         except revision.ResolutionError as re:
             if resolution is None:
                 resolution = "Can't locate revision identified by '%s'" % (
                     re.argument
                 )
-            compat.raise_(util.CommandError(resolution), from_=re)
+            raise util.CommandError(resolution) from re
         except revision.RevisionError as err:
-            compat.raise_(util.CommandError(err.args[0]), from_=err)
+            raise util.CommandError(err.args[0]) from err
 
     def walk_revisions(self, base="base", head="heads"):
         """Iterate through all revisions.
@@ -610,7 +609,7 @@ class ScriptDirectory(object):
         try:
             Script.verify_rev_id(revid)
         except revision.RevisionError as err:
-            compat.raise_(util.CommandError(err.args[0]), from_=err)
+            raise util.CommandError(err.args[0]) from err
 
         with self._catch_revision_errors(
             multiple_heads=(
@@ -698,7 +697,7 @@ class ScriptDirectory(object):
         try:
             script = Script._from_path(self, path)
         except revision.RevisionError as err:
-            compat.raise_(util.CommandError(err.args[0]), from_=err)
+            raise util.CommandError(err.args[0]) from err
         if branch_labels and not script.branch_labels:
             raise util.CommandError(
                 "Version %s specified branch_labels %s, however the "

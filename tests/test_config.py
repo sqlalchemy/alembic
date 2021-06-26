@@ -18,7 +18,6 @@ from alembic.testing.env import clear_staging_env
 from alembic.testing.env import staging_env
 from alembic.testing.fixtures import capture_db
 from alembic.testing.fixtures import TestBase
-from alembic.util import compat
 
 
 class FileConfigTest(TestBase):
@@ -210,16 +209,16 @@ class StdoutOutputEncodingTest(TestBase):
     def test_utf8_unicode(self):
         stdout = mock.Mock(encoding="latin-1")
         cfg = config.Config(stdout=stdout)
-        cfg.print_stdout(compat.u("méil %s %s"), "x", "y")
+        cfg.print_stdout("méil %s %s", "x", "y")
         eq_(
             stdout.mock_calls,
-            [mock.call.write(compat.u("méil x y")), mock.call.write("\n")],
+            [mock.call.write("méil x y"), mock.call.write("\n")],
         )
 
     def test_ascii_unicode(self):
         stdout = mock.Mock(encoding=None)
         cfg = config.Config(stdout=stdout)
-        cfg.print_stdout(compat.u("méil %s %s"), "x", "y")
+        cfg.print_stdout("méil %s %s", "x", "y")
         eq_(
             stdout.mock_calls,
             [mock.call.write("m?il x y"), mock.call.write("\n")],
@@ -228,7 +227,7 @@ class StdoutOutputEncodingTest(TestBase):
     def test_only_formats_output_with_args(self):
         stdout = mock.Mock(encoding=None)
         cfg = config.Config(stdout=stdout)
-        cfg.print_stdout(compat.u("test 3%"))
+        cfg.print_stdout("test 3%")
         eq_(
             stdout.mock_calls,
             [mock.call.write("test 3%"), mock.call.write("\n")],

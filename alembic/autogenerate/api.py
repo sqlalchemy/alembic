@@ -192,7 +192,7 @@ def _render_migration_diffs(context, template_args):
     )
 
 
-class AutogenContext(object):
+class AutogenContext:
     """Maintains configuration and state that's specific to an
     autogenerate operation."""
 
@@ -408,7 +408,7 @@ class AutogenContext(object):
         return result
 
 
-class RevisionContext(object):
+class RevisionContext:
     """Maintains configuration and state that's specific to a revision
     file generation operation."""
 

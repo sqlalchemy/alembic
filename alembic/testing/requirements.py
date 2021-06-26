@@ -92,11 +92,6 @@ class SuiteRequirements(Requirements):
         )
 
     @property
-    def pep3147(self):
-
-        return exclusions.only_if(lambda config: util.compat.has_pep3147())
-
-    @property
     def comments(self):
         return exclusions.only_if(
             lambda config: config.db.dialect.supports_comments
