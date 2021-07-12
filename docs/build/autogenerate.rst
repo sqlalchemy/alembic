@@ -356,7 +356,7 @@ full example of omitting tables with schema support may look like::
     target_metadata = MyModel.metadata
 
     def include_name(name, type_, parent_names):
-        if type == "schema":
+        if type_ == "schema":
             return name in [None, "schema_one", "schema_two"]
         elif type_ == "table":
             # use schema_qualified_table_name directly
