@@ -1152,9 +1152,19 @@ class ObjectFromToTest(TestBase):
 
     def test_drop_table(self):
         schema_obj = schemaobj.SchemaObjects()
-        table = schema_obj.table("x", Column("q", Integer))
+        table = schema_obj.table(
+            "x",
+            Column("q", Integer),
+            info={"custom": "value"},
+            prefixes=["FOREIGN"],
+            postgresql_partition_by="x",
+            comment="some comment",
+        )
         op = ops.DropTableOp.from_table(table)
         is_not_(op.to_table(), table)
+        eq_(op.to_table().comment, table.comment)
+        eq_(op.to_table().info, table.info)
+        eq_(op.to_table()._prefixes, table._prefixes)
 
     def test_drop_table_add_kw(self):
         schema_obj = schemaobj.SchemaObjects()
@@ -1171,9 +1181,19 @@ class ObjectFromToTest(TestBase):
 
     def test_create_table(self):
         schema_obj = schemaobj.SchemaObjects()
-        table = schema_obj.table("x", Column("q", Integer))
+        table = schema_obj.table(
+            "x",
+            Column("q", Integer),
+            postgresql_partition_by="x",
+            prefixes=["FOREIGN"],
+            info={"custom": "value"},
+            comment="some comment",
+        )
         op = ops.CreateTableOp.from_table(table)
         is_not_(op.to_table(), table)
+        eq_(op.to_table().comment, table.comment)
+        eq_(op.to_table().info, table.info)
+        eq_(op.to_table()._prefixes, table._prefixes)
 
     def test_create_table_add_kw(self):
         schema_obj = schemaobj.SchemaObjects()
