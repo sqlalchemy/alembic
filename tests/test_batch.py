@@ -26,6 +26,7 @@ from sqlalchemy.schema import CreateTable
 from sqlalchemy.sql import column
 from sqlalchemy.sql import text
 
+from alembic import testing
 from alembic.ddl import sqlite
 from alembic.operations import Operations
 from alembic.operations.batch import ApplyBatchImpl
@@ -40,7 +41,15 @@ from alembic.testing import TestBase
 from alembic.testing.fixtures import op_fixture
 from alembic.util import exc as alembic_exc
 from alembic.util.sqla_compat import _select
+from alembic.util.sqla_compat import has_computed
+from alembic.util.sqla_compat import has_identity
 from alembic.util.sqla_compat import sqla_14
+
+if has_computed:
+    from alembic.util.sqla_compat import Computed
+
+if has_identity:
+    from alembic.util.sqla_compat import Identity
 
 
 class BatchApplyTest(TestBase):
@@ -1929,6 +1938,77 @@ class BatchRoundTripTest(TestBase):
         eq_(
             [col["name"] for col in inspect(config.db).get_columns("foo")],
             ["id", "data", "x", "data2"],
+        )
+
+    def test_add_column_auto_server_default_calculated(self):
+        """test #883"""
+        with self.op.batch_alter_table("foo") as batch_op:
+            batch_op.add_column(
+                Column(
+                    "data2",
+                    DateTime(),
+                    server_default=self._datetime_server_default_fixture(),
+                )
+            )
+
+        self._assert_data(
+            [
+                {"id": 1, "data": "d1", "x": 5, "data2": mock.ANY},
+                {"id": 2, "data": "22", "x": 6, "data2": mock.ANY},
+                {"id": 3, "data": "8.5", "x": 7, "data2": mock.ANY},
+                {"id": 4, "data": "9.46", "x": 8, "data2": mock.ANY},
+                {"id": 5, "data": "d5", "x": 9, "data2": mock.ANY},
+            ]
+        )
+        eq_(
+            [col["name"] for col in inspect(config.db).get_columns("foo")],
+            ["id", "data", "x", "data2"],
+        )
+
+    @testing.combinations((True,), (False,))
+    @testing.exclusions.only_on("sqlite")
+    def test_add_column_auto_generated(self, persisted):
+        """test #883"""
+        with self.op.batch_alter_table("foo") as batch_op:
+            batch_op.add_column(
+                Column(
+                    "data2", Integer, Computed("1 + 1", persisted=persisted)
+                )
+            )
+
+        self._assert_data(
+            [
+                {"id": 1, "data": "d1", "x": 5, "data2": 2},
+                {"id": 2, "data": "22", "x": 6, "data2": 2},
+                {"id": 3, "data": "8.5", "x": 7, "data2": 2},
+                {"id": 4, "data": "9.46", "x": 8, "data2": 2},
+                {"id": 5, "data": "d5", "x": 9, "data2": 2},
+            ]
+        )
+        eq_(
+            [col["name"] for col in inspect(config.db).get_columns("foo")],
+            ["id", "data", "x", "data2"],
+        )
+
+    @config.requirements.identity_columns
+    def test_add_column_auto_identity(self):
+        """test #883"""
+
+        self._no_pk_fixture()
+
+        with self.op.batch_alter_table("nopk") as batch_op:
+            batch_op.add_column(Column("id", Integer, Identity()))
+
+        self._assert_data(
+            [
+                {"a": 1, "b": 2, "c": 3, "id": 1},
+                {"a": 2, "b": 4, "c": 5, "id": 2},
+            ],
+            tablename="nopk",
+        )
+        eq_(
+            [col["name"] for col in inspect(config.db).get_columns("foo")],
+            ["id", "data", "x"],
         )
 
     def test_add_column_insert_before_recreate(self):

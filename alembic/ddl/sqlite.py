@@ -2,6 +2,8 @@ import re
 
 from sqlalchemy import cast
 from sqlalchemy import JSON
+from sqlalchemy import schema
+from sqlalchemy import sql
 
 from .impl import DefaultImpl
 from .. import util
@@ -25,7 +27,19 @@ class SQLiteImpl(DefaultImpl):
 
         """
         for op in batch_op.batch:
-            if op[0] not in ("add_column", "create_index", "drop_index"):
+            if op[0] == "add_column":
+                col = op[1][1]
+                if isinstance(
+                    col.server_default, schema.DefaultClause
+                ) and isinstance(col.server_default.arg, sql.ClauseElement):
+                    return True
+                elif (
+                    isinstance(col.server_default, util.sqla_compat.Computed)
+                    and col.server_default.persisted
+                ):
+                    return True
+                return False
+            elif op[0] not in ("create_index", "drop_index"):
                 return True
         else:
             return False
