@@ -1967,6 +1967,7 @@ class BatchRoundTripTest(TestBase):
 
     @testing.combinations((True,), (False,))
     @testing.exclusions.only_on("sqlite")
+    @config.requirements.computed_columns
     def test_add_column_auto_generated(self, persisted):
         """test #883"""
         with self.op.batch_alter_table("foo") as batch_op:
