@@ -198,7 +198,7 @@ class CreatePrimaryKeyOp(AddConstraintOp):
             constraint_table.name,
             constraint.columns.keys(),
             schema=constraint_table.schema,
-            **constraint.dialect_kwargs
+            **constraint.dialect_kwargs,
         )
 
     def to_constraint(self, migration_context=None):
@@ -208,7 +208,7 @@ class CreatePrimaryKeyOp(AddConstraintOp):
             self.table_name,
             self.columns,
             schema=self.schema,
-            **self.kw
+            **self.kw,
         )
 
     @classmethod
@@ -310,7 +310,7 @@ class CreateUniqueConstraintOp(AddConstraintOp):
             constraint_table.name,
             [c.name for c in constraint.columns],
             schema=constraint_table.schema,
-            **kw
+            **kw,
         )
 
     def to_constraint(self, migration_context=None):
@@ -320,7 +320,7 @@ class CreateUniqueConstraintOp(AddConstraintOp):
             self.table_name,
             self.columns,
             schema=self.schema,
-            **self.kw
+            **self.kw,
         )
 
     @classmethod
@@ -459,7 +459,7 @@ class CreateForeignKeyOp(AddConstraintOp):
             target_table,
             source_columns,
             target_columns,
-            **kw
+            **kw,
         )
 
     def to_constraint(self, migration_context=None):
@@ -470,7 +470,7 @@ class CreateForeignKeyOp(AddConstraintOp):
             self.referent_table,
             self.local_cols,
             self.remote_cols,
-            **self.kw
+            **self.kw,
         )
 
     @classmethod
@@ -549,7 +549,7 @@ class CreateForeignKeyOp(AddConstraintOp):
             referent_schema=referent_schema,
             initially=initially,
             match=match,
-            **dialect_kw
+            **dialect_kw,
         )
         return operations.invoke(op)
 
@@ -600,7 +600,7 @@ class CreateForeignKeyOp(AddConstraintOp):
             referent_schema=referent_schema,
             initially=initially,
             match=match,
-            **dialect_kw
+            **dialect_kw,
         )
         return operations.invoke(op)
 
@@ -635,7 +635,7 @@ class CreateCheckConstraintOp(AddConstraintOp):
             constraint_table.name,
             constraint.sqltext,
             schema=constraint_table.schema,
-            **constraint.dialect_kwargs
+            **constraint.dialect_kwargs,
         )
 
     def to_constraint(self, migration_context=None):
@@ -645,7 +645,7 @@ class CreateCheckConstraintOp(AddConstraintOp):
             self.table_name,
             self.condition,
             schema=self.schema,
-            **self.kw
+            **self.kw,
         )
 
     @classmethod
@@ -721,7 +721,7 @@ class CreateCheckConstraintOp(AddConstraintOp):
             operations.impl.table_name,
             condition,
             schema=operations.impl.schema,
-            **kw
+            **kw,
         )
         return operations.invoke(op)
 
@@ -755,7 +755,7 @@ class CreateIndexOp(MigrateOperation):
             sqla_compat._get_index_expressions(index),
             schema=index.table.schema,
             unique=index.unique,
-            **index.kwargs
+            **index.kwargs,
         )
 
     def to_index(self, migration_context=None):
@@ -767,7 +767,7 @@ class CreateIndexOp(MigrateOperation):
             self.columns,
             schema=self.schema,
             unique=self.unique,
-            **self.kw
+            **self.kw,
         )
         return idx
 
@@ -844,7 +844,7 @@ class CreateIndexOp(MigrateOperation):
             operations.impl.table_name,
             columns,
             schema=operations.impl.schema,
-            **kw
+            **kw,
         )
         return operations.invoke(op)
 
@@ -876,7 +876,7 @@ class DropIndexOp(MigrateOperation):
             index.table.name,
             schema=index.table.schema,
             _reverse=CreateIndexOp.from_index(index),
-            **index.kwargs
+            **index.kwargs,
         )
 
     def to_index(self, migration_context=None):
@@ -889,7 +889,7 @@ class DropIndexOp(MigrateOperation):
             self.table_name,
             self._reverse.columns if self._reverse else ["x"],
             schema=self.schema,
-            **self.kw
+            **self.kw,
         )
 
     @classmethod
@@ -935,7 +935,7 @@ class DropIndexOp(MigrateOperation):
             index_name,
             table_name=operations.impl.table_name,
             schema=operations.impl.schema,
-            **kw
+            **kw,
         )
         return operations.invoke(op)
 
@@ -956,6 +956,7 @@ class CreateTableOp(MigrateOperation):
         self.table_name = table_name
         self.columns = columns
         self.schema = schema
+        self.info = kw.pop("info", {})
         self.comment = kw.pop("comment", None)
         self.prefixes = kw.pop("prefixes", None)
         self.kw = kw
@@ -988,8 +989,9 @@ class CreateTableOp(MigrateOperation):
             # not doubled up. see #844 #848
             _constraints_included=True,
             comment=table.comment,
-            prefixes=table._prefixes,
-            **table.kwargs
+            info=table.info.copy(),
+            prefixes=list(table._prefixes),
+            **table.kwargs,
         )
 
     def to_table(self, migration_context=None):
@@ -999,10 +1001,11 @@ class CreateTableOp(MigrateOperation):
             self.table_name,
             *self.columns,
             schema=self.schema,
-            prefixes=self.prefixes,
+            prefixes=list(self.prefixes) if self.prefixes else [],
             comment=self.comment,
+            info=self.info.copy() if self.info else {},
             _constraints_included=self._constraints_included,
-            **self.kw
+            **self.kw,
         )
 
     @classmethod
@@ -1095,6 +1098,9 @@ class DropTableOp(MigrateOperation):
         self.table_name = table_name
         self.schema = schema
         self.table_kw = table_kw or {}
+        self.comment = self.table_kw.pop("comment", None)
+        self.info = self.table_kw.pop("info", None)
+        self.prefixes = self.table_kw.pop("prefixes", None)
         self._reverse = _reverse
 
     def to_diff_tuple(self):
@@ -1108,7 +1114,12 @@ class DropTableOp(MigrateOperation):
         return cls(
             table.name,
             schema=table.schema,
-            table_kw=table.kwargs,
+            table_kw={
+                "comment": table.comment,
+                "info": table.info.copy(),
+                "prefixes": list(table._prefixes),
+                **table.kwargs,
+            },
             _reverse=CreateTableOp.from_table(
                 table, _namespace_metadata=_namespace_metadata
             ),
@@ -1124,10 +1135,13 @@ class DropTableOp(MigrateOperation):
         t = schema_obj.table(
             self.table_name,
             *cols_and_constraints,
+            comment=self.comment,
+            info=self.info.copy() if self.info else {},
+            prefixes=list(self.prefixes) if self.prefixes else [],
             schema=self.schema,
             _constraints_included=bool(self._reverse)
             and self._reverse._constraints_included,
-            **self.table_kw
+            **self.table_kw,
         )
         return t
 
@@ -1649,7 +1663,7 @@ class AlterColumnOp(AlterTableOp):
             modify_server_default=server_default,
             modify_nullable=nullable,
             modify_comment=comment,
-            **kw
+            **kw,
         )
 
         return operations.invoke(alt)
@@ -1711,7 +1725,7 @@ class AlterColumnOp(AlterTableOp):
             modify_server_default=server_default,
             modify_nullable=nullable,
             modify_comment=comment,
-            **kw
+            **kw,
         )
 
         return operations.invoke(alt)
@@ -1823,7 +1837,7 @@ class AddColumnOp(AlterTableOp):
             operations.impl.table_name,
             column,
             schema=operations.impl.schema,
-            **kw
+            **kw,
         )
         return operations.invoke(op)
 
@@ -1933,7 +1947,7 @@ class DropColumnOp(AlterTableOp):
             operations.impl.table_name,
             column_name,
             schema=operations.impl.schema,
-            **kw
+            **kw,
         )
         return operations.invoke(op)
 

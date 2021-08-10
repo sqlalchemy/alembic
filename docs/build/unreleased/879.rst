@@ -1,0 +1,9 @@
+.. change::
+    :tags: bug, operations
+    :tickets: 879
+
+    Fixed regression due to :ticket:`803` where the ``.info`` and ``.comment``
+    attributes of ``Table`` would be lost inside of the :class:`.DropTableOp`
+    class, which when "reversed" into a :class:`.CreateTableOp` would then have
+    lost these elements. Pull request courtesy Nicolas CANIART.
+
