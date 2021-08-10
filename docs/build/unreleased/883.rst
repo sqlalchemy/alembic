@@ -1,0 +1,8 @@
+.. change::
+    :tags: bug, sqlite, batch
+    :tickets: 883
+
+    Batch "auto" mode will now select for "recreate" if the ``add_column()``
+    operation is used on SQLite, and the column itself meets the criteria for
+    SQLite where ADD COLUMN is not allowed, in this case a functional or
+    parenthesized SQL expression or a ``Computed`` (i.e. generated) column.
