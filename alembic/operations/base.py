@@ -2,8 +2,12 @@ from contextlib import contextmanager
 import textwrap
 from typing import Any
 from typing import Callable
+from typing import ForwardRef  # noqa
 from typing import Iterator
+from typing import List  # noqa
 from typing import Optional
+from typing import Sequence  # noqa
+from typing import Type  # noqa
 from typing import TYPE_CHECKING
 from typing import Union
 
@@ -14,9 +18,12 @@ from . import schemaobj
 from .. import util
 from ..util import sqla_compat
 from ..util.compat import inspect_formatargspec
-from ..util.compat import inspect_getargspec
+from ..util.compat import inspect_getfullargspec
+
+NoneType = type(None)
 
 if TYPE_CHECKING:
+    from sqlalchemy import Table  # noqa
     from sqlalchemy.engine import Connection
 
     from .batch import BatchOperationsImpl
@@ -107,7 +114,7 @@ class Operations(util.ModuleClsProxy):
                 fn = getattr(op_cls, sourcename)
                 source_name = fn.__name__
 
-            spec = inspect_getargspec(fn)
+            spec = inspect_getfullargspec(fn)
 
             name_args = spec[0]
             assert name_args[0:2] == ["cls", "operations"]
@@ -143,8 +150,10 @@ class Operations(util.ModuleClsProxy):
                     "doc": fn.__doc__,
                 }
             )
-            globals_ = {"op_cls": op_cls}
+            globals_ = dict(globals())
+            globals_.update({"op_cls": op_cls})
             lcl = {}
+
             exec(func_text, globals_, lcl)
             setattr(cls, name, lcl[name])
             fn.__func__.__doc__ = (

@@ -61,7 +61,7 @@ sqla_14 = _vers >= (1, 4)
 try:
     from sqlalchemy import Computed  # noqa
 except ImportError:
-    Computed = None  # type: ignore
+    Computed = type(None)  # type: ignore
     has_computed = False
     has_computed_reflection = False
 else:
@@ -71,7 +71,7 @@ else:
 try:
     from sqlalchemy import Identity  # noqa
 except ImportError:
-    Identity = None  # type: ignore
+    Identity = type(None)  # type: ignore
     has_identity = False
 else:
     # attributes common to Indentity and Sequence

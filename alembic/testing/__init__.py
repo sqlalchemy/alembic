@@ -4,6 +4,7 @@ from sqlalchemy.testing import engines
 from sqlalchemy.testing import exclusions
 from sqlalchemy.testing import mock
 from sqlalchemy.testing import provide_metadata
+from sqlalchemy.testing import skip_if
 from sqlalchemy.testing import uses_deprecated
 from sqlalchemy.testing.config import combinations
 from sqlalchemy.testing.config import fixture

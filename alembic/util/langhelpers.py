@@ -20,7 +20,7 @@ from sqlalchemy.util import memoized_property  # noqa
 from sqlalchemy.util import to_list  # noqa
 from sqlalchemy.util import unique_list  # noqa
 
-from .compat import inspect_getargspec
+from .compat import inspect_getfullargspec
 from .compat import string_types
 
 
@@ -105,7 +105,7 @@ class ModuleClsProxy(metaclass=_ModuleClsMeta):
 
         translations = getattr(fn, "_legacy_translations", [])
         if translations:
-            spec = inspect_getargspec(fn)
+            spec = inspect_getfullargspec(fn)
             if spec[0] and spec[0][0] == "self":
                 spec[0].pop(0)
 
@@ -174,6 +174,7 @@ class ModuleClsProxy(metaclass=_ModuleClsMeta):
             }
         )
         lcl = {}
+
         exec(func_text, globals_, lcl)
         return lcl[name]
 

@@ -520,8 +520,8 @@ class CommandLine:
                 and fn.__module__ == "alembic.command"
             ):
 
-                spec = compat.inspect_getargspec(fn)
-                if spec[3]:
+                spec = compat.inspect_getfullargspec(fn)
+                if spec[3] is not None:
                     positional = spec[0][1 : -len(spec[3])]
                     kwarg = spec[0][-len(spec[3]) :]
                 else:

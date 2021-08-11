@@ -1,8 +1,10 @@
 .. change::
     :tags: feature, general
 
-    pep-484 type annotations have been added throughout the library. This
-    should be helpful in providing Mypy and IDE support, however there is not
-    full support for Alembic's dynamically modified "op" namespace as of yet; a
-    future release will likely modify the approach used for importing this
-    namespace to be better compatible with pep-484 capabilities.
+    pep-484 type annotations have been added throughout the library.
+    Additionally, stub .pyi files have been added for the "dynamically"
+    generated Alembic modules ``alembic.op`` and ``alembic.config``, which
+    include complete function signatures and docstrings, so that the functions
+    in these namespaces will have both IDE support (vscode, pycharm, etc) as
+    well as support for typing tools like Mypy. The files themselves are
+    statically generated from their source functions within the source tree.

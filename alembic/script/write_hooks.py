@@ -32,6 +32,7 @@ def register(name: str) -> Callable:
 
     def decorate(fn):
         _registry[name] = fn
+        return fn
 
     return decorate
 
@@ -112,7 +113,7 @@ def _parse_cmdline_options(cmdline_options_str: str, path: str) -> List[str]:
 
 
 @register("console_scripts")
-def console_scripts(path, options):
+def console_scripts(path, options, ignore_output=False):
     import pkg_resources
 
     try:
@@ -128,6 +129,9 @@ def console_scripts(path, options):
     cmdline_options_str = options.get("options", "")
     cmdline_options_list = _parse_cmdline_options(cmdline_options_str, path)
 
+    kw = {}
+    if ignore_output:
+        kw["stdout"] = kw["stderr"] = subprocess.DEVNULL
     subprocess.run(
         [
             sys.executable,
@@ -137,4 +141,5 @@ def console_scripts(path, options):
         ]
         + cmdline_options_list,
         cwd=cwd,
+        **kw
     )
