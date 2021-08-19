@@ -16,6 +16,7 @@ from sqlalchemy import types as sqltypes
 from sqlalchemy.dialects.postgresql import BIGINT
 from sqlalchemy.dialects.postgresql import ExcludeConstraint
 from sqlalchemy.dialects.postgresql import INTEGER
+from sqlalchemy.schema import CreateIndex
 from sqlalchemy.sql.elements import ColumnClause
 from sqlalchemy.sql.elements import UnaryExpression
 from sqlalchemy.types import NULLTYPE
@@ -70,6 +71,16 @@ class PostgresqlImpl(DefaultImpl):
         {"FLOAT", "DOUBLE PRECISION"},
     )
     identity_attrs_ignore = ("on_null", "order")
+
+    def create_index(self, index):
+        # this likely defaults to None if not present, so get()
+        # should normally not return the default value.  being
+        # defensive in any case
+        postgresql_include = index.kwargs.get("postgresql_include", None) or ()
+        for col in postgresql_include:
+            if col not in index.table.c:
+                index.table.append_column(Column(col, sqltypes.NullType))
+        self._exec(CreateIndex(index))
 
     def prep_table_for_batch(self, batch_impl, table):
 

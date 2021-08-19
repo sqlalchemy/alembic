@@ -1,0 +1,9 @@
+.. change::
+   :tags: bug, postgresql
+   :tickets: 874
+
+   Fixed issue where usage of the PostgreSQL ``postgresql_include`` option
+   within a :meth:`.Operations.create_index` would raise a KeyError, as the
+   additional column(s) need to be added to the table object used by the
+   construct internally. The issue is equivalent to the SQL Server issue fixed
+   in :ticket:`513`. Pull request courtesy Steven Bronson.

@@ -103,6 +103,19 @@ class PostgresqlOpTest(TestBase):
             "CREATE INDEX CONCURRENTLY geocoded ON locations (coordinates)"
         )
 
+    @config.requirements.sqlalchemy_14
+    def test_create_index_postgresql_include(self):
+        context = op_fixture("postgresql")
+        op.create_index(
+            "i", "t", ["c1", "c2"], unique=False, postgresql_include=["inc"]
+        )
+        context.assert_("CREATE INDEX i ON t (c1, c2) INCLUDE (inc)")
+
+    def test_create_index_postgresql_include_is_none(self):
+        context = op_fixture("postgresql")
+        op.create_index("i", "t", ["c1", "c2"], unique=False)
+        context.assert_("CREATE INDEX i ON t (c1, c2)")
+
     def test_drop_index_postgresql_concurrently(self):
         context = op_fixture("postgresql")
         op.drop_index("geocoded", "locations", postgresql_concurrently=True)
