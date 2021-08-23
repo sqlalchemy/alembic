@@ -38,6 +38,17 @@ class DefaultRequirements(SuiteRequirements):
         )
 
     @property
+    def non_native_boolean_check_constraint(self):
+        """backend creates a check constraint for booleans if enabled"""
+
+        return exclusions.only_on(
+            exclusions.LambdaPredicate(
+                lambda config: not config.db.dialect.supports_native_boolean
+                and config.db.dialect.non_native_boolean_check_constraint
+            )
+        )
+
+    @property
     def check_constraints_w_enforcement(self):
         return exclusions.fails_on(["mysql", "mariadb"])
 
