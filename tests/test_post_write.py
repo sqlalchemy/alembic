@@ -133,17 +133,23 @@ class RunHookTest(TestBase):
         self, input_config, expected_additional_arguments_fn, cwd=None
     ):
         self.cfg = _no_sql_testing_config(directives=input_config)
-        impl = mock.Mock(attrs=("foo", "bar"), module_name="black_module")
-        entrypoints = mock.Mock(return_value=iter([impl]))
+
+        class MocksCantName:
+            name = "black"
+            attr = "bar"
+            module = "black_module.foo"
+
+        importlib_metadata_get = mock.Mock(return_value=iter([MocksCantName]))
         with mock.patch(
-            "pkg_resources.iter_entry_points", entrypoints
+            "alembic.util.compat.importlib_metadata_get",
+            importlib_metadata_get,
         ), mock.patch(
             "alembic.script.write_hooks.subprocess"
         ) as mock_subprocess:
 
             rev = command.revision(self.cfg, message="x")
 
-        eq_(entrypoints.mock_calls, [mock.call("console_scripts", "black")])
+        eq_(importlib_metadata_get.mock_calls, [mock.call("console_scripts")])
         eq_(
             mock_subprocess.mock_calls,
             [
@@ -151,7 +157,7 @@ class RunHookTest(TestBase):
                     [
                         sys.executable,
                         "-c",
-                        "import black_module; black_module.foo.bar()",
+                        "import black_module.foo; black_module.foo.bar()",
                     ]
                     + expected_additional_arguments_fn(rev.path),
                     cwd=cwd,

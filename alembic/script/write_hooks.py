@@ -114,7 +114,6 @@ def _parse_cmdline_options(cmdline_options_str: str, path: str) -> List[str]:
 
 @register("console_scripts")
 def console_scripts(path, options, ignore_output=False):
-    import pkg_resources
 
     try:
         entrypoint_name = options["entrypoint"]
@@ -123,8 +122,14 @@ def console_scripts(path, options, ignore_output=False):
             "Key %s.entrypoint is required for post write hook %r"
             % (options["_hook_name"], options["_hook_name"])
         ) from ke
-    iter_ = pkg_resources.iter_entry_points("console_scripts", entrypoint_name)
-    impl = next(iter_)
+    for entry in compat.importlib_metadata_get("console_scripts"):
+        if entry.name == entrypoint_name:
+            impl = entry
+            break
+    else:
+        raise util.CommandError(
+            f"Could not find entrypoint console_scripts.{entrypoint_name}"
+        )
     cwd = options.get("cwd", None)
     cmdline_options_str = options.get("options", "")
     cmdline_options_list = _parse_cmdline_options(cmdline_options_str, path)
@@ -132,14 +137,14 @@ def console_scripts(path, options, ignore_output=False):
     kw = {}
     if ignore_output:
         kw["stdout"] = kw["stderr"] = subprocess.DEVNULL
+
     subprocess.run(
         [
             sys.executable,
             "-c",
-            "import %s; %s()"
-            % (impl.module_name, ".".join((impl.module_name,) + impl.attrs)),
+            "import %s; %s.%s()" % (impl.module, impl.module, impl.attr),
         ]
         + cmdline_options_list,
         cwd=cwd,
-        **kw
+        **kw,
     )

@@ -1,3 +1,5 @@
+import atexit
+from contextlib import ExitStack
 import importlib
 import importlib.machinery
 import importlib.util
@@ -9,6 +11,7 @@ from typing import Optional
 from mako import exceptions
 from mako.template import Template
 
+from . import compat
 from .exc import CommandError
 
 
@@ -44,9 +47,20 @@ def coerce_resource_to_filename(fname: str) -> str:
 
     """
     if not os.path.isabs(fname) and ":" in fname:
-        import pkg_resources
 
-        fname = pkg_resources.resource_filename(*fname.split(":"))
+        tokens = fname.split(":")
+
+        # from https://importlib-resources.readthedocs.io/en/latest/migration.html#pkg-resources-resource-filename  # noqa E501
+
+        file_manager = ExitStack()
+        atexit.register(file_manager.close)
+
+        ref = compat.importlib_resources.files(tokens[0])
+        for tok in tokens[1:]:
+            ref = ref / tok
+        fname = file_manager.enter_context(
+            compat.importlib_resources.as_file(ref)
+        )
     return fname
 
 

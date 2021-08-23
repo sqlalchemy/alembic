@@ -8,7 +8,8 @@ from sqlalchemy.util.compat import inspect_formatargspec  # noqa
 is_posix = os.name == "posix"
 
 py39 = sys.version_info >= (3, 9)
-
+py38 = sys.version_info >= (3, 8)
+py37 = sys.version_info >= (3, 7)
 
 string_types = (str,)
 binary_type = bytes
@@ -21,3 +22,22 @@ text_type = str
 class EncodedIO(io.TextIOWrapper):
     def close(self) -> None:
         pass
+
+
+if py37:
+    from importlib import resources as importlib_resources
+else:
+    import importlib_resources  # noqa
+
+if py38:
+    from importlib import metadata as importlib_metadata
+else:
+    import importlib_metadata  # noqa
+
+
+def importlib_metadata_get(group):
+    ep = importlib_metadata.entry_points()
+    if hasattr(ep, "select"):
+        return ep.select(group=group)
+    else:
+        return ep.get(group, ())
