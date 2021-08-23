@@ -1,10 +1,13 @@
 import io
 import os
+import sys
 
 from sqlalchemy.util import inspect_getfullargspec  # noqa
 from sqlalchemy.util.compat import inspect_formatargspec  # noqa
 
 is_posix = os.name == "posix"
+
+py39 = sys.version_info >= (3, 9)
 
 
 string_types = (str,)

@@ -2,6 +2,7 @@ from sqlalchemy import text
 
 from alembic.testing import exclusions
 from alembic.testing.requirements import SuiteRequirements
+from alembic.util import compat
 from alembic.util import sqla_compat
 
 
@@ -301,3 +302,22 @@ class DefaultRequirements(SuiteRequirements):
         return exclusions.only_if(
             lambda config: not getattr(config.db, "_is_future", False)
         )
+
+    @property
+    def stubs_test(self):
+        def requirements():
+            try:
+                import black  # noqa
+                import zimports  # noqa
+
+                return False
+            except Exception:
+                return True
+
+        imports = exclusions.skip_if(
+            requirements, "black and zimports are required for this test"
+        )
+        version = exclusions.only_if(
+            lambda _: compat.py39, "python 3.9 is required"
+        )
+        return imports + version

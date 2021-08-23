@@ -4,20 +4,9 @@ import sys
 
 import alembic
 from alembic.testing import eq_
-from alembic.testing import skip_if
 from alembic.testing import TestBase
 
 _home = Path(__file__).parent.parent
-
-
-def requirements():
-    try:
-        import black  # noqa
-        import zimports  # noqa
-
-        return False
-    except Exception:
-        return True
 
 
 def run_command(file):
@@ -37,14 +26,14 @@ def run_command(file):
 
 
 class TestStubFiles(TestBase):
-    @skip_if(requirements, "black and zimports are required for this test")
+    __requires__ = ("stubs_test",)
+
     def test_op_pyi(self):
         res = run_command("op")
         generated = res.stdout
         expected = Path(alembic.__file__).parent / "op.pyi"
         eq_(generated, expected.read_text())
 
-    @skip_if(requirements, "black and zimports are required for this test")
     def test_context_pyi(self):
         res = run_command("context")
         generated = res.stdout

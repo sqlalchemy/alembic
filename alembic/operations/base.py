@@ -1,8 +1,8 @@
 from contextlib import contextmanager
+import re
 import textwrap
 from typing import Any
 from typing import Callable
-from typing import ForwardRef  # noqa
 from typing import Iterator
 from typing import List  # noqa
 from typing import Optional
@@ -134,6 +134,12 @@ class Operations(util.ModuleClsProxy):
                 spec[2],
                 defaulted_vals,
                 formatvalue=lambda x: "=" + x,
+            )
+
+            args = re.sub(
+                r'[_]?ForwardRef\(([\'"].+?[\'"])\)',
+                lambda m: m.group(1),
+                args,
             )
 
             func_text = textwrap.dedent(
