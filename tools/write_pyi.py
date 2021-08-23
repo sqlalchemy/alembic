@@ -7,11 +7,14 @@ import textwrap
 
 from mako.pygen import PythonPrinter
 
-from alembic.operations.base import Operations
-from alembic.runtime.environment import EnvironmentContext
-from alembic.script.write_hooks import console_scripts
-from alembic.util.compat import inspect_formatargspec
-from alembic.util.compat import inspect_getfullargspec
+sys.path.append(str(Path(__file__).parent.parent))
+
+if True:  # avoid flake/zimports missing with the order
+    from alembic.operations.base import Operations
+    from alembic.runtime.environment import EnvironmentContext
+    from alembic.script.write_hooks import console_scripts
+    from alembic.util.compat import inspect_formatargspec
+    from alembic.util.compat import inspect_getfullargspec
 
 IGNORE_ITEMS = {
     "op": {"context", "create_module_class_proxy"},
