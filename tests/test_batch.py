@@ -6,7 +6,6 @@ from sqlalchemy import CheckConstraint
 from sqlalchemy import Column
 from sqlalchemy import DateTime
 from sqlalchemy import Enum
-from sqlalchemy import exc
 from sqlalchemy import ForeignKey
 from sqlalchemy import ForeignKeyConstraint
 from sqlalchemy import func
@@ -1344,6 +1343,17 @@ class BatchRoundTripTest(TestBase):
             t.create(self.conn)
             return t
 
+    def _ck_constraint_fixture(self):
+        with self.conn.begin():
+            t = Table(
+                "ck_table",
+                self.metadata,
+                Column("id", Integer, nullable=False),
+                CheckConstraint("id is not NULL", name="ck"),
+            )
+            t.create(self.conn)
+            return t
+
     def _datetime_server_default_fixture(self):
         return func.datetime("now", "localtime")
 
@@ -1427,7 +1437,9 @@ class BatchRoundTripTest(TestBase):
     def test_drop_col_schematype(self):
         self._boolean_fixture()
         with self.op.batch_alter_table("hasbool") as batch_op:
-            batch_op.drop_column("x")
+            batch_op.drop_column(
+                "x", existing_type=Boolean(create_constraint=True, name="ck1")
+            )
         insp = inspect(config.db)
 
         assert "x" not in (c["name"] for c in insp.get_columns("hasbool"))
@@ -1659,22 +1671,28 @@ class BatchRoundTripTest(TestBase):
             eq_(pk_const["name"], "newpk")
         eq_(pk_const["constrained_columns"], ["a", "b"])
 
-    @config.requirements.check_constraints_w_enforcement
+    @config.requirements.check_constraint_reflection
     def test_add_ck_constraint(self):
         with self.op.batch_alter_table("foo", recreate="always") as batch_op:
             batch_op.create_check_constraint("newck", text("x > 0"))
 
-        # we dont support reflection of CHECK constraints
-        # so test this by just running invalid data in
-        foo = self.metadata.tables["foo"]
-
-        assert_raises_message(
-            exc.IntegrityError,
-            "newck",
-            self.conn.execute,
-            foo.insert(),
-            {"id": 6, "data": 5, "x": -2},
+        ck_consts = inspect(self.conn).get_check_constraints("foo")
+        ck_consts[0]["sqltext"] = re.sub(
+            r"[\'\"`\(\)]", "", ck_consts[0]["sqltext"]
         )
+        eq_(ck_consts, [{"sqltext": "x > 0", "name": "newck"}])
+
+    @config.requirements.check_constraint_reflection
+    def test_drop_ck_constraint(self):
+        self._ck_constraint_fixture()
+
+        with self.op.batch_alter_table(
+            "ck_table", recreate="always"
+        ) as batch_op:
+            batch_op.drop_constraint("ck", "check")
+
+        ck_consts = inspect(self.conn).get_check_constraints("ck_table")
+        eq_(ck_consts, [])
 
     @config.requirements.unnamed_constraints
     def test_drop_foreign_key(self):
@@ -1848,6 +1866,31 @@ class BatchRoundTripTest(TestBase):
         with self.op.batch_alter_table("bar") as batch_op:
             batch_op.alter_column(
                 "flag", new_column_name="bflag", existing_type=Boolean
+            )
+
+        self._assert_data(
+            [{"id": 1, "bflag": True}, {"id": 2, "bflag": False}], "bar"
+        )
+
+    #    @config.requirements.check_constraint_reflection
+    def test_rename_column_boolean_named_ck(self):
+        bar = Table(
+            "bar",
+            self.metadata,
+            Column("id", Integer, primary_key=True),
+            Column("flag", Boolean(create_constraint=True, name="ck1")),
+            mysql_engine="InnoDB",
+        )
+        with self.conn.begin():
+            bar.create(self.conn)
+            self.conn.execute(bar.insert(), {"id": 1, "flag": True})
+            self.conn.execute(bar.insert(), {"id": 2, "flag": False})
+
+        with self.op.batch_alter_table("bar", recreate="always") as batch_op:
+            batch_op.alter_column(
+                "flag",
+                new_column_name="bflag",
+                existing_type=Boolean(create_constraint=True, name="ck1"),
             )
 
         self._assert_data(

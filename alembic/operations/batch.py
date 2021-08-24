@@ -240,8 +240,13 @@ class ApplyBatchImpl:
         for const in self.table.constraints:
             if _is_type_bound(const):
                 continue
-            elif self.reflected and isinstance(const, CheckConstraint):
-                # TODO: we are skipping reflected CheckConstraint because
+            elif (
+                self.reflected
+                and isinstance(const, CheckConstraint)
+                and not const.name
+            ):
+                # TODO: we are skipping unnamed reflected CheckConstraint
+                # because
                 # we have no way to determine _is_type_bound() for these.
                 pass
             elif const.name:
@@ -457,6 +462,14 @@ class ApplyBatchImpl:
             existing.name = name
             existing_transfer["name"] = name
 
+            # pop named constraints for Boolean/Enum for rename
+            if (
+                "existing_type" in kw
+                and isinstance(kw["existing_type"], SchemaEventTarget)
+                and kw["existing_type"].name
+            ):
+                self.named_constraints.pop(kw["existing_type"].name, None)
+
         if type_ is not None:
             type_ = sqltypes.to_instance(type_)
             # old type is being discarded so turn off eventing
@@ -464,6 +477,7 @@ class ApplyBatchImpl:
             # erase the events set up by this type, but this is simpler.
             # we also ignore the drop_constraint that will come here from
             # Operations.implementation_for(alter_column)
+
             if isinstance(existing.type, SchemaEventTarget):
                 existing.type._create_events = (  # type:ignore[attr-defined]
                     existing.type.create_constraint  # type:ignore[attr-defined] # noqa
@@ -571,6 +585,14 @@ class ApplyBatchImpl:
         del self.columns[column.name]
         del self.column_transfers[column.name]
         self.existing_ordering.remove(column.name)
+
+        # pop named constraints for Boolean/Enum for rename
+        if (
+            "existing_type" in kw
+            and isinstance(kw["existing_type"], SchemaEventTarget)
+            and kw["existing_type"].name
+        ):
+            self.named_constraints.pop(kw["existing_type"].name, None)
 
     def create_column_comment(self, column):
         """the batch table creation function will issue create_column_comment

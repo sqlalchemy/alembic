@@ -178,6 +178,8 @@ them directly, which can be via the
         ):
         batch_op.add_column(Column('foo', Integer))
 
+.. _batch_schematype_constraints:
+
 Changing the Type of Boolean, Enum and other implicit CHECK datatypes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -190,16 +192,62 @@ Alembic handles dropping and creating the CHECK constraints here automatically,
 including in the case of batch mode.  When changing the type of an existing
 column, what's necessary is that the existing type be specified fully::
 
-  with self.op.batch_alter_table("some_table"):
+  with self.op.batch_alter_table("some_table") as batch_op:
       batch_op.alter_column(
           'q', type_=Integer,
           existing_type=Boolean(create_constraint=True, constraint_name="ck1"))
 
+When dropping a column that includes a named CHECK constraint, as of Alembic
+1.7 this named constraint must also be provided using a similar form, as there
+is no ability for Alembic to otherwise link this reflected CHECK constraint as
+belonging to a particular column::
+
+    with self.op.batch_alter_table("some_table") as batch_op:
+        batch_op.drop_column(
+            'q',
+            existing_type=Boolean(create_constraint=True, constraint_name="ck1"))
+        )
+
+.. versionchanged:: 1.7  The :meth:`.BatchOperations.drop_column` operation can
+   accept an ``existing_type`` directive where a "schema type" such as
+   :class:`~sqlalchemy.types.Boolean` and :class:`~sqlalchemy.types.Enum` may
+   be specified such that an associated named constraint can be removed.
+
+.. _batch_check_constraints:
+
 Including CHECK constraints
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-SQLAlchemy currently doesn't reflect CHECK constraints on any backend.
-So again these must be stated explicitly if they are to be included in the
+As of Alembic 1.7, **named** CHECK constraints are automatically included
+in batch mode, as modern SQLAlchemy versions are capable of reflecting these
+constraints like any other constraint.
+
+Note that when dropping or renaming a column that is mentioned in a named
+CHECK constraint, this CHECK constraint must be explicitly dropped first,
+as Alembic has no means of linking a reflected CHECK constraint to that
+column.  Supposing column ``q`` of ``some_table`` were mentioned in a CHECK
+constraint named ``ck1``.  In order to drop this column, we have to drop
+the check constraint also::
+
+    with self.op.batch_alter_table("some_table") as batch_op:
+        batch_op.drop_constraint("ck1", "check")
+        batch_op.drop_column('q')
+
+.. versionchanged:: 1.7  Named CHECK constraints participate in batch mode
+   in the same way as any other kind of constraint. This requires that column
+   drops or renames now include explicit directives to drop an existing named
+   constraint which refers to this column, as it will otherwise not be
+   automatically detected as being associated with that particular column.
+
+   Unnamed CHECK constraints continue to be silently omitted from the table
+   recreate operation.
+
+For **unnamed** CHECK constraints, these are still not automatically included
+as part of the batch process as they are often present due to the use of the
+:class:`~sqlalchemy.types.Boolean` or :class:`~sqlalchemy.types.Enum`
+datatypes, which up through SQLAlchemy 1.3 would generate CHECK constraints
+automatically and cannot be tracked to the reflected table. Therefore unnamed
+constraints can be stated explicitly if they are to be included in the
 recreated table::
 
     with op.batch_alter_table("some_table", table_args=[
