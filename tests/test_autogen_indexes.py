@@ -10,6 +10,8 @@ from sqlalchemy import PrimaryKeyConstraint
 from sqlalchemy import String
 from sqlalchemy import Table
 from sqlalchemy import UniqueConstraint
+from sqlalchemy.sql.expression import column
+from sqlalchemy.sql.expression import desc
 
 from alembic.testing import assertions
 from alembic.testing import combinations
@@ -1051,6 +1053,20 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestBase):
         diffs = self._fixture(m1, m2)
 
         eq_(diffs[0][0], "add_index")
+
+    @config.requirements.reflects_indexes_w_sorting
+    def test_idx_string_col_in_fn_no_change(self):
+        """test #880"""
+        m1 = MetaData()
+        m2 = MetaData()
+        t1 = Table("add_ix", m1, Column("x", String(50)))
+        t1.append_constraint(Index("foo_idx", desc(column("x"))))
+
+        t2 = Table("add_ix", m2, Column("x", String(50)))
+        t2.append_constraint(Index("foo_idx", desc(column("x"))))
+        diffs = self._fixture(m1, m2)
+
+        eq_(diffs, [])
 
     @config.requirements.reflects_indexes_w_sorting
     def test_unchanged_idx_non_col(self):
