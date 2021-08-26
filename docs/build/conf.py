@@ -44,8 +44,8 @@ extensions = [
 changelog_sections = [
     "changed",
     "feature",
-    "bug",
     "usecase",
+    "bug",
     "moved",
     "removed",
 ]

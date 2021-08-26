@@ -1,5 +1,5 @@
 .. change::
-    :tags: bug, environment
+    :tags: feature, environment
     :tickets: 842
 
     Enhance ``version_locations`` parsing to handle paths containing spaces.

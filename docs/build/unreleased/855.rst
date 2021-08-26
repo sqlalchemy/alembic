@@ -8,7 +8,5 @@
     back-end database operations. At the time of release,
     third-party dialects that have adopted the Alembic test suite to verify
     compatibility include
-    `CockroachDB
-        <https://pypi.org/project/sqlalchemy-cockroachdb/>`_ and
-    `SAP ASE (Sybase)
-        <https://pypi.org/project/sqlalchemy-sybase/>`_.
+    `CockroachDB <https://pypi.org/project/sqlalchemy-cockroachdb/>`_ and
+    `SAP ASE (Sybase) <https://pypi.org/project/sqlalchemy-sybase/>`_.
