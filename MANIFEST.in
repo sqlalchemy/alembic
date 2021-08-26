@@ -1,8 +1,10 @@
 recursive-include docs *.html *.css *.txt *.js *.jpg *.png *.py Makefile *.rst *.sty
-recursive-include tests *.py *.dat
-recursive-include alembic/templates *.mako README *.py
+recursive-include tests *.py *.dat *.pyi
+recursive-include alembic/templates *.mako README *.py *.pyi
+recursive-include alembic *.py *.pyi
+recursive-include tools *.py
 
-include README* LICENSE run_tests.py CHANGES* tox.ini
+include README* LICENSE CHANGES* tox.ini
 
 prune docs/build/output
 exclude pyproject.toml
