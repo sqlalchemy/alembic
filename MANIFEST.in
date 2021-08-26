@@ -1,7 +1,7 @@
 recursive-include docs *.html *.css *.txt *.js *.jpg *.png *.py Makefile *.rst *.sty
 recursive-include tests *.py *.dat *.pyi
 recursive-include alembic/templates *.mako README *.py *.pyi
-recursive-include alembic *.py *.pyi
+recursive-include alembic *.py *.pyi py.typed
 recursive-include tools *.py
 
 include README* LICENSE CHANGES* tox.ini
