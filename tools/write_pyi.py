@@ -77,10 +77,12 @@ def generate_pyi_for_proxy(
         {"entrypoint": "zimports", "options": "-e"},
         ignore_output=ignore_output,
     )
-    pyproject = Path(__file__).parent.parent / "pyproject.toml"
+    # note that we do not distribute pyproject.toml with the distribution
+    # right now due to user complaints, so we can't refer to it here because
+    # this all has to run as part of the test suite
     console_scripts(
         str(destination_path),
-        {"entrypoint": "black", "options": f"--config {pyproject}"},
+        {"entrypoint": "black", "options": "-l79"},
         ignore_output=ignore_output,
     )
 
