@@ -7,4 +7,6 @@
     ``setuptools``. The functionality has been replaced with
     ``importlib.metadata`` and ``importlib.resources`` which are both part of
     Python std.lib, or via pypy dependency ``importlib-metadata`` for Python
-    version < 3.8 and ``importlib-resources`` for Python version < 3.7.
+    version < 3.8 and ``importlib-resources`` for Python version < 3.9
+    (while importlib.resources was added to Python in 3.7, it did not include
+    the "files" API until 3.9).

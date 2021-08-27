@@ -24,7 +24,7 @@ class EncodedIO(io.TextIOWrapper):
         pass
 
 
-if py37:
+if py39:
     from importlib import resources as importlib_resources
 else:
     import importlib_resources  # noqa
