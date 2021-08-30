@@ -1,9 +1,0 @@
-.. change::
-    :tags: changed, installation
-    :tickets: 674
-
-    Make the ``python-dateutil`` library an optional dependency.
-    This library is only required if the ``timezone`` option
-    is used in the Alembic configuration.
-    An extra require named ``tz`` is available with
-    ``pip install alembic[tz]`` to install it.

@@ -1,6 +1,0 @@
-.. change::
-    :tags: bug, commands
-    :tickets: 856
-
-    Re-implemented the ``python-editor`` dependency as a small internal
-    function to avoid the need for external dependencies.
