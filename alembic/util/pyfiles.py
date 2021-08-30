@@ -58,7 +58,7 @@ def coerce_resource_to_filename(fname: str) -> str:
         ref = compat.importlib_resources.files(tokens[0])
         for tok in tokens[1:]:
             ref = ref / tok
-        fname = file_manager.enter_context(
+        fname = file_manager.enter_context(  # type: ignore[assignment]
             compat.importlib_resources.as_file(ref)
         )
     return fname

@@ -27,12 +27,12 @@ class EncodedIO(io.TextIOWrapper):
 if py39:
     from importlib import resources as importlib_resources
 else:
-    import importlib_resources  # noqa
+    import importlib_resources  # type:ignore[no-redef] # noqa
 
 if py38:
     from importlib import metadata as importlib_metadata
 else:
-    import importlib_metadata  # noqa
+    import importlib_metadata  # type:ignore[no-redef] # noqa
 
 
 def importlib_metadata_get(group):

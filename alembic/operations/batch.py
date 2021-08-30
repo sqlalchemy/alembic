@@ -466,9 +466,11 @@ class ApplyBatchImpl:
             if (
                 "existing_type" in kw
                 and isinstance(kw["existing_type"], SchemaEventTarget)
-                and kw["existing_type"].name
+                and kw["existing_type"].name  # type:ignore[attr-defined]
             ):
-                self.named_constraints.pop(kw["existing_type"].name, None)
+                self.named_constraints.pop(
+                    kw["existing_type"].name, None  # type:ignore[attr-defined]
+                )
 
         if type_ is not None:
             type_ = sqltypes.to_instance(type_)
@@ -590,9 +592,11 @@ class ApplyBatchImpl:
         if (
             "existing_type" in kw
             and isinstance(kw["existing_type"], SchemaEventTarget)
-            and kw["existing_type"].name
+            and kw["existing_type"].name  # type:ignore[attr-defined]
         ):
-            self.named_constraints.pop(kw["existing_type"].name, None)
+            self.named_constraints.pop(
+                kw["existing_type"].name, None  # type:ignore[attr-defined]
+            )
 
     def create_column_comment(self, column):
         """the batch table creation function will issue create_column_comment
