@@ -1661,9 +1661,10 @@ class BatchRoundTripTest(TestBase):
         pk_const = inspect(self.conn).get_pk_constraint("foo")
         eq_(pk_const["constrained_columns"], ["id"])
 
-    def test_add_pk_constraint(self):
+    @testing.combinations(("always",), ("auto",), argnames="recreate")
+    def test_add_pk_constraint(self, recreate):
         self._no_pk_fixture()
-        with self.op.batch_alter_table("nopk", recreate="always") as batch_op:
+        with self.op.batch_alter_table("nopk", recreate=recreate) as batch_op:
             batch_op.create_primary_key("newpk", ["a", "b"])
 
         pk_const = inspect(self.conn).get_pk_constraint("nopk")
@@ -1671,9 +1672,10 @@ class BatchRoundTripTest(TestBase):
             eq_(pk_const["name"], "newpk")
         eq_(pk_const["constrained_columns"], ["a", "b"])
 
+    @testing.combinations(("always",), ("auto",), argnames="recreate")
     @config.requirements.check_constraint_reflection
-    def test_add_ck_constraint(self):
-        with self.op.batch_alter_table("foo", recreate="always") as batch_op:
+    def test_add_ck_constraint(self, recreate):
+        with self.op.batch_alter_table("foo", recreate=recreate) as batch_op:
             batch_op.create_check_constraint("newck", text("x > 0"))
 
         ck_consts = inspect(self.conn).get_check_constraints("foo")
@@ -1682,12 +1684,13 @@ class BatchRoundTripTest(TestBase):
         )
         eq_(ck_consts, [{"sqltext": "x > 0", "name": "newck"}])
 
+    @testing.combinations(("always",), ("auto",), argnames="recreate")
     @config.requirements.check_constraint_reflection
-    def test_drop_ck_constraint(self):
+    def test_drop_ck_constraint(self, recreate):
         self._ck_constraint_fixture()
 
         with self.op.batch_alter_table(
-            "ck_table", recreate="always"
+            "ck_table", recreate=recreate
         ) as batch_op:
             batch_op.drop_constraint("ck", "check")
 
@@ -1735,6 +1738,36 @@ class BatchRoundTripTest(TestBase):
 
         tcomment = insp.get_table_comment(tname)
         eq_(tcomment, {"text": comment})
+
+    @testing.combinations(("always",), ("auto",), argnames="recreate")
+    def test_add_uq(self, recreate):
+        with self.op.batch_alter_table("foo", recreate=recreate) as batch_op:
+            batch_op.create_unique_constraint("newuk", ["x"])
+
+        uq_consts = inspect(self.conn).get_unique_constraints("foo")
+        eq_(
+            [
+                {"name": uc["name"], "column_names": uc["column_names"]}
+                for uc in uq_consts
+            ],
+            [{"name": "newuk", "column_names": ["x"]}],
+        )
+
+    @testing.combinations(("always",), ("auto",), argnames="recreate")
+    def test_add_uq_plus_col(self, recreate):
+        with self.op.batch_alter_table("foo", recreate=recreate) as batch_op:
+            batch_op.add_column(Column("y", Integer))
+            batch_op.create_unique_constraint("newuk", ["x", "y"])
+
+        uq_consts = inspect(self.conn).get_unique_constraints("foo")
+
+        eq_(
+            [
+                {"name": uc["name"], "column_names": uc["column_names"]}
+                for uc in uq_consts
+            ],
+            [{"name": "newuk", "column_names": ["x", "y"]}],
+        )
 
     @config.requirements.comments
     def test_add_table_comment(self):
