@@ -5,7 +5,34 @@ Changelog
 
 .. changelog::
     :version: 1.7.1
-    :include_notes_from: unreleased
+    :released: August 30, 2021
+
+    .. change::
+        :tags: bug, installation
+        :tickets: 893
+
+        Corrected "universal wheel" directive in setup.cfg so that building a wheel
+        does not target Python 2. The PyPi files index for 1.7.0 was corrected
+        manually. Pull request courtesy layday.
+
+    .. change::
+        :tags: bug, pep484
+        :tickets: 895
+
+        Fixed issue in generated .pyi files where default values for ``Optional``
+        arguments were missing, thereby causing mypy to consider them as required.
+
+
+    .. change::
+        :tags: bug, regression, batch
+        :tickets: 896
+
+        Fixed regression in batch mode due to :ticket:`883` where the "auto" mode
+        of batch would fail to accommodate any additional migration directives
+        beyond encountering an ``add_column()`` directive, due to a mis-application
+        of the conditional logic that was added as part of this change, leading to
+        "recreate" mode not being used in cases where it is required for SQLite
+        such as for unique constraints.
 
 .. changelog::
     :version: 1.7.0

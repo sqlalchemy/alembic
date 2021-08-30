@@ -1,7 +1,0 @@
-.. change::
-    :tags: bug, installation
-    :tickets: 893
-
-    Corrected "universal wheel" directive in setup.cfg so that building a wheel
-    does not target Python 2. The PyPi files index for 1.7.0 was corrected
-    manually. Pull request courtesy layday.
