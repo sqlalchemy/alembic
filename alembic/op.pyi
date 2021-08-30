@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     from sqlalchemy.sql.schema import Identity
     from sqlalchemy.sql.schema import Table
     from sqlalchemy.sql.type_api import TypeEngine
+    from sqlalchemy.util import immutabledict
 
     from .operations.ops import MigrateOperation
     from .util.sqla_compat import _literal_bindparam
@@ -32,7 +33,7 @@ if TYPE_CHECKING:
 ### end imports ###
 
 def add_column(
-    table_name: str, column: "Column", schema: Optional[str]
+    table_name: str, column: "Column", schema: Optional[str] = None
 ) -> Optional["Table"]:
     """Issue an "add column" instruction using the current
     migration context.
@@ -86,16 +87,18 @@ def add_column(
 def alter_column(
     table_name: str,
     column_name: str,
-    nullable: Optional[bool],
-    comment: Union[str, bool, None],
-    server_default: Any,
-    new_column_name: Optional[str],
-    type_: Union["TypeEngine", Type["TypeEngine"], None],
-    existing_type: Union["TypeEngine", Type["TypeEngine"], None],
-    existing_server_default: Union[str, bool, "Identity", "Computed", None],
-    existing_nullable: Optional[bool],
-    existing_comment: Optional[str],
-    schema: Optional[str],
+    nullable: Optional[bool] = None,
+    comment: Union[str, bool, None] = False,
+    server_default: Any = False,
+    new_column_name: Optional[str] = None,
+    type_: Union["TypeEngine", Type["TypeEngine"], None] = None,
+    existing_type: Union["TypeEngine", Type["TypeEngine"], None] = None,
+    existing_server_default: Union[
+        str, bool, "Identity", "Computed", None
+    ] = False,
+    existing_nullable: Optional[bool] = None,
+    existing_comment: Optional[str] = None,
+    schema: Optional[str] = None,
     **kw
 ) -> Optional["Table"]:
     """Issue an "alter column" instruction using the
@@ -189,15 +192,15 @@ def alter_column(
 
 def batch_alter_table(
     table_name,
-    schema,
-    recreate,
-    partial_reordering,
-    copy_from,
-    table_args,
-    table_kwargs,
-    reflect_args,
-    reflect_kwargs,
-    naming_convention,
+    schema=None,
+    recreate="auto",
+    partial_reordering=None,
+    copy_from=None,
+    table_args=(),
+    table_kwargs=immutabledict({}),
+    reflect_args=(),
+    reflect_kwargs=immutabledict({}),
+    naming_convention=None,
 ):
     """Invoke a series of per-table migrations in batch.
 
@@ -337,7 +340,9 @@ def batch_alter_table(
     """
 
 def bulk_insert(
-    table: Union["Table", "TableClause"], rows: List[dict], multiinsert: bool
+    table: Union["Table", "TableClause"],
+    rows: List[dict],
+    multiinsert: bool = True,
 ) -> None:
     """Issue a "bulk insert" operation using the current
     migration context.
@@ -418,7 +423,7 @@ def create_check_constraint(
     constraint_name: Optional[str],
     table_name: str,
     condition: "BinaryExpression",
-    schema: Optional[str],
+    schema: Optional[str] = None,
     **kw
 ) -> Optional["Table"]:
     """Issue a "create check constraint" instruction using the
@@ -508,13 +513,13 @@ def create_foreign_key(
     referent_table: str,
     local_cols: List[str],
     remote_cols: List[str],
-    onupdate: Optional[str],
-    ondelete: Optional[str],
-    deferrable: Optional[bool],
-    initially: Optional[str],
-    match: Optional[str],
-    source_schema: Optional[str],
-    referent_schema: Optional[str],
+    onupdate: Optional[str] = None,
+    ondelete: Optional[str] = None,
+    deferrable: Optional[bool] = None,
+    initially: Optional[str] = None,
+    match: Optional[str] = None,
+    source_schema: Optional[str] = None,
+    referent_schema: Optional[str] = None,
     **dialect_kw
 ) -> Optional["Table"]:
     """Issue a "create foreign key" instruction using the
@@ -566,8 +571,8 @@ def create_index(
     index_name: str,
     table_name: str,
     columns: Sequence[Union[str, "TextClause", "Function"]],
-    schema: Optional[str],
-    unique: bool,
+    schema: Optional[str] = None,
+    unique: bool = False,
     **kw
 ) -> Optional["Table"]:
     """Issue a "create index" instruction using the current
@@ -616,7 +621,7 @@ def create_primary_key(
     constraint_name: str,
     table_name: str,
     columns: List[str],
-    schema: Optional[str],
+    schema: Optional[str] = None,
 ) -> Optional["Table"]:
     """Issue a "create primary key" instruction using the current
     migration context.
@@ -736,8 +741,8 @@ def create_table(table_name: str, *columns, **kw) -> Optional["Table"]:
 def create_table_comment(
     table_name: str,
     comment: Optional[str],
-    existing_comment: None,
-    schema: Optional[str],
+    existing_comment: None = None,
+    schema: Optional[str] = None,
 ) -> Optional["Table"]:
     """Emit a COMMENT ON operation to set the comment for a table.
 
@@ -763,7 +768,7 @@ def create_unique_constraint(
     constraint_name: Optional[str],
     table_name: str,
     columns: Sequence[str],
-    schema: Optional[str],
+    schema: Optional[str] = None,
     **kw
 ) -> Any:
     """Issue a "create unique constraint" instruction using the
@@ -805,7 +810,7 @@ def create_unique_constraint(
     """
 
 def drop_column(
-    table_name: str, column_name: str, schema: Optional[str], **kw
+    table_name: str, column_name: str, schema: Optional[str] = None, **kw
 ) -> Optional["Table"]:
     """Issue a "drop column" instruction using the current
     migration context.
@@ -847,8 +852,8 @@ def drop_column(
 def drop_constraint(
     constraint_name: str,
     table_name: str,
-    type_: Optional[str],
-    schema: Optional[str],
+    type_: Optional[str] = None,
+    schema: Optional[str] = None,
 ) -> Optional["Table"]:
     """Drop a constraint of the given name, typically via DROP CONSTRAINT.
 
@@ -864,7 +869,10 @@ def drop_constraint(
     """
 
 def drop_index(
-    index_name: str, table_name: Optional[str], schema: Optional[str], **kw
+    index_name: str,
+    table_name: Optional[str] = None,
+    schema: Optional[str] = None,
+    **kw
 ) -> Optional["Table"]:
     """Issue a "drop index" instruction using the current
     migration context.
@@ -888,7 +896,9 @@ def drop_index(
 
     """
 
-def drop_table(table_name: str, schema: Optional[str], **kw: Any) -> None:
+def drop_table(
+    table_name: str, schema: Optional[str] = None, **kw: Any
+) -> None:
     """Issue a "drop table" instruction using the current
     migration context.
 
@@ -908,7 +918,9 @@ def drop_table(table_name: str, schema: Optional[str], **kw: Any) -> None:
     """
 
 def drop_table_comment(
-    table_name: str, existing_comment: Optional[str], schema: Optional[str]
+    table_name: str,
+    existing_comment: Optional[str] = None,
+    schema: Optional[str] = None,
 ) -> Optional["Table"]:
     """Issue a "drop table comment" operation to
     remove an existing comment set on a table.
@@ -928,7 +940,7 @@ def drop_table_comment(
     """
 
 def execute(
-    sqltext: Union[str, "TextClause", "Update"], execution_options: None
+    sqltext: Union[str, "TextClause", "Update"], execution_options: None = None
 ) -> Optional["Table"]:
     """Execute the given SQL using the current migration context.
 
@@ -1078,7 +1090,7 @@ def implementation_for(op_cls: Any) -> Callable:
     """
 
 def inline_literal(
-    value: Union[str, int], type_: None
+    value: Union[str, int], type_: None = None
 ) -> "_literal_bindparam":
     """Produce an 'inline literal' expression, suitable for
     using in an INSERT, UPDATE, or DELETE statement.
@@ -1128,7 +1140,9 @@ def invoke(operation: "MigrateOperation") -> Any:
 
     """
 
-def register_operation(name: str, sourcename: Optional[str]) -> Callable:
+def register_operation(
+    name: str, sourcename: Optional[str] = None
+) -> Callable:
     """Register a new operation for this class.
 
     This method is normally used to add new operations
@@ -1146,7 +1160,7 @@ def register_operation(name: str, sourcename: Optional[str]) -> Callable:
     """
 
 def rename_table(
-    old_table_name: str, new_table_name: str, schema: Optional[str]
+    old_table_name: str, new_table_name: str, schema: Optional[str] = None
 ) -> Optional["Table"]:
     """Emit an ALTER TABLE to rename a table.
 

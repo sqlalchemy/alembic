@@ -63,32 +63,32 @@ def begin_transaction() -> Union["_ProxyTransaction", ContextManager]:
     """
 
 def configure(
-    connection: Optional["Connection"],
-    url: Optional[str],
-    dialect_name: Optional[str],
-    dialect_opts: Optional[dict],
-    transactional_ddl: Optional[bool],
-    transaction_per_migration: bool,
-    output_buffer: Optional[TextIO],
-    starting_rev: Optional[str],
-    tag: Optional[str],
-    template_args: Optional[dict],
-    render_as_batch: bool,
-    target_metadata: Optional["MetaData"],
-    include_name: Optional[Callable],
-    include_object: Optional[Callable],
-    include_schemas: bool,
-    process_revision_directives: Optional[Callable],
-    compare_type: bool,
-    compare_server_default: bool,
-    render_item: Optional[Callable],
-    literal_binds: bool,
-    upgrade_token: str,
-    downgrade_token: str,
-    alembic_module_prefix: str,
-    sqlalchemy_module_prefix: str,
-    user_module_prefix: Optional[str],
-    on_version_apply: Optional[Callable],
+    connection: Optional["Connection"] = None,
+    url: Optional[str] = None,
+    dialect_name: Optional[str] = None,
+    dialect_opts: Optional[dict] = None,
+    transactional_ddl: Optional[bool] = None,
+    transaction_per_migration: bool = False,
+    output_buffer: Optional[TextIO] = None,
+    starting_rev: Optional[str] = None,
+    tag: Optional[str] = None,
+    template_args: Optional[dict] = None,
+    render_as_batch: bool = False,
+    target_metadata: Optional["MetaData"] = None,
+    include_name: Optional[Callable] = None,
+    include_object: Optional[Callable] = None,
+    include_schemas: bool = False,
+    process_revision_directives: Optional[Callable] = None,
+    compare_type: bool = False,
+    compare_server_default: bool = False,
+    render_item: Optional[Callable] = None,
+    literal_binds: bool = False,
+    upgrade_token: str = "upgrades",
+    downgrade_token: str = "downgrades",
+    alembic_module_prefix: str = "op.",
+    sqlalchemy_module_prefix: str = "sa.",
+    user_module_prefix: Optional[str] = None,
+    on_version_apply: Optional[Callable] = None,
     **kw
 ) -> None:
     """Configure a :class:`.MigrationContext` within this
@@ -524,7 +524,7 @@ def configure(
 
     """
 
-def execute(sql, execution_options):
+def execute(sql, execution_options=None):
     """Execute the given SQL using the current change context.
 
     The behavior of :meth:`.execute` is the same
@@ -629,7 +629,7 @@ def get_tag_argument() -> Optional[str]:
 
     """
 
-def get_x_argument(as_dictionary: bool):
+def get_x_argument(as_dictionary: bool = False):
     """Return the value(s) passed for the ``-x`` argument, if any.
 
     The ``-x`` argument is an open ended flag that allows any user-defined

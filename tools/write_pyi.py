@@ -121,9 +121,7 @@ def _generate_stub_for_meth(cls, name, printer):
         retval = re.sub("NoneType", "None", retval)
         return retval
 
-    argspec = inspect_formatargspec(
-        *spec, formatvalue=lambda value: "", formatannotation=_formatannotation
-    )
+    argspec = inspect_formatargspec(*spec, formatannotation=_formatannotation)
 
     func_text = textwrap.dedent(
         """\

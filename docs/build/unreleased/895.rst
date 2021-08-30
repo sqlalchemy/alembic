@@ -1,0 +1,7 @@
+.. change::
+    :tags: bug, pep484
+    :tickets: 895
+
+    Fixed issue in generated .pyi files where default values for ``Optional``
+    arguments were missing, thereby causing mypy to consider them as required.
+
