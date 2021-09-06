@@ -13,8 +13,10 @@ if TYPE_CHECKING:
     from sqlalchemy.engine.base import Connection
     from sqlalchemy.sql.schema import MetaData
 
+    from .config import Config
     from .runtime.migration import _ProxyTransaction
     from .runtime.migration import MigrationContext
+    from .script import ScriptDirectory
 
 ### end imports ###
 
@@ -61,6 +63,8 @@ def begin_transaction() -> Union["_ProxyTransaction", ContextManager]:
     mode.
 
     """
+
+config: Config
 
 def configure(
     connection: Optional["Connection"] = None,
@@ -714,6 +718,8 @@ def run_migrations(**kw) -> None:
     first been made available via :meth:`.configure`.
 
     """
+
+script: ScriptDirectory
 
 def static_output(text):
     """Emit text directly to the "offline" SQL stream.

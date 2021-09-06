@@ -19,11 +19,9 @@ if True:  # avoid flake/zimports messing with the order
 IGNORE_ITEMS = {
     "op": {"context", "create_module_class_proxy"},
     "context": {
-        "config",
         "create_module_class_proxy",
         "get_impl",
         "requires_connection",
-        "script",
     },
 }
 
@@ -95,7 +93,8 @@ def generate_pyi_for_proxy(
 
 
 def _generate_stub_for_attr(cls, name, printer):
-    printer.writeline(f"{name}: Any")
+    type_ = cls.__annotations__.get(name, "Any")
+    printer.writeline(f"{name}: {type_}")
 
 
 def _generate_stub_for_meth(cls, name, printer):
