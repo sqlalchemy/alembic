@@ -4,3 +4,5 @@ git+https://github.com/sqlalchemy/sqlalchemy.git
 python-dateutil
 # because there's a dependency in pyfiles.py
 Mako
+importlib-metadata;python_version<"3.8"
+importlib-resources;python_version<"3.9"
