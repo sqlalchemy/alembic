@@ -362,7 +362,7 @@ Autogenerate will now generate along the lines of::
 
 This mode is safe to use in all cases, as the :meth:`.Operations.batch_alter_table`
 directive by default only takes place for SQLite; other backends will
-behave just as they normally do in the absense of the batch directives.
+behave just as they normally do in the absence of the batch directives.
 
 Note that autogenerate support does not include "offline" mode, where
 the :paramref:`.Operations.batch_alter_table.copy_from` parameter is used.
