@@ -387,7 +387,7 @@ Changelog
 
         Add async template to Alembic to bootstrap environments that use
         async DBAPI. Updated the cookbook to include a migration guide
-        on how to adapt an existing enviroment for use with DBAPI drivers.
+        on how to adapt an existing environment for use with DBAPI drivers.
 
 .. changelog::
     :version: 1.5.5
@@ -567,7 +567,7 @@ Changelog
         **before** the SQLAlchemy reflection process takes place, and notably
         includes explicit support for passing each schema name when
         :paramref:`.EnvironmentContext.configure.include_schemas` is set to True.
-        This is most important especially for enviroments that make use of
+        This is most important especially for environments that make use of
         :paramref:`.EnvironmentContext.configure.include_schemas` where schemas are
         actually databases (e.g. MySQL) in order to prevent reflection sweeps of
         the entire server.
@@ -1061,7 +1061,7 @@ Changelog
 
         Added new feature :meth:`.MigrationContext.autocommit_block`, a special
         directive which will provide for a non-transactional block inside of a
-        migration script. The feature requres that: the database driver
+        migration script. The feature requires that: the database driver
         (e.g. DBAPI) supports the AUTOCOMMIT isolation mode.  The directive
         also necessarily needs to COMMIT the existing transaction in progress
         in order to enter autocommit mode.
@@ -1321,7 +1321,7 @@ Changelog
         :tags: bug, py3k
         :tickets: 563
 
-        Replaced the Python compatbility routines for ``getargspec()`` with a fully
+        Replaced the Python compatibility routines for ``getargspec()`` with a fully
         vendored version based on ``getfullargspec()`` from Python 3.3.
         Originally, Python was emitting deprecation warnings for this function in
         Python 3.8 alphas.  While this change was reverted, it was observed that
@@ -1889,7 +1889,7 @@ Changelog
 
       Added a new configuration option ``timezone``, a string timezone name
       that will be applied to the create date timestamp rendered
-      inside the revision file as made availble to the ``file_template`` used
+      inside the revision file as made available to the ``file_template`` used
       to generate the revision filename.  Note this change adds the
       ``python-dateutil`` package as a dependency.
 
@@ -2021,7 +2021,7 @@ Changelog
       :tags: bug, operations
 
       Fixed bug in :func:`.ops.create_foreign_key` where the internal table
-      representation would not be created properly if the foriegn key referred
+      representation would not be created properly if the foreign key referred
       to a table in a different schema of the same name.  Pull request
       courtesy Konstantin Lebedev.
 
@@ -2247,7 +2247,7 @@ Changelog
 
       Added a fix to Postgresql server default comparison which first checks
       if the text of the default is identical to the original, before attempting
-      to actually run the default.  This accomodates for default-generation
+      to actually run the default.  This accommodates for default-generation
       functions that generate a new value each time such as a uuid function.
 
     .. change::
@@ -3801,7 +3801,7 @@ Changelog
     .. change::
       :tags: bug
 
-      Fixes to Py3k in-place compatibity regarding output encoding and related;
+      Fixes to Py3k in-place compatibility regarding output encoding and related;
       the use of the new io.* package introduced some incompatibilities on Py2k.
       These should be resolved, due to the introduction of new adapter types
       for translating from io.* to Py2k file types, StringIO types.
@@ -4082,7 +4082,7 @@ Changelog
         :tickets: 99
 
       Fixed bug where autogenerate would fail if a Column
-      to be added to a table made use of the ".key" paramter.
+      to be added to a table made use of the ".key" parameter.
 
     .. change::
         :tags: bug, sqlite
@@ -4104,7 +4104,7 @@ Changelog
         :tickets: 96
 
       Added a workaround to setup.py to prevent
-      "NoneType" error from occuring when
+      "NoneType" error from occurring when
       "setup.py test" is run.
 
     .. change::
@@ -4316,7 +4316,7 @@ Changelog
         :tags: bug
         :tickets: 66
 
-      Improved error message when specifiying
+      Improved error message when specifying
       non-ordered revision identifiers to cover
       the case when the "higher" rev is None,
       improved message overall.
