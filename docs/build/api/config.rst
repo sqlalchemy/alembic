@@ -18,7 +18,7 @@ it is needed for the following use cases:
   with the actual script files in a migration environment
 * to create an :class:`.EnvironmentContext`, which allows you to
   actually run the ``env.py`` module within the migration environment
-* to programatically run any of the commands in the :ref:`alembic.command.toplevel`
+* to programmatically run any of the commands in the :ref:`alembic.command.toplevel`
   module.
 
 The :class:`.Config` is *not* needed for these cases:
