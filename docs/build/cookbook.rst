@@ -233,30 +233,21 @@ Then in ``env.py``::
                 prefix='sqlalchemy.',
                 poolclass=pool.NullPool)
 
-        # when connectable is already a Connection object, calling
-        # connect() gives us a *branched connection*.
+        context.configure(
+            connection=connectable,
+            target_metadata=target_metadata
+        )
 
-        with connectable.connect() as connection:
-            context.configure(
-                connection=connection,
-                target_metadata=target_metadata
-            )
+        with context.begin_transaction():
+            context.run_migrations()
 
-            with context.begin_transaction():
-                context.run_migrations()
+.. versionchanged:: 1.4
 
-.. topic:: Branched Connections
-
-    Note that we are calling the ``connect()`` method, **even if we are
-    using a** :class:`~sqlalchemy.engine.Connection` **object to start with**.
-    The effect this has when calling :meth:`~sqlalchemy.engine.Connection.connect`
-    is that SQLAlchemy passes us a **branch** of the original connection; it
-    is in every way the same as the :class:`~sqlalchemy.engine.Connection`
-    we started with, except it provides **nested scope**; the
-    context we have here as well as the
-    :meth:`~sqlalchemy.engine.Connection.close` method of this branched
-    connection doesn't actually close the outer connection, which stays
-    active for continued use.
+    Prior to this version, we used a "branched connection", by calling
+    :meth:`~sqlalchemy.engine.Connection.connect`.
+    This is now deprecated and unnecessary,
+    since we no longer have to guess if the given "connection"
+    is an ``Engine`` or ``Connection``, it is always a ``Connection``.
 
 .. _replaceable_objects:
 
