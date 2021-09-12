@@ -435,7 +435,8 @@ class DefaultImpl(metaclass=ImplMeta):
                         )
 
     def _tokenize_column_type(self, column: "Column") -> Params:
-        definition = self.dialect.type_compiler.process(column.type).lower()
+        column_type = getattr(column.type, "underlying_type", column.type)
+        definition = self.dialect.type_compiler.process(column_type).lower()
 
         # tokenize the SQLAlchemy-generated version of a type, so that
         # the two can be compared.
