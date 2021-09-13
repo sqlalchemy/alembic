@@ -588,7 +588,7 @@ class CreateForeignKeyOp(AddConstraintOp):
     def create_foreign_key(
         cls,
         operations: "Operations",
-        constraint_name: str,
+        constraint_name: Optional[str],
         source_table: str,
         referent_table: str,
         local_cols: List[str],
