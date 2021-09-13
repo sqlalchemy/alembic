@@ -541,8 +541,8 @@ def create_foreign_key(
     off normally.   The :class:`~sqlalchemy.schema.AddConstraint`
     construct is ultimately used to generate the ALTER statement.
 
-    :param name: Name of the foreign key constraint.  The name is necessary
-     so that an ALTER statement can be emitted.  For setups that
+    :param constraint_name: Name of the foreign key constraint.  The name is
+     necessary so that an ALTER statement can be emitted.  For setups that
      use an automated naming scheme such as that described at
      :ref:`sqla:constraint_naming_conventions`,
      ``name`` here can be ``None``, as the event listener will
@@ -643,8 +643,8 @@ def create_primary_key(
     off normally.   The :class:`~sqlalchemy.schema.AddConstraint`
     construct is ultimately used to generate the ALTER statement.
 
-    :param name: Name of the primary key constraint.  The name is necessary
-     so that an ALTER statement can be emitted.  For setups that
+    :param constraint_name: Name of the primary key constraint.  The name is
+     necessary so that an ALTER statement can be emitted.  For setups that
      use an automated naming scheme such as that described at
      :ref:`sqla:constraint_naming_conventions`
      ``name`` here can be ``None``, as the event listener will
@@ -850,7 +850,7 @@ def drop_column(
     """
 
 def drop_constraint(
-    constraint_name: Optional[str],
+    constraint_name: str,
     table_name: str,
     type_: Optional[str] = None,
     schema: Optional[str] = None,
@@ -1002,7 +1002,7 @@ def execute(
        op.execute("INSERT INTO table (foo) VALUES ('\:colon_value')")
 
 
-    :param sql: Any legal SQLAlchemy expression, including:
+    :param sqltext: Any legal SQLAlchemy expression, including:
 
     * a string
     * a :func:`sqlalchemy.sql.expression.text` construct.
