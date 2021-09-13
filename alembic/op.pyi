@@ -508,7 +508,7 @@ def create_exclude_constraint(
     """
 
 def create_foreign_key(
-    constraint_name: str,
+    constraint_name: Optional[str],
     source_table: str,
     referent_table: str,
     local_cols: List[str],
@@ -850,7 +850,7 @@ def drop_column(
     """
 
 def drop_constraint(
-    constraint_name: str,
+    constraint_name: Optional[str],
     table_name: str,
     type_: Optional[str] = None,
     schema: Optional[str] = None,
