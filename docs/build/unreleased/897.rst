@@ -1,0 +1,6 @@
+.. change::
+    :tags: bug, mypy
+    :tickets: 897
+
+    Fixed an import in one of the .pyi files that was triggering an
+    assertion error in some versions of mypy.
