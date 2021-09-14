@@ -296,7 +296,7 @@ class CreatePrimaryKeyOp(AddConstraintOp):
     def create_primary_key(
         cls,
         operations: "Operations",
-        constraint_name: str,
+        constraint_name: Optional[str],
         table_name: str,
         columns: List[str],
         schema: Optional[str] = None,

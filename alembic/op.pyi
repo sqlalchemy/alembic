@@ -618,7 +618,7 @@ def create_index(
     """
 
 def create_primary_key(
-    constraint_name: str,
+    constraint_name: Optional[str],
     table_name: str,
     columns: List[str],
     schema: Optional[str] = None,
