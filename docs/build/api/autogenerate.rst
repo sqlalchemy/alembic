@@ -380,7 +380,7 @@ it runs.  The resulting migration structure would look like this::
 
 Given the above, the following guidelines should be considered when
 the ``env.py`` script calls upon :meth:`.MigrationContext.run_migrations`
-mutiple times when running autogenerate:
+multiple times when running autogenerate:
 
 * If the ``process_revision_directives`` hook aims to **add elements
   based on inspection of the current database /

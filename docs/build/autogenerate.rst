@@ -471,7 +471,7 @@ either manually, or by adding it to ``script.py.mako``.
 
 The above custom type has a long and cumbersome name based on the use
 of ``__module__`` directly, which also implies that lots of imports would
-be needed in order to accomodate lots of types.  For this reason, it is
+be needed in order to accommodate lots of types.  For this reason, it is
 recommended that user-defined types used in migration scripts be made
 available from a single module.  Suppose we call it ``myapp.migration_types``::
 
