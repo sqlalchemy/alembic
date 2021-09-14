@@ -36,7 +36,7 @@ def generate_pyi_for_proxy(
     ignore_output: bool,
     ignore_items: set,
 ):
-    if not sys.version_info >= (3, 9):
+    if sys.version_info < (3, 9):
         raise RuntimeError("This script must be run with Python 3.9 or higher")
 
     # When using an absolute path on windows, this will generate the correct
