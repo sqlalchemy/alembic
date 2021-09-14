@@ -508,7 +508,7 @@ def create_exclude_constraint(
     """
 
 def create_foreign_key(
-    constraint_name: str,
+    constraint_name: Optional[str],
     source_table: str,
     referent_table: str,
     local_cols: List[str],
@@ -541,9 +541,9 @@ def create_foreign_key(
     off normally.   The :class:`~sqlalchemy.schema.AddConstraint`
     construct is ultimately used to generate the ALTER statement.
 
-    :param name: Name of the foreign key constraint.  The name is necessary
-     so that an ALTER statement can be emitted.  For setups that
-     use an automated naming scheme such as that described at
+    :param constraint_name: Name of the foreign key constraint.  The name
+     is necessary so that an ALTER statement can be emitted.  For setups
+     that use an automated naming scheme such as that described at
      :ref:`sqla:constraint_naming_conventions`,
      ``name`` here can be ``None``, as the event listener will
      apply the name to the constraint object when it is associated
@@ -618,7 +618,7 @@ def create_index(
     """
 
 def create_primary_key(
-    constraint_name: str,
+    constraint_name: Optional[str],
     table_name: str,
     columns: List[str],
     schema: Optional[str] = None,
@@ -643,9 +643,9 @@ def create_primary_key(
     off normally.   The :class:`~sqlalchemy.schema.AddConstraint`
     construct is ultimately used to generate the ALTER statement.
 
-    :param name: Name of the primary key constraint.  The name is necessary
-     so that an ALTER statement can be emitted.  For setups that
-     use an automated naming scheme such as that described at
+    :param constraint_name: Name of the primary key constraint.  The name
+     is necessary so that an ALTER statement can be emitted.  For setups
+     that use an automated naming scheme such as that described at
      :ref:`sqla:constraint_naming_conventions`
      ``name`` here can be ``None``, as the event listener will
      apply the name to the constraint object when it is associated
@@ -1002,7 +1002,7 @@ def execute(
        op.execute("INSERT INTO table (foo) VALUES ('\:colon_value')")
 
 
-    :param sql: Any legal SQLAlchemy expression, including:
+    :param sqltext: Any legal SQLAlchemy expression, including:
 
     * a string
     * a :func:`sqlalchemy.sql.expression.text` construct.

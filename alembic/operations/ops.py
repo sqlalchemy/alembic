@@ -296,7 +296,7 @@ class CreatePrimaryKeyOp(AddConstraintOp):
     def create_primary_key(
         cls,
         operations: "Operations",
-        constraint_name: str,
+        constraint_name: Optional[str],
         table_name: str,
         columns: List[str],
         schema: Optional[str] = None,
@@ -321,9 +321,9 @@ class CreatePrimaryKeyOp(AddConstraintOp):
         off normally.   The :class:`~sqlalchemy.schema.AddConstraint`
         construct is ultimately used to generate the ALTER statement.
 
-        :param name: Name of the primary key constraint.  The name is necessary
-         so that an ALTER statement can be emitted.  For setups that
-         use an automated naming scheme such as that described at
+        :param constraint_name: Name of the primary key constraint.  The name
+         is necessary so that an ALTER statement can be emitted.  For setups
+         that use an automated naming scheme such as that described at
          :ref:`sqla:constraint_naming_conventions`
          ``name`` here can be ``None``, as the event listener will
          apply the name to the constraint object when it is associated
@@ -588,7 +588,7 @@ class CreateForeignKeyOp(AddConstraintOp):
     def create_foreign_key(
         cls,
         operations: "Operations",
-        constraint_name: str,
+        constraint_name: Optional[str],
         source_table: str,
         referent_table: str,
         local_cols: List[str],
@@ -621,9 +621,9 @@ class CreateForeignKeyOp(AddConstraintOp):
         off normally.   The :class:`~sqlalchemy.schema.AddConstraint`
         construct is ultimately used to generate the ALTER statement.
 
-        :param name: Name of the foreign key constraint.  The name is necessary
-         so that an ALTER statement can be emitted.  For setups that
-         use an automated naming scheme such as that described at
+        :param constraint_name: Name of the foreign key constraint.  The name
+         is necessary so that an ALTER statement can be emitted.  For setups
+         that use an automated naming scheme such as that described at
          :ref:`sqla:constraint_naming_conventions`,
          ``name`` here can be ``None``, as the event listener will
          apply the name to the constraint object when it is associated
@@ -2389,7 +2389,7 @@ class ExecuteSQLOp(MigrateOperation):
            op.execute("INSERT INTO table (foo) VALUES ('\:colon_value')")
 
 
-        :param sql: Any legal SQLAlchemy expression, including:
+        :param sqltext: Any legal SQLAlchemy expression, including:
 
         * a string
         * a :func:`sqlalchemy.sql.expression.text` construct.
