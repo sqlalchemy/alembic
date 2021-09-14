@@ -13,8 +13,8 @@ if TYPE_CHECKING:
     from sqlalchemy.engine.base import Connection
     from sqlalchemy.sql.schema import MetaData
 
-    from .migration import MigrationContext
     from .runtime.migration import _ProxyTransaction
+    from .runtime.migration import MigrationContext
 
 ### end imports ###
 
