@@ -9,7 +9,7 @@ from mako.pygen import PythonPrinter
 
 sys.path.append(str(Path(__file__).parent.parent))
 
-if True:  # avoid flake/zimports missing with the order
+if True:  # avoid flake/zimports messing with the order
     from alembic.operations.base import Operations
     from alembic.runtime.environment import EnvironmentContext
     from alembic.script.write_hooks import console_scripts
@@ -36,6 +36,13 @@ def generate_pyi_for_proxy(
     ignore_output: bool,
     ignore_items: set,
 ):
+    if sys.version_info < (3, 9):
+        raise RuntimeError("This script must be run with Python 3.9 or higher")
+
+    # When using an absolute path on windows, this will generate the correct
+    # relative path that shall be written to the top comment of the pyi file.
+    if Path(progname).is_absolute():
+        progname = Path(progname).relative_to(Path().cwd()).as_posix()
 
     imports = []
     read_imports = False
@@ -154,15 +161,15 @@ def run_file(
     else:
         with NamedTemporaryFile(delete=False, suffix=".pyi") as f:
             f.close()
+            f_path = Path(f.name)
             generate_pyi_for_proxy(
                 cls_to_generate,
                 progname,
                 source_path=source_path,
-                destination_path=f.name,
+                destination_path=f_path,
                 ignore_output=True,
                 ignore_items=ignore_items,
             )
-            f_path = Path(f.name)
             sys.stdout.write(f_path.read_text())
         f_path.unlink()
 
