@@ -4,6 +4,10 @@ Changelog
 ==========
 
 .. changelog::
+    :version: 1.7.3
+    :include_notes_from: unreleased
+
+.. changelog::
     :version: 1.7.2
     :released: September 17, 2021
 
