@@ -5,7 +5,16 @@ Changelog
 
 .. changelog::
     :version: 1.7.3
-    :include_notes_from: unreleased
+    :released: September 17, 2021
+
+    .. change::
+        :tags: bug, mypy
+        :tickets: 914
+
+        Fixed type annotations for the "constraint_name" argument of operations
+        ``create_primary_key()``, ``create_foreign_key()``.  Pull request courtesy
+        TilmanK.
+
 
 .. changelog::
     :version: 1.7.2

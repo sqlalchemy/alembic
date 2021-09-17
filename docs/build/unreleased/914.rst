@@ -1,8 +1,0 @@
-.. change::
-    :tags: bug, mypy
-    :tickets: 914
-
-    Fixed type annotations for the "constraint_name" argument of operations
-    ``create_primary_key()``, ``create_foreign_key()``.  Pull request courtesy
-    TilmanK.
-
