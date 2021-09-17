@@ -1,5 +1,0 @@
-.. change::
-    :tags: bug, typing
-    :tickets: 900
-
-    Added missing attributes from context stubs.

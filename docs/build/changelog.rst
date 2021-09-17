@@ -5,7 +5,31 @@ Changelog
 
 .. changelog::
     :version: 1.7.2
-    :include_notes_from: unreleased
+    :released: September 17, 2021
+
+    .. change::
+        :tags: bug, typing
+        :tickets: 900
+
+        Added missing attributes from context stubs.
+
+    .. change::
+        :tags: bug, mypy
+        :tickets: 897
+
+        Fixed an import in one of the .pyi files that was triggering an
+        assertion error in some versions of mypy.
+
+    .. change::
+        :tags: bug, regression, ops
+        :tickets: 920
+
+        Fixed issue where registration of custom ops was prone to failure due to
+        the registration process running ``exec()`` on generated code that as of
+        the 1.7 series includes pep-484 annotations, which in the case of end user
+        code would result in name resolution errors when the exec occurs. The logic
+        in question has been altered so that the annotations are rendered as
+        forward references so that the ``exec()`` can proceed.
 
 .. changelog::
     :version: 1.7.1
