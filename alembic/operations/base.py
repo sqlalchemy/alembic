@@ -17,8 +17,10 @@ from . import batch
 from . import schemaobj
 from .. import util
 from ..util import sqla_compat
+from ..util.compat import formatannotation_fwdref
 from ..util.compat import inspect_formatargspec
 from ..util.compat import inspect_getfullargspec
+
 
 NoneType = type(None)
 
@@ -121,7 +123,9 @@ class Operations(util.ModuleClsProxy):
 
             name_args[0:2] = ["self"]
 
-            args = inspect_formatargspec(*spec)
+            args = inspect_formatargspec(
+                *spec, formatannotation=formatannotation_fwdref
+            )
             num_defaults = len(spec[3]) if spec[3] else 0
             if num_defaults:
                 defaulted_vals = name_args[0 - num_defaults :]
@@ -134,6 +138,7 @@ class Operations(util.ModuleClsProxy):
                 spec[2],
                 defaulted_vals,
                 formatvalue=lambda x: "=" + x,
+                formatannotation=formatannotation_fwdref,
             )
 
             args = re.sub(

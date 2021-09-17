@@ -1,0 +1,10 @@
+.. change::
+    :tags: bug, regression, ops
+    :tickets: 920
+
+    Fixed issue where registration of custom ops was prone to failure due to
+    the registration process running ``exec()`` on generated code that as of
+    the 1.7 series includes pep-484 annotations, which in the case of end user
+    code would result in name resolution errors when the exec occurs. The logic
+    in question has been altered so that the annotations are rendered as
+    forward references so that the ``exec()`` can proceed.

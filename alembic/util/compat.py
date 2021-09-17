@@ -41,3 +41,16 @@ def importlib_metadata_get(group):
         return ep.select(group=group)
     else:
         return ep.get(group, ())
+
+
+def formatannotation_fwdref(annotation, base_module=None):
+    """the python 3.7 _formatannotation with an extra repr() for 3rd party
+    modules"""
+
+    if getattr(annotation, "__module__", None) == "typing":
+        return repr(annotation).replace("typing.", "")
+    if isinstance(annotation, type):
+        if annotation.__module__ in ("builtins", base_module):
+            return annotation.__qualname__
+        return repr(annotation.__module__ + "." + annotation.__qualname__)
+    return repr(annotation)
