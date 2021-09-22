@@ -422,7 +422,7 @@ def bulk_insert(
 def create_check_constraint(
     constraint_name: Optional[str],
     table_name: str,
-    condition: "BinaryExpression",
+    condition: Union[str, "BinaryExpression"],
     schema: Optional[str] = None,
     **kw
 ) -> Optional["Table"]:

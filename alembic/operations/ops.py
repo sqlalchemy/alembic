@@ -778,7 +778,7 @@ class CreateCheckConstraintOp(AddConstraintOp):
         operations: "Operations",
         constraint_name: Optional[str],
         table_name: str,
-        condition: "BinaryExpression",
+        condition: Union[str, "BinaryExpression"],
         schema: Optional[str] = None,
         **kw
     ) -> Optional["Table"]:
