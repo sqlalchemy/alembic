@@ -134,12 +134,20 @@ class RunHookTest(TestBase):
     ):
         self.cfg = _no_sql_testing_config(directives=input_config)
 
-        class MocksCantName:
-            name = "black"
-            attr = "bar"
-            module = "black_module.foo"
+        retVal = [
+            compat.EntryPoint(
+                name="black",
+                value="black.foo:patched_main",
+                group="console_scripts",
+            ),
+            compat.EntryPoint(
+                name="alembic",
+                value="alembic.config:main",
+                group="console_scripts",
+            ),
+        ]
 
-        importlib_metadata_get = mock.Mock(return_value=iter([MocksCantName]))
+        importlib_metadata_get = mock.Mock(return_value=retVal)
         with mock.patch(
             "alembic.util.compat.importlib_metadata_get",
             importlib_metadata_get,
@@ -157,7 +165,7 @@ class RunHookTest(TestBase):
                     [
                         sys.executable,
                         "-c",
-                        "import black_module.foo; black_module.foo.bar()",
+                        "import black.foo; black.foo.patched_main()",
                     ]
                     + expected_additional_arguments_fn(rev.path),
                     cwd=cwd,

@@ -5,6 +5,7 @@ from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import List
+from typing import Optional
 from typing import Union
 
 from .. import util
@@ -113,7 +114,9 @@ def _parse_cmdline_options(cmdline_options_str: str, path: str) -> List[str]:
 
 
 @register("console_scripts")
-def console_scripts(path, options, ignore_output=False):
+def console_scripts(
+    path: str, options: dict, ignore_output: bool = False
+) -> None:
 
     try:
         entrypoint_name = options["entrypoint"]
@@ -124,17 +127,17 @@ def console_scripts(path, options, ignore_output=False):
         ) from ke
     for entry in compat.importlib_metadata_get("console_scripts"):
         if entry.name == entrypoint_name:
-            impl = entry
+            impl: Any = entry
             break
     else:
         raise util.CommandError(
             f"Could not find entrypoint console_scripts.{entrypoint_name}"
         )
-    cwd = options.get("cwd", None)
+    cwd: Optional[str] = options.get("cwd", None)
     cmdline_options_str = options.get("options", "")
     cmdline_options_list = _parse_cmdline_options(cmdline_options_str, path)
 
-    kw = {}
+    kw: Dict[str, Any] = {}
     if ignore_output:
         kw["stdout"] = kw["stderr"] = subprocess.DEVNULL
 
