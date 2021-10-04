@@ -335,11 +335,19 @@ class MigrationContext:
             self.connection = (
                 self.impl.connection
             ) = base_connection.execution_options(isolation_level="AUTOCOMMIT")
+
+            # sqlalchemy future mode will "autobegin" in any case, so take
+            # control of that "transaction" here
+            fake_trans: Optional[Transaction] = self.connection.begin()
+        else:
+            fake_trans = None
         try:
             yield
         finally:
             if not self.as_sql:
                 assert self.connection is not None
+                if fake_trans is not None:
+                    fake_trans.commit()
                 self.connection.execution_options(
                     isolation_level=current_level
                 )

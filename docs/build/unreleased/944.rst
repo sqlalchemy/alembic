@@ -1,0 +1,8 @@
+.. change::
+    :tags: bug, environment
+    :tickets: 944
+
+    Fixed issue where the :meth:`.MigrationContext.autocommit_block` feature
+    would fail to function when using a SQLAlchemy engine using 2.0 future
+    mode.
+
