@@ -48,6 +48,7 @@ from alembic.testing.env import clear_staging_env
 from alembic.testing.env import staging_env
 from alembic.testing.env import write_script
 from alembic.testing.fixtures import capture_context_buffer
+from alembic.testing.fixtures import FutureEngineMixin
 from alembic.testing.fixtures import op_fixture
 from alembic.testing.fixtures import TablesTest
 from alembic.testing.fixtures import TestBase
@@ -455,6 +456,10 @@ class PGAutocommitBlockTest(TestBase):
                 migration_context.execute(
                     text("ALTER TYPE mood ADD VALUE 'soso'")
                 )
+
+
+class PGAutocommitBlockTestFuture(FutureEngineMixin, PGAutocommitBlockTest):
+    pass
 
 
 class PGOfflineEnumTest(TestBase):
