@@ -1,6 +1,0 @@
-.. change::
-    :tags: bug, regression
-    :tickets: 934
-
-    Fixed a regression that prevented the use of post write hooks
-    on python version lower than 3.9

@@ -5,7 +5,23 @@ Changelog
 
 .. changelog::
     :version: 1.7.4
-    :include_notes_from: unreleased
+    :released: October 6, 2021
+
+    .. change::
+        :tags: bug, regression
+        :tickets: 934
+
+        Fixed a regression that prevented the use of post write hooks
+        on python version lower than 3.9
+
+    .. change::
+        :tags: bug, environment
+        :tickets: 944
+
+        Fixed issue where the :meth:`.MigrationContext.autocommit_block` feature
+        would fail to function when using a SQLAlchemy engine using 2.0 future
+        mode.
+
 
 .. changelog::
     :version: 1.7.3
