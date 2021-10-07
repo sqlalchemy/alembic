@@ -307,6 +307,10 @@ class Config:
 
         """
         return self.get_section_option(self.config_ini_section, name, default)
+    
+    def dump(self):
+        """Dump current config state as .ini to stdout"""
+        self.file_config.write(self.stdout)
 
 
 class CommandLine:
