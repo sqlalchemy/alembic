@@ -179,7 +179,8 @@ The file generated with the "generic" configuration looks like::
 
     sqlalchemy.url = driver://user:pass@localhost/dbname
 
-    # post_write_hooks defines scripts or Python functions that are run
+    # [post_write_hooks]
+    # This section defines scripts or Python functions that are run
     # on newly generated revision scripts.  See the documentation for further
     # detail and examples
 
