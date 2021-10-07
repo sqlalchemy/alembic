@@ -137,7 +137,7 @@ class SchemaObjects:
         self,
         name: Optional[str],
         source: str,
-        condition: Union["TextClause", "ColumnElement[Any]"],
+        condition: Union[str, "TextClause", "ColumnElement[Any]"],
         schema: Optional[str] = None,
         **kw
     ) -> Union["CheckConstraint"]:
