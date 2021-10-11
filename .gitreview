@@ -1,6 +1,6 @@
 [gerrit]
 host=gerrit.sqlalchemy.org
 project=sqlalchemy/alembic
-defaultbranch=master
+defaultbranch=main
 port=29418
 
