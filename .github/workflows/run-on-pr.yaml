@@ -1,10 +1,10 @@
 name: Run tests on a pr
 
 on:
-  # run on pull request to master excluding changes that are only on doc or example folders
+  # run on pull request to main excluding changes that are only on doc or example folders
   pull_request:
     branches:
-      - master
+      - main
     paths-ignore:
       - "docs/**"
 
@@ -25,7 +25,7 @@ jobs:
           - "3.9"
         sqlalchemy:
           - sqla13
-          - sqlamaster
+          - sqlamain
       # abort all jobs as soon as one fails
       fail-fast: true
 
