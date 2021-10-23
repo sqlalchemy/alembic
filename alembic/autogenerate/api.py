@@ -341,6 +341,11 @@ class AutogenContext:
 
     @util.memoized_property
     def inspector(self) -> "Inspector":
+        if self.connection is None:
+            raise TypeError(
+                "can't return inspector as this "
+                "AutogenContext has no database connection"
+            )
         return inspect(self.connection)
 
     @contextlib.contextmanager
