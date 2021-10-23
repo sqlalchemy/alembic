@@ -97,11 +97,23 @@ class DefaultRequirements(SuiteRequirements):
 
     @property
     def fk_ondelete_is_reflected(self):
-        return exclusions.fails_on(["mssql"])
+        def go(config):
+            if exclusions.against(config, "mssql"):
+                return not sqla_compat.sqla_14_26
+            else:
+                return False
+
+        return exclusions.fails_if(go)
 
     @property
     def fk_onupdate_is_reflected(self):
-        return self.fk_onupdate + exclusions.fails_on(["mssql"])
+        def go(config):
+            if exclusions.against(config, "mssql"):
+                return not sqla_compat.sqla_14_26
+            else:
+                return False
+
+        return self.fk_onupdate + exclusions.fails_if(go)
 
     @property
     def fk_onupdate(self):

@@ -57,6 +57,7 @@ _vers = tuple(
 )
 sqla_13 = _vers >= (1, 3)
 sqla_14 = _vers >= (1, 4)
+sqla_14_26 = _vers >= (1, 4, 26)
 
 try:
     from sqlalchemy import Computed  # noqa
