@@ -27,10 +27,3 @@ from .assertions import is_true
 from .assertions import ne_
 from .fixtures import TestBase
 from .util import resolve_lambda
-
-try:
-    from sqlalchemy.testing import asyncio
-except ImportError:
-    pass
-else:
-    asyncio.ENABLE_ASYNCIO = False
