@@ -532,7 +532,7 @@ def downgrade():
                 if self.is_sqlalchemy_future:
                     with testing.expect_raises_message(
                         sa.exc.InvalidRequestError,
-                        r"a transaction is already begun for this connection",
+                        r".*already",
                     ):
                         command.upgrade(self.cfg, c)
                 else:
@@ -554,7 +554,7 @@ def downgrade():
                 if self.is_sqlalchemy_future:
                     with testing.expect_raises_message(
                         sa.exc.InvalidRequestError,
-                        r"a transaction is already begun for this connection",
+                        r".*already",
                     ):
                         command.upgrade(self.cfg, c)
                 else:
@@ -576,7 +576,7 @@ def downgrade():
                 if self.is_sqlalchemy_future:
                     with testing.expect_raises_message(
                         sa.exc.InvalidRequestError,
-                        r"a transaction is already begun for this connection",
+                        r".*already",
                     ):
                         command.upgrade(self.cfg, c)
                 else:
