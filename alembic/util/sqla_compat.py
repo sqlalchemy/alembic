@@ -58,7 +58,15 @@ _vers = tuple(
 sqla_13 = _vers >= (1, 3)
 sqla_14 = _vers >= (1, 4)
 sqla_14_26 = _vers >= (1, 4, 26)
-sqla_1x = _vers < (2,)
+
+
+if sqla_14:
+    # when future engine merges, this can be again based on version string
+    from sqlalchemy.engine import Connection as legacy_connection
+
+    sqla_1x = not hasattr(legacy_connection, "commit")
+else:
+    sqla_1x = True
 
 try:
     from sqlalchemy import Computed  # noqa
