@@ -245,6 +245,7 @@ class AlterColRoundTripFixture:
         ), "server defaults %r and %r didn't compare as equivalent" % (s1, s2)
 
     def tearDown(self):
+        sqla_compat._safe_rollback_connection_transaction(self.conn)
         with self.conn.begin():
             self.metadata.drop_all(self.conn)
         self.conn.close()

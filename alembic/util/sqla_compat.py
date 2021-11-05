@@ -122,6 +122,14 @@ def _safe_begin_connection_transaction(
         return connection.begin()
 
 
+def _safe_rollback_connection_transaction(
+    connection: "Connection",
+) -> "Transaction":
+    transaction = _get_connection_transaction(connection)
+    if transaction:
+        transaction.rollback()
+
+
 def _get_connection_in_transaction(connection: Optional["Connection"]) -> bool:
     try:
         in_transaction = connection.in_transaction  # type: ignore
