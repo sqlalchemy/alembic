@@ -5,7 +5,9 @@
 # This module is part of SQLAlchemy and is released under
 # the MIT License: http://www.opensource.org/licenses/mit-license.php
 
+import re
 import types
+from typing import Union
 
 
 def flag_combinations(*combinations):
@@ -97,11 +99,28 @@ def metadata_fixture(ddl="function"):
     return decorate
 
 
+def _safe_int(value: str) -> Union[int, str]:
+    try:
+        return int(value)
+    except:
+        return value
+
+
 def testing_engine(url=None, options=None, future=False):
     from sqlalchemy.testing import config
     from sqlalchemy.testing.engines import testing_engine
+    from sqlalchemy import __version__
+
+    _vers = tuple(
+        [_safe_int(x) for x in re.findall(r"(\d+|[abc]\d)", __version__)]
+    )
+    sqla_1x = _vers < (2,)
 
     if not future:
         future = getattr(config._current.options, "future_engine", False)
-    kw = {"future": future} if future else {}
+
+    if sqla_1x:
+        kw = {"future": future} if future else {}
+    else:
+        kw = {}
     return testing_engine(url, options, **kw)

@@ -25,6 +25,7 @@ from .pyfiles import template_to_file
 from .sqla_compat import has_computed
 from .sqla_compat import sqla_13
 from .sqla_compat import sqla_14
+from .sqla_compat import sqla_1x
 
 
 if not sqla_13:

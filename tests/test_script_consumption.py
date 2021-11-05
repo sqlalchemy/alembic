@@ -117,14 +117,20 @@ class PatchEnvironment:
 
 
 @testing.combinations(
-    (False, True, False),
-    (True, False, False),
-    (True, True, False),
-    (False, True, True),
-    (True, False, True),
-    (True, True, True),
-    argnames="transactional_ddl,transaction_per_migration,branched_connection",
-    id_="rrr",
+    (
+        False,
+        True,
+    ),
+    (
+        True,
+        False,
+    ),
+    (
+        True,
+        True,
+    ),
+    argnames="transactional_ddl,transaction_per_migration",
+    id_="rr",
 )
 class ApplyVersionsFunctionalTest(PatchEnvironment, TestBase):
     __only_on__ = "sqlite"
@@ -275,6 +281,11 @@ class ApplyVersionsFunctionalTest(PatchEnvironment, TestBase):
         assert db.dialect.has_table(db.connect(), "foo")
         assert db.dialect.has_table(db.connect(), "bar")
         assert not db.dialect.has_table(db.connect(), "bat")
+
+
+class LegacyApplyVersionsFunctionalTest(ApplyVersionsFunctionalTest):
+    __requires__ = ("sqlalchemy_1x",)
+    branched_connection = True
 
 
 # class level combinations can't do the skips for SQLAlchemy 1.3
@@ -621,6 +632,7 @@ run_migrations_online()
 
 
 class BranchedOnlineTransactionalDDLTest(OnlineTransactionalDDLTest):
+    __requires__ = ("sqlalchemy_1x",)
     branched_connection = True
 
 

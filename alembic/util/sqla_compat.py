@@ -58,6 +58,7 @@ _vers = tuple(
 sqla_13 = _vers >= (1, 3)
 sqla_14 = _vers >= (1, 4)
 sqla_14_26 = _vers >= (1, 4, 26)
+sqla_1x = _vers < (2,)
 
 try:
     from sqlalchemy import Computed  # noqa
@@ -120,6 +121,14 @@ def _safe_begin_connection_transaction(
         return transaction
     else:
         return connection.begin()
+
+
+def _safe_commit_connection_transaction(
+    connection: "Connection",
+) -> None:
+    transaction = _get_connection_transaction(connection)
+    if transaction:
+        transaction.commit()
 
 
 def _safe_rollback_connection_transaction(

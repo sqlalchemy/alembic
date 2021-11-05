@@ -29,6 +29,7 @@ from ..util.compat import string_types
 from ..util.compat import text_type
 from ..util.sqla_compat import create_mock_engine
 from ..util.sqla_compat import sqla_14
+from ..util.sqla_compat import sqla_1x
 
 
 testing_config = configparser.ConfigParser()
@@ -36,7 +37,10 @@ testing_config.read(["test.cfg"])
 
 
 class TestBase(SQLAlchemyTestBase):
-    is_sqlalchemy_future = False
+    if sqla_1x:
+        is_sqlalchemy_future = False
+    else:
+        is_sqlalchemy_future = True
 
     @testing.fixture()
     def ops_context(self, migration_context):
