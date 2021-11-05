@@ -124,7 +124,7 @@ def _safe_begin_connection_transaction(
 
 def _safe_rollback_connection_transaction(
     connection: "Connection",
-) -> "Transaction":
+) -> None:
     transaction = _get_connection_transaction(connection)
     if transaction:
         transaction.rollback()
