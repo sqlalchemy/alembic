@@ -5,9 +5,11 @@ from io import StringIO
 from io import TextIOWrapper
 import os
 import re
+from typing import cast
 
 from sqlalchemy import exc as sqla_exc
 from sqlalchemy import text
+from sqlalchemy.engine import Engine
 
 from alembic import __version__
 from alembic import command
@@ -1185,3 +1187,36 @@ class CommandLineTest(TestBase):
 
         is_true("test_prog" in str(buf.getvalue()))
         is_true(__version__ in str(buf.getvalue()))
+
+
+class EnureVersionTest(TestBase):
+    @classmethod
+    def setup_class(cls):
+        cls.bind = _sqlite_file_db()
+        cls.env = staging_env()
+        cls.cfg = _sqlite_testing_config()
+
+    @classmethod
+    def teardown_class(cls):
+        clear_staging_env()
+
+    def test_ensure_version(self):
+        command.ensure_version(self.cfg)
+
+        engine = cast(Engine, self.bind)
+        with engine.connect() as conn:
+            is_true(_connectable_has_table(conn, "alembic_version", None))
+
+    def test_ensure_version_called_twice(self):
+        command.ensure_version(self.cfg)
+        command.ensure_version(self.cfg)
+
+        engine = cast(Engine, self.bind)
+        with engine.connect() as conn:
+            is_true(_connectable_has_table(conn, "alembic_version", None))
+
+    def test_sql_ensure_version(self):
+        with capture_context_buffer() as buf:
+            command.ensure_version(self.cfg, sql=True)
+
+        is_true(buf.getvalue().startswith("CREATE TABLE alembic_version"))
