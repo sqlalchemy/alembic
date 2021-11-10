@@ -1191,6 +1191,7 @@ class EnureVersionTest(TestBase):
     @classmethod
     def setup_class(cls):
         cls.bind = _sqlite_file_db()
+        cls.env = staging_env()
         cls.cfg = _sqlite_testing_config()
 
     @classmethod
