@@ -5,7 +5,13 @@ Changelog
 
 .. changelog::
     :version: 1.7.5
-    :include_notes_from: unreleased
+    :released: November 11, 2021
+
+    .. change::
+        :tags: bug, tests
+
+        Adjustments to the test suite to accommodate for error message changes
+        occurring as of SQLAlchemy 1.4.27.
 
 .. changelog::
     :version: 1.7.4
