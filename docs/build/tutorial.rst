@@ -118,9 +118,9 @@ Editing the .ini File
 =====================
 
 Alembic placed a file ``alembic.ini`` into the current directory.  This is a file that the ``alembic``
-script looks for when invoked.  This file can be anywhere, either in the same directory
-from which the ``alembic`` script will normally be invoked, or if in a different directory, can
-be specified by using the ``--config`` option to the ``alembic`` runner.
+script looks for when invoked.  This file can exist in a different directory, with the location to it
+specified by either the ``--config`` option for the ``alembic`` runner or the ``ALEMBIC_CONFIG``
+environment variable (the former takes precedence).
 
 The file generated with the "generic" configuration looks like::
 
