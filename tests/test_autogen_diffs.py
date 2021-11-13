@@ -15,6 +15,7 @@ from sqlalchemy import Index
 from sqlalchemy import inspect
 from sqlalchemy import INTEGER
 from sqlalchemy import Integer
+from sqlalchemy import JSON
 from sqlalchemy import LargeBinary
 from sqlalchemy import MetaData
 from sqlalchemy import Numeric
@@ -927,6 +928,8 @@ class CompareMetadataToInspectorTest(TestBase):
         (String(32),),
         (LargeBinary(),),
         (Unicode(32),),
+        (JSON(), config.requirements.json_type),
+        (mysql.LONGTEXT(), config.requirements.mysql),
         (Enum("one", "two", "three", name="the_enum"),),
     )
     def test_introspected_columns_match_metadata_columns(self, cola):
@@ -965,7 +968,7 @@ class CompareMetadataToInspectorTest(TestBase):
             mysql.VARCHAR(200, charset="latin1"),
             mysql.VARCHAR(200, charset="utf-8"),
             True,
-            config.requirements.mysql + config.requirements.sqlalchemy_13,
+            config.requirements.mysql,
         ),
         (
             String(255, collation="utf8_bin"),
@@ -977,7 +980,7 @@ class CompareMetadataToInspectorTest(TestBase):
             String(255, collation="utf8_bin"),
             String(255, collation="latin1_bin"),
             True,
-            config.requirements.mysql + config.requirements.sqlalchemy_13,
+            config.requirements.mysql,
         ),
     )
     def test_string_comparisons(self, cola, colb, expect_changes):

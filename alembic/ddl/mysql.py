@@ -38,7 +38,10 @@ class MySQLImpl(DefaultImpl):
     __dialect__ = "mysql"
 
     transactional_ddl = False
-    type_synonyms = DefaultImpl.type_synonyms + ({"BOOL", "TINYINT"},)
+    type_synonyms = DefaultImpl.type_synonyms + (
+        {"BOOL", "TINYINT"},
+        {"JSON", "LONGTEXT"},
+    )
     type_arg_extract = [r"character set ([\w\-_]+)", r"collate ([\w\-_]+)"]
 
     def alter_column(  # type:ignore[override]
