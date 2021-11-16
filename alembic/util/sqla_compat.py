@@ -252,6 +252,24 @@ def _reflect_table(
         return inspector.reflecttable(table, None)
 
 
+if hasattr(sqltypes.TypeEngine, "_variant_mapping"):
+
+    def _type_has_variants(type_):
+        return bool(type_._variant_mapping)
+
+    def _get_variant_mapping(type_):
+        return type_, type_._variant_mapping
+
+
+else:
+
+    def _type_has_variants(type_):
+        return type(type_) is sqltypes.Variant
+
+    def _get_variant_mapping(type_):
+        return type_.impl, type_.mapping
+
+
 def _fk_spec(constraint):
     source_columns = [
         constraint.columns[key].name for key in constraint.column_keys
