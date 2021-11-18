@@ -1,3 +1,4 @@
+from sqlalchemy import exc as sqla_exc
 from sqlalchemy import text
 
 from alembic.testing import exclusions
@@ -299,6 +300,54 @@ class DefaultRequirements(SuiteRequirements):
                 return norm_version_info >= (8, 0, 16)
         else:
             return False
+
+    @property
+    def json_type(self):
+        return exclusions.only_on(
+            [
+                lambda config: exclusions.against(config, "mysql")
+                and (
+                    (
+                        not config.db.dialect._is_mariadb
+                        and exclusions.against(config, "mysql >= 5.7")
+                    )
+                    or (
+                        config.db.dialect._mariadb_normalized_version_info
+                        >= (10, 2, 7)
+                    )
+                ),
+                "mariadb>=10.2.7",
+                "postgresql >= 9.3",
+                self._sqlite_json,
+                self._mssql_json,
+            ]
+        )
+
+    def _mssql_json(self, config):
+        if not sqla_compat.sqla_14:
+            return False
+        else:
+            return exclusions.against(config, "mssql")
+
+    def _sqlite_json(self, config):
+        if not sqla_compat.sqla_14:
+            return False
+        elif not exclusions.against(config, "sqlite >= 3.9"):
+            return False
+        else:
+            with config.db.connect() as conn:
+                try:
+                    return (
+                        conn.execute(
+                            text(
+                                """select json_extract('{"foo": "bar"}', """
+                                """'$."foo"')"""
+                            )
+                        ).scalar()
+                        == "bar"
+                    )
+                except sqla_exc.DBAPIError:
+                    return False
 
     @property
     def identity_columns(self):
