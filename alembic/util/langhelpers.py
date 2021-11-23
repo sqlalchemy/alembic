@@ -21,7 +21,6 @@ from sqlalchemy.util import to_list  # noqa
 from sqlalchemy.util import unique_list  # noqa
 
 from .compat import inspect_getfullargspec
-from .compat import string_types
 
 
 _T = TypeVar("_T")
@@ -209,7 +208,7 @@ def to_tuple(x: Any, default: Optional[tuple] = None) -> tuple:
 def to_tuple(x, default=None):
     if x is None:
         return default
-    elif isinstance(x, string_types):
+    elif isinstance(x, str):
         return (x,)
     elif isinstance(x, Iterable):
         return tuple(x)
@@ -241,7 +240,7 @@ class Dispatcher:
 
     def dispatch(self, obj: Any, qualifier: str = "default") -> Any:
 
-        if isinstance(obj, string_types):
+        if isinstance(obj, str):
             targets: Sequence = [obj]
         elif isinstance(obj, type):
             targets = obj.__mro__

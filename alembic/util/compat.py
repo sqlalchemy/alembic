@@ -12,10 +12,6 @@ py39 = sys.version_info >= (3, 9)
 py38 = sys.version_info >= (3, 8)
 py37 = sys.version_info >= (3, 7)
 
-string_types = (str,)
-binary_type = bytes
-text_type = str
-
 
 # produce a wrapper that allows encoded text to stream
 # into a given buffer, but doesn't close it.

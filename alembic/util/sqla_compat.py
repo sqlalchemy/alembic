@@ -23,8 +23,6 @@ from sqlalchemy.sql.elements import quoted_name
 from sqlalchemy.sql.elements import TextClause
 from sqlalchemy.sql.visitors import traverse
 
-from . import compat
-
 if TYPE_CHECKING:
     from sqlalchemy import Index
     from sqlalchemy import Table
@@ -338,7 +336,7 @@ def _textual_index_column(
     table: "Table", text_: Union[str, "TextClause", "ColumnElement"]
 ) -> Union["ColumnElement", "Column"]:
     """a workaround for the Index construct's severe lack of flexibility"""
-    if isinstance(text_, compat.string_types):
+    if isinstance(text_, str):
         c = Column(text_, sqltypes.NULLTYPE)
         table.append_column(c)
         return c

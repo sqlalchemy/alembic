@@ -18,9 +18,7 @@ from sqlalchemy.sql.elements import conv
 
 from .. import util
 from ..operations import ops
-from ..util import compat
 from ..util import sqla_compat
-from ..util.compat import string_types
 
 if TYPE_CHECKING:
     from typing import Literal
@@ -567,8 +565,8 @@ def _ident(name: Optional[Union["quoted_name", str]]) -> Optional[str]:
     if name is None:
         return name
     elif isinstance(name, sql.elements.quoted_name):
-        return compat.text_type(name)
-    elif isinstance(name, compat.string_types):
+        return str(name)
+    elif isinstance(name, str):
         return name
 
 
@@ -757,14 +755,14 @@ def _render_server_default(
     elif sqla_compat._server_default_is_identity(default):
         return _render_identity(cast("Identity", default), autogen_context)
     elif isinstance(default, sa_schema.DefaultClause):
-        if isinstance(default.arg, compat.string_types):
+        if isinstance(default.arg, str):
             default = default.arg
         else:
             return _render_potential_expr(
                 default.arg, autogen_context, is_server_default=True
             )
 
-    if isinstance(default, string_types) and repr_:
+    if isinstance(default, str) and repr_:
         default = repr(re.sub(r"^'|'$", "", default))
 
     return cast(str, default)
@@ -1109,7 +1107,7 @@ def _render_check_constraint(
 def _execute_sql(
     autogen_context: "AutogenContext", op: "ops.ExecuteSQLOp"
 ) -> str:
-    if not isinstance(op.sqltext, string_types):
+    if not isinstance(op.sqltext, str):
         raise NotImplementedError(
             "Autogenerate rendering of SQL Expression language constructs "
             "not supported here; please use a plain SQL string"

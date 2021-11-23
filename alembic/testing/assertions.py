@@ -5,7 +5,6 @@ from typing import Any
 from typing import Dict
 
 from sqlalchemy import exc as sa_exc
-from sqlalchemy import util
 from sqlalchemy.engine import default
 from sqlalchemy.testing.assertions import _expect_warnings
 from sqlalchemy.testing.assertions import eq_  # noqa
@@ -85,12 +84,10 @@ def _expect_raises(except_cls, msg=None, check_context=False):
         ec.error = err
         success = True
         if msg is not None:
-            assert re.search(
-                msg, util.text_type(err), re.UNICODE
-            ), "%r !~ %s" % (msg, err)
+            assert re.search(msg, str(err), re.UNICODE), f"{msg} !~ {err}"
         if check_context and not are_we_already_in_a_traceback:
             _assert_proper_exception_context(err)
-        print(util.text_type(err).encode("utf-8"))
+        print(str(err).encode("utf-8"))
 
     # assert outside the block so it works for AssertionError too !
     assert success, "Callable did not raise an exception"

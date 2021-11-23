@@ -19,8 +19,6 @@ from sqlalchemy import text
 from . import base
 from .. import util
 from ..util import sqla_compat
-from ..util.compat import string_types
-from ..util.compat import text_type
 
 if TYPE_CHECKING:
     from io import StringIO
@@ -124,7 +122,7 @@ class DefaultImpl(metaclass=ImplMeta):
 
     def static_output(self, text: str) -> None:
         assert self.output_buffer is not None
-        self.output_buffer.write(text_type(text + "\n\n"))
+        self.output_buffer.write(text + "\n\n")
         self.output_buffer.flush()
 
     def requires_recreate_in_batch(
@@ -162,7 +160,7 @@ class DefaultImpl(metaclass=ImplMeta):
         multiparams: Sequence[dict] = (),
         params: Dict[str, int] = util.immutabledict(),
     ) -> Optional[Union["LegacyCursorResult", "CursorResult"]]:
-        if isinstance(construct, string_types):
+        if isinstance(construct, str):
             construct = text(construct)
         if self.as_sql:
             if multiparams or params:
@@ -177,9 +175,7 @@ class DefaultImpl(metaclass=ImplMeta):
                 compile_kw = {}
 
             self.static_output(
-                text_type(
-                    construct.compile(dialect=self.dialect, **compile_kw)
-                )
+                str(construct.compile(dialect=self.dialect, **compile_kw))
                 .replace("\t", "    ")
                 .strip()
                 + self.command_terminator
@@ -554,8 +550,8 @@ class DefaultImpl(metaclass=ImplMeta):
 
     def correct_for_autogen_constraints(
         self,
-        conn_uniques: Union[Set["UniqueConstraint"]],
-        conn_indexes: Union[Set["Index"]],
+        conn_uniques: Set["UniqueConstraint"],
+        conn_indexes: Set["Index"],
         metadata_unique_constraints: Set["UniqueConstraint"],
         metadata_indexes: Set["Index"],
     ) -> None:
@@ -580,7 +576,7 @@ class DefaultImpl(metaclass=ImplMeta):
         compile_kw = dict(
             compile_kwargs={"literal_binds": True, "include_table": False}
         )
-        return text_type(expr.compile(dialect=self.dialect, **compile_kw))
+        return str(expr.compile(dialect=self.dialect, **compile_kw))
 
     def _compat_autogen_column_reflect(
         self, inspector: "Inspector"

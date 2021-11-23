@@ -1,5 +1,6 @@
+from itertools import zip_longest
+
 from sqlalchemy import schema
-from sqlalchemy import util
 
 
 class CompareTable:
@@ -10,7 +11,7 @@ class CompareTable:
         if self.table.name != other.name or self.table.schema != other.schema:
             return False
 
-        for c1, c2 in util.zip_longest(self.table.c, other.c):
+        for c1, c2 in zip_longest(self.table.c, other.c):
             if (c1 is None and c2 is not None) or (
                 c2 is None and c1 is not None
             ):
@@ -86,7 +87,7 @@ class CompareForeignKey:
         )
         if not r1:
             return False
-        for c1, c2 in util.zip_longest(self.constraint.columns, other.columns):
+        for c1, c2 in zip_longest(self.constraint.columns, other.columns):
             if (c1 is None and c2 is not None) or (
                 c2 is None and c1 is not None
             ):
@@ -113,7 +114,7 @@ class ComparePrimaryKey:
         if not r1:
             return False
 
-        for c1, c2 in util.zip_longest(self.constraint.columns, other.columns):
+        for c1, c2 in zip_longest(self.constraint.columns, other.columns):
             if (c1 is None and c2 is not None) or (
                 c2 is None and c1 is not None
             ):
@@ -141,7 +142,7 @@ class CompareUniqueConstraint:
         if not r1:
             return False
 
-        for c1, c2 in util.zip_longest(self.constraint.columns, other.columns):
+        for c1, c2 in zip_longest(self.constraint.columns, other.columns):
             if (c1 is None and c2 is not None) or (
                 c2 is None and c1 is not None
             ):

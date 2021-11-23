@@ -16,7 +16,6 @@ from sqlalchemy.types import NULLTYPE
 
 from .. import util
 from ..util import sqla_compat
-from ..util.compat import string_types
 
 if TYPE_CHECKING:
     from sqlalchemy.sql.elements import ColumnElement
@@ -269,7 +268,7 @@ class SchemaObjects:
         ForeignKey.
 
         """
-        if isinstance(fk._colspec, string_types):  # type:ignore[attr-defined]
+        if isinstance(fk._colspec, str):  # type:ignore[attr-defined]
             table_key, cname = fk._colspec.rsplit(  # type:ignore[attr-defined]
                 ".", 1
             )

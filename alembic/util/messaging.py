@@ -12,8 +12,6 @@ import warnings
 from sqlalchemy.engine import url
 
 from . import sqla_compat
-from .compat import binary_type
-from .compat import string_types
 
 log = logging.getLogger(__name__)
 
@@ -37,7 +35,7 @@ except (ImportError, IOError):
 def write_outstream(stream: TextIO, *text) -> None:
     encoding = getattr(stream, "encoding", "ascii") or "ascii"
     for t in text:
-        if not isinstance(t, binary_type):
+        if not isinstance(t, bytes):
             t = t.encode(encoding, "replace")
         t = t.decode(encoding)
         try:
@@ -100,7 +98,7 @@ def msg(msg: str, newline: bool = True, flush: bool = False) -> None:
 def format_as_comma(value: Optional[Union[str, "Iterable[str]"]]) -> str:
     if value is None:
         return ""
-    elif isinstance(value, string_types):
+    elif isinstance(value, str):
         return value
     elif isinstance(value, Iterable):
         return ", ".join(value)

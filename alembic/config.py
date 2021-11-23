@@ -167,9 +167,9 @@ class Config:
         """
 
         if arg:
-            output = compat.text_type(text) % arg
+            output = str(text) % arg
         else:
-            output = compat.text_type(text)
+            output = str(text)
 
         util.write_outstream(self.stdout, output, "\n")
 

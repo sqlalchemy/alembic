@@ -20,7 +20,6 @@ from typing import Union
 from sqlalchemy import util as sqlautil
 
 from .. import util
-from ..util import compat
 
 if TYPE_CHECKING:
     from typing import Literal
@@ -724,16 +723,12 @@ class RevisionMap:
         self, id_: Optional[str]
     ) -> Tuple[Tuple[str, ...], Optional[str]]:
         branch_label: Optional[str]
-        if isinstance(id_, compat.string_types) and "@" in id_:
+        if isinstance(id_, str) and "@" in id_:
             branch_label, id_ = id_.split("@", 1)
 
         elif id_ is not None and (
-            (
-                isinstance(id_, tuple)
-                and id_
-                and not isinstance(id_[0], compat.string_types)
-            )
-            or not isinstance(id_, compat.string_types + (tuple,))
+            (isinstance(id_, tuple) and id_ and not isinstance(id_[0], str))
+            or not isinstance(id_, (str, tuple))
         ):
             raise RevisionError(
                 "revision identifier %r is not a string; ensure database "
@@ -1029,7 +1024,7 @@ class RevisionMap:
         walk to.
         """
         initial: Optional[_RevisionOrBase]
-        if isinstance(start, compat.string_types):
+        if isinstance(start, str):
             initial = self.get_revision(start)
         else:
             initial = start
@@ -1092,7 +1087,7 @@ class RevisionMap:
         if target is None:
             return None, None
         assert isinstance(
-            target, compat.string_types
+            target, str
         ), "Expected downgrade target in string form"
         match = _relative_destination.match(target)
         if match:
@@ -1183,7 +1178,7 @@ class RevisionMap:
         to. The target may be specified in absolute form, or relative to
         :current_revisions.
         """
-        if isinstance(target, compat.string_types):
+        if isinstance(target, str):
             match = _relative_destination.match(target)
         else:
             match = None
@@ -1400,7 +1395,7 @@ class RevisionMap:
 
         # Handled named bases (e.g. branch@... -> heads should only produce
         # targets on the given branch)
-        if isinstance(lower, compat.string_types) and "@" in lower:
+        if isinstance(lower, str) and "@" in lower:
             branch, _, _ = lower.partition("@")
             branch_rev = self.get_revision(branch)
             if branch_rev is not None and branch_rev.revision == branch:

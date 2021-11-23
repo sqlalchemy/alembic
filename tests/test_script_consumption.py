@@ -28,7 +28,6 @@ from alembic.testing.env import write_script
 from alembic.testing.fixtures import capture_context_buffer
 from alembic.testing.fixtures import FutureEngineMixin
 from alembic.testing.fixtures import TestBase
-from alembic.util import compat
 
 
 class PatchEnvironment:
@@ -383,7 +382,7 @@ class CallbackEnvironmentTest(ApplyVersionsFunctionalTest):
             assert isinstance(step.is_upgrade, bool)
             assert isinstance(step.is_stamp, bool)
             assert isinstance(step.is_migration, bool)
-            assert isinstance(step.up_revision_id, compat.string_types)
+            assert isinstance(step.up_revision_id, str)
             assert isinstance(step.up_revision, Script)
 
             for revtype in "up", "down", "source", "destination":
@@ -393,12 +392,12 @@ class CallbackEnvironmentTest(ApplyVersionsFunctionalTest):
                     assert isinstance(rev, Script)
                 revids = getattr(step, "%s_revision_ids" % revtype)
                 for revid in revids:
-                    assert isinstance(revid, compat.string_types)
+                    assert isinstance(revid, str)
 
             heads = kw["heads"]
             assert hasattr(heads, "__iter__")
             for h in heads:
-                assert h is None or isinstance(h, compat.string_types)
+                assert h is None or isinstance(h, str)
 
 
 class OfflineTransactionalDDLTest(TestBase):
