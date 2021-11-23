@@ -521,11 +521,12 @@ that module.  So to start out, we can edit ``alembic.ini`` to refer
 to multiple directories;  we'll also state the current ``versions``
 directory as one of them::
 
+  # A separator for the location paths must be defined first.
+  version_path_separator = os  # Use os.pathsep.
   # version location specification; this defaults
   # to foo/versions.  When using multiple version
   # directories, initial revisions must be specified with --version-path
-  version_path_separator = space
-  version_locations = %(here)s/model/networking %(here)s/alembic/versions
+  version_locations = %(here)s/model/networking:%(here)s/alembic/versions
 
 The new directory ``%(here)s/model/networking`` is in terms of where
 the ``alembic.ini`` file is, as we are using the symbol ``%(here)s`` which
