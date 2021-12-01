@@ -1,3 +1,4 @@
+import difflib
 from pathlib import Path
 import subprocess
 import sys
@@ -31,11 +32,23 @@ class TestStubFiles(TestBase):
     def test_op_pyi(self):
         res = run_command("op")
         generated = res.stdout
-        expected = Path(alembic.__file__).parent / "op.pyi"
-        eq_(generated, expected.read_text())
+        file_path = Path(alembic.__file__).parent / "op.pyi"
+        expected = file_path.read_text()
+        eq_(generated, expected, compare(generated, expected))
 
     def test_context_pyi(self):
         res = run_command("context")
         generated = res.stdout
-        expected = Path(alembic.__file__).parent / "context.pyi"
-        eq_(generated, expected.read_text())
+        file_path = Path(alembic.__file__).parent / "context.pyi"
+        expected = file_path.read_text()
+        eq_(generated, expected, compare(generated, expected))
+
+
+def compare(actual: str, expected: str):
+    diff = difflib.unified_diff(
+        actual.splitlines(),
+        expected.splitlines(),
+        fromfile="generated",
+        tofile="expected",
+    )
+    return "\n".join(diff)
