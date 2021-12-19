@@ -1485,6 +1485,8 @@ file that's used by Alembic to start its operations. In particular only
         async with connectable.connect() as connection:
             await connection.run_sync(do_run_migrations)
 
+        await connectable.dispose()
+
 
     if context.is_offline_mode():
         run_migrations_offline()
