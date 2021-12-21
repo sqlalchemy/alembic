@@ -7,6 +7,7 @@ from typing import Collection
 from typing import Deque
 from typing import Dict
 from typing import FrozenSet
+from typing import Iterable
 from typing import Iterator
 from typing import List
 from typing import Optional
@@ -111,7 +112,7 @@ class RevisionMap:
 
     """
 
-    def __init__(self, generator: Callable[[], Iterator["Revision"]]) -> None:
+    def __init__(self, generator: Callable[[], Iterable["Revision"]]) -> None:
         """Construct a new :class:`.RevisionMap`.
 
         :param generator: a zero-arg callable that will generate an iterable
@@ -665,7 +666,7 @@ class RevisionMap:
 
     def filter_for_lineage(
         self,
-        targets: Sequence[_T],
+        targets: Iterable[_T],
         check_against: Optional[str],
         include_dependencies: bool = False,
     ) -> Tuple[_T, ...]:

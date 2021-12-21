@@ -157,9 +157,9 @@ def _get_connection_in_transaction(connection: Optional["Connection"]) -> bool:
 
 def _copy(schema_item: _CE, **kw) -> _CE:
     if hasattr(schema_item, "_copy"):
-        return schema_item._copy(**kw)
+        return schema_item._copy(**kw)  # type: ignore[union-attr]
     else:
-        return schema_item.copy(**kw)
+        return schema_item.copy(**kw)  # type: ignore[union-attr]
 
 
 def _get_connection_transaction(
