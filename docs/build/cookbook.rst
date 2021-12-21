@@ -1455,7 +1455,9 @@ file that's used by Alembic to start its operations. In particular only
 ``run_migrations_online`` will need to be updated to be something like the example below::
 
     import asyncio
-    
+
+    from sqlalchemy.ext.asyncio import AsyncEngine
+
     # ... no change required to the rest of the code
 
 
