@@ -255,6 +255,8 @@ class MSSQLImpl(DefaultImpl):
 
 
 class _ExecDropConstraint(Executable, ClauseElement):
+    inherit_cache = False
+
     def __init__(
         self,
         tname: str,
@@ -269,6 +271,8 @@ class _ExecDropConstraint(Executable, ClauseElement):
 
 
 class _ExecDropFKConstraint(Executable, ClauseElement):
+    inherit_cache = False
+
     def __init__(
         self, tname: str, colname: "Column", schema: Optional[str]
     ) -> None:
