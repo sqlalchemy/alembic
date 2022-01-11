@@ -66,14 +66,14 @@ class SQLiteImpl(DefaultImpl):
         # auto-gen constraint and an explicit one
         if const._create_rule is None:  # type:ignore[attr-defined]
             raise NotImplementedError(
-                "No support for ALTER of constraints in SQLite dialect"
+                "No support for ALTER of constraints in SQLite dialect. "
                 "Please refer to the batch mode feature which allows for "
                 "SQLite migrations using a copy-and-move strategy."
             )
         elif const._create_rule(self):  # type:ignore[attr-defined]
             util.warn(
                 "Skipping unsupported ALTER for "
-                "creation of implicit constraint"
+                "creation of implicit constraint. "
                 "Please refer to the batch mode feature which allows for "
                 "SQLite migrations using a copy-and-move strategy."
             )
@@ -81,7 +81,7 @@ class SQLiteImpl(DefaultImpl):
     def drop_constraint(self, const: "Constraint"):
         if const._create_rule is None:  # type:ignore[attr-defined]
             raise NotImplementedError(
-                "No support for ALTER of constraints in SQLite dialect"
+                "No support for ALTER of constraints in SQLite dialect. "
                 "Please refer to the batch mode feature which allows for "
                 "SQLite migrations using a copy-and-move strategy."
             )
