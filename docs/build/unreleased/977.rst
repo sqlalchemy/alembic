@@ -1,0 +1,11 @@
+.. change::
+    :tags: bug, mssql
+    :tickets: 977
+
+    Fixed bug where an alter_column() operation would change a "NOT NULL"
+    column to "NULL" by emitting an ALTER COLUMN statement that did not specify
+    "NOT NULL". (In the absence of "NOT NULL" T-SQL was implicitly assuming
+    "NULL"). An alter_column() operation that specifies `type_=` should also
+    specify either `nullable=` or `existing_nullable=` to inform Alembic as to
+    whether the emitted DDL should include "NULL" or "NOT NULL"; a warning is
+    now emitted if this is missing under this scenario.

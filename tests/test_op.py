@@ -23,6 +23,7 @@ from alembic.testing import assert_raises_message
 from alembic.testing import combinations
 from alembic.testing import config
 from alembic.testing import eq_
+from alembic.testing import expect_warnings
 from alembic.testing import is_not_
 from alembic.testing import mock
 from alembic.testing.fixtures import op_fixture
@@ -409,31 +410,59 @@ class OpTest(TestBase):
             existing_server_default=esd(),
         )
 
-    def test_alter_column_schema_type_unnamed(self):
+    @combinations((True,), (False,), (None,), argnames="existing_nullable")
+    def test_alter_column_schema_type_unnamed(self, existing_nullable):
         context = op_fixture("mssql", native_boolean=False)
-        op.alter_column("t", "c", type_=Boolean(create_constraint=True))
-        context.assert_(
-            "ALTER TABLE t ALTER COLUMN c BIT",
-            "ALTER TABLE t ADD CHECK (c IN (0, 1))",
-        )
+        if existing_nullable is None:
+            with expect_warnings(
+                "MS-SQL ALTER COLUMN operations that specify type_= should"
+            ):
+                op.alter_column(
+                    "t",
+                    "c",
+                    type_=Boolean(create_constraint=True),
+                )
+            context.assert_(
+                "ALTER TABLE t ALTER COLUMN c BIT",
+                "ALTER TABLE t ADD CHECK (c IN (0, 1))",
+            )
+        else:
+            op.alter_column(
+                "t",
+                "c",
+                type_=Boolean(create_constraint=True),
+                existing_nullable=existing_nullable,
+            )
+            context.assert_(
+                f"ALTER TABLE t ALTER COLUMN c BIT "
+                f"{'NULL' if existing_nullable else 'NOT NULL'}",
+                "ALTER TABLE t ADD CHECK (c IN (0, 1))",
+            )
 
     def test_alter_column_schema_schema_type_unnamed(self):
         context = op_fixture("mssql", native_boolean=False)
         op.alter_column(
-            "t", "c", type_=Boolean(create_constraint=True), schema="foo"
+            "t",
+            "c",
+            type_=Boolean(create_constraint=True),
+            existing_nullable=False,
+            schema="foo",
         )
         context.assert_(
-            "ALTER TABLE foo.t ALTER COLUMN c BIT",
+            "ALTER TABLE foo.t ALTER COLUMN c BIT NOT NULL",
             "ALTER TABLE foo.t ADD CHECK (c IN (0, 1))",
         )
 
     def test_alter_column_schema_type_named(self):
         context = op_fixture("mssql", native_boolean=False)
         op.alter_column(
-            "t", "c", type_=Boolean(name="xyz", create_constraint=True)
+            "t",
+            "c",
+            type_=Boolean(name="xyz", create_constraint=True),
+            existing_nullable=False,
         )
         context.assert_(
-            "ALTER TABLE t ALTER COLUMN c BIT",
+            "ALTER TABLE t ALTER COLUMN c BIT NOT NULL",
             "ALTER TABLE t ADD CONSTRAINT xyz CHECK (c IN (0, 1))",
         )
 
@@ -443,10 +472,11 @@ class OpTest(TestBase):
             "t",
             "c",
             type_=Boolean(name="xyz", create_constraint=True),
+            existing_nullable=False,
             schema="foo",
         )
         context.assert_(
-            "ALTER TABLE foo.t ALTER COLUMN c BIT",
+            "ALTER TABLE foo.t ALTER COLUMN c BIT NOT NULL",
             "ALTER TABLE foo.t ADD CONSTRAINT xyz CHECK (c IN (0, 1))",
         )
 
@@ -482,10 +512,11 @@ class OpTest(TestBase):
             "c",
             type_=String(10),
             existing_type=Boolean(name="xyz", create_constraint=True),
+            existing_nullable=False,
         )
         context.assert_(
             "ALTER TABLE t DROP CONSTRAINT xyz",
-            "ALTER TABLE t ALTER COLUMN c VARCHAR(10)",
+            "ALTER TABLE t ALTER COLUMN c VARCHAR(10) NOT NULL",
         )
 
     def test_alter_column_schema_schema_type_existing_type(self):
@@ -495,11 +526,12 @@ class OpTest(TestBase):
             "c",
             type_=String(10),
             existing_type=Boolean(name="xyz", create_constraint=True),
+            existing_nullable=False,
             schema="foo",
         )
         context.assert_(
             "ALTER TABLE foo.t DROP CONSTRAINT xyz",
-            "ALTER TABLE foo.t ALTER COLUMN c VARCHAR(10)",
+            "ALTER TABLE foo.t ALTER COLUMN c VARCHAR(10) NOT NULL",
         )
 
     def test_alter_column_schema_type_existing_type_no_const(self):

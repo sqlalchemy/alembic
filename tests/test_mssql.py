@@ -1,5 +1,8 @@
 """Test op functions against MSSQL."""
 
+from typing import Any
+from typing import Dict
+
 from sqlalchemy import Column
 from sqlalchemy import exc
 from sqlalchemy import Integer
@@ -12,6 +15,7 @@ from alembic.testing import assert_raises_message
 from alembic.testing import combinations
 from alembic.testing import config
 from alembic.testing import eq_
+from alembic.testing import expect_warnings
 from alembic.testing.env import _no_sql_testing_config
 from alembic.testing.env import clear_staging_env
 from alembic.testing.env import staging_env
@@ -72,34 +76,68 @@ class OpTest(TestBase):
 
     def test_alter_column_rename_mssql(self):
         context = op_fixture("mssql")
-        op.alter_column("t", "c", new_column_name="x")
-        context.assert_("EXEC sp_rename 't.c', x, 'COLUMN'")
+        op.alter_column(
+            "t",
+            "c",
+            new_column_name="x",
+        )
+        context.assert_(
+            "EXEC sp_rename 't.c', x, 'COLUMN'",
+        )
 
     def test_alter_column_rename_quoted_mssql(self):
         context = op_fixture("mssql")
-        op.alter_column("t", "c", new_column_name="SomeFancyName")
-        context.assert_("EXEC sp_rename 't.c', [SomeFancyName], 'COLUMN'")
+        op.alter_column(
+            "t",
+            "c",
+            new_column_name="SomeFancyName",
+        )
+        context.assert_(
+            "EXEC sp_rename 't.c', [SomeFancyName], 'COLUMN'",
+        )
 
     @combinations((True,), (False,), argnames="pass_existing_type")
+    @combinations((True,), (False,), argnames="existing_nullability")
     @combinations((True,), (False,), argnames="change_nullability")
     def test_alter_column_type_and_nullability(
-        self, pass_existing_type, change_nullability
+        self, pass_existing_type, existing_nullability, change_nullability
     ):
         context = op_fixture("mssql")
 
-        args = dict(type_=Integer)
-        if pass_existing_type:
-            args["existing_type"] = String(15)
+        args: Dict[str, Any] = dict(type_=Integer)
 
         if change_nullability:
-            args["nullable"] = False
+            expected_nullability = not existing_nullability
+            args["nullable"] = expected_nullability
+        else:
+            args[
+                "existing_nullable"
+            ] = expected_nullability = existing_nullability
 
         op.alter_column("t", "c", **args)
 
-        if change_nullability:
-            context.assert_("ALTER TABLE t ALTER COLUMN c INTEGER NOT NULL")
-        else:
-            context.assert_("ALTER TABLE t ALTER COLUMN c INTEGER")
+        context.assert_(
+            f"ALTER TABLE t ALTER COLUMN c INTEGER "
+            f"{'NOT NULL' if not expected_nullability else 'NULL'}"
+        )
+
+    def test_alter_column_type_dont_change_nullability(self):
+        context = op_fixture("mssql")
+
+        op.alter_column("t", "c", type_=String(99), existing_nullable=False)
+        context.assert_contains("ALTER COLUMN c VARCHAR(99) NOT NULL")
+
+    def test_alter_column_type_should_have_existing_nullable(self):
+        context = op_fixture("mssql")  # noqa
+        with expect_warnings(
+            "MS-SQL ALTER COLUMN operations that specify type_= should"
+        ):
+            op.alter_column(
+                "t",
+                "c",
+                type_=String(99),
+            )
+        context.assert_contains("ALTER COLUMN c VARCHAR(99)")
 
     def test_alter_column_dont_touch_constraints(self):
         context = op_fixture("mssql")
@@ -136,7 +174,11 @@ class OpTest(TestBase):
 
     def test_alter_column_drop_default(self):
         context = op_fixture("mssql")
-        op.alter_column("t", "c", server_default=None)
+        op.alter_column(
+            "t",
+            "c",
+            server_default=None,
+        )
         context.assert_contains(
             "declare @const_name varchar(256)select @const_name = [name] "
             "from sys.default_constraintswhere parent_object_id = "
@@ -149,7 +191,12 @@ class OpTest(TestBase):
 
     def test_alter_column_drop_default_w_schema(self):
         context = op_fixture("mssql")
-        op.alter_column("t", "c", server_default=None, schema="xyz")
+        op.alter_column(
+            "t",
+            "c",
+            server_default=None,
+            schema="xyz",
+        )
         context.assert_contains(
             "declare @const_name varchar(256)select @const_name = [name] "
             "from sys.default_constraintswhere parent_object_id = "
@@ -162,7 +209,11 @@ class OpTest(TestBase):
 
     def test_alter_column_dont_drop_default(self):
         context = op_fixture("mssql")
-        op.alter_column("t", "c", server_default=False)
+        op.alter_column(
+            "t",
+            "c",
+            server_default=False,
+        )
         context.assert_()
 
     def test_drop_column_w_schema(self):
@@ -275,13 +326,22 @@ class OpTest(TestBase):
 
     def test_alter_add_server_default(self):
         context = op_fixture("mssql")
-        op.alter_column("t", "c", server_default="5")
-        context.assert_("ALTER TABLE t ADD DEFAULT '5' FOR c")
+        op.alter_column(
+            "t",
+            "c",
+            server_default="5",
+        )
+        context.assert_(
+            "ALTER TABLE t ADD DEFAULT '5' FOR c",
+        )
 
     def test_alter_replace_server_default(self):
         context = op_fixture("mssql")
         op.alter_column(
-            "t", "c", server_default="5", existing_server_default="6"
+            "t",
+            "c",
+            server_default="5",
+            existing_server_default="6",
         )
         context.assert_contains(
             "exec('alter table t drop constraint ' + @const_name)"
@@ -290,7 +350,11 @@ class OpTest(TestBase):
 
     def test_alter_remove_server_default(self):
         context = op_fixture("mssql")
-        op.alter_column("t", "c", server_default=None)
+        op.alter_column(
+            "t",
+            "c",
+            server_default=None,
+        )
         context.assert_contains(
             "exec('alter table t drop constraint ' + @const_name)"
         )
@@ -348,8 +412,15 @@ class OpTest(TestBase):
 
     def test_alter_column_rename_mssql_schema(self):
         context = op_fixture("mssql")
-        op.alter_column("t", "c", new_column_name="x", schema="y")
-        context.assert_("EXEC sp_rename 'y.t.c', x, 'COLUMN'")
+        op.alter_column(
+            "t",
+            "c",
+            new_column_name="x",
+            schema="y",
+        )
+        context.assert_(
+            "EXEC sp_rename 'y.t.c', x, 'COLUMN'",
+        )
 
     def test_create_index_mssql_include(self):
         context = op_fixture("mssql")

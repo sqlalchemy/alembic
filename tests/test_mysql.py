@@ -472,7 +472,7 @@ class MySQLOpTest(TestBase):
     )
     @config.requirements.computed_columns_api
     def test_alter_column_computed_not_supported(self, sd, esd):
-        op_fixture("mssql")
+        op_fixture("mysql")
         assert_raises_message(
             exc.CompileError,
             'Adding or removing a "computed" construct, e.g. '
