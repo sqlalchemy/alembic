@@ -64,8 +64,8 @@ jobs:
       - name: Run tests
         run: tox -e py-${{ matrix.sqlalchemy }}
 
-  run-mypy:
-    name: mypy-${{ matrix.python-version }}-${{ matrix.os }}
+  run-pep484:
+    name: pep484-${{ matrix.python-version }}-${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -93,5 +93,5 @@ jobs:
           pip install --upgrade tox setuptools
           pip list
 
-      - name: Run mypy
-        run: tox -e mypy
+      - name: Run tox pep484
+        run: tox -e pep484
