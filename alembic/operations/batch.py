@@ -475,8 +475,8 @@ class ApplyBatchImpl:
                     and resolved_existing_type.name  # type:ignore[attr-defined]  # noqa E501
                 ):
                     self.named_constraints.pop(
-                        resolved_existing_type.name,
-                        None,  # type:ignore[attr-defined]
+                        resolved_existing_type.name,  # type:ignore[attr-defined]  # noqa E501
+                        None,
                     )
 
         if type_ is not None:
