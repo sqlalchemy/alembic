@@ -5,7 +5,45 @@ Changelog
 
 .. changelog::
     :version: 1.7.6
-    :include_notes_from: unreleased
+    :released: February 1, 2022
+
+    .. change::
+        :tags: bug, batch, regression
+        :tickets: 982
+
+        Fixed regression where usage of a ``with_variant()`` datatype in
+        conjunction with the ``existing_type`` option of ``op.alter_column()``
+        under batch mode would lead to an internal exception.
+
+    .. change::
+        :tags: usecase, commands
+        :tickets: 964
+
+        Add a new command ``alembic ensure_version``, which will ensure that the
+        Alembic version table is present in the target database, but does not
+        alter its contents.  Pull request courtesy Kai Mueller.
+
+    .. change::
+        :tags: bug, autogenerate
+
+        Implemented support for recognizing and rendering SQLAlchemy "variant"
+        types going forward into SQLAlchemy 2.0, where the architecture of
+        "variant" datatypes will be changing.
+
+
+    .. change::
+        :tags: bug, mysql, autogenerate
+        :tickets: 968
+
+        Added a rule to the MySQL impl so that the translation between JSON /
+        LONGTEXT is accommodated by autogenerate, treating LONGTEXT from the server
+        as equivalent to an existing JSON in the model.
+
+    .. change::
+        :tags: mssql
+
+        Removed a warning raised by SQLAlchemy when dropping constraints
+        on MSSQL regarding statement caching.
 
 .. changelog::
     :version: 1.7.5

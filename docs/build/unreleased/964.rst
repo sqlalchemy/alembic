@@ -1,7 +1,0 @@
-.. change::
-    :tags: usecase, commands
-    :tickets: 964
-
-    Add a new command ``alembic ensure_version``, which will ensure that the
-    Alembic version table is present in the target database, but does not
-    alter its contents.  Pull request courtesy Kai Mueller.

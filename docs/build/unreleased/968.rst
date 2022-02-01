@@ -1,7 +1,0 @@
-.. change::
-    :tags: bug, mysql, autogenerate
-    :tickets: 968
-
-    Added a rule to the MySQL impl so that the translation between JSON /
-    LONGTEXT is accommodated by autogenerate, treating LONGTEXT from the server
-    as equivalent to an existing JSON in the model.

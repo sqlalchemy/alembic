@@ -1,7 +1,0 @@
-.. change::
-    :tags: bug, batch, regression
-    :tickets: 982
-
-    Fixed regression where usage of a ``with_variant()`` datatype in
-    conjunction with the ``existing_type`` option of ``op.alter_column()``
-    under batch mode would lead to an internal exception.
