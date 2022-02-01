@@ -76,7 +76,7 @@ master_doc = "index"
 
 # General information about the project.
 project = u"Alembic"
-copyright = u"2010-2021, Mike Bayer"  # noqa
+copyright = u"2010-2022, Mike Bayer"  # noqa
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
