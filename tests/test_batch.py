@@ -1138,6 +1138,30 @@ class CopyFromTest(TestBase):
             "ALTER TABLE _alembic_tmp_foo RENAME TO foo",
         )
 
+    def test_change_name_from_existing_variant_type(self):
+        """test #982"""
+        context = self._fixture()
+        self.table.append_column(
+            Column("y", Text().with_variant(Text(10000), "mysql"))
+        )
+
+        with self.op.batch_alter_table(
+            "foo", copy_from=self.table
+        ) as batch_op:
+            batch_op.alter_column(
+                column_name="y",
+                new_column_name="q",
+                existing_type=Text().with_variant(Text(10000), "mysql"),
+            )
+        context.assert_(
+            "CREATE TABLE _alembic_tmp_foo (id INTEGER NOT NULL, "
+            "data VARCHAR(50), x INTEGER, q TEXT, PRIMARY KEY (id))",
+            "INSERT INTO _alembic_tmp_foo (id, data, x, q) "
+            "SELECT foo.id, foo.data, foo.x, foo.y FROM foo",
+            "DROP TABLE foo",
+            "ALTER TABLE _alembic_tmp_foo RENAME TO foo",
+        )
+
     def test_change_type_to_schematype(self):
         context = self._fixture()
         self.table.append_column(Column("y", Integer))

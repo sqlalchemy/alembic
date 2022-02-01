@@ -28,6 +28,7 @@ from ..util.sqla_compat import _fk_is_self_referential
 from ..util.sqla_compat import _insert_inline
 from ..util.sqla_compat import _is_type_bound
 from ..util.sqla_compat import _remove_column_from_collection
+from ..util.sqla_compat import _resolve_for_variant
 from ..util.sqla_compat import _select
 
 if TYPE_CHECKING:
@@ -462,15 +463,21 @@ class ApplyBatchImpl:
             existing.name = name
             existing_transfer["name"] = name
 
-            # pop named constraints for Boolean/Enum for rename
-            if (
-                "existing_type" in kw
-                and isinstance(kw["existing_type"], SchemaEventTarget)
-                and kw["existing_type"].name  # type:ignore[attr-defined]
-            ):
-                self.named_constraints.pop(
-                    kw["existing_type"].name, None  # type:ignore[attr-defined]
+            existing_type = kw.get("existing_type", None)
+            if existing_type:
+                resolved_existing_type = _resolve_for_variant(
+                    kw["existing_type"], self.impl.dialect
                 )
+
+                # pop named constraints for Boolean/Enum for rename
+                if (
+                    isinstance(resolved_existing_type, SchemaEventTarget)
+                    and resolved_existing_type.name  # type:ignore[attr-defined]  # noqa E501
+                ):
+                    self.named_constraints.pop(
+                        resolved_existing_type.name,
+                        None,  # type:ignore[attr-defined]
+                    )
 
         if type_ is not None:
             type_ = sqltypes.to_instance(type_)

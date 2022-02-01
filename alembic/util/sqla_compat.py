@@ -250,6 +250,14 @@ def _reflect_table(
         return inspector.reflecttable(table, None)
 
 
+def _resolve_for_variant(type_, dialect):
+    if _type_has_variants(type_):
+        base_type, mapping = _get_variant_mapping(type_)
+        return mapping.get(dialect.name, base_type)
+    else:
+        return type_
+
+
 if hasattr(sqltypes.TypeEngine, "_variant_mapping"):
 
     def _type_has_variants(type_):
