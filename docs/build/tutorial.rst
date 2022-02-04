@@ -235,10 +235,19 @@ with the path to the Alembic script location.
 
 This file contains the following features:
 
-* ``[alembic]`` - this is the section read by Alembic to determine configuration.  Alembic
-  itself does not directly read any other areas of the file.    The name "alembic" can
-  be customized using the ``--name`` commandline flag; see :ref:`multiple_environments`
-  for a basic example of this.
+* ``[alembic]`` - this is the section read by Alembic to determine configuration.  Alembic's
+  core implementation does not directly read any other areas of the file, not
+  including additional directives that may be consumed from the
+  end-user-customizable ``env.py`` file (see note below). The name "alembic"
+  can be customized using the ``--name`` commandline flag; see
+  :ref:`multiple_environments` for a basic example of this.
+
+  .. note:: The default ``env.py`` file included with Alembic's environment
+     templates will also read from the logging sections ``[logging]``,
+     ``[handlers]`` etc. If the configuration file in use does not contain
+     logging directives, please remove the ``fileConfig()`` directive within
+     the generated ``env.py`` file to prevent it from attempting to configure
+     logging.
 
 * ``script_location`` - this is the location of the Alembic environment.   It is normally
   specified as a filesystem location, either relative or absolute.  If the location is
