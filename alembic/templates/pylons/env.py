@@ -21,7 +21,8 @@ except:
     # can use config['__file__'] here, i.e. the Pylons
     # ini file, instead of alembic.ini
     config_file = config.get_main_option("pylons_config_file")
-    fileConfig(config_file)
+    if config_file is not None:
+        fileConfig(config_file)
     wsgi_app = loadapp("config:%s" % config_file, relative_to=".")
 
 

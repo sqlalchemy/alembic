@@ -1,0 +1,7 @@
+.. change::
+    :tags: bug, environment
+    :tickets: 986
+
+    The ``fileConfig()`` line in the ``env.py`` templates is now conditional on
+    ``Config.config_file_name`` not being None.
+
