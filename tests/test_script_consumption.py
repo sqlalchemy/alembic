@@ -242,44 +242,51 @@ class ApplyVersionsFunctionalTest(PatchEnvironment, TestBase):
     def _test_002_upgrade(self):
         command.upgrade(self.cfg, self.c)
         db = self.bind
-        assert db.dialect.has_table(db.connect(), "foo")
-        assert db.dialect.has_table(db.connect(), "bar")
-        assert db.dialect.has_table(db.connect(), "bat")
+
+        with db.connect() as conn:
+            assert db.dialect.has_table(conn, "foo")
+            assert db.dialect.has_table(conn, "bar")
+            assert db.dialect.has_table(conn, "bat")
 
     def _test_003_downgrade(self):
         command.downgrade(self.cfg, self.a)
         db = self.bind
-        assert db.dialect.has_table(db.connect(), "foo")
-        assert not db.dialect.has_table(db.connect(), "bar")
-        assert not db.dialect.has_table(db.connect(), "bat")
+        with db.connect() as conn:
+            assert db.dialect.has_table(conn, "foo")
+            assert not db.dialect.has_table(conn, "bar")
+            assert not db.dialect.has_table(conn, "bat")
 
     def _test_004_downgrade(self):
         command.downgrade(self.cfg, "base")
         db = self.bind
-        assert not db.dialect.has_table(db.connect(), "foo")
-        assert not db.dialect.has_table(db.connect(), "bar")
-        assert not db.dialect.has_table(db.connect(), "bat")
+        with db.connect() as conn:
+            assert not db.dialect.has_table(conn, "foo")
+            assert not db.dialect.has_table(conn, "bar")
+            assert not db.dialect.has_table(conn, "bat")
 
     def _test_005_upgrade(self):
         command.upgrade(self.cfg, self.b)
         db = self.bind
-        assert db.dialect.has_table(db.connect(), "foo")
-        assert db.dialect.has_table(db.connect(), "bar")
-        assert not db.dialect.has_table(db.connect(), "bat")
+        with db.connect() as conn:
+            assert db.dialect.has_table(conn, "foo")
+            assert db.dialect.has_table(conn, "bar")
+            assert not db.dialect.has_table(conn, "bat")
 
     def _test_006_upgrade_again(self):
         command.upgrade(self.cfg, self.b)
         db = self.bind
-        assert db.dialect.has_table(db.connect(), "foo")
-        assert db.dialect.has_table(db.connect(), "bar")
-        assert not db.dialect.has_table(db.connect(), "bat")
+        with db.connect() as conn:
+            assert db.dialect.has_table(conn, "foo")
+            assert db.dialect.has_table(conn, "bar")
+            assert not db.dialect.has_table(conn, "bat")
 
     def _test_007_stamp_upgrade(self):
         command.stamp(self.cfg, self.c)
         db = self.bind
-        assert db.dialect.has_table(db.connect(), "foo")
-        assert db.dialect.has_table(db.connect(), "bar")
-        assert not db.dialect.has_table(db.connect(), "bat")
+        with db.connect() as conn:
+            assert db.dialect.has_table(conn, "foo")
+            assert db.dialect.has_table(conn, "bar")
+            assert not db.dialect.has_table(conn, "bat")
 
 
 class LegacyApplyVersionsFunctionalTest(ApplyVersionsFunctionalTest):
