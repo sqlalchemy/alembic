@@ -188,7 +188,7 @@ new commandline options within environment and migration scripts.
 
 .. _connection_sharing:
 
-Sharing a Connection with a Series of Migration Commands and Environments
+Sharing a Connection across one or more programmatic migration commands
 =========================================================================
 
 It is often the case that an application will need to call upon a series
@@ -211,7 +211,9 @@ The steps to take here are:
    :class:`~sqlalchemy.engine.Connection` and makes use of it, in lieu
    of building up its own :class:`~sqlalchemy.engine.Engine` instance.
 
-We illustrate using :attr:`.Config.attributes`::
+We illustrate using :attr:`.Config.attributes` a script that will run
+the :func:`.command.upgrade` command programmatically within a
+transaction declared in a Python file::
 
     from alembic import command, config
 
@@ -1438,6 +1440,8 @@ branched revision tree::
     :meth:`.ScriptDirectory.get_heads`
 
 
+.. _asyncio_recipe:
+
 Using Asyncio with Alembic
 ==========================
 
@@ -1457,7 +1461,7 @@ file that's used by Alembic to start its operations. In particular only
 
     import asyncio
 
-    from sqlalchemy.ext.asyncio import AsyncEngine
+    from sqlalchemy.ext.asyncio import async_engine_from_config
 
     # ... no change required to the rest of the code
 
@@ -1476,13 +1480,10 @@ file that's used by Alembic to start its operations. In particular only
         and associate a connection with the context.
 
         """
-        connectable = AsyncEngine(
-            engine_from_config(
-                config.get_section(config.config_ini_section),
-                prefix="sqlalchemy.",
-                poolclass=pool.NullPool,
-                future=True,
-            )
+        connectable = async_engine_from_config(
+            config.get_section(config.config_ini_section),
+            prefix="sqlalchemy.",
+            poolclass=pool.NullPool,
         )
 
         async with connectable.connect() as connection:
@@ -1496,6 +1497,80 @@ file that's used by Alembic to start its operations. In particular only
     else:
         asyncio.run(run_migrations_online())
 
-An asnyc application can also interact with the Alembic api directly by using
+An async application can also interact with the Alembic api directly by using
 the SQLAlchemy ``run_sync`` method to adapt the non-async api of Alembic to
 an async consumer.
+
+
+.. _connection_sharing_plus_asyncio:
+
+Programmatic API use (connection sharing) With Asyncio
+------------------------------------------------------
+
+Combining the examples of :ref:`connection_sharing` with :ref:`asyncio_recipe`
+together, and ``env.py`` as follows works::
+
+    import asyncio
+
+    from sqlalchemy.ext.asyncio import async_engine_from_config
+
+    # ... no change required to the rest of the code
+
+
+    def do_run_migrations(connection):
+        context.configure(connection=connection, target_metadata=target_metadata)
+
+        with context.begin_transaction():
+            context.run_migrations()
+
+
+    async def run_async_migrations():
+        connectable = async_engine_from_config(
+            config.get_section(config.config_ini_section),
+            prefix="sqlalchemy.",
+            poolclass=pool.NullPool,
+        )
+
+        async with connectable.connect() as connection:
+            await connection.run_sync(do_run_migrations)
+
+        await connectable.dispose()
+
+
+    def run_migrations_online():
+        """Run migrations in 'online' mode.
+
+        In this scenario we need to create an Engine
+        and associate a connection with the context.
+
+        """
+
+        connectable = config.attributes.get("connection", None)
+
+        if connectable is None:
+            asyncio.run(run_async_migrations())
+        else:
+            do_run_migrations(connectable)
+
+Above, using an asyncio database URL in ``alembic.ini`` one can run
+commands such as ``alembic upgrade`` from the command line.  Programmatically,
+the same ``env.py`` file can be invoked using asyncio as::
+
+    import asyncio
+    from sqlalchemy.ext.asyncio import create_async_engine
+
+    from alembic import command, config
+
+
+    def run_upgrade(connection, cfg):
+        cfg.attributes["connection"] = connection
+        command.upgrade(cfg, "head")
+
+
+    async def run_async_upgrade():
+        async_engine = create_async_engine("sqlite+aiosqlite://", echo=True)
+        async with async_engine.begin() as conn:
+            await conn.run_sync(run_upgrade, config.Config("alembic.ini"))
+
+
+    asyncio.run(run_async_upgrade())
