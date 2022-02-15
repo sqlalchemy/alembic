@@ -233,21 +233,22 @@ Then in ``env.py``::
                 prefix='sqlalchemy.',
                 poolclass=pool.NullPool)
 
-        context.configure(
-            connection=connectable,
-            target_metadata=target_metadata
-        )
+            with connectable.connect() as connection:
+                context.configure(
+                    connection=connection, target_metadata=target_metadata
+                )
 
-        with context.begin_transaction():
-            context.run_migrations()
+                with context.begin_transaction():
+                    context.run_migrations()
+        else:
+            context.configure(
+                connection=connectable,
+                target_metadata=target_metadata
+            )
 
-.. versionchanged:: 1.4
+            with context.begin_transaction():
+                context.run_migrations()
 
-    Prior to this version, we used a "branched connection", by calling
-    :meth:`~sqlalchemy.engine.Connection.connect`.
-    This is now deprecated and unnecessary,
-    since we no longer have to guess if the given "connection"
-    is an ``Engine`` or ``Connection``, it is always a ``Connection``.
 
 .. _replaceable_objects:
 
