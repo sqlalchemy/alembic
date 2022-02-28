@@ -87,7 +87,7 @@ try:
         context.run_migrations()
 finally:
     connection.close()
-
+    engine.dispose()
 """
         )
 
@@ -204,7 +204,7 @@ finally:
 class CurrentTest(_BufMixin, TestBase):
     @classmethod
     def setup_class(cls):
-        cls.bind = _sqlite_file_db()
+        cls.bind = _sqlite_file_db(scope="class")
         cls.env = env = staging_env()
         cls.cfg = _sqlite_testing_config()
         cls.a1 = env.generate_revision("a1", "a1")
@@ -309,6 +309,7 @@ try:
         context.run_migrations()
 finally:
     connection.close()
+    engine.dispose()
 
 """
             % (version_table_pk,)
@@ -1192,7 +1193,7 @@ class CommandLineTest(TestBase):
 class EnureVersionTest(TestBase):
     @classmethod
     def setup_class(cls):
-        cls.bind = _sqlite_file_db()
+        cls.bind = _sqlite_file_db(scope="class")
         cls.env = staging_env()
         cls.cfg = _sqlite_testing_config()
 

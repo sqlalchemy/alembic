@@ -6,6 +6,7 @@ import re
 import textwrap
 
 import sqlalchemy as sa
+from sqlalchemy import pool
 
 from alembic import command
 from alembic import testing
@@ -116,18 +117,9 @@ class PatchEnvironment:
 
 
 @testing.combinations(
-    (
-        False,
-        True,
-    ),
-    (
-        True,
-        False,
-    ),
-    (
-        True,
-        True,
-    ),
+    (False, True),
+    (True, False),
+    (True, True),
     argnames="transactional_ddl,transaction_per_migration",
     id_="rr",
 )
@@ -141,7 +133,9 @@ class ApplyVersionsFunctionalTest(PatchEnvironment, TestBase):
     branched_connection = False
 
     def setUp(self):
-        self.bind = _sqlite_file_db(future=self.future)
+        self.bind = _sqlite_file_db(
+            future=self.future, poolclass=pool.NullPool
+        )
         self.env = staging_env(sourceless=self.sourceless)
         self.cfg = _sqlite_testing_config(
             sourceless=self.sourceless, future=self.future
@@ -802,7 +796,7 @@ class IgnoreFilesTest(TestBase):
     sourceless = False
 
     def setUp(self):
-        self.bind = _sqlite_file_db()
+        self.bind = _sqlite_file_db(poolclass=pool.NullPool)
         self.env = staging_env(sourceless=self.sourceless)
         self.cfg = _sqlite_testing_config(sourceless=self.sourceless)
 

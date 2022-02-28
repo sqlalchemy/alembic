@@ -91,10 +91,12 @@ config = context.config
         f.write(txt)
 
 
-def _sqlite_file_db(tempname="foo.db", future=False):
+def _sqlite_file_db(tempname="foo.db", future=False, scope=None, **options):
     dir_ = os.path.join(_get_staging_directory(), "scripts")
     url = "sqlite:///%s/%s" % (dir_, tempname)
-    return testing_util.testing_engine(url=url, future=future)
+    if scope and util.sqla_14:
+        options["scope"] = scope
+    return testing_util.testing_engine(url=url, future=future, options=options)
 
 
 def _sqlite_testing_config(sourceless=False, future=False):
