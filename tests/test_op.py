@@ -882,6 +882,27 @@ class OpTest(TestBase):
         ck = [c for c in t1.constraints if isinstance(c, CheckConstraint)]
         eq_(ck[0].name, "ck_1")
 
+    def test_create_table_with_check_constraint_with_expr(self):
+        context = op_fixture()
+        foo_id = Column("foo_id", Integer)
+        t1 = op.create_table(
+            "some_table",
+            Column("id", Integer, primary_key=True),
+            foo_id,
+            CheckConstraint(foo_id > 5, name="ck_1"),
+        )
+        context.assert_(
+            "CREATE TABLE some_table ("
+            "id INTEGER NOT NULL, "
+            "foo_id INTEGER, "
+            "PRIMARY KEY (id), "
+            "CONSTRAINT ck_1 CHECK (foo_id > 5))"
+        )
+
+        ck = [c for c in t1.constraints if isinstance(c, CheckConstraint)]
+        eq_(ck[0].name, "ck_1")
+        eq_(len(ck), 1)
+
     def test_create_table_unique_constraint(self):
         context = op_fixture()
         t1 = op.create_table(
