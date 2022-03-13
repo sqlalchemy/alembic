@@ -214,7 +214,8 @@ class SchemaObjects:
 
         constraints = [
             sqla_compat._copy(elem, target_table=t)
-            if getattr(elem, "parent", None) is not None
+            if getattr(elem, "parent", None) is not t
+            and getattr(elem, "parent", None) is not None
             else elem
             for elem in columns
             if isinstance(elem, (Constraint, Index))

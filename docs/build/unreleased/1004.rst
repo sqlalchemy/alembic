@@ -1,0 +1,9 @@
+.. change::
+    :tags: bug, operations
+    :tickets: 1004
+
+    Fixed issue where using :meth:`.Operations.create_table` in conjunction
+    with a :class:`.CheckConstraint` that referred to table-bound
+    :class:`.Column` objects rather than string expressions would be added to
+    the parent table twice, resulting in an incorrect DDL sequence. Pull
+    request courtesy Nicolas CANIART.
