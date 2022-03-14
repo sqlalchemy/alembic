@@ -1,9 +1,0 @@
-.. change::
-    :tags: bug, environment
-    :tickets: 986
-
-    The ``logging.fileConfig()`` line in ``env.py`` templates, which is used
-    to setup Python logging for the migration run, is now conditional on
-    :attr:`.Config.config_file_name` not being ``None``.  Otherwise, the line
-    is skipped as there is no default logging configuration present.
-

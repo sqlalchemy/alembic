@@ -5,7 +5,41 @@ Changelog
 
 .. changelog::
     :version: 1.7.7
-    :include_notes_from: unreleased
+    :released: March 14, 2022
+
+    .. change::
+        :tags: bug, operations
+        :tickets: 1004
+
+        Fixed issue where using :meth:`.Operations.create_table` in conjunction
+        with a :class:`.CheckConstraint` that referred to table-bound
+        :class:`.Column` objects rather than string expressions would be added to
+        the parent table potentially multiple times, resulting in an incorrect DDL
+        sequence. Pull request courtesy Nicolas CANIART.
+
+    .. change::
+        :tags: bug, environment
+        :tickets: 986
+
+        The ``logging.fileConfig()`` line in ``env.py`` templates, which is used
+        to setup Python logging for the migration run, is now conditional on
+        :attr:`.Config.config_file_name` not being ``None``.  Otherwise, the line
+        is skipped as there is no default logging configuration present.
+
+
+    .. change::
+        :tags: bug, mssql
+        :tickets: 977
+
+        Fixed bug where an :meth:`.Operations.alter_column` operation would change
+        a "NOT NULL" column to "NULL" by emitting an ALTER COLUMN statement that
+        did not specify "NOT NULL". (In the absence of "NOT NULL" T-SQL was
+        implicitly assuming "NULL"). An :meth:`.Operations.alter_column` operation
+        that specifies :paramref:`.Operations.alter_column.type` should also
+        specify include either :paramref:`.Operations.alter_column.nullable` or
+        :paramref:`.Operations.alter_column.existing_nullable` to inform Alembic as
+        to whether the emitted DDL should include "NULL" or "NOT NULL"; a warning
+        is now emitted if this is missing under this scenario.
 
 .. changelog::
     :version: 1.7.6
