@@ -38,7 +38,14 @@ extensions = [
     "sphinx.ext.intersphinx",
     "changelog",
     "sphinx_paramlinks",
+    "sphinx_copybutton",
 ]
+
+copybutton_prompt_text = (
+    r">>> |\.\.\. |\$ |In \[\d*\]: | {2,5}\.\.\.: | {5,8}: "
+)
+copybutton_prompt_is_regexp = True
+
 
 # tags to sort on inside of sections
 changelog_sections = [
