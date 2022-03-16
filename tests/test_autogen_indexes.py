@@ -1,7 +1,6 @@
 from sqlalchemy import Column
 from sqlalchemy import ForeignKey
 from sqlalchemy import ForeignKeyConstraint
-from sqlalchemy import func
 from sqlalchemy import Index
 from sqlalchemy import Integer
 from sqlalchemy import MetaData
@@ -13,10 +12,10 @@ from sqlalchemy import UniqueConstraint
 from sqlalchemy.sql.expression import column
 from sqlalchemy.sql.expression import desc
 
-from alembic.testing import assertions
 from alembic.testing import combinations
 from alembic.testing import config
 from alembic.testing import eq_
+from alembic.testing import exclusions
 from alembic.testing import schemacompare
 from alembic.testing import TestBase
 from alembic.testing import util
@@ -24,14 +23,14 @@ from alembic.testing.env import staging_env
 from alembic.testing.suite._autogen_fixtures import AutogenFixtureTest
 from alembic.util import sqla_compat
 
-# TODO: create new suites that are taking tests from this suite, with a
-#       separate class for AutogenIndexes, AutogenUniqueConstraint, and a
-#       subset of the tests here. @zzzeek can work on this at a later point.
-#       (2021-06-10)
-
 
 class NoUqReflection:
+    """mixin used to simulate dialects where unique constraints are
+    not reflected."""
+
     __requires__ = ()
+
+    reports_unique_constraints = False
 
     def setUp(self):
         staging_env()
@@ -42,19 +41,32 @@ class NoUqReflection:
 
         eng.dialect.get_unique_constraints = unimpl
 
-    def test_add_ix_on_table_create(self):
-        return super(NoUqReflection, self).test_add_ix_on_table_create()
-
-    def test_add_idx_non_col(self):
-        return super(NoUqReflection, self).test_add_idx_non_col()
-
 
 class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestBase):
-    reports_unique_constraints = True
-    reports_unique_constraints_as_indexes = False
+    """tests that involve unique constraint reflection, or the lack of
+    this feature and the expected behaviors, and its interaction with index
+    reflection.
 
-    __requires__ = ("unique_constraint_reflection",)
-    __only_on__ = "sqlite"
+    Tests that do not involve unique constraint reflection, but involve
+    indexes, should go into AutogenerateIndexTest.
+
+    """
+
+    __backend__ = True
+
+    @property
+    def reports_unique_constraints(self):
+        return config.requirements.unique_constraint_reflection.enabled
+
+    @property
+    def reports_unique_constraints_as_indexes(self):
+        return (
+            config.requirements.reports_unique_constraints_as_indexes.enabled
+        )
+
+    @property
+    def reports_unnamed_constraints(self):
+        return config.requirements.reports_unnamed_constraints.enabled
 
     def test_index_flag_becomes_named_unique_constraint(self):
         m1 = MetaData()
@@ -196,32 +208,6 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestBase):
 
         eq_(diffs, [])
 
-    def test_new_table_added(self):
-        m1 = MetaData()
-        m2 = MetaData()
-        Table(
-            "extra",
-            m2,
-            Column("foo", Integer, index=True),
-            Column("bar", Integer),
-            Index("newtable_idx", "bar"),
-        )
-
-        diffs = self._fixture(m1, m2)
-
-        eq_(diffs[0][0], "add_table")
-
-        eq_(diffs[1][0], "add_index")
-        eq_(
-            sqla_compat._get_constraint_final_name(
-                diffs[1][1], config.db.dialect
-            ),
-            "ix_extra_foo",
-        )
-
-        eq_(diffs[2][0], "add_index")
-        eq_(diffs[2][1].name, "newtable_idx")
-
     def test_named_cols_changed(self):
         m1 = MetaData()
         m2 = MetaData()
@@ -339,41 +325,6 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestBase):
         eq_(diffs, [])
 
     @config.requirements.long_names
-    def test_nothing_ix_changed_labels_were_truncated(self):
-        m1 = MetaData(
-            naming_convention={
-                "ix": "index_%(table_name)s_%(column_0_label)s",
-                "uq": "unique_%(table_name)s_%(column_0_label)s",
-            }
-        )
-        m2 = MetaData(
-            naming_convention={
-                "ix": "index_%(table_name)s_%(column_0_label)s",
-                "uq": "unique_%(table_name)s_%(column_0_label)s",
-            }
-        )
-
-        Table(
-            "nothing_changed",
-            m1,
-            Column("id1", Integer, primary_key=True),
-            Column("id2", Integer, primary_key=True),
-            Column("a_particularly_long_column_name", String(20), index=True),
-            mysql_engine="InnoDB",
-        )
-
-        Table(
-            "nothing_changed",
-            m2,
-            Column("id1", Integer, primary_key=True),
-            Column("id2", Integer, primary_key=True),
-            Column("a_particularly_long_column_name", String(20), index=True),
-            mysql_engine="InnoDB",
-        )
-        diffs = self._fixture(m1, m2, max_identifier_length=30)
-        eq_(diffs, [])
-
-    @config.requirements.long_names
     def test_nothing_changed_uq_w_mixed_case_nconv_name(self):
         m1 = MetaData(
             naming_convention={
@@ -430,64 +381,6 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestBase):
             UniqueConstraint("x", name="SomeConstraint"),
             mysql_engine="InnoDB",
         )
-        diffs = self._fixture(m1, m2)
-        eq_(diffs, [])
-
-    def test_nothing_changed_ix_w_mixed_case_plain_name(self):
-        m1 = MetaData()
-        m2 = MetaData()
-
-        Table(
-            "nothing_changed",
-            m1,
-            Column("id", Integer, primary_key=True),
-            Column("x", Integer),
-            Index("SomeIndex", "x"),
-            mysql_engine="InnoDB",
-        )
-
-        Table(
-            "nothing_changed",
-            m2,
-            Column("id", Integer, primary_key=True),
-            Column("x", Integer),
-            Index("SomeIndex", "x"),
-            mysql_engine="InnoDB",
-        )
-        diffs = self._fixture(m1, m2)
-        eq_(diffs, [])
-
-    @config.requirements.long_names
-    def test_nothing_changed_ix_w_mixed_case_nconv_name(self):
-        m1 = MetaData(
-            naming_convention={
-                "ix": "index_%(table_name)s_%(column_0_label)s",
-                "uq": "unique_%(table_name)s_%(column_0_label)s",
-            }
-        )
-        m2 = MetaData(
-            naming_convention={
-                "ix": "index_%(table_name)s_%(column_0_label)s",
-                "uq": "unique_%(table_name)s_%(column_0_label)s",
-            }
-        )
-
-        Table(
-            "NothingChanged",
-            m1,
-            Column("id", Integer, primary_key=True),
-            Column("XCol", Integer, index=True),
-            mysql_engine="InnoDB",
-        )
-
-        Table(
-            "NothingChanged",
-            m2,
-            Column("id", Integer, primary_key=True),
-            Column("XCol", Integer, index=True),
-            mysql_engine="InnoDB",
-        )
-
         diffs = self._fixture(m1, m2)
         eq_(diffs, [])
 
@@ -556,6 +449,385 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestBase):
 
         diffs = self._fixture(m1, m2)
         eq_(diffs, [])
+
+    @config.requirements.unique_constraint_reflection
+    def test_uq_casing_convention_changed_so_put_drops_first(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        uq1 = UniqueConstraint("x", name="SomeCasingConvention")
+        Table(
+            "new_idx",
+            m1,
+            Column("id1", Integer, primary_key=True),
+            Column("x", String(20)),
+            uq1,
+        )
+
+        uq2 = UniqueConstraint("x", name="somecasingconvention")
+        Table(
+            "new_idx",
+            m2,
+            Column("id1", Integer, primary_key=True),
+            Column("x", String(20)),
+            uq2,
+        )
+
+        diffs = self._fixture(m1, m2)
+
+        if self.reports_unique_constraints_as_indexes:
+            eq_(
+                [(d[0], d[1].name) for d in diffs],
+                [
+                    ("remove_index", "SomeCasingConvention"),
+                    ("add_constraint", "somecasingconvention"),
+                ],
+            )
+        else:
+            eq_(
+                [(d[0], d[1].name) for d in diffs],
+                [
+                    ("remove_constraint", "SomeCasingConvention"),
+                    ("add_constraint", "somecasingconvention"),
+                ],
+            )
+
+    def test_drop_table_w_uq_constraint(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table(
+            "some_table",
+            m1,
+            Column("id", Integer, primary_key=True),
+            Column("x", String(20)),
+            Column("y", String(20)),
+            UniqueConstraint("y", name="uq_y"),
+        )
+
+        diffs = self._fixture(m1, m2)
+
+        if self.reports_unique_constraints_as_indexes:
+            # for MySQL this UQ will look like an index, so
+            # make sure it at least sets it up correctly
+            eq_(diffs[0][0], "remove_index")
+            eq_(diffs[1][0], "remove_table")
+            eq_(len(diffs), 2)
+
+            constraints = [
+                c
+                for c in diffs[1][1].constraints
+                if isinstance(c, UniqueConstraint)
+            ]
+            eq_(len(constraints), 0)
+        else:
+            eq_(diffs[0][0], "remove_table")
+            eq_(len(diffs), 1)
+            constraints = [
+                c
+                for c in diffs[0][1].constraints
+                if isinstance(c, UniqueConstraint)
+            ]
+            if self.reports_unique_constraints:
+                eq_(len(constraints), 1)
+
+    @config.requirements.unique_constraint_reflection
+    def test_unnamed_cols_changed(self):
+        m1 = MetaData()
+        m2 = MetaData()
+        Table(
+            "col_change",
+            m1,
+            Column("x", Integer),
+            Column("y", Integer),
+            UniqueConstraint("x"),
+        )
+        Table(
+            "col_change",
+            m2,
+            Column("x", Integer),
+            Column("y", Integer),
+            UniqueConstraint("x", "y"),
+        )
+
+        diffs = self._fixture(m1, m2)
+
+        diffs = set(
+            (
+                cmd,
+                isinstance(obj, (UniqueConstraint, Index))
+                if obj.name is not None
+                else False,
+            )
+            for cmd, obj in diffs
+        )
+
+        if self.reports_unnamed_constraints:
+            if self.reports_unique_constraints_as_indexes:
+                eq_(
+                    diffs,
+                    set([("remove_index", True), ("add_constraint", False)]),
+                )
+            else:
+                eq_(
+                    diffs,
+                    set(
+                        [
+                            ("remove_constraint", True),
+                            ("add_constraint", False),
+                        ]
+                    ),
+                )
+
+    def test_remove_named_unique_index(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table(
+            "remove_idx",
+            m1,
+            Column("x", Integer),
+            Index("xidx", "x", unique=True),
+        )
+        Table("remove_idx", m2, Column("x", Integer))
+
+        diffs = self._fixture(m1, m2)
+
+        if self.reports_unique_constraints:
+            diffs = set((cmd, obj.name) for cmd, obj in diffs)
+            eq_(diffs, set([("remove_index", "xidx")]))
+        else:
+            eq_(diffs, [])
+
+    def test_remove_named_unique_constraint(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table(
+            "remove_idx",
+            m1,
+            Column("x", Integer),
+            UniqueConstraint("x", name="xidx"),
+        )
+        Table("remove_idx", m2, Column("x", Integer))
+
+        diffs = self._fixture(m1, m2)
+
+        if self.reports_unique_constraints:
+            diffs = set((cmd, obj.name) for cmd, obj in diffs)
+            if self.reports_unique_constraints_as_indexes:
+                eq_(diffs, set([("remove_index", "xidx")]))
+            else:
+                eq_(diffs, set([("remove_constraint", "xidx")]))
+        else:
+            eq_(diffs, [])
+
+    def test_dont_add_uq_on_table_create(self):
+        m1 = MetaData()
+        m2 = MetaData()
+        Table("no_uq", m2, Column("x", String(50), unique=True))
+        diffs = self._fixture(m1, m2)
+
+        eq_(diffs[0][0], "add_table")
+        eq_(len(diffs), 1)
+
+        # checking for dupes also
+        eq_(
+            sorted(
+                [type(cons) for cons in diffs[0][1].constraints],
+                key=lambda c: c.__name__,
+            ),
+            [PrimaryKeyConstraint, UniqueConstraint],
+        )
+
+    @config.requirements.reflects_unique_constraints_unambiguously
+    def test_dont_add_uq_on_reverse_table_drop(self):
+        m1 = MetaData()
+        m2 = MetaData()
+        Table("no_uq", m1, Column("x", String(50), unique=True))
+        diffs = self._fixture(m1, m2)
+
+        eq_(diffs[0][0], "remove_table")
+        eq_(len(diffs), 1)
+
+        # because the drop comes from reflection, the "unique=True" flag
+        # is lost in any case.
+        eq_(
+            sorted(
+                [type(cons) for cons in diffs[0][1].constraints],
+                key=lambda c: c.__name__,
+            ),
+            [PrimaryKeyConstraint, UniqueConstraint],
+        )
+
+    def test_add_uq_ix_on_table_create(self):
+        m1 = MetaData()
+        m2 = MetaData()
+        Table("add_ix", m2, Column("x", String(50), unique=True, index=True))
+        diffs = self._fixture(m1, m2)
+
+        eq_(diffs[0][0], "add_table")
+        eq_(len(diffs), 2)
+        assert UniqueConstraint not in set(
+            type(c) for c in diffs[0][1].constraints
+        )
+
+        eq_(diffs[1][0], "add_index")
+        d_table = diffs[0][1]
+        d_idx = diffs[1][1]
+        eq_(d_idx.unique, True)
+
+        # check for dupes
+        eq_(len(diffs), 2)
+        assert not d_table.indexes
+
+
+class AutogenerateIndexTest(AutogenFixtureTest, TestBase):
+    """tests involving indexes but not unique constraints, as mssql
+    doesn't have these (?)...at least the dialect seems to not
+    reflect unique constraints which seems odd
+
+    """
+
+    __backend__ = True
+
+    def test_nothing_changed_one(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table(
+            "nothing_changed",
+            m1,
+            Column("x", String(20), index=True),
+        )
+
+        Table(
+            "nothing_changed",
+            m2,
+            Column("x", String(20), index=True),
+        )
+
+        diffs = self._fixture(m1, m2)
+        eq_(diffs, [])
+
+    @config.requirements.long_names
+    def test_nothing_ix_changed_labels_were_truncated(self):
+        m1 = MetaData(
+            naming_convention={
+                "ix": "index_%(table_name)s_%(column_0_label)s",
+                "uq": "unique_%(table_name)s_%(column_0_label)s",
+            }
+        )
+        m2 = MetaData(
+            naming_convention={
+                "ix": "index_%(table_name)s_%(column_0_label)s",
+                "uq": "unique_%(table_name)s_%(column_0_label)s",
+            }
+        )
+
+        Table(
+            "nothing_changed",
+            m1,
+            Column("id1", Integer, primary_key=True),
+            Column("id2", Integer, primary_key=True),
+            Column("a_particularly_long_column_name", String(20), index=True),
+            mysql_engine="InnoDB",
+        )
+
+        Table(
+            "nothing_changed",
+            m2,
+            Column("id1", Integer, primary_key=True),
+            Column("id2", Integer, primary_key=True),
+            Column("a_particularly_long_column_name", String(20), index=True),
+            mysql_engine="InnoDB",
+        )
+        diffs = self._fixture(m1, m2, max_identifier_length=30)
+        eq_(diffs, [])
+
+    def test_nothing_changed_ix_w_mixed_case_plain_name(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table(
+            "nothing_changed",
+            m1,
+            Column("id", Integer, primary_key=True),
+            Column("x", Integer),
+            Index("SomeIndex", "x"),
+            mysql_engine="InnoDB",
+        )
+
+        Table(
+            "nothing_changed",
+            m2,
+            Column("id", Integer, primary_key=True),
+            Column("x", Integer),
+            Index("SomeIndex", "x"),
+            mysql_engine="InnoDB",
+        )
+        diffs = self._fixture(m1, m2)
+        eq_(diffs, [])
+
+    @config.requirements.long_names
+    def test_nothing_changed_ix_w_mixed_case_nconv_name(self):
+        m1 = MetaData(
+            naming_convention={
+                "ix": "index_%(table_name)s_%(column_0_label)s",
+                "uq": "unique_%(table_name)s_%(column_0_label)s",
+            }
+        )
+        m2 = MetaData(
+            naming_convention={
+                "ix": "index_%(table_name)s_%(column_0_label)s",
+                "uq": "unique_%(table_name)s_%(column_0_label)s",
+            }
+        )
+
+        Table(
+            "NothingChanged",
+            m1,
+            Column("id", Integer, primary_key=True),
+            Column("XCol", Integer, index=True),
+            mysql_engine="InnoDB",
+        )
+
+        Table(
+            "NothingChanged",
+            m2,
+            Column("id", Integer, primary_key=True),
+            Column("XCol", Integer, index=True),
+            mysql_engine="InnoDB",
+        )
+
+        diffs = self._fixture(m1, m2)
+        eq_(diffs, [])
+
+    def test_new_table_added(self):
+        m1 = MetaData()
+        m2 = MetaData()
+        Table(
+            "extra",
+            m2,
+            Column("foo", Integer, index=True),
+            Column("bar", Integer),
+            Index("newtable_idx", "bar"),
+        )
+
+        diffs = self._fixture(m1, m2)
+
+        eq_(diffs[0][0], "add_table")
+
+        eq_(diffs[1][0], "add_index")
+        eq_(
+            sqla_compat._get_constraint_final_name(
+                diffs[1][1], config.db.dialect
+            ),
+            "ix_extra_foo",
+        )
+
+        eq_(diffs[2][0], "add_index")
+        eq_(diffs[2][1].name, "newtable_idx")
 
     def test_nothing_changed_index_w_colkeys(self):
         m1 = MetaData()
@@ -729,47 +1001,6 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestBase):
             ],
         )
 
-    def test_uq_casing_convention_changed_so_put_drops_first(self):
-        m1 = MetaData()
-        m2 = MetaData()
-
-        uq1 = UniqueConstraint("x", name="SomeCasingConvention")
-        Table(
-            "new_idx",
-            m1,
-            Column("id1", Integer, primary_key=True),
-            Column("x", String(20)),
-            uq1,
-        )
-
-        uq2 = UniqueConstraint("x", name="somecasingconvention")
-        Table(
-            "new_idx",
-            m2,
-            Column("id1", Integer, primary_key=True),
-            Column("x", String(20)),
-            uq2,
-        )
-
-        diffs = self._fixture(m1, m2)
-
-        if self.reports_unique_constraints_as_indexes:
-            eq_(
-                [(d[0], d[1].name) for d in diffs],
-                [
-                    ("remove_index", "SomeCasingConvention"),
-                    ("add_constraint", "somecasingconvention"),
-                ],
-            )
-        else:
-            eq_(
-                [(d[0], d[1].name) for d in diffs],
-                [
-                    ("remove_constraint", "SomeCasingConvention"),
-                    ("add_constraint", "somecasingconvention"),
-                ],
-            )
-
     def test_new_idx_index_named_as_column(self):
         m1 = MetaData()
         m2 = MetaData()
@@ -795,6 +1026,7 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestBase):
         diffs = self._fixture(m1, m2)
         eq_(diffs, [("add_index", schemacompare.CompareIndex(idx))])
 
+    @exclusions.fails_on(["mysql", "mariadb"])
     def test_removed_idx_index_named_as_column(self):
         m1 = MetaData()
         m2 = MetaData()
@@ -842,193 +1074,6 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestBase):
         eq_(
             set([diffs[0][1].name, diffs[1][1].name]), set(["xy_idx", "y_idx"])
         )
-
-    def test_drop_table_w_uq_constraint(self):
-        m1 = MetaData()
-        m2 = MetaData()
-
-        Table(
-            "some_table",
-            m1,
-            Column("id", Integer, primary_key=True),
-            Column("x", String(20)),
-            Column("y", String(20)),
-            UniqueConstraint("y", name="uq_y"),
-        )
-
-        diffs = self._fixture(m1, m2)
-
-        if self.reports_unique_constraints_as_indexes:
-            # for MySQL this UQ will look like an index, so
-            # make sure it at least sets it up correctly
-            eq_(diffs[0][0], "remove_index")
-            eq_(diffs[1][0], "remove_table")
-            eq_(len(diffs), 2)
-
-            constraints = [
-                c
-                for c in diffs[1][1].constraints
-                if isinstance(c, UniqueConstraint)
-            ]
-            eq_(len(constraints), 0)
-        else:
-            eq_(diffs[0][0], "remove_table")
-            eq_(len(diffs), 1)
-            constraints = [
-                c
-                for c in diffs[0][1].constraints
-                if isinstance(c, UniqueConstraint)
-            ]
-            if self.reports_unique_constraints:
-                eq_(len(constraints), 1)
-
-    def test_unnamed_cols_changed(self):
-        m1 = MetaData()
-        m2 = MetaData()
-        Table(
-            "col_change",
-            m1,
-            Column("x", Integer),
-            Column("y", Integer),
-            UniqueConstraint("x"),
-        )
-        Table(
-            "col_change",
-            m2,
-            Column("x", Integer),
-            Column("y", Integer),
-            UniqueConstraint("x", "y"),
-        )
-
-        diffs = self._fixture(m1, m2)
-
-        diffs = set(
-            (
-                cmd,
-                isinstance(obj, (UniqueConstraint, Index))
-                if obj.name is not None
-                else False,
-            )
-            for cmd, obj in diffs
-        )
-        if self.reports_unnamed_constraints:
-            if self.reports_unique_constraints_as_indexes:
-                eq_(
-                    diffs,
-                    set([("remove_index", True), ("add_constraint", False)]),
-                )
-            else:
-                eq_(
-                    diffs,
-                    set(
-                        [
-                            ("remove_constraint", True),
-                            ("add_constraint", False),
-                        ]
-                    ),
-                )
-
-    def test_remove_named_unique_index(self):
-        m1 = MetaData()
-        m2 = MetaData()
-
-        Table(
-            "remove_idx",
-            m1,
-            Column("x", Integer),
-            Index("xidx", "x", unique=True),
-        )
-        Table("remove_idx", m2, Column("x", Integer))
-
-        diffs = self._fixture(m1, m2)
-
-        if self.reports_unique_constraints:
-            diffs = set((cmd, obj.name) for cmd, obj in diffs)
-            eq_(diffs, set([("remove_index", "xidx")]))
-        else:
-            eq_(diffs, [])
-
-    def test_remove_named_unique_constraint(self):
-        m1 = MetaData()
-        m2 = MetaData()
-
-        Table(
-            "remove_idx",
-            m1,
-            Column("x", Integer),
-            UniqueConstraint("x", name="xidx"),
-        )
-        Table("remove_idx", m2, Column("x", Integer))
-
-        diffs = self._fixture(m1, m2)
-
-        if self.reports_unique_constraints:
-            diffs = set((cmd, obj.name) for cmd, obj in diffs)
-            if self.reports_unique_constraints_as_indexes:
-                eq_(diffs, set([("remove_index", "xidx")]))
-            else:
-                eq_(diffs, set([("remove_constraint", "xidx")]))
-        else:
-            eq_(diffs, [])
-
-    def test_dont_add_uq_on_table_create(self):
-        m1 = MetaData()
-        m2 = MetaData()
-        Table("no_uq", m2, Column("x", String(50), unique=True))
-        diffs = self._fixture(m1, m2)
-
-        eq_(diffs[0][0], "add_table")
-        eq_(len(diffs), 1)
-
-        # checking for dupes also
-        eq_(
-            sorted(
-                [type(cons) for cons in diffs[0][1].constraints],
-                key=lambda c: c.__name__,
-            ),
-            [PrimaryKeyConstraint, UniqueConstraint],
-        )
-
-    @config.requirements.reflects_unique_constraints_unambiguously
-    def test_dont_add_uq_on_reverse_table_drop(self):
-        m1 = MetaData()
-        m2 = MetaData()
-        Table("no_uq", m1, Column("x", String(50), unique=True))
-        diffs = self._fixture(m1, m2)
-
-        eq_(diffs[0][0], "remove_table")
-        eq_(len(diffs), 1)
-
-        # because the drop comes from reflection, the "unique=True" flag
-        # is lost in any case.
-        eq_(
-            sorted(
-                [type(cons) for cons in diffs[0][1].constraints],
-                key=lambda c: c.__name__,
-            ),
-            [PrimaryKeyConstraint, UniqueConstraint],
-        )
-
-    def test_add_uq_ix_on_table_create(self):
-        m1 = MetaData()
-        m2 = MetaData()
-        Table("add_ix", m2, Column("x", String(50), unique=True, index=True))
-        diffs = self._fixture(m1, m2)
-
-        eq_(diffs[0][0], "add_table")
-        eq_(len(diffs), 2)
-        assert UniqueConstraint not in set(
-            type(c) for c in diffs[0][1].constraints
-        )
-
-        eq_(diffs[1][0], "add_index")
-        d_table = diffs[0][1]
-        d_idx = diffs[1][1]
-        eq_(d_idx.unique, True)
-
-        # check for dupes
-        eq_(len(diffs), 2)
-        assert not d_table.indexes
 
     def test_add_ix_on_table_create(self):
         m1 = MetaData()
@@ -1106,237 +1151,36 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestBase):
 
         eq_(diffs, [])
 
-
-class PGUniqueIndexTest(AutogenerateUniqueIndexTest):
-    reports_unnamed_constraints = True
-    __only_on__ = "postgresql"
-    __backend__ = True
-
-    def test_idx_added_schema(self):
-        m1 = MetaData()
-        m2 = MetaData()
-        Table("add_ix", m1, Column("x", String(50)), schema="test_schema")
-        Table(
-            "add_ix",
-            m2,
-            Column("x", String(50)),
-            Index("ix_1", "x"),
-            schema="test_schema",
-        )
-
-        diffs = self._fixture(m1, m2, include_schemas=True)
-        eq_(diffs[0][0], "add_index")
-        eq_(diffs[0][1].name, "ix_1")
-
-    def test_idx_unchanged_schema(self):
-        m1 = MetaData()
-        m2 = MetaData()
-        Table(
-            "add_ix",
-            m1,
-            Column("x", String(50)),
-            Index("ix_1", "x"),
-            schema="test_schema",
-        )
-        Table(
-            "add_ix",
-            m2,
-            Column("x", String(50)),
-            Index("ix_1", "x"),
-            schema="test_schema",
-        )
-
-        diffs = self._fixture(m1, m2, include_schemas=True)
-        eq_(diffs, [])
-
-    def test_uq_added_schema(self):
-        m1 = MetaData()
-        m2 = MetaData()
-        Table("add_uq", m1, Column("x", String(50)), schema="test_schema")
-        Table(
-            "add_uq",
-            m2,
-            Column("x", String(50)),
-            UniqueConstraint("x", name="ix_1"),
-            schema="test_schema",
-        )
-
-        diffs = self._fixture(m1, m2, include_schemas=True)
-        eq_(diffs[0][0], "add_constraint")
-        eq_(diffs[0][1].name, "ix_1")
-
-    def test_uq_unchanged_schema(self):
-        m1 = MetaData()
-        m2 = MetaData()
-        Table(
-            "add_uq",
-            m1,
-            Column("x", String(50)),
-            UniqueConstraint("x", name="ix_1"),
-            schema="test_schema",
-        )
-        Table(
-            "add_uq",
-            m2,
-            Column("x", String(50)),
-            UniqueConstraint("x", name="ix_1"),
-            schema="test_schema",
-        )
-
-        diffs = self._fixture(m1, m2, include_schemas=True)
-        eq_(diffs, [])
-
-    @config.requirements.btree_gist
-    def test_exclude_const_unchanged(self):
-        from sqlalchemy.dialects.postgresql import TSRANGE, ExcludeConstraint
-
+    @config.requirements.covering_indexes
+    @config.requirements.sqlalchemy_14
+    def test_nothing_changed_covering_index(self):
         m1 = MetaData()
         m2 = MetaData()
 
+        cov_opt = {f"{config.db.name}_include": ["y"]}
+
         Table(
-            "add_excl",
+            "nothing_changed",
             m1,
             Column("id", Integer, primary_key=True),
-            Column("period", TSRANGE),
-            ExcludeConstraint(("period", "&&"), name="quarters_period_excl"),
+            Column("x", Integer),
+            Column("y", Integer),
+            Index("SomeIndex", "x", **cov_opt),
         )
 
         Table(
-            "add_excl",
+            "nothing_changed",
             m2,
             Column("id", Integer, primary_key=True),
-            Column("period", TSRANGE),
-            ExcludeConstraint(("period", "&&"), name="quarters_period_excl"),
+            Column("x", Integer),
+            Column("y", Integer),
+            Index("SomeIndex", "x", **cov_opt),
         )
-
         diffs = self._fixture(m1, m2)
         eq_(diffs, [])
 
-    def test_same_tname_two_schemas(self):
-        m1 = MetaData()
-        m2 = MetaData()
-
-        Table("add_ix", m1, Column("x", String(50)), Index("ix_1", "x"))
-
-        Table("add_ix", m2, Column("x", String(50)), Index("ix_1", "x"))
-        Table("add_ix", m2, Column("x", String(50)), schema="test_schema")
-
-        diffs = self._fixture(m1, m2, include_schemas=True)
-        eq_(diffs[0][0], "add_table")
-        eq_(len(diffs), 1)
-
-    def test_uq_dropped(self):
-        m1 = MetaData()
-        m2 = MetaData()
-        Table(
-            "add_uq",
-            m1,
-            Column("id", Integer, primary_key=True),
-            Column("name", String),
-            UniqueConstraint("name", name="uq_name"),
-        )
-        Table(
-            "add_uq",
-            m2,
-            Column("id", Integer, primary_key=True),
-            Column("name", String),
-        )
-        diffs = self._fixture(m1, m2, include_schemas=True)
-        eq_(diffs[0][0], "remove_constraint")
-        eq_(diffs[0][1].name, "uq_name")
-        eq_(len(diffs), 1)
-
-    def test_functional_ix_one(self):
-        m1 = MetaData()
-        m2 = MetaData()
-
-        t1 = Table(
-            "foo",
-            m1,
-            Column("id", Integer, primary_key=True),
-            Column("email", String(50)),
-        )
-        Index("email_idx", func.lower(t1.c.email), unique=True)
-
-        t2 = Table(
-            "foo",
-            m2,
-            Column("id", Integer, primary_key=True),
-            Column("email", String(50)),
-        )
-        Index("email_idx", func.lower(t2.c.email), unique=True)
-
-        with assertions.expect_warnings(
-            "Skipped unsupported reflection",
-            "autogenerate skipping functional index",
-        ):
-            diffs = self._fixture(m1, m2)
-        eq_(diffs, [])
-
-    def test_functional_ix_two(self):
-        m1 = MetaData()
-        m2 = MetaData()
-
-        t1 = Table(
-            "foo",
-            m1,
-            Column("id", Integer, primary_key=True),
-            Column("email", String(50)),
-            Column("name", String(50)),
-        )
-        Index(
-            "email_idx",
-            func.coalesce(t1.c.email, t1.c.name).desc(),
-            unique=True,
-        )
-
-        t2 = Table(
-            "foo",
-            m2,
-            Column("id", Integer, primary_key=True),
-            Column("email", String(50)),
-            Column("name", String(50)),
-        )
-        Index(
-            "email_idx",
-            func.coalesce(t2.c.email, t2.c.name).desc(),
-            unique=True,
-        )
-
-        with assertions.expect_warnings(
-            "Skipped unsupported reflection",
-            "autogenerate skipping functional index",
-        ):
-            diffs = self._fixture(m1, m2)
-        eq_(diffs, [])
-
-
-class MySQLUniqueIndexTest(AutogenerateUniqueIndexTest):
-    reports_unnamed_constraints = True
-    reports_unique_constraints_as_indexes = True
-    __only_on__ = "mysql", "mariadb"
-    __backend__ = True
-
-    def test_removed_idx_index_named_as_column(self):
-        try:
-            super(
-                MySQLUniqueIndexTest, self
-            ).test_removed_idx_index_named_as_column()
-        except IndexError:
-            assert True
-        else:
-            assert False, "unexpected success"
-
-
-class OracleUniqueIndexTest(AutogenerateUniqueIndexTest):
-    reports_unnamed_constraints = True
-    reports_unique_constraints_as_indexes = True
-    __only_on__ = "oracle"
-    __backend__ = True
-
 
 class NoUqReflectionIndexTest(NoUqReflection, AutogenerateUniqueIndexTest):
-    reports_unique_constraints = False
     __only_on__ = "sqlite"
 
     def test_uq_casing_convention_changed_so_put_drops_first(self):

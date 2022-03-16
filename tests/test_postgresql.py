@@ -16,6 +16,7 @@ from sqlalchemy import String
 from sqlalchemy import Table
 from sqlalchemy import text
 from sqlalchemy import types
+from sqlalchemy import UniqueConstraint
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.dialects.postgresql import BYTEA
 from sqlalchemy.dialects.postgresql import HSTORE
@@ -38,6 +39,7 @@ from alembic.migration import MigrationContext
 from alembic.operations import ops
 from alembic.script import ScriptDirectory
 from alembic.testing import assert_raises_message
+from alembic.testing import assertions
 from alembic.testing import combinations
 from alembic.testing import config
 from alembic.testing import eq_
@@ -52,6 +54,7 @@ from alembic.testing.fixtures import FutureEngineMixin
 from alembic.testing.fixtures import op_fixture
 from alembic.testing.fixtures import TablesTest
 from alembic.testing.fixtures import TestBase
+from alembic.testing.suite._autogen_fixtures import AutogenFixtureTest
 from alembic.util import sqla_compat
 
 
@@ -1165,3 +1168,206 @@ class PostgresqlAutogenRenderTest(TestBase):
             autogenerate.render._repr_type(JSONB(), self.autogen_context),
             "postgresql.JSONB(astext_type=sa.Text())",
         )
+
+
+class PGUniqueIndexAutogenerateTest(AutogenFixtureTest, TestBase):
+    __only_on__ = "postgresql"
+    __backend__ = True
+
+    def test_idx_added_schema(self):
+        m1 = MetaData()
+        m2 = MetaData()
+        Table("add_ix", m1, Column("x", String(50)), schema="test_schema")
+        Table(
+            "add_ix",
+            m2,
+            Column("x", String(50)),
+            Index("ix_1", "x"),
+            schema="test_schema",
+        )
+
+        diffs = self._fixture(m1, m2, include_schemas=True)
+        eq_(diffs[0][0], "add_index")
+        eq_(diffs[0][1].name, "ix_1")
+
+    def test_idx_unchanged_schema(self):
+        m1 = MetaData()
+        m2 = MetaData()
+        Table(
+            "add_ix",
+            m1,
+            Column("x", String(50)),
+            Index("ix_1", "x"),
+            schema="test_schema",
+        )
+        Table(
+            "add_ix",
+            m2,
+            Column("x", String(50)),
+            Index("ix_1", "x"),
+            schema="test_schema",
+        )
+
+        diffs = self._fixture(m1, m2, include_schemas=True)
+        eq_(diffs, [])
+
+    def test_uq_added_schema(self):
+        m1 = MetaData()
+        m2 = MetaData()
+        Table("add_uq", m1, Column("x", String(50)), schema="test_schema")
+        Table(
+            "add_uq",
+            m2,
+            Column("x", String(50)),
+            UniqueConstraint("x", name="ix_1"),
+            schema="test_schema",
+        )
+
+        diffs = self._fixture(m1, m2, include_schemas=True)
+        eq_(diffs[0][0], "add_constraint")
+        eq_(diffs[0][1].name, "ix_1")
+
+    def test_uq_unchanged_schema(self):
+        m1 = MetaData()
+        m2 = MetaData()
+        Table(
+            "add_uq",
+            m1,
+            Column("x", String(50)),
+            UniqueConstraint("x", name="ix_1"),
+            schema="test_schema",
+        )
+        Table(
+            "add_uq",
+            m2,
+            Column("x", String(50)),
+            UniqueConstraint("x", name="ix_1"),
+            schema="test_schema",
+        )
+
+        diffs = self._fixture(m1, m2, include_schemas=True)
+        eq_(diffs, [])
+
+    @config.requirements.btree_gist
+    def test_exclude_const_unchanged(self):
+        from sqlalchemy.dialects.postgresql import TSRANGE, ExcludeConstraint
+
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table(
+            "add_excl",
+            m1,
+            Column("id", Integer, primary_key=True),
+            Column("period", TSRANGE),
+            ExcludeConstraint(("period", "&&"), name="quarters_period_excl"),
+        )
+
+        Table(
+            "add_excl",
+            m2,
+            Column("id", Integer, primary_key=True),
+            Column("period", TSRANGE),
+            ExcludeConstraint(("period", "&&"), name="quarters_period_excl"),
+        )
+
+        diffs = self._fixture(m1, m2)
+        eq_(diffs, [])
+
+    def test_same_tname_two_schemas(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table("add_ix", m1, Column("x", String(50)), Index("ix_1", "x"))
+
+        Table("add_ix", m2, Column("x", String(50)), Index("ix_1", "x"))
+        Table("add_ix", m2, Column("x", String(50)), schema="test_schema")
+
+        diffs = self._fixture(m1, m2, include_schemas=True)
+        eq_(diffs[0][0], "add_table")
+        eq_(len(diffs), 1)
+
+    def test_uq_dropped(self):
+        m1 = MetaData()
+        m2 = MetaData()
+        Table(
+            "add_uq",
+            m1,
+            Column("id", Integer, primary_key=True),
+            Column("name", String),
+            UniqueConstraint("name", name="uq_name"),
+        )
+        Table(
+            "add_uq",
+            m2,
+            Column("id", Integer, primary_key=True),
+            Column("name", String),
+        )
+        diffs = self._fixture(m1, m2, include_schemas=True)
+        eq_(diffs[0][0], "remove_constraint")
+        eq_(diffs[0][1].name, "uq_name")
+        eq_(len(diffs), 1)
+
+    def test_functional_ix_one(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        t1 = Table(
+            "foo",
+            m1,
+            Column("id", Integer, primary_key=True),
+            Column("email", String(50)),
+        )
+        Index("email_idx", func.lower(t1.c.email), unique=True)
+
+        t2 = Table(
+            "foo",
+            m2,
+            Column("id", Integer, primary_key=True),
+            Column("email", String(50)),
+        )
+        Index("email_idx", func.lower(t2.c.email), unique=True)
+
+        with assertions.expect_warnings(
+            "Skipped unsupported reflection",
+            "autogenerate skipping functional index",
+        ):
+            diffs = self._fixture(m1, m2)
+        eq_(diffs, [])
+
+    def test_functional_ix_two(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        t1 = Table(
+            "foo",
+            m1,
+            Column("id", Integer, primary_key=True),
+            Column("email", String(50)),
+            Column("name", String(50)),
+        )
+        Index(
+            "email_idx",
+            func.coalesce(t1.c.email, t1.c.name).desc(),
+            unique=True,
+        )
+
+        t2 = Table(
+            "foo",
+            m2,
+            Column("id", Integer, primary_key=True),
+            Column("email", String(50)),
+            Column("name", String(50)),
+        )
+        Index(
+            "email_idx",
+            func.coalesce(t2.c.email, t2.c.name).desc(),
+            unique=True,
+        )
+
+        with assertions.expect_warnings(
+            "Skipped unsupported reflection",
+            "autogenerate skipping functional index",
+        ):
+            diffs = self._fixture(m1, m2)
+        eq_(diffs, [])

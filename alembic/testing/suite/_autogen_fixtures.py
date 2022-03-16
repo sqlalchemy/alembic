@@ -323,8 +323,6 @@ class AutogenFixtureTest(_ComparesFKs):
                     dialect._user_defined_max_identifier_length
                 ) = existing_length
 
-    reports_unnamed_constraints = False
-
     def setUp(self):
         staging_env()
         self.bind = config.db

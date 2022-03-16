@@ -124,7 +124,15 @@ class DefaultRequirements(SuiteRequirements):
 
     @property
     def reflects_unique_constraints_unambiguously(self):
-        return exclusions.fails_on(["mysql", "mariadb", "oracle"])
+        return exclusions.fails_on(["mysql", "mariadb", "oracle", "mssql"])
+
+    @property
+    def reports_unique_constraints_as_indexes(self):
+        return exclusions.only_on(["mysql", "mariadb", "oracle"])
+
+    @property
+    def reports_unnamed_constraints(self):
+        return exclusions.skip_if(["sqlite"])
 
     @property
     def reflects_indexes_w_sorting(self):
@@ -168,6 +176,10 @@ class DefaultRequirements(SuiteRequirements):
     @property
     def mssql(self):
         return exclusions.only_on(["mssql"])
+
+    @property
+    def covering_indexes(self):
+        return exclusions.only_on(["postgresql >= 11", "mssql"])
 
     @property
     def postgresql_uuid_ossp(self):
