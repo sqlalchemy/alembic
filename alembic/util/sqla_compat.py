@@ -337,7 +337,13 @@ def _remove_column_from_collection(
     # same object that's present
     assert column.key is not None
     to_remove = collection[column.key]
-    collection.remove(to_remove)
+
+    # SQLAlchemy 2.0 will use more ReadOnlyColumnCollection
+    # (renamed from ImmutableColumnCollection)
+    if hasattr(collection, "_immutable") or hasattr(collection, "_readonly"):
+        collection._parent.remove(to_remove)
+    else:
+        collection.remove(to_remove)
 
 
 def _textual_index_column(
