@@ -768,7 +768,7 @@ class PostgresqlDefaultCompareTest(TestBase):
         )
 
     def test_compare_unicode_literal(self):
-        self._compare_default_roundtrip(String(), u"im a default")
+        self._compare_default_roundtrip(String(), "im a default")
 
     # TOOD: will need to actually eval() the repr() and
     # spend more effort figuring out exactly the kind of expression

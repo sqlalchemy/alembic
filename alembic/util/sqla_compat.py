@@ -266,7 +266,6 @@ if hasattr(sqltypes.TypeEngine, "_variant_mapping"):
     def _get_variant_mapping(type_):
         return type_, type_._variant_mapping
 
-
 else:
 
     def _type_has_variants(type_):

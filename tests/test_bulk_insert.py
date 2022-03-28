@@ -322,5 +322,5 @@ class RoundTripTest(TestBase):
             self.conn.execute(
                 text("select id, v1, v2 from ins_table order by id")
             ).fetchall(),
-            [(1, u"row v1", u"row v5"), (2, u"row v2", u"row v6")],
+            [(1, "row v1", "row v5"), (2, "row v2", "row v6")],
         )
