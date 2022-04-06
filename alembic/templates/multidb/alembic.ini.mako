@@ -4,8 +4,9 @@
 # path to migration scripts
 script_location = ${script_location}
 
-# template used to generate migration files
-# file_template = %%(rev)s_%%(slug)s
+# template used to generate migration file names; The default value is %%(rev)s_%%(slug)s
+# Uncomment the line below if you want the files to be prepended with date and time
+# file_template = %%(year)d_%%(month).2d_%%(day).2d_%%(hour).2d%%(minute).2d-%%(rev)s_%%(slug)s
 
 # sys.path path, will be prepended to sys.path if present.
 # defaults to the current working directory.
