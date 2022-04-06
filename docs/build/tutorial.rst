@@ -130,8 +130,9 @@ The file generated with the "generic" configuration looks like::
     # path to migration scripts
     script_location = alembic
 
-    # template used to generate migration files
-    # file_template = %%(rev)s_%%(slug)s
+    # template used to generate migration file names; The default value is %%(rev)s_%%(slug)s
+    # Uncomment the line below if you want the files to be prepended with date and time
+    # file_template = %%(year)d_%%(month).2d_%%(day).2d_%%(hour).2d%%(minute).2d-%%(rev)s_%%(slug)s
 
     # sys.path path, will be prepended to sys.path if present.
     # defaults to the current working directory.
@@ -265,8 +266,11 @@ This file contains the following features:
   URI which contains colons is interpreted here as a resource name, rather than
   a straight filename.
 
-* ``file_template`` - this is the naming scheme used to generate new migration files.
-  The value present is the default, so is commented out.   Tokens available include:
+* ``file_template`` - this is the naming scheme used to generate new migration
+  files. Uncomment the presented value if you would like the migration files to
+  be prepended with date and time, so that they are listed in chronological
+  order.  The default value is ``%%(rev)s_%%(slug)s``.  Tokens available
+  include:
 
     * ``%%(rev)s`` - revision id
     * ``%%(slug)s`` - a truncated string derived from the revision message
