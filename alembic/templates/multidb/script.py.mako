@@ -19,11 +19,11 @@ branch_labels = ${repr(branch_labels)}
 depends_on = ${repr(depends_on)}
 
 
-def upgrade(engine_name) -> None:
+def upgrade(engine_name: str) -> None:
     globals()["upgrade_%s" % engine_name]()
 
 
-def downgrade(engine_name) -> None:
+def downgrade(engine_name: str) -> None:
     globals()["downgrade_%s" % engine_name]()
 
 <%
