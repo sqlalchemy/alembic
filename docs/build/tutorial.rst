@@ -580,9 +580,28 @@ to get the current migration::
 
   $ alembic history -r-3:current
 
+.. note::
+
+   As illustrated above, to use ranges that start with a negative number (i.e.
+   a dash), due to a
+   `bug in argparse <https://github.com/python/cpython/issues/53580>`_ , either
+   the syntax ``-r-<base>:<head>``, without any space, must be used as above::
+
+     $ alembic history -r-3:current
+
+   or if using ``--rev-range``, an equals sign must be used::
+
+     $ alembic history --rev-range=-3:current
+
+   Using quotes or escape symbols will not work if there's a space after
+   the argument name.
+
 View all revisions from 1975 to the head::
 
   $ alembic history -r1975ea:
+
+
+
 
 Downgrading
 ===========

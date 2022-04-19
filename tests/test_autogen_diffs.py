@@ -825,6 +825,7 @@ class CompareTypeSpecificityTest(TestBase):
         (VARCHAR(30), String(30), False),
         (VARCHAR(30), String(40), True),
         (VARCHAR(30), Integer(), True),
+        (VARCHAR(30), String(), False),
         (Text(), String(255), True),
         # insp + metadata types same number of
         # args but are different; they're different

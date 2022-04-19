@@ -370,7 +370,6 @@ class AutogenContext:
         :paramref:`.EnvironmentContext.configure.include_name` parameter.
 
         """
-
         if "schema_name" in parent_names:
             if type_ == "table":
                 table_name = name
