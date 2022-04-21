@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import functools
 from typing import Optional
 from typing import TYPE_CHECKING
@@ -114,7 +116,7 @@ class ColumnDefault(AlterColumn):
         name: str,
         column_name: str,
         default: Optional[_ServerDefault],
-        **kw
+        **kw,
     ) -> None:
         super(ColumnDefault, self).__init__(name, column_name, **kw)
         self.default = default
@@ -135,7 +137,7 @@ class IdentityColumnDefault(AlterColumn):
         column_name: str,
         default: Optional["Identity"],
         impl: "DefaultImpl",
-        **kw
+        **kw,
     ) -> None:
         super(IdentityColumnDefault, self).__init__(name, column_name, **kw)
         self.default = default

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Callable
 from typing import ContextManager
 from typing import Dict
@@ -345,7 +347,7 @@ class EnvironmentContext(util.ModuleClsProxy):
         sqlalchemy_module_prefix: str = "sa.",
         user_module_prefix: Optional[str] = None,
         on_version_apply: Optional[Callable] = None,
-        **kw
+        **kw,
     ) -> None:
         """Configure a :class:`.MigrationContext` within this
         :class:`.EnvironmentContext` which will provide database

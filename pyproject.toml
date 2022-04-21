@@ -1,2 +1,16 @@
 [tool.black]
 line-length = 79
+
+[tool.mypy]
+
+exclude = [
+    'alembic/template',
+    'alembic.testing.*',
+]
+
+[[tool.mypy.overrides]]
+module = [
+    'mako.*',
+    'sqlalchemy.testing.*'
+]
+ignore_missing_imports = true

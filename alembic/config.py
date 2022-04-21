@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from argparse import ArgumentParser
 from argparse import Namespace
 from configparser import ConfigParser
@@ -559,7 +561,7 @@ class CommandLine:
             fn(
                 config,
                 *[getattr(options, k, None) for k in positional],
-                **dict((k, getattr(options, k, None)) for k in kwarg)
+                **dict((k, getattr(options, k, None)) for k in kwarg),
             )
         except util.CommandError as e:
             if options.raiseerr:

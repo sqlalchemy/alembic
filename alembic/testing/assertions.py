@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import contextlib
 import re
 import sys
@@ -69,7 +71,7 @@ def _assert_raises(
 
 
 class _ErrorContainer:
-    error = None
+    error: Any = None
 
 
 @contextlib.contextmanager

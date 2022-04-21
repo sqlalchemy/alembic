@@ -1,5 +1,4 @@
-"""Provide the 'autogenerate' feature which can produce migration operations
-automatically."""
+from __future__ import annotations
 
 import contextlib
 from typing import Any
@@ -18,6 +17,9 @@ from . import compare
 from . import render
 from .. import util
 from ..operations import ops
+
+"""Provide the 'autogenerate' feature which can produce migration operations
+automatically."""
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import Connection
@@ -515,7 +517,7 @@ class RevisionContext:
             branch_labels=migration_script.branch_label,
             version_path=migration_script.version_path,
             depends_on=migration_script.depends_on,
-            **template_args
+            **template_args,
         )
 
     def run_autogenerate(

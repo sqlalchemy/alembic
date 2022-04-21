@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 from typing import Any
 from typing import Optional
@@ -60,7 +62,7 @@ class MySQLImpl(DefaultImpl):
         existing_autoincrement: Optional[bool] = None,
         comment: Optional[Union[str, "Literal[False]"]] = False,
         existing_comment: Optional[str] = None,
-        **kw: Any
+        **kw: Any,
     ) -> None:
         if sqla_compat._server_default_is_identity(
             server_default, existing_server_default
@@ -79,7 +81,7 @@ class MySQLImpl(DefaultImpl):
                 existing_nullable=existing_nullable,
                 server_default=server_default,
                 existing_server_default=existing_server_default,
-                **kw
+                **kw,
             )
         if name is not None or self._is_mysql_allowed_functional_default(
             type_ if type_ is not None else existing_type, server_default

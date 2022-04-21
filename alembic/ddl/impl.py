@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections import namedtuple
 import re
 from typing import Any
@@ -215,7 +217,7 @@ class DefaultImpl(metaclass=ImplMeta):
         existing_server_default: Optional["_ServerDefault"] = None,
         existing_nullable: Optional[bool] = None,
         existing_autoincrement: Optional[bool] = None,
-        **kw: Any
+        **kw: Any,
     ) -> None:
         if autoincrement is not None or existing_autoincrement is not None:
             util.warn(
@@ -266,7 +268,7 @@ class DefaultImpl(metaclass=ImplMeta):
                     existing_server_default=existing_server_default,
                     existing_nullable=existing_nullable,
                     existing_comment=existing_comment,
-                    **kw
+                    **kw,
                 )
             )
         if type_ is not None:
@@ -324,7 +326,7 @@ class DefaultImpl(metaclass=ImplMeta):
         table_name: str,
         column: "Column",
         schema: Optional[str] = None,
-        **kw
+        **kw,
     ) -> None:
         self._exec(base.DropColumn(table_name, column, schema=schema))
 

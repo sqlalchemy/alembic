@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import atexit
 from contextlib import ExitStack
 import importlib

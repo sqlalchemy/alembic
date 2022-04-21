@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 from typing import Any
 from typing import Dict
+from typing import Set
 
 from sqlalchemy import CHAR
 from sqlalchemy import CheckConstraint
@@ -28,7 +31,7 @@ from ...testing import eq_
 from ...testing.env import clear_staging_env
 from ...testing.env import staging_env
 
-names_in_this_test = set()
+names_in_this_test: Set[Any] = set()
 
 
 @event.listens_for(Table, "after_parent_attach")
@@ -43,15 +46,15 @@ def _default_include_object(obj, name, type_, reflected, compare_to):
         return True
 
 
-_default_object_filters = _default_include_object
+_default_object_filters: Any = _default_include_object
 
-_default_name_filters = None
+_default_name_filters: Any = None
 
 
 class ModelOne:
     __requires__ = ("unique_constraint_reflection",)
 
-    schema = None
+    schema: Any = None
 
     @classmethod
     def _get_db_schema(cls):

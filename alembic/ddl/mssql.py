@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any
 from typing import List
 from typing import Optional
@@ -96,7 +98,7 @@ class MSSQLImpl(DefaultImpl):
         existing_type: Optional["TypeEngine"] = None,
         existing_server_default: Optional["_ServerDefault"] = None,
         existing_nullable: Optional[bool] = None,
-        **kw: Any
+        **kw: Any,
     ) -> None:
 
         if nullable is not None:
@@ -145,7 +147,7 @@ class MSSQLImpl(DefaultImpl):
             schema=schema,
             existing_type=existing_type,
             existing_nullable=existing_nullable,
-            **kw
+            **kw,
         )
 
         if server_default is not False and used_default is False:
@@ -203,7 +205,7 @@ class MSSQLImpl(DefaultImpl):
         table_name: str,
         column: "Column",
         schema: Optional[str] = None,
-        **kw
+        **kw,
     ) -> None:
         drop_default = kw.pop("mssql_drop_default", False)
         if drop_default:

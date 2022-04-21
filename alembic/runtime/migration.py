@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from contextlib import contextmanager
 import logging
 import sys
@@ -39,6 +41,7 @@ if TYPE_CHECKING:
     from ..config import Config
     from ..script.base import Script
     from ..script.base import ScriptDirectory
+    from ..script.revision import _RevisionOrBase
     from ..script.revision import Revision
     from ..script.revision import RevisionMap
 
@@ -516,7 +519,7 @@ class MigrationContext:
             elif start_from_rev is not None and self.script:
 
                 start_from_rev = [
-                    self.script.get_revision(sfr).revision
+                    cast("Script", self.script.get_revision(sfr)).revision
                     for sfr in util.to_list(start_from_rev)
                     if sfr not in (None, "base")
                 ]
@@ -860,15 +863,15 @@ class MigrationInfo:
 
     """
 
-    is_upgrade: bool = None  # type:ignore[assignment]
+    is_upgrade: bool
     """True/False: indicates whether this operation ascends or descends the
     version tree."""
 
-    is_stamp: bool = None  # type:ignore[assignment]
+    is_stamp: bool
     """True/False: indicates whether this operation is a stamp (i.e. whether
     it results in any actual database operations)."""
 
-    up_revision_id: Optional[str] = None
+    up_revision_id: Optional[str]
     """Version string corresponding to :attr:`.Revision.revision`.
 
     In the case of a stamp operation, it is advised to use the
@@ -882,10 +885,10 @@ class MigrationInfo:
 
     """
 
-    up_revision_ids: Tuple[str, ...] = None  # type:ignore[assignment]
+    up_revision_ids: Tuple[str, ...]
     """Tuple of version strings corresponding to :attr:`.Revision.revision`.
 
-    In the majority of cases, this tuple will be a single value, synonomous
+    In the majority of cases, this tuple will be a single value, synonymous
     with the scalar value of :attr:`.MigrationInfo.up_revision_id`.
     It can be multiple revision identifiers only in the case of an
     ``alembic stamp`` operation which is moving downwards from multiple
@@ -893,7 +896,7 @@ class MigrationInfo:
 
     """
 
-    down_revision_ids: Tuple[str, ...] = None  # type:ignore[assignment]
+    down_revision_ids: Tuple[str, ...]
     """Tuple of strings representing the base revisions of this migration step.
 
     If empty, this represents a root revision; otherwise, the first item
@@ -901,7 +904,7 @@ class MigrationInfo:
     from dependencies.
     """
 
-    revision_map: "RevisionMap" = None  # type:ignore[assignment]
+    revision_map: "RevisionMap"
     """The revision map inside of which this operation occurs."""
 
     def __init__(
@@ -950,7 +953,7 @@ class MigrationInfo:
         )
 
     @property
-    def up_revision(self) -> "Revision":
+    def up_revision(self) -> Optional[Revision]:
         """Get :attr:`~.MigrationInfo.up_revision_id` as
         a :class:`.Revision`.
 
@@ -958,25 +961,25 @@ class MigrationInfo:
         return self.revision_map.get_revision(self.up_revision_id)
 
     @property
-    def up_revisions(self) -> Tuple["Revision", ...]:
+    def up_revisions(self) -> Tuple[Optional[_RevisionOrBase], ...]:
         """Get :attr:`~.MigrationInfo.up_revision_ids` as a
         :class:`.Revision`."""
         return self.revision_map.get_revisions(self.up_revision_ids)
 
     @property
-    def down_revisions(self) -> Tuple["Revision", ...]:
+    def down_revisions(self) -> Tuple[Optional[_RevisionOrBase], ...]:
         """Get :attr:`~.MigrationInfo.down_revision_ids` as a tuple of
         :class:`Revisions <.Revision>`."""
         return self.revision_map.get_revisions(self.down_revision_ids)
 
     @property
-    def source_revisions(self) -> Tuple["Revision", ...]:
+    def source_revisions(self) -> Tuple[Optional[_RevisionOrBase], ...]:
         """Get :attr:`~MigrationInfo.source_revision_ids` as a tuple of
         :class:`Revisions <.Revision>`."""
         return self.revision_map.get_revisions(self.source_revision_ids)
 
     @property
-    def destination_revisions(self) -> Tuple["Revision", ...]:
+    def destination_revisions(self) -> Tuple[Optional[_RevisionOrBase], ...]:
         """Get :attr:`~MigrationInfo.destination_revision_ids` as a tuple of
         :class:`Revisions <.Revision>`."""
         return self.revision_map.get_revisions(self.destination_revision_ids)
@@ -1059,7 +1062,7 @@ class RevisionStep(MigrationStep):
         )
 
     @property
-    def doc(self):
+    def doc(self) -> str:
         return self.revision.doc
 
     @property
@@ -1264,7 +1267,7 @@ class StampStep(MigrationStep):
         self.migration_fn = self.stamp_revision
         self.revision_map = revision_map
 
-    doc = None
+    doc: None = None
 
     def stamp_revision(self, **kw) -> None:
         return None

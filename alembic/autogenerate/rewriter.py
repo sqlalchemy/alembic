@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 from typing import Any
 from typing import Callable
 from typing import Iterator
 from typing import List
+from typing import Optional
 from typing import Type
 from typing import TYPE_CHECKING
 from typing import Union
@@ -49,12 +52,12 @@ class Rewriter:
 
     _traverse = util.Dispatcher()
 
-    _chained = None
+    _chained: Optional[Rewriter] = None
 
     def __init__(self) -> None:
         self.dispatch = util.Dispatcher()
 
-    def chain(self, other: "Rewriter") -> "Rewriter":
+    def chain(self, other: Rewriter) -> Rewriter:
         """Produce a "chain" of this :class:`.Rewriter` to another.
 
         This allows two rewriters to operate serially on a stream,

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any
 from typing import Dict
 from typing import List
@@ -44,7 +46,7 @@ class SchemaObjects:
         table_name: str,
         cols: Sequence[str],
         schema: Optional[str] = None,
-        **dialect_kw
+        **dialect_kw,
     ) -> "PrimaryKeyConstraint":
         m = self.metadata()
         columns = [sa_schema.Column(n, NULLTYPE) for n in cols]
@@ -68,7 +70,7 @@ class SchemaObjects:
         referent_schema: Optional[str] = None,
         initially: Optional[str] = None,
         match: Optional[str] = None,
-        **dialect_kw
+        **dialect_kw,
     ) -> "ForeignKeyConstraint":
         m = self.metadata()
         if source == referent and source_schema == referent_schema:
@@ -79,14 +81,14 @@ class SchemaObjects:
                 referent,
                 m,
                 *[sa_schema.Column(n, NULLTYPE) for n in remote_cols],
-                schema=referent_schema
+                schema=referent_schema,
             )
 
         t1 = sa_schema.Table(
             source,
             m,
             *[sa_schema.Column(n, NULLTYPE) for n in t1_cols],
-            schema=source_schema
+            schema=source_schema,
         )
 
         tname = (
@@ -105,7 +107,7 @@ class SchemaObjects:
             ondelete=ondelete,
             deferrable=deferrable,
             initially=initially,
-            **dialect_kw
+            **dialect_kw,
         )
         t1.append_constraint(f)
 
@@ -117,13 +119,13 @@ class SchemaObjects:
         source: str,
         local_cols: Sequence[str],
         schema: Optional[str] = None,
-        **kw
+        **kw,
     ) -> "UniqueConstraint":
         t = sa_schema.Table(
             source,
             self.metadata(),
             *[sa_schema.Column(n, NULLTYPE) for n in local_cols],
-            schema=schema
+            schema=schema,
         )
         kw["name"] = name
         uq = sa_schema.UniqueConstraint(*[t.c[n] for n in local_cols], **kw)
@@ -138,7 +140,7 @@ class SchemaObjects:
         source: str,
         condition: Union[str, "TextClause", "ColumnElement[Any]"],
         schema: Optional[str] = None,
-        **kw
+        **kw,
     ) -> Union["CheckConstraint"]:
         t = sa_schema.Table(
             source,
@@ -156,7 +158,7 @@ class SchemaObjects:
         table_name: str,
         type_: Optional[str],
         schema: Optional[str] = None,
-        **kw
+        **kw,
     ) -> Any:
         t = self.table(table_name, schema=schema)
         types: Dict[Optional[str], Any] = {
@@ -237,7 +239,7 @@ class SchemaObjects:
         tablename: Optional[str],
         columns: Sequence[Union[str, "TextClause", "ColumnElement[Any]"]],
         schema: Optional[str] = None,
-        **kw
+        **kw,
     ) -> "Index":
         t = sa_schema.Table(
             tablename or "no_table",
@@ -248,7 +250,7 @@ class SchemaObjects:
         idx = sa_schema.Index(
             name,
             *[util.sqla_compat._textual_index_column(t, n) for n in columns],
-            **kw
+            **kw,
         )
         return idx
 

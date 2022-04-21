@@ -404,4 +404,9 @@ class DefaultRequirements(SuiteRequirements):
         version = exclusions.only_if(
             lambda _: compat.py39, "python 3.9 is required"
         )
-        return imports + version
+
+        sqlalchemy = exclusions.only_if(
+            lambda _: sqla_compat.sqla_2, "sqlalchemy 2 is required"
+        )
+
+        return imports + version + sqlalchemy

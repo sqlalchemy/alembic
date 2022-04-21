@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import os
 from typing import Callable
-from typing import cast
 from typing import List
 from typing import Optional
 from typing import TYPE_CHECKING
@@ -86,8 +87,9 @@ def init(
     for file_ in os.listdir(template_dir):
         file_path = os.path.join(template_dir, file_)
         if file_ == "alembic.ini.mako":
-            config_file = os.path.abspath(cast(str, config.config_file_name))
-            if os.access(cast(str, config_file), os.F_OK):
+            assert config.config_file_name is not None
+            config_file = os.path.abspath(config.config_file_name)
+            if os.access(config_file, os.F_OK):
                 util.msg("File %s already exists, skipping" % config_file)
             else:
                 script._generate_template(
@@ -273,7 +275,7 @@ def merge(
         refresh=True,
         head=revisions,
         branch_labels=branch_label,
-        **template_args  # type:ignore[arg-type]
+        **template_args,  # type:ignore[arg-type]
     )
 
 
@@ -642,6 +644,7 @@ def edit(config: "Config", rev: str) -> None:
                 "No revision files indicated by symbol '%s'" % rev
             )
         for sc in revs:
+            assert sc
             util.open_in_editor(sc.path)
 
 

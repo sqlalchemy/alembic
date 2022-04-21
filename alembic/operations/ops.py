@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from abc import abstractmethod
 import re
 from typing import Any
@@ -258,7 +260,7 @@ class CreatePrimaryKeyOp(AddConstraintOp):
         table_name: str,
         columns: Sequence[str],
         schema: Optional[str] = None,
-        **kw
+        **kw,
     ) -> None:
         self.constraint_name = constraint_name
         self.table_name = table_name
@@ -383,7 +385,7 @@ class CreateUniqueConstraintOp(AddConstraintOp):
         table_name: str,
         columns: Sequence[str],
         schema: Optional[str] = None,
-        **kw
+        **kw,
     ) -> None:
         self.constraint_name = constraint_name
         self.table_name = table_name
@@ -434,7 +436,7 @@ class CreateUniqueConstraintOp(AddConstraintOp):
         table_name: str,
         columns: Sequence[str],
         schema: Optional[str] = None,
-        **kw
+        **kw,
     ) -> Any:
         """Issue a "create unique constraint" instruction using the
         current migration context.
@@ -483,7 +485,7 @@ class CreateUniqueConstraintOp(AddConstraintOp):
         operations: "BatchOperations",
         constraint_name: str,
         columns: Sequence[str],
-        **kw
+        **kw,
     ) -> Any:
         """Issue a "create unique constraint" instruction using the
         current batch migration context.
@@ -518,7 +520,7 @@ class CreateForeignKeyOp(AddConstraintOp):
         referent_table: str,
         local_cols: List[str],
         remote_cols: List[str],
-        **kw
+        **kw,
     ) -> None:
         self.constraint_name = constraint_name
         self.source_table = source_table
@@ -600,7 +602,7 @@ class CreateForeignKeyOp(AddConstraintOp):
         match: Optional[str] = None,
         source_schema: Optional[str] = None,
         referent_schema: Optional[str] = None,
-        **dialect_kw
+        **dialect_kw,
     ) -> Optional["Table"]:
         """Issue a "create foreign key" instruction using the
         current migration context.
@@ -678,7 +680,7 @@ class CreateForeignKeyOp(AddConstraintOp):
         deferrable: None = None,
         initially: None = None,
         match: None = None,
-        **dialect_kw
+        **dialect_kw,
     ) -> None:
         """Issue a "create foreign key" instruction using the
         current batch migration context.
@@ -734,7 +736,7 @@ class CreateCheckConstraintOp(AddConstraintOp):
         table_name: str,
         condition: Union[str, "TextClause", "ColumnElement[Any]"],
         schema: Optional[str] = None,
-        **kw
+        **kw,
     ) -> None:
         self.constraint_name = constraint_name
         self.table_name = table_name
@@ -753,9 +755,7 @@ class CreateCheckConstraintOp(AddConstraintOp):
         return cls(
             ck_constraint.name,
             constraint_table.name,
-            cast(
-                "Union[TextClause, ColumnElement[Any]]", ck_constraint.sqltext
-            ),
+            cast("ColumnElement[Any]", ck_constraint.sqltext),
             schema=constraint_table.schema,
             **ck_constraint.dialect_kwargs,
         )
@@ -780,7 +780,7 @@ class CreateCheckConstraintOp(AddConstraintOp):
         table_name: str,
         condition: Union[str, "BinaryExpression"],
         schema: Optional[str] = None,
-        **kw
+        **kw,
     ) -> Optional["Table"]:
         """Issue a "create check constraint" instruction using the
         current migration context.
@@ -831,7 +831,7 @@ class CreateCheckConstraintOp(AddConstraintOp):
         operations: "BatchOperations",
         constraint_name: str,
         condition: "TextClause",
-        **kw
+        **kw,
     ) -> Optional["Table"]:
         """Issue a "create check constraint" instruction using the
         current batch migration context.
@@ -866,7 +866,7 @@ class CreateIndexOp(MigrateOperation):
         columns: Sequence[Union[str, "TextClause", "ColumnElement[Any]"]],
         schema: Optional[str] = None,
         unique: bool = False,
-        **kw
+        **kw,
     ) -> None:
         self.index_name = index_name
         self.table_name = table_name
@@ -917,7 +917,7 @@ class CreateIndexOp(MigrateOperation):
         columns: Sequence[Union[str, "TextClause", "Function"]],
         schema: Optional[str] = None,
         unique: bool = False,
-        **kw
+        **kw,
     ) -> Optional["Table"]:
         r"""Issue a "create index" instruction using the current
         migration context.
@@ -971,7 +971,7 @@ class CreateIndexOp(MigrateOperation):
         operations: "BatchOperations",
         index_name: str,
         columns: List[str],
-        **kw
+        **kw,
     ) -> Optional["Table"]:
         """Issue a "create index" instruction using the
         current batch migration context.
@@ -1003,7 +1003,7 @@ class DropIndexOp(MigrateOperation):
         table_name: Optional[str] = None,
         schema: Optional[str] = None,
         _reverse: Optional["CreateIndexOp"] = None,
-        **kw
+        **kw,
     ) -> None:
         self.index_name = index_name
         self.table_name = table_name
@@ -1050,7 +1050,7 @@ class DropIndexOp(MigrateOperation):
         index_name: str,
         table_name: Optional[str] = None,
         schema: Optional[str] = None,
-        **kw
+        **kw,
     ) -> Optional["Table"]:
         r"""Issue a "drop index" instruction using the current
         migration context.
@@ -1109,7 +1109,7 @@ class CreateTableOp(MigrateOperation):
         schema: Optional[str] = None,
         _namespace_metadata: Optional["MetaData"] = None,
         _constraints_included: bool = False,
-        **kw
+        **kw,
     ) -> None:
         self.table_name = table_name
         self.columns = columns
@@ -1326,7 +1326,7 @@ class DropTableOp(MigrateOperation):
         operations: "Operations",
         table_name: str,
         schema: Optional[str] = None,
-        **kw: Any
+        **kw: Any,
     ) -> None:
         r"""Issue a "drop table" instruction using the current
         migration context.
@@ -1607,7 +1607,7 @@ class AlterColumnOp(AlterTableOp):
         modify_server_default: Any = False,
         modify_name: Optional[str] = None,
         modify_type: Optional[Any] = None,
-        **kw
+        **kw,
     ) -> None:
         super(AlterColumnOp, self).__init__(table_name, schema=schema)
         self.column_name = column_name
@@ -1770,7 +1770,7 @@ class AlterColumnOp(AlterTableOp):
         existing_nullable: Optional[bool] = None,
         existing_comment: Optional[str] = None,
         schema: Optional[str] = None,
-        **kw
+        **kw,
     ) -> Optional["Table"]:
         r"""Issue an "alter column" instruction using the
         current migration context.
@@ -1897,7 +1897,7 @@ class AlterColumnOp(AlterTableOp):
         existing_comment: None = None,
         insert_before: None = None,
         insert_after: None = None,
-        **kw
+        **kw,
     ) -> Optional["Table"]:
         """Issue an "alter column" instruction using the current
         batch migration context.
@@ -1954,7 +1954,7 @@ class AddColumnOp(AlterTableOp):
         table_name: str,
         column: "Column",
         schema: Optional[str] = None,
-        **kw
+        **kw,
     ) -> None:
         super(AddColumnOp, self).__init__(table_name, schema=schema)
         self.column = column
@@ -2089,7 +2089,7 @@ class DropColumnOp(AlterTableOp):
         column_name: str,
         schema: Optional[str] = None,
         _reverse: Optional["AddColumnOp"] = None,
-        **kw
+        **kw,
     ) -> None:
         super(DropColumnOp, self).__init__(table_name, schema=schema)
         self.column_name = column_name
@@ -2146,7 +2146,7 @@ class DropColumnOp(AlterTableOp):
         table_name: str,
         column_name: str,
         schema: Optional[str] = None,
-        **kw
+        **kw,
     ) -> Optional["Table"]:
         """Issue a "drop column" instruction using the current
         migration context.

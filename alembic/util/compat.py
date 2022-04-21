@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import io
 import os
 import sys
@@ -26,8 +28,8 @@ if py39:
     from importlib import metadata as importlib_metadata
     from importlib.metadata import EntryPoint
 else:
-    import importlib_resources  # type:ignore[no-redef] # noqa
-    import importlib_metadata  # type:ignore[no-redef] # noqa
+    import importlib_resources  # type:ignore # noqa
+    import importlib_metadata  # type:ignore # noqa
     from importlib_metadata import EntryPoint  # type:ignore # noqa
 
 

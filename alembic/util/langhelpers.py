@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import collections
 from collections.abc import Iterable
 import textwrap
@@ -280,3 +282,8 @@ class Dispatcher:
         else:
             d._registry.update(self._registry)
         return d
+
+
+def not_none(value: Optional[_T]) -> _T:
+    assert value is not None
+    return value

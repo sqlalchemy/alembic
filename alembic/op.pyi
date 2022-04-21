@@ -33,8 +33,8 @@ if TYPE_CHECKING:
 ### end imports ###
 
 def add_column(
-    table_name: str, column: "Column", schema: Optional[str] = None
-) -> Optional["Table"]:
+    table_name: str, column: Column, schema: Optional[str] = None
+) -> Optional[Table]:
     """Issue an "add column" instruction using the current
     migration context.
 
@@ -91,16 +91,16 @@ def alter_column(
     comment: Union[str, bool, None] = False,
     server_default: Any = False,
     new_column_name: Optional[str] = None,
-    type_: Union["TypeEngine", Type["TypeEngine"], None] = None,
-    existing_type: Union["TypeEngine", Type["TypeEngine"], None] = None,
+    type_: Union[TypeEngine, Type[TypeEngine], None] = None,
+    existing_type: Union[TypeEngine, Type[TypeEngine], None] = None,
     existing_server_default: Union[
-        str, bool, "Identity", "Computed", None
+        str, bool, Identity, Computed, None
     ] = False,
     existing_nullable: Optional[bool] = None,
     existing_comment: Optional[str] = None,
     schema: Optional[str] = None,
     **kw
-) -> Optional["Table"]:
+) -> Optional[Table]:
     """Issue an "alter column" instruction using the
     current migration context.
 
@@ -340,7 +340,7 @@ def batch_alter_table(
     """
 
 def bulk_insert(
-    table: Union["Table", "TableClause"],
+    table: Union[Table, TableClause],
     rows: List[dict],
     multiinsert: bool = True,
 ) -> None:
@@ -422,10 +422,10 @@ def bulk_insert(
 def create_check_constraint(
     constraint_name: Optional[str],
     table_name: str,
-    condition: Union[str, "BinaryExpression"],
+    condition: Union[str, BinaryExpression],
     schema: Optional[str] = None,
     **kw
-) -> Optional["Table"]:
+) -> Optional[Table]:
     """Issue a "create check constraint" instruction using the
     current migration context.
 
@@ -469,7 +469,7 @@ def create_check_constraint(
 
 def create_exclude_constraint(
     constraint_name: str, table_name: str, *elements: Any, **kw: Any
-) -> Optional["Table"]:
+) -> Optional[Table]:
     """Issue an alter to create an EXCLUDE constraint using the
     current migration context.
 
@@ -521,7 +521,7 @@ def create_foreign_key(
     source_schema: Optional[str] = None,
     referent_schema: Optional[str] = None,
     **dialect_kw
-) -> Optional["Table"]:
+) -> Optional[Table]:
     """Issue a "create foreign key" instruction using the
     current migration context.
 
@@ -570,11 +570,11 @@ def create_foreign_key(
 def create_index(
     index_name: str,
     table_name: str,
-    columns: Sequence[Union[str, "TextClause", "Function"]],
+    columns: Sequence[Union[str, TextClause, Function]],
     schema: Optional[str] = None,
     unique: bool = False,
     **kw
-) -> Optional["Table"]:
+) -> Optional[Table]:
     """Issue a "create index" instruction using the current
     migration context.
 
@@ -622,7 +622,7 @@ def create_primary_key(
     table_name: str,
     columns: List[str],
     schema: Optional[str] = None,
-) -> Optional["Table"]:
+) -> Optional[Table]:
     """Issue a "create primary key" instruction using the current
     migration context.
 
@@ -660,7 +660,7 @@ def create_primary_key(
 
     """
 
-def create_table(table_name: str, *columns, **kw) -> Optional["Table"]:
+def create_table(table_name: str, *columns, **kw) -> Optional[Table]:
     """Issue a "create table" instruction using the current migration
     context.
 
@@ -743,7 +743,7 @@ def create_table_comment(
     comment: Optional[str],
     existing_comment: None = None,
     schema: Optional[str] = None,
-) -> Optional["Table"]:
+) -> Optional[Table]:
     """Emit a COMMENT ON operation to set the comment for a table.
 
     .. versionadded:: 1.0.6
@@ -811,7 +811,7 @@ def create_unique_constraint(
 
 def drop_column(
     table_name: str, column_name: str, schema: Optional[str] = None, **kw
-) -> Optional["Table"]:
+) -> Optional[Table]:
     """Issue a "drop column" instruction using the current
     migration context.
 
@@ -854,7 +854,7 @@ def drop_constraint(
     table_name: str,
     type_: Optional[str] = None,
     schema: Optional[str] = None,
-) -> Optional["Table"]:
+) -> Optional[Table]:
     """Drop a constraint of the given name, typically via DROP CONSTRAINT.
 
     :param constraint_name: name of the constraint.
@@ -873,7 +873,7 @@ def drop_index(
     table_name: Optional[str] = None,
     schema: Optional[str] = None,
     **kw
-) -> Optional["Table"]:
+) -> Optional[Table]:
     """Issue a "drop index" instruction using the current
     migration context.
 
@@ -921,7 +921,7 @@ def drop_table_comment(
     table_name: str,
     existing_comment: Optional[str] = None,
     schema: Optional[str] = None,
-) -> Optional["Table"]:
+) -> Optional[Table]:
     """Issue a "drop table comment" operation to
     remove an existing comment set on a table.
 
@@ -940,8 +940,8 @@ def drop_table_comment(
     """
 
 def execute(
-    sqltext: Union[str, "TextClause", "Update"], execution_options: None = None
-) -> Optional["Table"]:
+    sqltext: Union[str, TextClause, Update], execution_options: None = None
+) -> Optional[Table]:
     """Execute the given SQL using the current migration context.
 
     The given SQL can be a plain string, e.g.::
@@ -1024,7 +1024,7 @@ def execute(
      :meth:`sqlalchemy.engine.Connection.execution_options`.
     """
 
-def f(name: str) -> "conv":
+def f(name: str) -> conv:
     """Indicate a string name that has already had a naming convention
     applied to it.
 
@@ -1061,7 +1061,7 @@ def f(name: str) -> "conv":
 
     """
 
-def get_bind() -> "Connection":
+def get_bind() -> Connection:
     """Return the current 'bind'.
 
     Under normal circumstances, this is the
@@ -1134,7 +1134,7 @@ def inline_literal(
 
     """
 
-def invoke(operation: "MigrateOperation") -> Any:
+def invoke(operation: MigrateOperation) -> Any:
     """Given a :class:`.MigrateOperation`, invoke it in terms of
     this :class:`.Operations` instance.
 
@@ -1161,7 +1161,7 @@ def register_operation(
 
 def rename_table(
     old_table_name: str, new_table_name: str, schema: Optional[str] = None
-) -> Optional["Table"]:
+) -> Optional[Table]:
     """Emit an ALTER TABLE to rename a table.
 
     :param old_table_name: old name.

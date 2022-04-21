@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import re
 from typing import Any
@@ -143,7 +145,7 @@ class PostgresqlImpl(DefaultImpl):
         existing_server_default: Optional["_ServerDefault"] = None,
         existing_nullable: Optional[bool] = None,
         existing_autoincrement: Optional[bool] = None,
-        **kw: Any
+        **kw: Any,
     ) -> None:
 
         using = kw.pop("postgresql_using", None)
@@ -179,7 +181,7 @@ class PostgresqlImpl(DefaultImpl):
             existing_server_default=existing_server_default,
             existing_nullable=existing_nullable,
             existing_autoincrement=existing_autoincrement,
-            **kw
+            **kw,
         )
 
     def autogen_column_reflect(self, inspector, table, column_info):
@@ -417,7 +419,7 @@ class CreateExcludeConstraintOp(ops.AddConstraintOp):
         where: Optional[Union["BinaryExpression", str]] = None,
         schema: Optional[str] = None,
         _orig_constraint: Optional["ExcludeConstraint"] = None,
-        **kw
+        **kw,
     ) -> None:
         self.constraint_name = constraint_name
         self.table_name = table_name
@@ -459,7 +461,7 @@ class CreateExcludeConstraintOp(ops.AddConstraintOp):
             *self.elements,
             name=self.constraint_name,
             where=self.where,
-            **self.kw
+            **self.kw,
         )
         for (
             expr,
@@ -477,7 +479,7 @@ class CreateExcludeConstraintOp(ops.AddConstraintOp):
         constraint_name: str,
         table_name: str,
         *elements: Any,
-        **kw: Any
+        **kw: Any,
     ) -> Optional["Table"]:
         """Issue an alter to create an EXCLUDE constraint using the
         current migration context.

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import contextlib
 import re
 from typing import Iterator
@@ -56,6 +58,7 @@ _vers = tuple(
 sqla_13 = _vers >= (1, 3)
 sqla_14 = _vers >= (1, 4)
 sqla_14_26 = _vers >= (1, 4, 26)
+sqla_2 = _vers >= (1, 5)
 
 
 if sqla_14:

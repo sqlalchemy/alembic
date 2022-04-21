@@ -1,4 +1,6 @@
 # coding: utf-8
+from __future__ import annotations
+
 import configparser
 from contextlib import contextmanager
 import io

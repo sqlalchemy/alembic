@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import shlex
 import subprocess
 import sys
@@ -14,7 +16,7 @@ from ..util import compat
 
 REVISION_SCRIPT_TOKEN = "REVISION_SCRIPT_FILENAME"
 
-_registry = {}
+_registry: dict = {}
 
 
 def register(name: str) -> Callable:

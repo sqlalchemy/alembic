@@ -7,6 +7,7 @@ from .langhelpers import Dispatcher
 from .langhelpers import immutabledict
 from .langhelpers import memoized_property
 from .langhelpers import ModuleClsProxy
+from .langhelpers import not_none
 from .langhelpers import rev_id
 from .langhelpers import to_list
 from .langhelpers import to_tuple

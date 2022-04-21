@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import contextlib
 import logging
 import re
@@ -282,7 +284,7 @@ def _make_index(params: Dict[str, Any], conn_table: "Table") -> "Index":
         params["name"],
         *[conn_table.c[cname] for cname in params["column_names"]],
         unique=params["unique"],
-        _table=conn_table
+        _table=conn_table,
     )
     if "duplicates_constraint" in params:
         ix.info["duplicates_constraint"] = params["duplicates_constraint"]
@@ -294,7 +296,7 @@ def _make_unique_constraint(
 ) -> "UniqueConstraint":
     uq = sa_schema.UniqueConstraint(
         *[conn_table.c[cname] for cname in params["column_names"]],
-        name=params["name"]
+        name=params["name"],
     )
     if "duplicates_index" in params:
         uq.info["duplicates_index"] = params["duplicates_index"]
@@ -1245,7 +1247,7 @@ def _compare_foreign_keys(
         if isinstance(fk, sa_schema.ForeignKeyConstraint)
     )
 
-    conn_fks = [
+    conn_fks_list = [
         fk
         for fk in inspector.get_foreign_keys(tname, schema=schema)
         if autogen_context.run_name_filters(
@@ -1255,9 +1257,13 @@ def _compare_foreign_keys(
         )
     ]
 
-    backend_reflects_fk_options = bool(conn_fks and "options" in conn_fks[0])
+    backend_reflects_fk_options = bool(
+        conn_fks_list and "options" in conn_fks_list[0]
+    )
 
-    conn_fks = set(_make_foreign_key(const, conn_table) for const in conn_fks)
+    conn_fks = set(
+        _make_foreign_key(const, conn_table) for const in conn_fks_list
+    )
 
     # give the dialect a chance to correct the FKs to match more
     # closely
@@ -1265,24 +1271,24 @@ def _compare_foreign_keys(
         conn_fks, metadata_fks
     )
 
-    metadata_fks = set(
+    metadata_fks_sig = set(
         _fk_constraint_sig(fk, include_options=backend_reflects_fk_options)
         for fk in metadata_fks
     )
 
-    conn_fks = set(
+    conn_fks_sig = set(
         _fk_constraint_sig(fk, include_options=backend_reflects_fk_options)
         for fk in conn_fks
     )
 
-    conn_fks_by_sig = dict((c.sig, c) for c in conn_fks)
-    metadata_fks_by_sig = dict((c.sig, c) for c in metadata_fks)
+    conn_fks_by_sig = dict((c.sig, c) for c in conn_fks_sig)
+    metadata_fks_by_sig = dict((c.sig, c) for c in metadata_fks_sig)
 
     metadata_fks_by_name = dict(
-        (c.name, c) for c in metadata_fks if c.name is not None
+        (c.name, c) for c in metadata_fks_sig if c.name is not None
     )
     conn_fks_by_name = dict(
-        (c.name, c) for c in conn_fks if c.name is not None
+        (c.name, c) for c in conn_fks_sig if c.name is not None
     )
 
     def _add_fk(obj, compare_to):

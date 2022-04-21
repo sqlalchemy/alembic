@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 from typing import Any
-from typing import cast
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -122,7 +123,7 @@ class BatchOperationsImpl:
                         schema=self.schema,
                         autoload_with=self.operations.get_bind(),
                         *self.reflect_args,
-                        **self.reflect_kwargs
+                        **self.reflect_kwargs,
                     )
                     reflected = True
 
@@ -311,7 +312,7 @@ class ApplyBatchImpl:
             m,
             *(list(self.columns.values()) + list(self.table_args)),
             schema=schema,
-            **self.table_kwargs
+            **self.table_kwargs,
         )
 
         for const in (
@@ -360,7 +361,7 @@ class ApplyBatchImpl:
                     index.name,
                     unique=index.unique,
                     *[self.new_table.c[col] for col in index.columns.keys()],
-                    **index.kwargs
+                    **index.kwargs,
                 )
             )
         return idx
@@ -401,7 +402,7 @@ class ApplyBatchImpl:
                             for elem in constraint.elements
                         ]
                     ],
-                    schema=referent_schema
+                    schema=referent_schema,
                 )
 
     def _create(self, op_impl: "DefaultImpl") -> None:
@@ -453,7 +454,7 @@ class ApplyBatchImpl:
         type_: Optional["TypeEngine"] = None,
         autoincrement: None = None,
         comment: Union[str, "Literal[False]"] = False,
-        **kw
+        **kw,
     ) -> None:
         existing = self.columns[column_name]
         existing_transfer: Dict[str, Any] = self.column_transfers[column_name]
@@ -574,7 +575,7 @@ class ApplyBatchImpl:
         column: "Column",
         insert_before: Optional[str] = None,
         insert_after: Optional[str] = None,
-        **kw
+        **kw,
     ) -> None:
         self._setup_dependencies_for_add_column(
             column.name, insert_before, insert_after
@@ -647,7 +648,8 @@ class ApplyBatchImpl:
                     if col_const.name == const.name:
                         self.columns[col.name].constraints.remove(col_const)
             else:
-                const = self.named_constraints.pop(cast(str, const.name))
+                assert const.name
+                const = self.named_constraints.pop(const.name)
         except KeyError:
             if _is_type_bound(const):
                 # type-bound constraints are only included in the new

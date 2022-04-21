@@ -4,6 +4,7 @@
 #
 # This module is part of SQLAlchemy and is released under
 # the MIT License: http://www.opensource.org/licenses/mit-license.php
+from __future__ import annotations
 
 import re
 import types
@@ -55,7 +56,7 @@ def flag_combinations(*combinations):
             for d in combinations
         ],
         id_="i" + ("a" * len(keys)),
-        argnames=",".join(keys)
+        argnames=",".join(keys),
     )
 
 
