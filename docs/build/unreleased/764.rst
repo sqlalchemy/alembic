@@ -1,0 +1,6 @@
+.. change::
+    :tags: feature, typing
+    :tickets: 764
+
+    Adds typing annotations to ``env.py`` and migration templates.
+    Pull request by Nikita Sobolev.
