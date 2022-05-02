@@ -27,7 +27,6 @@ jobs:
           - "windows-latest"
           - "macos-latest"
         python-version:
-          - "3.6"
           - "3.7"
           - "3.8"
           - "3.9"
@@ -36,11 +35,6 @@ jobs:
           - sqla13
           - sqla14
           - sqlamain
-
-        exclude:
-          # main no longer support 3.6
-          - sqlalchemy: sqlamain
-            python-version: "3.6"
 
       fail-fast: false
 
