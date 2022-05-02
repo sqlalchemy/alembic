@@ -184,6 +184,44 @@ class ScriptNamingTest(TestBase):
                 "message_2012_7_25_15_8_5.py" % _get_staging_directory()
             ),
         )
+    
+    def test_epoch_name(self):
+        script = ScriptDirectory(
+            _get_staging_directory(),
+            file_template="%(epoch)s_%(rev)s_%(slug)s_"
+            "%(year)s_%(month)s_"
+            "%(day)s_%(hour)s_"
+            "%(minute)s_%(second)s",
+        )
+        create_date = datetime.datetime(2012, 7, 25, 15, 8, 5)
+        eq_(
+            script._rev_path(
+                script.versions, "12345", "this is a message", create_date
+            ),
+            os.path.abspath(
+                "%s/versions/1343228885_12345_this_is_a_"
+                "message_2012_7_25_15_8_5.py" % _get_staging_directory()
+            ),
+        )
+    
+    def test_epoch_formula(self):
+        script = ScriptDirectory(
+            _get_staging_directory(),
+            file_template="%(epoch)s_%(rev)s_%(slug)s_"
+            "%(year)s_%(month)s_"
+            "%(day)s_%(hour)s_"
+            "%(minute)s_%(second)s",
+        )
+        create_date = datetime.datetime(2012, 7, 25, 15, 8, 6)
+        eq_(
+            script._rev_path(
+                script.versions, "12345", "this is a message", create_date
+            ),
+            os.path.abspath(
+                "%s/versions/1343228886_12345_this_is_a_"
+                "message_2012_7_25_15_8_6.py" % _get_staging_directory()
+            ),
+        )
 
     def _test_tz(self, timezone_arg, given, expected):
         script = ScriptDirectory(

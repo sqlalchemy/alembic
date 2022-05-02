@@ -274,6 +274,7 @@ This file contains the following features:
 
     * ``%%(rev)s`` - revision id
     * ``%%(slug)s`` - a truncated string derived from the revision message
+    * ``%%(epoch)s`` - epoch timestamp based on the create date
     * ``%%(year)d``, ``%%(month).2d``, ``%%(day).2d``, ``%%(hour).2d``,
       ``%%(minute).2d``, ``%%(second).2d`` - components of the create date,
       by default ``datetime.datetime.now()`` unless the ``timezone``

@@ -782,6 +782,8 @@ class ScriptDirectory:
         message: Optional[str],
         create_date: "datetime.datetime",
     ) -> str:
+        epoch_reference_date = datetime.datetime(1970, 1, 1)
+        epoch = int((create_date - epoch_reference_date).total_seconds())
         slug = "_".join(_slug_re.findall(message or "")).lower()
         if len(slug) > self.truncate_slug_length:
             slug = slug[: self.truncate_slug_length].rsplit("_", 1)[0] + "_"
@@ -790,6 +792,7 @@ class ScriptDirectory:
             % {
                 "rev": rev_id,
                 "slug": slug,
+                "epoch": epoch,
                 "year": create_date.year,
                 "month": create_date.month,
                 "day": create_date.day,
