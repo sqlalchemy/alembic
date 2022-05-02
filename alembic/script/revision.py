@@ -29,8 +29,6 @@ from ..util import not_none
 if TYPE_CHECKING:
     from typing import Literal
 
-    from .base import Script
-
 _RevIdType = Union[str, Sequence[str]]
 _RevisionIdentifierType = Union[str, Tuple[str, ...], None]
 _RevisionOrStr = Union["Revision", str]
@@ -660,8 +658,8 @@ class RevisionMap:
         return revision
 
     def _filter_into_branch_heads(
-        self, targets: Set[Optional[Script]]
-    ) -> Set[Optional[Script]]:
+        self, targets: Iterable[Optional[_RevisionOrBase]]
+    ) -> Set[Optional[_RevisionOrBase]]:
         targets = set(targets)
 
         for rev in list(targets):
@@ -811,7 +809,7 @@ class RevisionMap:
 
     def _get_descendant_nodes(
         self,
-        targets: Collection[Revision],
+        targets: Collection[Optional[_RevisionOrBase]],
         map_: Optional[_RevisionMapType] = None,
         check: bool = False,
         omit_immediate_dependencies: bool = False,
@@ -1129,9 +1127,27 @@ class RevisionMap:
                 if relative_revision:
                     # Find target revision relative to current state.
                     if branch_label:
+                        cr_tuple = util.to_tuple(current_revisions)
+                        symbol_list: Sequence[str]
                         symbol_list = self.filter_for_lineage(
-                            util.to_tuple(current_revisions), branch_label
+                            cr_tuple, branch_label
                         )
+                        if not symbol_list:
+                            # check the case where there are multiple branches
+                            # but there is currently a single heads, since all
+                            # other branch heads are dependant of the current
+                            # single heads.
+                            all_current = cast(
+                                Set[Revision], self._get_all_current(cr_tuple)
+                            )
+                            sl_all_current = self.filter_for_lineage(
+                                all_current, branch_label
+                            )
+                            symbol_list = [
+                                r.revision if r else r  # type: ignore[misc]
+                                for r in sl_all_current
+                            ]
+
                         assert len(symbol_list) == 1
                         symbol = symbol_list[0]
                     else:
@@ -1487,6 +1503,16 @@ class RevisionMap:
 
         return needs, tuple(targets)  # type:ignore[return-value]
 
+    def _get_all_current(
+        self, id_: Tuple[str, ...]
+    ) -> Set[Optional[_RevisionOrBase]]:
+        top_revs: Set[Optional[_RevisionOrBase]]
+        top_revs = set(self.get_revisions(id_))
+        top_revs.update(
+            self._get_ancestor_nodes(list(top_revs), include_dependencies=True)
+        )
+        return self._filter_into_branch_heads(top_revs)
+
 
 class Revision:
     """Base class for revisioned objects.
@@ -1545,8 +1571,8 @@ class Revision:
         self,
         revision: str,
         down_revision: Optional[Union[str, Tuple[str, ...]]],
-        dependencies: Optional[Tuple[str, ...]] = None,
-        branch_labels: Optional[Tuple[str, ...]] = None,
+        dependencies: Optional[Union[str, Tuple[str, ...]]] = None,
+        branch_labels: Optional[Union[str, Tuple[str, ...]]] = None,
     ) -> None:
         if down_revision and revision in util.to_tuple(down_revision):
             raise LoopDetected(revision)

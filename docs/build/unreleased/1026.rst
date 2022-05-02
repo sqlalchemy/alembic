@@ -1,0 +1,7 @@
+.. change::
+    :tags: bug, revisioning
+    :tickets: 1026
+
+    Fixed issue where a downgrade using a relative revision would
+    fail in case of multiple branches with a single effectively
+    head due to interdependencies between revisions.
