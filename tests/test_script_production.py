@@ -199,7 +199,7 @@ class ScriptNamingTest(TestBase):
                 script.versions, "12345", "this is a message", create_date
             ),
             os.path.abspath(
-                "%s/versions/1343228885_12345_this_is_a_"
+                "%s/versions/1343239685_12345_this_is_a_"
                 "message_2012_7_25_15_8_5.py" % _get_staging_directory()
             ),
         )
@@ -218,7 +218,7 @@ class ScriptNamingTest(TestBase):
                 script.versions, "12345", "this is a message", create_date
             ),
             os.path.abspath(
-                "%s/versions/1343228886_12345_this_is_a_"
+                "%s/versions/1343239686_12345_this_is_a_"
                 "message_2012_7_25_15_8_6.py" % _get_staging_directory()
             ),
         )
