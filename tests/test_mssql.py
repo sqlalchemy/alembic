@@ -1,4 +1,5 @@
 """Test op functions against MSSQL."""
+from __future__ import annotations
 
 from typing import Any
 from typing import Dict

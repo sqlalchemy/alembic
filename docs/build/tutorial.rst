@@ -274,10 +274,15 @@ This file contains the following features:
 
     * ``%%(rev)s`` - revision id
     * ``%%(slug)s`` - a truncated string derived from the revision message
+    * ``%%(epoch)s`` - epoch timestamp based on the create date; this makes
+      use of the Python ``datetime.timestamp()`` method to produce an epoch
+      value.
     * ``%%(year)d``, ``%%(month).2d``, ``%%(day).2d``, ``%%(hour).2d``,
       ``%%(minute).2d``, ``%%(second).2d`` - components of the create date,
       by default ``datetime.datetime.now()`` unless the ``timezone``
       configuration option is also used.
+
+  .. versionadded:: 1.8  added 'epoch'
 
 * ``timezone`` - an optional timezone name (e.g. ``UTC``, ``EST5EDT``, etc.)
   that will be applied to the timestamp which renders inside the migration
