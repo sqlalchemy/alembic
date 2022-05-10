@@ -281,15 +281,19 @@ class BatchApplyTest(TestBase):
         create_stmt = re.sub(r"[\n\t]", "", create_stmt)
 
         idx_stmt = ""
-        for idx in impl.indexes.values():
+
+        # create indexes; these should be created in terms of the
+        # final table name
+        impl.new_table.name = impl.table.name
+
+        for idx in impl._gather_indexes_from_both_tables():
             idx_stmt += str(CreateIndex(idx).compile(dialect=context.dialect))
-        for idx in impl.new_indexes.values():
-            impl.new_table.name = impl.table.name
-            idx_stmt += str(CreateIndex(idx).compile(dialect=context.dialect))
-            impl.new_table.name = ApplyBatchImpl._calc_temp_name(
-                impl.table.name
-            )
+
         idx_stmt = re.sub(r"[\n\t]", "", idx_stmt)
+
+        # revert new table name to the temp name, assertions below
+        # are looking for the temp name
+        impl.new_table.name = ApplyBatchImpl._calc_temp_name(impl.table.name)
 
         if ddl_contains:
             assert ddl_contains in create_stmt + idx_stmt
@@ -356,6 +360,20 @@ class BatchApplyTest(TestBase):
         impl.alter_column("tname", "x", name="q")
         new_table = self._assert_impl(impl)
         eq_(new_table.c.x.name, "q")
+
+    def test_rename_col_w_index(self):
+        impl = self._ix_fixture()
+        impl.alter_column("tname", "y", name="y2")
+        new_table = self._assert_impl(
+            impl, ddl_contains="CREATE INDEX ix1 ON tname (y2)"
+        )
+        eq_(new_table.c.y.name, "y2")
+
+    def test_rename_col_w_uq(self):
+        impl = self._uq_fixture()
+        impl.alter_column("tname", "y", name="y2")
+        new_table = self._assert_impl(impl, ddl_contains="UNIQUE (y2)")
+        eq_(new_table.c.y.name, "y2")
 
     def test_alter_column_comment(self):
         impl = self._simple_fixture()

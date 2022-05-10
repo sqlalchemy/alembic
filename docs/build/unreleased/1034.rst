@@ -1,0 +1,6 @@
+.. change::
+    :tags: bug, batch
+    :tickets: 1034
+
+    Fixed issue in batch mode where CREATE INDEX would not use a new column
+    name in the case of a column rename.

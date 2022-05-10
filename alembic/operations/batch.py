@@ -24,8 +24,10 @@ from sqlalchemy.util import topological
 from ..util import exc
 from ..util.sqla_compat import _columns_for_constraint
 from ..util.sqla_compat import _copy
+from ..util.sqla_compat import _copy_expression
 from ..util.sqla_compat import _ensure_scope_for_ddl
 from ..util.sqla_compat import _fk_is_self_referential
+from ..util.sqla_compat import _idx_table_bound_expressions
 from ..util.sqla_compat import _insert_inline
 from ..util.sqla_compat import _is_type_bound
 from ..util.sqla_compat import _remove_column_from_collection
@@ -354,7 +356,25 @@ class ApplyBatchImpl:
     def _gather_indexes_from_both_tables(self) -> List["Index"]:
         assert self.new_table is not None
         idx: List[Index] = []
-        idx.extend(self.indexes.values())
+
+        for idx_existing in self.indexes.values():
+            # this is a lift-and-move from Table.to_metadata
+
+            if idx_existing._column_flag:  # type: ignore
+                continue
+
+            idx_copy = Index(
+                idx_existing.name,
+                unique=idx_existing.unique,
+                *[
+                    _copy_expression(expr, self.new_table)
+                    for expr in _idx_table_bound_expressions(idx_existing)
+                ],
+                _table=self.new_table,
+                **idx_existing.kwargs,
+            )
+            idx.append(idx_copy)
+
         for index in self.new_indexes.values():
             idx.append(
                 Index(
