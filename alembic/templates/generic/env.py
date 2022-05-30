@@ -30,11 +30,11 @@ target_metadata = None
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
 
-postgres_url = os.getenv(
-    "POSTGRES_URL", "postgresql+psycopg2://postgres:postgres@localhost:5432/postgres"
+alembic_url = os.getenv(
+    "ALEMBIC_URL", "postgresql+psycopg2://postgres:postgres@localhost:5432/postgres"
 )
 configuration = config.get_section(config.config_ini_section)
-configuration["sqlalchemy.url"] = postgres_url
+configuration["sqlalchemy.url"] = alembic_url
 
 
 def run_migrations_offline() -> None:
