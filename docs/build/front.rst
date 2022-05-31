@@ -93,11 +93,10 @@ Community
 =========
 
 Alembic is developed by `Mike Bayer <http://techspot.zzzeek.org>`_, and is
-loosely associated with the SQLAlchemy_, `Pylons <http://www.pylonsproject.org>`_,
-and `Openstack <http://www.openstack.org>`_ projects.
+part of the SQLAlchemy_ project.
 
-User issues, discussion of potential bugs and features should be posted
-to the Alembic Google Group at `sqlalchemy-alembic <https://groups.google.com/group/sqlalchemy-alembic>`_.
+User issues, discussion of potential bugs and features are most easily
+discussed using `Github Discussions <https://github.com/sqlalchemy/alembic/discussions/>`_.
 
 .. _bugs:
 

@@ -108,11 +108,12 @@ command::
     generic - Generic single-database configuration.
     async - Generic single-database configuration with an async dbapi.
     multidb - Rudimentary multi-database configuration.
-    pylons - Configuration that reads from a Pylons project environment.
 
     Templates are used via the 'init' command, e.g.:
 
-      alembic init --template pylons ./scripts
+      alembic init --template generic ./scripts
+
+.. versionchanged:: 1.8  The "pylons" environment template has been removed.
 
 Editing the .ini File
 =====================
