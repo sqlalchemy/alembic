@@ -1,7 +1,0 @@
-.. change::
-    :tags: feature, typing
-    :tickets: 764
-
-    :pep:`484` typing annotations have been added to the ``env.py`` and
-    revision template files within migration templates. Pull request by Nikita
-    Sobolev.

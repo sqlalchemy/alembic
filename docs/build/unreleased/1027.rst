@@ -1,7 +1,0 @@
-.. change::
-  :tags: usecase, commands
-  :tickets: 1027
-
-  Added new token ``epoch`` to the ``file_template`` option, which will
-  populate the integer epoch as determined by ``int(create_date.timestamp())``.
-  Pull request courtesy Caio Carvalho.

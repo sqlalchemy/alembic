@@ -1,7 +1,0 @@
-.. change::
-    :tags: changed, environment
-    :tickets: 987
-
-    The "Pylons" environment template has been removed as of Alembic 1.8. This
-    template was based on the very old pre-Pyramid Pylons web framework which
-    has been long superseded by Pyramid.
