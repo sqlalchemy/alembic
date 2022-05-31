@@ -371,7 +371,13 @@ class DefaultImpl(metaclass=ImplMeta):
                 self.create_column_comment(column)
 
     def drop_table(self, table: "Table") -> None:
+        table.dispatch.before_drop(
+            table, self.connection, checkfirst=False, _ddl_runner=self
+        )
         self._exec(schema.DropTable(table))
+        table.dispatch.after_drop(
+            table, self.connection, checkfirst=False, _ddl_runner=self
+        )
 
     def create_index(self, index: "Index") -> None:
         self._exec(schema.CreateIndex(index))

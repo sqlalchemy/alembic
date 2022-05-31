@@ -3,6 +3,7 @@
 from sqlalchemy import Boolean
 from sqlalchemy import CheckConstraint
 from sqlalchemy import Column
+from sqlalchemy import event
 from sqlalchemy import exc
 from sqlalchemy import ForeignKey
 from sqlalchemy import Index
@@ -1086,6 +1087,58 @@ class OpTest(TestBase):
         op.drop_table_comment("some_table")
 
         context.assert_("COMMENT ON TABLE some_table IS NULL")
+
+    def test_create_table_event(self):
+        context = op_fixture()
+
+        events_triggered = []
+
+        TestTable = Table(
+            "tb_test", MetaData(), Column("c1", Integer, nullable=False)
+        )
+
+        @event.listens_for(Table, "before_create")
+        def record_before_event(table, conn, **kwargs):
+            events_triggered.append(("before_create", table.name))
+
+        @event.listens_for(Table, "after_create")
+        def record_after_event(table, conn, **kwargs):
+            events_triggered.append(("after_create", table.name))
+
+        op.create_table(TestTable)
+        op.drop_table(TestTable)
+        context.assert_("CREATE TABLE tb_test ()", "DROP TABLE tb_test")
+
+        assert events_triggered == [
+            ("before_create", "tb_test"),
+            ("after_create", "tb_test"),
+        ]
+
+    def test_drop_table_event(self):
+        context = op_fixture()
+
+        events_triggered = []
+
+        TestTable = Table(
+            "tb_test", MetaData(), Column("c1", Integer, nullable=False)
+        )
+
+        @event.listens_for(Table, "before_drop")
+        def record_before_event(table, conn, **kwargs):
+            events_triggered.append(("before_drop", table.name))
+
+        @event.listens_for(Table, "after_drop")
+        def record_after_event(table, conn, **kwargs):
+            events_triggered.append(("after_drop", table.name))
+
+        op.create_table(TestTable)
+        op.drop_table(TestTable)
+        context.assert_("CREATE TABLE tb_test ()", "DROP TABLE tb_test")
+
+        assert events_triggered == [
+            ("before_drop", "tb_test"),
+            ("after_drop", "tb_test"),
+        ]
 
 
 class SQLModeOpTest(TestBase):
