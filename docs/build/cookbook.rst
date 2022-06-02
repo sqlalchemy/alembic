@@ -1150,6 +1150,12 @@ causes Alembic to treat them as tables in need of creation and to generate spuri
 
     my_view = Table('my_view', metadata, autoload=True, info=dict(is_view=True))    # Flag this as a view
 
+Or, if you use declarative tables::
+
+    class MyView(Base):
+        __tablename__ = 'my_view'
+        __table_args__ = {'info': {'is_view': True}} # Flag this as a view
+
 Then define ``include_object`` as::
 
     def include_object(object, name, type_, reflected, compare_to):
