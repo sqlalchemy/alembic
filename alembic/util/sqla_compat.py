@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import contextlib
 import re
+from typing import Any
+from typing import Iterable
 from typing import Iterator
 from typing import Mapping
 from typing import Optional
@@ -156,6 +158,10 @@ def _get_connection_in_transaction(connection: Optional["Connection"]) -> bool:
         return False
     else:
         return in_transaction()
+
+
+def _idx_table_bound_expressions(idx: Index) -> Iterable[ColumnElement[Any]]:
+    return idx.expressions  # type: ignore
 
 
 def _copy(schema_item: _CE, **kw) -> _CE:

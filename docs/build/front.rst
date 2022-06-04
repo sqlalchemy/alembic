@@ -83,8 +83,9 @@ SQLAlchemy as of version **1.3.0**.
 
 .. versionchanged:: 1.5.0 Support for SQLAlchemy older than 1.3.0 was dropped.
 
-Alembic supports Python versions **3.6 and above**
+Alembic supports Python versions **3.7 and above**
 
+.. versionchanged::  1.8  Alembic now supports Python 3.7 and newer.
 .. versionchanged::  1.7  Alembic now supports Python 3.6 and newer; support
    for Python 2.7 has been dropped.
 
@@ -92,11 +93,10 @@ Community
 =========
 
 Alembic is developed by `Mike Bayer <http://techspot.zzzeek.org>`_, and is
-loosely associated with the SQLAlchemy_, `Pylons <http://www.pylonsproject.org>`_,
-and `Openstack <http://www.openstack.org>`_ projects.
+part of the SQLAlchemy_ project.
 
-User issues, discussion of potential bugs and features should be posted
-to the Alembic Google Group at `sqlalchemy-alembic <https://groups.google.com/group/sqlalchemy-alembic>`_.
+User issues, discussion of potential bugs and features are most easily
+discussed using `Github Discussions <https://github.com/sqlalchemy/alembic/discussions/>`_.
 
 .. _bugs:
 

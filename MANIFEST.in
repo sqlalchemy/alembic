@@ -7,6 +7,4 @@ recursive-include tools *.py
 include README* LICENSE CHANGES* tox.ini
 
 prune docs/build/output
-exclude pyproject.toml
-
 

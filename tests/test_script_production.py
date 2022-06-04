@@ -8,6 +8,7 @@ from sqlalchemy import inspect
 
 from alembic import autogenerate
 from alembic import command
+from alembic import testing
 from alembic import util
 from alembic.environment import EnvironmentContext
 from alembic.operations import ops
@@ -183,6 +184,33 @@ class ScriptNamingTest(TestBase):
                 "%s/versions/12345_this_is_a_"
                 "message_2012_7_25_15_8_5.py" % _get_staging_directory()
             ),
+        )
+
+    @testing.combinations(
+        (
+            datetime.datetime(2012, 7, 25, 15, 8, 5, tzinfo=tz.gettz("UTC")),
+            "%s/versions/1343228885_12345_this_is_a_"
+            "message_2012_7_25_15_8_5.py",
+        ),
+        (
+            datetime.datetime(2012, 7, 25, 15, 8, 6, tzinfo=tz.gettz("UTC")),
+            "%s/versions/1343228886_12345_this_is_a_"
+            "message_2012_7_25_15_8_6.py",
+        ),
+    )
+    def test_epoch(self, create_date, expected):
+        script = ScriptDirectory(
+            _get_staging_directory(),
+            file_template="%(epoch)s_%(rev)s_%(slug)s_"
+            "%(year)s_%(month)s_"
+            "%(day)s_%(hour)s_"
+            "%(minute)s_%(second)s",
+        )
+        eq_(
+            script._rev_path(
+                script.versions, "12345", "this is a message", create_date
+            ),
+            os.path.abspath(expected % _get_staging_directory()),
         )
 
     def _test_tz(self, timezone_arg, given, expected):

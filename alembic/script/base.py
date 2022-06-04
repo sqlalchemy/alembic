@@ -298,20 +298,9 @@ class ScriptDirectory:
 
     def get_all_current(self, id_: Tuple[str, ...]) -> Set[Optional[Script]]:
         with self._catch_revision_errors():
-            top_revs = cast(
-                Set[Optional[Script]],
-                set(self.revision_map.get_revisions(id_)),
+            return cast(
+                Set[Optional[Script]], self.revision_map._get_all_current(id_)
             )
-            top_revs.update(
-                cast(
-                    Iterator[Script],
-                    self.revision_map._get_ancestor_nodes(
-                        list(top_revs), include_dependencies=True
-                    ),
-                )
-            )
-            top_revs = self.revision_map._filter_into_branch_heads(top_revs)
-            return top_revs
 
     def get_revision(self, id_: str) -> Optional[Script]:
         """Return the :class:`.Script` instance with the given rev id.
@@ -782,6 +771,7 @@ class ScriptDirectory:
         message: Optional[str],
         create_date: "datetime.datetime",
     ) -> str:
+        epoch = int(create_date.timestamp())
         slug = "_".join(_slug_re.findall(message or "")).lower()
         if len(slug) > self.truncate_slug_length:
             slug = slug[: self.truncate_slug_length].rsplit("_", 1)[0] + "_"
@@ -790,6 +780,7 @@ class ScriptDirectory:
             % {
                 "rev": rev_id,
                 "slug": slug,
+                "epoch": epoch,
                 "year": create_date.year,
                 "month": create_date.month,
                 "day": create_date.day,

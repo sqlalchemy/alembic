@@ -239,10 +239,7 @@ class DownIterateTest(TestBase):
             edges, list(reversed(result))
         )
 
-        eq_(
-            result,
-            assertion,
-        )
+        eq_(result, assertion)
 
 
 class DiamondTest(DownIterateTest):
@@ -570,6 +567,45 @@ class MultipleBranchTest(DownIterateTest):
             r"Revision d1cb1 is not an ancestor of revision base",
             list,
             self.map.iterate_revisions((), "d1cb1"),
+        )
+
+
+class MultipleBranchEffectiveHead(DownIterateTest):
+    def setUp(self):
+        self.map = RevisionMap(
+            lambda: [
+                Revision("y1", None, branch_labels="y"),
+                Revision("x1", None, branch_labels="x"),
+                Revision("y2", "y1", dependencies="x1"),
+                Revision("x2", "x1"),
+            ]
+        )
+
+    def test_other_downgrade(self):
+        self._assert_iteration(
+            ("x2", "y2"),
+            "x@-1",
+            ["x2"],
+            inclusive=False,
+            select_for_downgrade=True,
+        )
+
+    def test_use_all_current(self):
+        self._assert_iteration(
+            ("x1", "y2"),
+            "x@-1",
+            ["y2", "x1"],
+            inclusive=False,
+            select_for_downgrade=True,
+        )
+
+    def test_effective_head(self):
+        self._assert_iteration(
+            "y2",
+            "x@-1",
+            ["y2", "x1"],
+            inclusive=False,
+            select_for_downgrade=True,
         )
 
 

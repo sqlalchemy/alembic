@@ -1,3 +1,10 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = [
+    "setuptools>=47",
+    "wheel>=0.34",
+]
+
 [tool.black]
 line-length = 79
 
@@ -7,6 +14,7 @@ exclude = [
     'alembic/template',
     'alembic.testing.*',
 ]
+show_error_codes = true
 
 [[tool.mypy.overrides]]
 module = [

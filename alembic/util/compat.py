@@ -12,7 +12,6 @@ is_posix = os.name == "posix"
 
 py39 = sys.version_info >= (3, 9)
 py38 = sys.version_info >= (3, 8)
-py37 = sys.version_info >= (3, 7)
 
 
 # produce a wrapper that allows encoded text to stream
@@ -39,7 +38,6 @@ def importlib_metadata_get(group: str) -> Sequence[EntryPoint]:
         return ep.select(group=group)
     else:
         return ep.get(group, ())
-
 
 def formatannotation_fwdref(annotation, base_module=None):
     """the python 3.7 _formatannotation with an extra repr() for 3rd party

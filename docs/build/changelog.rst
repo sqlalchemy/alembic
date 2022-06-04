@@ -4,8 +4,69 @@ Changelog
 ==========
 
 .. changelog::
-    :version: 1.7.8
+    :version: 1.8.1
     :include_notes_from: unreleased
+
+.. changelog::
+    :version: 1.8.0
+    :released: May 31, 2022
+
+    .. change::
+        :tags: feature, typing
+        :tickets: 764
+
+        :pep:`484` typing annotations have been added to the ``env.py`` and
+        revision template files within migration templates. Pull request by Nikita
+        Sobolev.
+
+    .. change::
+        :tags: usecase, operations
+        :tickets: 1037
+
+        The ``op.drop_table()`` operation directive will now trigger the
+        ``before_drop()`` and ``after_drop()`` DDL event hooks at the table level,
+        which is similar to how the ``before_create()`` and ``after_create()``
+        hooks are triggered by the ``op.create_table()`` directive. Note that as
+        ``op.drop_table()`` accepts only a table name and optional schema name, the
+        ``Table`` object received by the event will not have any information within
+        it other than the table name and schema name.
+
+    .. change::
+        :tags: installation, changed
+        :tickets: 1025
+
+        Alembic 1.8 now supports Python 3.7 and above.
+
+    .. change::
+        :tags: changed, environment
+        :tickets: 987
+
+        The "Pylons" environment template has been removed as of Alembic 1.8. This
+        template was based on the very old pre-Pyramid Pylons web framework which
+        has been long superseded by Pyramid.
+
+    .. change::
+        :tags: bug, revisioning
+        :tickets: 1026
+
+        Fixed issue where a downgrade using a relative revision would
+        fail in case of multiple branches with a single effectively
+        head due to interdependencies between revisions.
+
+    .. change::
+      :tags: usecase, commands
+      :tickets: 1027
+
+      Added new token ``epoch`` to the ``file_template`` option, which will
+      populate the integer epoch as determined by ``int(create_date.timestamp())``.
+      Pull request courtesy Caio Carvalho.
+
+    .. change::
+        :tags: bug, batch
+        :tickets: 1034
+
+        Fixed issue in batch mode where CREATE INDEX would not use a new column
+        name in the case of a column rename.
 
 .. changelog::
     :version: 1.7.7
