@@ -1554,3 +1554,46 @@ the same ``env.py`` file can be invoked using asyncio as::
 
 
     asyncio.run(run_async_upgrade())
+
+Data Migrations - General Techniques
+====================================
+
+Alembic migrations are designed for schema migrations.
+The nature of data migrations are inherently different and it's not in fact advisable
+in the general case to write data migrations that integrate with Alembic's
+schema versioning model.
+For example downgrades are difficult to address since they might require deletion of data,
+which may even not be possible to detect.
+
+.. warning::
+
+  The solution needs to be designed specifically for each individual application and migration.
+  There are no general rules and the following text is only a recommendation based on experience.
+
+There are three basic approaches for the data migrations.
+
+Small data
+----------
+
+Small data migrations are easy to perform, especially in cases of initial data to a new table.
+These can be handled using :meth:`.Operations.bulk_insert`.
+
+Separate migration script
+-------------------------
+
+One possibility is a completely separate script aside of alembic migrations.
+The complete migration is then processed in following steps:
+
+1. Run the initial alembic migrations (new columns etc.)
+2. Run the separate data migration script
+3. Run the final alembic migrations (database constraints, delete columns etc.)
+
+The data migration script may also need a separate ORM model to handle intermediate state of the database.
+
+Online migration
+----------------
+
+The application maintains a version of schema with both versions.
+Writes are performed on both places, while the background script move all the remaining data across.
+This technique is very challenging and time demanding, since it requires custom application logic to
+handle the intermediate states.
