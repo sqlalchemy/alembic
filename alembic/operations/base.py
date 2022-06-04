@@ -8,8 +8,10 @@ from typing import Callable
 from typing import Dict
 from typing import Iterator
 from typing import List  # noqa
+from typing import Mapping
 from typing import Optional
 from typing import Sequence  # noqa
+from typing import Tuple
 from typing import Type  # noqa
 from typing import TYPE_CHECKING
 from typing import Union
@@ -28,6 +30,8 @@ from ..util.compat import inspect_getfullargspec
 NoneType = type(None)
 
 if TYPE_CHECKING:
+    from typing import Literal
+
     from sqlalchemy import Table  # noqa
     from sqlalchemy.engine import Connection
 
@@ -214,13 +218,13 @@ class Operations(util.ModuleClsProxy):
         self,
         table_name: str,
         schema: Optional[str] = None,
-        recreate: str = "auto",
+        recreate: Literal["auto", "always", "never"] = "auto",
         partial_reordering: Optional[tuple] = None,
         copy_from: Optional["Table"] = None,
-        table_args: tuple = (),
-        table_kwargs: util.immutabledict = util.immutabledict(),
-        reflect_args: tuple = (),
-        reflect_kwargs: util.immutabledict = util.immutabledict(),
+        table_args: Tuple[Any, ...] = (),
+        table_kwargs: Mapping[str, Any] = util.immutabledict(),
+        reflect_args: Tuple[Any, ...] = (),
+        reflect_kwargs: Mapping[str, Any] = util.immutabledict(),
         naming_convention: Optional[Dict[str, str]] = None,
     ) -> Iterator["BatchOperations"]:
         """Invoke a series of per-table migrations in batch.

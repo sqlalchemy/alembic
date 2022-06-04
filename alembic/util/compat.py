@@ -3,7 +3,7 @@ from __future__ import annotations
 import io
 import os
 import sys
-from typing import Tuple
+from typing import Sequence
 
 from sqlalchemy.util import inspect_getfullargspec  # noqa
 from sqlalchemy.util.compat import inspect_formatargspec  # noqa
@@ -33,10 +33,10 @@ else:
     from importlib_metadata import EntryPoint  # type:ignore # noqa
 
 
-def importlib_metadata_get(group: str) -> Tuple[EntryPoint, ...]:
+def importlib_metadata_get(group: str) -> Sequence[EntryPoint]:
     ep = importlib_metadata.entry_points()
     if hasattr(ep, "select"):
-        return ep.select(group=group)  # type:ignore[attr-defined]
+        return ep.select(group=group)
     else:
         return ep.get(group, ())
 
