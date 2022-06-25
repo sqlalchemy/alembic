@@ -1731,6 +1731,8 @@ class BatchRoundTripTest(TestBase):
         ck_consts[0]["sqltext"] = re.sub(
             r"[\'\"`\(\)]", "", ck_consts[0]["sqltext"]
         )
+        for ck in ck_consts:
+            ck.pop("comment", None)
         eq_(ck_consts, [{"sqltext": "x > 0", "name": "newck"}])
 
     @testing.combinations(("always",), ("auto",), argnames="recreate")
