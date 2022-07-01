@@ -35,9 +35,9 @@ else:
 def importlib_metadata_get(group: str) -> Sequence[EntryPoint]:
     ep = importlib_metadata.entry_points()
     if hasattr(ep, "select"):
-        return ep.select(group=group)
+        return ep.select(group=group)  # type: ignore
     else:
-        return ep.get(group, ())
+        return ep.get(group, ())  # type: ignore
 
 
 def formatannotation_fwdref(annotation, base_module=None):
