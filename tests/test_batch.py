@@ -25,19 +25,29 @@ from sqlalchemy.schema import CreateTable
 from sqlalchemy.sql import column
 from sqlalchemy.sql import text
 
+from alembic import command
 from alembic import testing
+from alembic import util
 from alembic.ddl import sqlite
 from alembic.operations import Operations
 from alembic.operations.batch import ApplyBatchImpl
 from alembic.runtime.migration import MigrationContext
+from alembic.script import ScriptDirectory
 from alembic.testing import assert_raises_message
 from alembic.testing import config
 from alembic.testing import eq_
 from alembic.testing import exclusions
+from alembic.testing import expect_raises_message
 from alembic.testing import is_
 from alembic.testing import mock
 from alembic.testing import TestBase
+from alembic.testing.env import _no_sql_testing_config
+from alembic.testing.env import clear_staging_env
+from alembic.testing.env import staging_env
+from alembic.testing.env import write_script
+from alembic.testing.fixtures import capture_context_buffer
 from alembic.testing.fixtures import op_fixture
+from alembic.util import CommandError
 from alembic.util import exc as alembic_exc
 from alembic.util.sqla_compat import _safe_commit_connection_transaction
 from alembic.util.sqla_compat import _select
@@ -2383,4 +2393,165 @@ class BatchRoundTripPostgresqlTest(BatchRoundTripTest):
                 if c["name"] == "x"
             ],
             [Boolean],
+        )
+
+
+class OfflineTest(TestBase):
+    @testing.fixture
+    def no_reflect_batch_fixture(self):
+        staging_env()
+
+        def go():
+            self.cfg = cfg = _no_sql_testing_config(dialect="sqlite")
+
+            self.a = a = util.rev_id()
+
+            script = ScriptDirectory.from_config(cfg)
+            script.generate_revision(
+                a, "revision a", refresh=True, head="base"
+            )
+            write_script(
+                script,
+                a,
+                """\
+    "Rev A"
+    revision = '%s'
+    down_revision = None
+
+    from alembic import op
+    from sqlalchemy import Column
+    from sqlalchemy import Integer
+    from sqlalchemy import String, Table, MetaData
+
+    some_table_up = Table(
+        "some_table", MetaData(),
+        Column('id', Integer),
+        Column('bar', String)
+    )
+
+    some_table_down = Table(
+        "some_table", MetaData(),
+        Column('id', Integer),
+        Column('foo', Integer)
+    )
+
+    def upgrade():
+        with op.batch_alter_table("some_table", copy_from=some_table_up) as batch_op:
+            batch_op.add_column(Column('foo', Integer))
+            batch_op.drop_column('bar')
+
+    def downgrade():
+        with op.batch_alter_table("some_table", copy_from=some_table_down) as batch_op:
+            batch_op.drop_column('foo')
+            batch_op.add_column(Column('bar', String))
+
+    """  # noqa: E501
+                % a,
+            )
+
+        yield go
+        clear_staging_env()
+
+    @testing.fixture
+    def batch_fixture(self):
+        staging_env()
+
+        def go(dialect):
+            self.cfg = cfg = _no_sql_testing_config(dialect=dialect)
+
+            self.a = a = util.rev_id()
+
+            script = ScriptDirectory.from_config(cfg)
+            script.generate_revision(
+                a, "revision a", refresh=True, head="base"
+            )
+            write_script(
+                script,
+                a,
+                """\
+    "Rev A"
+    revision = '%s'
+    down_revision = None
+
+    from alembic import op
+    from sqlalchemy import Column
+    from sqlalchemy import Integer
+    from sqlalchemy import String
+
+    def upgrade():
+        with op.batch_alter_table("some_table") as batch_op:
+            batch_op.add_column(Column('foo', Integer))
+            batch_op.drop_column('bar')
+
+    def downgrade():
+        with op.batch_alter_table("some_table") as batch_op:
+            batch_op.drop_column('foo')
+            batch_op.add_column(Column('bar', String))
+
+    """
+                % a,
+            )
+
+        yield go
+        clear_staging_env()
+
+    def test_upgrade_non_batch(self, batch_fixture):
+        batch_fixture("postgresql")
+
+        with capture_context_buffer() as buf:
+            command.upgrade(self.cfg, self.a, sql=True)
+
+        assert re.search(
+            r"ALTER TABLE some_table ADD COLUMN foo INTEGER", buf.getvalue()
+        )
+
+    def test_downgrade_non_batch(self, batch_fixture):
+        batch_fixture("postgresql")
+
+        with capture_context_buffer() as buf:
+            command.downgrade(self.cfg, f"{self.a}:base", sql=True)
+        assert re.search(
+            r"ALTER TABLE some_table DROP COLUMN foo", buf.getvalue()
+        )
+
+    def test_upgrade_batch_fails_gracefully(self, batch_fixture):
+        batch_fixture("sqlite")
+
+        with expect_raises_message(
+            CommandError,
+            "This operation cannot proceed in --sql mode; batch mode with "
+            "dialect sqlite requires a live database connection with which "
+            'to reflect the table "some_table"',
+        ):
+            command.upgrade(self.cfg, self.a, sql=True)
+
+    def test_downgrade_batch_fails_gracefully(self, batch_fixture):
+        batch_fixture("sqlite")
+
+        with expect_raises_message(
+            CommandError,
+            "This operation cannot proceed in --sql mode; batch mode with "
+            "dialect sqlite requires a live database connection with which "
+            'to reflect the table "some_table"',
+        ):
+            command.downgrade(self.cfg, f"{self.a}:base", sql=True)
+
+    def test_upgrade_batch_no_reflection(self, no_reflect_batch_fixture):
+        no_reflect_batch_fixture()
+
+        with capture_context_buffer() as buf:
+            command.upgrade(self.cfg, self.a, sql=True)
+
+        assert re.search(
+            r"CREATE TABLE _alembic_tmp_some_table", buf.getvalue()
+        )
+
+    def test_downgrade_batch_no_reflection(self, no_reflect_batch_fixture):
+        no_reflect_batch_fixture()
+
+        with capture_context_buffer() as buf:
+            command.downgrade(self.cfg, f"{self.a}:base", sql=True)
+
+        assert re.search(
+            r"CREATE TABLE _alembic_tmp_some_table", buf.getvalue()
         )

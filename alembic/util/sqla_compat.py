@@ -114,6 +114,11 @@ def _ensure_scope_for_ddl(
         in_transaction = connection.in_transaction  # type: ignore[union-attr]
     except AttributeError:
         # catch for MockConnection, None
+        in_transaction = None
+        pass
+
+    # yield outside the catch
+    if in_transaction is None:
         yield
     else:
         if not in_transaction():

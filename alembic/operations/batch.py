@@ -119,6 +119,21 @@ class BatchOperationsImpl:
                     existing_table = self.copy_from
                     reflected = False
                 else:
+                    if self.operations.migration_context.as_sql:
+                        raise exc.CommandError(
+                            f"This operation cannot proceed in --sql mode; "
+                            f"batch mode with dialect "
+                            f"{self.operations.migration_context.dialect.name} "  # noqa: E501
+                            f"requires a live database connection with which "
+                            f'to reflect the table "{self.table_name}". '
+                            f"To generate a batch SQL migration script using "
+                            "table "
+                            '"move and copy", a complete Table object '
+                            f'should be passed to the "copy_from" argument '
+                            "of the batch_alter_table() method so that table "
+                            "reflection can be skipped."
+                        )
+
                     existing_table = Table(
                         self.table_name,
                         m1,
