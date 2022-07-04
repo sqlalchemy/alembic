@@ -1308,6 +1308,9 @@ class PGUniqueIndexAutogenerateTest(AutogenFixtureTest, TestBase):
         eq_(diffs[0][1].name, "uq_name")
         eq_(len(diffs), 1)
 
+    def _functional_index_warn(self):
+        return (r"Skip.*refl",)
+
     def test_functional_ix_one(self):
         m1 = MetaData()
         m2 = MetaData()
@@ -1328,10 +1331,7 @@ class PGUniqueIndexAutogenerateTest(AutogenFixtureTest, TestBase):
         )
         Index("email_idx", func.lower(t2.c.email), unique=True)
 
-        with assertions.expect_warnings(
-            "Skipped unsupported reflection",
-            "autogenerate skipping functional index",
-        ):
+        with assertions.expect_warnings(*self._functional_index_warn()):
             diffs = self._fixture(m1, m2)
         eq_(diffs, [])
 
@@ -1365,9 +1365,6 @@ class PGUniqueIndexAutogenerateTest(AutogenFixtureTest, TestBase):
             unique=True,
         )
 
-        with assertions.expect_warnings(
-            "Skipped unsupported reflection",
-            "autogenerate skipping functional index",
-        ):
+        with assertions.expect_warnings(*self._functional_index_warn()):
             diffs = self._fixture(m1, m2)
         eq_(diffs, [])

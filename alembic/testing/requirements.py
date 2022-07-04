@@ -20,6 +20,11 @@ class SuiteRequirements(Requirements):
         return exclusions.closed()
 
     @property
+    def materialized_views(self):
+        """needed for sqlalchemy compat"""
+        return exclusions.closed()
+
+    @property
     def unique_constraint_reflection(self):
         def doesnt_have_check_uq_constraints(config):
             from sqlalchemy import inspect
