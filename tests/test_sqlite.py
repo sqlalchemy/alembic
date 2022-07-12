@@ -81,6 +81,11 @@ class SQLiteTest(TestBase):
         op.add_column("t1", Column("c1", Integer, comment="c1 comment"))
         context.assert_("ALTER TABLE t1 ADD COLUMN c1 INTEGER")
 
+    def test_rename_table_w_schema(self):
+        context = op_fixture("sqlite")
+        op.rename_table("old_name", "new_name", schema="my_schema")
+        context.assert_("ALTER TABLE my_schema.old_name RENAME TO new_name")
+
 
 class SQLiteDefaultCompareTest(TestBase):
     __only_on__ = "sqlite"

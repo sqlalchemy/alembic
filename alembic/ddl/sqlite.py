@@ -11,12 +11,17 @@ from sqlalchemy import cast
 from sqlalchemy import JSON
 from sqlalchemy import schema
 from sqlalchemy import sql
+from sqlalchemy.ext.compiler import compiles
 
+from .base import alter_table
+from .base import format_table_name
+from .base import RenameTable
 from .impl import DefaultImpl
 from .. import util
 
 if TYPE_CHECKING:
     from sqlalchemy.engine.reflection import Inspector
+    from sqlalchemy.sql.compiler import DDLCompiler
     from sqlalchemy.sql.elements import Cast
     from sqlalchemy.sql.elements import ClauseElement
     from sqlalchemy.sql.schema import Column
@@ -176,6 +181,16 @@ class SQLiteImpl(DefaultImpl):
             existing_transfer["expr"] = cast(
                 existing_transfer["expr"], new_type
             )
+
+
+@compiles(RenameTable, "sqlite")
+def visit_rename_table(
+    element: "RenameTable", compiler: "DDLCompiler", **kw
+) -> str:
+    return "%s RENAME TO %s" % (
+        alter_table(compiler, element.table_name, element.schema),
+        format_table_name(compiler, element.new_table_name, None),
+    )
 
 
 # @compiles(AddColumn, 'sqlite')
