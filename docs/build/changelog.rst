@@ -4,6 +4,10 @@ Changelog
 ==========
 
 .. changelog::
+    :version: 1.8.2
+    :include_notes_from: unreleased
+
+.. changelog::
     :version: 1.8.1
     :released: July 13, 2022
 
