@@ -589,7 +589,7 @@ Changelog
         also changing the column type, would cause an ALTER COLUMN operation to
         incorrectly render a second ALTER statement without the nullability if a
         new type were also present, as the MSSQL-specific contract did not
-        anticipate all three of "nullability", "type_" and "existing_type" being
+        anticipate all three of "nullability", ``"type_"`` and "existing_type" being
         sent at the same time.
 
 
@@ -870,7 +870,7 @@ Changelog
         yet been updated, these can be modified directly in order to maintain
         compatibility:
 
-        * :meth:`.Operations.drop_constraint` - "type" (use "type_") and "name"
+        * :meth:`.Operations.drop_constraint` - "type" (use ``"type_"``) and "name"
           (use "constraint_name")
 
         * :meth:`.Operations.create_primary_key` - "cols" (use "columns") and
@@ -2296,10 +2296,10 @@ Changelog
       :tags: bug, batch
       :tickets: 391
 
-      Batch mode will not use CAST() to copy data if type_ is given, however
+      Batch mode will not use CAST() to copy data if ``type_`` is given, however
       the basic type affinity matches that of the existing type.  This to
       avoid SQLite's CAST of TIMESTAMP which results in truncation of the
-      data, in those cases where the user needs to add redundant type_ for
+      data, in those cases where the user needs to add redundant ``type_`` for
       other reasons.
 
     .. change::
@@ -3686,8 +3686,8 @@ Changelog
 
       Added quoting to the table name when the special EXEC is run to
       drop any existing server defaults or constraints when the
-      :paramref:`.drop_column.mssql_drop_check` or
-      :paramref:`.drop_column.mssql_drop_default`
+      :paramref:`.Operations.drop_column.mssql_drop_check` or
+      :paramref:`.Operations.drop_column.mssql_drop_default`
       arguments are used.
 
     .. change::

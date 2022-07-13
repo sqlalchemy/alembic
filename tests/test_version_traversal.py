@@ -40,11 +40,12 @@ class RevisionPathTest(MigrationTest):
     @classmethod
     def setup_class(cls):
         cls.env = env = staging_env()
-        cls.a = env.generate_revision(util.rev_id(), "->a")
-        cls.b = env.generate_revision(util.rev_id(), "a->b")
-        cls.c = env.generate_revision(util.rev_id(), "b->c")
-        cls.d = env.generate_revision(util.rev_id(), "c->d")
-        cls.e = env.generate_revision(util.rev_id(), "d->e")
+
+        cls.a = env.generate_revision("e6239818bb3a", "->a")
+        cls.b = env.generate_revision("548bbb905360", "a->b")
+        cls.c = env.generate_revision("b7ea43dc85e4", "b->c")
+        cls.d = env.generate_revision("1bbe33445780", "c->d")
+        cls.e = env.generate_revision("3975fb1a0125", "d->e")
 
     @classmethod
     def teardown_class(cls):

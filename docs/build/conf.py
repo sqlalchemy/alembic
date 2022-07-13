@@ -76,7 +76,10 @@ source_suffix = ".rst"
 # The encoding of source files.
 # source_encoding = 'utf-8'
 
-nitpicky = True
+nitpicky = False
+
+exclude_patterns = ["build", "unreleased*/*", "**/*_include.rst"]
+
 
 # The master toctree document.
 master_doc = "index"
