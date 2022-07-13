@@ -5,7 +5,33 @@ Changelog
 
 .. changelog::
     :version: 1.8.1
-    :include_notes_from: unreleased
+    :released: July 13, 2022
+
+    .. change::
+        :tags: bug, sqlite
+        :tickets: 1065
+
+        Fixed bug where the SQLite implementation of
+        :meth:`.Operations.rename_table` would render an explicit schema name for
+        both the old and new table name, which while is the standard ALTER syntax,
+        is not accepted by SQLite's syntax which doesn't support a rename across
+        schemas. In particular, the syntax issue would prevent batch mode from
+        working for SQLite databases that made use of attached databases (which are
+        treated as "schemas" in SQLAlchemy).
+
+    .. change::
+        :tags: bug, batch
+        :tickets: 1021
+
+        Added an error raise for the condition where
+        :meth:`.Operations.batch_alter_table` is used in ``--sql`` mode, where the
+        operation requires table reflection, as is the case when running against
+        SQLite without giving it a fixed ``Table`` object. Previously the operation
+        would fail with an internal error.   To get a "move and copy" batch
+        operation as a SQL script without connecting to a database,
+        a ``Table`` object should be passed to the
+        :paramref:`.Operations.batch_alter_table.copy_from` parameter so that
+        reflection may be skipped.
 
 .. changelog::
     :version: 1.8.0
