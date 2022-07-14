@@ -249,9 +249,13 @@ class PostgresqlImpl(DefaultImpl):
                 while isinstance(expr, UnaryExpression):
                     expr = expr.element
                 if not isinstance(expr, Column):
+                    if sqla_compat.sqla_2:
+                        msg = ""
+                    else:
+                        msg = "; not supported by SQLAlchemy reflection"
                     util.warn(
-                        "autogenerate skipping functional index %s; "
-                        "not supported by SQLAlchemy reflection" % idx.name
+                        "autogenerate skipping functional index "
+                        f"{idx.name!r}{msg}"
                     )
                     metadata_indexes.discard(idx)
 

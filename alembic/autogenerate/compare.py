@@ -279,12 +279,22 @@ def _compare_tables(
                 upgrade_ops.ops.append(modify_table_ops)
 
 
-def _make_index(params: Dict[str, Any], conn_table: "Table") -> "Index":
+def _make_index(
+    params: Dict[str, Any], conn_table: "Table"
+) -> Optional["Index"]:
+    exprs = []
+    for col_name in params["column_names"]:
+        if col_name is None:
+            util.warn(
+                "Skipping reflected expression-based "
+                f"index {params['name']!r}"
+            )
+            return None
+        else:
+            item = conn_table.c[col_name]
+        exprs.append(item)
     ix = sa_schema.Index(
-        params["name"],
-        *[conn_table.c[cname] for cname in params["column_names"]],
-        unique=params["unique"],
-        _table=conn_table,
+        params["name"], *exprs, unique=params["unique"], _table=conn_table
     )
     if "duplicates_constraint" in params:
         ix.info["duplicates_constraint"] = params["duplicates_constraint"]
@@ -585,7 +595,9 @@ def _compare_indexes_and_uniques(
             )
 
         conn_indexes = set(  # type:ignore[assignment]
-            _make_index(ix, conn_table) for ix in conn_indexes
+            index
+            for index in (_make_index(ix, conn_table) for ix in conn_indexes)
+            if index is not None
         )
 
     # 2a. if the dialect dupes unique indexes as unique constraints
