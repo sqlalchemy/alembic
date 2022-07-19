@@ -158,3 +158,23 @@ class AutoNamingConventionTest(TestBase):
             "ALTER TABLE t1 ADD COLUMN c1 BOOLEAN NOT NULL",
             "ALTER TABLE t1 ADD CONSTRAINT foo CHECK (c1 IN (0, 1))",
         )
+
+    def test_drop_check_constraint_plain(self):
+        context = op_fixture(
+            naming_convention={"ck": "ck_%(table_name)s_%(constraint_name)s"}
+        )
+
+        op.drop_constraint("foo_bar_bat", "t1", type_="check")
+        context.assert_("ALTER TABLE t1 DROP CONSTRAINT ck_t1_foo_bar_bat")
+
+    def test_drop_check_constraint_opf(self):
+        context = op_fixture(
+            naming_convention={"ck": "ck_%(table_name)s_%(constraint_name)s"}
+        )
+
+        op.drop_constraint(
+            op.f("some_specific_foo_bar_bat"), "t1", type_="check"
+        )
+        context.assert_(
+            "ALTER TABLE t1 DROP CONSTRAINT some_specific_foo_bar_bat"
+        )

@@ -145,6 +145,12 @@ If we define our models using a :class:`~sqlalchemy.schema.MetaData` as above, t
 naming convention dictionary will be used to provide names for all constraints
 and indexes.
 
+.. seealso::
+
+    :ref:`sqla:constraint_naming_conventions` - SQLAlchemy overview of naming
+    convention support
+
+
 .. _autogen_naming_conventions:
 
 Integration of Naming Conventions into Operations, Autogenerate
@@ -162,7 +168,7 @@ used::
     meta = MetaData(naming_convention={
             "ix": "ix_%(column_0_label)s",
             "uq": "uq_%(table_name)s_%(column_0_name)s",
-            "ck": "ck_%(table_name)s_%(constraint_name)s",
+            "ck": "ck_%(table_name)s_`%(constraint_name)s`",
             "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
             "pk": "pk_%(table_name)s"
           })
@@ -211,5 +217,50 @@ tokenized::
     def upgrade():
         op.create_unique_constraint(op.f('uq_const_x'), 'some_table', 'x')
 
+This :meth:`.Operations.f` construct may be used explicitly in order to
+bypass naming conventions, as illustrated in the next section.
 
-For more detail on the naming convention feature, see :ref:`sqla:constraint_naming_conventions`.
+Bypassing the Naming Convention for CREATE and DROP Operations
+---------------------------------------------------------------
+
+When using constraint naming conventions, in particular if the
+``%(constraint_name)s`` token is in use, the constraint name used with
+methods such as :meth:`.Operations.create_check_constraint` and :meth:`.Operations.drop_constraint`
+with a matching :paramref:`.Operations.type_` will **include the naming convention**
+unless additional directives are in use.
+
+Given a configuration in ``env.py`` as::
+
+    target_metadata = MetaData(naming_convention={
+            "ix": "ix_%(column_0_label)s",
+            "uq": "uq_%(table_name)s_%(column_0_name)s",
+            "ck": "ck_%(table_name)s_`%(constraint_name)s`",
+            "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+            "pk": "pk_%(table_name)s"
+          })
+    # ...
+
+    def run_migrations_online():
+
+        # ...
+
+        context.configure(
+                    connection=connection,
+                    target_metadata=target_metadata
+                    )
+
+
+The following operation will drop a CHECK constraint named
+``ck_t1_some_check_const``::
+
+  >>> op.drop_constraint("some_check_const", "t1", type_="check")
+  ALTER TABLE t1 DROP CONSTRAINT ck_t1_some_check_const
+
+In order to apply the operation while **bypassing** the configured naming
+convention, use the :meth:`.Operations.f` construct.  This produces a string
+expression that will not be tokenized::
+
+  >>> op.drop_constraint(op.f("some_check_const"), "t1", type_="check")
+  ALTER TABLE t1 DROP CONSTRAINT some_check_const
+
+
