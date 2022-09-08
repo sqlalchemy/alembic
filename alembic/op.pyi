@@ -105,7 +105,7 @@ def alter_column(
     existing_nullable: Optional[bool] = None,
     existing_comment: Optional[str] = None,
     schema: Optional[str] = None,
-    **kw
+    **kw: Any
 ) -> Optional[Table]:
     """Issue an "alter column" instruction using the
     current migration context.
@@ -431,7 +431,7 @@ def create_check_constraint(
     table_name: str,
     condition: Union[str, BinaryExpression],
     schema: Optional[str] = None,
-    **kw
+    **kw: Any
 ) -> Optional[Table]:
     """Issue a "create check constraint" instruction using the
     current migration context.
@@ -527,7 +527,7 @@ def create_foreign_key(
     match: Optional[str] = None,
     source_schema: Optional[str] = None,
     referent_schema: Optional[str] = None,
-    **dialect_kw
+    **dialect_kw: Any
 ) -> Optional[Table]:
     """Issue a "create foreign key" instruction using the
     current migration context.
@@ -580,7 +580,7 @@ def create_index(
     columns: Sequence[Union[str, TextClause, Function]],
     schema: Optional[str] = None,
     unique: bool = False,
-    **kw
+    **kw: Any
 ) -> Optional[Table]:
     """Issue a "create index" instruction using the current
     migration context.
@@ -667,7 +667,7 @@ def create_primary_key(
 
     """
 
-def create_table(table_name: str, *columns, **kw) -> Optional[Table]:
+def create_table(table_name: str, *columns, **kw: Any) -> Optional[Table]:
     """Issue a "create table" instruction using the current migration
     context.
 
@@ -776,7 +776,7 @@ def create_unique_constraint(
     table_name: str,
     columns: Sequence[str],
     schema: Optional[str] = None,
-    **kw
+    **kw: Any
 ) -> Any:
     """Issue a "create unique constraint" instruction using the
     current migration context.
@@ -817,7 +817,7 @@ def create_unique_constraint(
     """
 
 def drop_column(
-    table_name: str, column_name: str, schema: Optional[str] = None, **kw
+    table_name: str, column_name: str, schema: Optional[str] = None, **kw: Any
 ) -> Optional[Table]:
     """Issue a "drop column" instruction using the current
     migration context.
@@ -879,7 +879,7 @@ def drop_index(
     index_name: str,
     table_name: Optional[str] = None,
     schema: Optional[str] = None,
-    **kw
+    **kw: Any
 ) -> Optional[Table]:
     """Issue a "drop index" instruction using the current
     migration context.

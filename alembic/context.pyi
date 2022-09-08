@@ -2,6 +2,7 @@
 # ### imports are manually managed
 from __future__ import annotations
 
+from typing import Any
 from typing import Callable
 from typing import ContextManager
 from typing import Optional
@@ -94,7 +95,7 @@ def configure(
     sqlalchemy_module_prefix: str = "sa.",
     user_module_prefix: Optional[str] = None,
     on_version_apply: Optional[Callable] = None,
-    **kw,
+    **kw: Any,
 ) -> None:
     """Configure a :class:`.MigrationContext` within this
     :class:`.EnvironmentContext` which will provide database
@@ -699,7 +700,7 @@ def is_transactional_ddl():
 
     """
 
-def run_migrations(**kw) -> None:
+def run_migrations(**kw: Any) -> None:
     """Run migrations as determined by the current command line
     configuration
     as well as versioning information present (or not) in the current

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Any
 from typing import Callable
 from typing import ContextManager
 from typing import Dict
@@ -106,7 +107,7 @@ class EnvironmentContext(util.ModuleClsProxy):
     """
 
     def __init__(
-        self, config: "Config", script: "ScriptDirectory", **kw
+        self, config: "Config", script: "ScriptDirectory", **kw: Any
     ) -> None:
         r"""Construct a new :class:`.EnvironmentContext`.
 
@@ -133,7 +134,7 @@ class EnvironmentContext(util.ModuleClsProxy):
         self._install_proxy()
         return self
 
-    def __exit__(self, *arg, **kw) -> None:
+    def __exit__(self, *arg: Any, **kw: Any) -> None:
         self._remove_proxy()
 
     def is_offline_mode(self) -> bool:
@@ -347,7 +348,7 @@ class EnvironmentContext(util.ModuleClsProxy):
         sqlalchemy_module_prefix: str = "sa.",
         user_module_prefix: Optional[str] = None,
         on_version_apply: Optional[Callable] = None,
-        **kw,
+        **kw: Any,
     ) -> None:
         """Configure a :class:`.MigrationContext` within this
         :class:`.EnvironmentContext` which will provide database
@@ -828,7 +829,7 @@ class EnvironmentContext(util.ModuleClsProxy):
             opts=opts,
         )
 
-    def run_migrations(self, **kw) -> None:
+    def run_migrations(self, **kw: Any) -> None:
         """Run migrations as determined by the current command line
         configuration
         as well as versioning information present (or not) in the current

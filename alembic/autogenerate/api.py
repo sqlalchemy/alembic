@@ -430,7 +430,8 @@ class AutogenContext:
 
     @util.memoized_property
     def sorted_tables(self):
-        """Return an aggregate of the :attr:`.MetaData.sorted_tables` collection(s).
+        """Return an aggregate of the :attr:`.MetaData.sorted_tables`
+        collection(s).
 
         For a sequence of :class:`.MetaData` objects, this
         concatenates the :attr:`.MetaData.sorted_tables` collection
