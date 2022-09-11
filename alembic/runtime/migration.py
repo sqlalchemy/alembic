@@ -36,6 +36,7 @@ if TYPE_CHECKING:
     from sqlalchemy.engine.base import Connection
     from sqlalchemy.engine.base import Transaction
     from sqlalchemy.engine.mock import MockConnection
+    from sqlalchemy.sql.elements import ClauseElement
 
     from .environment import EnvironmentContext
     from ..config import Config
@@ -539,6 +540,7 @@ class MigrationContext:
 
     def _ensure_version_table(self, purge: bool = False) -> None:
         with sqla_compat._ensure_scope_for_ddl(self.connection):
+            assert self.connection is not None
             self._version.create(self.connection, checkfirst=True)
             if purge:
                 assert self.connection is not None
@@ -568,7 +570,7 @@ class MigrationContext:
         for step in script_directory._stamp_revs(revision, heads):
             head_maintainer.update_to_step(step)
 
-    def run_migrations(self, **kw) -> None:
+    def run_migrations(self, **kw: Any) -> None:
         r"""Run the migration scripts established for this
         :class:`.MigrationContext`, if any.
 
@@ -614,6 +616,7 @@ class MigrationContext:
                 if self.as_sql and not head_maintainer.heads:
                     # for offline mode, include a CREATE TABLE from
                     # the base
+                    assert self.connection is not None
                     self._version.create(self.connection)
                 log.info("Running %s", step)
                 if self.as_sql:
@@ -637,6 +640,7 @@ class MigrationContext:
                     )
 
         if self.as_sql and not head_maintainer.heads:
+            assert self.connection is not None
             self._version.drop(self.connection)
 
     def _in_connection_transaction(self) -> bool:
@@ -647,7 +651,11 @@ class MigrationContext:
         else:
             return meth()
 
-    def execute(self, sql: str, execution_options: None = None) -> None:
+    def execute(
+        self,
+        sql: Union["ClauseElement", str],
+        execution_options: Optional[dict] = None,
+    ) -> None:
         """Execute a SQL construct or string statement.
 
         The underlying execution mechanics are used, that is
@@ -771,9 +779,11 @@ class HeadMaintainer:
                 == literal_column("'%s'" % version)
             )
         )
+
         if (
             not self.context.as_sql
             and self.context.dialect.supports_sane_rowcount
+            and ret is not None
             and ret.rowcount != 1
         ):
             raise util.CommandError(
@@ -796,9 +806,11 @@ class HeadMaintainer:
                 == literal_column("'%s'" % from_)
             )
         )
+
         if (
             not self.context.as_sql
             and self.context.dialect.supports_sane_rowcount
+            and ret is not None
             and ret.rowcount != 1
         ):
             raise util.CommandError(
@@ -1269,7 +1281,7 @@ class StampStep(MigrationStep):
 
     doc: None = None
 
-    def stamp_revision(self, **kw) -> None:
+    def stamp_revision(self, **kw: Any) -> None:
         return None
 
     def __eq__(self, other):

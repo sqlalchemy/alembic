@@ -23,19 +23,16 @@ from .. import util
 from ..util import sqla_compat
 
 if TYPE_CHECKING:
-    from io import StringIO
     from typing import Literal
+    from typing import TextIO
 
     from sqlalchemy.engine import Connection
     from sqlalchemy.engine import Dialect
     from sqlalchemy.engine.cursor import CursorResult
-    from sqlalchemy.engine.cursor import LegacyCursorResult
     from sqlalchemy.engine.reflection import Inspector
-    from sqlalchemy.sql.dml import Update
     from sqlalchemy.sql.elements import ClauseElement
     from sqlalchemy.sql.elements import ColumnElement
     from sqlalchemy.sql.elements import quoted_name
-    from sqlalchemy.sql.elements import TextClause
     from sqlalchemy.sql.schema import Column
     from sqlalchemy.sql.schema import Constraint
     from sqlalchemy.sql.schema import ForeignKeyConstraint
@@ -60,11 +57,11 @@ class ImplMeta(type):
     ):
         newtype = type.__init__(cls, classname, bases, dict_)
         if "__dialect__" in dict_:
-            _impls[dict_["__dialect__"]] = cls
+            _impls[dict_["__dialect__"]] = cls  # type: ignore[assignment]
         return newtype
 
 
-_impls: dict = {}
+_impls: Dict[str, Type["DefaultImpl"]] = {}
 
 Params = namedtuple("Params", ["token0", "tokens", "args", "kwargs"])
 
@@ -98,7 +95,7 @@ class DefaultImpl(metaclass=ImplMeta):
         connection: Optional["Connection"],
         as_sql: bool,
         transactional_ddl: Optional[bool],
-        output_buffer: Optional["StringIO"],
+        output_buffer: Optional["TextIO"],
         context_opts: Dict[str, Any],
     ) -> None:
         self.dialect = dialect
@@ -119,7 +116,7 @@ class DefaultImpl(metaclass=ImplMeta):
                 )
 
     @classmethod
-    def get_by_dialect(cls, dialect: "Dialect") -> Any:
+    def get_by_dialect(cls, dialect: "Dialect") -> Type["DefaultImpl"]:
         return _impls[dialect.name]
 
     def static_output(self, text: str) -> None:
@@ -158,10 +155,10 @@ class DefaultImpl(metaclass=ImplMeta):
     def _exec(
         self,
         construct: Union["ClauseElement", str],
-        execution_options: None = None,
+        execution_options: Optional[dict] = None,
         multiparams: Sequence[dict] = (),
         params: Dict[str, int] = util.immutabledict(),
-    ) -> Optional[Union["LegacyCursorResult", "CursorResult"]]:
+    ) -> Optional["CursorResult"]:
         if isinstance(construct, str):
             construct = text(construct)
         if self.as_sql:
@@ -176,10 +173,11 @@ class DefaultImpl(metaclass=ImplMeta):
             else:
                 compile_kw = {}
 
+            compiled = construct.compile(
+                dialect=self.dialect, **compile_kw  # type: ignore[arg-type]
+            )
             self.static_output(
-                str(construct.compile(dialect=self.dialect, **compile_kw))
-                .replace("\t", "    ")
-                .strip()
+                str(compiled).replace("\t", "    ").strip()
                 + self.command_terminator
             )
             return None
@@ -192,11 +190,13 @@ class DefaultImpl(metaclass=ImplMeta):
                 assert isinstance(multiparams, tuple)
                 multiparams += (params,)
 
-            return conn.execute(construct, multiparams)
+            return conn.execute(  # type: ignore[call-overload]
+                construct, multiparams
+            )
 
     def execute(
         self,
-        sql: Union["Update", "TextClause", str],
+        sql: Union["ClauseElement", str],
         execution_options: None = None,
     ) -> None:
         self._exec(sql, execution_options)
@@ -424,9 +424,6 @@ class DefaultImpl(metaclass=ImplMeta):
                     )
                 )
         else:
-            # work around http://www.sqlalchemy.org/trac/ticket/2461
-            if not hasattr(table, "_autoincrement_column"):
-                table._autoincrement_column = None
             if rows:
                 if multiinsert:
                     self._exec(
@@ -572,7 +569,7 @@ class DefaultImpl(metaclass=ImplMeta):
             )
 
     def render_ddl_sql_expr(
-        self, expr: "ClauseElement", is_server_default: bool = False, **kw
+        self, expr: "ClauseElement", is_server_default: bool = False, **kw: Any
     ) -> str:
         """Render a SQL expression that is typically a server default,
         index expression, etc.
@@ -581,10 +578,14 @@ class DefaultImpl(metaclass=ImplMeta):
 
         """
 
-        compile_kw = dict(
-            compile_kwargs={"literal_binds": True, "include_table": False}
+        compile_kw = {
+            "compile_kwargs": {"literal_binds": True, "include_table": False}
+        }
+        return str(
+            expr.compile(
+                dialect=self.dialect, **compile_kw  # type: ignore[arg-type]
+            )
         )
-        return str(expr.compile(dialect=self.dialect, **compile_kw))
 
     def _compat_autogen_column_reflect(
         self, inspector: "Inspector"

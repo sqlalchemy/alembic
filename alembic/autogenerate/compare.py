@@ -616,8 +616,8 @@ def _compare_indexes_and_uniques(
     # we know are either added implicitly by the DB or that the DB
     # can't accurately report on
     autogen_context.migration_context.impl.correct_for_autogen_constraints(
-        conn_uniques,
-        conn_indexes,
+        conn_uniques,  # type: ignore[arg-type]
+        conn_indexes,  # type: ignore[arg-type]
         metadata_unique_constraints,
         metadata_indexes,
     )
@@ -1274,7 +1274,8 @@ def _compare_foreign_keys(
     )
 
     conn_fks = set(
-        _make_foreign_key(const, conn_table) for const in conn_fks_list
+        _make_foreign_key(const, conn_table)  # type: ignore[arg-type]
+        for const in conn_fks_list
     )
 
     # give the dialect a chance to correct the FKs to match more

@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Any
 from typing import Optional
 from typing import TYPE_CHECKING
-from typing import Union
 
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.sql import sqltypes
@@ -26,7 +25,6 @@ from .impl import DefaultImpl
 if TYPE_CHECKING:
     from sqlalchemy.dialects.oracle.base import OracleDDLCompiler
     from sqlalchemy.engine.cursor import CursorResult
-    from sqlalchemy.engine.cursor import LegacyCursorResult
     from sqlalchemy.sql.schema import Column
 
 
@@ -48,9 +46,7 @@ class OracleImpl(DefaultImpl):
             "oracle_batch_separator", self.batch_separator
         )
 
-    def _exec(
-        self, construct: Any, *args, **kw
-    ) -> Optional[Union["LegacyCursorResult", "CursorResult"]]:
+    def _exec(self, construct: Any, *args, **kw) -> Optional["CursorResult"]:
         result = super(OracleImpl, self)._exec(construct, *args, **kw)
         if self.as_sql and self.batch_separator:
             self.static_output(self.batch_separator)

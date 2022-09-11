@@ -29,6 +29,7 @@ IGNORE_ITEMS = {
 }
 TRIM_MODULE = [
     "alembic.runtime.migration.",
+    "alembic.operations.base.",
     "alembic.operations.ops.",
     "sqlalchemy.engine.base.",
     "sqlalchemy.sql.schema.",
@@ -85,6 +86,8 @@ def generate_pyi_for_proxy(
 
         module = sys.modules[cls.__module__]
         env = {
+            **typing.__dict__,
+            **sa.sql.schema.__dict__,
             **sa.__dict__,
             **sa.types.__dict__,
             **ops.__dict__,
@@ -141,7 +144,7 @@ def _generate_stub_for_meth(cls, name, printer, env, is_context_manager):
         annotations = typing.get_type_hints(fn, env)
         spec.annotations.update(annotations)
     except NameError as e:
-        pass
+        print(f"{cls.__name__}.{name} NameError: {e}", file=sys.stderr)
 
     name_args = spec[0]
     assert name_args[0:1] == ["self"] or name_args[0:1] == ["cls"]

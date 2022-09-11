@@ -20,10 +20,12 @@ if TYPE_CHECKING:
     from typing import Literal
 
     from sqlalchemy.engine.base import Connection
+    from sqlalchemy.sql.elements import ClauseElement
     from sqlalchemy.sql.schema import MetaData
 
     from .migration import _ProxyTransaction
     from ..config import Config
+    from ..ddl import DefaultImpl
     from ..script.base import ScriptDirectory
 
 _RevNumber = Optional[Union[str, Tuple[str, ...]]]
@@ -273,7 +275,9 @@ class EnvironmentContext(util.ModuleClsProxy):
     ) -> Dict[str, str]:
         ...
 
-    def get_x_argument(self, as_dictionary: bool = False):
+    def get_x_argument(
+        self, as_dictionary: bool = False
+    ) -> Union[List[str], Dict[str, str]]:
         """Return the value(s) passed for the ``-x`` argument, if any.
 
         The ``-x`` argument is an open ended flag that allows any user-defined
@@ -853,7 +857,11 @@ class EnvironmentContext(util.ModuleClsProxy):
         with Operations.context(self._migration_context):
             self.get_context().run_migrations(**kw)
 
-    def execute(self, sql, execution_options=None):
+    def execute(
+        self,
+        sql: Union["ClauseElement", str],
+        execution_options: Optional[dict] = None,
+    ) -> None:
         """Execute the given SQL using the current change context.
 
         The behavior of :meth:`.execute` is the same
@@ -867,7 +875,7 @@ class EnvironmentContext(util.ModuleClsProxy):
         """
         self.get_context().execute(sql, execution_options=execution_options)
 
-    def static_output(self, text):
+    def static_output(self, text: str) -> None:
         """Emit text directly to the "offline" SQL stream.
 
         Typically this is for emitting comments that
@@ -938,7 +946,7 @@ class EnvironmentContext(util.ModuleClsProxy):
             raise Exception("No context has been configured yet.")
         return self._migration_context
 
-    def get_bind(self):
+    def get_bind(self) -> "Connection":
         """Return the current 'bind'.
 
         In "online" mode, this is the
@@ -949,7 +957,7 @@ class EnvironmentContext(util.ModuleClsProxy):
         has first been made available via :meth:`.configure`.
 
         """
-        return self.get_context().bind
+        return self.get_context().bind  # type: ignore[return-value]
 
-    def get_impl(self):
+    def get_impl(self) -> "DefaultImpl":
         return self.get_context().impl

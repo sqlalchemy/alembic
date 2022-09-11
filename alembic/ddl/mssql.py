@@ -35,7 +35,6 @@ if TYPE_CHECKING:
     from sqlalchemy.dialects.mssql.base import MSDDLCompiler
     from sqlalchemy.dialects.mssql.base import MSSQLCompiler
     from sqlalchemy.engine.cursor import CursorResult
-    from sqlalchemy.engine.cursor import LegacyCursorResult
     from sqlalchemy.sql.schema import Index
     from sqlalchemy.sql.schema import Table
     from sqlalchemy.sql.selectable import TableClause
@@ -68,9 +67,7 @@ class MSSQLImpl(DefaultImpl):
             "mssql_batch_separator", self.batch_separator
         )
 
-    def _exec(
-        self, construct: Any, *args, **kw
-    ) -> Optional[Union["LegacyCursorResult", "CursorResult"]]:
+    def _exec(self, construct: Any, *args, **kw) -> Optional["CursorResult"]:
         result = super(MSSQLImpl, self)._exec(construct, *args, **kw)
         if self.as_sql and self.batch_separator:
             self.static_output(self.batch_separator)
@@ -359,7 +356,7 @@ def visit_column_nullable(
     return "%s %s %s %s" % (
         alter_table(compiler, element.table_name, element.schema),
         alter_column(compiler, element.column_name),
-        format_type(compiler, element.existing_type),
+        format_type(compiler, element.existing_type),  # type: ignore[arg-type]
         "NULL" if element.nullable else "NOT NULL",
     )
 

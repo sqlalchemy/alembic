@@ -37,6 +37,7 @@ if TYPE_CHECKING:
 
     from .batch import BatchOperationsImpl
     from .ops import MigrateOperation
+    from ..ddl import DefaultImpl
     from ..runtime.migration import MigrationContext
     from ..util.sqla_compat import _literal_bindparam
 
@@ -74,6 +75,7 @@ class Operations(util.ModuleClsProxy):
 
     """
 
+    impl: Union["DefaultImpl", "BatchOperationsImpl"]
     _to_impl = util.Dispatcher()
 
     def __init__(
@@ -492,7 +494,7 @@ class Operations(util.ModuleClsProxy):
         In a SQL script context, this value is ``None``. [TODO: verify this]
 
         """
-        return self.migration_context.impl.bind
+        return self.migration_context.impl.bind  # type: ignore[return-value]
 
 
 class BatchOperations(Operations):
@@ -511,6 +513,8 @@ class BatchOperations(Operations):
     method.
 
     """
+
+    impl: "BatchOperationsImpl"
 
     def _noop(self, operation):
         raise NotImplementedError(

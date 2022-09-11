@@ -523,12 +523,12 @@ class RevisionContext:
 
     def run_autogenerate(
         self, rev: tuple, migration_context: "MigrationContext"
-    ):
+    ) -> None:
         self._run_environment(rev, migration_context, True)
 
     def run_no_autogenerate(
         self, rev: tuple, migration_context: "MigrationContext"
-    ):
+    ) -> None:
         self._run_environment(rev, migration_context, False)
 
     def _run_environment(
@@ -536,7 +536,7 @@ class RevisionContext:
         rev: tuple,
         migration_context: "MigrationContext",
         autogenerate: bool,
-    ):
+    ) -> None:
         if autogenerate:
             if self.command_args["sql"]:
                 raise util.CommandError(

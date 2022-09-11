@@ -294,7 +294,7 @@ def format_table_name(
 def format_column_name(
     compiler: "DDLCompiler", name: Optional[Union["quoted_name", str]]
 ) -> Union["quoted_name", str]:
-    return compiler.preparer.quote(name)
+    return compiler.preparer.quote(name)  # type: ignore[arg-type]
 
 
 def format_server_default(

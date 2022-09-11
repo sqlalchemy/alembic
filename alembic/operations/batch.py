@@ -236,7 +236,7 @@ class ApplyBatchImpl:
         self._grab_table_elements()
 
     @classmethod
-    def _calc_temp_name(cls, tablename: "quoted_name") -> str:
+    def _calc_temp_name(cls, tablename: Union["quoted_name", str]) -> str:
         return ("_alembic_tmp_%s" % tablename)[0:50]
 
     def _grab_table_elements(self) -> None:
@@ -280,7 +280,7 @@ class ApplyBatchImpl:
                         self.col_named_constraints[const.name] = (col, const)
 
         for idx in self.table.indexes:
-            self.indexes[idx.name] = idx
+            self.indexes[idx.name] = idx  # type: ignore[index]
 
         for k in self.table.kwargs:
             self.table_kwargs.setdefault(k, self.table.kwargs[k])
@@ -546,7 +546,7 @@ class ApplyBatchImpl:
                 existing.server_default = None
             else:
                 sql_schema.DefaultClause(
-                    server_default
+                    server_default  # type: ignore[arg-type]
                 )._set_parent(  # type:ignore[attr-defined]
                     existing
                 )
@@ -699,11 +699,11 @@ class ApplyBatchImpl:
                     self.columns[col.name].primary_key = False
 
     def create_index(self, idx: "Index") -> None:
-        self.new_indexes[idx.name] = idx
+        self.new_indexes[idx.name] = idx  # type: ignore[index]
 
     def drop_index(self, idx: "Index") -> None:
         try:
-            del self.indexes[idx.name]
+            del self.indexes[idx.name]  # type: ignore[arg-type]
         except KeyError:
             raise ValueError("No such index: '%s'" % idx.name)
 

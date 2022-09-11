@@ -989,7 +989,7 @@ def _fk_colspec(
         if table_fullname in namespace_metadata.tables:
             col = namespace_metadata.tables[table_fullname].c.get(colname)
             if col is not None:
-                colname = _ident(col.name)
+                colname = _ident(col.name)  # type: ignore[assignment]
 
     colspec = "%s.%s" % (table_fullname, colname)
 

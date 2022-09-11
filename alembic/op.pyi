@@ -28,6 +28,7 @@ if TYPE_CHECKING:
     from sqlalchemy.sql.schema import Column
     from sqlalchemy.sql.schema import Computed
     from sqlalchemy.sql.schema import Identity
+    from sqlalchemy.sql.schema import SchemaItem
     from sqlalchemy.sql.schema import Table
     from sqlalchemy.sql.type_api import TypeEngine
     from sqlalchemy.util import immutabledict
@@ -94,7 +95,7 @@ def alter_column(
     table_name: str,
     column_name: str,
     nullable: Optional[bool] = None,
-    comment: Union[str, bool, None] = False,
+    comment: Union[str, Literal[False], None] = False,
     server_default: Any = False,
     new_column_name: Optional[str] = None,
     type_: Union[TypeEngine, Type[TypeEngine], None] = None,
@@ -202,13 +203,13 @@ def batch_alter_table(
     schema: Optional[str] = None,
     recreate: Literal["auto", "always", "never"] = "auto",
     partial_reordering: Optional[tuple] = None,
-    copy_from: Optional["Table"] = None,
+    copy_from: Optional[Table] = None,
     table_args: Tuple[Any, ...] = (),
     table_kwargs: Mapping[str, Any] = immutabledict({}),
     reflect_args: Tuple[Any, ...] = (),
     reflect_kwargs: Mapping[str, Any] = immutabledict({}),
     naming_convention: Optional[Dict[str, str]] = None,
-) -> Iterator["BatchOperations"]:
+) -> Iterator[BatchOperations]:
     """Invoke a series of per-table migrations in batch.
 
     Batch mode allows a series of operations specific to a table
@@ -667,7 +668,9 @@ def create_primary_key(
 
     """
 
-def create_table(table_name: str, *columns, **kw: Any) -> Optional[Table]:
+def create_table(
+    table_name: str, *columns: SchemaItem, **kw: Any
+) -> Optional[Table]:
     """Issue a "create table" instruction using the current migration
     context.
 

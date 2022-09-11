@@ -26,6 +26,8 @@ from .. import util
 from ..util import sqla_compat
 
 if TYPE_CHECKING:
+    from typing import Literal
+
     from sqlalchemy.sql.dml import Insert
     from sqlalchemy.sql.dml import Update
     from sqlalchemy.sql.elements import BinaryExpression
@@ -885,7 +887,7 @@ class CreateIndexOp(MigrateOperation):
     def from_index(cls, index: "Index") -> "CreateIndexOp":
         assert index.table is not None
         return cls(
-            index.name,
+            index.name,  # type: ignore[arg-type]
             index.table.name,
             sqla_compat._get_index_expressions(index),
             schema=index.table.schema,
@@ -1021,7 +1023,7 @@ class DropIndexOp(MigrateOperation):
     def from_index(cls, index: "Index") -> "DropIndexOp":
         assert index.table is not None
         return cls(
-            index.name,
+            index.name,  # type: ignore[arg-type]
             index.table.name,
             schema=index.table.schema,
             _reverse=CreateIndexOp.from_index(index),
@@ -1105,7 +1107,7 @@ class CreateTableOp(MigrateOperation):
     def __init__(
         self,
         table_name: str,
-        columns: Sequence[Union["Column", "Constraint"]],
+        columns: Sequence["SchemaItem"],
         schema: Optional[str] = None,
         _namespace_metadata: Optional["MetaData"] = None,
         _constraints_included: bool = False,
@@ -1172,8 +1174,12 @@ class CreateTableOp(MigrateOperation):
 
     @classmethod
     def create_table(
-        cls, operations: "Operations", table_name: str, *columns, **kw: Any
-    ) -> Optional["Table"]:
+        cls,
+        operations: "Operations",
+        table_name: str,
+        *columns: "SchemaItem",
+        **kw: Any,
+    ) -> "Optional[Table]":
         r"""Issue a "create table" instruction using the current migration
         context.
 
@@ -1603,7 +1609,7 @@ class AlterColumnOp(AlterTableOp):
         existing_nullable: Optional[bool] = None,
         existing_comment: Optional[str] = None,
         modify_nullable: Optional[bool] = None,
-        modify_comment: Optional[Union[str, bool]] = False,
+        modify_comment: Optional[Union[str, "Literal[False]"]] = False,
         modify_server_default: Any = False,
         modify_name: Optional[str] = None,
         modify_type: Optional[Any] = None,
@@ -1757,7 +1763,7 @@ class AlterColumnOp(AlterTableOp):
         table_name: str,
         column_name: str,
         nullable: Optional[bool] = None,
-        comment: Optional[Union[str, bool]] = False,
+        comment: Optional[Union[str, "Literal[False]"]] = False,
         server_default: Any = False,
         new_column_name: Optional[str] = None,
         type_: Optional[Union["TypeEngine", Type["TypeEngine"]]] = None,
@@ -1885,7 +1891,7 @@ class AlterColumnOp(AlterTableOp):
         operations: BatchOperations,
         column_name: str,
         nullable: Optional[bool] = None,
-        comment: bool = False,
+        comment: Union[str, "Literal[False]"] = False,
         server_default: Union["Function", bool] = False,
         new_column_name: Optional[str] = None,
         type_: Optional[Union["TypeEngine", Type["TypeEngine"]]] = None,

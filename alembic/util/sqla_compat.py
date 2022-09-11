@@ -241,7 +241,7 @@ def _table_for_constraint(constraint: "Constraint") -> "Table":
     if isinstance(constraint, ForeignKeyConstraint):
         table = constraint.parent
         assert table is not None
-        return table
+        return table  # type: ignore[return-value]
     else:
         return constraint.table
 
@@ -261,7 +261,9 @@ def _reflect_table(
     if sqla_14:
         return inspector.reflect_table(table, None)
     else:
-        return inspector.reflecttable(table, None)
+        return inspector.reflecttable(  # type: ignore[attr-defined]
+            table, None
+        )
 
 
 def _resolve_for_variant(type_, dialect):
@@ -391,7 +393,9 @@ def _copy_expression(expression: _CE, target_table: "Table") -> _CE:
         else:
             return None
 
-    return visitors.replacement_traverse(expression, {}, replace)
+    return visitors.replacement_traverse(  # type: ignore[call-overload]
+        expression, {}, replace
+    )
 
 
 class _textual_index_element(sql.ColumnElement):
@@ -487,7 +491,7 @@ def _get_constraint_final_name(
 
         if isinstance(constraint, schema.Index):
             # name should not be quoted.
-            d = dialect.ddl_compiler(dialect, None)
+            d = dialect.ddl_compiler(dialect, None)  # type: ignore[arg-type]
             return d._prepared_index_name(  # type: ignore[attr-defined]
                 constraint
             )
@@ -529,7 +533,7 @@ def _insert_inline(table: Union["TableClause", "Table"]) -> "Insert":
     if sqla_14:
         return table.insert().inline()
     else:
-        return table.insert(inline=True)
+        return table.insert(inline=True)  # type: ignore[call-arg]
 
 
 if sqla_14:
@@ -543,5 +547,5 @@ else:
             "postgresql://", strategy="mock", executor=executor
         )
 
-    def _select(*columns, **kw) -> "Select":
-        return sql.select(list(columns), **kw)
+    def _select(*columns, **kw) -> "Select":  # type: ignore[no-redef]
+        return sql.select(list(columns), **kw)  # type: ignore[call-overload]

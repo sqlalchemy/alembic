@@ -195,7 +195,7 @@ def drop_constraint(
 def bulk_insert(
     operations: "Operations", operation: "ops.BulkInsertOp"
 ) -> None:
-    operations.impl.bulk_insert(
+    operations.impl.bulk_insert(  # type: ignore[union-attr]
         operation.table, operation.rows, multiinsert=operation.multiinsert
     )
 
