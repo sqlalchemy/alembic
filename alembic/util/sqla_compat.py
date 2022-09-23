@@ -129,6 +129,13 @@ def _ensure_scope_for_ddl(
             yield
 
 
+def url_render_as_string(url, hide_password=True):
+    if sqla_14:
+        return url.render_as_string(hide_password=hide_password)
+    else:
+        return url.__to_string__(hide_password=hide_password)
+
+
 def _safe_begin_connection_transaction(
     connection: "Connection",
 ) -> "Transaction":

@@ -256,7 +256,7 @@ class CurrentTest(_BufMixin, TestBase):
     def test_current_obfuscate_password(self):
         eq_(
             util.obfuscate_url_pw("postgresql://scott:tiger@localhost/test"),
-            "postgresql://scott:XXXXX@localhost/test",
+            "postgresql://scott:***@localhost/test",
         )
 
     def test_two_heads(self):

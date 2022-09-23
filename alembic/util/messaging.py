@@ -69,12 +69,7 @@ def err(message: str):
 
 def obfuscate_url_pw(input_url: str) -> str:
     u = url.make_url(input_url)
-    if u.password:
-        if sqla_compat.sqla_14:
-            u = u.set(password="XXXXX")
-        else:
-            u.password = "XXXXX"  # type: ignore[misc]
-    return str(u)
+    return sqla_compat.url_render_as_string(u, hide_password=True)
 
 
 def warn(msg: str, stacklevel: int = 2) -> None:
