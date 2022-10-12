@@ -9,6 +9,7 @@ from sqlalchemy import Index
 from sqlalchemy import inspect
 from sqlalchemy import Integer
 from sqlalchemy import Interval
+from sqlalchemy import literal_column
 from sqlalchemy import MetaData
 from sqlalchemy import Numeric
 from sqlalchemy import Sequence
@@ -20,6 +21,7 @@ from sqlalchemy import UniqueConstraint
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.dialects.postgresql import BYTEA
 from sqlalchemy.dialects.postgresql import HSTORE
+from sqlalchemy.dialects.postgresql import INET
 from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID
@@ -1368,3 +1370,22 @@ class PGUniqueIndexAutogenerateTest(AutogenFixtureTest, TestBase):
         with assertions.expect_warnings(*self._functional_index_warn()):
             diffs = self._fixture(m1, m2)
         eq_(diffs, [])
+
+    def test_idx_added_schema_pg_inet_ops(self):
+        m1 = MetaData()
+        m2 = MetaData()
+        Table("t", m1, Column("addr", INET))
+        Table(
+            "t",
+            m2,
+            Column("addr", INET),
+            Index(
+                "ix_1",
+                literal_column("addr inet_ops"),
+                postgresql_using="GiST",
+            ),
+        )
+
+        diffs = self._fixture(m1, m2, include_schemas=True)
+        eq_(diffs[0][0], "add_index")
+        eq_(diffs[0][1].name, "ix_1")

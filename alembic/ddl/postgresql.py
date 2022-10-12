@@ -248,7 +248,7 @@ class PostgresqlImpl(DefaultImpl):
             for expr in exprs:
                 while isinstance(expr, UnaryExpression):
                     expr = expr.element
-                if not isinstance(expr, Column):
+                if not isinstance(expr, ColumnClause):
                     if sqla_compat.sqla_2:
                         msg = ""
                     else:
