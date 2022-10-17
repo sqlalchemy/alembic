@@ -829,6 +829,8 @@ schema or another.
    In ``env.py`` an approach like the following allows ``-xtenant=some_schema``
    to be supported by making use of :meth:`.EnvironmentContext.get_x_argument`::
 
+        from sqlalchemy import text
+
         def run_migrations_online():
             connectable = engine_from_config(
                 config.get_section(config.config_ini_section),
@@ -842,7 +844,7 @@ schema or another.
                 # set search path on the connection, which ensures that
                 # PostgreSQL will emit all CREATE / ALTER / DROP statements
                 # in terms of this schema by default
-                connection.execute("set search_path to %s" % current_tenant)
+                connection.execute(text('set search_path to "%s"' % current_tenant))
 
                 # make use of non-supported SQLAlchemy attribute to ensure
                 # the dialect reflects tables in terms of the current tenant name
