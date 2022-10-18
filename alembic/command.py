@@ -172,6 +172,10 @@ def revision(
      the other parameters, this option is only available via programmatic
      use of :func:`.command.revision`
 
+    :param check: instead of generating a revision, checks if this revision
+     will contain upgrade ops; no new ops will have no action; new ops will
+     error; this is the ``--check`` option to ``alembic revision``.
+
     """
 
     script_directory = ScriptDirectory.from_config(config)
@@ -238,11 +242,13 @@ def revision(
     
     if check:
         if not autogenerate:
-            util.err("check flag cannot be used without autogenerate flag.")
+            raise util.CommandError(
+                "Check flag cannot be used without autogenerate flag"
+            )
         migration_script = revision_context.generated_revisions[-1]
         diffs = migration_script.upgrade_ops.as_diffs()
         if diffs:
-            util.err(f"Revision has upgrade ops to run: {diffs}.")
+            raise util.RevisionOpsNotEmptyError(f"Revision has upgrade ops to run: {diffs}.")
         else:
             log.info("Revision has no upgrade ops to run.")      
     else:
