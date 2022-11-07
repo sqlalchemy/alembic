@@ -99,7 +99,7 @@ class Config:
         stdout: TextIO = sys.stdout,
         cmd_opts: Optional[Namespace] = None,
         config_args: util.immutabledict = util.immutabledict(),
-        attributes: dict = None,
+        attributes: Optional[dict] = None,
     ) -> None:
         """Construct a new :class:`.Config`"""
         self.config_file_name = file_

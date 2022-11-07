@@ -12,6 +12,7 @@ from typing import Tuple
 from typing import TYPE_CHECKING
 from typing import Union
 
+from .migration import _ProxyTransaction
 from .migration import MigrationContext
 from .. import util
 from ..operations import Operations
@@ -23,12 +24,16 @@ if TYPE_CHECKING:
     from sqlalchemy.sql.elements import ClauseElement
     from sqlalchemy.sql.schema import MetaData
 
-    from .migration import _ProxyTransaction
     from ..config import Config
     from ..ddl import DefaultImpl
+    from ..operations.ops import MigrateOperation
     from ..script.base import ScriptDirectory
 
 _RevNumber = Optional[Union[str, Tuple[str, ...]]]
+
+ProcessRevisionDirectiveFn = Callable[
+    [MigrationContext, Tuple[str, str], List["MigrateOperation"]], None
+]
 
 
 class EnvironmentContext(util.ModuleClsProxy):
@@ -109,7 +114,7 @@ class EnvironmentContext(util.ModuleClsProxy):
     """
 
     def __init__(
-        self, config: "Config", script: "ScriptDirectory", **kw: Any
+        self, config: Config, script: ScriptDirectory, **kw: Any
     ) -> None:
         r"""Construct a new :class:`.EnvironmentContext`.
 
@@ -124,7 +129,7 @@ class EnvironmentContext(util.ModuleClsProxy):
         self.script = script
         self.context_opts = kw
 
-    def __enter__(self) -> "EnvironmentContext":
+    def __enter__(self) -> EnvironmentContext:
         """Establish a context which provides a
         :class:`.EnvironmentContext` object to
         env.py scripts.
@@ -265,13 +270,13 @@ class EnvironmentContext(util.ModuleClsProxy):
 
     @overload
     def get_x_argument(  # type:ignore[misc]
-        self, as_dictionary: "Literal[False]" = ...
+        self, as_dictionary: Literal[False] = ...
     ) -> List[str]:
         ...
 
     @overload
     def get_x_argument(  # type:ignore[misc]
-        self, as_dictionary: "Literal[True]" = ...
+        self, as_dictionary: Literal[True] = ...
     ) -> Dict[str, str]:
         ...
 
@@ -326,32 +331,34 @@ class EnvironmentContext(util.ModuleClsProxy):
 
     def configure(
         self,
-        connection: Optional["Connection"] = None,
+        connection: Optional[Connection] = None,
         url: Optional[str] = None,
         dialect_name: Optional[str] = None,
-        dialect_opts: Optional[dict] = None,
+        dialect_opts: Optional[Dict[str, Any]] = None,
         transactional_ddl: Optional[bool] = None,
         transaction_per_migration: bool = False,
         output_buffer: Optional[TextIO] = None,
         starting_rev: Optional[str] = None,
         tag: Optional[str] = None,
-        template_args: Optional[dict] = None,
+        template_args: Optional[Dict[str, Any]] = None,
         render_as_batch: bool = False,
-        target_metadata: Optional["MetaData"] = None,
-        include_name: Optional[Callable] = None,
-        include_object: Optional[Callable] = None,
+        target_metadata: Optional[MetaData] = None,
+        include_name: Optional[Callable[..., bool]] = None,
+        include_object: Optional[Callable[..., bool]] = None,
         include_schemas: bool = False,
-        process_revision_directives: Optional[Callable] = None,
+        process_revision_directives: Optional[
+            ProcessRevisionDirectiveFn
+        ] = None,
         compare_type: bool = False,
         compare_server_default: bool = False,
-        render_item: Optional[Callable] = None,
+        render_item: Optional[Callable[..., bool]] = None,
         literal_binds: bool = False,
         upgrade_token: str = "upgrades",
         downgrade_token: str = "downgrades",
         alembic_module_prefix: str = "op.",
         sqlalchemy_module_prefix: str = "sa.",
         user_module_prefix: Optional[str] = None,
-        on_version_apply: Optional[Callable] = None,
+        on_version_apply: Optional[Callable[..., None]] = None,
         **kw: Any,
     ) -> None:
         """Configure a :class:`.MigrationContext` within this
@@ -859,7 +866,7 @@ class EnvironmentContext(util.ModuleClsProxy):
 
     def execute(
         self,
-        sql: Union["ClauseElement", str],
+        sql: Union[ClauseElement, str],
         execution_options: Optional[dict] = None,
     ) -> None:
         """Execute the given SQL using the current change context.
@@ -888,7 +895,7 @@ class EnvironmentContext(util.ModuleClsProxy):
 
     def begin_transaction(
         self,
-    ) -> Union["_ProxyTransaction", ContextManager]:
+    ) -> Union[_ProxyTransaction, ContextManager]:
         """Return a context manager that will
         enclose an operation within a "transaction",
         as defined by the environment's offline
@@ -934,7 +941,7 @@ class EnvironmentContext(util.ModuleClsProxy):
 
         return self.get_context().begin_transaction()
 
-    def get_context(self) -> "MigrationContext":
+    def get_context(self) -> MigrationContext:
         """Return the current :class:`.MigrationContext` object.
 
         If :meth:`.EnvironmentContext.configure` has not been
@@ -946,7 +953,7 @@ class EnvironmentContext(util.ModuleClsProxy):
             raise Exception("No context has been configured yet.")
         return self._migration_context
 
-    def get_bind(self) -> "Connection":
+    def get_bind(self) -> Connection:
         """Return the current 'bind'.
 
         In "online" mode, this is the
@@ -959,5 +966,5 @@ class EnvironmentContext(util.ModuleClsProxy):
         """
         return self.get_context().bind  # type: ignore[return-value]
 
-    def get_impl(self) -> "DefaultImpl":
+    def get_impl(self) -> DefaultImpl:
         return self.get_context().impl

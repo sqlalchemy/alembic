@@ -35,8 +35,8 @@ if TYPE_CHECKING:
 
     from .operations.ops import BatchOperations
     from .operations.ops import MigrateOperation
+    from .runtime.migration import MigrationContext
     from .util.sqla_compat import _literal_bindparam
-
 ### end imports ###
 
 def add_column(
@@ -1082,13 +1082,13 @@ def get_bind() -> Connection:
 
     """
 
-def get_context():
+def get_context() -> MigrationContext:
     """Return the :class:`.MigrationContext` object that's
     currently in use.
 
     """
 
-def implementation_for(op_cls: Any) -> Callable:
+def implementation_for(op_cls: Any) -> Callable[..., Any]:
     """Register an implementation for a given :class:`.MigrateOperation`.
 
     This is part of the operation extensibility API.
@@ -1101,7 +1101,7 @@ def implementation_for(op_cls: Any) -> Callable:
 
 def inline_literal(
     value: Union[str, int], type_: None = None
-) -> "_literal_bindparam":
+) -> _literal_bindparam:
     """Produce an 'inline literal' expression, suitable for
     using in an INSERT, UPDATE, or DELETE statement.
 
@@ -1152,7 +1152,7 @@ def invoke(operation: MigrateOperation) -> Any:
 
 def register_operation(
     name: str, sourcename: Optional[str] = None
-) -> Callable:
+) -> Callable[..., Any]:
     """Register a new operation for this class.
 
     This method is normally used to add new operations

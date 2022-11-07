@@ -25,6 +25,7 @@ from ..util import sqla_compat
 from ..util.compat import formatannotation_fwdref
 from ..util.compat import inspect_formatargspec
 from ..util.compat import inspect_getfullargspec
+from ..util.sqla_compat import _literal_bindparam
 
 
 NoneType = type(None)
@@ -39,7 +40,6 @@ if TYPE_CHECKING:
     from .ops import MigrateOperation
     from ..ddl import DefaultImpl
     from ..runtime.migration import MigrationContext
-    from ..util.sqla_compat import _literal_bindparam
 
 __all__ = ("Operations", "BatchOperations")
 
@@ -80,8 +80,8 @@ class Operations(util.ModuleClsProxy):
 
     def __init__(
         self,
-        migration_context: "MigrationContext",
-        impl: Optional["BatchOperationsImpl"] = None,
+        migration_context: MigrationContext,
+        impl: Optional[BatchOperationsImpl] = None,
     ) -> None:
         """Construct a new :class:`.Operations`
 
@@ -100,7 +100,7 @@ class Operations(util.ModuleClsProxy):
     @classmethod
     def register_operation(
         cls, name: str, sourcename: Optional[str] = None
-    ) -> Callable:
+    ) -> Callable[..., Any]:
         """Register a new operation for this class.
 
         This method is normally used to add new operations
@@ -188,7 +188,7 @@ class Operations(util.ModuleClsProxy):
         return register
 
     @classmethod
-    def implementation_for(cls, op_cls: Any) -> Callable:
+    def implementation_for(cls, op_cls: Any) -> Callable[..., Any]:
         """Register an implementation for a given :class:`.MigrateOperation`.
 
         This is part of the operation extensibility API.
@@ -208,8 +208,8 @@ class Operations(util.ModuleClsProxy):
     @classmethod
     @contextmanager
     def context(
-        cls, migration_context: "MigrationContext"
-    ) -> Iterator["Operations"]:
+        cls, migration_context: MigrationContext
+    ) -> Iterator[Operations]:
         op = Operations(migration_context)
         op._install_proxy()
         yield op
@@ -382,7 +382,7 @@ class Operations(util.ModuleClsProxy):
         yield batch_op
         impl.flush()
 
-    def get_context(self):
+    def get_context(self) -> MigrationContext:
         """Return the :class:`.MigrationContext` object that's
         currently in use.
 
@@ -390,7 +390,7 @@ class Operations(util.ModuleClsProxy):
 
         return self.migration_context
 
-    def invoke(self, operation: "MigrateOperation") -> Any:
+    def invoke(self, operation: MigrateOperation) -> Any:
         """Given a :class:`.MigrateOperation`, invoke it in terms of
         this :class:`.Operations` instance.
 
@@ -400,7 +400,7 @@ class Operations(util.ModuleClsProxy):
         )
         return fn(self, operation)
 
-    def f(self, name: str) -> "conv":
+    def f(self, name: str) -> conv:
         """Indicate a string name that has already had a naming convention
         applied to it.
 
@@ -440,7 +440,7 @@ class Operations(util.ModuleClsProxy):
 
     def inline_literal(
         self, value: Union[str, int], type_: None = None
-    ) -> "_literal_bindparam":
+    ) -> _literal_bindparam:
         r"""Produce an 'inline literal' expression, suitable for
         using in an INSERT, UPDATE, or DELETE statement.
 
@@ -484,7 +484,7 @@ class Operations(util.ModuleClsProxy):
         """
         return sqla_compat._literal_bindparam(None, value, type_=type_)
 
-    def get_bind(self) -> "Connection":
+    def get_bind(self) -> Connection:
         """Return the current 'bind'.
 
         Under normal circumstances, this is the
