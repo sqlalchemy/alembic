@@ -8,9 +8,8 @@ import re
 from typing import cast
 
 from sqlalchemy import exc as sqla_exc
-from sqlalchemy import VARCHAR, text
+from sqlalchemy import text
 from sqlalchemy.engine import Engine
-from sqlalchemy.sql.schema import Column
 
 from alembic import __version__
 from alembic import command
@@ -386,36 +385,6 @@ finally:
             self.cfg,
             autogenerate=True,
         )
-  
-    def test_rev_check_with_no_autogen(self):
-        self._env_fixture()
-        assert_raises_message(
-            util.CommandError,
-            "Check flag cannot be used without autogenerate flag",
-            command.revision,
-            self.cfg,
-            autogenerate=False,
-            check=True,
-        )
-
-    def test_rev_autogen_check_no_changes(self):
-        self._env_fixture()
-        command.revision(self.cfg, autogenerate=True, check=True) # no problem
-
-    def test_rev_autogen_check_changes_detected(self):
-        self._env_fixture()
-        with mock.patch(
-            "alembic.operations.ops.UpgradeOps.as_diffs",
-            return_value=[('remove_column', None, 'foo', Column('old_data', VARCHAR()))]
-        ):
-            assert_raises_message(
-                util.RevisionOpsNotEmptyError,
-                "Revision has upgrade ops to run:",
-                command.revision,
-                self.cfg,
-                autogenerate=True,
-                check=True,
-            )
 
     def test_pk_constraint_normally_prevents_dupe_rows(self):
         self._env_fixture()
