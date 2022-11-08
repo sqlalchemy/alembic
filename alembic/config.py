@@ -420,15 +420,6 @@ class CommandLine:
                         "of database to model.",
                     ),
                 ),
-                "check": (
-                    "--check",
-                    dict(
-                        action="store_true",
-                        help="Check if revision script will have "
-                        "candidate migration operations, based on "
-                        "comparison of database to model.",
-                    ),
-                ),
                 "rev_range": (
                     "-r",
                     "--rev-range",

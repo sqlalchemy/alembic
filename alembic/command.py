@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 import os
 from typing import Callable
 from typing import List
@@ -17,7 +16,6 @@ if TYPE_CHECKING:
     from alembic.config import Config
     from alembic.script.base import Script
 
-log = logging.getLogger(__name__)
 
 def list_templates(config):
     """List available templates.
@@ -127,7 +125,6 @@ def revision(
     rev_id: Optional[str] = None,
     depends_on: Optional[str] = None,
     process_revision_directives: Callable = None,
-    check: bool = False,
 ) -> Union[Optional["Script"], List[Optional["Script"]]]:
     """Create a new revision file.
 
@@ -235,22 +232,12 @@ def revision(
         # these could theoretically be further processed / rewritten *here*,
         # in addition to the hooks present within each run_migrations() call,
         # or at the end of env.py run_migrations_online().
-    
-    if check:
-        if not autogenerate:
-            util.err("check flag cannot be used without autogenerate flag.")
-        migration_script = revision_context.generated_revisions[-1]
-        diffs = migration_script.upgrade_ops.as_diffs()
-        if diffs:
-            util.err(f"Revision has upgrade ops to run: {diffs}.")
-        else:
-            log.info("Revision has no upgrade ops to run.")      
+
+    scripts = [script for script in revision_context.generate_scripts()]
+    if len(scripts) == 1:
+        return scripts[0]
     else:
-        scripts = [script for script in revision_context.generate_scripts()]
-        if len(scripts) == 1:
-            return scripts[0]
-        else:
-            return scripts
+        return scripts
 
 
 def merge(
