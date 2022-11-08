@@ -244,7 +244,7 @@ def revision(
 
 def check(
     config: "Config",
-) -> Union[Optional["Script"], List[Optional["Script"]]]:
+) -> None:
     """Checks if the revision command with autogenerate has pending upgrade ops to run.
 
     :param config: a :class:`.Config` object.
