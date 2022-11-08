@@ -1,5 +1,5 @@
 from .editor import open_in_editor
-from .exc import CommandError
+from .exc import CommandError, RevisionOpsNotEmptyError
 from .langhelpers import _with_legacy_names
 from .langhelpers import asbool
 from .langhelpers import dedupe_tuple

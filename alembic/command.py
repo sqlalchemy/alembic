@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 from typing import Callable
 from typing import List
@@ -16,6 +17,7 @@ if TYPE_CHECKING:
     from alembic.config import Config
     from alembic.script.base import Script
 
+log = logging.getLogger(__name__)
 
 def list_templates(config):
     """List available templates.
@@ -238,6 +240,58 @@ def revision(
         return scripts[0]
     else:
         return scripts
+
+
+def check(
+    config: "Config",
+) -> Union[Optional["Script"], List[Optional["Script"]]]:
+    """Checks if the revision command with autogenerate has pending upgrade ops to run.
+
+    :param config: a :class:`.Config` object.
+
+    """
+
+    script_directory = ScriptDirectory.from_config(config)
+
+    command_args = dict(
+        message=None,
+        autogenerate=True,
+        sql=False,
+        head="head",
+        splice=False,
+        branch_label=None,
+        version_path=None,
+        rev_id=None,
+        depends_on=None,
+    )
+    revision_context = autogen.RevisionContext(
+        config,
+        script_directory,
+        command_args,
+    )
+
+    def retrieve_migrations(rev, context):
+        revision_context.run_autogenerate(rev, context)
+        return []
+
+    with EnvironmentContext(
+        config,
+        script_directory,
+        fn=retrieve_migrations,
+        as_sql=False,
+        template_args=revision_context.template_args,
+        revision_context=revision_context,
+    ):
+        script_directory.run_env()
+
+    # the revision_context now has MigrationScript structure(s) present.
+
+    migration_script = revision_context.generated_revisions[-1]
+    diffs = migration_script.upgrade_ops.as_diffs()
+    if diffs:
+        raise util.RevisionOpsNotEmptyError(f"Revision has upgrade ops to run: {diffs}.")
+    else:
+        log.info("Revision has no upgrade ops to run.")   
 
 
 def merge(
