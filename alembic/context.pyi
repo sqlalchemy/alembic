@@ -19,13 +19,13 @@ if TYPE_CHECKING:
     from sqlalchemy.sql.schema import MetaData
 
     from .config import Config
+    from .operations import MigrateOperation
     from .runtime.migration import _ProxyTransaction
     from .runtime.migration import MigrationContext
     from .script import ScriptDirectory
-
 ### end imports ###
 
-def begin_transaction() -> Union["_ProxyTransaction", ContextManager]:
+def begin_transaction() -> Union[_ProxyTransaction, ContextManager]:
     """Return a context manager that will
     enclose an operation within a "transaction",
     as defined by the environment's offline
@@ -75,29 +75,33 @@ def configure(
     connection: Optional[Connection] = None,
     url: Optional[str] = None,
     dialect_name: Optional[str] = None,
-    dialect_opts: Optional[dict] = None,
+    dialect_opts: Optional[Dict[str, Any]] = None,
     transactional_ddl: Optional[bool] = None,
     transaction_per_migration: bool = False,
     output_buffer: Optional[TextIO] = None,
     starting_rev: Optional[str] = None,
     tag: Optional[str] = None,
-    template_args: Optional[dict] = None,
+    template_args: Optional[Dict[str, Any]] = None,
     render_as_batch: bool = False,
     target_metadata: Optional[MetaData] = None,
-    include_name: Optional[Callable] = None,
-    include_object: Optional[Callable] = None,
+    include_name: Optional[Callable[..., bool]] = None,
+    include_object: Optional[Callable[..., bool]] = None,
     include_schemas: bool = False,
-    process_revision_directives: Optional[Callable] = None,
+    process_revision_directives: Optional[
+        Callable[
+            [MigrationContext, Tuple[str, str], List[MigrateOperation]], None
+        ]
+    ] = None,
     compare_type: bool = False,
     compare_server_default: bool = False,
-    render_item: Optional[Callable] = None,
+    render_item: Optional[Callable[..., bool]] = None,
     literal_binds: bool = False,
     upgrade_token: str = "upgrades",
     downgrade_token: str = "downgrades",
     alembic_module_prefix: str = "op.",
     sqlalchemy_module_prefix: str = "sa.",
     user_module_prefix: Optional[str] = None,
-    on_version_apply: Optional[Callable] = None,
+    on_version_apply: Optional[Callable[..., None]] = None,
     **kw: Any,
 ) -> None:
     """Configure a :class:`.MigrationContext` within this

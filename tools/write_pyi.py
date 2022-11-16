@@ -125,7 +125,7 @@ def generate_pyi_for_proxy(
 def _generate_stub_for_attr(cls, name, printer, env):
     try:
         annotations = typing.get_type_hints(cls, env)
-    except NameError as e:
+    except NameError:
         annotations = cls.__annotations__
     type_ = annotations.get(name, "Any")
     if isinstance(type_, str) and type_[0] in "'\"":
@@ -155,10 +155,7 @@ def _generate_stub_for_meth(cls, name, printer, env, is_context_manager):
         if getattr(annotation, "__module__", None) == "typing":
             retval = repr(annotation).replace("typing.", "")
         elif isinstance(annotation, type):
-            if annotation.__module__ in ("builtins", base_module):
-                retval = annotation.__qualname__
-            else:
-                retval = annotation.__module__ + "." + annotation.__qualname__
+            retval = annotation.__qualname__
         else:
             retval = annotation
 
@@ -184,6 +181,7 @@ def _generate_stub_for_meth(cls, name, printer, env, is_context_manager):
         '''{fn.__doc__}'''
     """
     )
+
     printer.write_indented_block(func_text)
 
 

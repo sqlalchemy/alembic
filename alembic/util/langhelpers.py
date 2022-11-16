@@ -198,7 +198,7 @@ def to_tuple(x: Any, default: tuple) -> tuple:
 
 
 @overload
-def to_tuple(x: None, default: _T = None) -> _T:
+def to_tuple(x: None, default: Optional[_T] = None) -> _T:
     ...
 
 

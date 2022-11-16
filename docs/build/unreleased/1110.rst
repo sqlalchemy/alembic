@@ -1,0 +1,10 @@
+.. change::
+    :tags: bug, typing
+    :tickets: 1110
+
+    Fixed typing issue where :paramref:`.revision.process_revision_directives`
+    was not fully typed; additionally ensured all ``Callable`` and ``Dict``
+    arguments to :meth:`.EnvironmentContext.configure` include parameters in
+    the typing declaration.
+
+    Additionally updated the codebase for Mypy 0.990 compliance.

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-from typing import Callable
 from typing import List
 from typing import Optional
 from typing import TYPE_CHECKING
@@ -15,6 +14,7 @@ from .script import ScriptDirectory
 if TYPE_CHECKING:
     from alembic.config import Config
     from alembic.script.base import Script
+    from .runtime.environment import ProcessRevisionDirectiveFn
 
 
 def list_templates(config):
@@ -124,7 +124,7 @@ def revision(
     version_path: Optional[str] = None,
     rev_id: Optional[str] = None,
     depends_on: Optional[str] = None,
-    process_revision_directives: Callable = None,
+    process_revision_directives: Optional[ProcessRevisionDirectiveFn] = None,
 ) -> Union[Optional["Script"], List[Optional["Script"]]]:
     """Create a new revision file.
 
@@ -243,9 +243,9 @@ def revision(
 def merge(
     config: "Config",
     revisions: str,
-    message: str = None,
-    branch_label: str = None,
-    rev_id: str = None,
+    message: Optional[str] = None,
+    branch_label: Optional[str] = None,
+    rev_id: Optional[str] = None,
 ) -> Optional["Script"]:
     """Merge two revisions together.  Creates a new migration file.
 
