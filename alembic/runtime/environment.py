@@ -99,14 +99,14 @@ class EnvironmentContext(util.ModuleClsProxy):
 
     """
 
-    _migration_context: Optional["MigrationContext"] = None
+    _migration_context: Optional[MigrationContext] = None
 
-    config: "Config" = None  # type:ignore[assignment]
+    config: Config = None  # type:ignore[assignment]
     """An instance of :class:`.Config` representing the
     configuration file contents as well as other variables
     set programmatically within it."""
 
-    script: "ScriptDirectory" = None  # type:ignore[assignment]
+    script: ScriptDirectory = None  # type:ignore[assignment]
     """An instance of :class:`.ScriptDirectory` which provides
     programmatic access to version files within the ``versions/``
     directory.

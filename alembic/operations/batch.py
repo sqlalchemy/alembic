@@ -86,11 +86,11 @@ class BatchOperationsImpl:
         self.batch = []
 
     @property
-    def dialect(self) -> "Dialect":
+    def dialect(self) -> Dialect:
         return self.operations.impl.dialect
 
     @property
-    def impl(self) -> "DefaultImpl":
+    def impl(self) -> DefaultImpl:
         return self.operations.impl
 
     def _should_recreate(self) -> bool:
@@ -174,19 +174,19 @@ class BatchOperationsImpl:
     def drop_column(self, *arg, **kw) -> None:
         self.batch.append(("drop_column", arg, kw))
 
-    def add_constraint(self, const: "Constraint") -> None:
+    def add_constraint(self, const: Constraint) -> None:
         self.batch.append(("add_constraint", (const,), {}))
 
-    def drop_constraint(self, const: "Constraint") -> None:
+    def drop_constraint(self, const: Constraint) -> None:
         self.batch.append(("drop_constraint", (const,), {}))
 
     def rename_table(self, *arg, **kw):
         self.batch.append(("rename_table", arg, kw))
 
-    def create_index(self, idx: "Index") -> None:
+    def create_index(self, idx: Index) -> None:
         self.batch.append(("create_index", (idx,), {}))
 
-    def drop_index(self, idx: "Index") -> None:
+    def drop_index(self, idx: Index) -> None:
         self.batch.append(("drop_index", (idx,), {}))
 
     def create_table_comment(self, table):
@@ -208,8 +208,8 @@ class BatchOperationsImpl:
 class ApplyBatchImpl:
     def __init__(
         self,
-        impl: "DefaultImpl",
-        table: "Table",
+        impl: DefaultImpl,
+        table: Table,
         table_args: tuple,
         table_kwargs: Dict[str, Any],
         reflected: bool,
@@ -236,12 +236,12 @@ class ApplyBatchImpl:
         self._grab_table_elements()
 
     @classmethod
-    def _calc_temp_name(cls, tablename: Union["quoted_name", str]) -> str:
+    def _calc_temp_name(cls, tablename: Union[quoted_name, str]) -> str:
         return ("_alembic_tmp_%s" % tablename)[0:50]
 
     def _grab_table_elements(self) -> None:
         schema = self.table.schema
-        self.columns: Dict[str, "Column"] = OrderedDict()
+        self.columns: Dict[str, Column] = OrderedDict()
         for c in self.table.c:
             c_copy = _copy(c, schema=schema)
             c_copy.unique = c_copy.index = False
@@ -250,11 +250,11 @@ class ApplyBatchImpl:
             if isinstance(c.type, SchemaEventTarget):
                 assert c_copy.type is not c.type
             self.columns[c.name] = c_copy
-        self.named_constraints: Dict[str, "Constraint"] = {}
+        self.named_constraints: Dict[str, Constraint] = {}
         self.unnamed_constraints = []
         self.col_named_constraints = {}
-        self.indexes: Dict[str, "Index"] = {}
-        self.new_indexes: Dict[str, "Index"] = {}
+        self.indexes: Dict[str, Index] = {}
+        self.new_indexes: Dict[str, Index] = {}
 
         for const in self.table.constraints:
             if _is_type_bound(const):
@@ -336,14 +336,12 @@ class ApplyBatchImpl:
             list(self.named_constraints.values()) + self.unnamed_constraints
         ):
 
-            const_columns = set(
-                [c.key for c in _columns_for_constraint(const)]
-            )
+            const_columns = {c.key for c in _columns_for_constraint(const)}
 
             if not const_columns.issubset(self.column_transfers):
                 continue
 
-            const_copy: "Constraint"
+            const_copy: Constraint
             if isinstance(const, ForeignKeyConstraint):
                 if _fk_is_self_referential(const):
                     # for self-referential constraint, refer to the
@@ -368,7 +366,7 @@ class ApplyBatchImpl:
                 self._setup_referent(m, const)
             new_table.append_constraint(const_copy)
 
-    def _gather_indexes_from_both_tables(self) -> List["Index"]:
+    def _gather_indexes_from_both_tables(self) -> List[Index]:
         assert self.new_table is not None
         idx: List[Index] = []
 
@@ -402,7 +400,7 @@ class ApplyBatchImpl:
         return idx
 
     def _setup_referent(
-        self, metadata: "MetaData", constraint: "ForeignKeyConstraint"
+        self, metadata: MetaData, constraint: ForeignKeyConstraint
     ) -> None:
         spec = constraint.elements[
             0
@@ -440,7 +438,7 @@ class ApplyBatchImpl:
                     schema=referent_schema,
                 )
 
-    def _create(self, op_impl: "DefaultImpl") -> None:
+    def _create(self, op_impl: DefaultImpl) -> None:
         self._transfer_elements_to_new_table()
 
         op_impl.prep_table_for_batch(self, self.table)
@@ -484,11 +482,11 @@ class ApplyBatchImpl:
         table_name: str,
         column_name: str,
         nullable: Optional[bool] = None,
-        server_default: Optional[Union["Function", str, bool]] = False,
+        server_default: Optional[Union[Function, str, bool]] = False,
         name: Optional[str] = None,
-        type_: Optional["TypeEngine"] = None,
+        type_: Optional[TypeEngine] = None,
         autoincrement: None = None,
-        comment: Union[str, "Literal[False]"] = False,
+        comment: Union[str, Literal[False]] = False,
         **kw,
     ) -> None:
         existing = self.columns[column_name]
@@ -587,9 +585,9 @@ class ApplyBatchImpl:
                             insert_after = index_cols[idx]
                     else:
                         # insert before a column that is also new
-                        insert_after = dict(
-                            (b, a) for a, b in self.add_col_ordering
-                        )[insert_before]
+                        insert_after = {
+                            b: a for a, b in self.add_col_ordering
+                        }[insert_before]
 
         if insert_before:
             self.add_col_ordering += ((colname, insert_before),)
@@ -607,7 +605,7 @@ class ApplyBatchImpl:
     def add_column(
         self,
         table_name: str,
-        column: "Column",
+        column: Column,
         insert_before: Optional[str] = None,
         insert_after: Optional[str] = None,
         **kw,
@@ -621,7 +619,7 @@ class ApplyBatchImpl:
         self.column_transfers[column.name] = {}
 
     def drop_column(
-        self, table_name: str, column: Union["ColumnClause", "Column"], **kw
+        self, table_name: str, column: Union[ColumnClause, Column], **kw
     ) -> None:
         if column.name in self.table.primary_key.columns:
             _remove_column_from_collection(
@@ -663,7 +661,7 @@ class ApplyBatchImpl:
 
         """
 
-    def add_constraint(self, const: "Constraint") -> None:
+    def add_constraint(self, const: Constraint) -> None:
         if not const.name:
             raise ValueError("Constraint must have a name")
         if isinstance(const, sql_schema.PrimaryKeyConstraint):
@@ -672,7 +670,7 @@ class ApplyBatchImpl:
 
         self.named_constraints[const.name] = const
 
-    def drop_constraint(self, const: "Constraint") -> None:
+    def drop_constraint(self, const: Constraint) -> None:
         if not const.name:
             raise ValueError("Constraint must have a name")
         try:
@@ -698,10 +696,10 @@ class ApplyBatchImpl:
                 for col in const.columns:
                     self.columns[col.name].primary_key = False
 
-    def create_index(self, idx: "Index") -> None:
+    def create_index(self, idx: Index) -> None:
         self.new_indexes[idx.name] = idx  # type: ignore[index]
 
-    def drop_index(self, idx: "Index") -> None:
+    def drop_index(self, idx: Index) -> None:
         try:
             del self.indexes[idx.name]  # type: ignore[arg-type]
         except KeyError:

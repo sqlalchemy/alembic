@@ -75,7 +75,7 @@ class Operations(util.ModuleClsProxy):
 
     """
 
-    impl: Union["DefaultImpl", "BatchOperationsImpl"]
+    impl: Union[DefaultImpl, BatchOperationsImpl]
     _to_impl = util.Dispatcher()
 
     def __init__(
@@ -222,13 +222,13 @@ class Operations(util.ModuleClsProxy):
         schema: Optional[str] = None,
         recreate: Literal["auto", "always", "never"] = "auto",
         partial_reordering: Optional[tuple] = None,
-        copy_from: Optional["Table"] = None,
+        copy_from: Optional[Table] = None,
         table_args: Tuple[Any, ...] = (),
         table_kwargs: Mapping[str, Any] = util.immutabledict(),
         reflect_args: Tuple[Any, ...] = (),
         reflect_kwargs: Mapping[str, Any] = util.immutabledict(),
         naming_convention: Optional[Dict[str, str]] = None,
-    ) -> Iterator["BatchOperations"]:
+    ) -> Iterator[BatchOperations]:
         """Invoke a series of per-table migrations in batch.
 
         Batch mode allows a series of operations specific to a table
@@ -514,7 +514,7 @@ class BatchOperations(Operations):
 
     """
 
-    impl: "BatchOperationsImpl"
+    impl: BatchOperationsImpl
 
     def _noop(self, operation):
         raise NotImplementedError(

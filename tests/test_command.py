@@ -224,15 +224,13 @@ class CurrentTest(_BufMixin, TestBase):
 
         yield
 
-        lines = set(
-            [
-                re.match(r"(^.\w)", elem).group(1)
-                for elem in re.split(
-                    "\n", buf.getvalue().decode("ascii", "replace").strip()
-                )
-                if elem
-            ]
-        )
+        lines = {
+            re.match(r"(^.\w)", elem).group(1)
+            for elem in re.split(
+                "\n", buf.getvalue().decode("ascii", "replace").strip()
+            )
+            if elem
+        }
 
         eq_(lines, set(revs))
 

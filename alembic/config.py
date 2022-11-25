@@ -561,7 +561,7 @@ class CommandLine:
             fn(
                 config,
                 *[getattr(options, k, None) for k in positional],
-                **dict((k, getattr(options, k, None)) for k in kwarg),
+                **{k: getattr(options, k, None) for k in kwarg},
             )
         except util.CommandError as e:
             if options.raiseerr:

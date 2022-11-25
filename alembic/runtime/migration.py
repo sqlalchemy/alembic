@@ -50,11 +50,11 @@ log = logging.getLogger(__name__)
 
 
 class _ProxyTransaction:
-    def __init__(self, migration_context: "MigrationContext") -> None:
+    def __init__(self, migration_context: MigrationContext) -> None:
         self.migration_context = migration_context
 
     @property
-    def _proxied_transaction(self) -> Optional["Transaction"]:
+    def _proxied_transaction(self) -> Optional[Transaction]:
         return self.migration_context._transaction
 
     def rollback(self) -> None:
@@ -69,7 +69,7 @@ class _ProxyTransaction:
         t.commit()
         self.migration_context._transaction = None
 
-    def __enter__(self) -> "_ProxyTransaction":
+    def __enter__(self) -> _ProxyTransaction:
         return self
 
     def __exit__(self, type_: None, value: None, traceback: None) -> None:
@@ -127,22 +127,22 @@ class MigrationContext:
 
     def __init__(
         self,
-        dialect: "Dialect",
-        connection: Optional["Connection"],
+        dialect: Dialect,
+        connection: Optional[Connection],
         opts: Dict[str, Any],
-        environment_context: Optional["EnvironmentContext"] = None,
+        environment_context: Optional[EnvironmentContext] = None,
     ) -> None:
         self.environment_context = environment_context
         self.opts = opts
         self.dialect = dialect
-        self.script: Optional["ScriptDirectory"] = opts.get("script")
+        self.script: Optional[ScriptDirectory] = opts.get("script")
         as_sql: bool = opts.get("as_sql", False)
         transactional_ddl = opts.get("transactional_ddl")
         self._transaction_per_migration = opts.get(
             "transaction_per_migration", False
         )
         self.on_version_apply_callbacks = opts.get("on_version_apply", ())
-        self._transaction: Optional["Transaction"] = None
+        self._transaction: Optional[Transaction] = None
 
         if as_sql:
             self.connection = cast(
@@ -215,14 +215,14 @@ class MigrationContext:
     @classmethod
     def configure(
         cls,
-        connection: Optional["Connection"] = None,
+        connection: Optional[Connection] = None,
         url: Optional[str] = None,
         dialect_name: Optional[str] = None,
-        dialect: Optional["Dialect"] = None,
-        environment_context: Optional["EnvironmentContext"] = None,
+        dialect: Optional[Dialect] = None,
+        environment_context: Optional[EnvironmentContext] = None,
         dialect_opts: Optional[Dict[str, str]] = None,
         opts: Optional[Any] = None,
-    ) -> "MigrationContext":
+    ) -> MigrationContext:
         """Create a new :class:`.MigrationContext`.
 
         This is a factory method usually called
@@ -366,7 +366,7 @@ class MigrationContext:
 
     def begin_transaction(
         self, _per_migration: bool = False
-    ) -> Union["_ProxyTransaction", ContextManager]:
+    ) -> Union[_ProxyTransaction, ContextManager]:
         """Begin a logical transaction for migration operations.
 
         This method is used within an ``env.py`` script to demarcate where
@@ -552,9 +552,7 @@ class MigrationContext:
             self.connection, self.version_table, self.version_table_schema
         )
 
-    def stamp(
-        self, script_directory: "ScriptDirectory", revision: str
-    ) -> None:
+    def stamp(self, script_directory: ScriptDirectory, revision: str) -> None:
         """Stamp the version table with a specific revision.
 
         This method calculates those branches to which the given revision
@@ -653,7 +651,7 @@ class MigrationContext:
 
     def execute(
         self,
-        sql: Union["ClauseElement", str],
+        sql: Union[ClauseElement, str],
         execution_options: Optional[dict] = None,
     ) -> None:
         """Execute a SQL construct or string statement.
@@ -667,15 +665,15 @@ class MigrationContext:
         self.impl._exec(sql, execution_options)
 
     def _stdout_connection(
-        self, connection: Optional["Connection"]
-    ) -> "MockConnection":
+        self, connection: Optional[Connection]
+    ) -> MockConnection:
         def dump(construct, *multiparams, **params):
             self.impl._exec(construct)
 
         return MockEngineStrategy.MockConnection(self.dialect, dump)
 
     @property
-    def bind(self) -> Optional["Connection"]:
+    def bind(self) -> Optional[Connection]:
         """Return the current "bind".
 
         In online mode, this is an instance of
@@ -696,7 +694,7 @@ class MigrationContext:
         return self.connection
 
     @property
-    def config(self) -> Optional["Config"]:
+    def config(self) -> Optional[Config]:
         """Return the :class:`.Config` used by the current environment,
         if any."""
 
@@ -706,7 +704,7 @@ class MigrationContext:
             return None
 
     def _compare_type(
-        self, inspector_column: "Column", metadata_column: "Column"
+        self, inspector_column: Column, metadata_column: Column
     ) -> bool:
         if self._user_compare_type is False:
             return False
@@ -726,8 +724,8 @@ class MigrationContext:
 
     def _compare_server_default(
         self,
-        inspector_column: "Column",
-        metadata_column: "Column",
+        inspector_column: Column,
+        metadata_column: Column,
         rendered_metadata_default: Optional[str],
         rendered_column_default: Optional[str],
     ) -> bool:
@@ -756,7 +754,7 @@ class MigrationContext:
 
 
 class HeadMaintainer:
-    def __init__(self, context: "MigrationContext", heads: Any) -> None:
+    def __init__(self, context: MigrationContext, heads: Any) -> None:
         self.context = context
         self.heads = set(heads)
 
@@ -820,7 +818,7 @@ class HeadMaintainer:
                 % (from_, to_, self.context.version_table, ret.rowcount)
             )
 
-    def update_to_step(self, step: Union["RevisionStep", "StampStep"]) -> None:
+    def update_to_step(self, step: Union[RevisionStep, StampStep]) -> None:
         if step.should_delete_branch(self.heads):
             vers = step.delete_version_num
             log.debug("branch delete %s", vers)
@@ -916,12 +914,12 @@ class MigrationInfo:
     from dependencies.
     """
 
-    revision_map: "RevisionMap"
+    revision_map: RevisionMap
     """The revision map inside of which this operation occurs."""
 
     def __init__(
         self,
-        revision_map: "RevisionMap",
+        revision_map: RevisionMap,
         is_upgrade: bool,
         is_stamp: bool,
         up_revisions: Union[str, Tuple[str, ...]],
@@ -1010,14 +1008,14 @@ class MigrationStep:
 
     @classmethod
     def upgrade_from_script(
-        cls, revision_map: "RevisionMap", script: "Script"
-    ) -> "RevisionStep":
+        cls, revision_map: RevisionMap, script: Script
+    ) -> RevisionStep:
         return RevisionStep(revision_map, script, True)
 
     @classmethod
     def downgrade_from_script(
-        cls, revision_map: "RevisionMap", script: "Script"
-    ) -> "RevisionStep":
+        cls, revision_map: RevisionMap, script: Script
+    ) -> RevisionStep:
         return RevisionStep(revision_map, script, False)
 
     @property
@@ -1046,7 +1044,7 @@ class MigrationStep:
 
 class RevisionStep(MigrationStep):
     def __init__(
-        self, revision_map: "RevisionMap", revision: "Script", is_upgrade: bool
+        self, revision_map: RevisionMap, revision: Script, is_upgrade: bool
     ) -> None:
         self.revision_map = revision_map
         self.revision = revision
@@ -1142,12 +1140,12 @@ class RevisionStep(MigrationStep):
         other_heads = set(heads).difference(self.from_revisions)
 
         if other_heads:
-            ancestors = set(
+            ancestors = {
                 r.revision
                 for r in self.revision_map._get_ancestor_nodes(
                     self.revision_map.get_revisions(other_heads), check=False
                 )
-            )
+            }
             from_revisions = list(
                 set(self.from_revisions).difference(ancestors)
             )
@@ -1164,12 +1162,12 @@ class RevisionStep(MigrationStep):
     def _unmerge_to_revisions(self, heads: Collection[str]) -> Tuple[str, ...]:
         other_heads = set(heads).difference([self.revision.revision])
         if other_heads:
-            ancestors = set(
+            ancestors = {
                 r.revision
                 for r in self.revision_map._get_ancestor_nodes(
                     self.revision_map.get_revisions(other_heads), check=False
                 )
-            )
+            }
             return tuple(set(self.to_revisions).difference(ancestors))
         else:
             return self.to_revisions
@@ -1253,7 +1251,7 @@ class RevisionStep(MigrationStep):
         return self.revision.revision
 
     @property
-    def info(self) -> "MigrationInfo":
+    def info(self) -> MigrationInfo:
         return MigrationInfo(
             revision_map=self.revision_map,
             up_revisions=self.revision.revision,
@@ -1270,7 +1268,7 @@ class StampStep(MigrationStep):
         to_: Optional[Union[str, Collection[str]]],
         is_upgrade: bool,
         branch_move: bool,
-        revision_map: Optional["RevisionMap"] = None,
+        revision_map: Optional[RevisionMap] = None,
     ) -> None:
         self.from_: Tuple[str, ...] = util.to_tuple(from_, default=())
         self.to_: Tuple[str, ...] = util.to_tuple(to_, default=())
@@ -1368,7 +1366,7 @@ class StampStep(MigrationStep):
         return len(self.to_) > 1
 
     @property
-    def info(self) -> "MigrationInfo":
+    def info(self) -> MigrationInfo:
         up, down = (
             (self.to_, self.from_)
             if self.is_upgrade

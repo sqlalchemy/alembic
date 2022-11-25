@@ -208,8 +208,7 @@ class AutogenTest(_ComparesFKs):
     def _flatten_diffs(self, diffs):
         for d in diffs:
             if isinstance(d, list):
-                for fd in self._flatten_diffs(d):
-                    yield fd
+                yield from self._flatten_diffs(d)
             else:
                 yield d
 

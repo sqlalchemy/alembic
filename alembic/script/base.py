@@ -463,7 +463,7 @@ class ScriptDirectory:
 
     def _stamp_revs(
         self, revision: _RevIdType, heads: _RevIdType
-    ) -> List["StampStep"]:
+    ) -> List[StampStep]:
         with self._catch_revision_errors(
             multiple_heads="Multiple heads are present; please specify a "
             "single target revision"
@@ -592,7 +592,7 @@ class ScriptDirectory:
         if not os.path.exists(path):
             util.status("Creating directory %s" % path, os.makedirs, path)
 
-    def _generate_create_date(self) -> "datetime.datetime":
+    def _generate_create_date(self) -> datetime.datetime:
         if self.timezone is not None:
             if tz is None:
                 raise util.CommandError(
@@ -769,7 +769,7 @@ class ScriptDirectory:
         path: str,
         rev_id: str,
         message: Optional[str],
-        create_date: "datetime.datetime",
+        create_date: datetime.datetime,
     ) -> str:
         epoch = int(create_date.timestamp())
         slug = "_".join(_slug_re.findall(message or "")).lower()
@@ -804,7 +804,7 @@ class Script(revision.Revision):
     def __init__(self, module: ModuleType, rev_id: str, path: str):
         self.module = module
         self.path = path
-        super(Script, self).__init__(
+        super().__init__(
             rev_id,
             module.down_revision,  # type: ignore[attr-defined]
             branch_labels=util.to_tuple(
@@ -964,7 +964,7 @@ class Script(revision.Revision):
             # in the immediate path
             paths = os.listdir(path)
 
-            names = set(fname.split(".")[0] for fname in paths)
+            names = {fname.split(".")[0] for fname in paths}
 
             # look for __pycache__
             if os.path.exists(os.path.join(path, "__pycache__")):

@@ -1,5 +1,3 @@
-# coding: utf-8
-
 from contextlib import contextmanager
 import os
 import re
@@ -369,7 +367,7 @@ class CallbackEnvironmentTest(ApplyVersionsFunctionalTest):
         alembic.mock_event_listener = None
         self._env_file_fixture()
         with mock.patch("alembic.mock_event_listener", mock.Mock()) as mymock:
-            super(CallbackEnvironmentTest, self).test_steps()
+            super().test_steps()
         calls = mymock.call_args_list
         assert calls
         for call in calls:
@@ -682,7 +680,7 @@ def downgrade():
             bytes_io=True, output_encoding="utf-8"
         ) as buf:
             command.upgrade(self.cfg, self.a, sql=True)
-        assert "« S’il vous plaît…".encode("utf-8") in buf.getvalue()
+        assert "« S’il vous plaît…".encode() in buf.getvalue()
 
 
 class VersionNameTemplateTest(TestBase):

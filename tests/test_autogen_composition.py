@@ -243,12 +243,10 @@ nullable=True))
         autogenerate._render_migration_diffs(self.context, template_args)
         eq_(
             set(template_args["imports"].split("\n")),
-            set(
-                [
-                    "from foobar import bat",
-                    "from mypackage import my_special_import",
-                ]
-            ),
+            {
+                "from foobar import bat",
+                "from mypackage import my_special_import",
+            },
         )
 
 

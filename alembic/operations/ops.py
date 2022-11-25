@@ -78,9 +78,9 @@ class MigrateOperation:
         """
         return {}
 
-    _mutations: FrozenSet["Rewriter"] = frozenset()
+    _mutations: FrozenSet[Rewriter] = frozenset()
 
-    def reverse(self) -> "MigrateOperation":
+    def reverse(self) -> MigrateOperation:
         raise NotImplementedError
 
     def to_diff_tuple(self) -> Tuple[Any, ...]:
@@ -105,21 +105,21 @@ class AddConstraintOp(MigrateOperation):
         return go
 
     @classmethod
-    def from_constraint(cls, constraint: "Constraint") -> "AddConstraintOp":
+    def from_constraint(cls, constraint: Constraint) -> AddConstraintOp:
         return cls.add_constraint_ops.dispatch(constraint.__visit_name__)(
             constraint
         )
 
     @abstractmethod
     def to_constraint(
-        self, migration_context: Optional["MigrationContext"] = None
-    ) -> "Constraint":
+        self, migration_context: Optional[MigrationContext] = None
+    ) -> Constraint:
         pass
 
-    def reverse(self) -> "DropConstraintOp":
+    def reverse(self) -> DropConstraintOp:
         return DropConstraintOp.from_constraint(self.to_constraint())
 
-    def to_diff_tuple(self) -> Tuple[str, "Constraint"]:
+    def to_diff_tuple(self) -> Tuple[str, Constraint]:
         return ("add_constraint", self.to_constraint())
 
 
@@ -134,7 +134,7 @@ class DropConstraintOp(MigrateOperation):
         table_name: str,
         type_: Optional[str] = None,
         schema: Optional[str] = None,
-        _reverse: Optional["AddConstraintOp"] = None,
+        _reverse: Optional[AddConstraintOp] = None,
     ) -> None:
         self.constraint_name = constraint_name
         self.table_name = table_name
@@ -142,12 +142,12 @@ class DropConstraintOp(MigrateOperation):
         self.schema = schema
         self._reverse = _reverse
 
-    def reverse(self) -> "AddConstraintOp":
+    def reverse(self) -> AddConstraintOp:
         return AddConstraintOp.from_constraint(self.to_constraint())
 
     def to_diff_tuple(
         self,
-    ) -> Tuple[str, "SchemaItem"]:
+    ) -> Tuple[str, SchemaItem]:
         if self.constraint_type == "foreignkey":
             return ("remove_fk", self.to_constraint())
         else:
@@ -156,8 +156,8 @@ class DropConstraintOp(MigrateOperation):
     @classmethod
     def from_constraint(
         cls,
-        constraint: "Constraint",
-    ) -> "DropConstraintOp":
+        constraint: Constraint,
+    ) -> DropConstraintOp:
         types = {
             "unique_constraint": "unique",
             "foreign_key_constraint": "foreignkey",
@@ -178,7 +178,7 @@ class DropConstraintOp(MigrateOperation):
 
     def to_constraint(
         self,
-    ) -> "Constraint":
+    ) -> Constraint:
 
         if self._reverse is not None:
             constraint = self._reverse.to_constraint()
@@ -197,12 +197,12 @@ class DropConstraintOp(MigrateOperation):
     @classmethod
     def drop_constraint(
         cls,
-        operations: "Operations",
+        operations: Operations,
         constraint_name: str,
         table_name: str,
         type_: Optional[str] = None,
         schema: Optional[str] = None,
-    ) -> Optional["Table"]:
+    ) -> Optional[Table]:
         r"""Drop a constraint of the given name, typically via DROP CONSTRAINT.
 
         :param constraint_name: name of the constraint.
@@ -222,7 +222,7 @@ class DropConstraintOp(MigrateOperation):
     @classmethod
     def batch_drop_constraint(
         cls,
-        operations: "BatchOperations",
+        operations: BatchOperations,
         constraint_name: str,
         type_: Optional[str] = None,
     ) -> None:
@@ -271,7 +271,7 @@ class CreatePrimaryKeyOp(AddConstraintOp):
         self.kw = kw
 
     @classmethod
-    def from_constraint(cls, constraint: "Constraint") -> "CreatePrimaryKeyOp":
+    def from_constraint(cls, constraint: Constraint) -> CreatePrimaryKeyOp:
         constraint_table = sqla_compat._table_for_constraint(constraint)
         pk_constraint = cast("PrimaryKeyConstraint", constraint)
 
@@ -284,8 +284,8 @@ class CreatePrimaryKeyOp(AddConstraintOp):
         )
 
     def to_constraint(
-        self, migration_context: Optional["MigrationContext"] = None
-    ) -> "PrimaryKeyConstraint":
+        self, migration_context: Optional[MigrationContext] = None
+    ) -> PrimaryKeyConstraint:
         schema_obj = schemaobj.SchemaObjects(migration_context)
 
         return schema_obj.primary_key_constraint(
@@ -299,12 +299,12 @@ class CreatePrimaryKeyOp(AddConstraintOp):
     @classmethod
     def create_primary_key(
         cls,
-        operations: "Operations",
+        operations: Operations,
         constraint_name: Optional[str],
         table_name: str,
         columns: List[str],
         schema: Optional[str] = None,
-    ) -> Optional["Table"]:
+    ) -> Optional[Table]:
         """Issue a "create primary key" instruction using the current
         migration context.
 
@@ -347,7 +347,7 @@ class CreatePrimaryKeyOp(AddConstraintOp):
     @classmethod
     def batch_create_primary_key(
         cls,
-        operations: "BatchOperations",
+        operations: BatchOperations,
         constraint_name: str,
         columns: List[str],
     ) -> None:
@@ -397,8 +397,8 @@ class CreateUniqueConstraintOp(AddConstraintOp):
 
     @classmethod
     def from_constraint(
-        cls, constraint: "Constraint"
-    ) -> "CreateUniqueConstraintOp":
+        cls, constraint: Constraint
+    ) -> CreateUniqueConstraintOp:
 
         constraint_table = sqla_compat._table_for_constraint(constraint)
 
@@ -419,8 +419,8 @@ class CreateUniqueConstraintOp(AddConstraintOp):
         )
 
     def to_constraint(
-        self, migration_context: Optional["MigrationContext"] = None
-    ) -> "UniqueConstraint":
+        self, migration_context: Optional[MigrationContext] = None
+    ) -> UniqueConstraint:
         schema_obj = schemaobj.SchemaObjects(migration_context)
         return schema_obj.unique_constraint(
             self.constraint_name,
@@ -433,7 +433,7 @@ class CreateUniqueConstraintOp(AddConstraintOp):
     @classmethod
     def create_unique_constraint(
         cls,
-        operations: "Operations",
+        operations: Operations,
         constraint_name: Optional[str],
         table_name: str,
         columns: Sequence[str],
@@ -484,7 +484,7 @@ class CreateUniqueConstraintOp(AddConstraintOp):
     @classmethod
     def batch_create_unique_constraint(
         cls,
-        operations: "BatchOperations",
+        operations: BatchOperations,
         constraint_name: str,
         columns: Sequence[str],
         **kw: Any,
@@ -531,11 +531,11 @@ class CreateForeignKeyOp(AddConstraintOp):
         self.remote_cols = remote_cols
         self.kw = kw
 
-    def to_diff_tuple(self) -> Tuple[str, "ForeignKeyConstraint"]:
+    def to_diff_tuple(self) -> Tuple[str, ForeignKeyConstraint]:
         return ("add_fk", self.to_constraint())
 
     @classmethod
-    def from_constraint(cls, constraint: "Constraint") -> "CreateForeignKeyOp":
+    def from_constraint(cls, constraint: Constraint) -> CreateForeignKeyOp:
 
         fk_constraint = cast("ForeignKeyConstraint", constraint)
         kw: dict = {}
@@ -576,8 +576,8 @@ class CreateForeignKeyOp(AddConstraintOp):
         )
 
     def to_constraint(
-        self, migration_context: Optional["MigrationContext"] = None
-    ) -> "ForeignKeyConstraint":
+        self, migration_context: Optional[MigrationContext] = None
+    ) -> ForeignKeyConstraint:
         schema_obj = schemaobj.SchemaObjects(migration_context)
         return schema_obj.foreign_key_constraint(
             self.constraint_name,
@@ -591,7 +591,7 @@ class CreateForeignKeyOp(AddConstraintOp):
     @classmethod
     def create_foreign_key(
         cls,
-        operations: "Operations",
+        operations: Operations,
         constraint_name: Optional[str],
         source_table: str,
         referent_table: str,
@@ -605,7 +605,7 @@ class CreateForeignKeyOp(AddConstraintOp):
         source_schema: Optional[str] = None,
         referent_schema: Optional[str] = None,
         **dialect_kw: Any,
-    ) -> Optional["Table"]:
+    ) -> Optional[Table]:
         """Issue a "create foreign key" instruction using the
         current migration context.
 
@@ -671,7 +671,7 @@ class CreateForeignKeyOp(AddConstraintOp):
     @classmethod
     def batch_create_foreign_key(
         cls,
-        operations: "BatchOperations",
+        operations: BatchOperations,
         constraint_name: str,
         referent_table: str,
         local_cols: List[str],
@@ -736,7 +736,7 @@ class CreateCheckConstraintOp(AddConstraintOp):
         self,
         constraint_name: Optional[str],
         table_name: str,
-        condition: Union[str, "TextClause", "ColumnElement[Any]"],
+        condition: Union[str, TextClause, ColumnElement[Any]],
         schema: Optional[str] = None,
         **kw: Any,
     ) -> None:
@@ -748,8 +748,8 @@ class CreateCheckConstraintOp(AddConstraintOp):
 
     @classmethod
     def from_constraint(
-        cls, constraint: "Constraint"
-    ) -> "CreateCheckConstraintOp":
+        cls, constraint: Constraint
+    ) -> CreateCheckConstraintOp:
         constraint_table = sqla_compat._table_for_constraint(constraint)
 
         ck_constraint = cast("CheckConstraint", constraint)
@@ -763,8 +763,8 @@ class CreateCheckConstraintOp(AddConstraintOp):
         )
 
     def to_constraint(
-        self, migration_context: Optional["MigrationContext"] = None
-    ) -> "CheckConstraint":
+        self, migration_context: Optional[MigrationContext] = None
+    ) -> CheckConstraint:
         schema_obj = schemaobj.SchemaObjects(migration_context)
         return schema_obj.check_constraint(
             self.constraint_name,
@@ -777,13 +777,13 @@ class CreateCheckConstraintOp(AddConstraintOp):
     @classmethod
     def create_check_constraint(
         cls,
-        operations: "Operations",
+        operations: Operations,
         constraint_name: Optional[str],
         table_name: str,
-        condition: Union[str, "BinaryExpression"],
+        condition: Union[str, BinaryExpression],
         schema: Optional[str] = None,
         **kw: Any,
-    ) -> Optional["Table"]:
+    ) -> Optional[Table]:
         """Issue a "create check constraint" instruction using the
         current migration context.
 
@@ -830,11 +830,11 @@ class CreateCheckConstraintOp(AddConstraintOp):
     @classmethod
     def batch_create_check_constraint(
         cls,
-        operations: "BatchOperations",
+        operations: BatchOperations,
         constraint_name: str,
-        condition: "TextClause",
+        condition: TextClause,
         **kw: Any,
-    ) -> Optional["Table"]:
+    ) -> Optional[Table]:
         """Issue a "create check constraint" instruction using the
         current batch migration context.
 
@@ -865,7 +865,7 @@ class CreateIndexOp(MigrateOperation):
         self,
         index_name: str,
         table_name: str,
-        columns: Sequence[Union[str, "TextClause", "ColumnElement[Any]"]],
+        columns: Sequence[Union[str, TextClause, ColumnElement[Any]]],
         schema: Optional[str] = None,
         unique: bool = False,
         **kw: Any,
@@ -877,14 +877,14 @@ class CreateIndexOp(MigrateOperation):
         self.unique = unique
         self.kw = kw
 
-    def reverse(self) -> "DropIndexOp":
+    def reverse(self) -> DropIndexOp:
         return DropIndexOp.from_index(self.to_index())
 
-    def to_diff_tuple(self) -> Tuple[str, "Index"]:
+    def to_diff_tuple(self) -> Tuple[str, Index]:
         return ("add_index", self.to_index())
 
     @classmethod
-    def from_index(cls, index: "Index") -> "CreateIndexOp":
+    def from_index(cls, index: Index) -> CreateIndexOp:
         assert index.table is not None
         return cls(
             index.name,  # type: ignore[arg-type]
@@ -896,8 +896,8 @@ class CreateIndexOp(MigrateOperation):
         )
 
     def to_index(
-        self, migration_context: Optional["MigrationContext"] = None
-    ) -> "Index":
+        self, migration_context: Optional[MigrationContext] = None
+    ) -> Index:
         schema_obj = schemaobj.SchemaObjects(migration_context)
 
         idx = schema_obj.index(
@@ -916,11 +916,11 @@ class CreateIndexOp(MigrateOperation):
         operations: Operations,
         index_name: str,
         table_name: str,
-        columns: Sequence[Union[str, "TextClause", "Function"]],
+        columns: Sequence[Union[str, TextClause, Function]],
         schema: Optional[str] = None,
         unique: bool = False,
         **kw: Any,
-    ) -> Optional["Table"]:
+    ) -> Optional[Table]:
         r"""Issue a "create index" instruction using the current
         migration context.
 
@@ -970,11 +970,11 @@ class CreateIndexOp(MigrateOperation):
     @classmethod
     def batch_create_index(
         cls,
-        operations: "BatchOperations",
+        operations: BatchOperations,
         index_name: str,
         columns: List[str],
         **kw: Any,
-    ) -> Optional["Table"]:
+    ) -> Optional[Table]:
         """Issue a "create index" instruction using the
         current batch migration context.
 
@@ -1001,10 +1001,10 @@ class DropIndexOp(MigrateOperation):
 
     def __init__(
         self,
-        index_name: Union["quoted_name", str, "conv"],
+        index_name: Union[quoted_name, str, conv],
         table_name: Optional[str] = None,
         schema: Optional[str] = None,
-        _reverse: Optional["CreateIndexOp"] = None,
+        _reverse: Optional[CreateIndexOp] = None,
         **kw: Any,
     ) -> None:
         self.index_name = index_name
@@ -1013,14 +1013,14 @@ class DropIndexOp(MigrateOperation):
         self._reverse = _reverse
         self.kw = kw
 
-    def to_diff_tuple(self) -> Tuple[str, "Index"]:
+    def to_diff_tuple(self) -> Tuple[str, Index]:
         return ("remove_index", self.to_index())
 
-    def reverse(self) -> "CreateIndexOp":
+    def reverse(self) -> CreateIndexOp:
         return CreateIndexOp.from_index(self.to_index())
 
     @classmethod
-    def from_index(cls, index: "Index") -> "DropIndexOp":
+    def from_index(cls, index: Index) -> DropIndexOp:
         assert index.table is not None
         return cls(
             index.name,  # type: ignore[arg-type]
@@ -1031,8 +1031,8 @@ class DropIndexOp(MigrateOperation):
         )
 
     def to_index(
-        self, migration_context: Optional["MigrationContext"] = None
-    ) -> "Index":
+        self, migration_context: Optional[MigrationContext] = None
+    ) -> Index:
         schema_obj = schemaobj.SchemaObjects(migration_context)
 
         # need a dummy column name here since SQLAlchemy
@@ -1048,12 +1048,12 @@ class DropIndexOp(MigrateOperation):
     @classmethod
     def drop_index(
         cls,
-        operations: "Operations",
+        operations: Operations,
         index_name: str,
         table_name: Optional[str] = None,
         schema: Optional[str] = None,
         **kw: Any,
-    ) -> Optional["Table"]:
+    ) -> Optional[Table]:
         r"""Issue a "drop index" instruction using the current
         migration context.
 
@@ -1081,7 +1081,7 @@ class DropIndexOp(MigrateOperation):
     @classmethod
     def batch_drop_index(
         cls, operations: BatchOperations, index_name: str, **kw: Any
-    ) -> Optional["Table"]:
+    ) -> Optional[Table]:
         """Issue a "drop index" instruction using the
         current batch migration context.
 
@@ -1107,9 +1107,9 @@ class CreateTableOp(MigrateOperation):
     def __init__(
         self,
         table_name: str,
-        columns: Sequence["SchemaItem"],
+        columns: Sequence[SchemaItem],
         schema: Optional[str] = None,
-        _namespace_metadata: Optional["MetaData"] = None,
+        _namespace_metadata: Optional[MetaData] = None,
         _constraints_included: bool = False,
         **kw: Any,
     ) -> None:
@@ -1123,18 +1123,18 @@ class CreateTableOp(MigrateOperation):
         self._namespace_metadata = _namespace_metadata
         self._constraints_included = _constraints_included
 
-    def reverse(self) -> "DropTableOp":
+    def reverse(self) -> DropTableOp:
         return DropTableOp.from_table(
             self.to_table(), _namespace_metadata=self._namespace_metadata
         )
 
-    def to_diff_tuple(self) -> Tuple[str, "Table"]:
+    def to_diff_tuple(self) -> Tuple[str, Table]:
         return ("add_table", self.to_table())
 
     @classmethod
     def from_table(
-        cls, table: "Table", _namespace_metadata: Optional["MetaData"] = None
-    ) -> "CreateTableOp":
+        cls, table: Table, _namespace_metadata: Optional[MetaData] = None
+    ) -> CreateTableOp:
         if _namespace_metadata is None:
             _namespace_metadata = table.metadata
 
@@ -1157,8 +1157,8 @@ class CreateTableOp(MigrateOperation):
         )
 
     def to_table(
-        self, migration_context: Optional["MigrationContext"] = None
-    ) -> "Table":
+        self, migration_context: Optional[MigrationContext] = None
+    ) -> Table:
         schema_obj = schemaobj.SchemaObjects(migration_context)
 
         return schema_obj.table(
@@ -1175,11 +1175,11 @@ class CreateTableOp(MigrateOperation):
     @classmethod
     def create_table(
         cls,
-        operations: "Operations",
+        operations: Operations,
         table_name: str,
-        *columns: "SchemaItem",
+        *columns: SchemaItem,
         **kw: Any,
-    ) -> "Optional[Table]":
+    ) -> Optional[Table]:
         r"""Issue a "create table" instruction using the current migration
         context.
 
@@ -1269,7 +1269,7 @@ class DropTableOp(MigrateOperation):
         table_name: str,
         schema: Optional[str] = None,
         table_kw: Optional[MutableMapping[Any, Any]] = None,
-        _reverse: Optional["CreateTableOp"] = None,
+        _reverse: Optional[CreateTableOp] = None,
     ) -> None:
         self.table_name = table_name
         self.schema = schema
@@ -1279,16 +1279,16 @@ class DropTableOp(MigrateOperation):
         self.prefixes = self.table_kw.pop("prefixes", None)
         self._reverse = _reverse
 
-    def to_diff_tuple(self) -> Tuple[str, "Table"]:
+    def to_diff_tuple(self) -> Tuple[str, Table]:
         return ("remove_table", self.to_table())
 
-    def reverse(self) -> "CreateTableOp":
+    def reverse(self) -> CreateTableOp:
         return CreateTableOp.from_table(self.to_table())
 
     @classmethod
     def from_table(
-        cls, table: "Table", _namespace_metadata: Optional["MetaData"] = None
-    ) -> "DropTableOp":
+        cls, table: Table, _namespace_metadata: Optional[MetaData] = None
+    ) -> DropTableOp:
         return cls(
             table.name,
             schema=table.schema,
@@ -1304,8 +1304,8 @@ class DropTableOp(MigrateOperation):
         )
 
     def to_table(
-        self, migration_context: Optional["MigrationContext"] = None
-    ) -> "Table":
+        self, migration_context: Optional[MigrationContext] = None
+    ) -> Table:
         if self._reverse:
             cols_and_constraints = self._reverse.columns
         else:
@@ -1329,7 +1329,7 @@ class DropTableOp(MigrateOperation):
     @classmethod
     def drop_table(
         cls,
-        operations: "Operations",
+        operations: Operations,
         table_name: str,
         schema: Optional[str] = None,
         **kw: Any,
@@ -1377,17 +1377,17 @@ class RenameTableOp(AlterTableOp):
         new_table_name: str,
         schema: Optional[str] = None,
     ) -> None:
-        super(RenameTableOp, self).__init__(old_table_name, schema=schema)
+        super().__init__(old_table_name, schema=schema)
         self.new_table_name = new_table_name
 
     @classmethod
     def rename_table(
         cls,
-        operations: "Operations",
+        operations: Operations,
         old_table_name: str,
         new_table_name: str,
         schema: Optional[str] = None,
-    ) -> Optional["Table"]:
+    ) -> Optional[Table]:
         """Emit an ALTER TABLE to rename a table.
 
         :param old_table_name: old name.
@@ -1424,12 +1424,12 @@ class CreateTableCommentOp(AlterTableOp):
     @classmethod
     def create_table_comment(
         cls,
-        operations: "Operations",
+        operations: Operations,
         table_name: str,
         comment: Optional[str],
         existing_comment: None = None,
         schema: Optional[str] = None,
-    ) -> Optional["Table"]:
+    ) -> Optional[Table]:
         """Emit a COMMENT ON operation to set the comment for a table.
 
         .. versionadded:: 1.0.6
@@ -1534,11 +1534,11 @@ class DropTableCommentOp(AlterTableOp):
     @classmethod
     def drop_table_comment(
         cls,
-        operations: "Operations",
+        operations: Operations,
         table_name: str,
         existing_comment: Optional[str] = None,
         schema: Optional[str] = None,
-    ) -> Optional["Table"]:
+    ) -> Optional[Table]:
         """Issue a "drop table comment" operation to
         remove an existing comment set on a table.
 
@@ -1609,13 +1609,13 @@ class AlterColumnOp(AlterTableOp):
         existing_nullable: Optional[bool] = None,
         existing_comment: Optional[str] = None,
         modify_nullable: Optional[bool] = None,
-        modify_comment: Optional[Union[str, "Literal[False]"]] = False,
+        modify_comment: Optional[Union[str, Literal[False]]] = False,
         modify_server_default: Any = False,
         modify_name: Optional[str] = None,
         modify_type: Optional[Any] = None,
         **kw: Any,
     ) -> None:
-        super(AlterColumnOp, self).__init__(table_name, schema=schema)
+        super().__init__(table_name, schema=schema)
         self.column_name = column_name
         self.existing_type = existing_type
         self.existing_server_default = existing_server_default
@@ -1723,7 +1723,7 @@ class AlterColumnOp(AlterTableOp):
         else:
             return False
 
-    def reverse(self) -> "AlterColumnOp":
+    def reverse(self) -> AlterColumnOp:
 
         kw = self.kw.copy()
         kw["existing_type"] = self.existing_type
@@ -1740,11 +1740,11 @@ class AlterColumnOp(AlterTableOp):
             kw["modify_comment"] = self.modify_comment
 
         # TODO: make this a little simpler
-        all_keys = set(
+        all_keys = {
             m.group(1)
             for m in [re.match(r"^(?:existing_|modify_)(.+)$", k) for k in kw]
             if m
-        )
+        }
 
         for k in all_keys:
             if "modify_%s" % k in kw:
@@ -1763,21 +1763,19 @@ class AlterColumnOp(AlterTableOp):
         table_name: str,
         column_name: str,
         nullable: Optional[bool] = None,
-        comment: Optional[Union[str, "Literal[False]"]] = False,
+        comment: Optional[Union[str, Literal[False]]] = False,
         server_default: Any = False,
         new_column_name: Optional[str] = None,
-        type_: Optional[Union["TypeEngine", Type["TypeEngine"]]] = None,
-        existing_type: Optional[
-            Union["TypeEngine", Type["TypeEngine"]]
-        ] = None,
+        type_: Optional[Union[TypeEngine, Type[TypeEngine]]] = None,
+        existing_type: Optional[Union[TypeEngine, Type[TypeEngine]]] = None,
         existing_server_default: Optional[
-            Union[str, bool, "Identity", "Computed"]
+            Union[str, bool, Identity, Computed]
         ] = False,
         existing_nullable: Optional[bool] = None,
         existing_comment: Optional[str] = None,
         schema: Optional[str] = None,
         **kw: Any,
-    ) -> Optional["Table"]:
+    ) -> Optional[Table]:
         r"""Issue an "alter column" instruction using the
         current migration context.
 
@@ -1891,20 +1889,18 @@ class AlterColumnOp(AlterTableOp):
         operations: BatchOperations,
         column_name: str,
         nullable: Optional[bool] = None,
-        comment: Union[str, "Literal[False]"] = False,
-        server_default: Union["Function", bool] = False,
+        comment: Union[str, Literal[False]] = False,
+        server_default: Union[Function, bool] = False,
         new_column_name: Optional[str] = None,
-        type_: Optional[Union["TypeEngine", Type["TypeEngine"]]] = None,
-        existing_type: Optional[
-            Union["TypeEngine", Type["TypeEngine"]]
-        ] = None,
+        type_: Optional[Union[TypeEngine, Type[TypeEngine]]] = None,
+        existing_type: Optional[Union[TypeEngine, Type[TypeEngine]]] = None,
         existing_server_default: bool = False,
         existing_nullable: None = None,
         existing_comment: None = None,
         insert_before: None = None,
         insert_after: None = None,
         **kw: Any,
-    ) -> Optional["Table"]:
+    ) -> Optional[Table]:
         """Issue an "alter column" instruction using the current
         batch migration context.
 
@@ -1958,29 +1954,29 @@ class AddColumnOp(AlterTableOp):
     def __init__(
         self,
         table_name: str,
-        column: "Column",
+        column: Column,
         schema: Optional[str] = None,
         **kw: Any,
     ) -> None:
-        super(AddColumnOp, self).__init__(table_name, schema=schema)
+        super().__init__(table_name, schema=schema)
         self.column = column
         self.kw = kw
 
-    def reverse(self) -> "DropColumnOp":
+    def reverse(self) -> DropColumnOp:
         return DropColumnOp.from_column_and_tablename(
             self.schema, self.table_name, self.column
         )
 
     def to_diff_tuple(
         self,
-    ) -> Tuple[str, Optional[str], str, "Column"]:
+    ) -> Tuple[str, Optional[str], str, Column]:
         return ("add_column", self.schema, self.table_name, self.column)
 
-    def to_column(self) -> "Column":
+    def to_column(self) -> Column:
         return self.column
 
     @classmethod
-    def from_column(cls, col: "Column") -> "AddColumnOp":
+    def from_column(cls, col: Column) -> AddColumnOp:
         return cls(col.table.name, col, schema=col.table.schema)
 
     @classmethod
@@ -1988,18 +1984,18 @@ class AddColumnOp(AlterTableOp):
         cls,
         schema: Optional[str],
         tname: str,
-        col: "Column",
-    ) -> "AddColumnOp":
+        col: Column,
+    ) -> AddColumnOp:
         return cls(tname, col, schema=schema)
 
     @classmethod
     def add_column(
         cls,
-        operations: "Operations",
+        operations: Operations,
         table_name: str,
-        column: "Column",
+        column: Column,
         schema: Optional[str] = None,
-    ) -> Optional["Table"]:
+    ) -> Optional[Table]:
         """Issue an "add column" instruction using the current
         migration context.
 
@@ -2055,11 +2051,11 @@ class AddColumnOp(AlterTableOp):
     @classmethod
     def batch_add_column(
         cls,
-        operations: "BatchOperations",
-        column: "Column",
+        operations: BatchOperations,
+        column: Column,
         insert_before: Optional[str] = None,
         insert_after: Optional[str] = None,
-    ) -> Optional["Table"]:
+    ) -> Optional[Table]:
         """Issue an "add column" instruction using the current
         batch migration context.
 
@@ -2094,17 +2090,17 @@ class DropColumnOp(AlterTableOp):
         table_name: str,
         column_name: str,
         schema: Optional[str] = None,
-        _reverse: Optional["AddColumnOp"] = None,
+        _reverse: Optional[AddColumnOp] = None,
         **kw: Any,
     ) -> None:
-        super(DropColumnOp, self).__init__(table_name, schema=schema)
+        super().__init__(table_name, schema=schema)
         self.column_name = column_name
         self.kw = kw
         self._reverse = _reverse
 
     def to_diff_tuple(
         self,
-    ) -> Tuple[str, Optional[str], str, "Column"]:
+    ) -> Tuple[str, Optional[str], str, Column]:
         return (
             "remove_column",
             self.schema,
@@ -2112,7 +2108,7 @@ class DropColumnOp(AlterTableOp):
             self.to_column(),
         )
 
-    def reverse(self) -> "AddColumnOp":
+    def reverse(self) -> AddColumnOp:
         if self._reverse is None:
             raise ValueError(
                 "operation is not reversible; "
@@ -2128,8 +2124,8 @@ class DropColumnOp(AlterTableOp):
         cls,
         schema: Optional[str],
         tname: str,
-        col: "Column",
-    ) -> "DropColumnOp":
+        col: Column,
+    ) -> DropColumnOp:
         return cls(
             tname,
             col.name,
@@ -2138,8 +2134,8 @@ class DropColumnOp(AlterTableOp):
         )
 
     def to_column(
-        self, migration_context: Optional["MigrationContext"] = None
-    ) -> "Column":
+        self, migration_context: Optional[MigrationContext] = None
+    ) -> Column:
         if self._reverse is not None:
             return self._reverse.column
         schema_obj = schemaobj.SchemaObjects(migration_context)
@@ -2148,12 +2144,12 @@ class DropColumnOp(AlterTableOp):
     @classmethod
     def drop_column(
         cls,
-        operations: "Operations",
+        operations: Operations,
         table_name: str,
         column_name: str,
         schema: Optional[str] = None,
         **kw: Any,
-    ) -> Optional["Table"]:
+    ) -> Optional[Table]:
         """Issue a "drop column" instruction using the current
         migration context.
 
@@ -2196,8 +2192,8 @@ class DropColumnOp(AlterTableOp):
 
     @classmethod
     def batch_drop_column(
-        cls, operations: "BatchOperations", column_name: str, **kw: Any
-    ) -> Optional["Table"]:
+        cls, operations: BatchOperations, column_name: str, **kw: Any
+    ) -> Optional[Table]:
         """Issue a "drop column" instruction using the current
         batch migration context.
 
@@ -2221,7 +2217,7 @@ class BulkInsertOp(MigrateOperation):
 
     def __init__(
         self,
-        table: Union["Table", "TableClause"],
+        table: Union[Table, TableClause],
         rows: List[dict],
         multiinsert: bool = True,
     ) -> None:
@@ -2233,7 +2229,7 @@ class BulkInsertOp(MigrateOperation):
     def bulk_insert(
         cls,
         operations: Operations,
-        table: Union["Table", "TableClause"],
+        table: Union[Table, TableClause],
         rows: List[dict],
         multiinsert: bool = True,
     ) -> None:
@@ -2322,7 +2318,7 @@ class ExecuteSQLOp(MigrateOperation):
 
     def __init__(
         self,
-        sqltext: Union["Update", str, "Insert", "TextClause"],
+        sqltext: Union[Update, str, Insert, TextClause],
         execution_options: None = None,
     ) -> None:
         self.sqltext = sqltext
@@ -2332,9 +2328,9 @@ class ExecuteSQLOp(MigrateOperation):
     def execute(
         cls,
         operations: Operations,
-        sqltext: Union[str, "TextClause", "Update"],
+        sqltext: Union[str, TextClause, Update],
         execution_options: None = None,
-    ) -> Optional["Table"]:
+    ) -> Optional[Table]:
         r"""Execute the given SQL using the current migration context.
 
         The given SQL can be a plain string, e.g.::
@@ -2434,12 +2430,11 @@ class OpContainer(MigrateOperation):
 
     @classmethod
     def _ops_as_diffs(
-        cls, migrations: "OpContainer"
+        cls, migrations: OpContainer
     ) -> Iterator[Tuple[Any, ...]]:
         for op in migrations.ops:
             if hasattr(op, "ops"):
-                for sub_op in cls._ops_as_diffs(cast("OpContainer", op)):
-                    yield sub_op
+                yield from cls._ops_as_diffs(cast("OpContainer", op))
             else:
                 yield op.to_diff_tuple()
 
@@ -2453,11 +2448,11 @@ class ModifyTableOps(OpContainer):
         ops: Sequence[MigrateOperation],
         schema: Optional[str] = None,
     ) -> None:
-        super(ModifyTableOps, self).__init__(ops)
+        super().__init__(ops)
         self.table_name = table_name
         self.schema = schema
 
-    def reverse(self) -> "ModifyTableOps":
+    def reverse(self) -> ModifyTableOps:
         return ModifyTableOps(
             self.table_name,
             ops=list(reversed([op.reverse() for op in self.ops])),
@@ -2480,16 +2475,16 @@ class UpgradeOps(OpContainer):
         ops: Sequence[MigrateOperation] = (),
         upgrade_token: str = "upgrades",
     ) -> None:
-        super(UpgradeOps, self).__init__(ops=ops)
+        super().__init__(ops=ops)
         self.upgrade_token = upgrade_token
 
-    def reverse_into(self, downgrade_ops: "DowngradeOps") -> "DowngradeOps":
+    def reverse_into(self, downgrade_ops: DowngradeOps) -> DowngradeOps:
         downgrade_ops.ops[:] = list(  # type:ignore[index]
             reversed([op.reverse() for op in self.ops])
         )
         return downgrade_ops
 
-    def reverse(self) -> "DowngradeOps":
+    def reverse(self) -> DowngradeOps:
         return self.reverse_into(DowngradeOps(ops=[]))
 
 
@@ -2508,7 +2503,7 @@ class DowngradeOps(OpContainer):
         ops: Sequence[MigrateOperation] = (),
         downgrade_token: str = "downgrades",
     ) -> None:
-        super(DowngradeOps, self).__init__(ops=ops)
+        super().__init__(ops=ops)
         self.downgrade_token = downgrade_token
 
     def reverse(self):
@@ -2546,8 +2541,8 @@ class MigrationScript(MigrateOperation):
     def __init__(
         self,
         rev_id: Optional[str],
-        upgrade_ops: "UpgradeOps",
-        downgrade_ops: "DowngradeOps",
+        upgrade_ops: UpgradeOps,
+        downgrade_ops: DowngradeOps,
         message: Optional[str] = None,
         imports: Set[str] = set(),
         head: Optional[str] = None,
@@ -2618,7 +2613,7 @@ class MigrationScript(MigrateOperation):
             assert isinstance(elem, DowngradeOps)
 
     @property
-    def upgrade_ops_list(self) -> List["UpgradeOps"]:
+    def upgrade_ops_list(self) -> List[UpgradeOps]:
         """A list of :class:`.UpgradeOps` instances.
 
         This is used in place of the :attr:`.MigrationScript.upgrade_ops`
@@ -2629,7 +2624,7 @@ class MigrationScript(MigrateOperation):
         return self._upgrade_ops
 
     @property
-    def downgrade_ops_list(self) -> List["DowngradeOps"]:
+    def downgrade_ops_list(self) -> List[DowngradeOps]:
         """A list of :class:`.DowngradeOps` instances.
 
         This is used in place of the :attr:`.MigrationScript.downgrade_ops`

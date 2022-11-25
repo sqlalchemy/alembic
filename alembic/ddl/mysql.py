@@ -51,16 +51,16 @@ class MySQLImpl(DefaultImpl):
         table_name: str,
         column_name: str,
         nullable: Optional[bool] = None,
-        server_default: Union["_ServerDefault", "Literal[False]"] = False,
+        server_default: Union[_ServerDefault, Literal[False]] = False,
         name: Optional[str] = None,
-        type_: Optional["TypeEngine"] = None,
+        type_: Optional[TypeEngine] = None,
         schema: Optional[str] = None,
-        existing_type: Optional["TypeEngine"] = None,
-        existing_server_default: Optional["_ServerDefault"] = None,
+        existing_type: Optional[TypeEngine] = None,
+        existing_server_default: Optional[_ServerDefault] = None,
         existing_nullable: Optional[bool] = None,
         autoincrement: Optional[bool] = None,
         existing_autoincrement: Optional[bool] = None,
-        comment: Optional[Union[str, "Literal[False]"]] = False,
+        comment: Optional[Union[str, Literal[False]]] = False,
         existing_comment: Optional[str] = None,
         **kw: Any,
     ) -> None:
@@ -71,7 +71,7 @@ class MySQLImpl(DefaultImpl):
         ):
             # modifying computed or identity columns is not supported
             # the default will raise
-            super(MySQLImpl, self).alter_column(
+            super().alter_column(
                 table_name,
                 column_name,
                 nullable=nullable,
@@ -147,17 +147,17 @@ class MySQLImpl(DefaultImpl):
 
     def drop_constraint(
         self,
-        const: "Constraint",
+        const: Constraint,
     ) -> None:
         if isinstance(const, schema.CheckConstraint) and _is_type_bound(const):
             return
 
-        super(MySQLImpl, self).drop_constraint(const)
+        super().drop_constraint(const)
 
     def _is_mysql_allowed_functional_default(
         self,
-        type_: Optional["TypeEngine"],
-        server_default: Union["_ServerDefault", "Literal[False]"],
+        type_: Optional[TypeEngine],
+        server_default: Union[_ServerDefault, Literal[False]],
     ) -> bool:
         return (
             type_ is not None
@@ -263,12 +263,12 @@ class MySQLImpl(DefaultImpl):
                 metadata_indexes.remove(idx)
 
     def correct_for_autogen_foreignkeys(self, conn_fks, metadata_fks):
-        conn_fk_by_sig = dict(
-            (compare._fk_constraint_sig(fk).sig, fk) for fk in conn_fks
-        )
-        metadata_fk_by_sig = dict(
-            (compare._fk_constraint_sig(fk).sig, fk) for fk in metadata_fks
-        )
+        conn_fk_by_sig = {
+            compare._fk_constraint_sig(fk).sig: fk for fk in conn_fks
+        }
+        metadata_fk_by_sig = {
+            compare._fk_constraint_sig(fk).sig: fk for fk in metadata_fks
+        }
 
         for sig in set(conn_fk_by_sig).intersection(metadata_fk_by_sig):
             mdfk = metadata_fk_by_sig[sig]
@@ -299,7 +299,7 @@ class MySQLAlterDefault(AlterColumn):
         self,
         name: str,
         column_name: str,
-        default: "_ServerDefault",
+        default: _ServerDefault,
         schema: Optional[str] = None,
     ) -> None:
         super(AlterColumn, self).__init__(name, schema=schema)
@@ -314,11 +314,11 @@ class MySQLChangeColumn(AlterColumn):
         column_name: str,
         schema: Optional[str] = None,
         newname: Optional[str] = None,
-        type_: Optional["TypeEngine"] = None,
+        type_: Optional[TypeEngine] = None,
         nullable: Optional[bool] = None,
-        default: Optional[Union["_ServerDefault", "Literal[False]"]] = False,
+        default: Optional[Union[_ServerDefault, Literal[False]]] = False,
         autoincrement: Optional[bool] = None,
-        comment: Optional[Union[str, "Literal[False]"]] = False,
+        comment: Optional[Union[str, Literal[False]]] = False,
     ) -> None:
         super(AlterColumn, self).__init__(name, schema=schema)
         self.column_name = column_name
@@ -352,7 +352,7 @@ def _mysql_doesnt_support_individual(element, compiler, **kw):
 
 @compiles(MySQLAlterDefault, "mysql", "mariadb")
 def _mysql_alter_default(
-    element: "MySQLAlterDefault", compiler: "MySQLDDLCompiler", **kw
+    element: MySQLAlterDefault, compiler: MySQLDDLCompiler, **kw
 ) -> str:
     return "%s ALTER COLUMN %s %s" % (
         alter_table(compiler, element.table_name, element.schema),
@@ -365,7 +365,7 @@ def _mysql_alter_default(
 
 @compiles(MySQLModifyColumn, "mysql", "mariadb")
 def _mysql_modify_column(
-    element: "MySQLModifyColumn", compiler: "MySQLDDLCompiler", **kw
+    element: MySQLModifyColumn, compiler: MySQLDDLCompiler, **kw
 ) -> str:
     return "%s MODIFY %s %s" % (
         alter_table(compiler, element.table_name, element.schema),
@@ -383,7 +383,7 @@ def _mysql_modify_column(
 
 @compiles(MySQLChangeColumn, "mysql", "mariadb")
 def _mysql_change_column(
-    element: "MySQLChangeColumn", compiler: "MySQLDDLCompiler", **kw
+    element: MySQLChangeColumn, compiler: MySQLDDLCompiler, **kw
 ) -> str:
     return "%s CHANGE %s %s %s" % (
         alter_table(compiler, element.table_name, element.schema),
@@ -401,12 +401,12 @@ def _mysql_change_column(
 
 
 def _mysql_colspec(
-    compiler: "MySQLDDLCompiler",
+    compiler: MySQLDDLCompiler,
     nullable: Optional[bool],
-    server_default: Optional[Union["_ServerDefault", "Literal[False]"]],
-    type_: "TypeEngine",
+    server_default: Optional[Union[_ServerDefault, Literal[False]]],
+    type_: TypeEngine,
     autoincrement: Optional[bool],
-    comment: Optional[Union[str, "Literal[False]"]],
+    comment: Optional[Union[str, Literal[False]]],
 ) -> str:
     spec = "%s %s" % (
         compiler.dialect.type_compiler.process(type_),
@@ -426,7 +426,7 @@ def _mysql_colspec(
 
 @compiles(schema.DropConstraint, "mysql", "mariadb")
 def _mysql_drop_constraint(
-    element: "DropConstraint", compiler: "MySQLDDLCompiler", **kw
+    element: DropConstraint, compiler: MySQLDDLCompiler, **kw
 ) -> str:
     """Redefine SQLAlchemy's drop constraint to
     raise errors for invalid constraint type."""

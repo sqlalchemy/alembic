@@ -37,7 +37,7 @@ def list_templates(config):
 
 
 def init(
-    config: "Config",
+    config: Config,
     directory: str,
     template: str = "generic",
     package: bool = False,
@@ -114,7 +114,7 @@ def init(
 
 
 def revision(
-    config: "Config",
+    config: Config,
     message: Optional[str] = None,
     autogenerate: bool = False,
     sql: bool = False,
@@ -125,7 +125,7 @@ def revision(
     rev_id: Optional[str] = None,
     depends_on: Optional[str] = None,
     process_revision_directives: Optional[ProcessRevisionDirectiveFn] = None,
-) -> Union[Optional["Script"], List[Optional["Script"]]]:
+) -> Union[Optional[Script], List[Optional[Script]]]:
     """Create a new revision file.
 
     :param config: a :class:`.Config` object.
@@ -241,12 +241,12 @@ def revision(
 
 
 def merge(
-    config: "Config",
+    config: Config,
     revisions: str,
     message: Optional[str] = None,
     branch_label: Optional[str] = None,
     rev_id: Optional[str] = None,
-) -> Optional["Script"]:
+) -> Optional[Script]:
     """Merge two revisions together.  Creates a new migration file.
 
     :param config: a :class:`.Config` instance
@@ -280,7 +280,7 @@ def merge(
 
 
 def upgrade(
-    config: "Config",
+    config: Config,
     revision: str,
     sql: bool = False,
     tag: Optional[str] = None,
@@ -323,7 +323,7 @@ def upgrade(
 
 
 def downgrade(
-    config: "Config",
+    config: Config,
     revision: str,
     sql: bool = False,
     tag: Optional[str] = None,
@@ -394,7 +394,7 @@ def show(config, rev):
 
 
 def history(
-    config: "Config",
+    config: Config,
     rev_range: Optional[str] = None,
     verbose: bool = False,
     indicate_current: bool = False,
@@ -517,7 +517,7 @@ def branches(config, verbose=False):
             )
 
 
-def current(config: "Config", verbose: bool = False) -> None:
+def current(config: Config, verbose: bool = False) -> None:
     """Display the current revision for a database.
 
     :param config: a :class:`.Config` instance.
@@ -546,7 +546,7 @@ def current(config: "Config", verbose: bool = False) -> None:
 
 
 def stamp(
-    config: "Config",
+    config: Config,
     revision: str,
     sql: bool = False,
     tag: Optional[str] = None,
@@ -615,7 +615,7 @@ def stamp(
         script.run_env()
 
 
-def edit(config: "Config", rev: str) -> None:
+def edit(config: Config, rev: str) -> None:
     """Edit revision script(s) using $EDITOR.
 
     :param config: a :class:`.Config` instance.
@@ -648,7 +648,7 @@ def edit(config: "Config", rev: str) -> None:
             util.open_in_editor(sc.path)
 
 
-def ensure_version(config: "Config", sql: bool = False) -> None:
+def ensure_version(config: Config, sql: bool = False) -> None:
     """Create the alembic version table if it doesn't exist already .
 
     :param config: a :class:`.Config` instance.

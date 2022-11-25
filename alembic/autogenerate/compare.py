@@ -47,7 +47,7 @@ log = logging.getLogger(__name__)
 
 
 def _populate_migration_script(
-    autogen_context: "AutogenContext", migration_script: "MigrationScript"
+    autogen_context: AutogenContext, migration_script: MigrationScript
 ) -> None:
     upgrade_ops = migration_script.upgrade_ops_list[-1]
     downgrade_ops = migration_script.downgrade_ops_list[-1]
@@ -60,14 +60,14 @@ comparators = util.Dispatcher(uselist=True)
 
 
 def _produce_net_changes(
-    autogen_context: "AutogenContext", upgrade_ops: "UpgradeOps"
+    autogen_context: AutogenContext, upgrade_ops: UpgradeOps
 ) -> None:
 
     connection = autogen_context.connection
     assert connection is not None
     include_schemas = autogen_context.opts.get("include_schemas", False)
 
-    inspector: "Inspector" = inspect(connection)
+    inspector: Inspector = inspect(connection)
 
     default_schema = connection.dialect.default_schema_name
     schemas: Set[Optional[str]]
@@ -93,8 +93,8 @@ def _produce_net_changes(
 
 @comparators.dispatch_for("schema")
 def _autogen_for_tables(
-    autogen_context: "AutogenContext",
-    upgrade_ops: "UpgradeOps",
+    autogen_context: AutogenContext,
+    upgrade_ops: UpgradeOps,
     schemas: Union[Set[None], Set[Optional[str]]],
 ) -> None:
     inspector = autogen_context.inspector
@@ -135,11 +135,11 @@ def _autogen_for_tables(
 
 
 def _compare_tables(
-    conn_table_names: "set",
-    metadata_table_names: "set",
-    inspector: "Inspector",
-    upgrade_ops: "UpgradeOps",
-    autogen_context: "AutogenContext",
+    conn_table_names: set,
+    metadata_table_names: set,
+    inspector: Inspector,
+    upgrade_ops: UpgradeOps,
+    autogen_context: AutogenContext,
 ) -> None:
 
     default_schema = inspector.bind.dialect.default_schema_name
@@ -159,17 +159,14 @@ def _compare_tables(
     # to adjust for the MetaData collection storing the tables either
     # as "schemaname.tablename" or just "tablename", create a new lookup
     # which will match the "non-default-schema" keys to the Table object.
-    tname_to_table = dict(
-        (
-            no_dflt_schema,
-            autogen_context.table_key_to_table[
-                sa_schema._get_table_key(tname, schema)
-            ],
-        )
+    tname_to_table = {
+        no_dflt_schema: autogen_context.table_key_to_table[
+            sa_schema._get_table_key(tname, schema)
+        ]
         for no_dflt_schema, (schema, tname) in zip(
             metadata_table_names_no_dflt_schema, metadata_table_names
         )
-    )
+    }
     metadata_table_names = metadata_table_names_no_dflt_schema
 
     for s, tname in metadata_table_names.difference(conn_table_names):
@@ -279,9 +276,7 @@ def _compare_tables(
                 upgrade_ops.ops.append(modify_table_ops)
 
 
-def _make_index(
-    params: Dict[str, Any], conn_table: "Table"
-) -> Optional["Index"]:
+def _make_index(params: Dict[str, Any], conn_table: Table) -> Optional[Index]:
     exprs = []
     for col_name in params["column_names"]:
         if col_name is None:
@@ -302,8 +297,8 @@ def _make_index(
 
 
 def _make_unique_constraint(
-    params: Dict[str, Any], conn_table: "Table"
-) -> "UniqueConstraint":
+    params: Dict[str, Any], conn_table: Table
+) -> UniqueConstraint:
     uq = sa_schema.UniqueConstraint(
         *[conn_table.c[cname] for cname in params["column_names"]],
         name=params["name"],
@@ -315,8 +310,8 @@ def _make_unique_constraint(
 
 
 def _make_foreign_key(
-    params: Dict[str, Any], conn_table: "Table"
-) -> "ForeignKeyConstraint":
+    params: Dict[str, Any], conn_table: Table
+) -> ForeignKeyConstraint:
     tname = params["referred_table"]
     if params["referred_schema"]:
         tname = "%s.%s" % (params["referred_schema"], tname)
@@ -340,12 +335,12 @@ def _make_foreign_key(
 @contextlib.contextmanager
 def _compare_columns(
     schema: Optional[str],
-    tname: Union["quoted_name", str],
-    conn_table: "Table",
-    metadata_table: "Table",
-    modify_table_ops: "ModifyTableOps",
-    autogen_context: "AutogenContext",
-    inspector: "Inspector",
+    tname: Union[quoted_name, str],
+    conn_table: Table,
+    metadata_table: Table,
+    modify_table_ops: ModifyTableOps,
+    autogen_context: AutogenContext,
+    inspector: Inspector,
 ) -> Iterator[None]:
     name = "%s.%s" % (schema, tname) if schema else tname
     metadata_col_names = OrderedSet(
@@ -411,9 +406,9 @@ def _compare_columns(
 
 
 class _constraint_sig:
-    const: Union["UniqueConstraint", "ForeignKeyConstraint", "Index"]
+    const: Union[UniqueConstraint, ForeignKeyConstraint, Index]
 
-    def md_name_to_sql_name(self, context: "AutogenContext") -> Optional[str]:
+    def md_name_to_sql_name(self, context: AutogenContext) -> Optional[str]:
         return sqla_compat._get_constraint_final_name(
             self.const, context.dialect
         )
@@ -432,7 +427,7 @@ class _uq_constraint_sig(_constraint_sig):
     is_index = False
     is_unique = True
 
-    def __init__(self, const: "UniqueConstraint") -> None:
+    def __init__(self, const: UniqueConstraint) -> None:
         self.const = const
         self.name = const.name
         self.sig = tuple(sorted([col.name for col in const.columns]))
@@ -445,25 +440,25 @@ class _uq_constraint_sig(_constraint_sig):
 class _ix_constraint_sig(_constraint_sig):
     is_index = True
 
-    def __init__(self, const: "Index") -> None:
+    def __init__(self, const: Index) -> None:
         self.const = const
         self.name = const.name
         self.sig = tuple(sorted([col.name for col in const.columns]))
         self.is_unique = bool(const.unique)
 
-    def md_name_to_sql_name(self, context: "AutogenContext") -> Optional[str]:
+    def md_name_to_sql_name(self, context: AutogenContext) -> Optional[str]:
         return sqla_compat._get_constraint_final_name(
             self.const, context.dialect
         )
 
     @property
-    def column_names(self) -> Union[List["quoted_name"], List[None]]:
+    def column_names(self) -> Union[List[quoted_name], List[None]]:
         return sqla_compat._get_index_column_names(self.const)
 
 
 class _fk_constraint_sig(_constraint_sig):
     def __init__(
-        self, const: "ForeignKeyConstraint", include_options: bool = False
+        self, const: ForeignKeyConstraint, include_options: bool = False
     ) -> None:
         self.const = const
         self.name = const.name
@@ -508,12 +503,12 @@ class _fk_constraint_sig(_constraint_sig):
 
 @comparators.dispatch_for("table")
 def _compare_indexes_and_uniques(
-    autogen_context: "AutogenContext",
-    modify_ops: "ModifyTableOps",
+    autogen_context: AutogenContext,
+    modify_ops: ModifyTableOps,
     schema: Optional[str],
-    tname: Union["quoted_name", str],
-    conn_table: Optional["Table"],
-    metadata_table: Optional["Table"],
+    tname: Union[quoted_name, str],
+    conn_table: Optional[Table],
+    metadata_table: Optional[Table],
 ) -> None:
 
     inspector = autogen_context.inspector
@@ -522,11 +517,11 @@ def _compare_indexes_and_uniques(
 
     # 1a. get raw indexes and unique constraints from metadata ...
     if metadata_table is not None:
-        metadata_unique_constraints = set(
+        metadata_unique_constraints = {
             uq
             for uq in metadata_table.constraints
             if isinstance(uq, sa_schema.UniqueConstraint)
-        )
+        }
         metadata_indexes = set(metadata_table.indexes)
     else:
         metadata_unique_constraints = set()
@@ -589,16 +584,16 @@ def _compare_indexes_and_uniques(
             # for DROP TABLE uniques are inline, don't need them
             conn_uniques = set()  # type:ignore[assignment]
         else:
-            conn_uniques = set(  # type:ignore[assignment]
+            conn_uniques = {  # type:ignore[assignment]
                 _make_unique_constraint(uq_def, conn_table)
                 for uq_def in conn_uniques
-            )
+            }
 
-        conn_indexes = set(  # type:ignore[assignment]
+        conn_indexes = {  # type:ignore[assignment]
             index
             for index in (_make_index(ix, conn_table) for ix in conn_indexes)
             if index is not None
-        )
+        }
 
     # 2a. if the dialect dupes unique indexes as unique constraints
     # (mysql and oracle), correct for that
@@ -626,63 +621,59 @@ def _compare_indexes_and_uniques(
     # _constraint_sig() objects provide a consistent facade over both
     # Index and UniqueConstraint so we can easily work with them
     # interchangeably
-    metadata_unique_constraints_sig = set(
+    metadata_unique_constraints_sig = {
         _uq_constraint_sig(uq) for uq in metadata_unique_constraints
-    )
+    }
 
-    metadata_indexes_sig = set(
-        _ix_constraint_sig(ix) for ix in metadata_indexes
-    )
+    metadata_indexes_sig = {_ix_constraint_sig(ix) for ix in metadata_indexes}
 
-    conn_unique_constraints = set(
-        _uq_constraint_sig(uq) for uq in conn_uniques
-    )
+    conn_unique_constraints = {_uq_constraint_sig(uq) for uq in conn_uniques}
 
-    conn_indexes_sig = set(_ix_constraint_sig(ix) for ix in conn_indexes)
+    conn_indexes_sig = {_ix_constraint_sig(ix) for ix in conn_indexes}
 
     # 5. index things by name, for those objects that have names
-    metadata_names = dict(
-        (cast(str, c.md_name_to_sql_name(autogen_context)), c)
+    metadata_names = {
+        cast(str, c.md_name_to_sql_name(autogen_context)): c
         for c in metadata_unique_constraints_sig.union(
             metadata_indexes_sig  # type:ignore[arg-type]
         )
         if isinstance(c, _ix_constraint_sig)
         or sqla_compat._constraint_is_named(c.const, autogen_context.dialect)
-    )
+    }
 
-    conn_uniques_by_name = dict((c.name, c) for c in conn_unique_constraints)
-    conn_indexes_by_name: Dict[Optional[str], _ix_constraint_sig] = dict(
-        (c.name, c) for c in conn_indexes_sig
-    )
-    conn_names = dict(
-        (c.name, c)
+    conn_uniques_by_name = {c.name: c for c in conn_unique_constraints}
+    conn_indexes_by_name: Dict[Optional[str], _ix_constraint_sig] = {
+        c.name: c for c in conn_indexes_sig
+    }
+    conn_names = {
+        c.name: c
         for c in conn_unique_constraints.union(
             conn_indexes_sig  # type:ignore[arg-type]
         )
         if c.name is not None
-    )
+    }
 
-    doubled_constraints = dict(
-        (name, (conn_uniques_by_name[name], conn_indexes_by_name[name]))
+    doubled_constraints = {
+        name: (conn_uniques_by_name[name], conn_indexes_by_name[name])
         for name in set(conn_uniques_by_name).intersection(
             conn_indexes_by_name
         )
-    )
+    }
 
     # 6. index things by "column signature", to help with unnamed unique
     # constraints.
-    conn_uniques_by_sig = dict((uq.sig, uq) for uq in conn_unique_constraints)
-    metadata_uniques_by_sig = dict(
-        (uq.sig, uq) for uq in metadata_unique_constraints_sig
-    )
-    metadata_indexes_by_sig = dict((ix.sig, ix) for ix in metadata_indexes_sig)
-    unnamed_metadata_uniques = dict(
-        (uq.sig, uq)
+    conn_uniques_by_sig = {uq.sig: uq for uq in conn_unique_constraints}
+    metadata_uniques_by_sig = {
+        uq.sig: uq for uq in metadata_unique_constraints_sig
+    }
+    metadata_indexes_by_sig = {ix.sig: ix for ix in metadata_indexes_sig}
+    unnamed_metadata_uniques = {
+        uq.sig: uq
         for uq in metadata_unique_constraints_sig
         if not sqla_compat._constraint_is_named(
             uq.const, autogen_context.dialect
         )
-    )
+    }
 
     # assumptions:
     # 1. a unique constraint or an index from the connection *always*
@@ -864,37 +855,31 @@ def _correct_for_uq_duplicates_uix(
         for cons in metadata_unique_constraints
     ]
 
-    metadata_uq_names = set(
+    metadata_uq_names = {
         name for name, cons in metadata_cons_names if name is not None
-    )
+    }
 
-    unnamed_metadata_uqs = set(
-        [
-            _uq_constraint_sig(cons).sig
-            for name, cons in metadata_cons_names
-            if name is None
-        ]
-    )
+    unnamed_metadata_uqs = {
+        _uq_constraint_sig(cons).sig
+        for name, cons in metadata_cons_names
+        if name is None
+    }
 
-    metadata_ix_names = set(
-        [
-            sqla_compat._get_constraint_final_name(cons, dialect)
-            for cons in metadata_indexes
-            if cons.unique
-        ]
-    )
+    metadata_ix_names = {
+        sqla_compat._get_constraint_final_name(cons, dialect)
+        for cons in metadata_indexes
+        if cons.unique
+    }
 
     # for reflection side, names are in their final database form
     # already since they're from the database
-    conn_ix_names = dict(
-        (cons.name, cons) for cons in conn_indexes if cons.unique
-    )
+    conn_ix_names = {cons.name: cons for cons in conn_indexes if cons.unique}
 
-    uqs_dupe_indexes = dict(
-        (cons.name, cons)
+    uqs_dupe_indexes = {
+        cons.name: cons
         for cons in conn_unique_constraints
         if cons.info["duplicates_index"]
-    )
+    }
 
     for overlap in uqs_dupe_indexes:
         if overlap not in metadata_uq_names:
@@ -910,13 +895,13 @@ def _correct_for_uq_duplicates_uix(
 
 @comparators.dispatch_for("column")
 def _compare_nullable(
-    autogen_context: "AutogenContext",
-    alter_column_op: "AlterColumnOp",
+    autogen_context: AutogenContext,
+    alter_column_op: AlterColumnOp,
     schema: Optional[str],
-    tname: Union["quoted_name", str],
-    cname: Union["quoted_name", str],
-    conn_col: "Column",
-    metadata_col: "Column",
+    tname: Union[quoted_name, str],
+    cname: Union[quoted_name, str],
+    conn_col: Column,
+    metadata_col: Column,
 ) -> None:
 
     metadata_col_nullable = metadata_col.nullable
@@ -952,13 +937,13 @@ def _compare_nullable(
 
 @comparators.dispatch_for("column")
 def _setup_autoincrement(
-    autogen_context: "AutogenContext",
-    alter_column_op: "AlterColumnOp",
+    autogen_context: AutogenContext,
+    alter_column_op: AlterColumnOp,
     schema: Optional[str],
-    tname: Union["quoted_name", str],
-    cname: "quoted_name",
-    conn_col: "Column",
-    metadata_col: "Column",
+    tname: Union[quoted_name, str],
+    cname: quoted_name,
+    conn_col: Column,
+    metadata_col: Column,
 ) -> None:
 
     if metadata_col.table._autoincrement_column is metadata_col:
@@ -971,13 +956,13 @@ def _setup_autoincrement(
 
 @comparators.dispatch_for("column")
 def _compare_type(
-    autogen_context: "AutogenContext",
-    alter_column_op: "AlterColumnOp",
+    autogen_context: AutogenContext,
+    alter_column_op: AlterColumnOp,
     schema: Optional[str],
-    tname: Union["quoted_name", str],
-    cname: Union["quoted_name", str],
-    conn_col: "Column",
-    metadata_col: "Column",
+    tname: Union[quoted_name, str],
+    cname: Union[quoted_name, str],
+    conn_col: Column,
+    metadata_col: Column,
 ) -> None:
 
     conn_type = conn_col.type
@@ -1015,8 +1000,8 @@ def _compare_type(
 
 def _render_server_default_for_compare(
     metadata_default: Optional[Any],
-    metadata_col: "Column",
-    autogen_context: "AutogenContext",
+    metadata_col: Column,
+    autogen_context: AutogenContext,
 ) -> Optional[str]:
     rendered = _user_defined_render(
         "server_default", metadata_default, autogen_context
@@ -1055,13 +1040,13 @@ def _normalize_computed_default(sqltext: str) -> str:
 
 
 def _compare_computed_default(
-    autogen_context: "AutogenContext",
-    alter_column_op: "AlterColumnOp",
+    autogen_context: AutogenContext,
+    alter_column_op: AlterColumnOp,
     schema: Optional[str],
-    tname: "str",
-    cname: "str",
-    conn_col: "Column",
-    metadata_col: "Column",
+    tname: str,
+    cname: str,
+    conn_col: Column,
+    metadata_col: Column,
 ) -> None:
     rendered_metadata_default = str(
         cast(sa_schema.Computed, metadata_col.server_default).sqltext.compile(
@@ -1121,13 +1106,13 @@ def _compare_identity_default(
 
 @comparators.dispatch_for("column")
 def _compare_server_default(
-    autogen_context: "AutogenContext",
-    alter_column_op: "AlterColumnOp",
+    autogen_context: AutogenContext,
+    alter_column_op: AlterColumnOp,
     schema: Optional[str],
-    tname: Union["quoted_name", str],
-    cname: Union["quoted_name", str],
-    conn_col: "Column",
-    metadata_col: "Column",
+    tname: Union[quoted_name, str],
+    cname: Union[quoted_name, str],
+    conn_col: Column,
+    metadata_col: Column,
 ) -> Optional[bool]:
 
     metadata_default = metadata_col.server_default
@@ -1210,14 +1195,14 @@ def _compare_server_default(
 
 @comparators.dispatch_for("column")
 def _compare_column_comment(
-    autogen_context: "AutogenContext",
-    alter_column_op: "AlterColumnOp",
+    autogen_context: AutogenContext,
+    alter_column_op: AlterColumnOp,
     schema: Optional[str],
-    tname: Union["quoted_name", str],
-    cname: "quoted_name",
-    conn_col: "Column",
-    metadata_col: "Column",
-) -> Optional["Literal[False]"]:
+    tname: Union[quoted_name, str],
+    cname: quoted_name,
+    conn_col: Column,
+    metadata_col: Column,
+) -> Optional[Literal[False]]:
 
     assert autogen_context.dialect is not None
     if not autogen_context.dialect.supports_comments:
@@ -1239,12 +1224,12 @@ def _compare_column_comment(
 
 @comparators.dispatch_for("table")
 def _compare_foreign_keys(
-    autogen_context: "AutogenContext",
-    modify_table_ops: "ModifyTableOps",
+    autogen_context: AutogenContext,
+    modify_table_ops: ModifyTableOps,
     schema: Optional[str],
-    tname: Union["quoted_name", str],
-    conn_table: Optional["Table"],
-    metadata_table: Optional["Table"],
+    tname: Union[quoted_name, str],
+    conn_table: Optional[Table],
+    metadata_table: Optional[Table],
 ) -> None:
 
     # if we're doing CREATE TABLE, all FKs are created
@@ -1253,11 +1238,11 @@ def _compare_foreign_keys(
         return
 
     inspector = autogen_context.inspector
-    metadata_fks = set(
+    metadata_fks = {
         fk
         for fk in metadata_table.constraints
         if isinstance(fk, sa_schema.ForeignKeyConstraint)
-    )
+    }
 
     conn_fks_list = [
         fk
@@ -1273,10 +1258,10 @@ def _compare_foreign_keys(
         conn_fks_list and "options" in conn_fks_list[0]
     )
 
-    conn_fks = set(
+    conn_fks = {
         _make_foreign_key(const, conn_table)  # type: ignore[arg-type]
         for const in conn_fks_list
-    )
+    }
 
     # give the dialect a chance to correct the FKs to match more
     # closely
@@ -1284,25 +1269,23 @@ def _compare_foreign_keys(
         conn_fks, metadata_fks
     )
 
-    metadata_fks_sig = set(
+    metadata_fks_sig = {
         _fk_constraint_sig(fk, include_options=backend_reflects_fk_options)
         for fk in metadata_fks
-    )
+    }
 
-    conn_fks_sig = set(
+    conn_fks_sig = {
         _fk_constraint_sig(fk, include_options=backend_reflects_fk_options)
         for fk in conn_fks
-    )
+    }
 
-    conn_fks_by_sig = dict((c.sig, c) for c in conn_fks_sig)
-    metadata_fks_by_sig = dict((c.sig, c) for c in metadata_fks_sig)
+    conn_fks_by_sig = {c.sig: c for c in conn_fks_sig}
+    metadata_fks_by_sig = {c.sig: c for c in metadata_fks_sig}
 
-    metadata_fks_by_name = dict(
-        (c.name, c) for c in metadata_fks_sig if c.name is not None
-    )
-    conn_fks_by_name = dict(
-        (c.name, c) for c in conn_fks_sig if c.name is not None
-    )
+    metadata_fks_by_name = {
+        c.name: c for c in metadata_fks_sig if c.name is not None
+    }
+    conn_fks_by_name = {c.name: c for c in conn_fks_sig if c.name is not None}
 
     def _add_fk(obj, compare_to):
         if autogen_context.run_object_filters(
@@ -1361,12 +1344,12 @@ def _compare_foreign_keys(
 
 @comparators.dispatch_for("table")
 def _compare_table_comment(
-    autogen_context: "AutogenContext",
-    modify_table_ops: "ModifyTableOps",
+    autogen_context: AutogenContext,
+    modify_table_ops: ModifyTableOps,
     schema: Optional[str],
-    tname: Union["quoted_name", str],
-    conn_table: Optional["Table"],
-    metadata_table: Optional["Table"],
+    tname: Union[quoted_name, str],
+    conn_table: Optional[Table],
+    metadata_table: Optional[Table],
 ) -> None:
 
     assert autogen_context.dialect is not None

@@ -552,7 +552,7 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestBase):
 
         diffs = self._fixture(m1, m2)
 
-        diffs = set(
+        diffs = {
             (
                 cmd,
                 isinstance(obj, (UniqueConstraint, Index))
@@ -560,23 +560,21 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestBase):
                 else False,
             )
             for cmd, obj in diffs
-        )
+        }
 
         if self.reports_unnamed_constraints:
             if self.reports_unique_constraints_as_indexes:
                 eq_(
                     diffs,
-                    set([("remove_index", True), ("add_constraint", False)]),
+                    {("remove_index", True), ("add_constraint", False)},
                 )
             else:
                 eq_(
                     diffs,
-                    set(
-                        [
-                            ("remove_constraint", True),
-                            ("add_constraint", False),
-                        ]
-                    ),
+                    {
+                        ("remove_constraint", True),
+                        ("add_constraint", False),
+                    },
                 )
 
     def test_remove_named_unique_index(self):
@@ -594,8 +592,8 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestBase):
         diffs = self._fixture(m1, m2)
 
         if self.reports_unique_constraints:
-            diffs = set((cmd, obj.name) for cmd, obj in diffs)
-            eq_(diffs, set([("remove_index", "xidx")]))
+            diffs = {(cmd, obj.name) for cmd, obj in diffs}
+            eq_(diffs, {("remove_index", "xidx")})
         else:
             eq_(diffs, [])
 
@@ -614,11 +612,11 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestBase):
         diffs = self._fixture(m1, m2)
 
         if self.reports_unique_constraints:
-            diffs = set((cmd, obj.name) for cmd, obj in diffs)
+            diffs = {(cmd, obj.name) for cmd, obj in diffs}
             if self.reports_unique_constraints_as_indexes:
-                eq_(diffs, set([("remove_index", "xidx")]))
+                eq_(diffs, {("remove_index", "xidx")})
             else:
-                eq_(diffs, set([("remove_constraint", "xidx")]))
+                eq_(diffs, {("remove_constraint", "xidx")})
         else:
             eq_(diffs, [])
 
@@ -668,9 +666,9 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestBase):
 
         eq_(diffs[0][0], "add_table")
         eq_(len(diffs), 2)
-        assert UniqueConstraint not in set(
+        assert UniqueConstraint not in {
             type(c) for c in diffs[0][1].constraints
-        )
+        }
 
         eq_(diffs[1][0], "add_index")
         d_table = diffs[0][1]
@@ -1071,9 +1069,7 @@ class AutogenerateIndexTest(AutogenFixtureTest, TestBase):
         eq_(diffs[1][0], "remove_index")
         eq_(diffs[2][0], "remove_table")
 
-        eq_(
-            set([diffs[0][1].name, diffs[1][1].name]), set(["xy_idx", "y_idx"])
-        )
+        eq_({diffs[0][1].name, diffs[1][1].name}, {"xy_idx", "y_idx"})
 
     def test_add_ix_on_table_create(self):
         m1 = MetaData()
@@ -1083,9 +1079,9 @@ class AutogenerateIndexTest(AutogenFixtureTest, TestBase):
 
         eq_(diffs[0][0], "add_table")
         eq_(len(diffs), 2)
-        assert UniqueConstraint not in set(
+        assert UniqueConstraint not in {
             type(c) for c in diffs[0][1].constraints
-        )
+        }
         eq_(diffs[1][0], "add_index")
         eq_(diffs[1][1].unique, False)
 

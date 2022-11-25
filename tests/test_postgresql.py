@@ -838,9 +838,7 @@ class PostgresqlDetectSerialTest(TestBase):
         insp = inspect(config.db)
 
         uo = ops.UpgradeOps(ops=[])
-        _compare_tables(
-            set([(None, "t")]), set([]), insp, uo, self.autogen_context
-        )
+        _compare_tables({(None, "t")}, set(), insp, uo, self.autogen_context)
         diffs = uo.as_diffs()
         tab = diffs[0][1]
 
@@ -857,8 +855,8 @@ class PostgresqlDetectSerialTest(TestBase):
         Table("t", m2, Column("x", BigInteger()))
         self.autogen_context.metadata = m2
         _compare_tables(
-            set([(None, "t")]),
-            set([(None, "t")]),
+            {(None, "t")},
+            {(None, "t")},
             insp,
             uo,
             self.autogen_context,

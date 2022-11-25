@@ -1,4 +1,3 @@
-#!coding: utf-8
 import importlib.machinery
 import os
 import shutil

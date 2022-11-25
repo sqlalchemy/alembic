@@ -30,7 +30,7 @@ try:
     _h, TERMWIDTH, _hp, _wp = struct.unpack("HHHH", ioctl)
     if TERMWIDTH <= 0:  # can occur if running in emacs pseudo-tty
         TERMWIDTH = None
-except (ImportError, IOError):
+except (ImportError, OSError):
     TERMWIDTH = None
 
 
@@ -42,7 +42,7 @@ def write_outstream(stream: TextIO, *text) -> None:
         t = t.decode(encoding)
         try:
             stream.write(t)
-        except IOError:
+        except OSError:
             # suppress "broken pipe" errors.
             # no known way to handle this on Python 3 however
             # as the exception is "ignored" (noisily) in TextIOWrapper.
@@ -92,7 +92,7 @@ def msg(msg: str, newline: bool = True, flush: bool = False) -> None:
         sys.stdout.flush()
 
 
-def format_as_comma(value: Optional[Union[str, "Iterable[str]"]]) -> str:
+def format_as_comma(value: Optional[Union[str, Iterable[str]]]) -> str:
     if value is None:
         return ""
     elif isinstance(value, str):

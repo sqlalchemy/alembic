@@ -30,7 +30,7 @@ _T = TypeVar("_T")
 
 class _ModuleClsMeta(type):
     def __setattr__(cls, key: str, value: Callable) -> None:
-        super(_ModuleClsMeta, cls).__setattr__(key, value)
+        super().__setattr__(key, value)
         cls._update_module_proxies(key)  # type: ignore
 
 
@@ -270,7 +270,7 @@ class Dispatcher:
         else:
             return fn_or_list  # type: ignore
 
-    def branch(self) -> "Dispatcher":
+    def branch(self) -> Dispatcher:
         """Return a copy of this dispatcher that is independently
         writable."""
 

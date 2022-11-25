@@ -36,7 +36,7 @@ if TYPE_CHECKING:
 
 class SchemaObjects:
     def __init__(
-        self, migration_context: Optional["MigrationContext"] = None
+        self, migration_context: Optional[MigrationContext] = None
     ) -> None:
         self.migration_context = migration_context
 
@@ -47,7 +47,7 @@ class SchemaObjects:
         cols: Sequence[str],
         schema: Optional[str] = None,
         **dialect_kw,
-    ) -> "PrimaryKeyConstraint":
+    ) -> PrimaryKeyConstraint:
         m = self.metadata()
         columns = [sa_schema.Column(n, NULLTYPE) for n in cols]
         t = sa_schema.Table(table_name, m, *columns, schema=schema)
@@ -71,7 +71,7 @@ class SchemaObjects:
         initially: Optional[str] = None,
         match: Optional[str] = None,
         **dialect_kw,
-    ) -> "ForeignKeyConstraint":
+    ) -> ForeignKeyConstraint:
         m = self.metadata()
         if source == referent and source_schema == referent_schema:
             t1_cols = local_cols + remote_cols
@@ -120,7 +120,7 @@ class SchemaObjects:
         local_cols: Sequence[str],
         schema: Optional[str] = None,
         **kw,
-    ) -> "UniqueConstraint":
+    ) -> UniqueConstraint:
         t = sa_schema.Table(
             source,
             self.metadata(),
@@ -138,10 +138,10 @@ class SchemaObjects:
         self,
         name: Optional[str],
         source: str,
-        condition: Union[str, "TextClause", "ColumnElement[Any]"],
+        condition: Union[str, TextClause, ColumnElement[Any]],
         schema: Optional[str] = None,
         **kw,
-    ) -> Union["CheckConstraint"]:
+    ) -> Union[CheckConstraint]:
         t = sa_schema.Table(
             source,
             self.metadata(),
@@ -182,7 +182,7 @@ class SchemaObjects:
             t.append_constraint(const)
             return const
 
-    def metadata(self) -> "MetaData":
+    def metadata(self) -> MetaData:
         kw = {}
         if (
             self.migration_context is not None
@@ -193,7 +193,7 @@ class SchemaObjects:
                 kw["naming_convention"] = mt.naming_convention
         return sa_schema.MetaData(**kw)
 
-    def table(self, name: str, *columns, **kw) -> "Table":
+    def table(self, name: str, *columns, **kw) -> Table:
         m = self.metadata()
 
         cols = [
@@ -230,17 +230,17 @@ class SchemaObjects:
             self._ensure_table_for_fk(m, f)
         return t
 
-    def column(self, name: str, type_: "TypeEngine", **kw) -> "Column":
+    def column(self, name: str, type_: TypeEngine, **kw) -> Column:
         return sa_schema.Column(name, type_, **kw)
 
     def index(
         self,
         name: str,
         tablename: Optional[str],
-        columns: Sequence[Union[str, "TextClause", "ColumnElement[Any]"]],
+        columns: Sequence[Union[str, TextClause, ColumnElement[Any]]],
         schema: Optional[str] = None,
         **kw,
-    ) -> "Index":
+    ) -> Index:
         t = sa_schema.Table(
             tablename or "no_table",
             self.metadata(),
@@ -264,9 +264,7 @@ class SchemaObjects:
             sname = None
         return (sname, tname)
 
-    def _ensure_table_for_fk(
-        self, metadata: "MetaData", fk: "ForeignKey"
-    ) -> None:
+    def _ensure_table_for_fk(self, metadata: MetaData, fk: ForeignKey) -> None:
         """create a placeholder Table object for the referent of a
         ForeignKey.
 

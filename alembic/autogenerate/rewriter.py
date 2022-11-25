@@ -95,11 +95,11 @@ class Rewriter:
     def rewrites(
         self,
         operator: Union[
-            Type["AddColumnOp"],
-            Type["MigrateOperation"],
-            Type["AlterColumnOp"],
-            Type["CreateTableOp"],
-            Type["ModifyTableOps"],
+            Type[AddColumnOp],
+            Type[MigrateOperation],
+            Type[AlterColumnOp],
+            Type[CreateTableOp],
+            Type[ModifyTableOps],
         ],
     ) -> Callable:
         """Register a function as rewriter for a given type.
@@ -118,10 +118,10 @@ class Rewriter:
 
     def _rewrite(
         self,
-        context: "MigrationContext",
-        revision: "Revision",
-        directive: "MigrateOperation",
-    ) -> Iterator["MigrateOperation"]:
+        context: MigrationContext,
+        revision: Revision,
+        directive: MigrateOperation,
+    ) -> Iterator[MigrateOperation]:
         try:
             _rewriter = self.dispatch.dispatch(directive)
         except ValueError:
@@ -141,9 +141,9 @@ class Rewriter:
 
     def __call__(
         self,
-        context: "MigrationContext",
-        revision: "Revision",
-        directives: List["MigrationScript"],
+        context: MigrationContext,
+        revision: Revision,
+        directives: List[MigrationScript],
     ) -> None:
         self.process_revision_directives(context, revision, directives)
         if self._chained:
@@ -152,9 +152,9 @@ class Rewriter:
     @_traverse.dispatch_for(ops.MigrationScript)
     def _traverse_script(
         self,
-        context: "MigrationContext",
-        revision: "Revision",
-        directive: "MigrationScript",
+        context: MigrationContext,
+        revision: Revision,
+        directive: MigrationScript,
     ) -> None:
         upgrade_ops_list = []
         for upgrade_ops in directive.upgrade_ops_list:
@@ -179,26 +179,26 @@ class Rewriter:
     @_traverse.dispatch_for(ops.OpContainer)
     def _traverse_op_container(
         self,
-        context: "MigrationContext",
-        revision: "Revision",
-        directive: "OpContainer",
+        context: MigrationContext,
+        revision: Revision,
+        directive: OpContainer,
     ) -> None:
         self._traverse_list(context, revision, directive.ops)
 
     @_traverse.dispatch_for(ops.MigrateOperation)
     def _traverse_any_directive(
         self,
-        context: "MigrationContext",
-        revision: "Revision",
-        directive: "MigrateOperation",
+        context: MigrationContext,
+        revision: Revision,
+        directive: MigrateOperation,
     ) -> None:
         pass
 
     def _traverse_for(
         self,
-        context: "MigrationContext",
-        revision: "Revision",
-        directive: "MigrateOperation",
+        context: MigrationContext,
+        revision: Revision,
+        directive: MigrateOperation,
     ) -> Any:
         directives = list(self._rewrite(context, revision, directive))
         for directive in directives:
@@ -208,8 +208,8 @@ class Rewriter:
 
     def _traverse_list(
         self,
-        context: "MigrationContext",
-        revision: "Revision",
+        context: MigrationContext,
+        revision: Revision,
         directives: Any,
     ) -> None:
         dest = []
@@ -220,8 +220,8 @@ class Rewriter:
 
     def process_revision_directives(
         self,
-        context: "MigrationContext",
-        revision: "Revision",
-        directives: List["MigrationScript"],
+        context: MigrationContext,
+        revision: Revision,
+        directives: List[MigrationScript],
     ) -> None:
         self._traverse_list(context, revision, directives)

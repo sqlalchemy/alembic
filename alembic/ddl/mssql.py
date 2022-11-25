@@ -62,13 +62,13 @@ class MSSQLImpl(DefaultImpl):
     )
 
     def __init__(self, *arg, **kw) -> None:
-        super(MSSQLImpl, self).__init__(*arg, **kw)
+        super().__init__(*arg, **kw)
         self.batch_separator = self.context_opts.get(
             "mssql_batch_separator", self.batch_separator
         )
 
-    def _exec(self, construct: Any, *args, **kw) -> Optional["CursorResult"]:
-        result = super(MSSQLImpl, self)._exec(construct, *args, **kw)
+    def _exec(self, construct: Any, *args, **kw) -> Optional[CursorResult]:
+        result = super()._exec(construct, *args, **kw)
         if self.as_sql and self.batch_separator:
             self.static_output(self.batch_separator)
         return result
@@ -77,7 +77,7 @@ class MSSQLImpl(DefaultImpl):
         self.static_output("BEGIN TRANSACTION" + self.command_terminator)
 
     def emit_commit(self) -> None:
-        super(MSSQLImpl, self).emit_commit()
+        super().emit_commit()
         if self.as_sql and self.batch_separator:
             self.static_output(self.batch_separator)
 
@@ -87,13 +87,13 @@ class MSSQLImpl(DefaultImpl):
         column_name: str,
         nullable: Optional[bool] = None,
         server_default: Optional[
-            Union["_ServerDefault", "Literal[False]"]
+            Union[_ServerDefault, Literal[False]]
         ] = False,
         name: Optional[str] = None,
-        type_: Optional["TypeEngine"] = None,
+        type_: Optional[TypeEngine] = None,
         schema: Optional[str] = None,
-        existing_type: Optional["TypeEngine"] = None,
-        existing_server_default: Optional["_ServerDefault"] = None,
+        existing_type: Optional[TypeEngine] = None,
+        existing_server_default: Optional[_ServerDefault] = None,
         existing_nullable: Optional[bool] = None,
         **kw: Any,
     ) -> None:
@@ -136,7 +136,7 @@ class MSSQLImpl(DefaultImpl):
             kw["server_default"] = server_default
             kw["existing_server_default"] = existing_server_default
 
-        super(MSSQLImpl, self).alter_column(
+        super().alter_column(
             table_name,
             column_name,
             nullable=nullable,
@@ -158,7 +158,7 @@ class MSSQLImpl(DefaultImpl):
                     )
                 )
             if server_default is not None:
-                super(MSSQLImpl, self).alter_column(
+                super().alter_column(
                     table_name,
                     column_name,
                     schema=schema,
@@ -166,11 +166,11 @@ class MSSQLImpl(DefaultImpl):
                 )
 
         if name is not None:
-            super(MSSQLImpl, self).alter_column(
+            super().alter_column(
                 table_name, column_name, schema=schema, name=name
             )
 
-    def create_index(self, index: "Index") -> None:
+    def create_index(self, index: Index) -> None:
         # this likely defaults to None if not present, so get()
         # should normally not return the default value.  being
         # defensive in any case
@@ -182,25 +182,25 @@ class MSSQLImpl(DefaultImpl):
         self._exec(CreateIndex(index))
 
     def bulk_insert(  # type:ignore[override]
-        self, table: Union["TableClause", "Table"], rows: List[dict], **kw: Any
+        self, table: Union[TableClause, Table], rows: List[dict], **kw: Any
     ) -> None:
         if self.as_sql:
             self._exec(
                 "SET IDENTITY_INSERT %s ON"
                 % self.dialect.identifier_preparer.format_table(table)
             )
-            super(MSSQLImpl, self).bulk_insert(table, rows, **kw)
+            super().bulk_insert(table, rows, **kw)
             self._exec(
                 "SET IDENTITY_INSERT %s OFF"
                 % self.dialect.identifier_preparer.format_table(table)
             )
         else:
-            super(MSSQLImpl, self).bulk_insert(table, rows, **kw)
+            super().bulk_insert(table, rows, **kw)
 
     def drop_column(
         self,
         table_name: str,
-        column: "Column",
+        column: Column,
         schema: Optional[str] = None,
         **kw,
     ) -> None:
@@ -221,9 +221,7 @@ class MSSQLImpl(DefaultImpl):
         drop_fks = kw.pop("mssql_drop_foreign_key", False)
         if drop_fks:
             self._exec(_ExecDropFKConstraint(table_name, column, schema))
-        super(MSSQLImpl, self).drop_column(
-            table_name, column, schema=schema, **kw
-        )
+        super().drop_column(table_name, column, schema=schema, **kw)
 
     def compare_server_default(
         self,
@@ -244,9 +242,9 @@ class MSSQLImpl(DefaultImpl):
         )
 
     def _compare_identity_default(self, metadata_identity, inspector_identity):
-        diff, ignored, is_alter = super(
-            MSSQLImpl, self
-        )._compare_identity_default(metadata_identity, inspector_identity)
+        diff, ignored, is_alter = super()._compare_identity_default(
+            metadata_identity, inspector_identity
+        )
 
         if (
             metadata_identity is None
@@ -268,7 +266,7 @@ class _ExecDropConstraint(Executable, ClauseElement):
     def __init__(
         self,
         tname: str,
-        colname: Union["Column", str],
+        colname: Union[Column, str],
         type_: str,
         schema: Optional[str],
     ) -> None:
@@ -282,7 +280,7 @@ class _ExecDropFKConstraint(Executable, ClauseElement):
     inherit_cache = False
 
     def __init__(
-        self, tname: str, colname: "Column", schema: Optional[str]
+        self, tname: str, colname: Column, schema: Optional[str]
     ) -> None:
         self.tname = tname
         self.colname = colname
@@ -291,7 +289,7 @@ class _ExecDropFKConstraint(Executable, ClauseElement):
 
 @compiles(_ExecDropConstraint, "mssql")
 def _exec_drop_col_constraint(
-    element: "_ExecDropConstraint", compiler: "MSSQLCompiler", **kw
+    element: _ExecDropConstraint, compiler: MSSQLCompiler, **kw
 ) -> str:
     schema, tname, colname, type_ = (
         element.schema,
@@ -317,7 +315,7 @@ exec('alter table %(tname_quoted)s drop constraint ' + @const_name)""" % {
 
 @compiles(_ExecDropFKConstraint, "mssql")
 def _exec_drop_col_fk_constraint(
-    element: "_ExecDropFKConstraint", compiler: "MSSQLCompiler", **kw
+    element: _ExecDropFKConstraint, compiler: MSSQLCompiler, **kw
 ) -> str:
     schema, tname, colname = element.schema, element.tname, element.colname
 
@@ -336,22 +334,20 @@ exec('alter table %(tname_quoted)s drop constraint ' + @const_name)""" % {
 
 
 @compiles(AddColumn, "mssql")
-def visit_add_column(
-    element: "AddColumn", compiler: "MSDDLCompiler", **kw
-) -> str:
+def visit_add_column(element: AddColumn, compiler: MSDDLCompiler, **kw) -> str:
     return "%s %s" % (
         alter_table(compiler, element.table_name, element.schema),
         mssql_add_column(compiler, element.column, **kw),
     )
 
 
-def mssql_add_column(compiler: "MSDDLCompiler", column: "Column", **kw) -> str:
+def mssql_add_column(compiler: MSDDLCompiler, column: Column, **kw) -> str:
     return "ADD %s" % compiler.get_column_specification(column, **kw)
 
 
 @compiles(ColumnNullable, "mssql")
 def visit_column_nullable(
-    element: "ColumnNullable", compiler: "MSDDLCompiler", **kw
+    element: ColumnNullable, compiler: MSDDLCompiler, **kw
 ) -> str:
     return "%s %s %s %s" % (
         alter_table(compiler, element.table_name, element.schema),
@@ -363,7 +359,7 @@ def visit_column_nullable(
 
 @compiles(ColumnDefault, "mssql")
 def visit_column_default(
-    element: "ColumnDefault", compiler: "MSDDLCompiler", **kw
+    element: ColumnDefault, compiler: MSDDLCompiler, **kw
 ) -> str:
     # TODO: there can also be a named constraint
     # with ADD CONSTRAINT here
@@ -376,7 +372,7 @@ def visit_column_default(
 
 @compiles(ColumnName, "mssql")
 def visit_rename_column(
-    element: "ColumnName", compiler: "MSDDLCompiler", **kw
+    element: ColumnName, compiler: MSDDLCompiler, **kw
 ) -> str:
     return "EXEC sp_rename '%s.%s', %s, 'COLUMN'" % (
         format_table_name(compiler, element.table_name, element.schema),
@@ -387,7 +383,7 @@ def visit_rename_column(
 
 @compiles(ColumnType, "mssql")
 def visit_column_type(
-    element: "ColumnType", compiler: "MSDDLCompiler", **kw
+    element: ColumnType, compiler: MSDDLCompiler, **kw
 ) -> str:
     return "%s %s %s" % (
         alter_table(compiler, element.table_name, element.schema),
@@ -398,7 +394,7 @@ def visit_column_type(
 
 @compiles(RenameTable, "mssql")
 def visit_rename_table(
-    element: "RenameTable", compiler: "MSDDLCompiler", **kw
+    element: RenameTable, compiler: MSDDLCompiler, **kw
 ) -> str:
     return "EXEC sp_rename '%s', %s" % (
         format_table_name(compiler, element.table_name, element.schema),

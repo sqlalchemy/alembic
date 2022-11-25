@@ -136,13 +136,13 @@ class PostgresqlImpl(DefaultImpl):
         table_name: str,
         column_name: str,
         nullable: Optional[bool] = None,
-        server_default: Union["_ServerDefault", "Literal[False]"] = False,
+        server_default: Union[_ServerDefault, Literal[False]] = False,
         name: Optional[str] = None,
-        type_: Optional["TypeEngine"] = None,
+        type_: Optional[TypeEngine] = None,
         schema: Optional[str] = None,
         autoincrement: Optional[bool] = None,
-        existing_type: Optional["TypeEngine"] = None,
-        existing_server_default: Optional["_ServerDefault"] = None,
+        existing_type: Optional[TypeEngine] = None,
+        existing_server_default: Optional[_ServerDefault] = None,
         existing_nullable: Optional[bool] = None,
         existing_autoincrement: Optional[bool] = None,
         **kw: Any,
@@ -169,7 +169,7 @@ class PostgresqlImpl(DefaultImpl):
                 )
             )
 
-        super(PostgresqlImpl, self).alter_column(
+        super().alter_column(
             table_name,
             column_name,
             nullable=nullable,
@@ -230,13 +230,13 @@ class PostgresqlImpl(DefaultImpl):
         metadata_indexes,
     ):
 
-        conn_indexes_by_name = dict((c.name, c) for c in conn_indexes)
+        conn_indexes_by_name = {c.name: c for c in conn_indexes}
 
-        doubled_constraints = set(
+        doubled_constraints = {
             index
             for index in conn_indexes
             if index.info.get("duplicates_constraint")
-        )
+        }
 
         for ix in doubled_constraints:
             conn_indexes.remove(ix)
@@ -260,8 +260,8 @@ class PostgresqlImpl(DefaultImpl):
                     metadata_indexes.discard(idx)
 
     def render_type(
-        self, type_: "TypeEngine", autogen_context: "AutogenContext"
-    ) -> Union[str, "Literal[False]"]:
+        self, type_: TypeEngine, autogen_context: AutogenContext
+    ) -> Union[str, Literal[False]]:
         mod = type(type_).__module__
         if not mod.startswith("sqlalchemy.dialects.postgresql"):
             return False
@@ -273,7 +273,7 @@ class PostgresqlImpl(DefaultImpl):
         return False
 
     def _render_HSTORE_type(
-        self, type_: "HSTORE", autogen_context: "AutogenContext"
+        self, type_: HSTORE, autogen_context: AutogenContext
     ) -> str:
         return cast(
             str,
@@ -283,7 +283,7 @@ class PostgresqlImpl(DefaultImpl):
         )
 
     def _render_ARRAY_type(
-        self, type_: "ARRAY", autogen_context: "AutogenContext"
+        self, type_: ARRAY, autogen_context: AutogenContext
     ) -> str:
         return cast(
             str,
@@ -293,7 +293,7 @@ class PostgresqlImpl(DefaultImpl):
         )
 
     def _render_JSON_type(
-        self, type_: "JSON", autogen_context: "AutogenContext"
+        self, type_: JSON, autogen_context: AutogenContext
     ) -> str:
         return cast(
             str,
@@ -303,7 +303,7 @@ class PostgresqlImpl(DefaultImpl):
         )
 
     def _render_JSONB_type(
-        self, type_: "JSONB", autogen_context: "AutogenContext"
+        self, type_: JSONB, autogen_context: AutogenContext
     ) -> str:
         return cast(
             str,
@@ -315,17 +315,17 @@ class PostgresqlImpl(DefaultImpl):
 
 class PostgresqlColumnType(AlterColumn):
     def __init__(
-        self, name: str, column_name: str, type_: "TypeEngine", **kw
+        self, name: str, column_name: str, type_: TypeEngine, **kw
     ) -> None:
         using = kw.pop("using", None)
-        super(PostgresqlColumnType, self).__init__(name, column_name, **kw)
+        super().__init__(name, column_name, **kw)
         self.type_ = sqltypes.to_instance(type_)
         self.using = using
 
 
 @compiles(RenameTable, "postgresql")
 def visit_rename_table(
-    element: RenameTable, compiler: "PGDDLCompiler", **kw
+    element: RenameTable, compiler: PGDDLCompiler, **kw
 ) -> str:
     return "%s RENAME TO %s" % (
         alter_table(compiler, element.table_name, element.schema),
@@ -335,7 +335,7 @@ def visit_rename_table(
 
 @compiles(PostgresqlColumnType, "postgresql")
 def visit_column_type(
-    element: PostgresqlColumnType, compiler: "PGDDLCompiler", **kw
+    element: PostgresqlColumnType, compiler: PGDDLCompiler, **kw
 ) -> str:
     return "%s %s %s %s" % (
         alter_table(compiler, element.table_name, element.schema),
@@ -347,7 +347,7 @@ def visit_column_type(
 
 @compiles(ColumnComment, "postgresql")
 def visit_column_comment(
-    element: "ColumnComment", compiler: "PGDDLCompiler", **kw
+    element: ColumnComment, compiler: PGDDLCompiler, **kw
 ) -> str:
     ddl = "COMMENT ON COLUMN {table_name}.{column_name} IS {comment}"
     comment = (
@@ -369,7 +369,7 @@ def visit_column_comment(
 
 @compiles(IdentityColumnDefault, "postgresql")
 def visit_identity_column(
-    element: "IdentityColumnDefault", compiler: "PGDDLCompiler", **kw
+    element: IdentityColumnDefault, compiler: PGDDLCompiler, **kw
 ):
     text = "%s %s " % (
         alter_table(compiler, element.table_name, element.schema),
@@ -415,14 +415,14 @@ class CreateExcludeConstraintOp(ops.AddConstraintOp):
     def __init__(
         self,
         constraint_name: Optional[str],
-        table_name: Union[str, "quoted_name"],
+        table_name: Union[str, quoted_name],
         elements: Union[
             Sequence[Tuple[str, str]],
-            Sequence[Tuple["ColumnClause", str]],
+            Sequence[Tuple[ColumnClause, str]],
         ],
-        where: Optional[Union["BinaryExpression", str]] = None,
+        where: Optional[Union[BinaryExpression, str]] = None,
         schema: Optional[str] = None,
-        _orig_constraint: Optional["ExcludeConstraint"] = None,
+        _orig_constraint: Optional[ExcludeConstraint] = None,
         **kw,
     ) -> None:
         self.constraint_name = constraint_name
@@ -435,8 +435,8 @@ class CreateExcludeConstraintOp(ops.AddConstraintOp):
 
     @classmethod
     def from_constraint(  # type:ignore[override]
-        cls, constraint: "ExcludeConstraint"
-    ) -> "CreateExcludeConstraintOp":
+        cls, constraint: ExcludeConstraint
+    ) -> CreateExcludeConstraintOp:
         constraint_table = sqla_compat._table_for_constraint(constraint)
 
         return cls(
@@ -455,8 +455,8 @@ class CreateExcludeConstraintOp(ops.AddConstraintOp):
         )
 
     def to_constraint(
-        self, migration_context: Optional["MigrationContext"] = None
-    ) -> "ExcludeConstraint":
+        self, migration_context: Optional[MigrationContext] = None
+    ) -> ExcludeConstraint:
         if self._orig_constraint is not None:
             return self._orig_constraint
         schema_obj = schemaobj.SchemaObjects(migration_context)
@@ -479,12 +479,12 @@ class CreateExcludeConstraintOp(ops.AddConstraintOp):
     @classmethod
     def create_exclude_constraint(
         cls,
-        operations: "Operations",
+        operations: Operations,
         constraint_name: str,
         table_name: str,
         *elements: Any,
         **kw: Any,
-    ) -> Optional["Table"]:
+    ) -> Optional[Table]:
         """Issue an alter to create an EXCLUDE constraint using the
         current migration context.
 
@@ -546,16 +546,16 @@ class CreateExcludeConstraintOp(ops.AddConstraintOp):
 
 @render.renderers.dispatch_for(CreateExcludeConstraintOp)
 def _add_exclude_constraint(
-    autogen_context: "AutogenContext", op: "CreateExcludeConstraintOp"
+    autogen_context: AutogenContext, op: CreateExcludeConstraintOp
 ) -> str:
     return _exclude_constraint(op.to_constraint(), autogen_context, alter=True)
 
 
 @render._constraint_renderers.dispatch_for(ExcludeConstraint)
 def _render_inline_exclude_constraint(
-    constraint: "ExcludeConstraint",
-    autogen_context: "AutogenContext",
-    namespace_metadata: "MetaData",
+    constraint: ExcludeConstraint,
+    autogen_context: AutogenContext,
+    namespace_metadata: MetaData,
 ) -> str:
     rendered = render._user_defined_render(
         "exclude", constraint, autogen_context
@@ -566,7 +566,7 @@ def _render_inline_exclude_constraint(
     return _exclude_constraint(constraint, autogen_context, False)
 
 
-def _postgresql_autogenerate_prefix(autogen_context: "AutogenContext") -> str:
+def _postgresql_autogenerate_prefix(autogen_context: AutogenContext) -> str:
 
     imports = autogen_context.imports
     if imports is not None:
@@ -575,8 +575,8 @@ def _postgresql_autogenerate_prefix(autogen_context: "AutogenContext") -> str:
 
 
 def _exclude_constraint(
-    constraint: "ExcludeConstraint",
-    autogen_context: "AutogenContext",
+    constraint: ExcludeConstraint,
+    autogen_context: AutogenContext,
     alter: bool,
 ) -> str:
     opts: List[Tuple[str, Union[quoted_name, str, _f_name, None]]] = []
@@ -645,7 +645,7 @@ def _exclude_constraint(
 
 
 def _render_potential_column(
-    value: Union["ColumnClause", "Column"], autogen_context: "AutogenContext"
+    value: Union[ColumnClause, Column], autogen_context: AutogenContext
 ) -> str:
     if isinstance(value, ColumnClause):
         template = "%(prefix)scolumn(%(name)r)"

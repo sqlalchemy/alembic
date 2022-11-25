@@ -52,7 +52,7 @@ class ImplMeta(type):
     def __init__(
         cls,
         classname: str,
-        bases: Tuple[Type["DefaultImpl"]],
+        bases: Tuple[Type[DefaultImpl]],
         dict_: Dict[str, Any],
     ):
         newtype = type.__init__(cls, classname, bases, dict_)
@@ -61,7 +61,7 @@ class ImplMeta(type):
         return newtype
 
 
-_impls: Dict[str, Type["DefaultImpl"]] = {}
+_impls: Dict[str, Type[DefaultImpl]] = {}
 
 Params = namedtuple("Params", ["token0", "tokens", "args", "kwargs"])
 
@@ -91,11 +91,11 @@ class DefaultImpl(metaclass=ImplMeta):
 
     def __init__(
         self,
-        dialect: "Dialect",
-        connection: Optional["Connection"],
+        dialect: Dialect,
+        connection: Optional[Connection],
         as_sql: bool,
         transactional_ddl: Optional[bool],
-        output_buffer: Optional["TextIO"],
+        output_buffer: Optional[TextIO],
         context_opts: Dict[str, Any],
     ) -> None:
         self.dialect = dialect
@@ -116,7 +116,7 @@ class DefaultImpl(metaclass=ImplMeta):
                 )
 
     @classmethod
-    def get_by_dialect(cls, dialect: "Dialect") -> Type["DefaultImpl"]:
+    def get_by_dialect(cls, dialect: Dialect) -> Type[DefaultImpl]:
         return _impls[dialect.name]
 
     def static_output(self, text: str) -> None:
@@ -125,7 +125,7 @@ class DefaultImpl(metaclass=ImplMeta):
         self.output_buffer.flush()
 
     def requires_recreate_in_batch(
-        self, batch_op: "BatchOperationsImpl"
+        self, batch_op: BatchOperationsImpl
     ) -> bool:
         """Return True if the given :class:`.BatchOperationsImpl`
         would need the table to be recreated and copied in order to
@@ -138,7 +138,7 @@ class DefaultImpl(metaclass=ImplMeta):
         return False
 
     def prep_table_for_batch(
-        self, batch_impl: "ApplyBatchImpl", table: "Table"
+        self, batch_impl: ApplyBatchImpl, table: Table
     ) -> None:
         """perform any operations needed on a table before a new
         one is created to replace it in batch mode.
@@ -149,16 +149,16 @@ class DefaultImpl(metaclass=ImplMeta):
         """
 
     @property
-    def bind(self) -> Optional["Connection"]:
+    def bind(self) -> Optional[Connection]:
         return self.connection
 
     def _exec(
         self,
-        construct: Union["ClauseElement", str],
+        construct: Union[ClauseElement, str],
         execution_options: Optional[dict] = None,
         multiparams: Sequence[dict] = (),
         params: Dict[str, int] = util.immutabledict(),
-    ) -> Optional["CursorResult"]:
+    ) -> Optional[CursorResult]:
         if isinstance(construct, str):
             construct = text(construct)
         if self.as_sql:
@@ -196,7 +196,7 @@ class DefaultImpl(metaclass=ImplMeta):
 
     def execute(
         self,
-        sql: Union["ClauseElement", str],
+        sql: Union[ClauseElement, str],
         execution_options: None = None,
     ) -> None:
         self._exec(sql, execution_options)
@@ -206,15 +206,15 @@ class DefaultImpl(metaclass=ImplMeta):
         table_name: str,
         column_name: str,
         nullable: Optional[bool] = None,
-        server_default: Union["_ServerDefault", "Literal[False]"] = False,
+        server_default: Union[_ServerDefault, Literal[False]] = False,
         name: Optional[str] = None,
-        type_: Optional["TypeEngine"] = None,
+        type_: Optional[TypeEngine] = None,
         schema: Optional[str] = None,
         autoincrement: Optional[bool] = None,
-        comment: Optional[Union[str, "Literal[False]"]] = False,
+        comment: Optional[Union[str, Literal[False]]] = False,
         existing_comment: Optional[str] = None,
-        existing_type: Optional["TypeEngine"] = None,
-        existing_server_default: Optional["_ServerDefault"] = None,
+        existing_type: Optional[TypeEngine] = None,
+        existing_server_default: Optional[_ServerDefault] = None,
         existing_nullable: Optional[bool] = None,
         existing_autoincrement: Optional[bool] = None,
         **kw: Any,
@@ -316,15 +316,15 @@ class DefaultImpl(metaclass=ImplMeta):
     def add_column(
         self,
         table_name: str,
-        column: "Column",
-        schema: Optional[Union[str, "quoted_name"]] = None,
+        column: Column,
+        schema: Optional[Union[str, quoted_name]] = None,
     ) -> None:
         self._exec(base.AddColumn(table_name, column, schema=schema))
 
     def drop_column(
         self,
         table_name: str,
-        column: "Column",
+        column: Column,
         schema: Optional[str] = None,
         **kw,
     ) -> None:
@@ -334,20 +334,20 @@ class DefaultImpl(metaclass=ImplMeta):
         if const._create_rule is None or const._create_rule(self):
             self._exec(schema.AddConstraint(const))
 
-    def drop_constraint(self, const: "Constraint") -> None:
+    def drop_constraint(self, const: Constraint) -> None:
         self._exec(schema.DropConstraint(const))
 
     def rename_table(
         self,
         old_table_name: str,
-        new_table_name: Union[str, "quoted_name"],
-        schema: Optional[Union[str, "quoted_name"]] = None,
+        new_table_name: Union[str, quoted_name],
+        schema: Optional[Union[str, quoted_name]] = None,
     ) -> None:
         self._exec(
             base.RenameTable(old_table_name, new_table_name, schema=schema)
         )
 
-    def create_table(self, table: "Table") -> None:
+    def create_table(self, table: Table) -> None:
         table.dispatch.before_create(
             table, self.connection, checkfirst=False, _ddl_runner=self
         )
@@ -370,7 +370,7 @@ class DefaultImpl(metaclass=ImplMeta):
             if comment and with_comment:
                 self.create_column_comment(column)
 
-    def drop_table(self, table: "Table") -> None:
+    def drop_table(self, table: Table) -> None:
         table.dispatch.before_drop(
             table, self.connection, checkfirst=False, _ddl_runner=self
         )
@@ -379,24 +379,24 @@ class DefaultImpl(metaclass=ImplMeta):
             table, self.connection, checkfirst=False, _ddl_runner=self
         )
 
-    def create_index(self, index: "Index") -> None:
+    def create_index(self, index: Index) -> None:
         self._exec(schema.CreateIndex(index))
 
-    def create_table_comment(self, table: "Table") -> None:
+    def create_table_comment(self, table: Table) -> None:
         self._exec(schema.SetTableComment(table))
 
-    def drop_table_comment(self, table: "Table") -> None:
+    def drop_table_comment(self, table: Table) -> None:
         self._exec(schema.DropTableComment(table))
 
-    def create_column_comment(self, column: "ColumnElement") -> None:
+    def create_column_comment(self, column: ColumnElement) -> None:
         self._exec(schema.SetColumnComment(column))
 
-    def drop_index(self, index: "Index") -> None:
+    def drop_index(self, index: Index) -> None:
         self._exec(schema.DropIndex(index))
 
     def bulk_insert(
         self,
-        table: Union["TableClause", "Table"],
+        table: Union[TableClause, Table],
         rows: List[dict],
         multiinsert: bool = True,
     ) -> None:
@@ -408,19 +408,16 @@ class DefaultImpl(metaclass=ImplMeta):
             for row in rows:
                 self._exec(
                     sqla_compat._insert_inline(table).values(
-                        **dict(
-                            (
-                                k,
-                                sqla_compat._literal_bindparam(
-                                    k, v, type_=table.c[k].type
-                                )
-                                if not isinstance(
-                                    v, sqla_compat._literal_bindparam
-                                )
-                                else v,
+                        **{
+                            k: sqla_compat._literal_bindparam(
+                                k, v, type_=table.c[k].type
                             )
+                            if not isinstance(
+                                v, sqla_compat._literal_bindparam
+                            )
+                            else v
                             for k, v in row.items()
-                        )
+                        }
                     )
                 )
         else:
@@ -435,7 +432,7 @@ class DefaultImpl(metaclass=ImplMeta):
                             sqla_compat._insert_inline(table).values(**row)
                         )
 
-    def _tokenize_column_type(self, column: "Column") -> Params:
+    def _tokenize_column_type(self, column: Column) -> Params:
         definition = self.dialect.type_compiler.process(column.type).lower()
 
         # tokenize the SQLAlchemy-generated version of a type, so that
@@ -474,7 +471,7 @@ class DefaultImpl(metaclass=ImplMeta):
         return params
 
     def _column_types_match(
-        self, inspector_params: "Params", metadata_params: "Params"
+        self, inspector_params: Params, metadata_params: Params
     ) -> bool:
         if inspector_params.token0 == metadata_params.token0:
             return True
@@ -496,7 +493,7 @@ class DefaultImpl(metaclass=ImplMeta):
         return False
 
     def _column_args_match(
-        self, inspected_params: "Params", meta_params: "Params"
+        self, inspected_params: Params, meta_params: Params
     ) -> bool:
         """We want to compare column parameters. However, we only want
         to compare parameters that are set. If they both have `collation`,
@@ -529,7 +526,7 @@ class DefaultImpl(metaclass=ImplMeta):
         return True
 
     def compare_type(
-        self, inspector_column: "Column", metadata_column: "Column"
+        self, inspector_column: Column, metadata_column: Column
     ) -> bool:
         """Returns True if there ARE differences between the types of the two
         columns. Takes impl.type_synonyms into account between retrospected
@@ -555,10 +552,10 @@ class DefaultImpl(metaclass=ImplMeta):
 
     def correct_for_autogen_constraints(
         self,
-        conn_uniques: Set["UniqueConstraint"],
-        conn_indexes: Set["Index"],
-        metadata_unique_constraints: Set["UniqueConstraint"],
-        metadata_indexes: Set["Index"],
+        conn_uniques: Set[UniqueConstraint],
+        conn_indexes: Set[Index],
+        metadata_unique_constraints: Set[UniqueConstraint],
+        metadata_indexes: Set[Index],
     ) -> None:
         pass
 
@@ -569,7 +566,7 @@ class DefaultImpl(metaclass=ImplMeta):
             )
 
     def render_ddl_sql_expr(
-        self, expr: "ClauseElement", is_server_default: bool = False, **kw: Any
+        self, expr: ClauseElement, is_server_default: bool = False, **kw: Any
     ) -> str:
         """Render a SQL expression that is typically a server default,
         index expression, etc.
@@ -587,15 +584,13 @@ class DefaultImpl(metaclass=ImplMeta):
             )
         )
 
-    def _compat_autogen_column_reflect(
-        self, inspector: "Inspector"
-    ) -> Callable:
+    def _compat_autogen_column_reflect(self, inspector: Inspector) -> Callable:
         return self.autogen_column_reflect
 
     def correct_for_autogen_foreignkeys(
         self,
-        conn_fks: Set["ForeignKeyConstraint"],
-        metadata_fks: Set["ForeignKeyConstraint"],
+        conn_fks: Set[ForeignKeyConstraint],
+        metadata_fks: Set[ForeignKeyConstraint],
     ) -> None:
         pass
 
@@ -637,8 +632,8 @@ class DefaultImpl(metaclass=ImplMeta):
         self.static_output("COMMIT" + self.command_terminator)
 
     def render_type(
-        self, type_obj: "TypeEngine", autogen_context: "AutogenContext"
-    ) -> Union[str, "Literal[False]"]:
+        self, type_obj: TypeEngine, autogen_context: AutogenContext
+    ) -> Union[str, Literal[False]]:
         return False
 
     def _compare_identity_default(self, metadata_identity, inspector_identity):

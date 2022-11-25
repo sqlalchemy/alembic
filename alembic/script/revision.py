@@ -51,7 +51,7 @@ class RangeNotAncestorError(RevisionError):
     ) -> None:
         self.lower = lower
         self.upper = upper
-        super(RangeNotAncestorError, self).__init__(
+        super().__init__(
             "Revision %s is not an ancestor of revision %s"
             % (lower or "base", upper or "base")
         )
@@ -61,7 +61,7 @@ class MultipleHeads(RevisionError):
     def __init__(self, heads: Sequence[str], argument: Optional[str]) -> None:
         self.heads = heads
         self.argument = argument
-        super(MultipleHeads, self).__init__(
+        super().__init__(
             "Multiple heads are present for given argument '%s'; "
             "%s" % (argument, ", ".join(heads))
         )
@@ -69,7 +69,7 @@ class MultipleHeads(RevisionError):
 
 class ResolutionError(RevisionError):
     def __init__(self, message: str, argument: str) -> None:
-        super(ResolutionError, self).__init__(message)
+        super().__init__(message)
         self.argument = argument
 
 
@@ -78,7 +78,7 @@ class CycleDetected(RevisionError):
 
     def __init__(self, revisions: Sequence[str]) -> None:
         self.revisions = revisions
-        super(CycleDetected, self).__init__(
+        super().__init__(
             "%s is detected in revisions (%s)"
             % (self.kind, ", ".join(revisions))
         )
@@ -88,21 +88,21 @@ class DependencyCycleDetected(CycleDetected):
     kind = "Dependency cycle"
 
     def __init__(self, revisions: Sequence[str]) -> None:
-        super(DependencyCycleDetected, self).__init__(revisions)
+        super().__init__(revisions)
 
 
 class LoopDetected(CycleDetected):
     kind = "Self-loop"
 
     def __init__(self, revision: str) -> None:
-        super(LoopDetected, self).__init__([revision])
+        super().__init__([revision])
 
 
 class DependencyLoopDetected(DependencyCycleDetected, LoopDetected):
     kind = "Dependency self-loop"
 
     def __init__(self, revision: Sequence[str]) -> None:
-        super(DependencyLoopDetected, self).__init__(revision)
+        super().__init__(revision)
 
 
 class RevisionMap:
@@ -114,7 +114,7 @@ class RevisionMap:
 
     """
 
-    def __init__(self, generator: Callable[[], Iterable["Revision"]]) -> None:
+    def __init__(self, generator: Callable[[], Iterable[Revision]]) -> None:
         """Construct a new :class:`.RevisionMap`.
 
         :param generator: a zero-arg callable that will generate an iterable
@@ -180,10 +180,10 @@ class RevisionMap:
         # general)
         map_: _InterimRevisionMapType = sqlautil.OrderedDict()
 
-        heads: Set["Revision"] = sqlautil.OrderedSet()
-        _real_heads: Set["Revision"] = sqlautil.OrderedSet()
-        bases: Tuple["Revision", ...] = ()
-        _real_bases: Tuple["Revision", ...] = ()
+        heads: Set[Revision] = sqlautil.OrderedSet()
+        _real_heads: Set[Revision] = sqlautil.OrderedSet()
+        bases: Tuple[Revision, ...] = ()
+        _real_bases: Tuple[Revision, ...] = ()
 
         has_branch_labels = set()
         all_revisions = set()
@@ -249,10 +249,10 @@ class RevisionMap:
     def _detect_cycles(
         self,
         rev_map: _InterimRevisionMapType,
-        heads: Set["Revision"],
-        bases: Tuple["Revision", ...],
-        _real_heads: Set["Revision"],
-        _real_bases: Tuple["Revision", ...],
+        heads: Set[Revision],
+        bases: Tuple[Revision, ...],
+        _real_heads: Set[Revision],
+        _real_bases: Tuple[Revision, ...],
     ) -> None:
         if not rev_map:
             return
@@ -299,7 +299,7 @@ class RevisionMap:
             raise DependencyCycleDetected(sorted(deleted_revs))
 
     def _map_branch_labels(
-        self, revisions: Collection["Revision"], map_: _RevisionMapType
+        self, revisions: Collection[Revision], map_: _RevisionMapType
     ) -> None:
         for revision in revisions:
             if revision.branch_labels:
@@ -320,7 +320,7 @@ class RevisionMap:
                     map_[branch_label] = revision
 
     def _add_branches(
-        self, revisions: Collection["Revision"], map_: _RevisionMapType
+        self, revisions: Collection[Revision], map_: _RevisionMapType
     ) -> None:
         for revision in revisions:
             if revision.branch_labels:
@@ -344,7 +344,7 @@ class RevisionMap:
                         break
 
     def _add_depends_on(
-        self, revisions: Collection["Revision"], map_: _RevisionMapType
+        self, revisions: Collection[Revision], map_: _RevisionMapType
     ) -> None:
         """Resolve the 'dependencies' for each revision in a collection
         in terms of actual revision ids, as opposed to branch labels or other
@@ -367,7 +367,7 @@ class RevisionMap:
                 revision._resolved_dependencies = ()
 
     def _normalize_depends_on(
-        self, revisions: Collection["Revision"], map_: _RevisionMapType
+        self, revisions: Collection[Revision], map_: _RevisionMapType
     ) -> None:
         """Create a collection of "dependencies" that omits dependencies
         that are already ancestor nodes for each revision in a given
@@ -406,9 +406,7 @@ class RevisionMap:
             else:
                 revision._normalized_resolved_dependencies = ()
 
-    def add_revision(
-        self, revision: "Revision", _replace: bool = False
-    ) -> None:
+    def add_revision(self, revision: Revision, _replace: bool = False) -> None:
         """add a single revision to an existing map.
 
         This method is for single-revision use cases, it's not
@@ -602,7 +600,7 @@ class RevisionMap:
         else:
             branch_rev = None
 
-        revision: Union[Optional[Revision], "Literal[False]"]
+        revision: Union[Optional[Revision], Literal[False]]
         try:
             revision = self._revision_map[resolved_id]
         except KeyError:

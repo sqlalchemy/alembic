@@ -1553,11 +1553,11 @@ class BatchRoundTripTest(TestBase):
 
         insp = inspect(self.conn)
         eq_(
-            set(
+            {
                 (ix["name"], tuple(ix["column_names"]))
                 for ix in insp.get_indexes("t_w_ix")
-            ),
-            set([("ix_data", ("data",)), ("ix_thing", ("thing",))]),
+            },
+            {("ix_data", ("data",)), ("ix_thing", ("thing",))},
         )
 
     def test_fk_points_to_me_auto(self):
@@ -2268,39 +2268,37 @@ class BatchRoundTripMySQLTest(BatchRoundTripTest):
 
     @exclusions.fails()
     def test_drop_pk_col_readd_pk_col(self):
-        super(BatchRoundTripMySQLTest, self).test_drop_pk_col_readd_pk_col()
+        super().test_drop_pk_col_readd_pk_col()
 
     @exclusions.fails()
     def test_drop_pk_col_readd_col_also_pk_const(self):
-        super(
-            BatchRoundTripMySQLTest, self
-        ).test_drop_pk_col_readd_col_also_pk_const()
+        super().test_drop_pk_col_readd_col_also_pk_const()
 
     @exclusions.fails()
     def test_rename_column_pk(self):
-        super(BatchRoundTripMySQLTest, self).test_rename_column_pk()
+        super().test_rename_column_pk()
 
     @exclusions.fails()
     def test_rename_column(self):
-        super(BatchRoundTripMySQLTest, self).test_rename_column()
+        super().test_rename_column()
 
     @exclusions.fails()
     def test_change_type(self):
-        super(BatchRoundTripMySQLTest, self).test_change_type()
+        super().test_change_type()
 
     def test_create_drop_index(self):
-        super(BatchRoundTripMySQLTest, self).test_create_drop_index()
+        super().test_create_drop_index()
 
     # fails on mariadb 10.2, succeeds on 10.3
     @exclusions.fails_if(config.requirements.mysql_check_col_name_change)
     def test_rename_column_boolean(self):
-        super(BatchRoundTripMySQLTest, self).test_rename_column_boolean()
+        super().test_rename_column_boolean()
 
     def test_change_type_boolean_to_int(self):
-        super(BatchRoundTripMySQLTest, self).test_change_type_boolean_to_int()
+        super().test_change_type_boolean_to_int()
 
     def test_change_type_int_to_boolean(self):
-        super(BatchRoundTripMySQLTest, self).test_change_type_int_to_boolean()
+        super().test_change_type_int_to_boolean()
 
 
 class BatchRoundTripPostgresqlTest(BatchRoundTripTest):
@@ -2327,34 +2325,26 @@ class BatchRoundTripPostgresqlTest(BatchRoundTripTest):
 
     @exclusions.fails()
     def test_drop_pk_col_readd_pk_col(self):
-        super(
-            BatchRoundTripPostgresqlTest, self
-        ).test_drop_pk_col_readd_pk_col()
+        super().test_drop_pk_col_readd_pk_col()
 
     @exclusions.fails()
     def test_drop_pk_col_readd_col_also_pk_const(self):
-        super(
-            BatchRoundTripPostgresqlTest, self
-        ).test_drop_pk_col_readd_col_also_pk_const()
+        super().test_drop_pk_col_readd_col_also_pk_const()
 
     @exclusions.fails()
     def test_change_type(self):
-        super(BatchRoundTripPostgresqlTest, self).test_change_type()
+        super().test_change_type()
 
     def test_create_drop_index(self):
-        super(BatchRoundTripPostgresqlTest, self).test_create_drop_index()
+        super().test_create_drop_index()
 
     @exclusions.fails()
     def test_change_type_int_to_boolean(self):
-        super(
-            BatchRoundTripPostgresqlTest, self
-        ).test_change_type_int_to_boolean()
+        super().test_change_type_int_to_boolean()
 
     @exclusions.fails()
     def test_change_type_boolean_to_int(self):
-        super(
-            BatchRoundTripPostgresqlTest, self
-        ).test_change_type_boolean_to_int()
+        super().test_change_type_boolean_to_int()
 
     def test_add_col_table_has_native_boolean(self):
         self._native_boolean_fixture()

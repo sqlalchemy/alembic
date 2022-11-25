@@ -1296,7 +1296,7 @@ class AutogenRenderTest(TestBase):
         )
         eq_(
             self.autogen_context.imports,
-            set(["from mypackage import MySpecialType"]),
+            {"from mypackage import MySpecialType"},
         )
 
     def test_render_modify_type(self):
@@ -1833,7 +1833,7 @@ class AutogenRenderTest(TestBase):
         )
         eq_(
             self.autogen_context.imports,
-            set(["from sqlalchemy.dialects import mysql"]),
+            {"from sqlalchemy.dialects import mysql"},
         )
 
     def test_render_server_default_text(self):

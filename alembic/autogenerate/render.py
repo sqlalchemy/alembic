@@ -54,9 +54,9 @@ MAX_PYTHON_ARGS = 255
 
 
 def _render_gen_name(
-    autogen_context: "AutogenContext",
-    name: Optional[Union["quoted_name", str]],
-) -> Optional[Union["quoted_name", str, "_f_name"]]:
+    autogen_context: AutogenContext,
+    name: Optional[Union[quoted_name, str]],
+) -> Optional[Union[quoted_name, str, _f_name]]:
     if isinstance(name, conv):
         return _f_name(_alembic_autogenerate_prefix(autogen_context), name)
     else:
@@ -70,9 +70,9 @@ def _indent(text: str) -> str:
 
 
 def _render_python_into_templatevars(
-    autogen_context: "AutogenContext",
-    migration_script: "MigrationScript",
-    template_args: Dict[str, Union[str, "Config"]],
+    autogen_context: AutogenContext,
+    migration_script: MigrationScript,
+    template_args: Dict[str, Union[str, Config]],
 ) -> None:
     imports = autogen_context.imports
 
@@ -92,8 +92,8 @@ default_renderers = renderers = util.Dispatcher()
 
 
 def _render_cmd_body(
-    op_container: "ops.OpContainer",
-    autogen_context: "AutogenContext",
+    op_container: ops.OpContainer,
+    autogen_context: AutogenContext,
 ) -> str:
 
     buf = StringIO()
@@ -120,7 +120,7 @@ def _render_cmd_body(
 
 
 def render_op(
-    autogen_context: "AutogenContext", op: "ops.MigrateOperation"
+    autogen_context: AutogenContext, op: ops.MigrateOperation
 ) -> List[str]:
     renderer = renderers.dispatch(op)
     lines = util.to_list(renderer(autogen_context, op))
@@ -128,14 +128,14 @@ def render_op(
 
 
 def render_op_text(
-    autogen_context: "AutogenContext", op: "ops.MigrateOperation"
+    autogen_context: AutogenContext, op: ops.MigrateOperation
 ) -> str:
     return "\n".join(render_op(autogen_context, op))
 
 
 @renderers.dispatch_for(ops.ModifyTableOps)
 def _render_modify_table(
-    autogen_context: "AutogenContext", op: "ModifyTableOps"
+    autogen_context: AutogenContext, op: ModifyTableOps
 ) -> List[str]:
     opts = autogen_context.opts
     render_as_batch = opts.get("render_as_batch", False)
@@ -164,7 +164,7 @@ def _render_modify_table(
 
 @renderers.dispatch_for(ops.CreateTableCommentOp)
 def _render_create_table_comment(
-    autogen_context: "AutogenContext", op: "ops.CreateTableCommentOp"
+    autogen_context: AutogenContext, op: ops.CreateTableCommentOp
 ) -> str:
 
     templ = (
@@ -189,7 +189,7 @@ def _render_create_table_comment(
 
 @renderers.dispatch_for(ops.DropTableCommentOp)
 def _render_drop_table_comment(
-    autogen_context: "AutogenContext", op: "ops.DropTableCommentOp"
+    autogen_context: AutogenContext, op: ops.DropTableCommentOp
 ) -> str:
 
     templ = (
@@ -211,9 +211,7 @@ def _render_drop_table_comment(
 
 
 @renderers.dispatch_for(ops.CreateTableOp)
-def _add_table(
-    autogen_context: "AutogenContext", op: "ops.CreateTableOp"
-) -> str:
+def _add_table(autogen_context: AutogenContext, op: ops.CreateTableOp) -> str:
     table = op.to_table()
 
     args = [
@@ -263,9 +261,7 @@ def _add_table(
 
 
 @renderers.dispatch_for(ops.DropTableOp)
-def _drop_table(
-    autogen_context: "AutogenContext", op: "ops.DropTableOp"
-) -> str:
+def _drop_table(autogen_context: AutogenContext, op: ops.DropTableOp) -> str:
     text = "%(prefix)sdrop_table(%(tname)r" % {
         "prefix": _alembic_autogenerate_prefix(autogen_context),
         "tname": _ident(op.table_name),
@@ -277,9 +273,7 @@ def _drop_table(
 
 
 @renderers.dispatch_for(ops.CreateIndexOp)
-def _add_index(
-    autogen_context: "AutogenContext", op: "ops.CreateIndexOp"
-) -> str:
+def _add_index(autogen_context: AutogenContext, op: ops.CreateIndexOp) -> str:
     index = op.to_index()
 
     has_batch = autogen_context._has_batch
@@ -324,9 +318,7 @@ def _add_index(
 
 
 @renderers.dispatch_for(ops.DropIndexOp)
-def _drop_index(
-    autogen_context: "AutogenContext", op: "ops.DropIndexOp"
-) -> str:
+def _drop_index(autogen_context: AutogenContext, op: ops.DropIndexOp) -> str:
     index = op.to_index()
 
     has_batch = autogen_context._has_batch
@@ -362,14 +354,14 @@ def _drop_index(
 
 @renderers.dispatch_for(ops.CreateUniqueConstraintOp)
 def _add_unique_constraint(
-    autogen_context: "AutogenContext", op: "ops.CreateUniqueConstraintOp"
+    autogen_context: AutogenContext, op: ops.CreateUniqueConstraintOp
 ) -> List[str]:
     return [_uq_constraint(op.to_constraint(), autogen_context, True)]
 
 
 @renderers.dispatch_for(ops.CreateForeignKeyOp)
 def _add_fk_constraint(
-    autogen_context: "AutogenContext", op: "ops.CreateForeignKeyOp"
+    autogen_context: AutogenContext, op: ops.CreateForeignKeyOp
 ) -> str:
 
     args = [repr(_render_gen_name(autogen_context, op.constraint_name))]
@@ -418,7 +410,7 @@ def _add_check_constraint(constraint, autogen_context):
 
 @renderers.dispatch_for(ops.DropConstraintOp)
 def _drop_constraint(
-    autogen_context: "AutogenContext", op: "ops.DropConstraintOp"
+    autogen_context: AutogenContext, op: ops.DropConstraintOp
 ) -> str:
 
     if autogen_context._has_batch:
@@ -440,9 +432,7 @@ def _drop_constraint(
 
 
 @renderers.dispatch_for(ops.AddColumnOp)
-def _add_column(
-    autogen_context: "AutogenContext", op: "ops.AddColumnOp"
-) -> str:
+def _add_column(autogen_context: AutogenContext, op: ops.AddColumnOp) -> str:
 
     schema, tname, column = op.schema, op.table_name, op.column
     if autogen_context._has_batch:
@@ -462,9 +452,7 @@ def _add_column(
 
 
 @renderers.dispatch_for(ops.DropColumnOp)
-def _drop_column(
-    autogen_context: "AutogenContext", op: "ops.DropColumnOp"
-) -> str:
+def _drop_column(autogen_context: AutogenContext, op: ops.DropColumnOp) -> str:
 
     schema, tname, column_name = op.schema, op.table_name, op.column_name
 
@@ -487,7 +475,7 @@ def _drop_column(
 
 @renderers.dispatch_for(ops.AlterColumnOp)
 def _alter_column(
-    autogen_context: "AutogenContext", op: "ops.AlterColumnOp"
+    autogen_context: AutogenContext, op: ops.AlterColumnOp
 ) -> str:
 
     tname = op.table_name
@@ -556,7 +544,7 @@ class _f_name:
         return "%sf(%r)" % (self.prefix, _ident(self.name))
 
 
-def _ident(name: Optional[Union["quoted_name", str]]) -> Optional[str]:
+def _ident(name: Optional[Union[quoted_name, str]]) -> Optional[str]:
     """produce a __repr__() object for a string identifier that may
     use quoted_name() in SQLAlchemy 0.9 and greater.
 
@@ -574,7 +562,7 @@ def _ident(name: Optional[Union["quoted_name", str]]) -> Optional[str]:
 
 def _render_potential_expr(
     value: Any,
-    autogen_context: "AutogenContext",
+    autogen_context: AutogenContext,
     wrap_in_text: bool = True,
     is_server_default: bool = False,
 ) -> str:
@@ -597,7 +585,7 @@ def _render_potential_expr(
 
 
 def _get_index_rendered_expressions(
-    idx: "Index", autogen_context: "AutogenContext"
+    idx: Index, autogen_context: AutogenContext
 ) -> List[str]:
     return [
         repr(_ident(getattr(exp, "name", None)))
@@ -608,8 +596,8 @@ def _get_index_rendered_expressions(
 
 
 def _uq_constraint(
-    constraint: "UniqueConstraint",
-    autogen_context: "AutogenContext",
+    constraint: UniqueConstraint,
+    autogen_context: AutogenContext,
     alter: bool,
 ) -> str:
     opts: List[Tuple[str, Any]] = []
@@ -654,11 +642,11 @@ def _user_autogenerate_prefix(autogen_context, target):
         return prefix
 
 
-def _sqlalchemy_autogenerate_prefix(autogen_context: "AutogenContext") -> str:
+def _sqlalchemy_autogenerate_prefix(autogen_context: AutogenContext) -> str:
     return autogen_context.opts["sqlalchemy_module_prefix"] or ""
 
 
-def _alembic_autogenerate_prefix(autogen_context: "AutogenContext") -> str:
+def _alembic_autogenerate_prefix(autogen_context: AutogenContext) -> str:
     if autogen_context._has_batch:
         return "batch_op."
     else:
@@ -666,8 +654,8 @@ def _alembic_autogenerate_prefix(autogen_context: "AutogenContext") -> str:
 
 
 def _user_defined_render(
-    type_: str, object_: Any, autogen_context: "AutogenContext"
-) -> Union[str, "Literal[False]"]:
+    type_: str, object_: Any, autogen_context: AutogenContext
+) -> Union[str, Literal[False]]:
     if "render_item" in autogen_context.opts:
         render = autogen_context.opts["render_item"]
         if render:
@@ -677,7 +665,7 @@ def _user_defined_render(
     return False
 
 
-def _render_column(column: "Column", autogen_context: "AutogenContext") -> str:
+def _render_column(column: Column, autogen_context: AutogenContext) -> str:
     rendered = _user_defined_render("column", column, autogen_context)
     if rendered is not False:
         return rendered
@@ -734,7 +722,7 @@ def _render_column(column: "Column", autogen_context: "AutogenContext") -> str:
 
 
 def _should_render_server_default_positionally(
-    server_default: Union["Computed", "DefaultClause"]
+    server_default: Union[Computed, DefaultClause]
 ) -> bool:
     return sqla_compat._server_default_is_computed(
         server_default
@@ -742,10 +730,8 @@ def _should_render_server_default_positionally(
 
 
 def _render_server_default(
-    default: Optional[
-        Union["FetchedValue", str, "TextClause", "ColumnElement"]
-    ],
-    autogen_context: "AutogenContext",
+    default: Optional[Union[FetchedValue, str, TextClause, ColumnElement]],
+    autogen_context: AutogenContext,
     repr_: bool = True,
 ) -> Optional[str]:
     rendered = _user_defined_render("server_default", default, autogen_context)
@@ -771,7 +757,7 @@ def _render_server_default(
 
 
 def _render_computed(
-    computed: "Computed", autogen_context: "AutogenContext"
+    computed: Computed, autogen_context: AutogenContext
 ) -> str:
     text = _render_potential_expr(
         computed.sqltext, autogen_context, wrap_in_text=False
@@ -788,7 +774,7 @@ def _render_computed(
 
 
 def _render_identity(
-    identity: "Identity", autogen_context: "AutogenContext"
+    identity: Identity, autogen_context: AutogenContext
 ) -> str:
     # always=None means something different than always=False
     kwargs = OrderedDict(always=identity.always)
@@ -802,7 +788,7 @@ def _render_identity(
     }
 
 
-def _get_identity_options(identity_options: "Identity") -> OrderedDict:
+def _get_identity_options(identity_options: Identity) -> OrderedDict:
     kwargs = OrderedDict()
     for attr in sqla_compat._identity_options_attrs:
         value = getattr(identity_options, attr, None)
@@ -812,8 +798,8 @@ def _get_identity_options(identity_options: "Identity") -> OrderedDict:
 
 
 def _repr_type(
-    type_: "TypeEngine",
-    autogen_context: "AutogenContext",
+    type_: TypeEngine,
+    autogen_context: AutogenContext,
     _skip_variants: bool = False,
 ) -> str:
     rendered = _user_defined_render("type", type_, autogen_context)
@@ -855,9 +841,7 @@ def _repr_type(
         return "%s%r" % (prefix, type_)
 
 
-def _render_ARRAY_type(
-    type_: "ARRAY", autogen_context: "AutogenContext"
-) -> str:
+def _render_ARRAY_type(type_: ARRAY, autogen_context: AutogenContext) -> str:
     return cast(
         str,
         _render_type_w_subtype(
@@ -867,7 +851,7 @@ def _render_ARRAY_type(
 
 
 def _render_Variant_type(
-    type_: "TypeEngine", autogen_context: "AutogenContext"
+    type_: TypeEngine, autogen_context: AutogenContext
 ) -> str:
     base_type, variant_mapping = sqla_compat._get_variant_mapping(type_)
     base = _repr_type(base_type, autogen_context, _skip_variants=True)
@@ -882,12 +866,12 @@ def _render_Variant_type(
 
 
 def _render_type_w_subtype(
-    type_: "TypeEngine",
-    autogen_context: "AutogenContext",
+    type_: TypeEngine,
+    autogen_context: AutogenContext,
     attrname: str,
     regexp: str,
     prefix: Optional[str] = None,
-) -> Union[Optional[str], "Literal[False]"]:
+) -> Union[Optional[str], Literal[False]]:
     outer_repr = repr(type_)
     inner_type = getattr(type_, attrname, None)
     if inner_type is None:
@@ -919,9 +903,9 @@ _constraint_renderers = util.Dispatcher()
 
 
 def _render_constraint(
-    constraint: "Constraint",
-    autogen_context: "AutogenContext",
-    namespace_metadata: Optional["MetaData"],
+    constraint: Constraint,
+    autogen_context: AutogenContext,
+    namespace_metadata: Optional[MetaData],
 ) -> Optional[str]:
     try:
         renderer = _constraint_renderers.dispatch(constraint)
@@ -934,9 +918,9 @@ def _render_constraint(
 
 @_constraint_renderers.dispatch_for(sa_schema.PrimaryKeyConstraint)
 def _render_primary_key(
-    constraint: "PrimaryKeyConstraint",
-    autogen_context: "AutogenContext",
-    namespace_metadata: Optional["MetaData"],
+    constraint: PrimaryKeyConstraint,
+    autogen_context: AutogenContext,
+    namespace_metadata: Optional[MetaData],
 ) -> Optional[str]:
     rendered = _user_defined_render("primary_key", constraint, autogen_context)
     if rendered is not False:
@@ -960,9 +944,9 @@ def _render_primary_key(
 
 
 def _fk_colspec(
-    fk: "ForeignKey",
+    fk: ForeignKey,
     metadata_schema: Optional[str],
-    namespace_metadata: "MetaData",
+    namespace_metadata: MetaData,
 ) -> str:
     """Implement a 'safe' version of ForeignKey._get_colspec() that
     won't fail if the remote table can't be resolved.
@@ -997,7 +981,7 @@ def _fk_colspec(
 
 
 def _populate_render_fk_opts(
-    constraint: "ForeignKeyConstraint", opts: List[Tuple[str, str]]
+    constraint: ForeignKeyConstraint, opts: List[Tuple[str, str]]
 ) -> None:
 
     if constraint.onupdate:
@@ -1014,9 +998,9 @@ def _populate_render_fk_opts(
 
 @_constraint_renderers.dispatch_for(sa_schema.ForeignKeyConstraint)
 def _render_foreign_key(
-    constraint: "ForeignKeyConstraint",
-    autogen_context: "AutogenContext",
-    namespace_metadata: "MetaData",
+    constraint: ForeignKeyConstraint,
+    autogen_context: AutogenContext,
+    namespace_metadata: MetaData,
 ) -> Optional[str]:
     rendered = _user_defined_render("foreign_key", constraint, autogen_context)
     if rendered is not False:
@@ -1053,9 +1037,9 @@ def _render_foreign_key(
 
 @_constraint_renderers.dispatch_for(sa_schema.UniqueConstraint)
 def _render_unique_constraint(
-    constraint: "UniqueConstraint",
-    autogen_context: "AutogenContext",
-    namespace_metadata: Optional["MetaData"],
+    constraint: UniqueConstraint,
+    autogen_context: AutogenContext,
+    namespace_metadata: Optional[MetaData],
 ) -> str:
     rendered = _user_defined_render("unique", constraint, autogen_context)
     if rendered is not False:
@@ -1066,9 +1050,9 @@ def _render_unique_constraint(
 
 @_constraint_renderers.dispatch_for(sa_schema.CheckConstraint)
 def _render_check_constraint(
-    constraint: "CheckConstraint",
-    autogen_context: "AutogenContext",
-    namespace_metadata: Optional["MetaData"],
+    constraint: CheckConstraint,
+    autogen_context: AutogenContext,
+    namespace_metadata: Optional[MetaData],
 ) -> Optional[str]:
     rendered = _user_defined_render("check", constraint, autogen_context)
     if rendered is not False:
@@ -1106,9 +1090,7 @@ def _render_check_constraint(
 
 
 @renderers.dispatch_for(ops.ExecuteSQLOp)
-def _execute_sql(
-    autogen_context: "AutogenContext", op: "ops.ExecuteSQLOp"
-) -> str:
+def _execute_sql(autogen_context: AutogenContext, op: ops.ExecuteSQLOp) -> str:
     if not isinstance(op.sqltext, str):
         raise NotImplementedError(
             "Autogenerate rendering of SQL Expression language constructs "
