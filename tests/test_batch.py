@@ -1778,7 +1778,7 @@ class BatchRoundTripTest(TestBase):
         with self.op.batch_alter_table(
             "ck_table", recreate=recreate
         ) as batch_op:
-            batch_op.drop_constraint("ck", "check")
+            batch_op.drop_constraint("ck", type_="check")
 
         ck_consts = inspect(self.conn).get_check_constraints("ck_table")
         eq_(ck_consts, [])

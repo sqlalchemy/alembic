@@ -126,8 +126,13 @@ class AbstractOperations(util.ModuleClsProxy):
             else:
                 defaulted_vals = ()
 
+            defaulted_vals += tuple(spec[4])
+            # here, we are using formatargspec in a different way in order
+            # to get a string that will re-apply incoming arguments to a new
+            # function call
+
             apply_kw = inspect_formatargspec(
-                name_args,
+                name_args + spec[4],
                 spec[1],
                 spec[2],
                 defaulted_vals,
@@ -155,6 +160,7 @@ class AbstractOperations(util.ModuleClsProxy):
                     "doc": fn.__doc__,
                 }
             )
+
             globals_ = dict(globals())
             globals_.update({"op_cls": op_cls})
             lcl = {}
@@ -520,7 +526,11 @@ class Operations(AbstractOperations):
         # ### do not edit ###
 
         def add_column(
-            self, table_name: str, column: Column, schema: Optional[str] = None
+            self,
+            table_name: str,
+            column: Column,
+            *,
+            schema: Optional[str] = None,
         ) -> None:
             """Issue an "add column" instruction using the current
             migration context.
@@ -605,6 +615,7 @@ class Operations(AbstractOperations):
             self,
             table_name: str,
             column_name: str,
+            *,
             nullable: Optional[bool] = None,
             comment: Union[str, Literal[False], None] = False,
             server_default: Any = False,
@@ -817,6 +828,7 @@ class Operations(AbstractOperations):
             constraint_name: Optional[str],
             table_name: str,
             condition: Union[str, BinaryExpression, TextClause],
+            *,
             schema: Optional[str] = None,
             **kw: Any,
         ) -> None:
@@ -912,6 +924,7 @@ class Operations(AbstractOperations):
             referent_table: str,
             local_cols: List[str],
             remote_cols: List[str],
+            *,
             onupdate: Optional[str] = None,
             ondelete: Optional[str] = None,
             deferrable: Optional[bool] = None,
@@ -977,6 +990,7 @@ class Operations(AbstractOperations):
             index_name: Optional[str],
             table_name: str,
             columns: Sequence[Union[str, TextClause, Function[Any]]],
+            *,
             schema: Optional[str] = None,
             unique: bool = False,
             **kw: Any,
@@ -1031,6 +1045,7 @@ class Operations(AbstractOperations):
             constraint_name: Optional[str],
             table_name: str,
             columns: List[str],
+            *,
             schema: Optional[str] = None,
         ) -> None:
             """Issue a "create primary key" instruction using the current
@@ -1156,6 +1171,7 @@ class Operations(AbstractOperations):
             table_name: str,
             comment: Optional[str],
             existing_comment: Optional[str] = None,
+            *,
             schema: Optional[str] = None,
         ) -> None:
             """Emit a COMMENT ON operation to set the comment for a table.
@@ -1184,6 +1200,7 @@ class Operations(AbstractOperations):
             constraint_name: Optional[str],
             table_name: str,
             columns: Sequence[str],
+            *,
             schema: Optional[str] = None,
             **kw: Any,
         ) -> Any:
@@ -1230,6 +1247,7 @@ class Operations(AbstractOperations):
             self,
             table_name: str,
             column_name: str,
+            *,
             schema: Optional[str] = None,
             **kw: Any,
         ) -> None:
@@ -1275,6 +1293,7 @@ class Operations(AbstractOperations):
             self,
             constraint_name: str,
             table_name: str,
+            *,
             type_: Optional[str] = None,
             schema: Optional[str] = None,
         ) -> None:
@@ -1295,6 +1314,7 @@ class Operations(AbstractOperations):
         def drop_index(
             self,
             index_name: str,
+            *,
             table_name: Optional[str] = None,
             schema: Optional[str] = None,
             **kw: Any,
@@ -1323,7 +1343,7 @@ class Operations(AbstractOperations):
             ...
 
         def drop_table(
-            self, table_name: str, schema: Optional[str] = None, **kw: Any
+            self, table_name: str, *, schema: Optional[str] = None, **kw: Any
         ) -> None:
             r"""Issue a "drop table" instruction using the current
             migration context.
@@ -1347,6 +1367,7 @@ class Operations(AbstractOperations):
         def drop_table_comment(
             self,
             table_name: str,
+            *,
             existing_comment: Optional[str] = None,
             schema: Optional[str] = None,
         ) -> None:
@@ -1460,6 +1481,7 @@ class Operations(AbstractOperations):
             self,
             old_table_name: str,
             new_table_name: str,
+            *,
             schema: Optional[str] = None,
         ) -> None:
             """Emit an ALTER TABLE to rename a table.
@@ -1510,6 +1532,7 @@ class BatchOperations(AbstractOperations):
         def add_column(
             self,
             column: Column,
+            *,
             insert_before: Optional[str] = None,
             insert_after: Optional[str] = None,
         ) -> None:
@@ -1526,6 +1549,7 @@ class BatchOperations(AbstractOperations):
         def alter_column(
             self,
             column_name: str,
+            *,
             nullable: Optional[bool] = None,
             comment: Union[str, Literal[False], None] = False,
             server_default: Any = False,
@@ -1610,6 +1634,7 @@ class BatchOperations(AbstractOperations):
             referent_table: str,
             local_cols: List[str],
             remote_cols: List[str],
+            *,
             referent_schema: Optional[str] = None,
             onupdate: Optional[str] = None,
             ondelete: Optional[str] = None,
@@ -1718,7 +1743,7 @@ class BatchOperations(AbstractOperations):
             ...
 
         def drop_constraint(
-            self, constraint_name: str, type_: Optional[str] = None
+            self, constraint_name: str, *, type_: Optional[str] = None
         ) -> None:
             """Issue a "drop constraint" instruction using the
             current batch migration context.

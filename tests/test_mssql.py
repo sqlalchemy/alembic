@@ -158,7 +158,7 @@ class OpTest(TestBase):
 
     def test_drop_index(self):
         context = op_fixture("mssql")
-        op.drop_index("my_idx", "my_table")
+        op.drop_index("my_idx", table_name="my_table")
         context.assert_contains("DROP INDEX my_idx ON my_table")
 
     def test_drop_column_w_default(self):
