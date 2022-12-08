@@ -371,7 +371,7 @@ def _compare_columns(
 
     for colname in metadata_col_names.intersection(conn_col_names):
         metadata_col = metadata_cols_by_name[colname]
-        conn_col = conn_table.c[colname]
+        conn_col = conn_col_names[colname]
         if not autogen_context.run_object_filters(
             metadata_col, colname, "column", False, conn_col
         ):
