@@ -246,8 +246,7 @@ def revision(
 def check(
     config: "Config",
 ) -> None:
-    """Checks if the revision command with autogenerate has pending upgrade
-    ops to run.
+    """Check if revision command with autogenerate has pending upgrade ops.
 
     :param config: a :class:`.Config` object.
 
