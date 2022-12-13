@@ -3,4 +3,4 @@ import sys
 from . import context
 from . import op
 
-__version__ = "1.8.2"
+__version__ = "1.9.0"

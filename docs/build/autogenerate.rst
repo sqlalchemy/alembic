@@ -886,3 +886,45 @@ be run against the newly generated file path::
     Generating /path/to/project/versions/481b13bc369a_rev1.py ... done
     Running post write hook "spaces_to_tabs" ...
     done
+
+.. _alembic_check:
+
+Running Alembic Check to test for new upgrade operations
+--------------------------------------------------------
+
+When developing code it's useful to know if a set of code changes has made any
+net change to the database model, such that new revisions would need to be
+generated. To automate this, Alembic provides the ``alembic check`` command.
+This command will run through the same process as
+``alembic revision --autogenerate``, up until the point where revision files
+would be generated, however does not generate any new files. Instead, it
+returns an error code plus a message if it is detected that new operations
+would be rendered into a new revision, or if not, returns a success code plus a
+message.   When ``alembic check`` returns a success code, this is an indication
+that the ``alembic revision --autogenerate`` command would produce only empty
+migrations, and does not need to be run.
+
+``alembic check`` can be worked into CI systems and on-commit schemes to ensure
+that incoming code does not warrant new revisions to be generated.  In
+the example below, a check that detects new operations is illustrated::
+
+
+    $ alembic check
+    FAILED: New upgrade operations detected: [
+      ('add_column', None, 'my_table', Column('data', String(), table=<my_table>)),
+      ('add_column', None, 'my_table', Column('newcol', Integer(), table=<my_table>))]
+
+by contrast, when no new operations are detected::
+
+    $ alembic check
+    No new upgrade operations detected.
+
+
+.. versionadded:: 1.9.0
+
+.. note::  The ``alembic check`` command uses the same model comparison process
+   as the ``alembic revision --autogenerate`` process.  This means parameters
+   such as :paramref:`.EnvironmentContext.configure.compare_type`
+   and :paramref:`.EnvironmentContext.configure.compare_server_default`
+   are in play as usual, as well as that limitations in autogenerate
+   detection are the same when running ``alembic check``.
