@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 
+
 def list_templates(config):
     """List available templates.
 
@@ -245,7 +246,8 @@ def revision(
 def check(
     config: "Config",
 ) -> None:
-    """Checks if the revision command with autogenerate has pending upgrade ops to run.
+    """Checks if the revision command with autogenerate has pending upgrade
+    ops to run.
 
     :param config: a :class:`.Config` object.
 
@@ -289,9 +291,11 @@ def check(
     migration_script = revision_context.generated_revisions[-1]
     diffs = migration_script.upgrade_ops.as_diffs()
     if diffs:
-        raise util.RevisionOpsNotEmptyError(f"Revision has upgrade ops to run: {diffs}.")
+        raise util.RevisionOpsNotEmptyError(
+            f"Revision has upgrade ops to run: {diffs}."
+        )
     else:
-        log.info("Revision has no upgrade ops to run.")   
+        log.info("Revision has no upgrade ops to run.")
 
 
 def merge(

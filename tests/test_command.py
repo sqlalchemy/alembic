@@ -8,7 +8,7 @@ import re
 from typing import cast
 
 from sqlalchemy import exc as sqla_exc
-from sqlalchemy import VARCHAR, text
+from sqlalchemy import text, VARCHAR
 from sqlalchemy.engine import Engine
 from sqlalchemy.sql.schema import Column
 
@@ -579,13 +579,14 @@ finally:
 
     def test_check_no_changes(self):
         self._env_fixture()
-        command.check(self.cfg) # no problem
+        command.check(self.cfg)  # no problem
 
     def test_check_changes_detected(self):
         self._env_fixture()
         with mock.patch(
             "alembic.operations.ops.UpgradeOps.as_diffs",
-            return_value=[('remove_column', None, 'foo', Column('old_data', VARCHAR()))]
+            return_value=[('remove_column', None, 'foo',
+                           Column('old_data', VARCHAR()))]
         ):
             assert_raises_message(
                 util.RevisionOpsNotEmptyError,
