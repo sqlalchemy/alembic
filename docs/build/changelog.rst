@@ -5,7 +5,40 @@ Changelog
 
 .. changelog::
     :version: 1.9.0
-    :include_notes_from: unreleased
+    :released: December 15, 2022
+
+    .. change::
+        :tags: feature, commands
+        :tickets: 724
+
+        Added new Alembic command ``alembic check``. This performs the widely
+        requested feature of running an "autogenerate" comparison between the
+        current database and the :class:`.MetaData` that's currently set up for
+        autogenerate, returning an error code if the two do not match, based on
+        current autogenerate settings. Pull request courtesy Nathan Louie.
+
+        .. seealso::
+
+            :ref:`alembic_check`
+
+
+    .. change::
+        :tags: bug, tests
+
+        Fixed issue in tox.ini file where changes in the tox 4.0 series to the
+        format of "passenv" caused tox to not function correctly, in particular
+        raising an error as of tox 4.0.6.
+
+    .. change::
+        :tags: bug, typing
+        :tickets: 1110
+
+        Fixed typing issue where :paramref:`.revision.process_revision_directives`
+        was not fully typed; additionally ensured all ``Callable`` and ``Dict``
+        arguments to :meth:`.EnvironmentContext.configure` include parameters in
+        the typing declaration.
+
+        Additionally updated the codebase for Mypy 0.990 compliance.
 
 .. changelog::
     :version: 1.8.1
