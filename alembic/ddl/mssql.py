@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Any
 from typing import List
 from typing import Optional
@@ -230,16 +231,25 @@ class MSSQLImpl(DefaultImpl):
         rendered_metadata_default,
         rendered_inspector_default,
     ):
-        def clean(value):
-            if value is not None:
-                value = value.strip()
-                while value[0] == "(" and value[-1] == ")":
-                    value = value[1:-1]
-            return value
+        if rendered_metadata_default is not None:
+            rendered_metadata_default = re.sub(
+                r"^\((.+)\)$", r"\1", rendered_metadata_default
+            )
 
-        return clean(rendered_inspector_default) != clean(
-            rendered_metadata_default
-        )
+            rendered_metadata_default = re.sub(
+                r"^\"?'(.+)'\"?$", r"\1", rendered_metadata_default
+            )
+
+        if rendered_inspector_default is not None:
+            rendered_inspector_default = re.sub(
+                r"^\(+(.+?)\)+$", r"\1", rendered_inspector_default
+            )
+
+            rendered_inspector_default = re.sub(
+                r"^\"?'(.+)'\"?$", r"\1", rendered_inspector_default
+            )
+
+        return rendered_inspector_default != rendered_metadata_default
 
     def _compare_identity_default(self, metadata_identity, inspector_identity):
         diff, ignored, is_alter = super()._compare_identity_default(
