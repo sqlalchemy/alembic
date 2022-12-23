@@ -862,6 +862,79 @@ class CompareTypeSpecificityTest(TestBase):
         )
 
 
+class CompareServerDefaultTest(TestBase):
+    __backend__ = True
+
+    @testing.fixture()
+    def connection(self):
+        with config.db.begin() as conn:
+            yield conn
+
+    @testing.fixture()
+    def metadata(self, connection):
+        m = MetaData()
+        yield m
+        m.drop_all(connection)
+
+    @testing.combinations(
+        (VARCHAR(30), text("'some default'"), text("'some new default'")),
+        (VARCHAR(30), "some default", "some new default"),
+        (VARCHAR(30), text("'//slash'"), text("'s//l//ash'")),
+        (Integer(), text("15"), text("20")),
+        (Integer(), "15", "20"),
+        id_="sss",
+        argnames="type_,default_text,new_default_text",
+    )
+    def test_server_default_yes_positives(
+        self, type_, default_text, new_default_text, connection, metadata
+    ):
+        t1 = Table(
+            "t1", metadata, Column("x", type_, server_default=default_text)
+        )
+        t1.create(connection)
+
+        new_metadata = MetaData()
+        Table(
+            "t1",
+            new_metadata,
+            Column("x", type_, server_default=new_default_text),
+        )
+
+        mc = MigrationContext.configure(
+            connection, opts={"compare_server_default": True}
+        )
+
+        diff = api.compare_metadata(mc, new_metadata)
+        eq_(len(diff), 1)
+        eq_(diff[0][0][0], "modify_default")
+
+    @testing.combinations(
+        (VARCHAR(30), text("'some default'")),
+        (VARCHAR(30), "some default"),
+        (VARCHAR(30), text("'//slash'")),
+        (VARCHAR(30), text("'has '' quote'")),
+        (Integer(), text("15")),
+        (Integer(), "15"),
+        id_="ss",
+        argnames="type_,default_text",
+    )
+    def test_server_default_no_false_positives(
+        self, type_, default_text, connection, metadata
+    ):
+        t1 = Table(
+            "t1", metadata, Column("x", type_, server_default=default_text)
+        )
+        t1.create(connection)
+
+        mc = MigrationContext.configure(
+            connection, opts={"compare_server_default": True}
+        )
+
+        diff = api.compare_metadata(mc, metadata)
+
+        assert not diff
+
+
 class CompareMetadataToInspectorTest(TestBase):
     __backend__ = True
 

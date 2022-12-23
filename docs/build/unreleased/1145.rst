@@ -1,0 +1,29 @@
+.. change::
+    :tags: bug, autogenerate
+    :tickets: 1145
+
+    Fixed issue where server default compare would not work for string defaults
+    that contained backslashes, due to mis-rendering of these values when
+    comparing their contents.
+
+
+.. change::
+    :tags: bug, oracle
+
+    Implemented basic server default comparison for the Oracle backend;
+    previously, Oracle's formatting of reflected defaults prevented any
+    matches from occurring.
+
+.. change::
+    :tags: bug, sqlite
+
+    Adjusted SQLite's compare server default implementation to better handle
+    defaults with or without parens around them, from both the reflected and
+    the local metadata side.
+
+.. change::
+    :tags: bug, mssql
+
+    Adjusted SQL Server's compare server default implementation to better
+    handle defaults with or without parens around them, from both the reflected
+    and the local metadata side.

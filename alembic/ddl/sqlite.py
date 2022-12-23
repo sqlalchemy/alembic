@@ -112,6 +112,10 @@ class SQLiteImpl(DefaultImpl):
 
         if rendered_inspector_default is not None:
             rendered_inspector_default = re.sub(
+                r"^\((.+)\)$", r"\1", rendered_inspector_default
+            )
+
+            rendered_inspector_default = re.sub(
                 r"^\"?'(.+)'\"?$", r"\1", rendered_inspector_default
             )
 

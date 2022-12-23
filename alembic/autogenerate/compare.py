@@ -1022,7 +1022,7 @@ def _render_server_default_for_compare(
     if isinstance(metadata_default, str):
         if metadata_col.type._type_affinity is sqltypes.String:
             metadata_default = re.sub(r"^'|'$", "", metadata_default)
-            return repr(metadata_default)
+            return f"'{metadata_default}'"
         else:
             return metadata_default
     else:

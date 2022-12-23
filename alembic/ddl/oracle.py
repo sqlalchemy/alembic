@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Any
 from typing import Optional
 from typing import TYPE_CHECKING
@@ -51,6 +52,34 @@ class OracleImpl(DefaultImpl):
         if self.as_sql and self.batch_separator:
             self.static_output(self.batch_separator)
         return result
+
+    def compare_server_default(
+        self,
+        inspector_column,
+        metadata_column,
+        rendered_metadata_default,
+        rendered_inspector_default,
+    ):
+        if rendered_metadata_default is not None:
+            rendered_metadata_default = re.sub(
+                r"^\((.+)\)$", r"\1", rendered_metadata_default
+            )
+
+            rendered_metadata_default = re.sub(
+                r"^\"?'(.+)'\"?$", r"\1", rendered_metadata_default
+            )
+
+        if rendered_inspector_default is not None:
+            rendered_inspector_default = re.sub(
+                r"^\((.+)\)$", r"\1", rendered_inspector_default
+            )
+
+            rendered_inspector_default = re.sub(
+                r"^\"?'(.+)'\"?$", r"\1", rendered_inspector_default
+            )
+
+            rendered_inspector_default = rendered_inspector_default.strip()
+        return rendered_inspector_default != rendered_metadata_default
 
     def emit_begin(self) -> None:
         self._exec("SET TRANSACTION READ WRITE")
