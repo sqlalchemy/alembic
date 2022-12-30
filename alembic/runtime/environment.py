@@ -269,15 +269,17 @@ class EnvironmentContext(util.ModuleClsProxy):
         return self.context_opts.get("tag", None)
 
     @overload
-    def get_x_argument(  # type:ignore[misc]
-        self, as_dictionary: Literal[False] = ...
-    ) -> List[str]:
+    def get_x_argument(self, as_dictionary: Literal[False]) -> List[str]:
         ...
 
     @overload
-    def get_x_argument(  # type:ignore[misc]
-        self, as_dictionary: Literal[True] = ...
-    ) -> Dict[str, str]:
+    def get_x_argument(self, as_dictionary: Literal[True]) -> Dict[str, str]:
+        ...
+
+    @overload
+    def get_x_argument(
+        self, as_dictionary: bool = ...
+    ) -> Union[List[str], Dict[str, str]]:
         ...
 
     def get_x_argument(
