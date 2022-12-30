@@ -52,8 +52,10 @@ def generate_pyi_for_proxy(
 ):
     ignore_items = IGNORE_ITEMS.get(file_key, set())
     context_managers = CONTEXT_MANAGERS.get(file_key, [])
-    if sys.version_info < (3, 9):
-        raise RuntimeError("This script must be run with Python 3.9 or higher")
+    if sys.version_info < (3, 11):
+        raise RuntimeError(
+            "This script must be run with Python 3.11 or higher"
+        )
 
     # When using an absolute path on windows, this will generate the correct
     # relative path that shall be written to the top comment of the pyi file.
