@@ -402,7 +402,7 @@ class DefaultRequirements(SuiteRequirements):
             requirements, "black and zimports are required for this test"
         )
         version = exclusions.only_if(
-            lambda _: compat.py39, "python 3.9 is required"
+            lambda _: compat.py311, "python 3.11 is required"
         )
 
         sqlalchemy = exclusions.only_if(

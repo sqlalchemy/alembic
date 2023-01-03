@@ -10,6 +10,7 @@ from sqlalchemy.util.compat import inspect_formatargspec  # noqa
 
 is_posix = os.name == "posix"
 
+py311 = sys.version_info >= (3, 11)
 py39 = sys.version_info >= (3, 9)
 py38 = sys.version_info >= (3, 8)
 
