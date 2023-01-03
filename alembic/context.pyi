@@ -7,7 +7,9 @@ from typing import Callable
 from typing import ContextManager
 from typing import Dict
 from typing import List
+from typing import Literal
 from typing import Optional
+from typing import overload
 from typing import TextIO
 from typing import Tuple
 from typing import TYPE_CHECKING
@@ -644,8 +646,13 @@ def get_tag_argument() -> Optional[str]:
 
     """
 
+@overload
+def get_x_argument(as_dictionary: Literal[False]) -> List[str]: ...
+@overload
+def get_x_argument(as_dictionary: Literal[True]) -> Dict[str, str]: ...
+@overload
 def get_x_argument(
-    as_dictionary: bool = False,
+    as_dictionary: bool = ...,
 ) -> Union[List[str], Dict[str, str]]:
     """Return the value(s) passed for the ``-x`` argument, if any.
 
