@@ -231,6 +231,7 @@ class MSSQLImpl(DefaultImpl):
         rendered_metadata_default,
         rendered_inspector_default,
     ):
+
         if rendered_metadata_default is not None:
             rendered_metadata_default = re.sub(
                 r"^\((.+)\)$", r"\1", rendered_metadata_default
@@ -241,9 +242,14 @@ class MSSQLImpl(DefaultImpl):
             )
 
         if rendered_inspector_default is not None:
-            rendered_inspector_default = re.sub(
-                r"^\(+(.+?)\)+$", r"\1", rendered_inspector_default
-            )
+
+            # the iteration is a quick hack to remove balanced parens only
+            # up to two levels deep, like ((foo)) but not (foo())
+            # see issue #1152
+            for i in range(2):
+                rendered_inspector_default = re.sub(
+                    r"^\((.+)\)$", r"\1", rendered_inspector_default
+                )
 
             rendered_inspector_default = re.sub(
                 r"^\"?'(.+)'\"?$", r"\1", rendered_inspector_default

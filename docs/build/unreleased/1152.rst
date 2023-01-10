@@ -1,0 +1,7 @@
+.. change::
+    :tags: bug, autogenerate
+    :tickets: 1152
+
+    Fixed regression caused by :ticket:`1145` where the string transformations
+    applied to server defaults caused expressions such as ``(getdate())`` to no
+    longer compare as equivalent on SQL Server, others.

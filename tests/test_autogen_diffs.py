@@ -913,6 +913,12 @@ class CompareServerDefaultTest(TestBase):
         (VARCHAR(30), "some default"),
         (VARCHAR(30), text("'//slash'")),
         (VARCHAR(30), text("'has '' quote'")),
+        (DateTime(), text("(getdate())"), testing.exclusions.only_on("mssql")),
+        (
+            DateTime(),
+            text("(now())"),
+            testing.exclusions.only_on("postgresql", "sqlite"),
+        ),
         (Integer(), text("15")),
         (Integer(), "15"),
         id_="ss",
