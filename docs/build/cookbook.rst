@@ -845,6 +845,8 @@ schema or another.
                 # PostgreSQL will emit all CREATE / ALTER / DROP statements
                 # in terms of this schema by default
                 connection.execute(text('set search_path to "%s"' % current_tenant))
+                # in SQLAlchemy v2+ the search path change needs to be committed
+                connection.commit()
 
                 # make use of non-supported SQLAlchemy attribute to ensure
                 # the dialect reflects tables in terms of the current tenant name
