@@ -1,8 +1,0 @@
-.. change::
-    :tags: bug, typing
-    :tickets: 1146, 1147
-
-    Fixed typing definitions for :meth:`.EnvironmentContext.get_x_argument`.
-
-    Typing stubs are now generated for overloaded proxied methods such as
-    :meth:`.EnvironmentContext.get_x_argument`.

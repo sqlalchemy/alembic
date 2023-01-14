@@ -5,7 +5,24 @@ Changelog
 
 .. changelog::
     :version: 1.9.2
-    :include_notes_from: unreleased
+    :released: January 14, 2023
+
+    .. change::
+        :tags: bug, typing
+        :tickets: 1146, 1147
+
+        Fixed typing definitions for :meth:`.EnvironmentContext.get_x_argument`.
+
+        Typing stubs are now generated for overloaded proxied methods such as
+        :meth:`.EnvironmentContext.get_x_argument`.
+
+    .. change::
+        :tags: bug, autogenerate
+        :tickets: 1152
+
+        Fixed regression caused by :ticket:`1145` where the string transformations
+        applied to server defaults caused expressions such as ``(getdate())`` to no
+        longer compare as equivalent on SQL Server, others.
 
 .. changelog::
     :version: 1.9.1
