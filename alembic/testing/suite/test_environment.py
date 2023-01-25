@@ -33,7 +33,7 @@ class MigrationTransactionTest(TestBase):
             )
         return self.context
 
-    def teardown(self):
+    def teardown_method(self):
         if self.conn:
             self.conn.close()
 
