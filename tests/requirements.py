@@ -410,3 +410,17 @@ class DefaultRequirements(SuiteRequirements):
         )
 
         return imports + version + sqlalchemy
+
+    @property
+    def reflect_indexes_with_expressions(self):
+        sqlalchemy = exclusions.only_if(
+            lambda _: sqla_compat.sqla_2, "sqlalchemy 2 is required"
+        )
+
+        postgresql = exclusions.only_on(["postgresql"])
+
+        return sqlalchemy + postgresql
+
+    @property
+    def indexes_with_expressions(self):
+        return exclusions.only_on(["postgresql", "sqlite>=3.9.0"])

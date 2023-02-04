@@ -10,6 +10,8 @@ import re
 import types
 from typing import Union
 
+from sqlalchemy.util import inspect_getfullargspec
+
 
 def flag_combinations(*combinations):
     """A facade around @testing.combinations() oriented towards boolean
@@ -69,10 +71,12 @@ def resolve_lambda(__fn, **kw):
 
     """
 
+    pos_args = inspect_getfullargspec(__fn)[0]
+    pass_pos_args = {arg: kw.pop(arg) for arg in pos_args}
     glb = dict(__fn.__globals__)
     glb.update(kw)
     new_fn = types.FunctionType(__fn.__code__, glb)
-    return new_fn()
+    return new_fn(**pass_pos_args)
 
 
 def metadata_fixture(ddl="function"):

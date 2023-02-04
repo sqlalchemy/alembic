@@ -43,15 +43,19 @@ class CompareColumn:
 
 
 class CompareIndex:
-    def __init__(self, index):
+    def __init__(self, index, name_only=False):
         self.index = index
+        self.name_only = name_only
 
     def __eq__(self, other):
-        return (
-            str(schema.CreateIndex(self.index))
-            == str(schema.CreateIndex(other))
-            and self.index.dialect_kwargs == other.dialect_kwargs
-        )
+        if self.name_only:
+            return self.index.name == other.name
+        else:
+            return (
+                str(schema.CreateIndex(self.index))
+                == str(schema.CreateIndex(other))
+                and self.index.dialect_kwargs == other.dialect_kwargs
+            )
 
     def __ne__(self, other):
         return not self.__eq__(other)

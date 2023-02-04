@@ -23,8 +23,10 @@ from sqlalchemy.schema import Column
 from sqlalchemy.schema import ForeignKeyConstraint
 from sqlalchemy.sql import visitors
 from sqlalchemy.sql.elements import BindParameter
+from sqlalchemy.sql.elements import ColumnClause
 from sqlalchemy.sql.elements import quoted_name
 from sqlalchemy.sql.elements import TextClause
+from sqlalchemy.sql.elements import UnaryExpression
 from sqlalchemy.sql.visitors import traverse
 
 if TYPE_CHECKING:
@@ -37,7 +39,6 @@ if TYPE_CHECKING:
     from sqlalchemy.sql.base import ColumnCollection
     from sqlalchemy.sql.compiler import SQLCompiler
     from sqlalchemy.sql.dml import Insert
-    from sqlalchemy.sql.elements import ColumnClause
     from sqlalchemy.sql.elements import ColumnElement
     from sqlalchemy.sql.schema import Constraint
     from sqlalchemy.sql.schema import SchemaItem
@@ -60,7 +61,8 @@ _vers = tuple(
 sqla_13 = _vers >= (1, 3)
 sqla_14 = _vers >= (1, 4)
 sqla_14_26 = _vers >= (1, 4, 26)
-sqla_2 = _vers >= (1, 5)
+sqla_2 = _vers >= (2,)
+sqlalchemy_version = __version__
 
 
 if sqla_14:
@@ -556,3 +558,13 @@ else:
 
     def _select(*columns, **kw) -> Select:  # type: ignore[no-redef]
         return sql.select(list(columns), **kw)  # type: ignore[call-overload]
+
+
+def is_expression_index(index: Index) -> bool:
+    expr: Any
+    for expr in index.expressions:
+        while isinstance(expr, UnaryExpression):
+            expr = expr.element
+        if not isinstance(expr, ColumnClause) or expr.is_literal:
+            return True
+    return False
