@@ -1757,19 +1757,38 @@ class AutogenRenderTest(TestBase):
             "    # ### end Alembic commands ###",
         )
 
-    def test_repr_custom_type_w_sqla_prefix(self):
+    @testing.combinations("sqlaname", "nonsqlaname", argnames="modname")
+    @testing.combinations("usevariant", "plain", argnames="construct")
+    def test_repr_custom_type(self, modname, construct):
+        """test #1167 as well as other user defined type variations"""
+
         self.autogen_context.opts["user_module_prefix"] = None
 
         class MyType(UserDefinedType):
             pass
 
-        MyType.__module__ = "sqlalchemy_util.types"
+        if modname == "sqlaname":
+            MyType.__module__ = mod = "sqlalchemy_util.types"
+        elif modname == "nonsqlaname":
+            MyType.__module__ = mod = "mymodule"
+        else:
+            assert False
 
-        type_ = MyType()
+        if construct == "usevariant":
+            type_ = MyType().with_variant(String(), "mysql")
+        elif construct == "plain":
+            type_ = MyType()
+        else:
+            assert False
 
         eq_ignore_whitespace(
             autogenerate.render._repr_type(type_, self.autogen_context),
-            "sqlalchemy_util.types.MyType()",
+            f"{mod}.MyType()"
+            + (
+                ".with_variant(sa.String(), 'mysql')"
+                if construct == "usevariant"
+                else ""
+            ),
         )
 
     def test_render_variant(self):

@@ -827,9 +827,9 @@ def _repr_type(
             return "%s.%r" % (dname, type_)
     elif impl_rt:
         return impl_rt
+    elif not _skip_variants and sqla_compat._type_has_variants(type_):
+        return _render_Variant_type(type_, autogen_context)
     elif mod.startswith("sqlalchemy."):
-        if not _skip_variants and sqla_compat._type_has_variants(type_):
-            return _render_Variant_type(type_, autogen_context)
         if "_render_%s_type" % type_.__visit_name__ in globals():
             fn = globals()["_render_%s_type" % type_.__visit_name__]
             return fn(type_, autogen_context)
