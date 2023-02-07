@@ -5,7 +5,16 @@ Changelog
 
 .. changelog::
     :version: 1.9.3
-    :include_notes_from: unreleased
+    :released: February 7, 2023
+
+    .. change::
+        :tags: bug, autogenerate
+        :tickets: 1167
+
+        Fixed issue where rendering of user-defined types that then went onto use
+        the ``.with_variant()`` method would fail to render, if using SQLAlchemy
+        2.0's version of variants.
+
 
 .. changelog::
     :version: 1.9.2
