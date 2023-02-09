@@ -6,4 +6,4 @@ python-dateutil
 Mako
 importlib-metadata;python_version<"3.8"
 importlib-resources;python_version<"3.9"
-sphinx_copybutton
+sphinx_copybutton==0.5.1
