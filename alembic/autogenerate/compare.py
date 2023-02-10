@@ -640,16 +640,15 @@ def _compare_indexes_and_uniques(
         or sqla_compat._constraint_is_named(c.const, autogen_context.dialect)
     }
 
+    conn_uniques_by_name: Dict[sqla_compat._ConstraintName, _uq_constraint_sig]
+    conn_indexes_by_name: Dict[sqla_compat._ConstraintName, _ix_constraint_sig]
+
     conn_uniques_by_name = {c.name: c for c in conn_unique_constraints}
-    conn_indexes_by_name: Dict[Optional[str], _ix_constraint_sig] = {
-        c.name: c for c in conn_indexes_sig
-    }
+    conn_indexes_by_name = {c.name: c for c in conn_indexes_sig}
     conn_names = {
         c.name: c
-        for c in conn_unique_constraints.union(
-            conn_indexes_sig  # type:ignore[arg-type]
-        )
-        if c.name is not None
+        for c in conn_unique_constraints.union(conn_indexes_sig)
+        if sqla_compat.constraint_name_defined(c.name)
     }
 
     doubled_constraints = {

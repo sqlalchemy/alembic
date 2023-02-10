@@ -26,6 +26,7 @@ from sqlalchemy.sql.elements import BindParameter
 from sqlalchemy.sql.elements import quoted_name
 from sqlalchemy.sql.elements import TextClause
 from sqlalchemy.sql.visitors import traverse
+from typing_extensions import TypeGuard
 
 if TYPE_CHECKING:
     from sqlalchemy import Index
@@ -102,6 +103,22 @@ else:
     # attributes of Indentity
     _identity_attrs = _identity_options_attrs + ("on_null",)
     has_identity = True
+
+if sqla_2:
+    from sqlalchemy.sql.base import _NoneName
+else:
+    from sqlalchemy.util import symbol as _NoneName  # type: ignore[assignment]
+
+_ConstraintName = Union[None, str, _NoneName]
+
+
+def constraint_name_defined(name: _ConstraintName) -> TypeGuard[str]:
+    return isinstance(name, str)
+
+
+def constraint_name_or_none(name: _ConstraintName) -> Optional[str]:
+    return name if constraint_name_defined(name) else None
+
 
 AUTOINCREMENT_DEFAULT = "auto"
 

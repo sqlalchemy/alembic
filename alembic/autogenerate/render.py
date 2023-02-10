@@ -17,6 +17,7 @@ from sqlalchemy import schema as sa_schema
 from sqlalchemy import sql
 from sqlalchemy import types as sqltypes
 from sqlalchemy.sql.elements import conv
+from sqlalchemy.sql.elements import quoted_name
 
 from .. import util
 from ..operations import ops
@@ -26,12 +27,10 @@ if TYPE_CHECKING:
     from typing import Literal
 
     from sqlalchemy.sql.elements import ColumnElement
-    from sqlalchemy.sql.elements import quoted_name
     from sqlalchemy.sql.elements import TextClause
     from sqlalchemy.sql.schema import CheckConstraint
     from sqlalchemy.sql.schema import Column
     from sqlalchemy.sql.schema import Constraint
-    from sqlalchemy.sql.schema import DefaultClause
     from sqlalchemy.sql.schema import FetchedValue
     from sqlalchemy.sql.schema import ForeignKey
     from sqlalchemy.sql.schema import ForeignKeyConstraint
@@ -55,12 +54,12 @@ MAX_PYTHON_ARGS = 255
 
 def _render_gen_name(
     autogen_context: AutogenContext,
-    name: Optional[Union[quoted_name, str]],
+    name: sqla_compat._ConstraintName,
 ) -> Optional[Union[quoted_name, str, _f_name]]:
     if isinstance(name, conv):
         return _f_name(_alembic_autogenerate_prefix(autogen_context), name)
     else:
-        return name
+        return sqla_compat.constraint_name_or_none(name)
 
 
 def _indent(text: str) -> str:
@@ -554,7 +553,7 @@ def _ident(name: Optional[Union[quoted_name, str]]) -> Optional[str]:
     """
     if name is None:
         return name
-    elif isinstance(name, sql.elements.quoted_name):
+    elif isinstance(name, quoted_name):
         return str(name)
     elif isinstance(name, str):
         return name
@@ -721,9 +720,7 @@ def _render_column(column: Column, autogen_context: AutogenContext) -> str:
     }
 
 
-def _should_render_server_default_positionally(
-    server_default: Union[Computed, DefaultClause]
-) -> bool:
+def _should_render_server_default_positionally(server_default: Any) -> bool:
     return sqla_compat._server_default_is_computed(
         server_default
     ) or sqla_compat._server_default_is_identity(server_default)

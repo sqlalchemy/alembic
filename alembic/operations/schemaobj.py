@@ -235,7 +235,7 @@ class SchemaObjects:
 
     def index(
         self,
-        name: str,
+        name: Optional[str],
         tablename: Optional[str],
         columns: Sequence[Union[str, TextClause, ColumnElement[Any]]],
         schema: Optional[str] = None,

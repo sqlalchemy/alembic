@@ -419,7 +419,7 @@ class CreateExcludeConstraintOp(ops.AddConstraintOp):
 
     def __init__(
         self,
-        constraint_name: Optional[str],
+        constraint_name: sqla_compat._ConstraintName,
         table_name: Union[str, quoted_name],
         elements: Union[
             Sequence[Tuple[str, str]],
@@ -443,7 +443,6 @@ class CreateExcludeConstraintOp(ops.AddConstraintOp):
         cls, constraint: ExcludeConstraint
     ) -> CreateExcludeConstraintOp:
         constraint_table = sqla_compat._table_for_constraint(constraint)
-
         return cls(
             constraint.name,
             constraint_table.name,
@@ -451,7 +450,9 @@ class CreateExcludeConstraintOp(ops.AddConstraintOp):
                 (expr, op)
                 for expr, name, op in constraint._render_exprs  # type:ignore[attr-defined] # noqa
             ],
-            where=constraint.where,
+            where=cast(
+                "Optional[Union[BinaryExpression, str]]", constraint.where
+            ),
             schema=constraint_table.schema,
             _orig_constraint=constraint,
             deferrable=constraint.deferrable,
