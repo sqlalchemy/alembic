@@ -1562,6 +1562,12 @@ together, and ``env.py`` as follows works::
         else:
             do_run_migrations(connectable)
 
+
+    if context.is_offline_mode():
+        run_migrations_offline()
+    else:
+        run_migrations_online()
+
 Above, using an asyncio database URL in ``alembic.ini`` one can run
 commands such as ``alembic upgrade`` from the command line.  Programmatically,
 the same ``env.py`` file can be invoked using asyncio as::
