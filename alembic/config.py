@@ -10,6 +10,7 @@ from typing import Dict
 from typing import Optional
 from typing import overload
 from typing import TextIO
+from typing import Union
 
 from . import __version__
 from . import command
@@ -93,7 +94,7 @@ class Config:
 
     def __init__(
         self,
-        file_: Optional[str] = None,
+        file_: Union[str, os.PathLike[str], None] = None,
         ini_section: str = "alembic",
         output_buffer: Optional[TextIO] = None,
         stdout: TextIO = sys.stdout,
@@ -123,7 +124,7 @@ class Config:
 
     """
 
-    config_file_name: Optional[str] = None
+    config_file_name: Union[str, os.PathLike[str], None] = None
     """Filesystem path to the .ini file in use."""
 
     config_ini_section: str = None  # type:ignore[assignment]
