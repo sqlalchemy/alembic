@@ -1912,7 +1912,7 @@ class AlterColumnOp(AlterTableOp):
 
          .. versionadded:: 1.4.0
 
-        :param insert_before: String name of an existing column which this
+        :param insert_after: String name of an existing column which this
          column should be placed after, when creating the new table.  If
          both :paramref:`.BatchOperations.alter_column.insert_before`
          and :paramref:`.BatchOperations.alter_column.insert_after` are
