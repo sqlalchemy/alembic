@@ -22,7 +22,7 @@ logger = logging.getLogger("alembic.env")
 # gather section names referring to different
 # databases.  These are named "engine1", "engine2"
 # in the sample .ini file.
-db_names = config.get_main_option("databases")
+db_names = config.get_main_option("databases", "")
 
 # add your model's MetaData objects here
 # for 'autogenerate' support.  These must be set
@@ -94,7 +94,7 @@ def run_migrations_online() -> None:
     for name in re.split(r",\s*", db_names):
         engines[name] = rec = {}
         rec["engine"] = engine_from_config(
-            context.config.get_section(name),
+            context.config.get_section(name, {}),
             prefix="sqlalchemy.",
             poolclass=pool.NullPool,
         )

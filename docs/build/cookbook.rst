@@ -222,7 +222,7 @@ transaction declared in a Python file::
         cfg.attributes['connection'] = connection
         command.upgrade(cfg, "head")
 
-Then in ``env.py``::
+Then in ``env.py`` we can update ``run_migrations_online``::
 
     def run_migrations_online():
         connectable = config.attributes.get('connection', None)
@@ -1518,14 +1518,7 @@ Programmatic API use (connection sharing) With Asyncio
 ------------------------------------------------------
 
 Combining the examples of :ref:`connection_sharing` with :ref:`asyncio_recipe`
-together, and ``env.py`` as follows works::
-
-    import asyncio
-
-    from sqlalchemy.ext.asyncio import async_engine_from_config
-
-    # ... no change required to the rest of the code
-
+together, the ``env.py`` can be updated as follows works::
 
     def do_run_migrations(connection):
         context.configure(connection=connection, target_metadata=target_metadata)
@@ -1535,6 +1528,10 @@ together, and ``env.py`` as follows works::
 
 
     async def run_async_migrations():
+        """In this scenario we need to create an Engine
+        and associate a connection with the context.
+        """
+
         connectable = async_engine_from_config(
             config.get_section(config.config_ini_section),
             prefix="sqlalchemy.",
@@ -1550,9 +1547,6 @@ together, and ``env.py`` as follows works::
     def run_migrations_online():
         """Run migrations in 'online' mode.
 
-        In this scenario we need to create an Engine
-        and associate a connection with the context.
-
         """
 
         connectable = config.attributes.get("connection", None)
@@ -1561,6 +1555,12 @@ together, and ``env.py`` as follows works::
             asyncio.run(run_async_migrations())
         else:
             do_run_migrations(connectable)
+
+
+    if context.is_offline_mode():
+        run_migrations_offline()
+    else:
+        run_migrations_online()
 
 Above, using an asyncio database URL in ``alembic.ini`` one can run
 commands such as ``alembic upgrade`` from the command line.  Programmatically,
