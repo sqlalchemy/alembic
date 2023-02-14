@@ -1483,53 +1483,10 @@ file that's used by Alembic to start its operations. In particular only
             context.run_migrations()
 
 
-    async def run_migrations_online():
-        """Run migrations in 'online' mode.
-
-        In this scenario we need to create an Engine
-        and associate a connection with the context.
-
-        """
-        connectable = async_engine_from_config(
-            config.get_section(config.config_ini_section),
-            prefix="sqlalchemy.",
-            poolclass=pool.NullPool,
-        )
-
-        async with connectable.connect() as connection:
-            await connection.run_sync(do_run_migrations)
-
-        await connectable.dispose()
-
-
-    if context.is_offline_mode():
-        run_migrations_offline()
-    else:
-        asyncio.run(run_migrations_online())
-
-An async application can also interact with the Alembic api directly by using
-the SQLAlchemy ``run_sync`` method to adapt the non-async api of Alembic to
-an async consumer.
-
-
-.. _connection_sharing_plus_asyncio:
-
-Programmatic API use (connection sharing) With Asyncio
-------------------------------------------------------
-
-Combining the examples of :ref:`connection_sharing` with :ref:`asyncio_recipe`
-together, the ``env.py`` can be updated as follows works::
-
-    def do_run_migrations(connection):
-        context.configure(connection=connection, target_metadata=target_metadata)
-
-        with context.begin_transaction():
-            context.run_migrations()
-
-
     async def run_async_migrations():
         """In this scenario we need to create an Engine
         and associate a connection with the context.
+
         """
 
         connectable = async_engine_from_config(
@@ -1545,6 +1502,25 @@ together, the ``env.py`` can be updated as follows works::
 
 
     def run_migrations_online():
+        """Run migrations in 'online' mode."""
+
+        asyncio.run(run_async_migrations())
+
+An async application can also interact with the Alembic api directly by using
+the SQLAlchemy ``run_sync`` method to adapt the non-async api of Alembic to
+an async consumer.
+
+
+.. _connection_sharing_plus_asyncio:
+
+Programmatic API use (connection sharing) With Asyncio
+------------------------------------------------------
+
+Combining the examples of :ref:`connection_sharing` with :ref:`asyncio_recipe`
+together, the  ``env.py`` listed above can be updated as follows works::
+
+
+    def run_migrations_online():
         """Run migrations in 'online' mode.
 
         """
@@ -1555,12 +1531,6 @@ together, the ``env.py`` can be updated as follows works::
             asyncio.run(run_async_migrations())
         else:
             do_run_migrations(connectable)
-
-
-    if context.is_offline_mode():
-        run_migrations_offline()
-    else:
-        run_migrations_online()
 
 Above, using an asyncio database URL in ``alembic.ini`` one can run
 commands such as ``alembic upgrade`` from the command line.  Programmatically,
