@@ -322,7 +322,7 @@ def merge(
 
     script = ScriptDirectory.from_config(config)
     template_args = {
-        "config": "config"  # Let templates use config for
+        "config": config  # Let templates use config for
         # e.g. multiple databases
     }
     return script.generate_revision(
