@@ -233,26 +233,17 @@ class MSSQLImpl(DefaultImpl):
     ):
 
         if rendered_metadata_default is not None:
-            rendered_metadata_default = re.sub(
-                r"^\((.+)\)$", r"\1", rendered_metadata_default
-            )
 
             rendered_metadata_default = re.sub(
-                r"^\"?'(.+)'\"?$", r"\1", rendered_metadata_default
+                r"[\(\) \"\']", "", rendered_metadata_default
             )
 
         if rendered_inspector_default is not None:
-
-            # the iteration is a quick hack to remove balanced parens only
-            # up to two levels deep, like ((foo)) but not (foo())
-            # see issue #1152
-            for i in range(2):
-                rendered_inspector_default = re.sub(
-                    r"^\((.+)\)$", r"\1", rendered_inspector_default
-                )
+            # SQL Server collapses whitespace and adds arbitrary parenthesis
+            # within expressions.   our only option is collapse all of it
 
             rendered_inspector_default = re.sub(
-                r"^\"?'(.+)'\"?$", r"\1", rendered_inspector_default
+                r"[\(\) \"\']", "", rendered_inspector_default
             )
 
         return rendered_inspector_default != rendered_metadata_default

@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 from typing import Union
 
 from sqlalchemy import Column
+from sqlalchemy import literal_column
 from sqlalchemy import Numeric
 from sqlalchemy import text
 from sqlalchemy import types as sqltypes
@@ -112,22 +113,26 @@ class PostgresqlImpl(DefaultImpl):
         if defaults_equal:
             return False
 
-        if None in (conn_col_default, rendered_metadata_default):
+        if None in (
+            conn_col_default,
+            rendered_metadata_default,
+            metadata_column.server_default,
+        ):
             return not defaults_equal
 
-        # check for unquoted string and quote for PG String types
-        if (
-            not isinstance(inspector_column.type, Numeric)
-            and metadata_column.server_default is not None
-            and isinstance(metadata_column.server_default.arg, str)
-            and not re.match(r"^'.*'$", rendered_metadata_default)
-        ):
-            rendered_metadata_default = "'%s'" % rendered_metadata_default
+        metadata_default = metadata_column.server_default.arg
 
+        if isinstance(metadata_default, str):
+            if not isinstance(inspector_column.type, Numeric):
+                metadata_default = re.sub(r"^'|'$", "", metadata_default)
+                metadata_default = f"'{metadata_default}'"
+
+            metadata_default = literal_column(metadata_default)
+
+        # run a real compare against the server
         return not self.connection.scalar(
-            text(
-                "SELECT %s = %s"
-                % (conn_col_default, rendered_metadata_default)
+            sqla_compat._select(
+                literal_column(conn_col_default) == metadata_default
             )
         )
 

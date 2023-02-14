@@ -11,6 +11,7 @@ from sqlalchemy import Enum
 from sqlalchemy import FLOAT
 from sqlalchemy import ForeignKey
 from sqlalchemy import ForeignKeyConstraint
+from sqlalchemy import func
 from sqlalchemy import Index
 from sqlalchemy import inspect
 from sqlalchemy import INTEGER
@@ -913,6 +914,37 @@ class CompareServerDefaultTest(TestBase):
         (VARCHAR(30), "some default"),
         (VARCHAR(30), text("'//slash'")),
         (VARCHAR(30), text("'has '' quote'")),
+        (
+            VARCHAR(30),
+            func.substring("name", 1, 3),
+            testing.exclusions.only_on(["mssql", "postgresql"]),
+        ),  # note no space
+        (
+            VARCHAR(30),
+            text("substring('name',1,3)"),
+            testing.exclusions.only_on(["mssql", "postgresql"]),
+        ),  # note no space
+        (
+            VARCHAR(30),
+            text("substring('name', 1, 3)"),
+            testing.exclusions.only_on(["mssql", "postgresql"]),
+        ),  # note spaces
+        (
+            VARCHAR(50),
+            text(
+                "substring(user_name(),"  # note no space
+                "charindex('',user_name())+(1),len(user_name()))"
+            ),
+            testing.exclusions.only_on("mssql"),
+        ),
+        (
+            VARCHAR(50),
+            text(
+                "substring(user_name(), "  # note space
+                "charindex('',user_name())+(1),len(user_name()))"
+            ),
+            testing.exclusions.only_on("mssql"),
+        ),
         (DateTime(), text("(getdate())"), testing.exclusions.only_on("mssql")),
         (
             DateTime(),
