@@ -5,7 +5,47 @@ Changelog
 
 .. changelog::
     :version: 1.9.4
-    :include_notes_from: unreleased
+    :released: February 16, 2023
+
+    .. change::
+        :tags: bug, mssql
+        :tickets: 1177
+
+        Ongoing fixes for SQL Server server default comparisons under autogenerate,
+        adjusting for SQL Server's collapsing of whitespace between SQL function
+        arguments when reporting on a function-based server default, as well as its
+        arbitrary addition of parenthesis within arguments; the approach has now
+        been made more aggressive by stripping the two default strings to compare
+        of all whitespace, parenthesis, and quoting characters.
+
+
+    .. change::
+        :tags: bug, postgresql
+
+        Fixed PostgreSQL server default comparison to handle SQL expressions
+        sent as ``text()`` constructs, such as ``text("substring('name', 1, 3)")``,
+        which previously would raise errors when attempting to run a server-based
+        comparison.
+
+
+
+    .. change::
+        :tags: bug, autogenerate
+        :tickets: 1180
+
+        Removed a mis-use of the
+        :paramref:`.EnvironmentContext.configure.render_item` callable where the
+        "server_default" renderer would be erroneously used within the server
+        default comparison process, which is working against SQL expressions, not
+        Python code.
+
+    .. change::
+        :tags: bug, commands
+
+        Fixed regression introduced in 1.7.0 where the "config" object passed to
+        the template context when running the :func:`.merge` command
+        programmatically failed to be correctly populated. Pull request courtesy
+        Brendan Gann.
 
 .. changelog::
     :version: 1.9.3

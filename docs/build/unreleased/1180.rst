@@ -1,9 +1,0 @@
-.. change::
-    :tags: bug, autogenerate
-    :tickets: 1180
-
-    Removed a mis-use of the
-    :paramref:`.EnvironmentContext.configure.render_item` callable where the
-    "server_default" renderer would be erroneously used within the server
-    default comparison process, which is working against SQL expressions, not
-    Python code.
