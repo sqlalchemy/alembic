@@ -21,7 +21,6 @@ from sqlalchemy import types as sqltypes
 from sqlalchemy.util import OrderedSet
 
 from alembic.ddl.base import _fk_spec
-from .render import _user_defined_render
 from .. import util
 from ..operations import ops
 from ..util import sqla_compat
@@ -1003,11 +1002,6 @@ def _render_server_default_for_compare(
     metadata_col: Column,
     autogen_context: AutogenContext,
 ) -> Optional[str]:
-    rendered = _user_defined_render(
-        "server_default", metadata_default, autogen_context
-    )
-    if rendered is not False:
-        return rendered
 
     if isinstance(metadata_default, sa_schema.DefaultClause):
         if isinstance(metadata_default.arg, str):
