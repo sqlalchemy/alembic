@@ -973,7 +973,7 @@ class Script(revision.Revision):
                 # if a `sourceless` option is specified
                 continue
 
-            for filename in files:
+            for filename in sorted(files):
                 paths.append(os.path.join(root, filename))
 
             if scriptdir.sourceless:
@@ -992,6 +992,12 @@ class Script(revision.Revision):
 
             if not scriptdir.recursive_version_locations:
                 break
+
+            # the real script order is defined by revision,
+            # but it may be undefined if there are many files with a same
+            # `down_revision`, for a better user experience (ex. debugging),
+            # we use a deterministic order
+            dirs.sort()
 
         return paths
 

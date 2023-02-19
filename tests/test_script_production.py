@@ -1,6 +1,9 @@
 import datetime
 import os
 import re
+import shutil
+from typing import Dict
+from typing import List
 from unittest.mock import patch
 
 from dateutil import tz
@@ -13,6 +16,7 @@ from alembic import testing
 from alembic import util
 from alembic.environment import EnvironmentContext
 from alembic.operations import ops
+from alembic.script import Script
 from alembic.script import ScriptDirectory
 from alembic.testing import assert_raises_message
 from alembic.testing import assertions
@@ -30,6 +34,7 @@ from alembic.testing.env import _sqlite_testing_config
 from alembic.testing.env import _testing_config
 from alembic.testing.env import clear_staging_env
 from alembic.testing.env import env_file_fixture
+from alembic.testing.env import multi_heads_fixture
 from alembic.testing.env import script_file_fixture
 from alembic.testing.env import staging_env
 from alembic.testing.env import three_rev_fixture
@@ -1356,3 +1361,256 @@ class NormPathTest(TestBase):
                     ).replace("/", ":NORM:"),
                 ],
             )
+
+
+class RecursiveMixin:
+    rev: List[str]
+    rev_to_script: Dict[str, Script]
+    org_script_dir: ScriptDirectory
+
+    def _move_revision_file(
+        self,
+        rev_index: int,
+        destination_dir: str,
+        version_path="scripts/versions",
+    ):
+        rev_hash = self.rev[rev_index]
+        script = self.rev_to_script[rev_hash]
+        target_file = self._get_moved_path(
+            rev_index, destination_dir, version_path
+        )
+        os.makedirs(os.path.dirname(target_file), exist_ok=True)
+        shutil.move(script.path, target_file)
+
+    def _get_moved_path(
+        self,
+        rev_index: int,
+        destination_dir: str = "",
+        version_path="scripts/versions",
+    ):
+        rev_hash = self.rev[rev_index]
+        script = self.rev_to_script[rev_hash]
+        file_name = os.path.basename(script.path)
+        target_file = os.path.join(
+            _get_staging_directory(), version_path, destination_dir, file_name
+        )
+        target_file = os.path.realpath(target_file)
+        return target_file
+
+    def _checkTopologicalOrder(self, sd: ScriptDirectory):
+        for rev_id in self.rev:
+            new_script = sd.get_revision(rev_id)
+            assertions.is_not_(new_script, None)
+
+            old_revisions = {
+                r.revision: r
+                for r in self._iterate_revisions(self.org_script_dir, rev_id)
+            }
+            new_revisions = {
+                r.revision: r for r in self._iterate_revisions(sd, rev_id)
+            }
+
+            eq_(len(old_revisions), len(new_revisions))
+            for common_rev_id in set(old_revisions.keys()).union(
+                new_revisions.keys()
+            ):
+                old_rev = old_revisions[common_rev_id]
+                new_rev = new_revisions[common_rev_id]
+
+                eq_(old_rev.revision, new_rev.revision)
+                eq_(old_rev.down_revision, new_rev.down_revision)
+                eq_(old_rev.dependencies, new_rev.dependencies)
+
+    @staticmethod
+    def _iterate_revisions(sd: ScriptDirectory, rev_id: str):
+        yield from sd.revision_map.iterate_revisions(
+            rev_id, "base", inclusive=True, assert_relative_length=False
+        )
+
+
+class RecursiveScriptDirectoryTest(TestBase, RecursiveMixin):
+    def setUp(self):
+        self.env = staging_env()
+        self.cfg = _sqlite_testing_config()
+        self.cfg.set_main_option("recursive_version_locations", "true")
+
+        self.rev = list(three_rev_fixture(self.cfg))
+        self.rev.extend(multi_heads_fixture(self.cfg, *self.rev[0:3]))
+
+        self.org_script_dir = ScriptDirectory.from_config(self.cfg)
+        self.rev_to_script = {
+            script.revision: script
+            for script in self.org_script_dir.walk_revisions()
+        }
+
+    def tearDown(self):
+        clear_staging_env()
+
+    def test_flat_structure(self):
+        assert len(self.rev) == 6
+
+    def test_flat_and_dir_structure(self):
+        self._move_revision_file(0, "dir_1")
+        self._move_revision_file(2, "dir_1")
+        self._move_revision_file(4, "dir_2")
+        self._move_revision_file(5, "dir_3")
+
+        sd = ScriptDirectory.from_config(self.cfg)
+        new_rev_to_script = {r.revision: r for r in sd.walk_revisions()}
+        eq_(len(new_rev_to_script), 6)
+        self._checkTopologicalOrder(sd)
+
+        eq_(
+            new_rev_to_script[self.rev[0]].path,
+            self._get_moved_path(0, "dir_1"),
+        )
+        eq_(new_rev_to_script[self.rev[1]].path, self._get_moved_path(1, ""))
+        eq_(
+            new_rev_to_script[self.rev[2]].path,
+            self._get_moved_path(2, "dir_1"),
+        )
+        eq_(new_rev_to_script[self.rev[3]].path, self._get_moved_path(3, ""))
+        eq_(
+            new_rev_to_script[self.rev[4]].path,
+            self._get_moved_path(4, "dir_2"),
+        )
+        eq_(
+            new_rev_to_script[self.rev[5]].path,
+            self._get_moved_path(5, "dir_3"),
+        )
+
+    def test_nested_dir_structure(self):
+        self._move_revision_file(0, "dir_1")
+        self._move_revision_file(1, "dir_1/nested_1")
+        self._move_revision_file(2, "dir_1/nested_1")
+        self._move_revision_file(3, "dir_1/nested_2")
+        self._move_revision_file(4, "dir_2")
+        self._move_revision_file(5, "dir_3/nested_3")
+
+        sd = ScriptDirectory.from_config(self.cfg)
+        new_rev_to_script = {r.revision: r for r in sd.walk_revisions()}
+        eq_(len(new_rev_to_script), 6)
+        self._checkTopologicalOrder(sd)
+
+        eq_(
+            new_rev_to_script[self.rev[0]].path,
+            self._get_moved_path(0, "dir_1"),
+        )
+        eq_(
+            new_rev_to_script[self.rev[1]].path,
+            self._get_moved_path(1, "dir_1/nested_1"),
+        )
+        eq_(
+            new_rev_to_script[self.rev[2]].path,
+            self._get_moved_path(2, "dir_1/nested_1"),
+        )
+        eq_(
+            new_rev_to_script[self.rev[3]].path,
+            self._get_moved_path(3, "dir_1/nested_2"),
+        )
+        eq_(
+            new_rev_to_script[self.rev[4]].path,
+            self._get_moved_path(4, "dir_2"),
+        )
+        eq_(
+            new_rev_to_script[self.rev[5]].path,
+            self._get_moved_path(5, "dir_3/nested_3"),
+        )
+
+    def test_dir_structure_with_missing_file(self):
+        revision_to_remove = self.rev_to_script[self.rev[1]]
+
+        self._move_revision_file(0, "dir_1")
+        os.remove(revision_to_remove.path)
+        self._move_revision_file(2, "dir_1")
+        self._move_revision_file(4, "dir_2")
+        self._move_revision_file(5, "dir_3")
+
+        sd = ScriptDirectory.from_config(self.cfg)
+
+        assert_raises_message(
+            KeyError,
+            revision_to_remove.revision,
+            list,
+            sd.walk_revisions(),
+        )
+
+
+class RecursiveScriptDirectoryMultiDirTest(TestBase, RecursiveMixin):
+    def setUp(self):
+        self.env = staging_env()
+        self.cfg = _multi_dir_testing_config()
+        self.cfg.set_main_option("recursive_version_locations", "true")
+
+        script0 = command.revision(
+            self.cfg,
+            message="x",
+            head="base",
+            version_path=os.path.join(_get_staging_directory(), "model1"),
+        )
+        script1 = command.revision(
+            self.cfg,
+            message="y",
+            head="base",
+            version_path=os.path.join(_get_staging_directory(), "model2"),
+        )
+        script2 = command.revision(
+            self.cfg, message="y2", head=script1.revision
+        )
+
+        self.org_script_dir = ScriptDirectory.from_config(self.cfg)
+        self.rev_to_script = {
+            script0.revision: script0,
+            script1.revision: script1,
+            script2.revision: script2,
+        }
+        self.rev = list(self.rev_to_script.keys())
+
+    def tearDown(self):
+        clear_staging_env()
+
+    def test_multiple_dir_recursive(self):
+        self._move_revision_file(0, "dir_0", "model1")
+        self._move_revision_file(1, "dir_1", "model2")
+        self._move_revision_file(2, "dir_1/nested", "model2")
+
+        sd = ScriptDirectory.from_config(self.cfg)
+        new_rev_to_script = {r.revision: r for r in sd.walk_revisions()}
+        eq_(len(new_rev_to_script), 3)
+        self._checkTopologicalOrder(sd)
+
+        eq_(
+            new_rev_to_script[self.rev[0]].path,
+            self._get_moved_path(0, "dir_0", "model1"),
+        )
+        eq_(
+            new_rev_to_script[self.rev[1]].path,
+            self._get_moved_path(1, "dir_1", "model2"),
+        )
+        eq_(
+            new_rev_to_script[self.rev[2]].path,
+            self._get_moved_path(2, "dir_1/nested", "model2"),
+        )
+
+    def test_multiple_dir_recursive_change_version_dir(self):
+        self._move_revision_file(0, "dir_0", "model1")
+        self._move_revision_file(1, "dir_1", "model1")
+        self._move_revision_file(2, "dir_1/nested", "model1")
+
+        sd = ScriptDirectory.from_config(self.cfg)
+        new_rev_to_script = {r.revision: r for r in sd.walk_revisions()}
+        eq_(len(new_rev_to_script), 3)
+        self._checkTopologicalOrder(sd)
+
+        eq_(
+            new_rev_to_script[self.rev[0]].path,
+            self._get_moved_path(0, "dir_0", "model1"),
+        )
+        eq_(
+            new_rev_to_script[self.rev[1]].path,
+            self._get_moved_path(1, "dir_1", "model1"),
+        )
+        eq_(
+            new_rev_to_script[self.rev[2]].path,
+            self._get_moved_path(2, "dir_1/nested", "model1"),
+        )
