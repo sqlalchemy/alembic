@@ -670,7 +670,11 @@ def _render_potential_column(
     value: Union[ColumnClause, Column], autogen_context: AutogenContext
 ) -> str:
     if isinstance(value, ColumnClause):
-        template = "%(prefix)scolumn(%(name)r)"
+        if value.is_literal:
+            # Support stuff like literal_column("int8range(from, to)") in ExcludeConstraint
+            template = "%(prefix)sliteral_column(%(name)r)"
+        else:
+            template = "%(prefix)scolumn(%(name)r)"
 
         return template % {
             "prefix": render._sqlalchemy_autogenerate_prefix(autogen_context),
