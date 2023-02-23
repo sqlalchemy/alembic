@@ -13,6 +13,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 if True:  # avoid flake/zimports messing with the order
     from alembic.operations.base import Operations
     from alembic.runtime.environment import EnvironmentContext
+    from alembic.runtime.migration import MigrationContext
     from alembic.script.write_hooks import console_scripts
     from alembic.util.compat import inspect_formatargspec
     from alembic.util.compat import inspect_getfullargspec
@@ -40,6 +41,7 @@ TRIM_MODULE = [
     "sqlalchemy.sql.dml.",
 ]
 CONTEXT_MANAGERS = {"op": ["batch_alter_table"]}
+ADDITIONAL_ENV = {"MigrationContext": MigrationContext}
 
 
 def generate_pyi_for_proxy(
@@ -92,6 +94,7 @@ def generate_pyi_for_proxy(
             **sa.sql.schema.__dict__,
             **sa.__dict__,
             **sa.types.__dict__,
+            **ADDITIONAL_ENV,
             **ops.__dict__,
             **module.__dict__,
         }

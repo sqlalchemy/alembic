@@ -1009,7 +1009,7 @@ def execute(
     literal SQL string contains a colon, it must be escaped with a
     backslash, as::
 
-       op.execute("INSERT INTO table (foo) VALUES ('\:colon_value')")
+       op.execute(r"INSERT INTO table (foo) VALUES ('\:colon_value')")
 
 
     :param sqltext: Any legal SQLAlchemy expression, including:
