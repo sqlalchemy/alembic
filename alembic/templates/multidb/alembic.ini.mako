@@ -51,6 +51,11 @@ prepend_sys_path = .
 # version_path_separator = space
 version_path_separator = os  # Use os.pathsep. Default configuration used for new projects.
 
+# set to 'true' to search source files recursively
+# in each "version_locations" directory
+# new in Alembic version 1.10
+# recursive_version_locations = false
+
 # the output encoding used when revision files
 # are written from script.py.mako
 # output_encoding = utf-8
