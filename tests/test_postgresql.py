@@ -1182,6 +1182,36 @@ class PostgresqlAutogenRenderTest(TestBase):
             "name='TExclID'))",
         )
 
+    @config.requirements.sqlalchemy_2
+    def test_inline_exclude_constraint_text(self):
+        # Actually, this only works on sqlalchemy 2.x >= 2023-03-03 due to a bug in sqlalchemy
+        # See https://github.com/sqlalchemy/alembic/issues/1184
+        #     and https://github.com/sqlalchemy/sqlalchemy/issues/9401
+
+        from sqlalchemy.dialects.postgresql import ExcludeConstraint
+
+        autogen_context = self.autogen_context
+
+        m = MetaData()
+        t = Table(
+            "TTable", m, Column("id", String()),
+            ExcludeConstraint(
+                (text("id + 2"), "="), name="TExclID", using="gist"
+            ),
+        )
+
+        op_obj = ops.CreateTableOp.from_table(t)
+
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(autogen_context, op_obj),
+            "op.create_table('TTable',sa.Column('id', sa.String(), "
+            "nullable=True),"
+            "postgresql.ExcludeConstraint((sa.text('id + 2'), '='), "
+            "using='gist', "
+            "name='TExclID'))",
+        )
+
+
     def test_json_type(self):
         eq_ignore_whitespace(
             autogenerate.render._repr_type(JSON(), self.autogen_context),
