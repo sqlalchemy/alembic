@@ -1397,7 +1397,7 @@ class RecursiveMixin:
         target_file = os.path.realpath(target_file)
         return target_file
 
-    def _checkTopologicalOrder(self, sd: ScriptDirectory):
+    def _check_topological_order(self, sd: ScriptDirectory):
         for rev_id in self.rev:
             new_script = sd.get_revision(rev_id)
             assertions.is_not_(new_script, None)
@@ -1449,16 +1449,18 @@ class RecursiveScriptDirectoryTest(TestBase, RecursiveMixin):
     def test_flat_structure(self):
         assert len(self.rev) == 6
 
-    def test_flat_and_dir_structure(self):
+    @testing.fixture
+    def flat_and_dir_structure_fixture(self):
         self._move_revision_file(0, "dir_1")
         self._move_revision_file(2, "dir_1")
         self._move_revision_file(4, "dir_2")
         self._move_revision_file(5, "dir_3")
 
+    def test_flat_and_dir_structure(self, flat_and_dir_structure_fixture):
         sd = ScriptDirectory.from_config(self.cfg)
         new_rev_to_script = {r.revision: r for r in sd.walk_revisions()}
         eq_(len(new_rev_to_script), 6)
-        self._checkTopologicalOrder(sd)
+        self._check_topological_order(sd)
 
         eq_(
             new_rev_to_script[self.rev[0]].path,
@@ -1479,7 +1481,8 @@ class RecursiveScriptDirectoryTest(TestBase, RecursiveMixin):
             self._get_moved_path(5, "dir_3"),
         )
 
-    def test_nested_dir_structure(self):
+    @testing.fixture
+    def nested_dir_structure_fixture(self):
         self._move_revision_file(0, "dir_1")
         self._move_revision_file(1, "dir_1/nested_1")
         self._move_revision_file(2, "dir_1/nested_1")
@@ -1487,10 +1490,11 @@ class RecursiveScriptDirectoryTest(TestBase, RecursiveMixin):
         self._move_revision_file(4, "dir_2")
         self._move_revision_file(5, "dir_3/nested_3")
 
+    def test_nested_dir_structure(self, nested_dir_structure_fixture):
         sd = ScriptDirectory.from_config(self.cfg)
         new_rev_to_script = {r.revision: r for r in sd.walk_revisions()}
         eq_(len(new_rev_to_script), 6)
-        self._checkTopologicalOrder(sd)
+        self._check_topological_order(sd)
 
         eq_(
             new_rev_to_script[self.rev[0]].path,
@@ -1517,7 +1521,8 @@ class RecursiveScriptDirectoryTest(TestBase, RecursiveMixin):
             self._get_moved_path(5, "dir_3/nested_3"),
         )
 
-    def test_dir_structure_with_missing_file(self):
+    @testing.fixture
+    def missing_file_fixture(self):
         revision_to_remove = self.rev_to_script[self.rev[1]]
 
         self._move_revision_file(0, "dir_1")
@@ -1526,11 +1531,14 @@ class RecursiveScriptDirectoryTest(TestBase, RecursiveMixin):
         self._move_revision_file(4, "dir_2")
         self._move_revision_file(5, "dir_3")
 
+        return revision_to_remove
+
+    def test_dir_structure_with_missing_file(self, missing_file_fixture):
         sd = ScriptDirectory.from_config(self.cfg)
 
         assert_raises_message(
             KeyError,
-            revision_to_remove.revision,
+            missing_file_fixture.revision,
             list,
             sd.walk_revisions(),
         )
@@ -1569,15 +1577,17 @@ class RecursiveScriptDirectoryMultiDirTest(TestBase, RecursiveMixin):
     def tearDown(self):
         clear_staging_env()
 
-    def test_multiple_dir_recursive(self):
+    @testing.fixture
+    def multiple_dir_recursive_fixture(self):
         self._move_revision_file(0, "dir_0", "model1")
         self._move_revision_file(1, "dir_1", "model2")
         self._move_revision_file(2, "dir_1/nested", "model2")
 
+    def test_multiple_dir_recursive(self, multiple_dir_recursive_fixture):
         sd = ScriptDirectory.from_config(self.cfg)
         new_rev_to_script = {r.revision: r for r in sd.walk_revisions()}
         eq_(len(new_rev_to_script), 3)
-        self._checkTopologicalOrder(sd)
+        self._check_topological_order(sd)
 
         eq_(
             new_rev_to_script[self.rev[0]].path,
@@ -1592,15 +1602,19 @@ class RecursiveScriptDirectoryMultiDirTest(TestBase, RecursiveMixin):
             self._get_moved_path(2, "dir_1/nested", "model2"),
         )
 
-    def test_multiple_dir_recursive_change_version_dir(self):
+    @testing.fixture
+    def change_version_dir_fixture(self):
         self._move_revision_file(0, "dir_0", "model1")
         self._move_revision_file(1, "dir_1", "model1")
         self._move_revision_file(2, "dir_1/nested", "model1")
 
+    def test_multiple_dir_recursive_change_version_dir(
+        self, change_version_dir_fixture
+    ):
         sd = ScriptDirectory.from_config(self.cfg)
         new_rev_to_script = {r.revision: r for r in sd.walk_revisions()}
         eq_(len(new_rev_to_script), 3)
-        self._checkTopologicalOrder(sd)
+        self._check_topological_order(sd)
 
         eq_(
             new_rev_to_script[self.rev[0]].path,
