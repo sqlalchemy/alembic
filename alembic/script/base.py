@@ -967,7 +967,7 @@ class Script(revision.Revision):
     @classmethod
     def _list_py_dir(cls, scriptdir: ScriptDirectory, path: str) -> List[str]:
         paths = []
-        for root, dirs, files in os.walk(path):
+        for root, dirs, files in os.walk(path, topdown=True):
             if root.endswith("__pycache__"):
                 # a special case - we may include these files
                 # if a `sourceless` option is specified
