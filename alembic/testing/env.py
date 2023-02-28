@@ -7,6 +7,8 @@ from sqlalchemy.testing import config
 from sqlalchemy.testing import provision
 
 from . import util as testing_util
+from .. import command
+from .. import script
 from .. import util
 from ..script import Script
 from ..script import ScriptDirectory
@@ -20,7 +22,6 @@ def _get_staging_directory():
 
 
 def staging_env(create=True, template="generic", sourceless=False):
-    from alembic import command, script
 
     cfg = _testing_config()
     if create:

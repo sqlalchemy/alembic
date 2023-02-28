@@ -5,7 +5,10 @@ from unittest.mock import patch
 
 from dateutil import tz
 import sqlalchemy as sa
+from sqlalchemy import Column
 from sqlalchemy import inspect
+from sqlalchemy import MetaData
+from sqlalchemy import Table
 
 from alembic import autogenerate
 from alembic import command
@@ -717,7 +720,6 @@ class ImportsTest(TestBase):
         )
 
     def test_imports_in_script(self):
-        from sqlalchemy import MetaData, Table, Column
         from sqlalchemy.dialects.mysql import VARCHAR
 
         type_ = VARCHAR(20, charset="utf8", national=True)

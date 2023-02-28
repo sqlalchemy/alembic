@@ -19,9 +19,11 @@ from sqlalchemy import types
 from sqlalchemy import UniqueConstraint
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.dialects.postgresql import BYTEA
+from sqlalchemy.dialects.postgresql import ExcludeConstraint
 from sqlalchemy.dialects.postgresql import HSTORE
 from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import TSRANGE
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import column
 from sqlalchemy.sql import false
@@ -1248,7 +1250,6 @@ class PGUniqueIndexAutogenerateTest(AutogenFixtureTest, TestBase):
 
     @config.requirements.btree_gist
     def test_exclude_const_unchanged(self):
-        from sqlalchemy.dialects.postgresql import TSRANGE, ExcludeConstraint
 
         m1 = MetaData()
         m2 = MetaData()

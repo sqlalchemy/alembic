@@ -25,6 +25,7 @@ from sqlalchemy import text
 from sqlalchemy import types
 from sqlalchemy import Unicode
 from sqlalchemy import UniqueConstraint
+from sqlalchemy import VARCHAR
 from sqlalchemy.engine.default import DefaultDialect
 from sqlalchemy.sql import and_
 from sqlalchemy.sql import column
@@ -1792,7 +1793,6 @@ class AutogenRenderTest(TestBase):
         )
 
     def test_render_variant(self):
-        from sqlalchemy import VARCHAR, CHAR
 
         self.autogen_context.opts["user_module_prefix"] = None
 
@@ -1824,8 +1824,6 @@ class AutogenRenderTest(TestBase):
         )
 
     def test_repr_user_type_user_prefix_present(self):
-        from sqlalchemy.types import UserDefinedType
-
         class MyType(UserDefinedType):
             def get_col_spec(self):
                 return "MYTYPE"

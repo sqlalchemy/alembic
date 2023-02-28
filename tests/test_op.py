@@ -14,10 +14,13 @@ from sqlalchemy import Table
 from sqlalchemy import UniqueConstraint
 from sqlalchemy.sql import column
 from sqlalchemy.sql import func
+from sqlalchemy.sql import table
 from sqlalchemy.sql import text
 from sqlalchemy.sql.schema import quoted_name
 
 from alembic import op
+from alembic.operations import MigrateOperation
+from alembic.operations import Operations
 from alembic.operations import ops
 from alembic.operations import schemaobj
 from alembic.testing import assert_raises_message
@@ -1023,8 +1026,6 @@ class OpTest(TestBase):
 
     def test_inline_literal(self):
         context = op_fixture()
-        from sqlalchemy.sql import table, column
-        from sqlalchemy import String, Integer
 
         account = table(
             "account", column("name", String), column("id", Integer)
@@ -1144,8 +1145,6 @@ class OpTest(TestBase):
 class SQLModeOpTest(TestBase):
     def test_auto_literals(self):
         context = op_fixture(as_sql=True, literal_binds=True)
-        from sqlalchemy.sql import table, column
-        from sqlalchemy import String, Integer
 
         account = table(
             "account", column("name", String), column("id", Integer)
@@ -1179,8 +1178,6 @@ class SQLModeOpTest(TestBase):
 
 class CustomOpTest(TestBase):
     def test_custom_op(self):
-        from alembic.operations import Operations, MigrateOperation
-
         @Operations.register_operation("create_sequence")
         class CreateSequenceOp(MigrateOperation):
             """Create a SEQUENCE."""
