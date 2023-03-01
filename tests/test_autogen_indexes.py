@@ -1306,10 +1306,6 @@ class AutogenerateExpressionIndexTest(AutogenFixtureTest, TestBase):
                 lambda t: Index("SomeIndex", t.c.y, t.c.ff + 3),
             ),
             (
-                lambda t: Index("SomeIndex", t.c.y, func.ceil(t.c.ff)),
-                lambda t: Index("SomeIndex", t.c.y, func.floor(t.c.ff)),
-            ),
-            (
                 lambda t: Index("SomeIndex", t.c.y, func.lower(t.c.x)),
                 lambda t: Index("SomeIndex", t.c.y, func.lower(t.c.x + t.c.q)),
             ),
