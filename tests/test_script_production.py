@@ -710,7 +710,7 @@ class ImportsTest(TestBase):
                 context.configure(
                     connection=connection,
                     target_metadata=target_metadata,
-                    **kw
+                    **kw,
                 )
                 with context.begin_transaction():
                     context.run_migrations()

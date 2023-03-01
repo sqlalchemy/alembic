@@ -177,6 +177,11 @@ The file generated with the "generic" configuration looks like::
     # version_path_separator = space
     version_path_separator = os  # Use os.pathsep. Default configuration used for new projects.
 
+    # set to 'true' to search source files recursively
+    # in each "version_locations" directory
+    # new in Alembic version 1.10
+    # recursive_version_locations = false
+
     # the output encoding used when revision files
     # are written from script.py.mako
     # output_encoding = utf-8
@@ -331,6 +336,11 @@ This file contains the following features:
 * ``version_path_separator`` - a separator of ``version_locations`` paths.
   It should be defined if multiple ``version_locations`` is used.
   See :ref:`multiple_bases` for examples.
+
+* ``recursive_version_locations`` - when set to 'true', revision files
+  are searched recursively in each "version_locations" directory.
+
+  .. versionadded:: 1.10
 
 * ``output_encoding`` - the encoding to use when Alembic writes the
   ``script.py.mako`` file into a new migration file.  Defaults to ``'utf-8'``.
