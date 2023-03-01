@@ -154,10 +154,7 @@ class DropConstraintOp(MigrateOperation):
             return ("remove_constraint", self.to_constraint())
 
     @classmethod
-    def from_constraint(
-        cls,
-        constraint: Constraint,
-    ) -> DropConstraintOp:
+    def from_constraint(cls, constraint: Constraint) -> DropConstraintOp:
         types = {
             "unique_constraint": "unique",
             "foreign_key_constraint": "foreignkey",
@@ -169,7 +166,7 @@ class DropConstraintOp(MigrateOperation):
 
         constraint_table = sqla_compat._table_for_constraint(constraint)
         return cls(
-            constraint.name,
+            sqla_compat.constraint_name_or_none(constraint.name),
             constraint_table.name,
             schema=constraint_table.schema,
             type_=types[constraint.__visit_name__],
@@ -274,9 +271,8 @@ class CreatePrimaryKeyOp(AddConstraintOp):
     def from_constraint(cls, constraint: Constraint) -> CreatePrimaryKeyOp:
         constraint_table = sqla_compat._table_for_constraint(constraint)
         pk_constraint = cast("PrimaryKeyConstraint", constraint)
-
         return cls(
-            pk_constraint.name,
+            sqla_compat.constraint_name_or_none(pk_constraint.name),
             constraint_table.name,
             pk_constraint.columns.keys(),
             schema=constraint_table.schema,
@@ -411,7 +407,7 @@ class CreateUniqueConstraintOp(AddConstraintOp):
             kw["initially"] = uq_constraint.initially
         kw.update(uq_constraint.dialect_kwargs)
         return cls(
-            uq_constraint.name,
+            sqla_compat.constraint_name_or_none(uq_constraint.name),
             constraint_table.name,
             [c.name for c in uq_constraint.columns],
             schema=constraint_table.schema,
@@ -567,7 +563,7 @@ class CreateForeignKeyOp(AddConstraintOp):
         kw["referent_schema"] = target_schema
         kw.update(fk_constraint.dialect_kwargs)
         return cls(
-            fk_constraint.name,
+            sqla_compat.constraint_name_or_none(fk_constraint.name),
             source_table,
             target_table,
             source_columns,
@@ -753,9 +749,8 @@ class CreateCheckConstraintOp(AddConstraintOp):
         constraint_table = sqla_compat._table_for_constraint(constraint)
 
         ck_constraint = cast("CheckConstraint", constraint)
-
         return cls(
-            ck_constraint.name,
+            sqla_compat.constraint_name_or_none(ck_constraint.name),
             constraint_table.name,
             cast("ColumnElement[Any]", ck_constraint.sqltext),
             schema=constraint_table.schema,
@@ -863,7 +858,7 @@ class CreateIndexOp(MigrateOperation):
 
     def __init__(
         self,
-        index_name: str,
+        index_name: Optional[str],
         table_name: str,
         columns: Sequence[Union[str, TextClause, ColumnElement[Any]]],
         schema: Optional[str] = None,
@@ -914,7 +909,7 @@ class CreateIndexOp(MigrateOperation):
     def create_index(
         cls,
         operations: Operations,
-        index_name: str,
+        index_name: Optional[str],
         table_name: str,
         columns: Sequence[Union[str, TextClause, Function]],
         schema: Optional[str] = None,

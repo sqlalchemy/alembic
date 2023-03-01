@@ -576,7 +576,7 @@ def create_foreign_key(
     """
 
 def create_index(
-    index_name: str,
+    index_name: Optional[str],
     table_name: str,
     columns: Sequence[Union[str, TextClause, Function]],
     schema: Optional[str] = None,

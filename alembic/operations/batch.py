@@ -33,6 +33,7 @@ from ..util.sqla_compat import _is_type_bound
 from ..util.sqla_compat import _remove_column_from_collection
 from ..util.sqla_compat import _resolve_for_variant
 from ..util.sqla_compat import _select
+from ..util.sqla_compat import constraint_name_defined
 
 if TYPE_CHECKING:
     from typing import Literal
@@ -268,7 +269,7 @@ class ApplyBatchImpl:
                 # because
                 # we have no way to determine _is_type_bound() for these.
                 pass
-            elif const.name:
+            elif constraint_name_defined(const.name):
                 self.named_constraints[const.name] = const
             else:
                 self.unnamed_constraints.append(const)
@@ -662,7 +663,7 @@ class ApplyBatchImpl:
         """
 
     def add_constraint(self, const: Constraint) -> None:
-        if not const.name:
+        if not constraint_name_defined(const.name):
             raise ValueError("Constraint must have a name")
         if isinstance(const, sql_schema.PrimaryKeyConstraint):
             if self.table.primary_key in self.unnamed_constraints:
@@ -681,7 +682,7 @@ class ApplyBatchImpl:
                     if col_const.name == const.name:
                         self.columns[col.name].constraints.remove(col_const)
             else:
-                assert const.name
+                assert constraint_name_defined(const.name)
                 const = self.named_constraints.pop(const.name)
         except KeyError:
             if _is_type_bound(const):
