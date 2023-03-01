@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 from typing import Union
 
 from sqlalchemy import Column
+from sqlalchemy import Index
 from sqlalchemy import literal_column
 from sqlalchemy import Numeric
 from sqlalchemy import text
@@ -21,7 +22,6 @@ from sqlalchemy.dialects.postgresql import ExcludeConstraint
 from sqlalchemy.dialects.postgresql import INTEGER
 from sqlalchemy.schema import CreateIndex
 from sqlalchemy.sql.elements import ColumnClause
-from sqlalchemy.sql.elements import UnaryExpression
 from sqlalchemy.types import NULLTYPE
 
 from .base import alter_column
@@ -235,8 +235,6 @@ class PostgresqlImpl(DefaultImpl):
         metadata_indexes,
     ):
 
-        conn_indexes_by_name = {c.name: c for c in conn_indexes}
-
         doubled_constraints = {
             index
             for index in conn_indexes
@@ -246,23 +244,41 @@ class PostgresqlImpl(DefaultImpl):
         for ix in doubled_constraints:
             conn_indexes.remove(ix)
 
-        for idx in list(metadata_indexes):
-            if idx.name in conn_indexes_by_name:
-                continue
-            exprs = idx.expressions
-            for expr in exprs:
-                while isinstance(expr, UnaryExpression):
-                    expr = expr.element
-                if not isinstance(expr, Column):
-                    if sqla_compat.sqla_2:
-                        msg = ""
-                    else:
-                        msg = "; not supported by SQLAlchemy reflection"
-                    util.warn(
-                        "autogenerate skipping functional index "
-                        f"{idx.name!r}{msg}"
-                    )
-                    metadata_indexes.discard(idx)
+        if not sqla_compat.sqla_2:
+            self._skip_functional_indexes(metadata_indexes, conn_indexes)
+
+    def _cleanup_index_expr(self, index: Index, expr: str) -> str:
+        # start = expr
+        expr = expr.lower()
+        expr = expr.replace('"', "")
+        if index.table is not None:
+            expr = expr.replace(f"{index.table.name.lower()}.", "")
+
+        while expr and expr[0] == "(" and expr[-1] == ")":
+            expr = expr[1:-1]
+        if "::" in expr:
+            # strip :: cast. types can have spaces in them
+            expr = re.sub(r"(::[\w ]+\w)", "", expr)
+
+        # print(f"START: {start} END: {expr}")
+        return expr
+
+    def create_index_sig(self, index: Index) -> Tuple[Any, ...]:
+        if sqla_compat.is_expression_index(index):
+            return tuple(
+                self._cleanup_index_expr(
+                    index,
+                    e
+                    if isinstance(e, str)
+                    else e.compile(
+                        dialect=self.dialect,
+                        compile_kwargs={"literal_binds": True},
+                    ).string,
+                )
+                for e in index.expressions
+            )
+        else:
+            return super().create_index_sig(index)
 
     def render_type(
         self, type_: TypeEngine, autogen_context: AutogenContext

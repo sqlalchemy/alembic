@@ -41,7 +41,6 @@ from alembic.migration import MigrationContext
 from alembic.operations import ops
 from alembic.script import ScriptDirectory
 from alembic.testing import assert_raises_message
-from alembic.testing import assertions
 from alembic.testing import combinations
 from alembic.testing import config
 from alembic.testing import eq_
@@ -1306,64 +1305,3 @@ class PGUniqueIndexAutogenerateTest(AutogenFixtureTest, TestBase):
         eq_(diffs[0][0], "remove_constraint")
         eq_(diffs[0][1].name, "uq_name")
         eq_(len(diffs), 1)
-
-    def _functional_index_warn(self):
-        return (r"Skip.*refl",)
-
-    def test_functional_ix_one(self):
-        m1 = MetaData()
-        m2 = MetaData()
-
-        t1 = Table(
-            "foo",
-            m1,
-            Column("id", Integer, primary_key=True),
-            Column("email", String(50)),
-        )
-        Index("email_idx", func.lower(t1.c.email), unique=True)
-
-        t2 = Table(
-            "foo",
-            m2,
-            Column("id", Integer, primary_key=True),
-            Column("email", String(50)),
-        )
-        Index("email_idx", func.lower(t2.c.email), unique=True)
-
-        with assertions.expect_warnings(*self._functional_index_warn()):
-            diffs = self._fixture(m1, m2)
-        eq_(diffs, [])
-
-    def test_functional_ix_two(self):
-        m1 = MetaData()
-        m2 = MetaData()
-
-        t1 = Table(
-            "foo",
-            m1,
-            Column("id", Integer, primary_key=True),
-            Column("email", String(50)),
-            Column("name", String(50)),
-        )
-        Index(
-            "email_idx",
-            func.coalesce(t1.c.email, t1.c.name).desc(),
-            unique=True,
-        )
-
-        t2 = Table(
-            "foo",
-            m2,
-            Column("id", Integer, primary_key=True),
-            Column("email", String(50)),
-            Column("name", String(50)),
-        )
-        Index(
-            "email_idx",
-            func.coalesce(t2.c.email, t2.c.name).desc(),
-            unique=True,
-        )
-
-        with assertions.expect_warnings(*self._functional_index_warn()):
-            diffs = self._fixture(m1, m2)
-        eq_(diffs, [])

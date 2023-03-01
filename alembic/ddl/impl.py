@@ -665,6 +665,27 @@ class DefaultImpl(metaclass=ImplMeta):
             bool(diff) or bool(metadata_identity) != bool(inspector_identity),
         )
 
+    def create_index_sig(self, index: Index) -> Tuple[Any, ...]:
+        # order of col matters in an index
+        return tuple(col.name for col in index.columns)
+
+    def _skip_functional_indexes(self, metadata_indexes, conn_indexes):
+        conn_indexes_by_name = {c.name: c for c in conn_indexes}
+
+        for idx in list(metadata_indexes):
+            if idx.name in conn_indexes_by_name:
+                continue
+            iex = sqla_compat.is_expression_index(idx)
+            if iex:
+                util.warn(
+                    "autogenerate skipping metadata-specified "
+                    "expression-based index "
+                    f"{idx.name!r}; dialect {self.__dialect__!r} under "
+                    f"SQLAlchemy {sqla_compat.sqlalchemy_version} can't "
+                    "reflect these indexes so they can't be compared"
+                )
+                metadata_indexes.discard(idx)
+
 
 def _compare_identity_options(
     attributes, metadata_io, inspector_io, default_io

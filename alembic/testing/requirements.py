@@ -96,6 +96,13 @@ class SuiteRequirements(Requirements):
         )
 
     @property
+    def sqlalchemy_2(self):
+        return exclusions.skip_if(
+            lambda config: not util.sqla_2,
+            "SQLAlchemy 2.x test",
+        )
+
+    @property
     def comments(self):
         return exclusions.only_if(
             lambda config: config.db.dialect.supports_comments

@@ -186,6 +186,16 @@ class SQLiteImpl(DefaultImpl):
                 existing_transfer["expr"], new_type
             )
 
+    def correct_for_autogen_constraints(
+        self,
+        conn_unique_constraints,
+        conn_indexes,
+        metadata_unique_constraints,
+        metadata_indexes,
+    ):
+
+        self._skip_functional_indexes(metadata_indexes, conn_indexes)
+
 
 @compiles(RenameTable, "sqlite")
 def visit_rename_table(
