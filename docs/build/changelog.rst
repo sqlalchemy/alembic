@@ -5,7 +5,57 @@ Changelog
 
 .. changelog::
     :version: 1.10.0
-    :include_notes_from: unreleased
+    :released: March 5, 2023
+
+    .. change::
+        :tags: bug, autogenerate
+        :tickets: 1166
+
+        Fixed issue in index detection where autogenerate change detection would
+        consider indexes with the same columns but with different order as equal,
+        while in general they are not equivalent in how a database will use them.
+
+    .. change::
+        :tags: feature, revisioning
+        :tickets: 760
+
+        Recursive traversal of revision files in a particular revision directory is
+        now supported, by indicating ``recursive_version_locations = true`` in
+        alembic.ini. Pull request courtesy ostr00000.
+
+
+    .. change::
+        :tags: bug, autogenerate, sqlite
+        :tickets: 1165
+
+        Fixed issue where indexes on SQLite which include SQL expressions would not
+        compare correctly, generating false positives under autogenerate. These
+        indexes are now skipped, generating a warning, in the same way that
+        expression-based indexes on PostgreSQL are skipped and generate warnings
+        when SQLAlchemy 1.x installations are in use. Note that reflection of
+        SQLite expression-based indexes continues to not yet be supported under
+        SQLAlchemy 2.0, even though PostgreSQL expression-based indexes have now
+        been implemented.
+
+
+
+    .. change::
+        :tags: bug, mssql
+        :tickets: 1187
+
+        Properly escape constraint name on SQL Server when dropping
+        a column while specifying ``mssql_drop_default=True`` or
+        ``mssql_drop_check=True`` or ``mssql_drop_foreign_key=True``.
+
+
+    .. change::
+        :tags: usecase, autogenerate, postgresql
+
+        Added support for autogenerate comparison of indexes on PostgreSQL which
+        include SQL expressions, when using SQLAlchemy 2.0; the previous warning
+        that such indexes were skipped are removed when the new functionality
+        is in use.  When using SQLAlchemy versions prior to the 2.0 series,
+        the indexes continue to be skipped with a warning.
 
 .. changelog::
     :version: 1.9.4

@@ -1,8 +1,0 @@
-.. change::
-    :tags: feature, revisioning
-    :tickets: 760
-
-    Recursive traversal of revision files in a particular revision directory is
-    now supported, by indicating ``recursive_version_locations = true`` in
-    alembic.ini. Pull request courtesy ostr00000.
-

@@ -1,7 +1,0 @@
-.. change::
-    :tags: bug, autogenerate
-    :tickets: 1166
-
-    Fixed issue in index detection where autogenerate change detection would
-    consider indexes with the same columns but with different order as equal,
-    while in general they are not equivalent in how a database will use them.

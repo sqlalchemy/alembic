@@ -1,8 +1,0 @@
-.. change::
-    :tags: bug, mssql
-    :tickets: 1187
-
-    Properly escape constraint name on SQL Server when dropping
-    a column while specifying ``mssql_drop_default=True`` or
-    ``mssql_drop_check=True`` or ``mssql_drop_foreign_key=True``.
-
