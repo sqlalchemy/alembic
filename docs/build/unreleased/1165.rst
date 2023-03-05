@@ -3,10 +3,12 @@
     :tickets: 1165
 
     Fixed issue where indexes on SQLite which include SQL expressions would not
-    compare against themselves correctly, generating false positives.
-    SQLAlchemy as of version 2 has no support for reflecting expression based
-    indexes on SQLite; so for now, the behavior is that SQLite expression-based
-    indexes are ignored for autogenerate compare, in the same way that
-    PostgreSQL expression-based indexes were ignored for the time that
-    SQLAlchemy did not support reflection of such indexes (which is now
-    supported in SQLAlchemy 2.0 as well as this release of Alembic).
+    compare correctly, generating false positives under autogenerate. These
+    indexes are now skipped, generating a warning, in the same way that
+    expression-based indexes on PostgreSQL are skipped and generate warnings
+    when SQLAlchemy 1.x installations are in use. Note that reflection of
+    SQLite expression-based indexes continues to not yet be supported under
+    SQLAlchemy 2.0, even though PostgreSQL expression-based indexes have now
+    been implemented.
+
+

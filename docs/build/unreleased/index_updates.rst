@@ -2,6 +2,7 @@
     :tags: usecase, autogenerate, postgresql
 
     Added support for autogenerate comparison of indexes on PostgreSQL which
-    include SQL expressions; the previous warning that such indexes were
-    skipped is now removed. This functionality requires SQLAlchemy 2.0.
-    For older SQLAlchemy versions, these indexes are still skipped.
+    include SQL expressions, when using SQLAlchemy 2.0; the previous warning
+    that such indexes were skipped are removed when the new functionality
+    is in use.  When using SQLAlchemy versions prior to the 2.0 series,
+    the indexes continue to be skipped with a warning.
