@@ -897,7 +897,7 @@ class EnvironmentContext(util.ModuleClsProxy):
 
     def begin_transaction(
         self,
-    ) -> Union[_ProxyTransaction, ContextManager]:
+    ) -> Union[_ProxyTransaction, ContextManager[None]]:
         """Return a context manager that will
         enclose an operation within a "transaction",
         as defined by the environment's offline

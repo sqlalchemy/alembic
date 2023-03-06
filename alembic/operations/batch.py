@@ -484,7 +484,7 @@ class ApplyBatchImpl:
         table_name: str,
         column_name: str,
         nullable: Optional[bool] = None,
-        server_default: Optional[Union[Function, str, bool]] = False,
+        server_default: Optional[Union[Function[Any], str, bool]] = False,
         name: Optional[str] = None,
         type_: Optional[TypeEngine] = None,
         autoincrement: None = None,

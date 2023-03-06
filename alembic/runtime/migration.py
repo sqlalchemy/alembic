@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
+from contextlib import nullcontext
 import logging
 import sys
 from typing import Any
@@ -366,7 +367,7 @@ class MigrationContext:
 
     def begin_transaction(
         self, _per_migration: bool = False
-    ) -> Union[_ProxyTransaction, ContextManager]:
+    ) -> Union[_ProxyTransaction, ContextManager[None]]:
         """Begin a logical transaction for migration operations.
 
         This method is used within an ``env.py`` script to demarcate where
@@ -408,12 +409,8 @@ class MigrationContext:
 
         """
 
-        @contextmanager
-        def do_nothing():
-            yield
-
         if self._in_external_transaction:
-            return do_nothing()
+            return nullcontext()
 
         if self.impl.transactional_ddl:
             transaction_now = _per_migration == self._transaction_per_migration
@@ -421,13 +418,13 @@ class MigrationContext:
             transaction_now = _per_migration is True
 
         if not transaction_now:
-            return do_nothing()
+            return nullcontext()
 
         elif not self.impl.transactional_ddl:
             assert _per_migration
 
             if self.as_sql:
-                return do_nothing()
+                return nullcontext()
             else:
                 # track our own notion of a "transaction block", which must be
                 # committed when complete.   Don't rely upon whether or not the
@@ -443,7 +440,7 @@ class MigrationContext:
                 in_transaction = self._transaction is not None
 
                 if in_transaction:
-                    return do_nothing()
+                    return nullcontext()
                 else:
                     assert self.connection is not None
                     self._transaction = (

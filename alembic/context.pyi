@@ -27,8 +27,8 @@ if TYPE_CHECKING:
     from .script import ScriptDirectory
 ### end imports ###
 
-def begin_transaction() -> Union[_ProxyTransaction, ContextManager]:
-    """Return a context manager that will
+def begin_transaction() -> Union[_ProxyTransaction, ContextManager[None]]:
+    r"""Return a context manager that will
     enclose an operation within a "transaction",
     as defined by the environment's offline
     and transactional DDL settings.
@@ -106,7 +106,7 @@ def configure(
     on_version_apply: Optional[Callable[..., None]] = None,
     **kw: Any,
 ) -> None:
-    """Configure a :class:`.MigrationContext` within this
+    r"""Configure a :class:`.MigrationContext` within this
     :class:`.EnvironmentContext` which will provide database
     connectivity and other configuration to a series of
     migration scripts.
@@ -542,7 +542,7 @@ def configure(
 def execute(
     sql: Union[ClauseElement, str], execution_options: Optional[dict] = None
 ) -> None:
-    """Execute the given SQL using the current change context.
+    r"""Execute the given SQL using the current change context.
 
     The behavior of :meth:`.execute` is the same
     as that of :meth:`.Operations.execute`.  Please see that
@@ -555,7 +555,7 @@ def execute(
     """
 
 def get_bind() -> Connection:
-    """Return the current 'bind'.
+    r"""Return the current 'bind'.
 
     In "online" mode, this is the
     :class:`sqlalchemy.engine.Connection` currently being used
@@ -567,7 +567,7 @@ def get_bind() -> Connection:
     """
 
 def get_context() -> MigrationContext:
-    """Return the current :class:`.MigrationContext` object.
+    r"""Return the current :class:`.MigrationContext` object.
 
     If :meth:`.EnvironmentContext.configure` has not been
     called yet, raises an exception.
@@ -575,7 +575,7 @@ def get_context() -> MigrationContext:
     """
 
 def get_head_revision() -> Union[str, Tuple[str, ...], None]:
-    """Return the hex identifier of the 'head' script revision.
+    r"""Return the hex identifier of the 'head' script revision.
 
     If the script directory has multiple heads, this
     method raises a :class:`.CommandError`;
@@ -589,7 +589,7 @@ def get_head_revision() -> Union[str, Tuple[str, ...], None]:
     """
 
 def get_head_revisions() -> Union[str, Tuple[str, ...], None]:
-    """Return the hex identifier of the 'heads' script revision(s).
+    r"""Return the hex identifier of the 'heads' script revision(s).
 
     This returns a tuple containing the version number of all
     heads in the script directory.
@@ -600,7 +600,7 @@ def get_head_revisions() -> Union[str, Tuple[str, ...], None]:
     """
 
 def get_revision_argument() -> Union[str, Tuple[str, ...], None]:
-    """Get the 'destination' revision argument.
+    r"""Get the 'destination' revision argument.
 
     This is typically the argument passed to the
     ``upgrade`` or ``downgrade`` command.
@@ -615,7 +615,7 @@ def get_revision_argument() -> Union[str, Tuple[str, ...], None]:
     """
 
 def get_starting_revision_argument() -> Union[str, Tuple[str, ...], None]:
-    """Return the 'starting revision' argument,
+    r"""Return the 'starting revision' argument,
     if the revision was passed using ``start:end``.
 
     This is only meaningful in "offline" mode.
@@ -628,7 +628,7 @@ def get_starting_revision_argument() -> Union[str, Tuple[str, ...], None]:
     """
 
 def get_tag_argument() -> Optional[str]:
-    """Return the value passed for the ``--tag`` argument, if any.
+    r"""Return the value passed for the ``--tag`` argument, if any.
 
     The ``--tag`` argument is not used directly by Alembic,
     but is available for custom ``env.py`` configurations that
@@ -654,7 +654,7 @@ def get_x_argument(as_dictionary: Literal[True]) -> Dict[str, str]: ...
 def get_x_argument(
     as_dictionary: bool = ...,
 ) -> Union[List[str], Dict[str, str]]:
-    """Return the value(s) passed for the ``-x`` argument, if any.
+    r"""Return the value(s) passed for the ``-x`` argument, if any.
 
     The ``-x`` argument is an open ended flag that allows any user-defined
     value or values to be passed on the command line, then available
@@ -694,7 +694,7 @@ def get_x_argument(
     """
 
 def is_offline_mode() -> bool:
-    """Return True if the current migrations environment
+    r"""Return True if the current migrations environment
     is running in "offline mode".
 
     This is ``True`` or ``False`` depending
@@ -706,7 +706,7 @@ def is_offline_mode() -> bool:
     """
 
 def is_transactional_ddl():
-    """Return True if the context is configured to expect a
+    r"""Return True if the context is configured to expect a
     transactional DDL capable backend.
 
     This defaults to the type of database in use, and
@@ -719,7 +719,7 @@ def is_transactional_ddl():
     """
 
 def run_migrations(**kw: Any) -> None:
-    """Run migrations as determined by the current command line
+    r"""Run migrations as determined by the current command line
     configuration
     as well as versioning information present (or not) in the current
     database connection (if one is present).
@@ -742,7 +742,7 @@ def run_migrations(**kw: Any) -> None:
 script: ScriptDirectory
 
 def static_output(text: str) -> None:
-    """Emit text directly to the "offline" SQL stream.
+    r"""Emit text directly to the "offline" SQL stream.
 
     Typically this is for emitting comments that
     start with --.  The statement is not treated

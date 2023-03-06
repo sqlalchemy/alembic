@@ -42,7 +42,7 @@ if TYPE_CHECKING:
 def add_column(
     table_name: str, column: Column, schema: Optional[str] = None
 ) -> Optional[Table]:
-    """Issue an "add column" instruction using the current
+    r"""Issue an "add column" instruction using the current
     migration context.
 
     e.g.::
@@ -108,7 +108,7 @@ def alter_column(
     schema: Optional[str] = None,
     **kw: Any
 ) -> Optional[Table]:
-    """Issue an "alter column" instruction using the
+    r"""Issue an "alter column" instruction using the
     current migration context.
 
     Generally, only that aspect of the column which
@@ -210,7 +210,7 @@ def batch_alter_table(
     reflect_kwargs: Mapping[str, Any] = immutabledict({}),
     naming_convention: Optional[Dict[str, str]] = None,
 ) -> Iterator[BatchOperations]:
-    """Invoke a series of per-table migrations in batch.
+    r"""Invoke a series of per-table migrations in batch.
 
     Batch mode allows a series of operations specific to a table
     to be syntactically grouped together, and allows for alternate
@@ -352,7 +352,7 @@ def bulk_insert(
     rows: List[dict],
     multiinsert: bool = True,
 ) -> None:
-    """Issue a "bulk insert" operation using the current
+    r"""Issue a "bulk insert" operation using the current
     migration context.
 
     This provides a means of representing an INSERT of multiple rows
@@ -434,7 +434,7 @@ def create_check_constraint(
     schema: Optional[str] = None,
     **kw: Any
 ) -> Optional[Table]:
-    """Issue a "create check constraint" instruction using the
+    r"""Issue a "create check constraint" instruction using the
     current migration context.
 
     e.g.::
@@ -478,7 +478,7 @@ def create_check_constraint(
 def create_exclude_constraint(
     constraint_name: str, table_name: str, *elements: Any, **kw: Any
 ) -> Optional[Table]:
-    """Issue an alter to create an EXCLUDE constraint using the
+    r"""Issue an alter to create an EXCLUDE constraint using the
     current migration context.
 
     .. note::  This method is Postgresql specific, and additionally
@@ -530,7 +530,7 @@ def create_foreign_key(
     referent_schema: Optional[str] = None,
     **dialect_kw: Any
 ) -> Optional[Table]:
-    """Issue a "create foreign key" instruction using the
+    r"""Issue a "create foreign key" instruction using the
     current migration context.
 
     e.g.::
@@ -578,12 +578,12 @@ def create_foreign_key(
 def create_index(
     index_name: Optional[str],
     table_name: str,
-    columns: Sequence[Union[str, TextClause, Function]],
+    columns: Sequence[Union[str, TextClause, Function[Any]]],
     schema: Optional[str] = None,
     unique: bool = False,
     **kw: Any
 ) -> Optional[Table]:
-    """Issue a "create index" instruction using the current
+    r"""Issue a "create index" instruction using the current
     migration context.
 
     e.g.::
@@ -631,7 +631,7 @@ def create_primary_key(
     columns: List[str],
     schema: Optional[str] = None,
 ) -> Optional[Table]:
-    """Issue a "create primary key" instruction using the current
+    r"""Issue a "create primary key" instruction using the current
     migration context.
 
     e.g.::
@@ -671,7 +671,7 @@ def create_primary_key(
 def create_table(
     table_name: str, *columns: SchemaItem, **kw: Any
 ) -> Optional[Table]:
-    """Issue a "create table" instruction using the current migration
+    r"""Issue a "create table" instruction using the current migration
     context.
 
     This directive receives an argument list similar to that of the
@@ -754,7 +754,7 @@ def create_table_comment(
     existing_comment: None = None,
     schema: Optional[str] = None,
 ) -> Optional[Table]:
-    """Emit a COMMENT ON operation to set the comment for a table.
+    r"""Emit a COMMENT ON operation to set the comment for a table.
 
     .. versionadded:: 1.0.6
 
@@ -781,7 +781,7 @@ def create_unique_constraint(
     schema: Optional[str] = None,
     **kw: Any
 ) -> Any:
-    """Issue a "create unique constraint" instruction using the
+    r"""Issue a "create unique constraint" instruction using the
     current migration context.
 
     e.g.::
@@ -822,7 +822,7 @@ def create_unique_constraint(
 def drop_column(
     table_name: str, column_name: str, schema: Optional[str] = None, **kw: Any
 ) -> Optional[Table]:
-    """Issue a "drop column" instruction using the current
+    r"""Issue a "drop column" instruction using the current
     migration context.
 
     e.g.::
@@ -865,7 +865,7 @@ def drop_constraint(
     type_: Optional[str] = None,
     schema: Optional[str] = None,
 ) -> Optional[Table]:
-    """Drop a constraint of the given name, typically via DROP CONSTRAINT.
+    r"""Drop a constraint of the given name, typically via DROP CONSTRAINT.
 
     :param constraint_name: name of the constraint.
     :param table_name: table name.
@@ -884,7 +884,7 @@ def drop_index(
     schema: Optional[str] = None,
     **kw: Any
 ) -> Optional[Table]:
-    """Issue a "drop index" instruction using the current
+    r"""Issue a "drop index" instruction using the current
     migration context.
 
     e.g.::
@@ -909,7 +909,7 @@ def drop_index(
 def drop_table(
     table_name: str, schema: Optional[str] = None, **kw: Any
 ) -> None:
-    """Issue a "drop table" instruction using the current
+    r"""Issue a "drop table" instruction using the current
     migration context.
 
 
@@ -932,7 +932,7 @@ def drop_table_comment(
     existing_comment: Optional[str] = None,
     schema: Optional[str] = None,
 ) -> Optional[Table]:
-    """Issue a "drop table comment" operation to
+    r"""Issue a "drop table comment" operation to
     remove an existing comment set on a table.
 
     .. versionadded:: 1.0.6
@@ -952,7 +952,7 @@ def drop_table_comment(
 def execute(
     sqltext: Union[str, TextClause, Update], execution_options: None = None
 ) -> Optional[Table]:
-    """Execute the given SQL using the current migration context.
+    r"""Execute the given SQL using the current migration context.
 
     The given SQL can be a plain string, e.g.::
 
@@ -1035,7 +1035,7 @@ def execute(
     """
 
 def f(name: str) -> conv:
-    """Indicate a string name that has already had a naming convention
+    r"""Indicate a string name that has already had a naming convention
     applied to it.
 
     This feature combines with the SQLAlchemy ``naming_convention`` feature
@@ -1072,7 +1072,7 @@ def f(name: str) -> conv:
     """
 
 def get_bind() -> Connection:
-    """Return the current 'bind'.
+    r"""Return the current 'bind'.
 
     Under normal circumstances, this is the
     :class:`~sqlalchemy.engine.Connection` currently being used
@@ -1083,13 +1083,13 @@ def get_bind() -> Connection:
     """
 
 def get_context() -> MigrationContext:
-    """Return the :class:`.MigrationContext` object that's
+    r"""Return the :class:`.MigrationContext` object that's
     currently in use.
 
     """
 
 def implementation_for(op_cls: Any) -> Callable[..., Any]:
-    """Register an implementation for a given :class:`.MigrateOperation`.
+    r"""Register an implementation for a given :class:`.MigrateOperation`.
 
     This is part of the operation extensibility API.
 
@@ -1102,7 +1102,7 @@ def implementation_for(op_cls: Any) -> Callable[..., Any]:
 def inline_literal(
     value: Union[str, int], type_: None = None
 ) -> _literal_bindparam:
-    """Produce an 'inline literal' expression, suitable for
+    r"""Produce an 'inline literal' expression, suitable for
     using in an INSERT, UPDATE, or DELETE statement.
 
     When using Alembic in "offline" mode, CRUD operations
@@ -1145,7 +1145,7 @@ def inline_literal(
     """
 
 def invoke(operation: MigrateOperation) -> Any:
-    """Given a :class:`.MigrateOperation`, invoke it in terms of
+    r"""Given a :class:`.MigrateOperation`, invoke it in terms of
     this :class:`.Operations` instance.
 
     """
@@ -1153,7 +1153,7 @@ def invoke(operation: MigrateOperation) -> Any:
 def register_operation(
     name: str, sourcename: Optional[str] = None
 ) -> Callable[..., Any]:
-    """Register a new operation for this class.
+    r"""Register a new operation for this class.
 
     This method is normally used to add new operations
     to the :class:`.Operations` class, and possibly the
@@ -1172,7 +1172,7 @@ def register_operation(
 def rename_table(
     old_table_name: str, new_table_name: str, schema: Optional[str] = None
 ) -> Optional[Table]:
-    """Emit an ALTER TABLE to rename a table.
+    r"""Emit an ALTER TABLE to rename a table.
 
     :param old_table_name: old name.
     :param new_table_name: new name.
