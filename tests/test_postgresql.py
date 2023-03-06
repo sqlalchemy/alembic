@@ -28,6 +28,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import column
 from sqlalchemy.sql import false
 from sqlalchemy.sql import table
+from sqlalchemy.sql.expression import literal_column
 
 from alembic import autogenerate
 from alembic import command
@@ -1154,6 +1155,64 @@ class PostgresqlAutogenRenderTest(TestBase):
             "postgresql.ExcludeConstraint((sa.column('XColumn'), '>'), "
             "where=sa.text('\"XColumn\" != 2'), using='gist', "
             "name='TExclX'))",
+        )
+
+    def test_inline_exclude_constraint_literal_column(self):
+        """test for #1184"""
+
+        autogen_context = self.autogen_context
+
+        m = MetaData()
+        t = Table(
+            "TTable",
+            m,
+            Column("id", String()),
+            ExcludeConstraint(
+                (literal_column("id + 2"), "="), name="TExclID", using="gist"
+            ),
+        )
+
+        op_obj = ops.CreateTableOp.from_table(t)
+
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(autogen_context, op_obj),
+            "op.create_table('TTable',sa.Column('id', sa.String(), "
+            "nullable=True),"
+            "postgresql.ExcludeConstraint((sa.literal_column('id + 2'), '='), "
+            "using='gist', "
+            "name='TExclID'))",
+        )
+
+    @config.requirements.sqlalchemy_2
+    def test_inline_exclude_constraint_text(self):
+        """test for #1184.
+
+        Requires SQLAlchemy 2.0.5 due to issue
+        https://github.com/sqlalchemy/sqlalchemy/issues/9401
+
+        """
+
+        autogen_context = self.autogen_context
+
+        m = MetaData()
+        t = Table(
+            "TTable",
+            m,
+            Column("id", String()),
+            ExcludeConstraint(
+                (text("id + 2"), "="), name="TExclID", using="gist"
+            ),
+        )
+
+        op_obj = ops.CreateTableOp.from_table(t)
+
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(autogen_context, op_obj),
+            "op.create_table('TTable',sa.Column('id', sa.String(), "
+            "nullable=True),"
+            "postgresql.ExcludeConstraint((sa.text('id + 2'), '='), "
+            "using='gist', "
+            "name='TExclID'))",
         )
 
     def test_json_type(self):

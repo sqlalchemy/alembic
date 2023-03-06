@@ -22,6 +22,7 @@ from sqlalchemy.dialects.postgresql import ExcludeConstraint
 from sqlalchemy.dialects.postgresql import INTEGER
 from sqlalchemy.schema import CreateIndex
 from sqlalchemy.sql.elements import ColumnClause
+from sqlalchemy.sql.elements import TextClause
 from sqlalchemy.types import NULLTYPE
 
 from .base import alter_column
@@ -650,7 +651,7 @@ def _exclude_constraint(
         args = [
             "(%s, %r)"
             % (_render_potential_column(sqltext, autogen_context), opstring)
-            for sqltext, name, opstring in constraint._render_exprs  # type:ignore[attr-defined] # noqa
+            for sqltext, name, opstring in constraint._render_exprs
         ]
         if constraint.where is not None:
             args.append(
@@ -667,17 +668,21 @@ def _exclude_constraint(
 
 
 def _render_potential_column(
-    value: Union[ColumnClause, Column], autogen_context: AutogenContext
+    value: Union[ColumnClause, Column, TextClause],
+    autogen_context: AutogenContext,
 ) -> str:
     if isinstance(value, ColumnClause):
-        template = "%(prefix)scolumn(%(name)r)"
+        if value.is_literal:
+            # like literal_column("int8range(from, to)") in ExcludeConstraint
+            template = "%(prefix)sliteral_column(%(name)r)"
+        else:
+            template = "%(prefix)scolumn(%(name)r)"
 
         return template % {
             "prefix": render._sqlalchemy_autogenerate_prefix(autogen_context),
             "name": value.name,
         }
-
     else:
         return render._render_potential_expr(
-            value, autogen_context, wrap_in_text=False
+            value, autogen_context, wrap_in_text=isinstance(value, TextClause)
         )

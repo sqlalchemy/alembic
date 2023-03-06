@@ -1,0 +1,10 @@
+.. change::
+    :tags: bug, postgresql
+    :tickets: 1184
+
+    Fixed issue regarding PostgreSQL :class:`.ExcludeConstraint`, where
+    constraint elements which made use of :func:`.literal_column` could not be
+    rendered for autogenerate. Additionally, using SQLAlchemy 2.0.5 or greater,
+    :func:`.text()` constructs are also supported within PostgreSQL
+    :class:`.ExcludeConstraint` objects for autogenerate render. Pull request
+    courtesy Jan Katins.
