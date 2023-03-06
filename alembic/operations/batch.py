@@ -34,6 +34,7 @@ from ..util.sqla_compat import _remove_column_from_collection
 from ..util.sqla_compat import _resolve_for_variant
 from ..util.sqla_compat import _select
 from ..util.sqla_compat import constraint_name_defined
+from ..util.sqla_compat import constraint_name_string
 
 if TYPE_CHECKING:
     from typing import Literal
@@ -269,7 +270,7 @@ class ApplyBatchImpl:
                 # because
                 # we have no way to determine _is_type_bound() for these.
                 pass
-            elif constraint_name_defined(const.name):
+            elif constraint_name_string(const.name):
                 self.named_constraints[const.name] = const
             else:
                 self.unnamed_constraints.append(const)
@@ -669,7 +670,10 @@ class ApplyBatchImpl:
             if self.table.primary_key in self.unnamed_constraints:
                 self.unnamed_constraints.remove(self.table.primary_key)
 
-        self.named_constraints[const.name] = const
+        if constraint_name_string(const.name):
+            self.named_constraints[const.name] = const
+        else:
+            self.unnamed_constraints.append(const)
 
     def drop_constraint(self, const: Constraint) -> None:
         if not const.name:
@@ -681,9 +685,11 @@ class ApplyBatchImpl:
                 for col_const in list(self.columns[col.name].constraints):
                     if col_const.name == const.name:
                         self.columns[col.name].constraints.remove(col_const)
-            else:
-                assert constraint_name_defined(const.name)
+            elif constraint_name_string(const.name):
                 const = self.named_constraints.pop(const.name)
+            elif const in self.unnamed_constraints:
+                self.unnamed_constraints.remove(const)
+
         except KeyError:
             if _is_type_bound(const):
                 # type-bound constraints are only included in the new

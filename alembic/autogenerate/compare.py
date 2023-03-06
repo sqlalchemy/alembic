@@ -652,7 +652,7 @@ def _compare_indexes_and_uniques(
     conn_names = {
         c.name: c
         for c in conn_unique_constraints.union(conn_indexes_sig)
-        if sqla_compat.constraint_name_defined(c.name)
+        if sqla_compat.constraint_name_string(c.name)
     }
 
     doubled_constraints = {

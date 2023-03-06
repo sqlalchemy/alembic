@@ -49,6 +49,7 @@ from alembic.testing.fixtures import capture_context_buffer
 from alembic.testing.fixtures import op_fixture
 from alembic.util import CommandError
 from alembic.util import exc as alembic_exc
+from alembic.util.sqla_compat import _NONE_NAME
 from alembic.util.sqla_compat import _safe_commit_connection_transaction
 from alembic.util.sqla_compat import _select
 from alembic.util.sqla_compat import has_computed
@@ -819,6 +820,18 @@ class BatchApplyTest(TestBase):
             ddl_not_contains="CONSTRAINT uq1 UNIQUE",
         )
 
+    def test_add_ck_unnamed(self):
+        """test for #1195"""
+        impl = self._simple_fixture()
+        ck = self.op.schema_obj.check_constraint(_NONE_NAME, "tname", "y > 5")
+
+        impl.add_constraint(ck)
+        self._assert_impl(
+            impl,
+            colnames=["id", "x", "y"],
+            ddl_contains="CHECK (y > 5)",
+        )
+
     def test_add_ck(self):
         impl = self._simple_fixture()
         ck = self.op.schema_obj.check_constraint("ck1", "tname", "y > 5")
@@ -1443,6 +1456,19 @@ class BatchRoundTripTest(TestBase):
         with self.conn.begin():
             t = Table("hasbool", self.metadata, Column("x", Integer))
             t.create(self.conn)
+
+    def test_add_constraint_type(self):
+        """test for #1195."""
+
+        with self.op.batch_alter_table("foo") as batch_op:
+            batch_op.add_column(Column("q", Boolean(create_constraint=True)))
+        insp = inspect(self.conn)
+
+        assert {
+            c["type"]._type_affinity
+            for c in insp.get_columns("foo")
+            if c["name"] == "q"
+        }.intersection([Boolean, Integer])
 
     def test_change_type_boolean_to_int(self):
         self._boolean_fixture()

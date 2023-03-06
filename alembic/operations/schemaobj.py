@@ -42,7 +42,7 @@ class SchemaObjects:
 
     def primary_key_constraint(
         self,
-        name: Optional[str],
+        name: Optional[sqla_compat._ConstraintNameDefined],
         table_name: str,
         cols: Sequence[str],
         schema: Optional[str] = None,
@@ -51,14 +51,16 @@ class SchemaObjects:
         m = self.metadata()
         columns = [sa_schema.Column(n, NULLTYPE) for n in cols]
         t = sa_schema.Table(table_name, m, *columns, schema=schema)
+        # SQLAlchemy primary key constraint name arg is wrongly typed on
+        # the SQLAlchemy side through 2.0.5 at least
         p = sa_schema.PrimaryKeyConstraint(
-            *[t.c[n] for n in cols], name=name, **dialect_kw
+            *[t.c[n] for n in cols], name=name, **dialect_kw  # type: ignore
         )
         return p
 
     def foreign_key_constraint(
         self,
-        name: Optional[str],
+        name: Optional[sqla_compat._ConstraintNameDefined],
         source: str,
         referent: str,
         local_cols: List[str],
@@ -115,7 +117,7 @@ class SchemaObjects:
 
     def unique_constraint(
         self,
-        name: Optional[str],
+        name: Optional[sqla_compat._ConstraintNameDefined],
         source: str,
         local_cols: Sequence[str],
         schema: Optional[str] = None,
@@ -136,7 +138,7 @@ class SchemaObjects:
 
     def check_constraint(
         self,
-        name: Optional[str],
+        name: Optional[sqla_compat._ConstraintNameDefined],
         source: str,
         condition: Union[str, TextClause, ColumnElement[Any]],
         schema: Optional[str] = None,
@@ -154,7 +156,7 @@ class SchemaObjects:
 
     def generic_constraint(
         self,
-        name: Optional[str],
+        name: Optional[sqla_compat._ConstraintNameDefined],
         table_name: str,
         type_: Optional[str],
         schema: Optional[str] = None,

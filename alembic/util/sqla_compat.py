@@ -27,6 +27,7 @@ from sqlalchemy.sql.elements import ColumnClause
 from sqlalchemy.sql.elements import quoted_name
 from sqlalchemy.sql.elements import TextClause
 from sqlalchemy.sql.elements import UnaryExpression
+from sqlalchemy.sql.naming import _NONE_NAME as _NONE_NAME
 from sqlalchemy.sql.visitors import traverse
 from typing_extensions import TypeGuard
 
@@ -111,15 +112,28 @@ if sqla_2:
 else:
     from sqlalchemy.util import symbol as _NoneName  # type: ignore[assignment]
 
+
 _ConstraintName = Union[None, str, _NoneName]
 
+_ConstraintNameDefined = Union[str, _NoneName]
 
-def constraint_name_defined(name: _ConstraintName) -> TypeGuard[str]:
+
+def constraint_name_defined(
+    name: _ConstraintName,
+) -> TypeGuard[_ConstraintNameDefined]:
+    return name is _NONE_NAME or isinstance(name, (str, _NoneName))
+
+
+def constraint_name_string(
+    name: _ConstraintName,
+) -> TypeGuard[str]:
     return isinstance(name, str)
 
 
-def constraint_name_or_none(name: _ConstraintName) -> Optional[str]:
-    return name if constraint_name_defined(name) else None
+def constraint_name_or_none(
+    name: _ConstraintName,
+) -> Optional[str]:
+    return name if constraint_name_string(name) else None
 
 
 AUTOINCREMENT_DEFAULT = "auto"

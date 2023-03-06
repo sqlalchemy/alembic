@@ -130,7 +130,7 @@ class DropConstraintOp(MigrateOperation):
 
     def __init__(
         self,
-        constraint_name: Optional[str],
+        constraint_name: Optional[sqla_compat._ConstraintNameDefined],
         table_name: str,
         type_: Optional[str] = None,
         schema: Optional[str] = None,
@@ -255,7 +255,7 @@ class CreatePrimaryKeyOp(AddConstraintOp):
 
     def __init__(
         self,
-        constraint_name: Optional[str],
+        constraint_name: Optional[sqla_compat._ConstraintNameDefined],
         table_name: str,
         columns: Sequence[str],
         schema: Optional[str] = None,
@@ -379,7 +379,7 @@ class CreateUniqueConstraintOp(AddConstraintOp):
 
     def __init__(
         self,
-        constraint_name: Optional[str],
+        constraint_name: Optional[sqla_compat._ConstraintNameDefined],
         table_name: str,
         columns: Sequence[str],
         schema: Optional[str] = None,
@@ -513,7 +513,7 @@ class CreateForeignKeyOp(AddConstraintOp):
 
     def __init__(
         self,
-        constraint_name: Optional[str],
+        constraint_name: Optional[sqla_compat._ConstraintNameDefined],
         source_table: str,
         referent_table: str,
         local_cols: List[str],
@@ -730,7 +730,7 @@ class CreateCheckConstraintOp(AddConstraintOp):
 
     def __init__(
         self,
-        constraint_name: Optional[str],
+        constraint_name: Optional[sqla_compat._ConstraintNameDefined],
         table_name: str,
         condition: Union[str, TextClause, ColumnElement[Any]],
         schema: Optional[str] = None,
