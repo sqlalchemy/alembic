@@ -27,7 +27,6 @@ from sqlalchemy.sql.elements import ColumnClause
 from sqlalchemy.sql.elements import quoted_name
 from sqlalchemy.sql.elements import TextClause
 from sqlalchemy.sql.elements import UnaryExpression
-from sqlalchemy.sql.naming import _NONE_NAME as _NONE_NAME
 from sqlalchemy.sql.visitors import traverse
 from typing_extensions import TypeGuard
 
@@ -65,6 +64,11 @@ sqla_14 = _vers >= (1, 4)
 sqla_14_26 = _vers >= (1, 4, 26)
 sqla_2 = _vers >= (2,)
 sqlalchemy_version = __version__
+
+try:
+    from sqlalchemy.sql.naming import _NONE_NAME as _NONE_NAME
+except ImportError:
+    from sqlalchemy.sql.elements import _NONE_NAME as _NONE_NAME  # type: ignore  # noqa: E501
 
 
 if sqla_14:
