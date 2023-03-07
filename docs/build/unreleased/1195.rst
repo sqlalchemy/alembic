@@ -1,7 +1,0 @@
-.. change::
-    :tags: bug, batch, regression
-    :tickets: 1195
-
-    Fixed regression for 1.10.0 where :class:`.Constraint` objects were
-    suddenly required to have non-None name fields when using batch mode, which
-    was not previously a requirement.

@@ -5,7 +5,26 @@ Changelog
 
 .. changelog::
     :version: 1.10.1
-    :include_notes_from: unreleased
+    :released: March 6, 2023
+
+    .. change::
+        :tags: bug, postgresql
+        :tickets: 1184
+
+        Fixed issue regarding PostgreSQL :class:`.ExcludeConstraint`, where
+        constraint elements which made use of :func:`.literal_column` could not be
+        rendered for autogenerate. Additionally, using SQLAlchemy 2.0.5 or greater,
+        :func:`.text()` constructs are also supported within PostgreSQL
+        :class:`.ExcludeConstraint` objects for autogenerate render. Pull request
+        courtesy Jan Katins.
+
+    .. change::
+        :tags: bug, batch, regression
+        :tickets: 1195
+
+        Fixed regression for 1.10.0 where :class:`.Constraint` objects were
+        suddenly required to have non-None name fields when using batch mode, which
+        was not previously a requirement.
 
 .. changelog::
     :version: 1.10.0
