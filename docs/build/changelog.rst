@@ -5,7 +5,15 @@ Changelog
 
 .. changelog::
     :version: 1.10.2
-    :include_notes_from: unreleased
+    :released: March 8, 2023
+
+    .. change::
+        :tags: bug, ops
+        :tickets: 1196
+
+        Fixed regression where Alembic would not run with older SQLAlchemy 1.3
+        versions prior to 1.3.24 due to a missing symbol. Workarounds have been
+        applied for older 1.3 versions.
 
 .. changelog::
     :version: 1.10.1
