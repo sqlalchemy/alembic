@@ -593,7 +593,11 @@ class CreateExcludeConstraintOp(ops.AddConstraintOp):
 
     @classmethod
     def batch_create_exclude_constraint(
-        cls, operations, constraint_name, *elements, **kw
+        cls,
+        operations: BatchOperations,
+        constraint_name: str,
+        *elements: Any,
+        **kw: Any,
     ):
         """Issue a "create exclude constraint" instruction using the
         current batch migration context.

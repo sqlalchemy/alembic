@@ -3,6 +3,7 @@ from __future__ import annotations
 import io
 import os
 import sys
+import typing
 from typing import Sequence
 
 from sqlalchemy.util import inspect_getfullargspec  # noqa
@@ -42,13 +43,18 @@ def importlib_metadata_get(group: str) -> Sequence[EntryPoint]:
 
 
 def formatannotation_fwdref(annotation, base_module=None):
-    """the python 3.7 _formatannotation with an extra repr() for 3rd party
-    modules"""
+    """vendored from python 3.7"""
+    # copied over _formatannotation from sqlalchemy 2.0
+
+    if isinstance(annotation, str):
+        return annotation
 
     if getattr(annotation, "__module__", None) == "typing":
-        return repr(annotation).replace("typing.", "")
+        return repr(annotation).replace("typing.", "").replace("~", "")
     if isinstance(annotation, type):
         if annotation.__module__ in ("builtins", base_module):
-            return annotation.__qualname__
-        return repr(annotation.__module__ + "." + annotation.__qualname__)
-    return repr(annotation)
+            return repr(annotation.__qualname__)
+        return annotation.__module__ + "." + annotation.__qualname__
+    elif isinstance(annotation, typing.TypeVar):
+        return repr(annotation).replace("~", "")
+    return repr(annotation).replace("~", "")

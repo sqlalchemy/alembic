@@ -4,6 +4,7 @@ import subprocess
 import sys
 
 import alembic
+from alembic.testing import combinations
 from alembic.testing import eq_
 from alembic.testing import TestBase
 
@@ -16,7 +17,7 @@ def run_command(file):
             sys.executable,
             str((_home / "tools" / "write_pyi.py").relative_to(_home)),
             "--stdout",
-            "--file",
+            "--name",
             file,
         ],
         stdout=subprocess.PIPE,
@@ -40,6 +41,14 @@ class TestStubFiles(TestBase):
         res = run_command("context")
         generated = res.stdout
         file_path = Path(alembic.__file__).parent / "context.pyi"
+        expected = file_path.read_text()
+        eq_(generated, expected, compare(generated, expected))
+
+    @combinations("batch_op", "op_cls")
+    def test_operation_base_file(self, name):
+        res = run_command(name)
+        generated = res.stdout
+        file_path = Path(alembic.__file__).parent / "operations/base.py"
         expected = file_path.read_text()
         eq_(generated, expected, compare(generated, expected))
 

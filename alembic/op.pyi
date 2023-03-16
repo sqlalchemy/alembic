@@ -42,7 +42,7 @@ if TYPE_CHECKING:
 
 def add_column(
     table_name: str, column: Column, schema: Optional[str] = None
-) -> Optional[Table]:
+) -> None:
     """Issue an "add column" instruction using the current
     migration context.
 
@@ -60,19 +60,19 @@ def add_column(
 
     .. note::
 
-        With the exception of NOT NULL constraints or single-column FOREIGN KEY
-        constraints, other kinds of constraints such as PRIMARY KEY, UNIQUE or
-        CHECK constraints **cannot** be generated using this method; for these
-        constraints, refer to operations such as
+        With the exception of NOT NULL constraints or single-column FOREIGN
+        KEY constraints, other kinds of constraints such as PRIMARY KEY,
+        UNIQUE or CHECK constraints **cannot** be generated using this
+        method; for these constraints, refer to operations such as
         :meth:`.Operations.create_primary_key` and
         :meth:`.Operations.create_check_constraint`. In particular, the
         following :class:`~sqlalchemy.schema.Column` parameters are
         **ignored**:
 
         * :paramref:`~sqlalchemy.schema.Column.primary_key` - SQL databases
-          typically do not support an ALTER operation that can add individual
-          columns one at a time to an existing primary key constraint,
-          therefore it's less ambiguous to use the
+          typically do not support an ALTER operation that can add
+          individual columns one at a time to an existing primary key
+          constraint, therefore it's less ambiguous to use the
           :meth:`.Operations.create_primary_key` method, which assumes no
           existing primary key constraint is present.
         * :paramref:`~sqlalchemy.schema.Column.unique` - use the
@@ -137,7 +137,7 @@ def alter_column(
     existing_comment: Optional[str] = None,
     schema: Optional[str] = None,
     **kw: Any,
-) -> Optional[Table]:
+) -> None:
     r"""Issue an "alter column" instruction using the
     current migration context.
 
@@ -483,10 +483,10 @@ def bulk_insert(
 def create_check_constraint(
     constraint_name: Optional[str],
     table_name: str,
-    condition: Union[str, BinaryExpression],
+    condition: Union[str, BinaryExpression, TextClause],
     schema: Optional[str] = None,
     **kw: Any,
-) -> Optional[Table]:
+) -> None:
     """Issue a "create check constraint" instruction using the
     current migration context.
 
@@ -580,7 +580,7 @@ def create_foreign_key(
     source_schema: Optional[str] = None,
     referent_schema: Optional[str] = None,
     **dialect_kw: Any,
-) -> Optional[Table]:
+) -> None:
     """Issue a "create foreign key" instruction using the
     current migration context.
 
@@ -638,7 +638,7 @@ def create_index(
     schema: Optional[str] = None,
     unique: bool = False,
     **kw: Any,
-) -> Optional[Table]:
+) -> None:
     r"""Issue a "create index" instruction using the current
     migration context.
 
@@ -688,7 +688,7 @@ def create_primary_key(
     table_name: str,
     columns: List[str],
     schema: Optional[str] = None,
-) -> Optional[Table]:
+) -> None:
     """Issue a "create primary key" instruction using the current
     migration context.
 
@@ -724,9 +724,7 @@ def create_primary_key(
 
     """
 
-def create_table(
-    table_name: str, *columns: SchemaItem, **kw: Any
-) -> Optional[Table]:
+def create_table(table_name: str, *columns: SchemaItem, **kw: Any) -> Table:
     r"""Issue a "create table" instruction using the current migration
     context.
 
@@ -810,7 +808,7 @@ def create_table_comment(
     comment: Optional[str],
     existing_comment: Optional[str] = None,
     schema: Optional[str] = None,
-) -> Optional[Table]:
+) -> None:
     """Emit a COMMENT ON operation to set the comment for a table.
 
     .. versionadded:: 1.0.6
@@ -878,7 +876,7 @@ def create_unique_constraint(
 
 def drop_column(
     table_name: str, column_name: str, schema: Optional[str] = None, **kw: Any
-) -> Optional[Table]:
+) -> None:
     """Issue a "drop column" instruction using the current
     migration context.
 
@@ -921,7 +919,7 @@ def drop_constraint(
     table_name: str,
     type_: Optional[str] = None,
     schema: Optional[str] = None,
-) -> Optional[Table]:
+) -> None:
     r"""Drop a constraint of the given name, typically via DROP CONSTRAINT.
 
     :param constraint_name: name of the constraint.
@@ -940,7 +938,7 @@ def drop_index(
     table_name: Optional[str] = None,
     schema: Optional[str] = None,
     **kw: Any,
-) -> Optional[Table]:
+) -> None:
     r"""Issue a "drop index" instruction using the current
     migration context.
 
@@ -988,7 +986,7 @@ def drop_table_comment(
     table_name: str,
     existing_comment: Optional[str] = None,
     schema: Optional[str] = None,
-) -> Optional[Table]:
+) -> None:
     """Issue a "drop table comment" operation to
     remove an existing comment set on a table.
 
@@ -1009,7 +1007,7 @@ def drop_table_comment(
 def execute(
     sqltext: Union[str, TextClause, Update],
     execution_options: Optional[dict[str, Any]] = None,
-) -> Optional[Table]:
+) -> None:
     r"""Execute the given SQL using the current migration context.
 
     The given SQL can be a plain string, e.g.::
@@ -1177,8 +1175,8 @@ def inline_literal(
     advanced types like dates may not be supported directly
     by SQLAlchemy.
 
-    See :meth:`.execute` for an example usage of
-    :meth:`.inline_literal`.
+    See :meth:`.Operations.execute` for an example usage of
+    :meth:`.Operations.inline_literal`.
 
     The environment can also be configured to attempt to render
     "literal" values inline automatically, for those simple types
@@ -1229,7 +1227,7 @@ def register_operation(
 
 def rename_table(
     old_table_name: str, new_table_name: str, schema: Optional[str] = None
-) -> Optional[Table]:
+) -> None:
     """Emit an ALTER TABLE to rename a table.
 
     :param old_table_name: old name.

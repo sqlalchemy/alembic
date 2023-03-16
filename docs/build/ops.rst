@@ -41,6 +41,9 @@ method.
 
 .. module:: alembic.operations
 
+.. autoclass:: AbstractOperations
+    :members:
+
 .. autoclass:: Operations
     :members:
 

@@ -199,7 +199,7 @@ class DropConstraintOp(MigrateOperation):
         table_name: str,
         type_: Optional[str] = None,
         schema: Optional[str] = None,
-    ) -> Optional[Table]:
+    ) -> None:
         r"""Drop a constraint of the given name, typically via DROP CONSTRAINT.
 
         :param constraint_name: name of the constraint.
@@ -300,7 +300,7 @@ class CreatePrimaryKeyOp(AddConstraintOp):
         table_name: str,
         columns: List[str],
         schema: Optional[str] = None,
-    ) -> Optional[Table]:
+    ) -> None:
         """Issue a "create primary key" instruction using the current
         migration context.
 
@@ -599,7 +599,7 @@ class CreateForeignKeyOp(AddConstraintOp):
         source_schema: Optional[str] = None,
         referent_schema: Optional[str] = None,
         **dialect_kw: Any,
-    ) -> Optional[Table]:
+    ) -> None:
         """Issue a "create foreign key" instruction using the
         current migration context.
 
@@ -781,10 +781,10 @@ class CreateCheckConstraintOp(AddConstraintOp):
         operations: Operations,
         constraint_name: Optional[str],
         table_name: str,
-        condition: Union[str, BinaryExpression],
+        condition: Union[str, BinaryExpression, TextClause],
         schema: Optional[str] = None,
         **kw: Any,
-    ) -> Optional[Table]:
+    ) -> None:
         """Issue a "create check constraint" instruction using the
         current migration context.
 
@@ -833,9 +833,9 @@ class CreateCheckConstraintOp(AddConstraintOp):
         cls,
         operations: BatchOperations,
         constraint_name: str,
-        condition: TextClause,
+        condition: Union[str, BinaryExpression, TextClause],
         **kw: Any,
-    ) -> Optional[Table]:
+    ) -> None:
         """Issue a "create check constraint" instruction using the
         current batch migration context.
 
@@ -921,7 +921,7 @@ class CreateIndexOp(MigrateOperation):
         schema: Optional[str] = None,
         unique: bool = False,
         **kw: Any,
-    ) -> Optional[Table]:
+    ) -> None:
         r"""Issue a "create index" instruction using the current
         migration context.
 
@@ -977,7 +977,7 @@ class CreateIndexOp(MigrateOperation):
         index_name: str,
         columns: List[str],
         **kw: Any,
-    ) -> Optional[Table]:
+    ) -> None:
         """Issue a "create index" instruction using the
         current batch migration context.
 
@@ -1056,7 +1056,7 @@ class DropIndexOp(MigrateOperation):
         table_name: Optional[str] = None,
         schema: Optional[str] = None,
         **kw: Any,
-    ) -> Optional[Table]:
+    ) -> None:
         r"""Issue a "drop index" instruction using the current
         migration context.
 
@@ -1084,7 +1084,7 @@ class DropIndexOp(MigrateOperation):
     @classmethod
     def batch_drop_index(
         cls, operations: BatchOperations, index_name: str, **kw: Any
-    ) -> Optional[Table]:
+    ) -> None:
         """Issue a "drop index" instruction using the
         current batch migration context.
 
@@ -1182,7 +1182,7 @@ class CreateTableOp(MigrateOperation):
         table_name: str,
         *columns: SchemaItem,
         **kw: Any,
-    ) -> Optional[Table]:
+    ) -> Table:
         r"""Issue a "create table" instruction using the current migration
         context.
 
@@ -1391,7 +1391,7 @@ class RenameTableOp(AlterTableOp):
         old_table_name: str,
         new_table_name: str,
         schema: Optional[str] = None,
-    ) -> Optional[Table]:
+    ) -> None:
         """Emit an ALTER TABLE to rename a table.
 
         :param old_table_name: old name.
@@ -1433,7 +1433,7 @@ class CreateTableCommentOp(AlterTableOp):
         comment: Optional[str],
         existing_comment: Optional[str] = None,
         schema: Optional[str] = None,
-    ) -> Optional[Table]:
+    ) -> None:
         """Emit a COMMENT ON operation to set the comment for a table.
 
         .. versionadded:: 1.0.6
@@ -1465,10 +1465,10 @@ class CreateTableCommentOp(AlterTableOp):
     @classmethod
     def batch_create_table_comment(
         cls,
-        operations,
-        comment,
-        existing_comment=None,
-    ):
+        operations: BatchOperations,
+        comment: Optional[str],
+        existing_comment: Optional[str] = None,
+    ) -> None:
         """Emit a COMMENT ON operation to set the comment for a table
         using the current batch migration context.
 
@@ -1542,7 +1542,7 @@ class DropTableCommentOp(AlterTableOp):
         table_name: str,
         existing_comment: Optional[str] = None,
         schema: Optional[str] = None,
-    ) -> Optional[Table]:
+    ) -> None:
         """Issue a "drop table comment" operation to
         remove an existing comment set on a table.
 
@@ -1564,7 +1564,11 @@ class DropTableCommentOp(AlterTableOp):
         return operations.invoke(op)
 
     @classmethod
-    def batch_drop_table_comment(cls, operations, existing_comment=None):
+    def batch_drop_table_comment(
+        cls,
+        operations: BatchOperations,
+        existing_comment: Optional[str] = None,
+    ) -> None:
         """Issue a "drop table comment" operation to
         remove an existing comment set on a table using the current
         batch operations context.
@@ -1779,7 +1783,7 @@ class AlterColumnOp(AlterTableOp):
         existing_comment: Optional[str] = None,
         schema: Optional[str] = None,
         **kw: Any,
-    ) -> Optional[Table]:
+    ) -> None:
         r"""Issue an "alter column" instruction using the
         current migration context.
 
@@ -1893,18 +1897,20 @@ class AlterColumnOp(AlterTableOp):
         operations: BatchOperations,
         column_name: str,
         nullable: Optional[bool] = None,
-        comment: Union[str, Literal[False]] = False,
-        server_default: Union[Function[Any], bool] = False,
+        comment: Optional[Union[str, Literal[False]]] = False,
+        server_default: Any = False,
         new_column_name: Optional[str] = None,
         type_: Optional[Union[TypeEngine, Type[TypeEngine]]] = None,
         existing_type: Optional[Union[TypeEngine, Type[TypeEngine]]] = None,
-        existing_server_default: bool = False,
+        existing_server_default: Optional[
+            Union[str, bool, Identity, Computed]
+        ] = False,
         existing_nullable: Optional[bool] = None,
         existing_comment: Optional[str] = None,
         insert_before: Optional[str] = None,
         insert_after: Optional[str] = None,
         **kw: Any,
-    ) -> Optional[Table]:
+    ) -> None:
         """Issue an "alter column" instruction using the current
         batch migration context.
 
@@ -2001,7 +2007,7 @@ class AddColumnOp(AlterTableOp):
         table_name: str,
         column: Column,
         schema: Optional[str] = None,
-    ) -> Optional[Table]:
+    ) -> None:
         """Issue an "add column" instruction using the current
         migration context.
 
@@ -2090,7 +2096,7 @@ class AddColumnOp(AlterTableOp):
         column: Column,
         insert_before: Optional[str] = None,
         insert_after: Optional[str] = None,
-    ) -> Optional[Table]:
+    ) -> None:
         """Issue an "add column" instruction using the current
         batch migration context.
 
@@ -2184,7 +2190,7 @@ class DropColumnOp(AlterTableOp):
         column_name: str,
         schema: Optional[str] = None,
         **kw: Any,
-    ) -> Optional[Table]:
+    ) -> None:
         """Issue a "drop column" instruction using the current
         migration context.
 
@@ -2228,7 +2234,7 @@ class DropColumnOp(AlterTableOp):
     @classmethod
     def batch_drop_column(
         cls, operations: BatchOperations, column_name: str, **kw: Any
-    ) -> Optional[Table]:
+    ) -> None:
         """Issue a "drop column" instruction using the current
         batch migration context.
 
@@ -2386,7 +2392,7 @@ class ExecuteSQLOp(MigrateOperation):
         operations: Operations,
         sqltext: Union[str, TextClause, Update],
         execution_options: Optional[dict[str, Any]] = None,
-    ) -> Optional[Table]:
+    ) -> None:
         r"""Execute the given SQL using the current migration context.
 
         The given SQL can be a plain string, e.g.::

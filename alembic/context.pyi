@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 from typing import Any
+from typing import Callable
+from typing import Collection
 from typing import ContextManager
 from typing import Dict
 from typing import List
 from typing import Literal
+from typing import Mapping
+from typing import MutableMapping
 from typing import Optional
 from typing import overload
 from typing import TextIO
@@ -19,16 +23,16 @@ if TYPE_CHECKING:
     from sqlalchemy.engine.url import URL
     from sqlalchemy.sql.elements import ClauseElement
     from sqlalchemy.sql.schema import MetaData
+    from sqlalchemy.sql.schema import SchemaItem
 
+    from .autogenerate.api import AutogenContext
     from .config import Config
-    from .runtime.environment import IncludeNameFn
-    from .runtime.environment import IncludeObjectFn
-    from .runtime.environment import OnVersionApplyFn
-    from .runtime.environment import ProcessRevisionDirectiveFn
-    from .runtime.environment import RenderItemFn
+    from .operations.ops import MigrateOperation
     from .runtime.migration import _ProxyTransaction
     from .runtime.migration import MigrationContext
+    from .runtime.migration import MigrationInfo
     from .script import ScriptDirectory
+
 ### end imports ###
 
 def begin_transaction() -> Union[_ProxyTransaction, ContextManager[None]]:
@@ -79,7 +83,7 @@ config: Config
 
 def configure(
     connection: Optional[Connection] = None,
-    url: Optional[Union[str, URL]] = None,
+    url: Union[str, URL, None] = None,
     dialect_name: Optional[str] = None,
     dialect_opts: Optional[Dict[str, Any]] = None,
     transactional_ddl: Optional[bool] = None,
@@ -90,20 +94,77 @@ def configure(
     template_args: Optional[Dict[str, Any]] = None,
     render_as_batch: bool = False,
     target_metadata: Optional[MetaData] = None,
-    include_name: Optional[IncludeNameFn] = None,
-    include_object: Optional[IncludeObjectFn] = None,
+    include_name: Optional[
+        Callable[
+            [
+                Optional[str],
+                Literal[
+                    "schema",
+                    "table",
+                    "column",
+                    "index",
+                    "unique_constraint",
+                    "foreign_key_constraint",
+                ],
+                MutableMapping[
+                    Literal[
+                        "schema_name",
+                        "table_name",
+                        "schema_qualified_table_name",
+                    ],
+                    Optional[str],
+                ],
+            ],
+            bool,
+        ]
+    ] = None,
+    include_object: Optional[
+        Callable[
+            [
+                SchemaItem,
+                Optional[str],
+                Literal[
+                    "schema",
+                    "table",
+                    "column",
+                    "index",
+                    "unique_constraint",
+                    "foreign_key_constraint",
+                ],
+                bool,
+                Optional[SchemaItem],
+            ],
+            bool,
+        ]
+    ] = None,
     include_schemas: bool = False,
-    process_revision_directives: Optional[ProcessRevisionDirectiveFn] = None,
+    process_revision_directives: Optional[
+        Callable[
+            [MigrationContext, Tuple[str, str], List[MigrateOperation]], None
+        ]
+    ] = None,
     compare_type: bool = False,
     compare_server_default: bool = False,
-    render_item: Optional[RenderItemFn] = None,
+    render_item: Optional[
+        Callable[[str, Any, AutogenContext], Union[str, Literal[False]]]
+    ] = None,
     literal_binds: bool = False,
     upgrade_token: str = "upgrades",
     downgrade_token: str = "downgrades",
     alembic_module_prefix: str = "op.",
     sqlalchemy_module_prefix: str = "sa.",
     user_module_prefix: Optional[str] = None,
-    on_version_apply: Optional[OnVersionApplyFn] = None,
+    on_version_apply: Optional[
+        Callable[
+            [
+                MigrationContext,
+                MigrationInfo,
+                Collection[Any],
+                Mapping[str, Any],
+            ],
+            None,
+        ]
+    ] = None,
     **kw: Any,
 ) -> None:
     """Configure a :class:`.MigrationContext` within this
