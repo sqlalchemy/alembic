@@ -17,6 +17,7 @@ from typing import Union
 
 if TYPE_CHECKING:
     from sqlalchemy.engine.base import Connection
+    from sqlalchemy.engine.url import URL
     from sqlalchemy.sql.elements import ClauseElement
     from sqlalchemy.sql.schema import MetaData
 
@@ -75,7 +76,7 @@ config: Config
 
 def configure(
     connection: Optional[Connection] = None,
-    url: Optional[str] = None,
+    url: Union[str, URL, None] = None,
     dialect_name: Optional[str] = None,
     dialect_opts: Optional[Dict[str, Any]] = None,
     transactional_ddl: Optional[bool] = None,

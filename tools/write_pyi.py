@@ -33,6 +33,7 @@ TRIM_MODULE = [
     "alembic.operations.base.",
     "alembic.operations.ops.",
     "sqlalchemy.engine.base.",
+    "sqlalchemy.engine.url.",
     "sqlalchemy.sql.schema.",
     "sqlalchemy.sql.selectable.",
     "sqlalchemy.sql.elements.",

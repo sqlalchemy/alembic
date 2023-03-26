@@ -20,6 +20,7 @@ from ..operations import Operations
 if TYPE_CHECKING:
     from typing import Literal
 
+    from sqlalchemy.engine import URL
     from sqlalchemy.engine.base import Connection
     from sqlalchemy.sql.elements import ClauseElement
     from sqlalchemy.sql.schema import MetaData
@@ -334,7 +335,7 @@ class EnvironmentContext(util.ModuleClsProxy):
     def configure(
         self,
         connection: Optional[Connection] = None,
-        url: Optional[str] = None,
+        url: Optional[Union[str, URL]] = None,
         dialect_name: Optional[str] = None,
         dialect_opts: Optional[Dict[str, Any]] = None,
         transactional_ddl: Optional[bool] = None,
