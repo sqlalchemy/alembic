@@ -6,11 +6,15 @@ from configparser import ConfigParser
 import inspect
 import os
 import sys
-from typing import Dict
+from typing import Any
+from typing import cast
+from typing import Mapping
 from typing import Optional
 from typing import overload
 from typing import TextIO
 from typing import Union
+
+from typing_extensions import TypedDict
 
 from . import __version__
 from . import command
@@ -99,7 +103,7 @@ class Config:
         output_buffer: Optional[TextIO] = None,
         stdout: TextIO = sys.stdout,
         cmd_opts: Optional[Namespace] = None,
-        config_args: util.immutabledict = util.immutabledict(),
+        config_args: Mapping[str, Any] = util.immutabledict(),
         attributes: Optional[dict] = None,
     ) -> None:
         """Construct a new :class:`.Config`"""
@@ -162,6 +166,8 @@ class Config:
         those arguments will formatted against the provided text,
         otherwise we simply output the provided text verbatim.
 
+        This is a no-op when the``quiet`` messaging option is enabled.
+
         e.g.::
 
             >>> config.print_stdout('Some text %s', 'arg')
@@ -174,7 +180,7 @@ class Config:
         else:
             output = str(text)
 
-        util.write_outstream(self.stdout, output, "\n")
+        util.write_outstream(self.stdout, output, "\n", **self.messaging_opts)
 
     @util.memoized_property
     def file_config(self):
@@ -213,14 +219,14 @@ class Config:
 
     @overload
     def get_section(
-        self, name: str, default: Dict[str, str]
-    ) -> Dict[str, str]:
+        self, name: str, default: Mapping[str, str]
+    ) -> Mapping[str, str]:
         ...
 
     @overload
     def get_section(
-        self, name: str, default: Optional[Dict[str, str]] = ...
-    ) -> Optional[Dict[str, str]]:
+        self, name: str, default: Optional[Mapping[str, str]] = ...
+    ) -> Optional[Mapping[str, str]]:
         ...
 
     def get_section(self, name: str, default=None):
@@ -310,6 +316,20 @@ class Config:
 
         """
         return self.get_section_option(self.config_ini_section, name, default)
+
+    @util.memoized_property
+    def messaging_opts(self) -> MessagingOptions:
+        """The messaging options."""
+        return cast(
+            MessagingOptions,
+            util.immutabledict(
+                {"quiet": getattr(self.cmd_opts, "quiet", False)}
+            ),
+        )
+
+
+class MessagingOptions(TypedDict, total=False):
+    quiet: bool
 
 
 class CommandLine:
@@ -512,6 +532,12 @@ class CommandLine:
             action="store_true",
             help="Raise a full stack trace on error",
         )
+        parser.add_argument(
+            "-q",
+            "--quiet",
+            action="store_true",
+            help="Do not log to std output.",
+        )
         subparsers = parser.add_subparsers()
 
         positional_translations = {command.stamp: {"revision": "revisions"}}
@@ -568,7 +594,7 @@ class CommandLine:
             if options.raiseerr:
                 raise
             else:
-                util.err(str(e))
+                util.err(str(e), **config.messaging_opts)
 
     def main(self, argv=None):
         options = self.parser.parse_args(argv)

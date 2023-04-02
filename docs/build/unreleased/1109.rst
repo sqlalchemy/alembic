@@ -1,0 +1,6 @@
+.. change::
+    :tags: usecase, commands
+
+    Added quiet option to the command line, using the ``-q/--quiet``
+    option. This flag will prevent alembic from logging anything
+    to stdout.

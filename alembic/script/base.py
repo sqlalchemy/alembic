@@ -9,9 +9,9 @@ import sys
 from types import ModuleType
 from typing import Any
 from typing import cast
-from typing import Dict
 from typing import Iterator
 from typing import List
+from typing import Mapping
 from typing import Optional
 from typing import Sequence
 from typing import Set
@@ -27,6 +27,7 @@ from ..util import not_none
 
 if TYPE_CHECKING:
     from ..config import Config
+    from ..config import MessagingOptions
     from ..runtime.migration import RevisionStep
     from ..runtime.migration import StampStep
     from ..script.revision import Revision
@@ -79,8 +80,11 @@ class ScriptDirectory:
         sourceless: bool = False,
         output_encoding: str = "utf-8",
         timezone: Optional[str] = None,
-        hook_config: Optional[Dict[str, str]] = None,
+        hook_config: Optional[Mapping[str, str]] = None,
         recursive_version_locations: bool = False,
+        messaging_opts: MessagingOptions = cast(
+            "MessagingOptions", util.EMPTY_DICT
+        ),
     ) -> None:
         self.dir = dir
         self.file_template = file_template
@@ -92,6 +96,7 @@ class ScriptDirectory:
         self.timezone = timezone
         self.hook_config = hook_config
         self.recursive_version_locations = recursive_version_locations
+        self.messaging_opts = messaging_opts
 
         if not os.access(dir, os.F_OK):
             raise util.CommandError(
@@ -225,6 +230,7 @@ class ScriptDirectory:
             timezone=config.get_main_option("timezone"),
             hook_config=config.get_section("post_write_hooks", {}),
             recursive_version_locations=rvl,
+            messaging_opts=config.messaging_opts,
         )
 
     @contextmanager
@@ -580,24 +586,24 @@ class ScriptDirectory:
         return os.path.abspath(os.path.join(self.dir, "env.py"))
 
     def _generate_template(self, src: str, dest: str, **kw: Any) -> None:
-        util.status(
-            "Generating %s" % os.path.abspath(dest),
-            util.template_to_file,
-            src,
-            dest,
-            self.output_encoding,
-            **kw,
-        )
+        with util.status(
+            f"Generating {os.path.abspath(dest)}", **self.messaging_opts
+        ):
+            util.template_to_file(src, dest, self.output_encoding, **kw)
 
     def _copy_file(self, src: str, dest: str) -> None:
-        util.status(
-            "Generating %s" % os.path.abspath(dest), shutil.copy, src, dest
-        )
+        with util.status(
+            f"Generating {os.path.abspath(dest)}", **self.messaging_opts
+        ):
+            shutil.copy(src, dest)
 
     def _ensure_directory(self, path: str) -> None:
         path = os.path.abspath(path)
         if not os.path.exists(path):
-            util.status("Creating directory %s" % path, os.makedirs, path)
+            with util.status(
+                f"Creating directory {path}", **self.messaging_opts
+            ):
+                os.makedirs(path)
 
     def _generate_create_date(self) -> datetime.datetime:
         if self.timezone is not None:

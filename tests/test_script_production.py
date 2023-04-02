@@ -1,5 +1,6 @@
 import datetime
 import os
+from pathlib import Path
 import re
 from unittest.mock import patch
 
@@ -1333,28 +1334,23 @@ class NormPathTest(TestBase):
                 ).replace("/", ":NORM:"),
             )
 
-    def test_script_location_muliple(self):
+    def test_script_location_multiple(self):
         config = _multi_dir_testing_config()
 
         script = ScriptDirectory.from_config(config)
 
-        def normpath(path):
+        def _normpath(path):
             return path.replace("/", ":NORM:")
 
-        normpath = mock.Mock(side_effect=normpath)
+        normpath = mock.Mock(side_effect=_normpath)
 
         with mock.patch("os.path.normpath", normpath):
+            sd = Path(_get_staging_directory()).as_posix()
             eq_(
                 script._version_locations,
                 [
-                    os.path.abspath(
-                        os.path.join(_get_staging_directory(), "model1/")
-                    ).replace("/", ":NORM:"),
-                    os.path.abspath(
-                        os.path.join(_get_staging_directory(), "model2/")
-                    ).replace("/", ":NORM:"),
-                    os.path.abspath(
-                        os.path.join(_get_staging_directory(), "model3/")
-                    ).replace("/", ":NORM:"),
+                    _normpath(os.path.abspath(sd + "/model1/")),
+                    _normpath(os.path.abspath(sd + "/model2/")),
+                    _normpath(os.path.abspath(sd + "/model3/")),
                 ],
             )

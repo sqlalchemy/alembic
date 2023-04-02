@@ -7,6 +7,7 @@ from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import List
+from typing import Mapping
 from typing import Optional
 from typing import overload
 from typing import Sequence
@@ -25,6 +26,7 @@ from sqlalchemy.util import unique_list  # noqa
 from .compat import inspect_getfullargspec
 
 
+EMPTY_DICT: Mapping[Any, Any] = immutabledict()
 _T = TypeVar("_T")
 
 
