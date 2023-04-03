@@ -34,6 +34,7 @@ from ..util.compat import EncodedIO
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import Dialect
+    from sqlalchemy.engine import URL
     from sqlalchemy.engine.base import Connection
     from sqlalchemy.engine.base import Transaction
     from sqlalchemy.engine.mock import MockConnection
@@ -217,7 +218,7 @@ class MigrationContext:
     def configure(
         cls,
         connection: Optional[Connection] = None,
-        url: Optional[str] = None,
+        url: Optional[Union[str, URL]] = None,
         dialect_name: Optional[str] = None,
         dialect: Optional[Dialect] = None,
         environment_context: Optional[EnvironmentContext] = None,
