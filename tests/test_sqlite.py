@@ -267,7 +267,6 @@ class SQLiteAutogenRenderTest(TestBase):
             "nullable=True)",
         )
 
-    @config.requirements.sqlalchemy_13
     def test_render_add_column_w_on_conflict(self):
         c = Column("int_value", Integer, sqlite_on_conflict_not_null="FAIL")
 

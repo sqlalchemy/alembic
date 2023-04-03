@@ -10,6 +10,8 @@ import warnings
 
 from sqlalchemy import exc as sa_exc
 
+from ..util import sqla_14
+
 
 def setup_filters():
     """Set global warning behavior for the test suite."""
@@ -21,6 +23,13 @@ def setup_filters():
 
     # some selected deprecations...
     warnings.filterwarnings("error", category=DeprecationWarning)
+    if not sqla_14:
+        # 1.3 uses pkg_resources in PluginLoader
+        warnings.filterwarnings(
+            "ignore",
+            "pkg_resources is deprecated as an API",
+            DeprecationWarning,
+        )
     try:
         import pytest
     except ImportError:

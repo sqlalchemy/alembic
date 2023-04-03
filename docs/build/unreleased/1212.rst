@@ -1,0 +1,6 @@
+.. change::
+    :tags: bug, autogenerate
+    :tickets: 1212
+
+    Fixed error raised by alembic when running autogenerate after removing
+    a function based index.
