@@ -1129,7 +1129,6 @@ class CopyFromTest(TestBase):
         self.op = Operations(context)
         return context
 
-    @config.requirements.sqlalchemy_13
     def test_change_type(self):
         context = self._fixture()
         self.table.append_column(Column("toj", Text))

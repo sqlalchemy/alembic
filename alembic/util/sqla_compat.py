@@ -415,6 +415,8 @@ def _textual_index_column(
         return c
     elif isinstance(text_, TextClause):
         return _textual_index_element(table, text_)
+    elif isinstance(text_, _textual_index_element):
+        return _textual_index_column(table, text_.text)
     elif isinstance(text_, sql.ColumnElement):
         return _copy_expression(text_, table)
     else:

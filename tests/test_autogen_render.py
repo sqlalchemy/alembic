@@ -67,10 +67,7 @@ class AutogenRenderTest(TestBase):
 
         self.autogen_context = api.AutogenContext(context)
 
-    def test_render_add_index(self):
-        """
-        autogenerate.render._add_index
-        """
+    def table(self, *args, **kwargs):
         m = MetaData()
         t = Table(
             "test",
@@ -78,7 +75,16 @@ class AutogenRenderTest(TestBase):
             Column("id", Integer, primary_key=True),
             Column("active", Boolean()),
             Column("code", String(255)),
+            *args,
+            **kwargs,
         )
+        return t
+
+    def test_render_add_index(self):
+        """
+        autogenerate.render._add_index
+        """
+        t = self.table()
         idx = Index("test_active_code_idx", t.c.active, t.c.code)
         op_obj = ops.CreateIndexOp.from_index(idx)
         eq_ignore_whitespace(
@@ -89,13 +95,7 @@ class AutogenRenderTest(TestBase):
 
     @testing.emits_warning("Can't validate argument ")
     def test_render_add_index_custom_kwarg(self):
-        t = Table(
-            "test",
-            MetaData(),
-            Column("id", Integer, primary_key=True),
-            Column("active", Boolean()),
-            Column("code", String(255)),
-        )
+        t = self.table()
         idx = Index(None, t.c.active, t.c.code, somedialect_foobar="option")
         op_obj = ops.CreateIndexOp.from_index(idx)
         eq_ignore_whitespace(
@@ -108,14 +108,7 @@ class AutogenRenderTest(TestBase):
         """
         autogenerate.render._add_index
         """
-        m = MetaData()
-        t = Table(
-            "test",
-            m,
-            Column("id", Integer, primary_key=True),
-            Column("active", Boolean()),
-            Column("code", String(255)),
-        )
+        t = self.table()
         idx = Index("test_active_code_idx", t.c.active, t.c.code)
         op_obj = ops.CreateIndexOp.from_index(idx)
         with self.autogen_context._within_batch():
@@ -129,15 +122,7 @@ class AutogenRenderTest(TestBase):
         """
         autogenerate.render._add_index using schema
         """
-        m = MetaData()
-        t = Table(
-            "test",
-            m,
-            Column("id", Integer, primary_key=True),
-            Column("active", Boolean()),
-            Column("code", String(255)),
-            schema="CamelSchema",
-        )
+        t = self.table(schema="CamelSchema")
         idx = Index("test_active_code_idx", t.c.active, t.c.code)
         op_obj = ops.CreateIndexOp.from_index(idx)
         eq_ignore_whitespace(
@@ -150,15 +135,7 @@ class AutogenRenderTest(TestBase):
         """
         autogenerate.render._add_index using schema
         """
-        m = MetaData()
-        t = Table(
-            "test",
-            m,
-            Column("id", Integer, primary_key=True),
-            Column("active", Boolean()),
-            Column("code", String(255)),
-            schema="CamelSchema",
-        )
+        t = self.table(schema="CamelSchema")
         idx = Index("test_active_code_idx", t.c.active, t.c.code)
         op_obj = ops.CreateIndexOp.from_index(idx)
         with self.autogen_context._within_batch():
@@ -168,14 +145,26 @@ class AutogenRenderTest(TestBase):
                 "['active', 'code'], unique=False)",
             )
 
-    def test_render_add_index_func(self):
-        m = MetaData()
-        t = Table(
-            "test",
-            m,
-            Column("id", Integer, primary_key=True),
-            Column("code", String(255)),
+    def test_render_add_index_text(self):
+        """
+        autogenerate.render._add_index
+        """
+        t = self.table()
+        idx = Index("test_active_code_idx", t.c.active, text("lower(code)"))
+        op_obj = ops.CreateIndexOp.from_index(idx)
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.create_index('test_active_code_idx', 'test', "
+            "['active', sa.text('lower(code)')], unique=False)",
         )
+        op_obj_rev = op_obj.reverse()
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj_rev),
+            "op.drop_index('test_active_code_idx', table_name='test')",
+        )
+
+    def test_render_add_index_func(self):
+        t = self.table()
         idx = Index("test_lower_code_idx", func.lower(t.c.code))
         op_obj = ops.CreateIndexOp.from_index(idx)
 
@@ -184,15 +173,14 @@ class AutogenRenderTest(TestBase):
             "op.create_index('test_lower_code_idx', 'test', "
             "[sa.text('lower(code)')], unique=False)",
         )
+        op_obj_rev = op_obj.reverse()
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj_rev),
+            "op.drop_index('test_lower_code_idx', table_name='test')",
+        )
 
     def test_render_add_index_cast(self):
-        m = MetaData()
-        t = Table(
-            "test",
-            m,
-            Column("id", Integer, primary_key=True),
-            Column("code", String(255)),
-        )
+        t = self.table()
         idx = Index("test_lower_code_idx", cast(t.c.code, String))
         op_obj = ops.CreateIndexOp.from_index(idx)
 
@@ -203,13 +191,7 @@ class AutogenRenderTest(TestBase):
         )
 
     def test_render_add_index_desc(self):
-        m = MetaData()
-        t = Table(
-            "test",
-            m,
-            Column("id", Integer, primary_key=True),
-            Column("code", String(255)),
-        )
+        t = self.table()
         idx = Index("test_desc_code_idx", t.c.code.desc())
         op_obj = ops.CreateIndexOp.from_index(idx)
         eq_ignore_whitespace(
@@ -222,14 +204,7 @@ class AutogenRenderTest(TestBase):
         """
         autogenerate.render._drop_index
         """
-        m = MetaData()
-        t = Table(
-            "test",
-            m,
-            Column("id", Integer, primary_key=True),
-            Column("active", Boolean()),
-            Column("code", String(255)),
-        )
+        t = self.table()
         idx = Index("test_active_code_idx", t.c.active, t.c.code)
         op_obj = ops.DropIndexOp.from_index(idx)
         eq_ignore_whitespace(
@@ -237,15 +212,45 @@ class AutogenRenderTest(TestBase):
             "op.drop_index('test_active_code_idx', table_name='test')",
         )
 
+    def test_drop_index_text(self):
+        """
+        autogenerate.render._drop_index
+        """
+        t = self.table()
+        idx = Index("test_active_code_idx", t.c.active, text("lower(code)"))
+        op_obj = ops.DropIndexOp.from_index(idx)
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.drop_index('test_active_code_idx', table_name='test')",
+        )
+        op_obj_rev = op_obj.reverse()
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj_rev),
+            "op.create_index('test_active_code_idx', 'test', "
+            "['active', sa.text('lower(code)')], unique=False)",
+        )
+
+    def test_drop_index_func(self):
+        """
+        autogenerate.render._drop_index
+        """
+        t = self.table()
+        idx = Index("test_lower_code_idx", func.lower(t.c.code))
+        op_obj = ops.DropIndexOp.from_index(idx)
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.drop_index('test_lower_code_idx', table_name='test')",
+        )
+        op_obj_rev = op_obj.reverse()
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj_rev),
+            "op.create_index('test_lower_code_idx', 'test', "
+            "[sa.text('lower(code)')], unique=False)",
+        )
+
     @testing.emits_warning("Can't validate argument ")
     def test_render_drop_index_custom_kwarg(self):
-        t = Table(
-            "test",
-            MetaData(),
-            Column("id", Integer, primary_key=True),
-            Column("active", Boolean()),
-            Column("code", String(255)),
-        )
+        t = self.table()
         idx = Index(None, t.c.active, t.c.code, somedialect_foobar="option")
         op_obj = ops.DropIndexOp.from_index(idx)
         eq_ignore_whitespace(
@@ -258,14 +263,7 @@ class AutogenRenderTest(TestBase):
         """
         autogenerate.render._drop_index
         """
-        m = MetaData()
-        t = Table(
-            "test",
-            m,
-            Column("id", Integer, primary_key=True),
-            Column("active", Boolean()),
-            Column("code", String(255)),
-        )
+        t = self.table()
         idx = Index("test_active_code_idx", t.c.active, t.c.code)
         op_obj = ops.DropIndexOp.from_index(idx)
         with self.autogen_context._within_batch():
@@ -278,15 +276,7 @@ class AutogenRenderTest(TestBase):
         """
         autogenerate.render._drop_index using schema
         """
-        m = MetaData()
-        t = Table(
-            "test",
-            m,
-            Column("id", Integer, primary_key=True),
-            Column("active", Boolean()),
-            Column("code", String(255)),
-            schema="CamelSchema",
-        )
+        t = self.table(schema="CamelSchema")
         idx = Index("test_active_code_idx", t.c.active, t.c.code)
         op_obj = ops.DropIndexOp.from_index(idx)
         eq_ignore_whitespace(
@@ -299,15 +289,7 @@ class AutogenRenderTest(TestBase):
         """
         autogenerate.render._drop_index using schema
         """
-        m = MetaData()
-        t = Table(
-            "test",
-            m,
-            Column("id", Integer, primary_key=True),
-            Column("active", Boolean()),
-            Column("code", String(255)),
-            schema="CamelSchema",
-        )
+        t = self.table(schema="CamelSchema")
         idx = Index("test_active_code_idx", t.c.active, t.c.code)
         op_obj = ops.DropIndexOp.from_index(idx)
         with self.autogen_context._within_batch():
@@ -320,14 +302,7 @@ class AutogenRenderTest(TestBase):
         """
         autogenerate.render._add_unique_constraint
         """
-        m = MetaData()
-        t = Table(
-            "test",
-            m,
-            Column("id", Integer, primary_key=True),
-            Column("active", Boolean()),
-            Column("code", String(255)),
-        )
+        t = self.table()
         uq = UniqueConstraint(t.c.code, name="uq_test_code")
         op_obj = ops.AddConstraintOp.from_constraint(uq)
         eq_ignore_whitespace(
@@ -339,14 +314,7 @@ class AutogenRenderTest(TestBase):
         """
         autogenerate.render._add_unique_constraint
         """
-        m = MetaData()
-        t = Table(
-            "test",
-            m,
-            Column("id", Integer, primary_key=True),
-            Column("active", Boolean()),
-            Column("code", String(255)),
-        )
+        t = self.table()
         uq = UniqueConstraint(t.c.code, name="uq_test_code")
         op_obj = ops.AddConstraintOp.from_constraint(uq)
         with self.autogen_context._within_batch():
@@ -359,15 +327,7 @@ class AutogenRenderTest(TestBase):
         """
         autogenerate.render._add_unique_constraint using schema
         """
-        m = MetaData()
-        t = Table(
-            "test",
-            m,
-            Column("id", Integer, primary_key=True),
-            Column("active", Boolean()),
-            Column("code", String(255)),
-            schema="CamelSchema",
-        )
+        t = self.table(schema="CamelSchema")
         uq = UniqueConstraint(t.c.code, name="uq_test_code")
         op_obj = ops.AddConstraintOp.from_constraint(uq)
         eq_ignore_whitespace(
@@ -380,15 +340,7 @@ class AutogenRenderTest(TestBase):
         """
         autogenerate.render._add_unique_constraint using schema
         """
-        m = MetaData()
-        t = Table(
-            "test",
-            m,
-            Column("id", Integer, primary_key=True),
-            Column("active", Boolean()),
-            Column("code", String(255)),
-            schema="CamelSchema",
-        )
+        t = self.table(schema="CamelSchema")
         uq = UniqueConstraint(t.c.code, name="uq_test_code")
         op_obj = ops.AddConstraintOp.from_constraint(uq)
         with self.autogen_context._within_batch():
@@ -402,14 +354,7 @@ class AutogenRenderTest(TestBase):
         """
         autogenerate.render._drop_constraint
         """
-        m = MetaData()
-        t = Table(
-            "test",
-            m,
-            Column("id", Integer, primary_key=True),
-            Column("active", Boolean()),
-            Column("code", String(255)),
-        )
+        t = self.table()
         uq = UniqueConstraint(t.c.code, name="uq_test_code")
         op_obj = ops.DropConstraintOp.from_constraint(uq)
         eq_ignore_whitespace(
@@ -421,15 +366,7 @@ class AutogenRenderTest(TestBase):
         """
         autogenerate.render._drop_constraint using schema
         """
-        m = MetaData()
-        t = Table(
-            "test",
-            m,
-            Column("id", Integer, primary_key=True),
-            Column("active", Boolean()),
-            Column("code", String(255)),
-            schema="CamelSchema",
-        )
+        t = self.table(schema="CamelSchema")
         uq = UniqueConstraint(t.c.code, name="uq_test_code")
         op_obj = ops.DropConstraintOp.from_constraint(uq)
         eq_ignore_whitespace(
@@ -1126,7 +1063,6 @@ class AutogenRenderTest(TestBase):
             "server_default='5', nullable=True))",
         )
 
-    @config.requirements.sqlalchemy_13
     @testing.emits_warning("Can't validate argument ")
     def test_render_add_column_custom_kwarg(self):
         col = Column(
@@ -2302,14 +2238,20 @@ class RenderNamingConventionTest(TestBase):
             "sa.UniqueConstraint('c', name='q')",
         )
 
-    def test_render_add_index(self):
+    def table(self, *args, **kwargs):
         t = Table(
             "test",
             self.metadata,
             Column("id", Integer, primary_key=True),
             Column("active", Boolean()),
             Column("code", String(255)),
+            *args,
+            **kwargs,
         )
+        return t
+
+    def test_render_add_index(self):
+        t = self.table()
         idx = Index(None, t.c.active, t.c.code)
         op_obj = ops.CreateIndexOp.from_index(idx)
         eq_ignore_whitespace(
@@ -2319,13 +2261,7 @@ class RenderNamingConventionTest(TestBase):
         )
 
     def test_render_drop_index(self):
-        t = Table(
-            "test",
-            self.metadata,
-            Column("id", Integer, primary_key=True),
-            Column("active", Boolean()),
-            Column("code", String(255)),
-        )
+        t = self.table()
         idx = Index(None, t.c.active, t.c.code)
         op_obj = ops.DropIndexOp.from_index(idx)
         eq_ignore_whitespace(
@@ -2334,14 +2270,7 @@ class RenderNamingConventionTest(TestBase):
         )
 
     def test_render_add_index_schema(self):
-        t = Table(
-            "test",
-            self.metadata,
-            Column("id", Integer, primary_key=True),
-            Column("active", Boolean()),
-            Column("code", String(255)),
-            schema="CamelSchema",
-        )
+        t = self.table(schema="CamelSchema")
         idx = Index(None, t.c.active, t.c.code)
         op_obj = ops.CreateIndexOp.from_index(idx)
         eq_ignore_whitespace(
