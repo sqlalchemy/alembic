@@ -1,7 +1,0 @@
-.. change::
-    :tags: bug, typing
-    :tickets: 1191, 1201
-
-    Fixed various typing issues observed with pyright, including issues
-    involving the combination of :class:`.Function` and
-    :meth:`.MigrationContext.begin_transaction`.

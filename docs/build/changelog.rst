@@ -5,7 +5,22 @@ Changelog
 
 .. changelog::
     :version: 1.10.3
-    :include_notes_from: unreleased
+    :released: April 5, 2023
+
+    .. change::
+        :tags: bug, typing
+        :tickets: 1191, 1201
+
+        Fixed various typing issues observed with pyright, including issues
+        involving the combination of :class:`.Function` and
+        :meth:`.MigrationContext.begin_transaction`.
+
+    .. change::
+        :tags: bug, autogenerate
+        :tickets: 1212
+
+        Fixed error raised by alembic when running autogenerate after removing
+        a function based index.
 
 .. changelog::
     :version: 1.10.2
