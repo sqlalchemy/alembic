@@ -8,6 +8,7 @@ from typing import cast
 from typing import Dict
 from typing import Iterator
 from typing import List
+from typing import Mapping
 from typing import Optional
 from typing import Set
 from typing import Tuple
@@ -19,6 +20,7 @@ from sqlalchemy import inspect
 from sqlalchemy import schema as sa_schema
 from sqlalchemy import text
 from sqlalchemy import types as sqltypes
+from sqlalchemy.sql import expression
 from sqlalchemy.util import OrderedSet
 
 from alembic.ddl.base import _fk_spec
@@ -278,15 +280,35 @@ def _compare_tables(
                 upgrade_ops.ops.append(modify_table_ops)
 
 
+_IndexColumnSortingOps: Mapping[str, Any] = util.immutabledict(
+    {
+        "asc": expression.asc,
+        "desc": expression.desc,
+        "nulls_first": expression.nullsfirst,
+        "nulls_last": expression.nullslast,
+        "nullsfirst": expression.nullsfirst,  # 1_3 name
+        "nullslast": expression.nullslast,  # 1_3 name
+    }
+)
+
+
 def _make_index(params: Dict[str, Any], conn_table: Table) -> Optional[Index]:
     exprs: list[Union[Column[Any], TextClause]] = []
+    sorting = params.get("column_sorting")
+
     for num, col_name in enumerate(params["column_names"]):
         item: Union[Column[Any], TextClause]
         if col_name is None:
             assert "expressions" in params
-            item = text(params["expressions"][num])
+            name = params["expressions"][num]
+            item = text(name)
         else:
+            name = col_name
             item = conn_table.c[col_name]
+        if sorting and name in sorting:
+            for operator in sorting[name]:
+                if operator in _IndexColumnSortingOps:
+                    item = _IndexColumnSortingOps[operator](item)
         exprs.append(item)
     ix = sa_schema.Index(
         params["name"], *exprs, unique=params["unique"], _table=conn_table
