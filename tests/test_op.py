@@ -729,6 +729,21 @@ class OpTest(TestBase):
             "FOREIGN KEY(foo) REFERENCES t1 (bar)"
         )
 
+    def test_add_foreign_key_composite_self_referential(self):
+        """test #1215
+
+        the same column name is present on both sides.
+
+        """
+        context = op_fixture()
+        op.create_foreign_key(
+            "fk_test", "t1", "t1", ["foo", "bar"], ["bat", "bar"]
+        )
+        context.assert_(
+            "ALTER TABLE t1 ADD CONSTRAINT fk_test "
+            "FOREIGN KEY(foo, bar) REFERENCES t1 (bat, bar)"
+        )
+
     def test_add_primary_key_constraint(self):
         context = op_fixture()
         op.create_primary_key("pk_test", "t1", ["foo", "bar"])

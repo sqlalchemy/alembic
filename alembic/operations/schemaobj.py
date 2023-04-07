@@ -89,7 +89,10 @@ class SchemaObjects:
         t1 = sa_schema.Table(
             source,
             m,
-            *[sa_schema.Column(n, NULLTYPE) for n in t1_cols],
+            *[
+                sa_schema.Column(n, NULLTYPE)
+                for n in util.unique_list(t1_cols)
+            ],
             schema=source_schema,
         )
 
