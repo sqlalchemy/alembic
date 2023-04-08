@@ -2343,10 +2343,10 @@ class ExecuteSQLOp(MigrateOperation):
                 column('name', String)
             )
             op.execute(
-                account.update().\\
-                    where(account.c.name==op.inline_literal('account 1')).\\
-                    values({'name':op.inline_literal('account 2')})
-                    )
+                account.update().
+                where(account.c.name==op.inline_literal('account 1')).
+                values({'name':op.inline_literal('account 2')})
+            )
 
         Above, we made use of the SQLAlchemy
         :func:`sqlalchemy.sql.expression.table` and
@@ -2373,7 +2373,8 @@ class ExecuteSQLOp(MigrateOperation):
             connection = op.get_bind()
 
             connection.execute(
-                account.update().where(account.c.name=='account 1').
+                account.update().
+                where(account.c.name=='account 1').
                 values({"name": "account 2"})
             )
 
