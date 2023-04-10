@@ -2339,14 +2339,12 @@ class ExecuteSQLOp(MigrateOperation):
             from sqlalchemy import String
             from alembic import op
 
-            account = table('account',
-                column('name', String)
-            )
+            account = table("account", column("name", String))
             op.execute(
-                account.update().\\
-                    where(account.c.name==op.inline_literal('account 1')).\\
-                    values({'name':op.inline_literal('account 2')})
-                    )
+                account.update()
+                .where(account.c.name == op.inline_literal("account 1"))
+                .values({"name": op.inline_literal("account 2")})
+            )
 
         Above, we made use of the SQLAlchemy
         :func:`sqlalchemy.sql.expression.table` and
@@ -2370,11 +2368,13 @@ class ExecuteSQLOp(MigrateOperation):
         also be used normally, use the "bind" available from the context::
 
             from alembic import op
+
             connection = op.get_bind()
 
             connection.execute(
-                account.update().where(account.c.name=='account 1').
-                values({"name": "account 2"})
+                account.update()
+                .where(account.c.name == "account 1")
+                .values({"name": "account 2"})
             )
 
         Additionally, when passing the statement as a plain string, it is first

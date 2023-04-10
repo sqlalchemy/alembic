@@ -218,7 +218,8 @@ def _generate_stub_for_meth(
 
     fn_doc = base_method.__doc__ if base_method else fn.__doc__
     has_docs = gen_docs and fn_doc is not None
-    docs = 'r"""' + f"{fn_doc}" + '"""' if has_docs else ""
+    string_prefix = "r" if chr(92) in fn_doc else ""
+    docs = f'{string_prefix}"""' + f"{fn_doc}" + '"""' if has_docs else ""
 
     func_text = textwrap.dedent(
         f"""
