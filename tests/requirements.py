@@ -138,7 +138,13 @@ class DefaultRequirements(SuiteRequirements):
     def reflects_indexes_w_sorting(self):
         # TODO: figure out what's happening on the SQLAlchemy side
         # when we reflect an index that has asc() / desc() on the column
+        # Tracked by https://github.com/sqlalchemy/sqlalchemy/issues/9597
         return exclusions.fails_on(["oracle"])
+
+    @property
+    def reflects_indexes_column_sorting(self):
+        "Actually reflect column_sorting on the indexes"
+        return exclusions.only_on(["postgresql"])
 
     @property
     def long_names(self):
