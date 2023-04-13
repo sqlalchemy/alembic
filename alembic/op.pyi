@@ -752,7 +752,7 @@ def create_table(
 def create_table_comment(
     table_name: str,
     comment: Optional[str],
-    existing_comment: None = None,
+    existing_comment: Optional[str] = None,
     schema: Optional[str] = None,
 ) -> Optional[Table]:
     """Emit a COMMENT ON operation to set the comment for a table.
