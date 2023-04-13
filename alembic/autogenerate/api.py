@@ -41,7 +41,7 @@ if TYPE_CHECKING:
 
 
 def compare_metadata(context: MigrationContext, metadata: MetaData) -> Any:
-    '''Compare a database schema to that given in a
+    """Compare a database schema to that given in a
     :class:`~sqlalchemy.schema.MetaData` instance.
 
     The database connection is presented in the context
@@ -73,13 +73,13 @@ def compare_metadata(context: MigrationContext, metadata: MetaData) -> Any:
         with engine.begin() as conn:
             conn.execute(
                 text(
-                    """
+                    '''
                         create table foo (
                             id integer not null primary key,
                             old_data varchar,
                             x integer
                         )
-                    """
+                    '''
                 )
             )
             conn.execute(text("create table bar (data varchar)"))
@@ -133,7 +133,7 @@ def compare_metadata(context: MigrationContext, metadata: MetaData) -> Any:
         :func:`.produce_migrations` - produces a :class:`.MigrationScript`
         structure based on metadata comparison.
 
-    '''
+    """
 
     migration_script = produce_migrations(context, metadata)
     return migration_script.upgrade_ops.as_diffs()
