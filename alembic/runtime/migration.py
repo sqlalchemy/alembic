@@ -97,6 +97,7 @@ class MigrationContext:
 
         # from within env.py script
         from alembic import context
+
         migration_context = context.get_context()
 
     For usage outside of an ``env.py`` script, such as for
@@ -122,6 +123,7 @@ class MigrationContext:
 
         # in any application, outside of the normal Alembic environment
         from alembic.operations import Operations
+
         op = Operations(context)
         op.alter_column("mytable", "somecolumn", nullable=True)
 

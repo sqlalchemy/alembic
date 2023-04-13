@@ -307,10 +307,12 @@ class CreatePrimaryKeyOp(AddConstraintOp):
         e.g.::
 
             from alembic import op
+
             op.create_primary_key(
-                        "pk_my_table", "my_table",
-                        ["id", "version"]
-                    )
+                "pk_my_table",
+                "my_table",
+                ["id", "version"],
+            )
 
         This internally generates a :class:`~sqlalchemy.schema.Table` object
         containing the necessary columns, then generates a new
@@ -608,9 +610,14 @@ class CreateForeignKeyOp(AddConstraintOp):
         e.g.::
 
             from alembic import op
+
             op.create_foreign_key(
-                        "fk_user_address", "address",
-                        "user", ["user_id"], ["id"])
+                "fk_user_address",
+                "address",
+                "user",
+                ["user_id"],
+                ["id"],
+            )
 
         This internally generates a :class:`~sqlalchemy.schema.Table` object
         containing the necessary columns, then generates a new
@@ -690,8 +697,11 @@ class CreateForeignKeyOp(AddConstraintOp):
 
             with batch_alter_table("address") as batch_op:
                 batch_op.create_foreign_key(
-                            "fk_user_address",
-                            "user", ["user_id"], ["id"])
+                    "fk_user_address",
+                    "user",
+                    ["user_id"],
+                    ["id"],
+                )
 
         .. seealso::
 
@@ -790,7 +800,7 @@ class CreateCheckConstraintOp(AddConstraintOp):
             op.create_check_constraint(
                 "ck_user_name_len",
                 "user",
-                func.len(column('name')) > 5
+                func.len(column("name")) > 5,
             )
 
         CHECK constraints are usually against a SQL expression, so ad-hoc
@@ -922,14 +932,16 @@ class CreateIndexOp(MigrateOperation):
         e.g.::
 
             from alembic import op
-            op.create_index('ik_test', 't1', ['foo', 'bar'])
+
+            op.create_index("ik_test", "t1", ["foo", "bar"])
 
         Functional indexes can be produced by using the
         :func:`sqlalchemy.sql.expression.text` construct::
 
             from alembic import op
             from sqlalchemy import text
-            op.create_index('ik_test', 't1', [text('lower(foo)')])
+
+            op.create_index("ik_test", "t1", [text("lower(foo)")])
 
         :param index_name: name of the index.
         :param table_name: name of the owning table.
@@ -1186,11 +1198,11 @@ class CreateTableOp(MigrateOperation):
             from alembic import op
 
             op.create_table(
-                'account',
-                Column('id', INTEGER, primary_key=True),
-                Column('name', VARCHAR(50), nullable=False),
-                Column('description', NVARCHAR(200)),
-                Column('timestamp', TIMESTAMP, server_default=func.now())
+                "account",
+                Column("id", INTEGER, primary_key=True),
+                Column("name", VARCHAR(50), nullable=False),
+                Column("description", NVARCHAR(200)),
+                Column("timestamp", TIMESTAMP, server_default=func.now()),
             )
 
         Note that :meth:`.create_table` accepts
@@ -1219,11 +1231,11 @@ class CreateTableOp(MigrateOperation):
             from alembic import op
 
             account_table = op.create_table(
-                'account',
-                Column('id', INTEGER, primary_key=True),
-                Column('name', VARCHAR(50), nullable=False),
-                Column('description', NVARCHAR(200)),
-                Column('timestamp', TIMESTAMP, server_default=func.now())
+                "account",
+                Column("id", INTEGER, primary_key=True),
+                Column("name", VARCHAR(50), nullable=False),
+                Column("description", NVARCHAR(200)),
+                Column("timestamp", TIMESTAMP, server_default=func.now()),
             )
 
             op.bulk_insert(
@@ -1231,7 +1243,7 @@ class CreateTableOp(MigrateOperation):
                 [
                     {"name": "A1", "description": "account 1"},
                     {"name": "A2", "description": "account 2"},
-                ]
+                ],
             )
 
         :param table_name: Name of the table
@@ -1999,8 +2011,9 @@ class AddColumnOp(AlterTableOp):
             from alembic import op
             from sqlalchemy import Column, String
 
-            op.add_column('organization',
-                Column('name', String())
+            op.add_column(
+                "organization",
+                Column("name", String()),
             )
 
         The provided :class:`~sqlalchemy.schema.Column` object can also
@@ -2012,8 +2025,9 @@ class AddColumnOp(AlterTableOp):
             from alembic import op
             from sqlalchemy import Column, INTEGER, ForeignKey
 
-            op.add_column('organization',
-                Column('account_id', INTEGER, ForeignKey('accounts.id'))
+            op.add_column(
+                "organization",
+                Column("account_id", INTEGER, ForeignKey("accounts.id")),
             )
 
         Note that this statement uses the :class:`~sqlalchemy.schema.Column`
@@ -2026,8 +2040,9 @@ class AddColumnOp(AlterTableOp):
             from sqlalchemy import Column, TIMESTAMP, func
 
             # specify "DEFAULT NOW" along with the column add
-            op.add_column('account',
-                Column('timestamp', TIMESTAMP, server_default=func.now())
+            op.add_column(
+                "account",
+                Column("timestamp", TIMESTAMP, server_default=func.now()),
             )
 
         :param table_name: String name of the parent table.
@@ -2150,7 +2165,7 @@ class DropColumnOp(AlterTableOp):
 
         e.g.::
 
-            drop_column('organization', 'account_id')
+            drop_column("organization", "account_id")
 
         :param table_name: name of table
         :param column_name: name of column
@@ -2245,37 +2260,58 @@ class BulkInsertOp(MigrateOperation):
             from sqlalchemy import String, Integer, Date
 
             # Create an ad-hoc table to use for the insert statement.
-            accounts_table = table('account',
-                column('id', Integer),
-                column('name', String),
-                column('create_date', Date)
+            accounts_table = table(
+                "account",
+                column("id", Integer),
+                column("name", String),
+                column("create_date", Date),
             )
 
-            op.bulk_insert(accounts_table,
+            op.bulk_insert(
+                accounts_table,
                 [
-                    {'id':1, 'name':'John Smith',
-                            'create_date':date(2010, 10, 5)},
-                    {'id':2, 'name':'Ed Williams',
-                            'create_date':date(2007, 5, 27)},
-                    {'id':3, 'name':'Wendy Jones',
-                            'create_date':date(2008, 8, 15)},
-                ]
+                    {
+                        "id": 1,
+                        "name": "John Smith",
+                        "create_date": date(2010, 10, 5),
+                    },
+                    {
+                        "id": 2,
+                        "name": "Ed Williams",
+                        "create_date": date(2007, 5, 27),
+                    },
+                    {
+                        "id": 3,
+                        "name": "Wendy Jones",
+                        "create_date": date(2008, 8, 15),
+                    },
+                ],
             )
 
         When using --sql mode, some datatypes may not render inline
         automatically, such as dates and other special types.   When this
         issue is present, :meth:`.Operations.inline_literal` may be used::
 
-            op.bulk_insert(accounts_table,
+            op.bulk_insert(
+                accounts_table,
                 [
-                    {'id':1, 'name':'John Smith',
-                            'create_date':op.inline_literal("2010-10-05")},
-                    {'id':2, 'name':'Ed Williams',
-                            'create_date':op.inline_literal("2007-05-27")},
-                    {'id':3, 'name':'Wendy Jones',
-                            'create_date':op.inline_literal("2008-08-15")},
+                    {
+                        "id": 1,
+                        "name": "John Smith",
+                        "create_date": op.inline_literal("2010-10-05"),
+                    },
+                    {
+                        "id": 2,
+                        "name": "Ed Williams",
+                        "create_date": op.inline_literal("2007-05-27"),
+                    },
+                    {
+                        "id": 3,
+                        "name": "Wendy Jones",
+                        "create_date": op.inline_literal("2008-08-15"),
+                    },
                 ],
-                multiinsert=False
+                multiinsert=False,
             )
 
         When using :meth:`.Operations.inline_literal` in conjunction with

@@ -51,8 +51,9 @@ def add_column(
         from alembic import op
         from sqlalchemy import Column, String
 
-        op.add_column('organization',
-            Column('name', String())
+        op.add_column(
+            "organization",
+            Column("name", String()),
         )
 
     The provided :class:`~sqlalchemy.schema.Column` object can also
@@ -64,8 +65,9 @@ def add_column(
         from alembic import op
         from sqlalchemy import Column, INTEGER, ForeignKey
 
-        op.add_column('organization',
-            Column('account_id', INTEGER, ForeignKey('accounts.id'))
+        op.add_column(
+            "organization",
+            Column("account_id", INTEGER, ForeignKey("accounts.id")),
         )
 
     Note that this statement uses the :class:`~sqlalchemy.schema.Column`
@@ -78,8 +80,9 @@ def add_column(
         from sqlalchemy import Column, TIMESTAMP, func
 
         # specify "DEFAULT NOW" along with the column add
-        op.add_column('account',
-            Column('timestamp', TIMESTAMP, server_default=func.now())
+        op.add_column(
+            "account",
+            Column("timestamp", TIMESTAMP, server_default=func.now()),
         )
 
     :param table_name: String name of the parent table.
@@ -241,8 +244,8 @@ def batch_alter_table(
     are omitted.  E.g.::
 
         with op.batch_alter_table("some_table") as batch_op:
-            batch_op.add_column(Column('foo', Integer))
-            batch_op.drop_column('bar')
+            batch_op.add_column(Column("foo", Integer))
+            batch_op.drop_column("bar")
 
     The operations within the context manager are invoked at once
     when the context is ended.   When run against SQLite, if the
@@ -321,16 +324,18 @@ def batch_alter_table(
      Specify the order of all columns::
 
         with op.batch_alter_table(
-                "some_table", recreate="always",
-                partial_reordering=[("c", "d", "a", "b")]
+            "some_table",
+            recreate="always",
+            partial_reordering=[("c", "d", "a", "b")],
         ) as batch_op:
             pass
 
      Ensure "d" appears before "c", and "b", appears before "a"::
 
         with op.batch_alter_table(
-                "some_table", recreate="always",
-                partial_reordering=[("d", "c"), ("b", "a")]
+            "some_table",
+            recreate="always",
+            partial_reordering=[("d", "c"), ("b", "a")],
         ) as batch_op:
             pass
 
@@ -370,37 +375,58 @@ def bulk_insert(
         from sqlalchemy import String, Integer, Date
 
         # Create an ad-hoc table to use for the insert statement.
-        accounts_table = table('account',
-            column('id', Integer),
-            column('name', String),
-            column('create_date', Date)
+        accounts_table = table(
+            "account",
+            column("id", Integer),
+            column("name", String),
+            column("create_date", Date),
         )
 
-        op.bulk_insert(accounts_table,
+        op.bulk_insert(
+            accounts_table,
             [
-                {'id':1, 'name':'John Smith',
-                        'create_date':date(2010, 10, 5)},
-                {'id':2, 'name':'Ed Williams',
-                        'create_date':date(2007, 5, 27)},
-                {'id':3, 'name':'Wendy Jones',
-                        'create_date':date(2008, 8, 15)},
-            ]
+                {
+                    "id": 1,
+                    "name": "John Smith",
+                    "create_date": date(2010, 10, 5),
+                },
+                {
+                    "id": 2,
+                    "name": "Ed Williams",
+                    "create_date": date(2007, 5, 27),
+                },
+                {
+                    "id": 3,
+                    "name": "Wendy Jones",
+                    "create_date": date(2008, 8, 15),
+                },
+            ],
         )
 
     When using --sql mode, some datatypes may not render inline
     automatically, such as dates and other special types.   When this
     issue is present, :meth:`.Operations.inline_literal` may be used::
 
-        op.bulk_insert(accounts_table,
+        op.bulk_insert(
+            accounts_table,
             [
-                {'id':1, 'name':'John Smith',
-                        'create_date':op.inline_literal("2010-10-05")},
-                {'id':2, 'name':'Ed Williams',
-                        'create_date':op.inline_literal("2007-05-27")},
-                {'id':3, 'name':'Wendy Jones',
-                        'create_date':op.inline_literal("2008-08-15")},
+                {
+                    "id": 1,
+                    "name": "John Smith",
+                    "create_date": op.inline_literal("2010-10-05"),
+                },
+                {
+                    "id": 2,
+                    "name": "Ed Williams",
+                    "create_date": op.inline_literal("2007-05-27"),
+                },
+                {
+                    "id": 3,
+                    "name": "Wendy Jones",
+                    "create_date": op.inline_literal("2008-08-15"),
+                },
             ],
-            multiinsert=False
+            multiinsert=False,
         )
 
     When using :meth:`.Operations.inline_literal` in conjunction with
@@ -446,7 +472,7 @@ def create_check_constraint(
         op.create_check_constraint(
             "ck_user_name_len",
             "user",
-            func.len(column('name')) > 5
+            func.len(column("name")) > 5,
         )
 
     CHECK constraints are usually against a SQL expression, so ad-hoc
@@ -492,11 +518,9 @@ def create_exclude_constraint(
         op.create_exclude_constraint(
             "user_excl",
             "user",
-
-            ("period", '&&'),
-            ("group", '='),
-            where=("group != 'some group'")
-
+            ("period", "&&"),
+            ("group", "="),
+            where=("group != 'some group'"),
         )
 
     Note that the expressions work the same way as that of
@@ -537,9 +561,14 @@ def create_foreign_key(
     e.g.::
 
         from alembic import op
+
         op.create_foreign_key(
-                    "fk_user_address", "address",
-                    "user", ["user_id"], ["id"])
+            "fk_user_address",
+            "address",
+            "user",
+            ["user_id"],
+            ["id"],
+        )
 
     This internally generates a :class:`~sqlalchemy.schema.Table` object
     containing the necessary columns, then generates a new
@@ -590,14 +619,16 @@ def create_index(
     e.g.::
 
         from alembic import op
-        op.create_index('ik_test', 't1', ['foo', 'bar'])
+
+        op.create_index("ik_test", "t1", ["foo", "bar"])
 
     Functional indexes can be produced by using the
     :func:`sqlalchemy.sql.expression.text` construct::
 
         from alembic import op
         from sqlalchemy import text
-        op.create_index('ik_test', 't1', [text('lower(foo)')])
+
+        op.create_index("ik_test", "t1", [text("lower(foo)")])
 
     :param index_name: name of the index.
     :param table_name: name of the owning table.
@@ -638,10 +669,12 @@ def create_primary_key(
     e.g.::
 
         from alembic import op
+
         op.create_primary_key(
-                    "pk_my_table", "my_table",
-                    ["id", "version"]
-                )
+            "pk_my_table",
+            "my_table",
+            ["id", "version"],
+        )
 
     This internally generates a :class:`~sqlalchemy.schema.Table` object
     containing the necessary columns, then generates a new
@@ -683,11 +716,11 @@ def create_table(
         from alembic import op
 
         op.create_table(
-            'account',
-            Column('id', INTEGER, primary_key=True),
-            Column('name', VARCHAR(50), nullable=False),
-            Column('description', NVARCHAR(200)),
-            Column('timestamp', TIMESTAMP, server_default=func.now())
+            "account",
+            Column("id", INTEGER, primary_key=True),
+            Column("name", VARCHAR(50), nullable=False),
+            Column("description", NVARCHAR(200)),
+            Column("timestamp", TIMESTAMP, server_default=func.now()),
         )
 
     Note that :meth:`.create_table` accepts
@@ -716,11 +749,11 @@ def create_table(
         from alembic import op
 
         account_table = op.create_table(
-            'account',
-            Column('id', INTEGER, primary_key=True),
-            Column('name', VARCHAR(50), nullable=False),
-            Column('description', NVARCHAR(200)),
-            Column('timestamp', TIMESTAMP, server_default=func.now())
+            "account",
+            Column("id", INTEGER, primary_key=True),
+            Column("name", VARCHAR(50), nullable=False),
+            Column("description", NVARCHAR(200)),
+            Column("timestamp", TIMESTAMP, server_default=func.now()),
         )
 
         op.bulk_insert(
@@ -728,7 +761,7 @@ def create_table(
             [
                 {"name": "A1", "description": "account 1"},
                 {"name": "A2", "description": "account 2"},
-            ]
+            ],
         )
 
     :param table_name: Name of the table
@@ -828,7 +861,7 @@ def drop_column(
 
     e.g.::
 
-        drop_column('organization', 'account_id')
+        drop_column("organization", "account_id")
 
     :param table_name: name of table
     :param column_name: name of column
@@ -1049,7 +1082,7 @@ def f(name: str) -> conv:
     If the :meth:`.Operations.f` is used on a constraint, the naming
     convention will not take effect::
 
-        op.add_column('t', 'x', Boolean(name=op.f('ck_bool_t_x')))
+        op.add_column("t", "x", Boolean(name=op.f("ck_bool_t_x")))
 
     Above, the CHECK constraint generated will have the name
     ``ck_bool_t_x`` regardless of whether or not a naming convention is
@@ -1061,7 +1094,7 @@ def f(name: str) -> conv:
     ``{"ck": "ck_bool_%(table_name)s_%(constraint_name)s"}``, then the
     output of the following:
 
-        op.add_column('t', 'x', Boolean(name='x'))
+        op.add_column("t", "x", Boolean(name="x"))
 
     will be::
 

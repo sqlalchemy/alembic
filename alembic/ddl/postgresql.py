@@ -566,11 +566,9 @@ class CreateExcludeConstraintOp(ops.AddConstraintOp):
             op.create_exclude_constraint(
                 "user_excl",
                 "user",
-
-                ("period", '&&'),
-                ("group", '='),
-                where=("group != 'some group'")
-
+                ("period", "&&"),
+                ("group", "="),
+                where=("group != 'some group'"),
             )
 
         Note that the expressions work the same way as that of
