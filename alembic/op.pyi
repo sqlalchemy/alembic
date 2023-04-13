@@ -951,7 +951,8 @@ def drop_table_comment(
     """
 
 def execute(
-    sqltext: Union[str, TextClause, Update], execution_options: None = None
+    sqltext: Union[str, TextClause, Update],
+    execution_options: Optional[dict[str, Any]] = None,
 ) -> Optional[Table]:
     r"""Execute the given SQL using the current migration context.
 
@@ -1101,7 +1102,7 @@ def implementation_for(op_cls: Any) -> Callable[..., Any]:
     """
 
 def inline_literal(
-    value: Union[str, int], type_: None = None
+    value: Union[str, int], type_: Optional[TypeEngine] = None
 ) -> _literal_bindparam:
     r"""Produce an 'inline literal' expression, suitable for
     using in an INSERT, UPDATE, or DELETE statement.

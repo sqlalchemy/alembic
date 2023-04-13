@@ -33,8 +33,9 @@ NoneType = type(None)
 if TYPE_CHECKING:
     from typing import Literal
 
-    from sqlalchemy import Table  # noqa
+    from sqlalchemy import Table
     from sqlalchemy.engine import Connection
+    from sqlalchemy.types import TypeEngine
 
     from .batch import BatchOperationsImpl
     from .ops import MigrateOperation
@@ -439,7 +440,7 @@ class Operations(util.ModuleClsProxy):
         return conv(name)
 
     def inline_literal(
-        self, value: Union[str, int], type_: None = None
+        self, value: Union[str, int], type_: Optional[TypeEngine[Any]] = None
     ) -> _literal_bindparam:
         r"""Produce an 'inline literal' expression, suitable for
         using in an INSERT, UPDATE, or DELETE statement.

@@ -1,0 +1,6 @@
+.. change::
+    :tags: bug, batch
+    :tickets: 1221
+
+    Correctly pass previously ignored arguments ``insert_before`` and
+    ``insert_after`` in ``batch_alter_column``

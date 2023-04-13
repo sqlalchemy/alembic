@@ -5,10 +5,12 @@ from contextlib import nullcontext
 import logging
 import sys
 from typing import Any
+from typing import Callable
 from typing import cast
 from typing import Collection
 from typing import ContextManager
 from typing import Dict
+from typing import Iterable
 from typing import Iterator
 from typing import List
 from typing import Optional
@@ -74,7 +76,7 @@ class _ProxyTransaction:
     def __enter__(self) -> _ProxyTransaction:
         return self
 
-    def __exit__(self, type_: None, value: None, traceback: None) -> None:
+    def __exit__(self, type_: Any, value: Any, traceback: Any) -> None:
         if self._proxied_transaction is not None:
             self._proxied_transaction.__exit__(type_, value, traceback)
             self.migration_context._transaction = None
@@ -158,7 +160,9 @@ class MigrationContext:
                 sqla_compat._get_connection_in_transaction(connection)
             )
 
-        self._migrations_fn = opts.get("fn")
+        self._migrations_fn: Optional[
+            Callable[..., Iterable[RevisionStep]]
+        ] = opts.get("fn")
         self.as_sql = as_sql
 
         self.purge = opts.get("purge", False)
@@ -1275,7 +1279,7 @@ class StampStep(MigrationStep):
         self.migration_fn = self.stamp_revision
         self.revision_map = revision_map
 
-    doc: None = None
+    doc: Optional[str] = None
 
     def stamp_revision(self, **kw: Any) -> None:
         return None

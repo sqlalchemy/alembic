@@ -212,7 +212,7 @@ def _compare_tables(
                 (inspector),
                 # fmt: on
             )
-            sqla_compat._reflect_table(inspector, t, None)
+            sqla_compat._reflect_table(inspector, t)
         if autogen_context.run_object_filters(t, tname, "table", True, None):
 
             modify_table_ops = ops.ModifyTableOps(tname, [], schema=s)
@@ -243,7 +243,7 @@ def _compare_tables(
                 _compat_autogen_column_reflect(inspector),
                 # fmt: on
             )
-            sqla_compat._reflect_table(inspector, t, None)
+            sqla_compat._reflect_table(inspector, t)
         conn_column_info[(s, tname)] = t
 
     for s, tname in sorted(existing_tables, key=lambda x: (x[0] or "", x[1])):

@@ -673,11 +673,11 @@ class CreateForeignKeyOp(AddConstraintOp):
         local_cols: List[str],
         remote_cols: List[str],
         referent_schema: Optional[str] = None,
-        onupdate: None = None,
-        ondelete: None = None,
-        deferrable: None = None,
-        initially: None = None,
-        match: None = None,
+        onupdate: Optional[str] = None,
+        ondelete: Optional[str] = None,
+        deferrable: Optional[bool] = None,
+        initially: Optional[str] = None,
+        match: Optional[str] = None,
         **dialect_kw: Any,
     ) -> None:
         """Issue a "create foreign key" instruction using the
@@ -1890,10 +1890,10 @@ class AlterColumnOp(AlterTableOp):
         type_: Optional[Union[TypeEngine, Type[TypeEngine]]] = None,
         existing_type: Optional[Union[TypeEngine, Type[TypeEngine]]] = None,
         existing_server_default: bool = False,
-        existing_nullable: None = None,
-        existing_comment: None = None,
-        insert_before: None = None,
-        insert_after: None = None,
+        existing_nullable: Optional[bool] = None,
+        existing_comment: Optional[str] = None,
+        insert_before: Optional[str] = None,
+        insert_after: Optional[str] = None,
         **kw: Any,
     ) -> Optional[Table]:
         """Issue an "alter column" instruction using the current
@@ -1935,6 +1935,8 @@ class AlterColumnOp(AlterTableOp):
             modify_server_default=server_default,
             modify_nullable=nullable,
             modify_comment=comment,
+            insert_before=insert_before,
+            insert_after=insert_after,
             **kw,
         )
 
@@ -2314,7 +2316,7 @@ class ExecuteSQLOp(MigrateOperation):
     def __init__(
         self,
         sqltext: Union[Update, str, Insert, TextClause],
-        execution_options: None = None,
+        execution_options: Optional[dict[str, Any]] = None,
     ) -> None:
         self.sqltext = sqltext
         self.execution_options = execution_options
@@ -2324,7 +2326,7 @@ class ExecuteSQLOp(MigrateOperation):
         cls,
         operations: Operations,
         sqltext: Union[str, TextClause, Update],
-        execution_options: None = None,
+        execution_options: Optional[dict[str, Any]] = None,
     ) -> Optional[Table]:
         r"""Execute the given SQL using the current migration context.
 
