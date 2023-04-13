@@ -108,20 +108,22 @@ class EnvironmentContext(util.ModuleClsProxy):
         config.set_main_option("script_location", "myapp:migrations")
         script = ScriptDirectory.from_config(config)
 
+
         def my_function(rev, context):
             '''do something with revision "rev", which
             will be the current database revision,
             and "context", which is the MigrationContext
             that the env.py will create'''
 
+
         with EnvironmentContext(
             config,
             script,
-            fn = my_function,
-            as_sql = False,
-            starting_rev = 'base',
-            destination_rev = 'head',
-            tag = "sometag"
+            fn=my_function,
+            as_sql=False,
+            starting_rev="base",
+            destination_rev="head",
+            tag="sometag",
         ):
             script.run_env()
 

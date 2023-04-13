@@ -260,8 +260,8 @@ class Operations(util.ModuleClsProxy):
         are omitted.  E.g.::
 
             with op.batch_alter_table("some_table") as batch_op:
-                batch_op.add_column(Column('foo', Integer))
-                batch_op.drop_column('bar')
+                batch_op.add_column(Column("foo", Integer))
+                batch_op.drop_column("bar")
 
         The operations within the context manager are invoked at once
         when the context is ended.   When run against SQLite, if the
@@ -340,16 +340,18 @@ class Operations(util.ModuleClsProxy):
          Specify the order of all columns::
 
             with op.batch_alter_table(
-                    "some_table", recreate="always",
-                    partial_reordering=[("c", "d", "a", "b")]
+                "some_table",
+                recreate="always",
+                partial_reordering=[("c", "d", "a", "b")],
             ) as batch_op:
                 pass
 
          Ensure "d" appears before "c", and "b", appears before "a"::
 
             with op.batch_alter_table(
-                    "some_table", recreate="always",
-                    partial_reordering=[("d", "c"), ("b", "a")]
+                "some_table",
+                recreate="always",
+                partial_reordering=[("d", "c"), ("b", "a")],
             ) as batch_op:
                 pass
 
@@ -415,7 +417,7 @@ class Operations(util.ModuleClsProxy):
         If the :meth:`.Operations.f` is used on a constraint, the naming
         convention will not take effect::
 
-            op.add_column('t', 'x', Boolean(name=op.f('ck_bool_t_x')))
+            op.add_column("t", "x", Boolean(name=op.f("ck_bool_t_x")))
 
         Above, the CHECK constraint generated will have the name
         ``ck_bool_t_x`` regardless of whether or not a naming convention is
@@ -427,7 +429,7 @@ class Operations(util.ModuleClsProxy):
         ``{"ck": "ck_bool_%(table_name)s_%(constraint_name)s"}``, then the
         output of the following:
 
-            op.add_column('t', 'x', Boolean(name='x'))
+            op.add_column("t", "x", Boolean(name="x"))
 
         will be::
 

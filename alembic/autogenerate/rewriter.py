@@ -66,19 +66,19 @@ class Rewriter:
             writer1 = autogenerate.Rewriter()
             writer2 = autogenerate.Rewriter()
 
+
             @writer1.rewrites(ops.AddColumnOp)
             def add_column_nullable(context, revision, op):
                 op.column.nullable = True
                 return op
 
+
             @writer2.rewrites(ops.AddColumnOp)
             def add_column_idx(context, revision, op):
                 idx_op = ops.CreateIndexOp(
-                    'ixc', op.table_name, [op.column.name])
-                return [
-                    op,
-                    idx_op
-                ]
+                    "ixc", op.table_name, [op.column.name]
+                )
+                return [op, idx_op]
 
             writer = writer1.chain(writer2)
 

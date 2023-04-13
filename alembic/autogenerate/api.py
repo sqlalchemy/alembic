@@ -55,36 +55,42 @@ def compare_metadata(context: MigrationContext, metadata: MetaData) -> Any:
 
         from alembic.migration import MigrationContext
         from alembic.autogenerate import compare_metadata
-        from sqlalchemy.schema import SchemaItem
-        from sqlalchemy.types import TypeEngine
-        from sqlalchemy import (create_engine, MetaData, Column,
-                Integer, String, Table, text)
+        from sqlalchemy import (
+            create_engine,
+            MetaData,
+            Column,
+            Integer,
+            String,
+            Table,
+            text,
+        )
         import pprint
 
         engine = create_engine("sqlite://")
 
         with engine.begin() as conn:
-            conn.execute(text('''
-                create table foo (
-                    id integer not null primary key,
-                    old_data varchar,
-                    x integer
-                )'''))
-
-            conn.execute(text('''
-                create table bar (
-                    data varchar
-                )'''))
+            conn.execute(
+                text(
+                    '''
+                        create table foo (
+                            id integer not null primary key,
+                            old_data varchar,
+                            x integer
+                        )
+                    '''
+                )
+            )
+            conn.execute(text("create table bar (data varchar)"))
 
         metadata = MetaData()
-        Table('foo', metadata,
-            Column('id', Integer, primary_key=True),
-            Column('data', Integer),
-            Column('x', Integer, nullable=False)
+        Table(
+            "foo",
+            metadata,
+            Column("id", Integer, primary_key=True),
+            Column("data", Integer),
+            Column("x", Integer, nullable=False),
         )
-        Table('bat', metadata,
-            Column('info', String)
-        )
+        Table("bat", metadata, Column("info", String))
 
         mc = MigrationContext.configure(engine.connect())
 
@@ -93,29 +99,53 @@ def compare_metadata(context: MigrationContext, metadata: MetaData) -> Any:
 
     Output::
 
-        [ ( 'add_table',
-            Table('bat', MetaData(bind=None),
-                Column('info', String(), table=<bat>), schema=None)),
-          ( 'remove_table',
-            Table(u'bar', MetaData(bind=None),
-                Column(u'data', VARCHAR(), table=<bar>), schema=None)),
-          ( 'add_column',
-            None,
-            'foo',
-            Column('data', Integer(), table=<foo>)),
-          ( 'remove_column',
-            None,
-            'foo',
-            Column(u'old_data', VARCHAR(), table=None)),
-          [ ( 'modify_nullable',
-              None,
-              'foo',
-              u'x',
-              { 'existing_server_default': None,
-                'existing_type': INTEGER()},
-              True,
-              False)]]
-
+        [
+            (
+                "add_table",
+                Table(
+                    "bat",
+                    MetaData(),
+                    Column("info", String(), table=<bat>),
+                    schema=None,
+                ),
+            ),
+            (
+                "remove_table",
+                Table(
+                    "bar",
+                    MetaData(),
+                    Column("data", VARCHAR(), table=<bar>),
+                    schema=None,
+                ),
+            ),
+            (
+                "add_column",
+                None,
+                "foo",
+                Column("data", Integer(), table=<foo>),
+            ),
+            [
+                (
+                    "modify_nullable",
+                    None,
+                    "foo",
+                    "x",
+                    {
+                        "existing_comment": None,
+                        "existing_server_default": False,
+                        "existing_type": INTEGER(),
+                    },
+                    True,
+                    False,
+                )
+            ],
+            (
+                "remove_column",
+                None,
+                "foo",
+                Column("old_data", VARCHAR(), table=<foo>),
+            ),
+        ]
 
     :param context: a :class:`.MigrationContext`
      instance.
