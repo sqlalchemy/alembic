@@ -39,7 +39,7 @@ ProcessRevisionDirectiveFn = Callable[
 
 class EnvironmentContext(util.ModuleClsProxy):
 
-    '''A configurational facade made available in an ``env.py`` script.
+    """A configurational facade made available in an ``env.py`` script.
 
     The :class:`.EnvironmentContext` acts as a *facade* to the more
     nuts-and-bolts objects of :class:`.MigrationContext` as well as certain
@@ -67,10 +67,10 @@ class EnvironmentContext(util.ModuleClsProxy):
 
 
         def my_function(rev, context):
-            """do something with revision "rev", which
+            '''do something with revision "rev", which
             will be the current database revision,
             and "context", which is the MigrationContext
-            that the env.py will create"""
+            that the env.py will create'''
 
 
         with EnvironmentContext(
@@ -100,7 +100,7 @@ class EnvironmentContext(util.ModuleClsProxy):
         is *only* needed when you need to actually invoke the
         ``env.py`` module present in the migration environment.
 
-    '''
+    """
 
     _migration_context: Optional[MigrationContext] = None
 
