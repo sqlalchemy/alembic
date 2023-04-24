@@ -5,7 +5,24 @@ Changelog
 
 .. changelog::
     :version: 1.10.4
-    :include_notes_from: unreleased
+    :released: April 24, 2023
+
+    .. change::
+        :tags: postgresql, autogenerate
+        :tickets: 1213
+
+        Added support for autogenerate comparison of indexes on PostgreSQL which
+        include SQL sort option, such as ``ASC`` or ``NULLS FIRST``.
+
+    .. change::
+        :tags: bug, operations
+        :tickets: 1215
+
+        Fixed issue where using a directive such as ``op.create_foreign_key()`` to
+        create a self-referential constraint on a single table where the same
+        column were present on both sides (e.g. within a composite foreign key)
+        would produce an error under SQLAlchemy 2.0 and a warning under SQLAlchemy
+        1.4 indicating that a duplicate column were being added to a table.
 
 .. changelog::
     :version: 1.10.3

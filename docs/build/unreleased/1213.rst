@@ -1,6 +1,0 @@
-.. change::
-    :tags: postgresql, autogenerate
-    :tickets: 1213
-
-    Added support for autogenerate comparison of indexes on PostgreSQL which
-    include SQL sort option, such as ``ASC`` or ``NULLS FIRST``.
