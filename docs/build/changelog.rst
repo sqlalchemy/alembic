@@ -12,7 +12,7 @@ Changelog
     :released: April 24, 2023
 
     .. change::
-        :tags: postgresql, autogenerate
+        :tags: postgresql, autogenerate, feature
         :tickets: 1213
 
         Added support for autogenerate comparison of indexes on PostgreSQL which
