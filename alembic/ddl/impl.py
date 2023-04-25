@@ -155,9 +155,9 @@ class DefaultImpl(metaclass=ImplMeta):
     def _exec(
         self,
         construct: Union[ClauseElement, str],
-        execution_options: Optional[dict] = None,
+        execution_options: Optional[dict[str, Any]] = None,
         multiparams: Sequence[dict] = (),
-        params: Dict[str, int] = util.immutabledict(),
+        params: Dict[str, Any] = util.immutabledict(),
     ) -> Optional[CursorResult]:
         if isinstance(construct, str):
             construct = text(construct)
@@ -197,7 +197,7 @@ class DefaultImpl(metaclass=ImplMeta):
     def execute(
         self,
         sql: Union[ClauseElement, str],
-        execution_options: None = None,
+        execution_options: Optional[dict[str, Any]] = None,
     ) -> None:
         self._exec(sql, execution_options)
 

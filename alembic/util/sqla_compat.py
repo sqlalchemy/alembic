@@ -299,9 +299,7 @@ def _columns_for_constraint(constraint):
         return list(constraint.columns)
 
 
-def _reflect_table(
-    inspector: Inspector, table: Table, include_cols: None
-) -> None:
+def _reflect_table(inspector: Inspector, table: Table) -> None:
     if sqla_14:
         return inspector.reflect_table(table, None)
     else:

@@ -487,7 +487,7 @@ class ApplyBatchImpl:
         server_default: Optional[Union[Function[Any], str, bool]] = False,
         name: Optional[str] = None,
         type_: Optional[TypeEngine] = None,
-        autoincrement: None = None,
+        autoincrement: Optional[Union[bool, Literal["auto"]]] = None,
         comment: Union[str, Literal[False]] = False,
         **kw,
     ) -> None:

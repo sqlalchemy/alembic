@@ -2,9 +2,12 @@ from __future__ import annotations
 
 from typing import Any
 from typing import Callable
+from typing import Collection
 from typing import ContextManager
 from typing import Dict
 from typing import List
+from typing import Mapping
+from typing import MutableMapping
 from typing import Optional
 from typing import overload
 from typing import TextIO
@@ -12,19 +15,23 @@ from typing import Tuple
 from typing import TYPE_CHECKING
 from typing import Union
 
+from typing_extensions import Literal
+
 from .migration import _ProxyTransaction
 from .migration import MigrationContext
 from .. import util
 from ..operations import Operations
 
 if TYPE_CHECKING:
-    from typing import Literal
 
     from sqlalchemy.engine import URL
     from sqlalchemy.engine.base import Connection
     from sqlalchemy.sql.elements import ClauseElement
     from sqlalchemy.sql.schema import MetaData
+    from sqlalchemy.sql.schema import SchemaItem
 
+    from .migration import MigrationInfo
+    from ..autogenerate.api import AutogenContext
     from ..config import Config
     from ..ddl import DefaultImpl
     from ..operations.ops import MigrateOperation
@@ -34,6 +41,42 @@ _RevNumber = Optional[Union[str, Tuple[str, ...]]]
 
 ProcessRevisionDirectiveFn = Callable[
     [MigrationContext, Tuple[str, str], List["MigrateOperation"]], None
+]
+
+RenderItemFn = Callable[
+    [str, Any, "AutogenContext"], Union[str, Literal[False]]
+]
+
+NameFilterType = Literal[
+    "schema",
+    "table",
+    "column",
+    "index",
+    "unique_constraint",
+    "foreign_key_constraint",
+]
+NameFilterParentNames = MutableMapping[
+    Literal["schema_name", "table_name", "schema_qualified_table_name"],
+    Optional[str],
+]
+IncludeNameFn = Callable[
+    [Optional[str], NameFilterType, NameFilterParentNames], bool
+]
+
+IncludeObjectFn = Callable[
+    [
+        "SchemaItem",
+        Optional[str],
+        NameFilterType,
+        bool,
+        Optional["SchemaItem"],
+    ],
+    bool,
+]
+
+OnVersionApplyFn = Callable[
+    [MigrationContext, "MigrationInfo", Collection[Any], Mapping[str, Any]],
+    None,
 ]
 
 
@@ -346,22 +389,22 @@ class EnvironmentContext(util.ModuleClsProxy):
         template_args: Optional[Dict[str, Any]] = None,
         render_as_batch: bool = False,
         target_metadata: Optional[MetaData] = None,
-        include_name: Optional[Callable[..., bool]] = None,
-        include_object: Optional[Callable[..., bool]] = None,
+        include_name: Optional[IncludeNameFn] = None,
+        include_object: Optional[IncludeObjectFn] = None,
         include_schemas: bool = False,
         process_revision_directives: Optional[
             ProcessRevisionDirectiveFn
         ] = None,
         compare_type: bool = False,
         compare_server_default: bool = False,
-        render_item: Optional[Callable[..., bool]] = None,
+        render_item: Optional[RenderItemFn] = None,
         literal_binds: bool = False,
         upgrade_token: str = "upgrades",
         downgrade_token: str = "downgrades",
         alembic_module_prefix: str = "op.",
         sqlalchemy_module_prefix: str = "sa.",
         user_module_prefix: Optional[str] = None,
-        on_version_apply: Optional[Callable[..., None]] = None,
+        on_version_apply: Optional[OnVersionApplyFn] = None,
         **kw: Any,
     ) -> None:
         """Configure a :class:`.MigrationContext` within this
@@ -565,7 +608,8 @@ class EnvironmentContext(util.ModuleClsProxy):
            ``"unique_constraint"``, or ``"foreign_key_constraint"``
          * ``parent_names``: a dictionary of "parent" object names, that are
            relative to the name being given.  Keys in this dictionary may
-           include:  ``"schema_name"``, ``"table_name"``.
+           include:  ``"schema_name"``, ``"table_name"`` or
+           ``"schema_qualified_table_name"``.
 
          E.g.::
 

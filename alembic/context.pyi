@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from typing import Any
-from typing import Callable
 from typing import ContextManager
 from typing import Dict
 from typing import List
@@ -22,7 +21,11 @@ if TYPE_CHECKING:
     from sqlalchemy.sql.schema import MetaData
 
     from .config import Config
-    from .operations import MigrateOperation
+    from .runtime.environment import IncludeNameFn
+    from .runtime.environment import IncludeObjectFn
+    from .runtime.environment import OnVersionApplyFn
+    from .runtime.environment import ProcessRevisionDirectiveFn
+    from .runtime.environment import RenderItemFn
     from .runtime.migration import _ProxyTransaction
     from .runtime.migration import MigrationContext
     from .script import ScriptDirectory
@@ -76,7 +79,7 @@ config: Config
 
 def configure(
     connection: Optional[Connection] = None,
-    url: Union[str, URL, None] = None,
+    url: Optional[Union[str, URL]] = None,
     dialect_name: Optional[str] = None,
     dialect_opts: Optional[Dict[str, Any]] = None,
     transactional_ddl: Optional[bool] = None,
@@ -87,24 +90,20 @@ def configure(
     template_args: Optional[Dict[str, Any]] = None,
     render_as_batch: bool = False,
     target_metadata: Optional[MetaData] = None,
-    include_name: Optional[Callable[..., bool]] = None,
-    include_object: Optional[Callable[..., bool]] = None,
+    include_name: Optional[IncludeNameFn] = None,
+    include_object: Optional[IncludeObjectFn] = None,
     include_schemas: bool = False,
-    process_revision_directives: Optional[
-        Callable[
-            [MigrationContext, Tuple[str, str], List[MigrateOperation]], None
-        ]
-    ] = None,
+    process_revision_directives: Optional[ProcessRevisionDirectiveFn] = None,
     compare_type: bool = False,
     compare_server_default: bool = False,
-    render_item: Optional[Callable[..., bool]] = None,
+    render_item: Optional[RenderItemFn] = None,
     literal_binds: bool = False,
     upgrade_token: str = "upgrades",
     downgrade_token: str = "downgrades",
     alembic_module_prefix: str = "op.",
     sqlalchemy_module_prefix: str = "sa.",
     user_module_prefix: Optional[str] = None,
-    on_version_apply: Optional[Callable[..., None]] = None,
+    on_version_apply: Optional[OnVersionApplyFn] = None,
     **kw: Any,
 ) -> None:
     """Configure a :class:`.MigrationContext` within this
@@ -308,7 +307,8 @@ def configure(
        ``"unique_constraint"``, or ``"foreign_key_constraint"``
      * ``parent_names``: a dictionary of "parent" object names, that are
        relative to the name being given.  Keys in this dictionary may
-       include:  ``"schema_name"``, ``"table_name"``.
+       include:  ``"schema_name"``, ``"table_name"`` or
+       ``"schema_qualified_table_name"``.
 
      E.g.::
 

@@ -627,7 +627,7 @@ class MySQLDefaultCompareTest(TestBase):
         insp = inspect(self.bind)
         cols = insp.get_columns(t1.name)
         refl = Table(t1.name, MetaData())
-        sqla_compat._reflect_table(insp, refl, None)
+        sqla_compat._reflect_table(insp, refl)
         ctx = self.autogen_context["context"]
         return ctx.impl.compare_server_default(
             refl.c[cols[0]["name"]], col, rendered, cols[0]["default"]

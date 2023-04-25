@@ -109,7 +109,8 @@ def generate_pyi_for_proxy(
                 # Do not generate the base implementation to avoid mypy errors
                 overloads = typing.get_overloads(meth)
                 if overloads:
-                    # use enumerate so we can generate docs on the last overload
+                    # use enumerate so we can generate docs on the
+                    # last overload
                     for i, ovl in enumerate(overloads, 1):
                         _generate_stub_for_meth(
                             ovl,

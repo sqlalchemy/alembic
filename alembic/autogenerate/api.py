@@ -9,7 +9,6 @@ from typing import Optional
 from typing import Set
 from typing import Tuple
 from typing import TYPE_CHECKING
-from typing import Union
 
 from sqlalchemy import inspect
 
@@ -25,19 +24,18 @@ if TYPE_CHECKING:
     from sqlalchemy.engine import Connection
     from sqlalchemy.engine import Dialect
     from sqlalchemy.engine import Inspector
-    from sqlalchemy.sql.schema import Column
-    from sqlalchemy.sql.schema import ForeignKeyConstraint
-    from sqlalchemy.sql.schema import Index
     from sqlalchemy.sql.schema import MetaData
-    from sqlalchemy.sql.schema import Table
-    from sqlalchemy.sql.schema import UniqueConstraint
+    from sqlalchemy.sql.schema import SchemaItem
 
-    from alembic.config import Config
-    from alembic.operations.ops import MigrationScript
-    from alembic.operations.ops import UpgradeOps
-    from alembic.runtime.migration import MigrationContext
-    from alembic.script.base import Script
-    from alembic.script.base import ScriptDirectory
+    from ..config import Config
+    from ..operations.ops import MigrationScript
+    from ..operations.ops import UpgradeOps
+    from ..runtime.environment import NameFilterParentNames
+    from ..runtime.environment import NameFilterType
+    from ..runtime.environment import RenderItemFn
+    from ..runtime.migration import MigrationContext
+    from ..script.base import Script
+    from ..script.base import ScriptDirectory
 
 
 def compare_metadata(context: MigrationContext, metadata: MetaData) -> Any:
@@ -172,7 +170,7 @@ def render_python_code(
     alembic_module_prefix: str = "op.",
     render_as_batch: bool = False,
     imports: Tuple[str, ...] = (),
-    render_item: None = None,
+    render_item: Optional[RenderItemFn] = None,
     migration_context: Optional[MigrationContext] = None,
 ) -> str:
     """Render Python code given an :class:`.UpgradeOps` or
@@ -359,8 +357,8 @@ class AutogenContext:
     def run_name_filters(
         self,
         name: Optional[str],
-        type_: str,
-        parent_names: Dict[str, Optional[str]],
+        type_: NameFilterType,
+        parent_names: NameFilterParentNames,
     ) -> bool:
         """Run the context's name filters and return True if the targets
         should be part of the autogenerate operation.
@@ -396,17 +394,11 @@ class AutogenContext:
 
     def run_object_filters(
         self,
-        object_: Union[
-            Table,
-            Index,
-            Column,
-            UniqueConstraint,
-            ForeignKeyConstraint,
-        ],
+        object_: SchemaItem,
         name: Optional[str],
-        type_: str,
+        type_: NameFilterType,
         reflected: bool,
-        compare_to: Optional[Union[Table, Index, Column, UniqueConstraint]],
+        compare_to: Optional[SchemaItem],
     ) -> bool:
         """Run the context's object filters and return True if the targets
         should be part of the autogenerate operation.
