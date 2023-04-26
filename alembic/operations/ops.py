@@ -308,9 +308,7 @@ class CreatePrimaryKeyOp(AddConstraintOp):
 
             from alembic import op
 
-            op.create_primary_key(
-                "pk_my_table", "my_table", ["id", "version"]
-            )
+            op.create_primary_key("pk_my_table", "my_table", ["id", "version"])
 
         This internally generates a :class:`~sqlalchemy.schema.Table` object
         containing the necessary columns, then generates a new
