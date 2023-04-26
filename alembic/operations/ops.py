@@ -1214,9 +1214,10 @@ class CreateTableOp(MigrateOperation):
             from sqlalchemy import Column, TIMESTAMP, func
 
             # specify "DEFAULT NOW" along with the "timestamp" column
-            op.create_table('account',
-                Column('id', INTEGER, primary_key=True),
-                Column('timestamp', TIMESTAMP, server_default=func.now())
+            op.create_table(
+                "account",
+                Column("id", INTEGER, primary_key=True),
+                Column("timestamp", TIMESTAMP, server_default=func.now()),
             )
 
         The function also returns a newly created
