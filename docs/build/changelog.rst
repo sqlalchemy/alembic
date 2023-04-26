@@ -7,12 +7,6 @@ Changelog
     :version: 1.10.5
     :include_notes_from: unreleased
 
-    .. change::
-        :tags: misc
-        :tickets: 1220
-
-        Update code snippets within docstrings to use ``black`` code formatting.
-
 .. changelog::
     :version: 1.10.4
     :released: April 24, 2023

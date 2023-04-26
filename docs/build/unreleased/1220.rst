@@ -1,0 +1,6 @@
+.. change::
+    :tags: misc
+    :tickets: 1220
+
+    Update code snippets within docstrings to use ``black`` code formatting.
+    Pull request courtesy of James Addison.
