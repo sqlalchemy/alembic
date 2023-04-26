@@ -308,9 +308,7 @@ class CreatePrimaryKeyOp(AddConstraintOp):
 
             from alembic import op
 
-            op.create_primary_key(
-                "pk_my_table", "my_table", ["id", "version"]
-            )
+            op.create_primary_key("pk_my_table", "my_table", ["id", "version"])
 
         This internally generates a :class:`~sqlalchemy.schema.Table` object
         containing the necessary columns, then generates a new
@@ -1214,9 +1212,10 @@ class CreateTableOp(MigrateOperation):
             from sqlalchemy import Column, TIMESTAMP, func
 
             # specify "DEFAULT NOW" along with the "timestamp" column
-            op.create_table('account',
-                Column('id', INTEGER, primary_key=True),
-                Column('timestamp', TIMESTAMP, server_default=func.now())
+            op.create_table(
+                "account",
+                Column("id", INTEGER, primary_key=True),
+                Column("timestamp", TIMESTAMP, server_default=func.now()),
             )
 
         The function also returns a newly created
