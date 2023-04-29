@@ -4,6 +4,7 @@ from contextlib import contextmanager
 import re
 import textwrap
 from typing import Any
+from typing import Awaitable
 from typing import Callable
 from typing import Dict
 from typing import Iterator
@@ -14,6 +15,7 @@ from typing import Sequence  # noqa
 from typing import Tuple
 from typing import Type  # noqa
 from typing import TYPE_CHECKING
+from typing import TypeVar
 from typing import Union
 
 from sqlalchemy.sql.elements import conv
@@ -27,8 +29,6 @@ from ..util.compat import inspect_formatargspec
 from ..util.compat import inspect_getfullargspec
 from ..util.sqla_compat import _literal_bindparam
 
-
-NoneType = type(None)
 
 if TYPE_CHECKING:
     from typing import Literal
@@ -51,6 +51,7 @@ if TYPE_CHECKING:
     from ..ddl import DefaultImpl
     from ..runtime.migration import MigrationContext
 __all__ = ("Operations", "BatchOperations")
+_T = TypeVar("_T")
 
 
 class AbstractOperations(util.ModuleClsProxy):
@@ -482,6 +483,46 @@ class AbstractOperations(util.ModuleClsProxy):
 
         """
         return self.migration_context.impl.bind  # type: ignore[return-value]
+
+    def run_async(
+        self,
+        async_function: Callable[..., Awaitable[_T]],
+        *args: Any,
+        **kw_args: Any,
+    ) -> _T:
+        """Invoke the given asynchronous callable, passing an asynchronous
+        :class:`~sqlalchemy.ext.asyncio.AsyncConnection` as the first
+        argument.
+
+        This method allows calling async functions from within the
+        synchronous ``upgrade()`` or ``downgrade()`` alembic migration
+        method.
+
+        The async connection passed to the callable shares the same
+        transaction as the connection running in the migration context.
+
+        Any additional arg or kw_arg passed to this function are passed
+        to the provided async function.
+
+        .. versionadded: 1.11
+
+        .. note::
+
+            This method can be called only when alembic is called using
+            an async dialect.
+        """
+        if not sqla_compat.sqla_14_18:
+            raise NotImplementedError("SQLAlchemy 1.4.18+ required")
+        sync_conn = self.get_bind()
+        if sync_conn is None:
+            raise NotImplementedError("Cannot call run_async in SQL mode")
+        if not sync_conn.dialect.is_async:
+            raise ValueError("Cannot call run_async with a sync engine")
+        from sqlalchemy.ext.asyncio import AsyncConnection
+        from sqlalchemy.util import await_only
+
+        async_conn = AsyncConnection._retrieve_proxy_for_target(sync_conn)
+        return await_only(async_function(async_conn, *args, **kw_args))
 
 
 class Operations(AbstractOperations):

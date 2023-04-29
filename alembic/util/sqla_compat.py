@@ -61,6 +61,8 @@ _vers = tuple(
 )
 sqla_13 = _vers >= (1, 3)
 sqla_14 = _vers >= (1, 4)
+# https://docs.sqlalchemy.org/en/latest/changelog/changelog_14.html#change-0c6e0cc67dfe6fac5164720e57ef307d
+sqla_14_18 = _vers >= (1, 4, 18)
 sqla_14_26 = _vers >= (1, 4, 26)
 sqla_2 = _vers >= (2,)
 sqlalchemy_version = __version__
