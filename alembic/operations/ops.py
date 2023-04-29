@@ -2012,11 +2012,39 @@ class AddColumnOp(AlterTableOp):
 
             op.add_column("organization", Column("name", String()))
 
-        The provided :class:`~sqlalchemy.schema.Column` object can also
-        specify a :class:`~sqlalchemy.schema.ForeignKey`, referencing
-        a remote table name.  Alembic will automatically generate a stub
-        "referenced" table and emit a second ALTER statement in order
-        to add the constraint separately::
+        The :meth:`.Operations.add_column` method typically corresponds
+        to the SQL command "ALTER TABLE... ADD COLUMN".    Within the scope
+        of this command, the column's name, datatype, nullability,
+        and optional server-generated defaults may be indicated.
+
+        .. note::
+
+            With the exception of NOT NULL constraints or single-column FOREIGN
+            KEY constraints, other kinds of constraints such as PRIMARY KEY,
+            UNIQUE or CHECK constraints **cannot** be generated using this
+            method; for these constraints, refer to operations such as
+            :meth:`.Operations.create_primary_key` and
+            :meth:`.Operations.create_check_constraint`. In particular, the
+            following :class:`~sqlalchemy.schema.Column` parameters are
+            **ignored**:
+
+            * :paramref:`~sqlalchemy.schema.Column.primary_key` - SQL databases
+              typically do not support an ALTER operation that can add
+              individual columns one at a time to an existing primary key
+              constraint, therefore it's less ambiguous to use the
+              :meth:`.Operations.create_primary_key` method, which assumes no
+              existing primary key constraint is present.
+            * :paramref:`~sqlalchemy.schema.Column.unique` - use the
+              :meth:`.Operations.create_unique_constraint` method
+            * :paramref:`~sqlalchemy.schema.Column.index` - use the
+              :meth:`.Operations.create_index` method
+
+
+        The provided :class:`~sqlalchemy.schema.Column` object may include a
+        :class:`~sqlalchemy.schema.ForeignKey` constraint directive,
+        referencing a remote table name. For this specific type of constraint,
+        Alembic will automatically emit a second ALTER statement in order to
+        add the single-column FOREIGN KEY constraint separately::
 
             from alembic import op
             from sqlalchemy import Column, INTEGER, ForeignKey
@@ -2026,11 +2054,12 @@ class AddColumnOp(AlterTableOp):
                 Column("account_id", INTEGER, ForeignKey("accounts.id")),
             )
 
-        Note that this statement uses the :class:`~sqlalchemy.schema.Column`
-        construct as is from the SQLAlchemy library.  In particular,
-        default values to be created on the database side are
-        specified using the ``server_default`` parameter, and not
-        ``default`` which only specifies Python-side defaults::
+        The column argument passed to :meth:`.Operations.add_column` is a
+        :class:`~sqlalchemy.schema.Column` construct, used in the same way it's
+        used in SQLAlchemy. In particular, values or functions to be indicated
+        as producing the column's default value on the database side are
+        specified using the ``server_default`` parameter, and not ``default``
+        which only specifies Python-side defaults::
 
             from alembic import op
             from sqlalchemy import Column, TIMESTAMP, func
