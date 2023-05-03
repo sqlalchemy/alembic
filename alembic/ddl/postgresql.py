@@ -25,6 +25,7 @@ from sqlalchemy.sql import operators
 from sqlalchemy.sql.elements import ColumnClause
 from sqlalchemy.sql.elements import TextClause
 from sqlalchemy.sql.elements import UnaryExpression
+from sqlalchemy.sql.functions import FunctionElement
 from sqlalchemy.types import NULLTYPE
 
 from .base import alter_column
@@ -662,48 +663,38 @@ def _exclude_constraint(
             ("name", render._render_gen_name(autogen_context, constraint.name))
         )
 
+    def do_expr_where_opts():
+        args = [
+            "(%s, %r)"
+            % (
+                _render_potential_column(sqltext, autogen_context),
+                opstring,
+            )
+            for sqltext, name, opstring in constraint._render_exprs  # type:ignore[attr-defined] # noqa
+        ]
+        if constraint.where is not None:
+            args.append(
+                "where=%s"
+                % render._render_potential_expr(
+                    constraint.where, autogen_context
+                )
+            )
+        args.extend(["%s=%r" % (k, v) for k, v in opts])
+        return args
+
     if alter:
         args = [
             repr(render._render_gen_name(autogen_context, constraint.name))
         ]
         if not has_batch:
             args += [repr(render._ident(constraint.table.name))]
-        args.extend(
-            [
-                "(%s, %r)"
-                % (
-                    _render_potential_column(sqltext, autogen_context),
-                    opstring,
-                )
-                for sqltext, name, opstring in constraint._render_exprs  # type:ignore[attr-defined] # noqa
-            ]
-        )
-        if constraint.where is not None:
-            args.append(
-                "where=%s"
-                % render._render_potential_expr(
-                    constraint.where, autogen_context
-                )
-            )
-        args.extend(["%s=%r" % (k, v) for k, v in opts])
+        args.extend(do_expr_where_opts())
         return "%(prefix)screate_exclude_constraint(%(args)s)" % {
             "prefix": render._alembic_autogenerate_prefix(autogen_context),
             "args": ", ".join(args),
         }
     else:
-        args = [
-            "(%s, %r)"
-            % (_render_potential_column(sqltext, autogen_context), opstring)
-            for sqltext, name, opstring in constraint._render_exprs
-        ]
-        if constraint.where is not None:
-            args.append(
-                "where=%s"
-                % render._render_potential_expr(
-                    constraint.where, autogen_context
-                )
-            )
-        args.extend(["%s=%r" % (k, v) for k, v in opts])
+        args = do_expr_where_opts()
         return "%(prefix)sExcludeConstraint(%(args)s)" % {
             "prefix": _postgresql_autogenerate_prefix(autogen_context),
             "args": ", ".join(args),
@@ -711,7 +702,7 @@ def _exclude_constraint(
 
 
 def _render_potential_column(
-    value: Union[ColumnClause, Column, TextClause],
+    value: Union[ColumnClause, Column, TextClause, FunctionElement],
     autogen_context: AutogenContext,
 ) -> str:
     if isinstance(value, ColumnClause):
@@ -727,5 +718,7 @@ def _render_potential_column(
         }
     else:
         return render._render_potential_expr(
-            value, autogen_context, wrap_in_text=isinstance(value, TextClause)
+            value,
+            autogen_context,
+            wrap_in_text=isinstance(value, (TextClause, FunctionElement)),
         )

@@ -1053,8 +1053,6 @@ class PostgresqlAutogenRenderTest(TestBase):
         )
 
     def test_add_exclude_constraint(self):
-        from sqlalchemy.dialects.postgresql import ExcludeConstraint
-
         autogen_context = self.autogen_context
 
         m = MetaData()
@@ -1074,8 +1072,6 @@ class PostgresqlAutogenRenderTest(TestBase):
         )
 
     def test_add_exclude_constraint_case_sensitive(self):
-        from sqlalchemy.dialects.postgresql import ExcludeConstraint
-
         autogen_context = self.autogen_context
 
         m = MetaData()
@@ -1100,8 +1096,6 @@ class PostgresqlAutogenRenderTest(TestBase):
         )
 
     def test_inline_exclude_constraint(self):
-        from sqlalchemy.dialects.postgresql import ExcludeConstraint
-
         autogen_context = self.autogen_context
 
         m = MetaData()
@@ -1130,8 +1124,6 @@ class PostgresqlAutogenRenderTest(TestBase):
         )
 
     def test_inline_exclude_constraint_case_sensitive(self):
-        from sqlalchemy.dialects.postgresql import ExcludeConstraint
-
         autogen_context = self.autogen_context
 
         m = MetaData()
@@ -1181,6 +1173,39 @@ class PostgresqlAutogenRenderTest(TestBase):
             "postgresql.ExcludeConstraint((sa.literal_column('id + 2'), '='), "
             "using='gist', "
             "name='TExclID'))",
+        )
+
+    @config.requirements.sqlalchemy_2
+    def test_inline_exclude_constraint_fn(self):
+        """test for #1230"""
+
+        autogen_context = self.autogen_context
+
+        effective_time = Column("effective_time", DateTime(timezone=True))
+        expiry_time = Column("expiry_time", DateTime(timezone=True))
+
+        m = MetaData()
+        t = Table(
+            "TTable",
+            m,
+            effective_time,
+            expiry_time,
+            ExcludeConstraint(
+                (func.tstzrange(effective_time, expiry_time), "&&"),
+                using="gist",
+            ),
+        )
+
+        op_obj = ops.CreateTableOp.from_table(t)
+
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(autogen_context, op_obj),
+            "op.create_table('TTable',sa.Column('effective_time', "
+            "sa.DateTime(timezone=True), nullable=True),"
+            "sa.Column('expiry_time', sa.DateTime(timezone=True), "
+            "nullable=True),postgresql.ExcludeConstraint("
+            "(sa.text('tstzrange(effective_time, expiry_time)'), "
+            "'&&'), using='gist'))",
         )
 
     @config.requirements.sqlalchemy_2
