@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from .runtime.environment import ProcessRevisionDirectiveFn
 
 
-def list_templates(config):
+def list_templates(config: Config):
     """List available templates.
 
     :param config: a :class:`.Config` object.
@@ -69,28 +69,32 @@ def init(
         raise util.CommandError("No such template %r" % template)
 
     if not os.access(directory, os.F_OK):
-        util.status(
-            "Creating directory %s" % os.path.abspath(directory),
-            os.makedirs,
-            directory,
-        )
+        with util.status(
+            f"Creating directory {os.path.abspath(directory)!r}",
+            **config.messaging_opts,
+        ):
+            os.makedirs(directory)
 
     versions = os.path.join(directory, "versions")
-    util.status(
-        "Creating directory %s" % os.path.abspath(versions),
-        os.makedirs,
-        versions,
-    )
+    with util.status(
+        f"Creating directory {os.path.abspath(versions)!r}",
+        **config.messaging_opts,
+    ):
+        os.makedirs(versions)
 
     script = ScriptDirectory(directory)
 
+    config_file: str | None = None
     for file_ in os.listdir(template_dir):
         file_path = os.path.join(template_dir, file_)
         if file_ == "alembic.ini.mako":
             assert config.config_file_name is not None
             config_file = os.path.abspath(config.config_file_name)
             if os.access(config_file, os.F_OK):
-                util.msg("File %s already exists, skipping" % config_file)
+                util.msg(
+                    f"File {config_file!r} already exists, skipping",
+                    **config.messaging_opts,
+                )
             else:
                 script._generate_template(
                     file_path, config_file, script_location=directory
@@ -104,12 +108,15 @@ def init(
             os.path.join(os.path.abspath(directory), "__init__.py"),
             os.path.join(os.path.abspath(versions), "__init__.py"),
         ]:
-            file_ = util.status("Adding %s" % path, open, path, "w")
-            file_.close()  # type:ignore[attr-defined]
+            with util.status("Adding {path!r}", **config.messaging_opts):
+                with open(path, "w"):
+                    pass
 
+    assert config_file is not None
     util.msg(
         "Please edit configuration/connection/logging "
-        "settings in %r before proceeding." % config_file
+        f"settings in {config_file!r} before proceeding.",
+        **config.messaging_opts,
     )
 
 

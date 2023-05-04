@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from contextlib import contextmanager
 import logging
 import sys
 import textwrap
-from typing import Any
-from typing import Callable
 from typing import Optional
 from typing import TextIO
 from typing import Union
@@ -34,7 +33,11 @@ except (ImportError, OSError):
     TERMWIDTH = None
 
 
-def write_outstream(stream: TextIO, *text) -> None:
+def write_outstream(
+    stream: TextIO, *text: Union[str, bytes], quiet: bool = False
+) -> None:
+    if quiet:
+        return
     encoding = getattr(stream, "encoding", "ascii") or "ascii"
     for t in text:
         if not isinstance(t, bytes):
@@ -49,21 +52,23 @@ def write_outstream(stream: TextIO, *text) -> None:
             break
 
 
-def status(_statmsg: str, fn: Callable, *arg, **kw) -> Any:
-    newline = kw.pop("newline", False)
-    msg(_statmsg + " ...", newline, True)
+@contextmanager
+def status(status_msg: str, newline: bool = False, quiet: bool = False):
+    msg(status_msg + " ...", newline, flush=True, quiet=quiet)
     try:
-        ret = fn(*arg, **kw)
-        write_outstream(sys.stdout, "  done\n")
-        return ret
+        yield
     except:
-        write_outstream(sys.stdout, "  FAILED\n")
+        if not quiet:
+            write_outstream(sys.stdout, "  FAILED\n")
         raise
+    else:
+        if not quiet:
+            write_outstream(sys.stdout, "  done\n")
 
 
-def err(message: str):
+def err(message: str, quiet: bool = False):
     log.error(message)
-    msg("FAILED: %s" % message)
+    msg(f"FAILED: {message}", quiet=quiet)
     sys.exit(-1)
 
 
@@ -76,7 +81,11 @@ def warn(msg: str, stacklevel: int = 2) -> None:
     warnings.warn(msg, UserWarning, stacklevel=stacklevel)
 
 
-def msg(msg: str, newline: bool = True, flush: bool = False) -> None:
+def msg(
+    msg: str, newline: bool = True, flush: bool = False, quiet: bool = False
+) -> None:
+    if quiet:
+        return
     if TERMWIDTH is None:
         write_outstream(sys.stdout, msg)
         if newline:

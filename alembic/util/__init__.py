@@ -5,6 +5,7 @@ from .langhelpers import _with_legacy_names
 from .langhelpers import asbool
 from .langhelpers import dedupe_tuple
 from .langhelpers import Dispatcher
+from .langhelpers import EMPTY_DICT
 from .langhelpers import immutabledict
 from .langhelpers import memoized_property
 from .langhelpers import ModuleClsProxy

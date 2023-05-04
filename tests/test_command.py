@@ -1221,14 +1221,16 @@ class CommandLineTest(TestBase):
                     mock.call(
                         os.path.abspath(os.path.join(path, "__init__.py")), "w"
                     ),
-                    mock.call().close(),
+                    mock.call().__enter__(),
+                    mock.call().__exit__(None, None, None),
                     mock.call(
                         os.path.abspath(
                             os.path.join(path, "versions", "__init__.py")
                         ),
                         "w",
                     ),
-                    mock.call().close(),
+                    mock.call().__enter__(),
+                    mock.call().__exit__(None, None, None),
                 ],
             )
 

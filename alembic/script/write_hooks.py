@@ -7,6 +7,7 @@ from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import List
+from typing import Mapping
 from typing import Optional
 from typing import Union
 
@@ -41,7 +42,7 @@ def register(name: str) -> Callable:
 
 
 def _invoke(
-    name: str, revision: str, options: Dict[str, Union[str, int]]
+    name: str, revision: str, options: Mapping[str, Union[str, int]]
 ) -> Any:
     """Invokes the formatter registered for the given name.
 
@@ -61,7 +62,7 @@ def _invoke(
         return hook(revision, options)
 
 
-def _run_hooks(path: str, hook_config: Dict[str, str]) -> None:
+def _run_hooks(path: str, hook_config: Mapping[str, str]) -> None:
     """Invoke hooks for a generated revision."""
 
     from .base import _split_on_space_comma
@@ -84,14 +85,8 @@ def _run_hooks(path: str, hook_config: Dict[str, str]) -> None:
                 "Key %s.type is required for post write hook %r" % (name, name)
             ) from ke
         else:
-            util.status(
-                'Running post write hook "%s"' % name,
-                _invoke,
-                type_,
-                path,
-                opts,
-                newline=True,
-            )
+            with util.status("Running post write hook {name!r}", newline=True):
+                _invoke(type_, path, opts)
 
 
 def _parse_cmdline_options(cmdline_options_str: str, path: str) -> List[str]:
