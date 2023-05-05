@@ -201,6 +201,7 @@ def render_python_code(
     render_as_batch: bool = False,
     imports: Tuple[str, ...] = (),
     render_item: Optional[RenderItemFn] = None,
+    user_module_prefix: Optional[str] = None,
     migration_context: Optional[MigrationContext] = None,
 ) -> str:
     """Render Python code given an :class:`.UpgradeOps` or
@@ -215,6 +216,7 @@ def render_python_code(
         "alembic_module_prefix": alembic_module_prefix,
         "render_item": render_item,
         "render_as_batch": render_as_batch,
+        "user_module_prefix": user_module_prefix,
     }
 
     if migration_context is None:
