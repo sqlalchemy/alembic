@@ -60,7 +60,7 @@ class SQLiteImpl(DefaultImpl):
                     return True
                 elif (
                     isinstance(col.server_default, util.sqla_compat.Computed)
-                    and col.server_default.persisted
+                    and col.server_default and col.server_default.persisted
                 ):
                     return True
             elif op[0] not in ("create_index", "drop_index"):
