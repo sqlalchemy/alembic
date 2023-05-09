@@ -84,7 +84,7 @@ class SuiteRequirements(Requirements):
     @property
     def sqlalchemy_1x(self):
         return exclusions.skip_if(
-            lambda config: not util.sqla_1x,
+            lambda config: util.sqla_2,
             "SQLAlchemy 1.x test",
         )
 

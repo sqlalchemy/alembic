@@ -6,11 +6,12 @@
 # the MIT License: http://www.opensource.org/licenses/mit-license.php
 from __future__ import annotations
 
-import re
 import types
 from typing import Union
 
 from sqlalchemy.util import inspect_getfullargspec
+
+from ..util import sqla_2
 
 
 def flag_combinations(*combinations):
@@ -114,17 +115,11 @@ def _safe_int(value: str) -> Union[int, str]:
 def testing_engine(url=None, options=None, future=False):
     from sqlalchemy.testing import config
     from sqlalchemy.testing.engines import testing_engine
-    from sqlalchemy import __version__
-
-    _vers = tuple(
-        [_safe_int(x) for x in re.findall(r"(\d+|[abc]\d)", __version__)]
-    )
-    sqla_1x = _vers < (2,)
 
     if not future:
         future = getattr(config._current.options, "future_engine", False)
 
-    if sqla_1x:
+    if not sqla_2:
         kw = {"future": future} if future else {}
     else:
         kw = {}

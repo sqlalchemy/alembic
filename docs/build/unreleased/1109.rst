@@ -1,5 +1,6 @@
 .. change::
     :tags: usecase, commands
+    :tickets: 1109
 
     Added quiet option to the command line, using the ``-q/--quiet``
     option. This flag will prevent alembic from logging anything

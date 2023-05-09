@@ -71,18 +71,17 @@ except ImportError:
     from sqlalchemy.sql.elements import _NONE_NAME as _NONE_NAME  # type: ignore  # noqa: E501
 
 
-if sqla_14:
-    # when future engine merges, this can be again based on version string
-    from sqlalchemy.engine import Connection as legacy_connection
+class _Unsupported:
+    "Placeholder for unsupported SQLAlchemy classes"
 
-    sqla_1x = not hasattr(legacy_connection, "commit")
-else:
-    sqla_1x = True
 
 try:
-    from sqlalchemy import Computed  # noqa
+    from sqlalchemy import Computed
 except ImportError:
-    Computed = type(None)  # type: ignore
+
+    class Computed(_Unsupported):  # type: ignore
+        pass
+
     has_computed = False
     has_computed_reflection = False
 else:
@@ -90,12 +89,15 @@ else:
     has_computed_reflection = _vers >= (1, 3, 16)
 
 try:
-    from sqlalchemy import Identity  # noqa
+    from sqlalchemy import Identity
 except ImportError:
-    Identity = type(None)  # type: ignore
+
+    class Identity(_Unsupported):  # type: ignore
+        pass
+
     has_identity = False
 else:
-    # attributes common to Indentity and Sequence
+    # attributes common to Identity and Sequence
     _identity_options_attrs = (
         "start",
         "increment",
@@ -107,7 +109,7 @@ else:
         "cache",
         "order",
     )
-    # attributes of Indentity
+    # attributes of Identity
     _identity_attrs = _identity_options_attrs + ("on_null",)
     has_identity = True
 
