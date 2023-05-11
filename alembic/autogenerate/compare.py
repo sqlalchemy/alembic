@@ -1023,9 +1023,7 @@ def _compare_type(
 
 
 def _render_server_default_for_compare(
-    metadata_default: Optional[Any],
-    metadata_col: Column,
-    autogen_context: AutogenContext,
+    metadata_default: Optional[Any], autogen_context: AutogenContext
 ) -> Optional[str]:
 
     if isinstance(metadata_default, sa_schema.DefaultClause):
@@ -1039,11 +1037,7 @@ def _render_server_default_for_compare(
                 )
             )
     if isinstance(metadata_default, str):
-        if metadata_col.type._type_affinity is sqltypes.String:
-            metadata_default = re.sub(r"^'|'$", "", metadata_default)
-            return f"'{metadata_default}'"
-        else:
-            return metadata_default
+        return metadata_default
     else:
         return None
 
@@ -1190,7 +1184,7 @@ def _compare_server_default(
                 )
     else:
         rendered_metadata_default = _render_server_default_for_compare(
-            metadata_default, metadata_col, autogen_context
+            metadata_default, autogen_context
         )
 
         rendered_conn_default = (

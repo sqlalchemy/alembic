@@ -22,6 +22,8 @@ if TYPE_CHECKING:
     from sqlalchemy.engine.base import Connection
     from sqlalchemy.engine.url import URL
     from sqlalchemy.sql.elements import ClauseElement
+    from sqlalchemy.sql.schema import Column
+    from sqlalchemy.sql.schema import FetchedValue
     from sqlalchemy.sql.schema import MetaData
     from sqlalchemy.sql.schema import SchemaItem
 
@@ -144,7 +146,20 @@ def configure(
         ]
     ] = None,
     compare_type: bool = False,
-    compare_server_default: bool = False,
+    compare_server_default: Union[
+        bool,
+        Callable[
+            [
+                MigrationContext,
+                Column,
+                Column,
+                Optional[str],
+                Optional[FetchedValue],
+                Optional[str],
+            ],
+            Optional[bool],
+        ],
+    ] = False,
     render_item: Optional[
         Callable[[str, Any, AutogenContext], Union[str, Literal[False]]]
     ] = None,

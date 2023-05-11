@@ -185,13 +185,22 @@ class MySQLImpl(DefaultImpl):
             and rendered_inspector_default == "'0'"
         ):
             return False
-        elif inspector_column.type._type_affinity is sqltypes.Integer:
+        elif (
+            rendered_inspector_default
+            and inspector_column.type._type_affinity is sqltypes.Integer
+        ):
             rendered_inspector_default = (
                 re.sub(r"^'|'$", "", rendered_inspector_default)
                 if rendered_inspector_default is not None
                 else None
             )
             return rendered_inspector_default != rendered_metadata_default
+        elif (
+            rendered_metadata_default
+            and metadata_column.type._type_affinity is sqltypes.String
+        ):
+            metadata_default = re.sub(r"^'|'$", "", rendered_metadata_default)
+            return rendered_inspector_default != f"'{metadata_default}'"
         elif rendered_inspector_default and rendered_metadata_default:
             # adjust for "function()" vs. "FUNCTION" as can occur particularly
             # for the CURRENT_TIMESTAMP function on newer MariaDB versions

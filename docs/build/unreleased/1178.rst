@@ -1,0 +1,9 @@
+.. change::
+    :tags: changed, autogenerate
+    :tickets: 1178
+
+    Don't modify the metadata server default when comparing it in the
+    autogenerate process.
+    This impacts the value passes to user provided functions passed in
+    :paramref:`.EnvironmentContext.configure.compare_server_default`
+    and third party dialect that implement a custom ``compare_server_default``.

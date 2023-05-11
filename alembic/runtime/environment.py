@@ -15,6 +15,8 @@ from typing import Tuple
 from typing import TYPE_CHECKING
 from typing import Union
 
+from sqlalchemy.sql.schema import Column
+from sqlalchemy.sql.schema import FetchedValue
 from typing_extensions import Literal
 
 from .migration import _ProxyTransaction
@@ -77,6 +79,18 @@ IncludeObjectFn = Callable[
 OnVersionApplyFn = Callable[
     [MigrationContext, "MigrationInfo", Collection[Any], Mapping[str, Any]],
     None,
+]
+
+CompareServerDefault = Callable[
+    [
+        MigrationContext,
+        Column,
+        Column,
+        Optional[str],
+        Optional[FetchedValue],
+        Optional[str],
+    ],
+    Optional[bool],
 ]
 
 
@@ -398,7 +412,7 @@ class EnvironmentContext(util.ModuleClsProxy):
             ProcessRevisionDirectiveFn
         ] = None,
         compare_type: bool = False,
-        compare_server_default: bool = False,
+        compare_server_default: Union[bool, CompareServerDefault] = False,
         render_item: Optional[RenderItemFn] = None,
         literal_binds: bool = False,
         upgrade_token: str = "upgrades",

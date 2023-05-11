@@ -846,7 +846,7 @@ class PostgresqlDetectSerialTest(TestBase):
 
         eq_(
             _render_server_default_for_compare(
-                tab.c.x.server_default, tab.c.x, self.autogen_context
+                tab.c.x.server_default, self.autogen_context
             ),
             c_expected,
         )
@@ -867,7 +867,7 @@ class PostgresqlDetectSerialTest(TestBase):
         server_default = diffs[0][0][4]["existing_server_default"]
         eq_(
             _render_server_default_for_compare(
-                server_default, tab.c.x, self.autogen_context
+                server_default, self.autogen_context
             ),
             c_expected,
         )
