@@ -6,9 +6,10 @@ from typing import Callable
 from typing import Dict
 from typing import Iterator
 from typing import Optional
+from typing import Sequence
 from typing import Set
-from typing import Tuple
 from typing import TYPE_CHECKING
+from typing import Union
 
 from sqlalchemy import inspect
 
@@ -28,6 +29,7 @@ if TYPE_CHECKING:
     from sqlalchemy.sql.schema import SchemaItem
 
     from ..config import Config
+    from ..operations.ops import DowngradeOps
     from ..operations.ops import MigrationScript
     from ..operations.ops import UpgradeOps
     from ..runtime.environment import NameFilterParentNames
@@ -195,13 +197,14 @@ def produce_migrations(
 
 
 def render_python_code(
-    up_or_down_op: UpgradeOps,
+    up_or_down_op: Union[UpgradeOps, DowngradeOps],
     sqlalchemy_module_prefix: str = "sa.",
     alembic_module_prefix: str = "op.",
     render_as_batch: bool = False,
-    imports: Tuple[str, ...] = (),
+    imports: Sequence[str] = (),
     render_item: Optional[RenderItemFn] = None,
     migration_context: Optional[MigrationContext] = None,
+    user_module_prefix: Optional[str] = None,
 ) -> str:
     """Render Python code given an :class:`.UpgradeOps` or
     :class:`.DowngradeOps` object.
@@ -209,12 +212,24 @@ def render_python_code(
     This is a convenience function that can be used to test the
     autogenerate output of a user-defined :class:`.MigrationScript` structure.
 
+    :param up_or_down_op: :class:`.UpgradeOps` or :class:`.DowngradeOps` object
+    :param sqlalchemy_module_prefix: module prefix for SQLAlchemy objects
+    :param alembic_module_prefix: module prefix for Alembic constructs
+    :param render_as_batch: use "batch operations" style for rendering
+    :param imports: sequence of import symbols to add
+    :param render_item: callable to render items
+    :param migration_context: optional :class:`.MigrationContext`
+    :param user_module_prefix: optional string prefix for user-defined types
+
+     .. versionadded:: 1.11.0
+
     """
     opts = {
         "sqlalchemy_module_prefix": sqlalchemy_module_prefix,
         "alembic_module_prefix": alembic_module_prefix,
         "render_item": render_item,
         "render_as_batch": render_as_batch,
+        "user_module_prefix": user_module_prefix,
     }
 
     if migration_context is None:
