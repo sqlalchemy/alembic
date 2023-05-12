@@ -2408,6 +2408,7 @@ class BulkInsertOp(MigrateOperation):
 
 
 @Operations.register_operation("execute")
+@BatchOperations.register_operation("execute")
 class ExecuteSQLOp(MigrateOperation):
     """Represent an execute SQL operation."""
 

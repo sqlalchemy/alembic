@@ -28,7 +28,6 @@ if True:  # avoid flake/zimports messing with the order
     from alembic.operations import ops
     import sqlalchemy as sa
 
-
 TRIM_MODULE = [
     "alembic.runtime.migration.",
     "alembic.operations.base.",
@@ -179,9 +178,12 @@ def _generate_stub_for_meth(
             retval = repr(annotation).replace("typing.", "")
         elif isinstance(annotation, type):
             retval = annotation.__qualname__
+        elif isinstance(annotation, typing.TypeVar):
+            retval = annotation.__name__
         else:
             retval = annotation
 
+        retval = retval.replace("~", "")  # typevar repr as "~T"
         for trim in TRIM_MODULE:
             retval = retval.replace(trim, "")
 
@@ -371,6 +373,7 @@ cls_ignore = {
     "inline_literal",
     "invoke",
     "register_operation",
+    "run_async",
 }
 
 cases = [

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from typing import Any
+from typing import Awaitable
 from typing import Callable
 from typing import Dict
 from typing import Iterator
@@ -15,6 +16,7 @@ from typing import Sequence
 from typing import Tuple
 from typing import Type
 from typing import TYPE_CHECKING
+from typing import TypeVar
 from typing import Union
 
 from sqlalchemy.sql.expression import TableClause
@@ -38,6 +40,8 @@ if TYPE_CHECKING:
     from .operations.ops import MigrateOperation
     from .runtime.migration import MigrationContext
     from .util.sqla_compat import _literal_bindparam
+
+_T = TypeVar("_T")
 ### end imports ###
 
 def add_column(
@@ -1251,4 +1255,29 @@ def rename_table(
      the SQLAlchemy construct
      :class:`~sqlalchemy.sql.elements.quoted_name`.
 
+    """
+
+def run_async(
+    async_function: Callable[..., Awaitable[_T]], *args: Any, **kw_args: Any
+) -> _T:
+    """Invoke the given asynchronous callable, passing an asynchronous
+    :class:`~sqlalchemy.ext.asyncio.AsyncConnection` as the first
+    argument.
+
+    This method allows calling async functions from within the
+    synchronous ``upgrade()`` or ``downgrade()`` alembic migration
+    method.
+
+    The async connection passed to the callable shares the same
+    transaction as the connection running in the migration context.
+
+    Any additional arg or kw_arg passed to this function are passed
+    to the provided async function.
+
+    .. versionadded: 1.11
+
+    .. note::
+
+        This method can be called only when alembic is called using
+        an async dialect.
     """
