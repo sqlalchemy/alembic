@@ -387,6 +387,7 @@ def batch_alter_table(
 def bulk_insert(
     table: Union[Table, TableClause],
     rows: List[dict],
+    *,
     multiinsert: bool = True,
 ) -> None:
     """Issue a "bulk insert" operation using the current
@@ -815,8 +816,8 @@ def create_table(table_name: str, *columns: SchemaItem, **kw: Any) -> Table:
 def create_table_comment(
     table_name: str,
     comment: Optional[str],
-    existing_comment: Optional[str] = None,
     *,
+    existing_comment: Optional[str] = None,
     schema: Optional[str] = None,
 ) -> None:
     """Emit a COMMENT ON operation to set the comment for a table.
@@ -1024,6 +1025,7 @@ def drop_table_comment(
 
 def execute(
     sqltext: Union[str, TextClause, Update],
+    *,
     execution_options: Optional[dict[str, Any]] = None,
 ) -> None:
     r"""Execute the given SQL using the current migration context.

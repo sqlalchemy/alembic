@@ -174,9 +174,7 @@ class DropConstraintOp(MigrateOperation):
             _reverse=AddConstraintOp.from_constraint(constraint),
         )
 
-    def to_constraint(
-        self,
-    ) -> Constraint:
+    def to_constraint(self) -> Constraint:
 
         if self._reverse is not None:
             constraint = self._reverse.to_constraint()
@@ -1453,8 +1451,8 @@ class CreateTableCommentOp(AlterTableOp):
         operations: Operations,
         table_name: str,
         comment: Optional[str],
-        existing_comment: Optional[str] = None,
         *,
+        existing_comment: Optional[str] = None,
         schema: Optional[str] = None,
     ) -> None:
         """Emit a COMMENT ON operation to set the comment for a table.
@@ -1490,6 +1488,7 @@ class CreateTableCommentOp(AlterTableOp):
         cls,
         operations: BatchOperations,
         comment: Optional[str],
+        *,
         existing_comment: Optional[str] = None,
     ) -> None:
         """Emit a COMMENT ON operation to set the comment for a table
@@ -1592,6 +1591,7 @@ class DropTableCommentOp(AlterTableOp):
     def batch_drop_table_comment(
         cls,
         operations: BatchOperations,
+        *,
         existing_comment: Optional[str] = None,
     ) -> None:
         """Issue a "drop table comment" operation to
@@ -2293,6 +2293,7 @@ class BulkInsertOp(MigrateOperation):
         self,
         table: Union[Table, TableClause],
         rows: List[dict],
+        *,
         multiinsert: bool = True,
     ) -> None:
         self.table = table
@@ -2305,6 +2306,7 @@ class BulkInsertOp(MigrateOperation):
         operations: Operations,
         table: Union[Table, TableClause],
         rows: List[dict],
+        *,
         multiinsert: bool = True,
     ) -> None:
         """Issue a "bulk insert" operation using the current
@@ -2408,13 +2410,14 @@ class BulkInsertOp(MigrateOperation):
 
 
 @Operations.register_operation("execute")
-@BatchOperations.register_operation("execute")
+@BatchOperations.register_operation("execute", "batch_execute")
 class ExecuteSQLOp(MigrateOperation):
     """Represent an execute SQL operation."""
 
     def __init__(
         self,
         sqltext: Union[Update, str, Insert, TextClause],
+        *,
         execution_options: Optional[dict[str, Any]] = None,
     ) -> None:
         self.sqltext = sqltext
@@ -2425,6 +2428,7 @@ class ExecuteSQLOp(MigrateOperation):
         cls,
         operations: Operations,
         sqltext: Union[str, TextClause, Update],
+        *,
         execution_options: Optional[dict[str, Any]] = None,
     ) -> None:
         r"""Execute the given SQL using the current migration context.
@@ -2510,6 +2514,25 @@ class ExecuteSQLOp(MigrateOperation):
         """
         op = cls(sqltext, execution_options=execution_options)
         return operations.invoke(op)
+
+    @classmethod
+    def batch_execute(
+        cls,
+        operations: Operations,
+        sqltext: Union[str, TextClause, Update],
+        *,
+        execution_options: Optional[dict[str, Any]] = None,
+    ) -> None:
+        """Execute the given SQL using the current migration context.
+
+        .. seealso::
+
+            :meth:`.Operations.execute`
+
+        """
+        return cls.execute(
+            operations, sqltext, execution_options=execution_options
+        )
 
 
 class OpContainer(MigrateOperation):

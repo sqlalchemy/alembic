@@ -765,6 +765,7 @@ class Operations(AbstractOperations):
             self,
             table: Union[Table, TableClause],
             rows: List[dict],
+            *,
             multiinsert: bool = True,
         ) -> None:
             """Issue a "bulk insert" operation using the current
@@ -1211,8 +1212,8 @@ class Operations(AbstractOperations):
             self,
             table_name: str,
             comment: Optional[str],
-            existing_comment: Optional[str] = None,
             *,
+            existing_comment: Optional[str] = None,
             schema: Optional[str] = None,
         ) -> None:
             """Emit a COMMENT ON operation to set the comment for a table.
@@ -1433,6 +1434,7 @@ class Operations(AbstractOperations):
         def execute(
             self,
             sqltext: Union[str, TextClause, Update],
+            *,
             execution_options: Optional[dict[str, Any]] = None,
         ) -> None:
             r"""Execute the given SQL using the current migration context.
@@ -1739,6 +1741,7 @@ class BatchOperations(AbstractOperations):
         def create_table_comment(
             self,
             comment: Optional[str],
+            *,
             existing_comment: Optional[str] = None,
         ) -> None:
             """Emit a COMMENT ON operation to set the comment for a table
@@ -1811,7 +1814,7 @@ class BatchOperations(AbstractOperations):
             ...
 
         def drop_table_comment(
-            self, existing_comment: Optional[str] = None
+            self, *, existing_comment: Optional[str] = None
         ) -> None:
             """Issue a "drop table comment" operation to
             remove an existing comment set on a table using the current
@@ -1821,6 +1824,21 @@ class BatchOperations(AbstractOperations):
 
             :param existing_comment: An optional string value of a comment already
              registered on the specified table.
+
+            """  # noqa: E501
+            ...
+
+        def execute(
+            self,
+            sqltext: Union[str, TextClause, Update],
+            *,
+            execution_options: Optional[dict[str, Any]] = None,
+        ) -> None:
+            """Execute the given SQL using the current migration context.
+
+            .. seealso::
+
+                :meth:`.Operations.execute`
 
             """  # noqa: E501
             ...
