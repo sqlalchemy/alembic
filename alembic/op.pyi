@@ -41,7 +41,7 @@ if TYPE_CHECKING:
 ### end imports ###
 
 def add_column(
-    table_name: str, column: Column, schema: Optional[str] = None
+    table_name: str, column: Column, *, schema: Optional[str] = None
 ) -> None:
     """Issue an "add column" instruction using the current
     migration context.
@@ -124,6 +124,7 @@ def add_column(
 def alter_column(
     table_name: str,
     column_name: str,
+    *,
     nullable: Optional[bool] = None,
     comment: Union[str, Literal[False], None] = False,
     server_default: Any = False,
@@ -484,6 +485,7 @@ def create_check_constraint(
     constraint_name: Optional[str],
     table_name: str,
     condition: Union[str, BinaryExpression, TextClause],
+    *,
     schema: Optional[str] = None,
     **kw: Any,
 ) -> None:
@@ -572,6 +574,7 @@ def create_foreign_key(
     referent_table: str,
     local_cols: List[str],
     remote_cols: List[str],
+    *,
     onupdate: Optional[str] = None,
     ondelete: Optional[str] = None,
     deferrable: Optional[bool] = None,
@@ -635,6 +638,7 @@ def create_index(
     index_name: Optional[str],
     table_name: str,
     columns: Sequence[Union[str, TextClause, Function[Any]]],
+    *,
     schema: Optional[str] = None,
     unique: bool = False,
     **kw: Any,
@@ -687,6 +691,7 @@ def create_primary_key(
     constraint_name: Optional[str],
     table_name: str,
     columns: List[str],
+    *,
     schema: Optional[str] = None,
 ) -> None:
     """Issue a "create primary key" instruction using the current
@@ -807,6 +812,7 @@ def create_table_comment(
     table_name: str,
     comment: Optional[str],
     existing_comment: Optional[str] = None,
+    *,
     schema: Optional[str] = None,
 ) -> None:
     """Emit a COMMENT ON operation to set the comment for a table.
@@ -833,6 +839,7 @@ def create_unique_constraint(
     constraint_name: Optional[str],
     table_name: str,
     columns: Sequence[str],
+    *,
     schema: Optional[str] = None,
     **kw: Any,
 ) -> Any:
@@ -875,7 +882,11 @@ def create_unique_constraint(
     """
 
 def drop_column(
-    table_name: str, column_name: str, schema: Optional[str] = None, **kw: Any
+    table_name: str,
+    column_name: str,
+    *,
+    schema: Optional[str] = None,
+    **kw: Any,
 ) -> None:
     """Issue a "drop column" instruction using the current
     migration context.
@@ -917,6 +928,7 @@ def drop_column(
 def drop_constraint(
     constraint_name: str,
     table_name: str,
+    *,
     type_: Optional[str] = None,
     schema: Optional[str] = None,
 ) -> None:
@@ -935,6 +947,7 @@ def drop_constraint(
 
 def drop_index(
     index_name: str,
+    *,
     table_name: Optional[str] = None,
     schema: Optional[str] = None,
     **kw: Any,
@@ -962,7 +975,7 @@ def drop_index(
     """
 
 def drop_table(
-    table_name: str, schema: Optional[str] = None, **kw: Any
+    table_name: str, *, schema: Optional[str] = None, **kw: Any
 ) -> None:
     r"""Issue a "drop table" instruction using the current
     migration context.
@@ -984,6 +997,7 @@ def drop_table(
 
 def drop_table_comment(
     table_name: str,
+    *,
     existing_comment: Optional[str] = None,
     schema: Optional[str] = None,
 ) -> None:
@@ -1226,7 +1240,7 @@ def register_operation(
     """
 
 def rename_table(
-    old_table_name: str, new_table_name: str, schema: Optional[str] = None
+    old_table_name: str, new_table_name: str, *, schema: Optional[str] = None
 ) -> None:
     """Emit an ALTER TABLE to rename a table.
 

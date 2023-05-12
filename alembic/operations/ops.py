@@ -132,6 +132,7 @@ class DropConstraintOp(MigrateOperation):
         self,
         constraint_name: Optional[sqla_compat._ConstraintNameDefined],
         table_name: str,
+        *,
         type_: Optional[str] = None,
         schema: Optional[str] = None,
         _reverse: Optional[AddConstraintOp] = None,
@@ -197,6 +198,7 @@ class DropConstraintOp(MigrateOperation):
         operations: Operations,
         constraint_name: str,
         table_name: str,
+        *,
         type_: Optional[str] = None,
         schema: Optional[str] = None,
     ) -> None:
@@ -221,6 +223,7 @@ class DropConstraintOp(MigrateOperation):
         cls,
         operations: BatchOperations,
         constraint_name: str,
+        *,
         type_: Optional[str] = None,
     ) -> None:
         """Issue a "drop constraint" instruction using the
@@ -258,6 +261,7 @@ class CreatePrimaryKeyOp(AddConstraintOp):
         constraint_name: Optional[sqla_compat._ConstraintNameDefined],
         table_name: str,
         columns: Sequence[str],
+        *,
         schema: Optional[str] = None,
         **kw: Any,
     ) -> None:
@@ -299,6 +303,7 @@ class CreatePrimaryKeyOp(AddConstraintOp):
         constraint_name: Optional[str],
         table_name: str,
         columns: List[str],
+        *,
         schema: Optional[str] = None,
     ) -> None:
         """Issue a "create primary key" instruction using the current
@@ -335,7 +340,7 @@ class CreatePrimaryKeyOp(AddConstraintOp):
          :class:`~sqlalchemy.sql.elements.quoted_name`.
 
         """
-        op = cls(constraint_name, table_name, columns, schema)
+        op = cls(constraint_name, table_name, columns, schema=schema)
         return operations.invoke(op)
 
     @classmethod
@@ -380,6 +385,7 @@ class CreateUniqueConstraintOp(AddConstraintOp):
         constraint_name: Optional[sqla_compat._ConstraintNameDefined],
         table_name: str,
         columns: Sequence[str],
+        *,
         schema: Optional[str] = None,
         **kw: Any,
     ) -> None:
@@ -431,6 +437,7 @@ class CreateUniqueConstraintOp(AddConstraintOp):
         constraint_name: Optional[str],
         table_name: str,
         columns: Sequence[str],
+        *,
         schema: Optional[str] = None,
         **kw: Any,
     ) -> Any:
@@ -591,6 +598,7 @@ class CreateForeignKeyOp(AddConstraintOp):
         referent_table: str,
         local_cols: List[str],
         remote_cols: List[str],
+        *,
         onupdate: Optional[str] = None,
         ondelete: Optional[str] = None,
         deferrable: Optional[bool] = None,
@@ -675,6 +683,7 @@ class CreateForeignKeyOp(AddConstraintOp):
         referent_table: str,
         local_cols: List[str],
         remote_cols: List[str],
+        *,
         referent_schema: Optional[str] = None,
         onupdate: Optional[str] = None,
         ondelete: Optional[str] = None,
@@ -739,6 +748,7 @@ class CreateCheckConstraintOp(AddConstraintOp):
         constraint_name: Optional[sqla_compat._ConstraintNameDefined],
         table_name: str,
         condition: Union[str, TextClause, ColumnElement[Any]],
+        *,
         schema: Optional[str] = None,
         **kw: Any,
     ) -> None:
@@ -782,6 +792,7 @@ class CreateCheckConstraintOp(AddConstraintOp):
         constraint_name: Optional[str],
         table_name: str,
         condition: Union[str, BinaryExpression, TextClause],
+        *,
         schema: Optional[str] = None,
         **kw: Any,
     ) -> None:
@@ -867,6 +878,7 @@ class CreateIndexOp(MigrateOperation):
         index_name: Optional[str],
         table_name: str,
         columns: Sequence[Union[str, TextClause, ColumnElement[Any]]],
+        *,
         schema: Optional[str] = None,
         unique: bool = False,
         **kw: Any,
@@ -918,6 +930,7 @@ class CreateIndexOp(MigrateOperation):
         index_name: Optional[str],
         table_name: str,
         columns: Sequence[Union[str, TextClause, Function[Any]]],
+        *,
         schema: Optional[str] = None,
         unique: bool = False,
         **kw: Any,
@@ -1005,6 +1018,7 @@ class DropIndexOp(MigrateOperation):
     def __init__(
         self,
         index_name: Union[quoted_name, str, conv],
+        *,
         table_name: Optional[str] = None,
         schema: Optional[str] = None,
         _reverse: Optional[CreateIndexOp] = None,
@@ -1027,7 +1041,7 @@ class DropIndexOp(MigrateOperation):
         assert index.table is not None
         return cls(
             index.name,  # type: ignore[arg-type]
-            index.table.name,
+            table_name=index.table.name,
             schema=index.table.schema,
             _reverse=CreateIndexOp.from_index(index),
             **index.kwargs,
@@ -1053,6 +1067,7 @@ class DropIndexOp(MigrateOperation):
         cls,
         operations: Operations,
         index_name: str,
+        *,
         table_name: Optional[str] = None,
         schema: Optional[str] = None,
         **kw: Any,
@@ -1111,6 +1126,7 @@ class CreateTableOp(MigrateOperation):
         self,
         table_name: str,
         columns: Sequence[SchemaItem],
+        *,
         schema: Optional[str] = None,
         _namespace_metadata: Optional[MetaData] = None,
         _constraints_included: bool = False,
@@ -1136,7 +1152,7 @@ class CreateTableOp(MigrateOperation):
 
     @classmethod
     def from_table(
-        cls, table: Table, _namespace_metadata: Optional[MetaData] = None
+        cls, table: Table, *, _namespace_metadata: Optional[MetaData] = None
     ) -> CreateTableOp:
         if _namespace_metadata is None:
             _namespace_metadata = table.metadata
@@ -1271,6 +1287,7 @@ class DropTableOp(MigrateOperation):
     def __init__(
         self,
         table_name: str,
+        *,
         schema: Optional[str] = None,
         table_kw: Optional[MutableMapping[Any, Any]] = None,
         _reverse: Optional[CreateTableOp] = None,
@@ -1291,7 +1308,7 @@ class DropTableOp(MigrateOperation):
 
     @classmethod
     def from_table(
-        cls, table: Table, _namespace_metadata: Optional[MetaData] = None
+        cls, table: Table, *, _namespace_metadata: Optional[MetaData] = None
     ) -> DropTableOp:
         return cls(
             table.name,
@@ -1335,6 +1352,7 @@ class DropTableOp(MigrateOperation):
         cls,
         operations: Operations,
         table_name: str,
+        *,
         schema: Optional[str] = None,
         **kw: Any,
     ) -> None:
@@ -1365,6 +1383,7 @@ class AlterTableOp(MigrateOperation):
     def __init__(
         self,
         table_name: str,
+        *,
         schema: Optional[str] = None,
     ) -> None:
         self.table_name = table_name
@@ -1379,6 +1398,7 @@ class RenameTableOp(AlterTableOp):
         self,
         old_table_name: str,
         new_table_name: str,
+        *,
         schema: Optional[str] = None,
     ) -> None:
         super().__init__(old_table_name, schema=schema)
@@ -1390,6 +1410,7 @@ class RenameTableOp(AlterTableOp):
         operations: Operations,
         old_table_name: str,
         new_table_name: str,
+        *,
         schema: Optional[str] = None,
     ) -> None:
         """Emit an ALTER TABLE to rename a table.
@@ -1417,6 +1438,7 @@ class CreateTableCommentOp(AlterTableOp):
         self,
         table_name: str,
         comment: Optional[str],
+        *,
         schema: Optional[str] = None,
         existing_comment: Optional[str] = None,
     ) -> None:
@@ -1432,6 +1454,7 @@ class CreateTableCommentOp(AlterTableOp):
         table_name: str,
         comment: Optional[str],
         existing_comment: Optional[str] = None,
+        *,
         schema: Optional[str] = None,
     ) -> None:
         """Emit a COMMENT ON operation to set the comment for a table.
@@ -1528,6 +1551,7 @@ class DropTableCommentOp(AlterTableOp):
     def __init__(
         self,
         table_name: str,
+        *,
         schema: Optional[str] = None,
         existing_comment: Optional[str] = None,
     ) -> None:
@@ -1540,6 +1564,7 @@ class DropTableCommentOp(AlterTableOp):
         cls,
         operations: Operations,
         table_name: str,
+        *,
         existing_comment: Optional[str] = None,
         schema: Optional[str] = None,
     ) -> None:
@@ -1611,6 +1636,7 @@ class AlterColumnOp(AlterTableOp):
         self,
         table_name: str,
         column_name: str,
+        *,
         schema: Optional[str] = None,
         existing_type: Optional[Any] = None,
         existing_server_default: Any = False,
@@ -1770,6 +1796,7 @@ class AlterColumnOp(AlterTableOp):
         operations: Operations,
         table_name: str,
         column_name: str,
+        *,
         nullable: Optional[bool] = None,
         comment: Optional[Union[str, Literal[False]]] = False,
         server_default: Any = False,
@@ -1896,6 +1923,7 @@ class AlterColumnOp(AlterTableOp):
         cls,
         operations: BatchOperations,
         column_name: str,
+        *,
         nullable: Optional[bool] = None,
         comment: Optional[Union[str, Literal[False]]] = False,
         server_default: Any = False,
@@ -1967,6 +1995,7 @@ class AddColumnOp(AlterTableOp):
         self,
         table_name: str,
         column: Column,
+        *,
         schema: Optional[str] = None,
         **kw: Any,
     ) -> None:
@@ -2006,6 +2035,7 @@ class AddColumnOp(AlterTableOp):
         operations: Operations,
         table_name: str,
         column: Column,
+        *,
         schema: Optional[str] = None,
     ) -> None:
         """Issue an "add column" instruction using the current
@@ -2094,6 +2124,7 @@ class AddColumnOp(AlterTableOp):
         cls,
         operations: BatchOperations,
         column: Column,
+        *,
         insert_before: Optional[str] = None,
         insert_after: Optional[str] = None,
     ) -> None:
@@ -2130,6 +2161,7 @@ class DropColumnOp(AlterTableOp):
         self,
         table_name: str,
         column_name: str,
+        *,
         schema: Optional[str] = None,
         _reverse: Optional[AddColumnOp] = None,
         **kw: Any,
@@ -2188,6 +2220,7 @@ class DropColumnOp(AlterTableOp):
         operations: Operations,
         table_name: str,
         column_name: str,
+        *,
         schema: Optional[str] = None,
         **kw: Any,
     ) -> None:
@@ -2508,6 +2541,7 @@ class ModifyTableOps(OpContainer):
         self,
         table_name: str,
         ops: Sequence[MigrateOperation],
+        *,
         schema: Optional[str] = None,
     ) -> None:
         super().__init__(ops)
@@ -2605,6 +2639,7 @@ class MigrationScript(MigrateOperation):
         rev_id: Optional[str],
         upgrade_ops: UpgradeOps,
         downgrade_ops: DowngradeOps,
+        *,
         message: Optional[str] = None,
         imports: Set[str] = set(),
         head: Optional[str] = None,

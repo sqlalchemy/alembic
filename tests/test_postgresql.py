@@ -122,9 +122,17 @@ class PostgresqlOpTest(TestBase):
         op.create_index("i", "t", ["c1", "c2"], unique=False)
         context.assert_("CREATE INDEX i ON t (c1, c2)")
 
-    def test_drop_index_postgresql_concurrently(self):
+    @config.combinations("include_table", "no_table", argnames="include_table")
+    def test_drop_index_postgresql_concurrently(self, include_table):
         context = op_fixture("postgresql")
-        op.drop_index("geocoded", "locations", postgresql_concurrently=True)
+        if include_table == "include_table":
+            op.drop_index(
+                "geocoded",
+                table_name="locations",
+                postgresql_concurrently=True,
+            )
+        else:
+            op.drop_index("geocoded", postgresql_concurrently=True)
         context.assert_("DROP INDEX CONCURRENTLY geocoded")
 
     def test_alter_column_type_using(self):
