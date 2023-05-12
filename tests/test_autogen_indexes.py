@@ -463,6 +463,80 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestBase):
         eq_(diffs, [])
 
     @config.requirements.unique_constraint_reflection
+    def test_nothing_changed_cols_unsorted(self):
+        """test #1240
+
+
+        MySQL doubles unique constraints as indexes, so we need to make
+        sure we aren't comparing index sigs to unique constraint sigs,
+        which we were doing previously by mistake.  As their signatures
+        were compatible, things "worked" but once index sigs changed
+        col name sorting order, it broke.
+
+        """
+
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table(
+            "nothing_changed",
+            m1,
+            Column("id", Integer, primary_key=True),
+            Column("sid", Integer, nullable=False),
+            Column("label", String(30), nullable=False),
+            Column("fid", Integer, nullable=False),
+            UniqueConstraint("sid", "label"),
+            UniqueConstraint("sid", "fid"),
+        )
+
+        Table(
+            "nothing_changed",
+            m2,
+            Column("id", Integer, primary_key=True),
+            Column("sid", Integer, nullable=False),
+            Column("label", String(30), nullable=False),
+            Column("fid", Integer, nullable=False),
+            UniqueConstraint("sid", "label"),
+            UniqueConstraint("sid", "fid"),
+        )
+
+        diffs = self._fixture(m1, m2)
+        eq_(diffs, [])
+
+    @config.requirements.unique_constraint_reflection
+    @config.requirements.reports_unnamed_constraints
+    def test_remove_uq_constraint(self):
+        """supplementary test for codepath in #1240"""
+
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table(
+            "something_changed",
+            m1,
+            Column("id", Integer, primary_key=True),
+            Column("sid", Integer, nullable=False),
+            Column("label", String(30), nullable=False),
+            Column("fid", Integer, nullable=False),
+            UniqueConstraint("sid", "label"),
+            UniqueConstraint("sid", "fid"),
+        )
+
+        Table(
+            "something_changed",
+            m2,
+            Column("id", Integer, primary_key=True),
+            Column("sid", Integer, nullable=False),
+            Column("label", String(30), nullable=False),
+            Column("fid", Integer, nullable=False),
+            UniqueConstraint("sid", "fid"),
+        )
+
+        diffs = self._fixture(m1, m2)
+        assert len(diffs) == 1
+        assert diffs[0][0] in ("remove_index", "remove_constraint")
+
+    @config.requirements.unique_constraint_reflection
     def test_uq_casing_convention_changed_so_put_drops_first(self):
         m1 = MetaData()
         m2 = MetaData()

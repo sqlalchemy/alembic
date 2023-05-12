@@ -452,7 +452,9 @@ class _uq_constraint_sig(_constraint_sig):
     def __init__(self, const: UniqueConstraint) -> None:
         self.const = const
         self.name = const.name
-        self.sig = tuple(sorted([col.name for col in const.columns]))
+        self.sig = ("UNIQUE_CONSTRAINT",) + tuple(
+            sorted([col.name for col in const.columns])
+        )
 
     @property
     def column_names(self) -> List[str]:
@@ -465,7 +467,7 @@ class _ix_constraint_sig(_constraint_sig):
     def __init__(self, const: Index, impl: DefaultImpl) -> None:
         self.const = const
         self.name = const.name
-        self.sig = impl.create_index_sig(const)
+        self.sig = ("INDEX",) + impl.create_index_sig(const)
         self.is_unique = bool(const.unique)
 
     def md_name_to_sql_name(self, context: AutogenContext) -> Optional[str]:
@@ -807,11 +809,11 @@ def _compare_indexes_and_uniques(
         if not conn_obj.is_index and conn_obj.sig in unnamed_metadata_uniques:
             continue
         elif removed_name in doubled_constraints:
+            conn_uq, conn_idx = doubled_constraints[removed_name]
             if (
-                conn_obj.sig not in metadata_indexes_by_sig
-                and conn_obj.sig not in metadata_uniques_by_sig
+                conn_idx.sig not in metadata_indexes_by_sig
+                and conn_uq.sig not in metadata_uniques_by_sig
             ):
-                conn_uq, conn_idx = doubled_constraints[removed_name]
                 obj_removed(conn_uq)
                 obj_removed(conn_idx)
         else:
