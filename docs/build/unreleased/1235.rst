@@ -1,0 +1,11 @@
+.. change::
+    :tags: bug, api, autogenerate
+    :tickets: 1235
+
+    Fixed issue where :func:`.autogenerate.render_python_code` function did not
+    provide a default value for the ``user_module_prefix`` variable, leading to
+    ``NoneType`` errors when autogenerate structures included user-defined
+    types. Added new parameter
+    :paramref:`.autogenerate.render_python_code.user_module_prefix` to allow
+    this to be set as well as to default to ``None``. Pull request courtesy
+    tangkikodo.
