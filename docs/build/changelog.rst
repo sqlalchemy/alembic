@@ -5,7 +5,125 @@ Changelog
 
 .. changelog::
     :version: 1.11.0
-    :include_notes_from: unreleased
+    :released: May 15, 2023
+
+    .. change::
+        :tags: bug, batch
+        :tickets: 1237
+
+        Added placeholder classes for :class:`~.sqla.Computed` and
+        :class:`~.sqla.Identity` when older 1.x SQLAlchemy versions are in use,
+        namely prior to SQLAlchemy 1.3.11 when the :class:`~.sqla.Computed`
+        construct was introduced. Previously these were set to None, however this
+        could cause issues with certain codepaths that were using ``isinstance()``
+        such as one within "batch mode".
+
+    .. change::
+        :tags: bug, batch
+        :tickets: 1221
+
+        Correctly pass previously ignored arguments ``insert_before`` and
+        ``insert_after`` in ``batch_alter_column``
+
+    .. change::
+        :tags: change, py3k
+        :tickets: 1130
+
+        Argument signatures of Alembic operations now enforce keyword-only
+        arguments as passed as keyword and not positionally, such as
+        :paramref:`.Operations.create_table.schema`,
+        :paramref:`.Operations.add_column.type_`, etc.
+
+    .. change::
+        :tags: bug, postgresql
+        :tickets: 1230
+
+        Fix autogenerate issue with PostgreSQL :class:`.ExcludeConstraint`
+        that included sqlalchemy functions. The function text was previously
+        rendered as a plain string without surrounding with ``text()``.
+
+    .. change::
+        :tags: bug, mysql, regression
+        :tickets: 1240
+
+        Fixed regression caused by :ticket:`1166` released in version 1.10.0 which
+        caused MySQL unique constraints with multiple columns to not compare
+        correctly within autogenerate, due to different sorting rules on unique
+        constraints vs. indexes, which in MySQL are shared constructs.
+
+    .. change::
+        :tags: misc
+        :tickets: 1220
+
+        Update code snippets within docstrings to use ``black`` code formatting.
+        Pull request courtesy of James Addison.
+
+    .. change::
+        :tags: bug, typing
+        :tickets: 1093
+
+        Updated stub generator script to also add stubs method definitions for the
+        :class:`.Operations` class and the :class:`.BatchOperations` class obtained
+        from :meth:`.Operations.batch_alter_table`. As part of this change, the
+        class hierarchy of :class:`.Operations` and :class:`.BatchOperations` has
+        been rearranged on top of a common base class :class:`.AbstractOperations`
+        in order to type correctly, as :class:`.BatchOperations` uses different
+        method signatures for operations than :class:`.Operations`.
+
+
+    .. change::
+        :tags: bug, typing
+
+        Repaired the return signatures for :class:`.Operations` that mostly
+        return ``None``, and were erroneously referring to ``Optional[Table]``
+        in many cases.
+
+    .. change::
+        :tags: usecase, commands
+        :tickets: 1109
+
+        Added quiet option to the command line, using the ``-q/--quiet``
+        option. This flag will prevent alembic from logging anything
+        to stdout.
+
+    .. change::
+        :tags: bug, autogenerate
+        :tickets: 1178
+
+        Modified the autogenerate implementation for comparing "server default"
+        values from user-defined metadata to not apply any quoting to the value
+        before comparing it to the server-reported default, except for within
+        dialect-specific routines as needed. This change will affect the format of
+        the server default as passed to the
+        :paramref:`.EnvironmentContext.configure.compare_server_default` hook, as
+        well as for third party dialects that implement a custom
+        ``compare_server_default`` hook in their alembic impl, to be passed "as is"
+        and not including additional quoting.   Custom implementations which rely
+        on this quoting should adjust their approach based on observed formatting.
+
+    .. change::
+        :tags: bug, api, autogenerate
+        :tickets: 1235
+
+        Fixed issue where :func:`.autogenerate.render_python_code` function did not
+        provide a default value for the ``user_module_prefix`` variable, leading to
+        ``NoneType`` errors when autogenerate structures included user-defined
+        types. Added new parameter
+        :paramref:`.autogenerate.render_python_code.user_module_prefix` to allow
+        this to be set as well as to default to ``None``. Pull request courtesy
+        tangkikodo.
+
+
+    .. change::
+        :tags: usecase, asyncio
+        :tickets: 1231
+
+        Added :meth:`.AbstractOperations.run_async` to the operation module to
+        allow running async functions in the ``upgrade`` or ``downgrade`` migration
+        function when running alembic using an async dialect. This function will
+        receive as first argument an
+        :class:`~sqlalchemy.ext.asyncio.AsyncConnection` sharing the transaction
+        used in the migration context.
 
 .. changelog::
     :version: 1.10.4

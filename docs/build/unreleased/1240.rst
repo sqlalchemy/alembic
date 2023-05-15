@@ -1,8 +1,0 @@
-.. change::
-    :tags: bug, mysql, regression
-    :tickets: 1240
-
-    Fixed regression caused by :ticket:`1166` released in version 1.10.0 which
-    caused MySQL unique constraints with multiple columns to not compare
-    correctly within autogenerate, due to different sorting rules on unique
-    constraints vs. indexes, which in MySQL are shared constructs.

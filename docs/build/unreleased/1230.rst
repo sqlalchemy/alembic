@@ -1,7 +1,0 @@
-.. change::
-    :tags: bug, postgresql
-    :tickets: 1230
-
-    Fix autogenerate issue with PostgreSQL :class:`.ExcludeConstraint`
-    that included sqlalchemy functions. The function text was previously
-    rendered as a plain string without surrounding with ``text()``.

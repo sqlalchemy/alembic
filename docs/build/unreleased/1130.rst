@@ -1,8 +1,0 @@
-.. change::
-    :tags: change, py3k
-    :tickets: 1130
-
-    Argument signatures of Alembic operations now enforce keyword-only
-    arguments as passed as keyword and not positionally, such as
-    :paramref:`.Operations.create_table.schema`,
-    :paramref:`.Operations.add_column.type_`, etc.
