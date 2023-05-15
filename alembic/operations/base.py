@@ -1505,8 +1505,8 @@ class Operations(AbstractOperations):
             * a :func:`sqlalchemy.sql.expression.update`,
               :func:`sqlalchemy.sql.expression.insert`,
               or :func:`sqlalchemy.sql.expression.delete`  construct.
-            * Pretty much anything that's "executable" as described
-              in :ref:`sqlexpression_toplevel`.
+            * Any "executable" described in SQLAlchemy Core documentation,
+              noting that no result set is returned.
 
             .. note::  when passing a plain string, the statement is coerced into
                a :func:`sqlalchemy.sql.expression.text` construct. This construct

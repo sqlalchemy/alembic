@@ -683,7 +683,7 @@ class MigrationContext:
         In online mode, this is an instance of
         :class:`sqlalchemy.engine.Connection`, and is suitable
         for ad-hoc execution of any kind of usage described
-        in :ref:`sqlexpression_toplevel` as well as
+        in SQLAlchemy Core documentation as well as
         for usage with the :meth:`sqlalchemy.schema.Table.create`
         and :meth:`sqlalchemy.schema.MetaData.create_all` methods
         of :class:`~sqlalchemy.schema.Table`,

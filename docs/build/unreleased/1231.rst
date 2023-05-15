@@ -3,9 +3,9 @@
     :tags: usecase, asyncio
     :tickets: 1231
 
-    Added :meth:`.Operations.run_async` to the operation module to allow
-    running async functions in the ``upgrade`` or ``downgrade`` migration
-    function when running alembic using an async dialect.
-    This function will receive as first argument an
+    Added :meth:`.AbstractOperations.run_async` to the operation module to
+    allow running async functions in the ``upgrade`` or ``downgrade`` migration
+    function when running alembic using an async dialect. This function will
+    receive as first argument an
     :class:`~sqlalchemy.ext.asyncio.AsyncConnection` sharing the transaction
     used in the migration context.

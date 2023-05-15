@@ -2,8 +2,9 @@
     :tags: bug, batch
     :tickets: 1237
 
-    Added placeholder classes for ``Computed`` and ``Identity`` when older 1.x
-    SQLAlchemy versions are in use, namely prior to SQLAlchemy 1.3.11 when the
-    ``Computed`` construct was introduced. Previously these were set to None,
-    however this could cause issues with certain codepaths that were using
-    ``isinstance()`` such as one within "batch mode".
+    Added placeholder classes for :class:`~.sqla.Computed` and
+    :class:`~.sqla.Identity` when older 1.x SQLAlchemy versions are in use,
+    namely prior to SQLAlchemy 1.3.11 when the :class:`~.sqla.Computed`
+    construct was introduced. Previously these were set to None, however this
+    could cause issues with certain codepaths that were using ``isinstance()``
+    such as one within "batch mode".
