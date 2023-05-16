@@ -84,8 +84,8 @@ OnVersionApplyFn = Callable[
 CompareServerDefault = Callable[
     [
         MigrationContext,
-        Column,
-        Column,
+        "Column[Any]",
+        "Column[Any]",
         Optional[str],
         Optional[FetchedValue],
         Optional[str],

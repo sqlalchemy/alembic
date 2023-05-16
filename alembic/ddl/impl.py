@@ -316,7 +316,7 @@ class DefaultImpl(metaclass=ImplMeta):
     def add_column(
         self,
         table_name: str,
-        column: Column,
+        column: Column[Any],
         schema: Optional[Union[str, quoted_name]] = None,
     ) -> None:
         self._exec(base.AddColumn(table_name, column, schema=schema))
@@ -324,7 +324,7 @@ class DefaultImpl(metaclass=ImplMeta):
     def drop_column(
         self,
         table_name: str,
-        column: Column,
+        column: Column[Any],
         schema: Optional[str] = None,
         **kw,
     ) -> None:
@@ -388,7 +388,7 @@ class DefaultImpl(metaclass=ImplMeta):
     def drop_table_comment(self, table: Table) -> None:
         self._exec(schema.DropTableComment(table))
 
-    def create_column_comment(self, column: ColumnElement) -> None:
+    def create_column_comment(self, column: ColumnElement[Any]) -> None:
         self._exec(schema.SetColumnComment(column))
 
     def drop_index(self, index: Index) -> None:
@@ -526,7 +526,7 @@ class DefaultImpl(metaclass=ImplMeta):
         return True
 
     def compare_type(
-        self, inspector_column: Column, metadata_column: Column
+        self, inspector_column: Column[Any], metadata_column: Column
     ) -> bool:
         """Returns True if there ARE differences between the types of the two
         columns. Takes impl.type_synonyms into account between retrospected

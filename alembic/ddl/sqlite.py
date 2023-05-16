@@ -95,8 +95,8 @@ class SQLiteImpl(DefaultImpl):
 
     def compare_server_default(
         self,
-        inspector_column: Column,
-        metadata_column: Column,
+        inspector_column: Column[Any],
+        metadata_column: Column[Any],
         rendered_metadata_default: Optional[str],
         rendered_inspector_default: Optional[str],
     ) -> bool:
@@ -173,7 +173,7 @@ class SQLiteImpl(DefaultImpl):
 
     def cast_for_batch_migrate(
         self,
-        existing: Column,
+        existing: Column[Any],
         existing_transfer: Dict[str, Union[TypeEngine, Cast]],
         new_type: TypeEngine,
     ) -> None:

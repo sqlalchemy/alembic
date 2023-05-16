@@ -1994,7 +1994,7 @@ class AddColumnOp(AlterTableOp):
     def __init__(
         self,
         table_name: str,
-        column: Column,
+        column: Column[Any],
         *,
         schema: Optional[str] = None,
         **kw: Any,
@@ -2010,7 +2010,7 @@ class AddColumnOp(AlterTableOp):
 
     def to_diff_tuple(
         self,
-    ) -> Tuple[str, Optional[str], str, Column]:
+    ) -> Tuple[str, Optional[str], str, Column[Any]]:
         return ("add_column", self.schema, self.table_name, self.column)
 
     def to_column(self) -> Column:
@@ -2025,7 +2025,7 @@ class AddColumnOp(AlterTableOp):
         cls,
         schema: Optional[str],
         tname: str,
-        col: Column,
+        col: Column[Any],
     ) -> AddColumnOp:
         return cls(tname, col, schema=schema)
 
@@ -2034,7 +2034,7 @@ class AddColumnOp(AlterTableOp):
         cls,
         operations: Operations,
         table_name: str,
-        column: Column,
+        column: Column[Any],
         *,
         schema: Optional[str] = None,
     ) -> None:
@@ -2123,7 +2123,7 @@ class AddColumnOp(AlterTableOp):
     def batch_add_column(
         cls,
         operations: BatchOperations,
-        column: Column,
+        column: Column[Any],
         *,
         insert_before: Optional[str] = None,
         insert_after: Optional[str] = None,
@@ -2173,7 +2173,7 @@ class DropColumnOp(AlterTableOp):
 
     def to_diff_tuple(
         self,
-    ) -> Tuple[str, Optional[str], str, Column]:
+    ) -> Tuple[str, Optional[str], str, Column[Any]]:
         return (
             "remove_column",
             self.schema,
@@ -2197,7 +2197,7 @@ class DropColumnOp(AlterTableOp):
         cls,
         schema: Optional[str],
         tname: str,
-        col: Column,
+        col: Column[Any],
     ) -> DropColumnOp:
         return cls(
             tname,

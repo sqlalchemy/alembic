@@ -41,6 +41,7 @@ TRIM_MODULE = [
     "sqlalchemy.sql.type_api.",
     "sqlalchemy.sql.functions.",
     "sqlalchemy.sql.dml.",
+    "typing."
 ]
 ADDITIONAL_ENV = {
     "MigrationContext": MigrationContext,
@@ -180,6 +181,11 @@ def _generate_stub_for_meth(
             retval = annotation.__qualname__
         elif isinstance(annotation, typing.TypeVar):
             retval = annotation.__name__
+        elif hasattr(annotation, "__args__") and hasattr(
+            annotation, "__origin__"
+        ):
+            # generic class
+            retval = str(annotation)
         else:
             retval = annotation
 

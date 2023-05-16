@@ -926,8 +926,8 @@ def _compare_nullable(
     schema: Optional[str],
     tname: Union[quoted_name, str],
     cname: Union[quoted_name, str],
-    conn_col: Column,
-    metadata_col: Column,
+    conn_col: Column[Any],
+    metadata_col: Column[Any],
 ) -> None:
 
     metadata_col_nullable = metadata_col.nullable
@@ -968,8 +968,8 @@ def _setup_autoincrement(
     schema: Optional[str],
     tname: Union[quoted_name, str],
     cname: quoted_name,
-    conn_col: Column,
-    metadata_col: Column,
+    conn_col: Column[Any],
+    metadata_col: Column[Any],
 ) -> None:
 
     if metadata_col.table._autoincrement_column is metadata_col:
@@ -987,8 +987,8 @@ def _compare_type(
     schema: Optional[str],
     tname: Union[quoted_name, str],
     cname: Union[quoted_name, str],
-    conn_col: Column,
-    metadata_col: Column,
+    conn_col: Column[Any],
+    metadata_col: Column[Any],
 ) -> None:
 
     conn_type = conn_col.type
@@ -1060,8 +1060,8 @@ def _compare_computed_default(
     schema: Optional[str],
     tname: str,
     cname: str,
-    conn_col: Column,
-    metadata_col: Column,
+    conn_col: Column[Any],
+    metadata_col: Column[Any],
 ) -> None:
     rendered_metadata_default = str(
         cast(sa_schema.Computed, metadata_col.server_default).sqltext.compile(
@@ -1126,8 +1126,8 @@ def _compare_server_default(
     schema: Optional[str],
     tname: Union[quoted_name, str],
     cname: Union[quoted_name, str],
-    conn_col: Column,
-    metadata_col: Column,
+    conn_col: Column[Any],
+    metadata_col: Column[Any],
 ) -> Optional[bool]:
 
     metadata_default = metadata_col.server_default
@@ -1215,8 +1215,8 @@ def _compare_column_comment(
     schema: Optional[str],
     tname: Union[quoted_name, str],
     cname: quoted_name,
-    conn_col: Column,
-    metadata_col: Column,
+    conn_col: Column[Any],
+    metadata_col: Column[Any],
 ) -> Optional[Literal[False]]:
 
     assert autogen_context.dialect is not None

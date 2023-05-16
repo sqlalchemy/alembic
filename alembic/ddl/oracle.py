@@ -176,7 +176,7 @@ def alter_column(compiler: OracleDDLCompiler, name: str) -> str:
     return "MODIFY %s" % format_column_name(compiler, name)
 
 
-def add_column(compiler: OracleDDLCompiler, column: Column, **kw) -> str:
+def add_column(compiler: OracleDDLCompiler, column: Column[Any], **kw) -> str:
     return "ADD %s" % compiler.get_column_specification(column, **kw)
 
 
