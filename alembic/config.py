@@ -8,6 +8,7 @@ import os
 import sys
 from typing import Any
 from typing import cast
+from typing import Dict
 from typing import Mapping
 from typing import Optional
 from typing import overload
@@ -219,19 +220,33 @@ class Config:
 
     @overload
     def get_section(
-        self, name: str, default: Mapping[str, str]
-    ) -> Mapping[str, str]:
+        self, name: str, default: None = ...
+    ) -> Optional[Dict[str, str]]:
+        ...
+
+    # "default" here could also be a TypeVar
+    # _MT = TypeVar("_MT", bound=Mapping[str, str]),
+    # however mypy wasn't handling that correctly (pyright was)
+    @overload
+    def get_section(
+        self, name: str, default: Dict[str, str]
+    ) -> Dict[str, str]:
         ...
 
     @overload
     def get_section(
-        self, name: str, default: Optional[Mapping[str, str]] = ...
-    ) -> Optional[Mapping[str, str]]:
+        self, name: str, default: Mapping[str, str]
+    ) -> Union[Dict[str, str], Mapping[str, str]]:
         ...
 
-    def get_section(self, name: str, default=None):
+    def get_section(
+        self, name: str, default: Optional[Mapping[str, str]] = None
+    ) -> Optional[Mapping[str, str]]:
         """Return all the configuration options from a given .ini file section
         as a dictionary.
+
+        If the given section does not exist, the value of ``default``
+        is returned, which is expected to be a dictionary or other mapping.
 
         """
         if not self.file_config.has_section(name):
