@@ -230,7 +230,7 @@ constraint named ``ck1``.  In order to drop this column, we have to drop
 the check constraint also::
 
     with self.op.batch_alter_table("some_table") as batch_op:
-        batch_op.drop_constraint("ck1", "check")
+        batch_op.drop_constraint("ck1", type_="check")
         batch_op.drop_column('q')
 
 .. versionchanged:: 1.7  Named CHECK constraints participate in batch mode

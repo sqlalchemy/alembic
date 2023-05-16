@@ -1783,6 +1783,19 @@ class BatchRoundTripTest(TestBase):
         ck_consts = inspect(self.conn).get_check_constraints("ck_table")
         eq_(ck_consts, [])
 
+    @config.requirements.check_constraint_reflection
+    def test_drop_ck_constraint_legacy_type(self):
+        self._ck_constraint_fixture()
+
+        with self.op.batch_alter_table(
+            "ck_table", recreate="always"
+        ) as batch_op:
+            # matches the docs that were written for this originally
+            batch_op.drop_constraint("ck", "check")
+
+        ck_consts = inspect(self.conn).get_check_constraints("ck_table")
+        eq_(ck_consts, [])
+
     @config.requirements.unnamed_constraints
     def test_drop_foreign_key(self):
         bar = Table(

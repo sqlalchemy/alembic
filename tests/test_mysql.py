@@ -399,6 +399,12 @@ class MySQLOpTest(TestBase):
         op.drop_constraint("f1", "t1", type_="foreignkey")
         context.assert_("ALTER TABLE t1 DROP FOREIGN KEY f1")
 
+    def test_drop_fk_legacy(self):
+        """#1245"""
+        context = op_fixture("mysql")
+        op.drop_constraint("f1", "t1", "foreignkey")
+        context.assert_("ALTER TABLE t1 DROP FOREIGN KEY f1")
+
     def test_drop_fk_quoted(self):
         context = op_fixture("mysql")
         op.drop_constraint("MyFk", "MyTable", type_="foreignkey")

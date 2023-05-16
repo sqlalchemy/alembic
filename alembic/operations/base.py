@@ -1335,8 +1335,8 @@ class Operations(AbstractOperations):
             self,
             constraint_name: str,
             table_name: str,
-            *,
             type_: Optional[str] = None,
+            *,
             schema: Optional[str] = None,
         ) -> None:
             r"""Drop a constraint of the given name, typically via DROP CONSTRAINT.
@@ -1356,8 +1356,8 @@ class Operations(AbstractOperations):
         def drop_index(
             self,
             index_name: str,
-            *,
             table_name: Optional[str] = None,
+            *,
             schema: Optional[str] = None,
             **kw: Any,
         ) -> None:
@@ -1787,7 +1787,7 @@ class BatchOperations(AbstractOperations):
             ...
 
         def drop_constraint(
-            self, constraint_name: str, *, type_: Optional[str] = None
+            self, constraint_name: str, type_: Optional[str] = None
         ) -> None:
             """Issue a "drop constraint" instruction using the
             current batch migration context.

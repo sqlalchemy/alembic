@@ -933,8 +933,8 @@ def drop_column(
 def drop_constraint(
     constraint_name: str,
     table_name: str,
-    *,
     type_: Optional[str] = None,
+    *,
     schema: Optional[str] = None,
 ) -> None:
     r"""Drop a constraint of the given name, typically via DROP CONSTRAINT.
@@ -952,8 +952,8 @@ def drop_constraint(
 
 def drop_index(
     index_name: str,
-    *,
     table_name: Optional[str] = None,
+    *,
     schema: Optional[str] = None,
     **kw: Any,
 ) -> None:

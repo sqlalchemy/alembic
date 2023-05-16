@@ -161,6 +161,12 @@ class OpTest(TestBase):
         op.drop_index("my_idx", table_name="my_table")
         context.assert_contains("DROP INDEX my_idx ON my_table")
 
+    def test_drop_index_w_tablename_legacy(self):
+        """#1243"""
+        context = op_fixture("mssql")
+        op.drop_index("my_idx", "my_table")
+        context.assert_contains("DROP INDEX my_idx ON my_table")
+
     def test_drop_column_w_default(self):
         context = op_fixture("mssql")
         op.drop_column("t1", "c1", mssql_drop_default=True)
