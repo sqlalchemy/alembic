@@ -1,8 +1,0 @@
-.. change::
-    :tags: bug, typing, regression
-    :tickets: 1244
-
-    Restored the output type of :meth:`.Config.get_section` to include
-    ``Dict[str, str]`` as a potential return type, which had been changed to
-    immutable ``Mapping[str, str]``. When a section is returned and the default
-    is not used, a mutable dictionary is returned.
