@@ -1,6 +1,6 @@
 .. change::
     :tags: bug, autogenerate, regression
-    :tickets: 1243 1245
+    :tickets: 1243, 1245
 
     As Alembic 1.11.0 is considered a major release (Alembic does not use
     semver, nor does its parent project SQLAlchemy; this has been
@@ -14,7 +14,9 @@
     autogenerate prior to version 0.6.3 released in 2014, and ``type_`` in
     :meth:`.Operations.drop_constraint` and
     :meth:`.BatchOperations.drop_constraint`, which was documented positionally
-    in one example in the batch documentation. These two signatures have been
+    in one example in the batch documentation.
+
+    These two signatures have been
     restored to allow those particular parameters to be passed positionally. A
     future change will include formal deprecation paths (with warnings) for
     these arguments where they will again become keyword-only in a future
