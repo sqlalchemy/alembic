@@ -46,7 +46,7 @@ if TYPE_CHECKING:
     from sqlalchemy.sql.selectable import Select
     from sqlalchemy.sql.selectable import TableClause
 
-_CE = TypeVar("_CE", bound=Union["ColumnElement", "SchemaItem"])
+_CE = TypeVar("_CE", bound=Union["ColumnElement[Any]", "SchemaItem"])
 
 
 def _safe_int(value: str) -> Union[int, str]:
@@ -390,7 +390,7 @@ def _find_columns(clause):
 
 
 def _remove_column_from_collection(
-    collection: ColumnCollection, column: Union[Column, ColumnClause]
+    collection: ColumnCollection, column: Union[Column[Any], ColumnClause[Any]]
 ) -> None:
     """remove a column from a ColumnCollection."""
 
@@ -408,8 +408,8 @@ def _remove_column_from_collection(
 
 
 def _textual_index_column(
-    table: Table, text_: Union[str, TextClause, ColumnElement]
-) -> Union[ColumnElement, Column]:
+    table: Table, text_: Union[str, TextClause, ColumnElement[Any]]
+) -> Union[ColumnElement[Any], Column[Any]]:
     """a workaround for the Index construct's severe lack of flexibility"""
     if isinstance(text_, str):
         c = Column(text_, sqltypes.NULLTYPE)

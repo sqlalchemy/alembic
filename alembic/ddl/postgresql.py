@@ -486,7 +486,7 @@ class CreateExcludeConstraintOp(ops.AddConstraintOp):
         table_name: Union[str, quoted_name],
         elements: Union[
             Sequence[Tuple[str, str]],
-            Sequence[Tuple[ColumnClause, str]],
+            Sequence[Tuple[ColumnClause[Any], str]],
         ],
         where: Optional[Union[BinaryExpression, str]] = None,
         schema: Optional[str] = None,
@@ -706,7 +706,9 @@ def _exclude_constraint(
 
 
 def _render_potential_column(
-    value: Union[ColumnClause, Column, TextClause, FunctionElement],
+    value: Union[
+        ColumnClause[Any], Column[Any], TextClause, FunctionElement[Any]
+    ],
     autogen_context: AutogenContext,
 ) -> str:
     if isinstance(value, ColumnClause):

@@ -45,7 +45,7 @@ _T = TypeVar("_T")
 ### end imports ###
 
 def add_column(
-    table_name: str, column: Column, *, schema: Optional[str] = None
+    table_name: str, column: Column[Any], *, schema: Optional[str] = None
 ) -> None:
     """Issue an "add column" instruction using the current
     migration context.

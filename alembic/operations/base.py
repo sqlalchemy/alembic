@@ -569,7 +569,7 @@ class Operations(AbstractOperations):
         def add_column(
             self,
             table_name: str,
-            column: Column,
+            column: Column[Any],
             *,
             schema: Optional[str] = None,
         ) -> None:
@@ -1574,7 +1574,7 @@ class BatchOperations(AbstractOperations):
 
         def add_column(
             self,
-            column: Column,
+            column: Column[Any],
             *,
             insert_before: Optional[str] = None,
             insert_after: Optional[str] = None,

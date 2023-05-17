@@ -1,0 +1,6 @@
+.. change::
+    :tags: bug, typing
+    :tickets: 1246
+
+    Fixed typing use of :class:`~sqlalchemy.schema.Column` and other
+    generic SQLAlchemy classes.

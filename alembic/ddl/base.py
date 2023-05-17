@@ -150,7 +150,7 @@ class AddColumn(AlterTable):
     def __init__(
         self,
         name: str,
-        column: Column,
+        column: Column[Any],
         schema: Optional[Union[quoted_name, str]] = None,
     ) -> None:
         super().__init__(name, schema=schema)
@@ -159,7 +159,7 @@ class AddColumn(AlterTable):
 
 class DropColumn(AlterTable):
     def __init__(
-        self, name: str, column: Column, schema: Optional[str] = None
+        self, name: str, column: Column[Any], schema: Optional[str] = None
     ) -> None:
         super().__init__(name, schema=schema)
         self.column = column
@@ -320,7 +320,7 @@ def alter_column(compiler: DDLCompiler, name: str) -> str:
     return "ALTER COLUMN %s" % format_column_name(compiler, name)
 
 
-def add_column(compiler: DDLCompiler, column: Column, **kw) -> str:
+def add_column(compiler: DDLCompiler, column: Column[Any], **kw) -> str:
     text = "ADD COLUMN %s" % compiler.get_column_specification(column, **kw)
 
     const = " ".join(

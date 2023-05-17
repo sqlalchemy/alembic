@@ -664,7 +664,9 @@ def _user_defined_render(
     return False
 
 
-def _render_column(column: Column, autogen_context: AutogenContext) -> str:
+def _render_column(
+    column: Column[Any], autogen_context: AutogenContext
+) -> str:
     rendered = _user_defined_render("column", column, autogen_context)
     if rendered is not False:
         return rendered
@@ -727,7 +729,9 @@ def _should_render_server_default_positionally(server_default: Any) -> bool:
 
 
 def _render_server_default(
-    default: Optional[Union[FetchedValue, str, TextClause, ColumnElement]],
+    default: Optional[
+        Union[FetchedValue, str, TextClause, ColumnElement[Any]]
+    ],
     autogen_context: AutogenContext,
     repr_: bool = True,
 ) -> Optional[str]:

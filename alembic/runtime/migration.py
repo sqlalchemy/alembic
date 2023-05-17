@@ -708,7 +708,7 @@ class MigrationContext:
             return None
 
     def _compare_type(
-        self, inspector_column: Column, metadata_column: Column
+        self, inspector_column: Column[Any], metadata_column: Column
     ) -> bool:
         if self._user_compare_type is False:
             return False
@@ -728,8 +728,8 @@ class MigrationContext:
 
     def _compare_server_default(
         self,
-        inspector_column: Column,
-        metadata_column: Column,
+        inspector_column: Column[Any],
+        metadata_column: Column[Any],
         rendered_metadata_default: Optional[str],
         rendered_column_default: Optional[str],
     ) -> bool:

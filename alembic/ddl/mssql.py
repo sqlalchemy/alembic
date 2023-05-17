@@ -201,7 +201,7 @@ class MSSQLImpl(DefaultImpl):
     def drop_column(
         self,
         table_name: str,
-        column: Column,
+        column: Column[Any],
         schema: Optional[str] = None,
         **kw,
     ) -> None:
@@ -273,7 +273,7 @@ class _ExecDropConstraint(Executable, ClauseElement):
     def __init__(
         self,
         tname: str,
-        colname: Union[Column, str],
+        colname: Union[Column[Any], str],
         type_: str,
         schema: Optional[str],
     ) -> None:
@@ -287,7 +287,7 @@ class _ExecDropFKConstraint(Executable, ClauseElement):
     inherit_cache = False
 
     def __init__(
-        self, tname: str, colname: Column, schema: Optional[str]
+        self, tname: str, colname: Column[Any], schema: Optional[str]
     ) -> None:
         self.tname = tname
         self.colname = colname
@@ -347,7 +347,9 @@ def visit_add_column(element: AddColumn, compiler: MSDDLCompiler, **kw) -> str:
     )
 
 
-def mssql_add_column(compiler: MSDDLCompiler, column: Column, **kw) -> str:
+def mssql_add_column(
+    compiler: MSDDLCompiler, column: Column[Any], **kw
+) -> str:
     return "ADD %s" % compiler.get_column_specification(column, **kw)
 
 
