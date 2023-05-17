@@ -89,6 +89,34 @@ Alembic supports Python versions **3.7 and above**
 .. versionchanged::  1.7  Alembic now supports Python 3.6 and newer; support
    for Python 2.7 has been dropped.
 
+.. _versioning_scheme:
+
+Versioning Scheme
+-----------------
+
+Alembic's versioning scheme is based on that of
+`SQLAlchemy's versioning scheme <https://www.sqlalchemy.org/download.html#versions>`_.
+In particular, it should be noted that while Alembic uses a three-number
+versioning scheme, it **does not use SemVer**. In SQLAlchemy and Alembic's
+scheme, **the middle digit is considered to be a "Significant Minor Release",
+which may include removal of previously deprecated APIs with some risk of
+non-backwards compatibility in a very small number of cases**.
+
+This means that version "1.8.0", "1.9.0", "1.10.0", "1.11.0", etc. are
+**Significant Minor Releases**, which will include new API features and may
+remove or modify existing ones.
+
+Therefore, when `pinning <https://pip.pypa.io/en/stable/topics/repeatable-installs/>`_
+Alembic releases, pin to the "major" and "minor" digits to avoid API changes.
+
+A true "Major" release such as a change to "2.0" would include complete
+redesigns/re-architectures of foundational features; currently no such series
+of changes are planned, although changes such as replacing the entire
+"autogenerate" scheme with a new approach would qualify for that level of
+change.
+
+
+
 Community
 =========
 

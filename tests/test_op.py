@@ -806,6 +806,17 @@ class OpTest(TestBase):
         op.drop_constraint("foo_bar_bat", "t1")
         context.assert_("ALTER TABLE t1 DROP CONSTRAINT foo_bar_bat")
 
+    def test_drop_constraint_type(self):
+        context = op_fixture()
+        op.drop_constraint("foo_bar_bat", "t1", type_="foreignkey")
+        context.assert_("ALTER TABLE t1 DROP CONSTRAINT foo_bar_bat")
+
+    def test_drop_constraint_legacy_type(self):
+        """#1245"""
+        context = op_fixture()
+        op.drop_constraint("foo_bar_bat", "t1", "foreignkey")
+        context.assert_("ALTER TABLE t1 DROP CONSTRAINT foo_bar_bat")
+
     def test_drop_constraint_schema(self):
         context = op_fixture()
         op.drop_constraint("foo_bar_bat", "t1", schema="foo")
@@ -854,6 +865,17 @@ class OpTest(TestBase):
     def test_drop_index(self):
         context = op_fixture()
         op.drop_index("ik_test")
+        context.assert_("DROP INDEX ik_test")
+
+    def test_drop_index_w_tablename(self):
+        context = op_fixture()
+        op.drop_index("ik_test", table_name="the_table")
+        context.assert_("DROP INDEX ik_test")
+
+    def test_drop_index_w_tablename_legacy(self):
+        """#1243"""
+        context = op_fixture()
+        op.drop_index("ik_test", "the_table")
         context.assert_("DROP INDEX ik_test")
 
     def test_drop_index_schema(self):

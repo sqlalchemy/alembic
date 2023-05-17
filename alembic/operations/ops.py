@@ -132,8 +132,8 @@ class DropConstraintOp(MigrateOperation):
         self,
         constraint_name: Optional[sqla_compat._ConstraintNameDefined],
         table_name: str,
-        *,
         type_: Optional[str] = None,
+        *,
         schema: Optional[str] = None,
         _reverse: Optional[AddConstraintOp] = None,
     ) -> None:
@@ -196,8 +196,8 @@ class DropConstraintOp(MigrateOperation):
         operations: Operations,
         constraint_name: str,
         table_name: str,
-        *,
         type_: Optional[str] = None,
+        *,
         schema: Optional[str] = None,
     ) -> None:
         r"""Drop a constraint of the given name, typically via DROP CONSTRAINT.
@@ -221,7 +221,6 @@ class DropConstraintOp(MigrateOperation):
         cls,
         operations: BatchOperations,
         constraint_name: str,
-        *,
         type_: Optional[str] = None,
     ) -> None:
         """Issue a "drop constraint" instruction using the
@@ -1016,8 +1015,8 @@ class DropIndexOp(MigrateOperation):
     def __init__(
         self,
         index_name: Union[quoted_name, str, conv],
-        *,
         table_name: Optional[str] = None,
+        *,
         schema: Optional[str] = None,
         _reverse: Optional[CreateIndexOp] = None,
         **kw: Any,
@@ -1065,8 +1064,8 @@ class DropIndexOp(MigrateOperation):
         cls,
         operations: Operations,
         index_name: str,
-        *,
         table_name: Optional[str] = None,
+        *,
         schema: Optional[str] = None,
         **kw: Any,
     ) -> None:
