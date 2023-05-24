@@ -613,6 +613,11 @@ def _uq_constraint(
         opts.append(
             ("name", _render_gen_name(autogen_context, constraint.name))
         )
+    pg_nulls_not_distinct = constraint.dialect_options["postgresql"]["nulls_not_distinct"]
+    if pg_nulls_not_distinct is not None:
+        opts.append(
+            ("postgresql_nulls_not_distinct", pg_nulls_not_distinct)
+        )
 
     if alter:
         args = [repr(_render_gen_name(autogen_context, constraint.name))]

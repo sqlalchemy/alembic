@@ -2317,6 +2317,20 @@ class RenderNamingConventionTest(TestBase):
             "sa.UniqueConstraint('c', name=op.f('uq_ct_t_c'))",
         )
 
+    def test_render_unique_nulls_not_distinct_constraint(self):
+        m = MetaData()
+        t = Table("t", m, Column("c", Integer))
+        eq_ignore_whitespace(
+            autogenerate.render._render_unique_constraint(
+                UniqueConstraint(t.c.c, name="uq_1", deferrable="XYZ",
+                                 postgresql_nulls_not_distinct=True),
+                self.autogen_context,
+                None,
+            ),
+            "sa.UniqueConstraint('c', deferrable='XYZ', name='uq_1', "
+            "postgresql_nulls_not_distinct=True)",
+        )
+
     def test_inline_pk_constraint(self):
         t = Table("t", self.metadata, Column("c", Integer, primary_key=True))
         op_obj = ops.CreateTableOp.from_table(t)
