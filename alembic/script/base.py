@@ -26,23 +26,21 @@ from ..runtime import migration
 from ..util import not_none
 
 if TYPE_CHECKING:
+    from .revision import _RevIdType
+    from .revision import Revision
     from ..config import Config
     from ..config import MessagingOptions
     from ..runtime.migration import RevisionStep
     from ..runtime.migration import StampStep
-    from ..script.revision import Revision
 
 try:
     from dateutil import tz
 except ImportError:
     tz = None  # type: ignore[assignment]
 
-_RevIdType = Union[str, Sequence[str]]
-
 _sourceless_rev_file = re.compile(r"(?!\.\#|__init__)(.*\.py)(c|o)?$")
 _only_source_rev_file = re.compile(r"(?!\.\#|__init__)(.*\.py)$")
 _legacy_rev = re.compile(r"([a-f0-9]+)\.py$")
-_mod_def_re = re.compile(r"(upgrade|downgrade)_([a-z0-9]+)")
 _slug_re = re.compile(r"\w+")
 _default_file_template = "%(rev)s_%(slug)s"
 _split_on_space_comma = re.compile(r", *|(?: +)")
@@ -637,7 +635,7 @@ class ScriptDirectory:
         head: Optional[str] = None,
         refresh: bool = False,
         splice: Optional[bool] = False,
-        branch_labels: Optional[str] = None,
+        branch_labels: Optional[_RevIdType] = None,
         version_path: Optional[str] = None,
         depends_on: Optional[_RevIdType] = None,
         **kw: Any,

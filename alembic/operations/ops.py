@@ -53,6 +53,7 @@ if TYPE_CHECKING:
 
     from ..autogenerate.rewriter import Rewriter
     from ..runtime.migration import MigrationContext
+    from ..script.revision import _RevIdType
 
 
 class MigrateOperation:
@@ -2667,9 +2668,9 @@ class MigrationScript(MigrateOperation):
         imports: Set[str] = set(),
         head: Optional[str] = None,
         splice: Optional[bool] = None,
-        branch_label: Optional[str] = None,
+        branch_label: Optional[_RevIdType] = None,
         version_path: Optional[str] = None,
-        depends_on: Optional[Union[str, Sequence[str]]] = None,
+        depends_on: Optional[_RevIdType] = None,
     ) -> None:
         self.rev_id = rev_id
         self.message = message
