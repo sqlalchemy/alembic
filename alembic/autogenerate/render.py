@@ -94,7 +94,6 @@ def _render_cmd_body(
     op_container: ops.OpContainer,
     autogen_context: AutogenContext,
 ) -> str:
-
     buf = StringIO()
     printer = PythonPrinter(buf)
 
@@ -165,7 +164,6 @@ def _render_modify_table(
 def _render_create_table_comment(
     autogen_context: AutogenContext, op: ops.CreateTableCommentOp
 ) -> str:
-
     templ = (
         "{prefix}create_table_comment(\n"
         "{indent}'{tname}',\n"
@@ -190,7 +188,6 @@ def _render_create_table_comment(
 def _render_drop_table_comment(
     autogen_context: AutogenContext, op: ops.DropTableCommentOp
 ) -> str:
-
     templ = (
         "{prefix}drop_table_comment(\n"
         "{indent}'{tname}',\n"
@@ -362,7 +359,6 @@ def _add_unique_constraint(
 def _add_fk_constraint(
     autogen_context: AutogenContext, op: ops.CreateForeignKeyOp
 ) -> str:
-
     args = [repr(_render_gen_name(autogen_context, op.constraint_name))]
     if not autogen_context._has_batch:
         args.append(repr(_ident(op.source_table)))
@@ -411,7 +407,6 @@ def _add_check_constraint(constraint, autogen_context):
 def _drop_constraint(
     autogen_context: AutogenContext, op: ops.DropConstraintOp
 ) -> str:
-
     if autogen_context._has_batch:
         template = "%(prefix)sdrop_constraint" "(%(name)r, type_=%(type)r)"
     else:
@@ -432,7 +427,6 @@ def _drop_constraint(
 
 @renderers.dispatch_for(ops.AddColumnOp)
 def _add_column(autogen_context: AutogenContext, op: ops.AddColumnOp) -> str:
-
     schema, tname, column = op.schema, op.table_name, op.column
     if autogen_context._has_batch:
         template = "%(prefix)sadd_column(%(column)s)"
@@ -452,7 +446,6 @@ def _add_column(autogen_context: AutogenContext, op: ops.AddColumnOp) -> str:
 
 @renderers.dispatch_for(ops.DropColumnOp)
 def _drop_column(autogen_context: AutogenContext, op: ops.DropColumnOp) -> str:
-
     schema, tname, column_name = op.schema, op.table_name, op.column_name
 
     if autogen_context._has_batch:
@@ -476,7 +469,6 @@ def _drop_column(autogen_context: AutogenContext, op: ops.DropColumnOp) -> str:
 def _alter_column(
     autogen_context: AutogenContext, op: ops.AlterColumnOp
 ) -> str:
-
     tname = op.table_name
     cname = op.column_name
     server_default = op.modify_server_default
@@ -566,7 +558,6 @@ def _render_potential_expr(
     is_server_default: bool = False,
 ) -> str:
     if isinstance(value, sql.ClauseElement):
-
         if wrap_in_text:
             template = "%(prefix)stext(%(sql)r)"
         else:
@@ -613,11 +604,11 @@ def _uq_constraint(
         opts.append(
             ("name", _render_gen_name(autogen_context, constraint.name))
         )
-    pg_nulls_not_distinct = constraint.dialect_options["postgresql"]["nulls_not_distinct"]
+    pg_nulls_not_distinct = constraint.dialect_options["postgresql"][
+        "nulls_not_distinct"
+    ]
     if pg_nulls_not_distinct is not None:
-        opts.append(
-            ("postgresql_nulls_not_distinct", pg_nulls_not_distinct)
-        )
+        opts.append(("postgresql_nulls_not_distinct", pg_nulls_not_distinct))
 
     if alter:
         args = [repr(_render_gen_name(autogen_context, constraint.name))]
@@ -680,7 +671,6 @@ def _render_column(
     opts: List[Tuple[str, Any]] = []
 
     if column.server_default:
-
         rendered = _render_server_default(  # type:ignore[assignment]
             column.server_default, autogen_context
         )
@@ -989,7 +979,6 @@ def _fk_colspec(
 def _populate_render_fk_opts(
     constraint: ForeignKeyConstraint, opts: List[Tuple[str, str]]
 ) -> None:
-
     if constraint.onupdate:
         opts.append(("onupdate", repr(constraint.onupdate)))
     if constraint.ondelete:
