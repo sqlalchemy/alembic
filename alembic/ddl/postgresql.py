@@ -12,7 +12,6 @@ from typing import TYPE_CHECKING
 from typing import Union
 
 from sqlalchemy import Column
-from sqlalchemy import Index
 from sqlalchemy import literal_column
 from sqlalchemy import Numeric
 from sqlalchemy import text
@@ -50,6 +49,8 @@ from ..util import sqla_compat
 if TYPE_CHECKING:
     from typing import Literal
 
+    from sqlalchemy import Index
+    from sqlalchemy import UniqueConstraint
     from sqlalchemy.dialects.postgresql.array import ARRAY
     from sqlalchemy.dialects.postgresql.base import PGDDLCompiler
     from sqlalchemy.dialects.postgresql.hstore import HSTORE
@@ -305,6 +306,21 @@ class PostgresqlImpl(DefaultImpl):
                 break
         return to_remove
 
+    def _dialect_sig(
+        self, item: Union[Index, UniqueConstraint]
+    ) -> Tuple[Any, ...]:
+        if (
+            item.dialect_kwargs.get("postgresql_nulls_not_distinct")
+            is not None
+        ):
+            return (
+                (
+                    "nulls_not_distinct",
+                    item.dialect_kwargs["postgresql_nulls_not_distinct"],
+                ),
+            )
+        return ()
+
     def create_index_sig(self, index: Index) -> Tuple[Any, ...]:
         return tuple(
             self._cleanup_index_expr(
@@ -316,7 +332,14 @@ class PostgresqlImpl(DefaultImpl):
                 ),
             )
             for e in index.expressions
-        )
+        ) + self._dialect_sig(index)
+
+    def create_unique_constraint_sig(
+        self, const: UniqueConstraint
+    ) -> Tuple[Any, ...]:
+        return tuple(
+            sorted([col.name for col in const.columns])
+        ) + self._dialect_sig(const)
 
     def _compile_element(self, element: ClauseElement) -> str:
         return element.compile(

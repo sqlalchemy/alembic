@@ -1258,6 +1258,45 @@ class PostgresqlAutogenRenderTest(TestBase):
             "postgresql.JSONB(astext_type=sa.Text())",
         )
 
+    @config.requirements.nulls_not_distinct_sa
+    def test_render_unique_nulls_not_distinct_constraint(self):
+        m = MetaData()
+        t = Table("tbl", m, Column("c", Integer))
+        uc = UniqueConstraint(
+            t.c.c,
+            name="uq_1",
+            deferrable="XYZ",
+            postgresql_nulls_not_distinct=True,
+        )
+        eq_ignore_whitespace(
+            autogenerate.render.render_op_text(
+                self.autogen_context,
+                ops.AddConstraintOp.from_constraint(uc),
+            ),
+            "op.create_unique_constraint('uq_1', 'tbl', ['c'], "
+            "deferrable='XYZ', postgresql_nulls_not_distinct=True)",
+        )
+        eq_ignore_whitespace(
+            autogenerate.render._render_unique_constraint(
+                uc, self.autogen_context, None
+            ),
+            "sa.UniqueConstraint('c', deferrable='XYZ', name='uq_1', "
+            "postgresql_nulls_not_distinct=True)",
+        )
+
+    @config.requirements.nulls_not_distinct_sa
+    def test_render_index_nulls_not_distinct_constraint(self):
+        m = MetaData()
+        t = Table("tbl", m, Column("c", Integer))
+        idx = Index("ix_42", t.c.c, postgresql_nulls_not_distinct=False)
+        eq_ignore_whitespace(
+            autogenerate.render.render_op_text(
+                self.autogen_context, ops.CreateIndexOp.from_index(idx)
+            ),
+            "op.create_index('ix_42', 'tbl', ['c'], unique=False, "
+            "postgresql_nulls_not_distinct=False)",
+        )
+
 
 class PGUniqueIndexAutogenerateTest(AutogenFixtureTest, TestBase):
     __only_on__ = "postgresql"
@@ -1394,3 +1433,103 @@ class PGUniqueIndexAutogenerateTest(AutogenFixtureTest, TestBase):
         eq_(diffs[0][0], "remove_constraint")
         eq_(diffs[0][1].name, "uq_name")
         eq_(len(diffs), 1)
+
+
+case = combinations(False, True, None, argnames="case", id_="s")
+name_type = combinations(
+    (
+        "index",
+        lambda value: Index(
+            "nnd_obj", "name", unique=True, postgresql_nulls_not_distinct=value
+        ),
+    ),
+    (
+        "constraint",
+        lambda value: UniqueConstraint(
+            "id", "name", name="nnd_obj", postgresql_nulls_not_distinct=value
+        ),
+    ),
+    argnames="name,type_",
+    id_="sa",
+)
+
+
+class PGNullsNotDistinctAutogenerateTest(AutogenFixtureTest, TestBase):
+    __requires__ = ("nulls_not_distinct_db",)
+    __only_on__ = "postgresql"
+    __backend__ = True
+
+    @case
+    @name_type
+    def test_add(self, case, name, type_):
+        m1 = MetaData()
+        m2 = MetaData()
+        Table(
+            "tbl",
+            m1,
+            Column("id", Integer, primary_key=True),
+            Column("name", String),
+        )
+        Table(
+            "tbl",
+            m2,
+            Column("id", Integer, primary_key=True),
+            Column("name", String),
+            type_(case),
+        )
+        diffs = self._fixture(m1, m2)
+        eq_(len(diffs), 1)
+        eq_(diffs[0][0], f"add_{name}")
+        added = diffs[0][1]
+        eq_(added.name, "nnd_obj")
+        eq_(added.dialect_kwargs["postgresql_nulls_not_distinct"], case)
+
+    @case
+    @name_type
+    def test_remove(self, case, name, type_):
+        m1 = MetaData()
+        m2 = MetaData()
+        Table(
+            "tbl",
+            m1,
+            Column("id", Integer, primary_key=True),
+            Column("name", String),
+            type_(case),
+        )
+        Table(
+            "tbl",
+            m2,
+            Column("id", Integer, primary_key=True),
+            Column("name", String),
+        )
+        diffs = self._fixture(m1, m2)
+        eq_(len(diffs), 1)
+        eq_(diffs[0][0], f"remove_{name}")
+        eq_(diffs[0][1].name, "nnd_obj")
+
+    @case
+    @name_type
+    def test_toggle_not_distinct(self, case, name, type_):
+        m1 = MetaData()
+        m2 = MetaData()
+        to = not case
+        Table(
+            "tbl",
+            m1,
+            Column("id", Integer, primary_key=True),
+            Column("name", String),
+            type_(case),
+        )
+        Table(
+            "tbl",
+            m2,
+            Column("id", Integer, primary_key=True),
+            Column("name", String),
+            type_(to),
+        )
+        diffs = self._fixture(m1, m2)
+        eq_(len(diffs), 2)
+        eq_(diffs[0][0], f"remove_{name}")
+        eq_(diffs[1][0], f"add_{name}")
+        eq_(diffs[1][1].name, "nnd_obj")
+        eq_(diffs[1][1].dialect_kwargs["postgresql_nulls_not_distinct"], to)
