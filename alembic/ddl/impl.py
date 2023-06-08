@@ -637,7 +637,6 @@ class DefaultImpl(metaclass=ImplMeta):
         return False
 
     def _compare_identity_default(self, metadata_identity, inspector_identity):
-
         # ignored contains the attributes that were not considered
         # because assumed to their default values in the db.
         diff, ignored = _compare_identity_options(

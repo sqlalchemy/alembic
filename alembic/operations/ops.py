@@ -176,7 +176,6 @@ class DropConstraintOp(MigrateOperation):
         )
 
     def to_constraint(self) -> Constraint:
-
         if self._reverse is not None:
             constraint = self._reverse.to_constraint()
             constraint.name = self.constraint_name
@@ -397,7 +396,6 @@ class CreateUniqueConstraintOp(AddConstraintOp):
     def from_constraint(
         cls, constraint: Constraint
     ) -> CreateUniqueConstraintOp:
-
         constraint_table = sqla_compat._table_for_constraint(constraint)
 
         uq_constraint = cast("UniqueConstraint", constraint)
@@ -535,7 +533,6 @@ class CreateForeignKeyOp(AddConstraintOp):
 
     @classmethod
     def from_constraint(cls, constraint: Constraint) -> CreateForeignKeyOp:
-
         fk_constraint = cast("ForeignKeyConstraint", constraint)
         kw: dict = {}
         if fk_constraint.onupdate:
@@ -1758,7 +1755,6 @@ class AlterColumnOp(AlterTableOp):
             return False
 
     def reverse(self) -> AlterColumnOp:
-
         kw = self.kw.copy()
         kw["existing_type"] = self.existing_type
         kw["existing_nullable"] = self.existing_nullable

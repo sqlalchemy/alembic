@@ -41,7 +41,7 @@ TRIM_MODULE = [
     "sqlalchemy.sql.type_api.",
     "sqlalchemy.sql.functions.",
     "sqlalchemy.sql.dml.",
-    "typing."
+    "typing.",
 ]
 ADDITIONAL_ENV = {
     "MigrationContext": MigrationContext,

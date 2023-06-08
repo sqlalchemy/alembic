@@ -524,7 +524,6 @@ def _get_constraint_final_name(
             constraint, _alembic_quote=False
         )
     else:
-
         # prior to SQLAlchemy 1.4, work around quoting logic to get at the
         # final compiled name without quotes.
         if hasattr(constraint.name, "quote"):

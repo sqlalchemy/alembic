@@ -813,7 +813,6 @@ class IgnoreFilesTest(TestBase):
         clear_staging_env()
 
     def _test_ignore_file_py(self, fname):
-
         command.revision(self.cfg, message="some rev")
         script = ScriptDirectory.from_config(self.cfg)
         path = os.path.join(script.versions, fname)
@@ -1076,7 +1075,6 @@ class RecursiveScriptDirectoryTest(TestBase):
 
     @testing.fixture
     def multi_base_fixture(self):
-
         self.env = staging_env()
         self.cfg = _multi_dir_testing_config()
         self.cfg.set_main_option("recursive_version_locations", "true")

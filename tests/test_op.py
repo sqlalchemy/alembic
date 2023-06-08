@@ -56,7 +56,6 @@ class OpTest(TestBase):
         context.assert_("CREATE INDEX name ON tname (foo(x))")
 
     def test_add_column_schema_hard_quoting(self):
-
         context = op_fixture("postgresql")
         op.add_column(
             "somename",
@@ -69,7 +68,6 @@ class OpTest(TestBase):
         )
 
     def test_rename_table_schema_hard_quoting(self):
-
         context = op_fixture("postgresql")
         op.rename_table(
             "t1", "t2", schema=quoted_name("some.schema", quote=True)
@@ -78,7 +76,6 @@ class OpTest(TestBase):
         context.assert_('ALTER TABLE "some.schema".t1 RENAME TO t2')
 
     def test_add_constraint_schema_hard_quoting(self):
-
         context = op_fixture("postgresql")
         op.create_check_constraint(
             "ck_user_name_len",

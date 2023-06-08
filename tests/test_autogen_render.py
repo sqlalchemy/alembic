@@ -1621,7 +1621,6 @@ class AutogenRenderTest(TestBase):
         )
 
     def test_generic_array_type(self):
-
         eq_ignore_whitespace(
             autogenerate.render._repr_type(
                 types.ARRAY(Integer), self.autogen_context
@@ -1757,7 +1756,6 @@ class AutogenRenderTest(TestBase):
         )
 
     def test_render_variant(self):
-
         self.autogen_context.opts["user_module_prefix"] = None
 
         type_ = (
@@ -2213,7 +2211,6 @@ class AutogenRenderTest(TestBase):
 
 class RenderNamingConventionTest(TestBase):
     def setUp(self):
-
         convention = {
             "ix": "ix_%(custom)s_%(column_0_label)s",
             "uq": "uq_%(custom)s_%(table_name)s_%(column_0_name)s",

@@ -243,7 +243,6 @@ class Dispatcher:
         return decorate
 
     def dispatch(self, obj: Any, qualifier: str = "default") -> Any:
-
         if isinstance(obj, str):
             targets: Sequence = [obj]
         elif isinstance(obj, type):

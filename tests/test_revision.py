@@ -649,7 +649,6 @@ class BranchTravellingTest(DownIterateTest):
         )
 
     def test_three_branches_end_in_single_branch(self):
-
         self._assert_iteration(
             ["merge", "fe1b1"],
             "a3",
@@ -670,7 +669,6 @@ class BranchTravellingTest(DownIterateTest):
         )
 
     def test_two_branches_to_root(self):
-
         # here we want 'a3' as a "stop" branch point, but *not*
         # 'db1', as we don't have multiple traversals on db1
         self._assert_iteration(
@@ -721,7 +719,6 @@ class BranchTravellingTest(DownIterateTest):
         )
 
     def test_three_branches_to_root(self):
-
         # in this case, both "a3" and "db1" are stop points
         self._assert_iteration(
             ["merge", "fe1b1"],
@@ -746,7 +743,6 @@ class BranchTravellingTest(DownIterateTest):
         )
 
     def test_three_branches_end_multiple_bases(self):
-
         # in this case, both "a3" and "db1" are stop points
         self._assert_iteration(
             ["merge", "fe1b1"],
@@ -765,7 +761,6 @@ class BranchTravellingTest(DownIterateTest):
         )
 
     def test_three_branches_end_multiple_bases_exclusive(self):
-
         self._assert_iteration(
             ["merge", "fe1b1"],
             ["cb1", "cb2"],

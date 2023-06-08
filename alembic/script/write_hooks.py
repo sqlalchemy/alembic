@@ -114,7 +114,6 @@ def _parse_cmdline_options(cmdline_options_str: str, path: str) -> List[str]:
 def console_scripts(
     path: str, options: dict, ignore_output: bool = False
 ) -> None:
-
     try:
         entrypoint_name = options["entrypoint"]
     except KeyError as ke:

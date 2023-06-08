@@ -336,7 +336,6 @@ class RevisionMap:
                     and not parent._is_real_branch_point
                     and not parent.is_merge_point
                 ):
-
                     parent.branch_labels.update(revision.branch_labels)
                     if parent.down_revision:
                         parent = map_[parent.down_revision]
@@ -813,7 +812,6 @@ class RevisionMap:
         omit_immediate_dependencies: bool = False,
         include_dependencies: bool = True,
     ) -> Iterator[Any]:
-
         if omit_immediate_dependencies:
 
             def fn(rev):
@@ -843,7 +841,6 @@ class RevisionMap:
         check: bool = False,
         include_dependencies: bool = True,
     ) -> Iterator[Revision]:
-
         if include_dependencies:
 
             def fn(rev):
@@ -945,7 +942,6 @@ class RevisionMap:
 
         current_candidate_idx = 0
         while current_heads:
-
             candidate = current_heads[current_candidate_idx]
 
             for check_head_index, ancestors in enumerate(ancestors_by_idx):

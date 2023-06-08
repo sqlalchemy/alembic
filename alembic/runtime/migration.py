@@ -522,7 +522,6 @@ class MigrationContext:
             if start_from_rev == "base":
                 start_from_rev = None
             elif start_from_rev is not None and self.script:
-
                 start_from_rev = [
                     cast("Script", self.script.get_revision(sfr)).revision
                     for sfr in util.to_list(start_from_rev)
@@ -614,7 +613,6 @@ class MigrationContext:
         assert self._migrations_fn is not None
         for step in self._migrations_fn(heads, self):
             with self.begin_transaction(_per_migration=True):
-
                 if self.as_sql and not head_maintainer.heads:
                     # for offline mode, include a CREATE TABLE from
                     # the base
@@ -733,7 +731,6 @@ class MigrationContext:
         rendered_metadata_default: Optional[str],
         rendered_column_default: Optional[str],
     ) -> bool:
-
         if self._user_compare_server_default is False:
             return False
 
@@ -1000,7 +997,6 @@ class MigrationInfo:
 
 
 class MigrationStep:
-
     from_revisions_no_deps: Tuple[str, ...]
     to_revisions_no_deps: Tuple[str, ...]
     is_upgrade: bool

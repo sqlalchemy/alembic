@@ -901,7 +901,6 @@ class BatchApplyTest(TestBase):
 class BatchAPITest(TestBase):
     @contextmanager
     def _fixture(self, schema=None):
-
         migration_context = mock.Mock(
             opts={},
             impl=mock.MagicMock(__dialect__="sqlite", connection=object()),

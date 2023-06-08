@@ -240,7 +240,6 @@ class MySQLImpl(DefaultImpl):
         metadata_unique_constraints,
         metadata_indexes,
     ):
-
         # TODO: if SQLA 1.0, make use of "duplicates_index"
         # metadata
         removed = set()

@@ -331,7 +331,6 @@ class AutogenContext:
         opts: Optional[dict] = None,
         autogenerate: bool = True,
     ) -> None:
-
         if (
             autogenerate
             and migration_context is not None
@@ -431,7 +430,6 @@ class AutogenContext:
                     parent_names["schema_qualified_table_name"] = table_name
 
         for fn in self._name_filters:
-
             if not fn(name, type_, parent_names):
                 return False
         else:

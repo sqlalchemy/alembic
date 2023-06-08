@@ -66,7 +66,6 @@ comparators = util.Dispatcher(uselist=True)
 def _produce_net_changes(
     autogen_context: AutogenContext, upgrade_ops: UpgradeOps
 ) -> None:
-
     connection = autogen_context.connection
     assert connection is not None
     include_schemas = autogen_context.opts.get("include_schemas", False)
@@ -145,7 +144,6 @@ def _compare_tables(
     upgrade_ops: UpgradeOps,
     autogen_context: AutogenContext,
 ) -> None:
-
     default_schema = inspector.bind.dialect.default_schema_name
 
     # tables coming from the connection will not have "schema"
@@ -214,7 +212,6 @@ def _compare_tables(
             )
             sqla_compat._reflect_table(inspector, t)
         if autogen_context.run_object_filters(t, tname, "table", True, None):
-
             modify_table_ops = ops.ModifyTableOps(tname, [], schema=s)
 
             comparators.dispatch("table")(
@@ -255,7 +252,6 @@ def _compare_tables(
         if autogen_context.run_object_filters(
             metadata_table, tname, "table", False, conn_table
         ):
-
             modify_table_ops = ops.ModifyTableOps(tname, [], schema=s)
             with _compare_columns(
                 s,
@@ -266,7 +262,6 @@ def _compare_tables(
                 autogen_context,
                 inspector,
             ):
-
                 comparators.dispatch("table")(
                     autogen_context,
                     modify_table_ops,
@@ -534,7 +529,6 @@ def _compare_indexes_and_uniques(
     conn_table: Optional[Table],
     metadata_table: Optional[Table],
 ) -> None:
-
     inspector = autogen_context.inspector
     is_create_table = conn_table is None
     is_drop_table = metadata_table is None
@@ -913,7 +907,6 @@ def _correct_for_uq_duplicates_uix(
                 _uq_constraint_sig(uqs_dupe_indexes[overlap]).sig
                 not in unnamed_metadata_uqs
             ):
-
                 conn_unique_constraints.discard(uqs_dupe_indexes[overlap])
         elif overlap not in metadata_ix_names:
             conn_indexes.discard(conn_ix_names[overlap])
@@ -929,7 +922,6 @@ def _compare_nullable(
     conn_col: Column[Any],
     metadata_col: Column[Any],
 ) -> None:
-
     metadata_col_nullable = metadata_col.nullable
     conn_col_nullable = conn_col.nullable
     alter_column_op.existing_nullable = conn_col_nullable
@@ -971,7 +963,6 @@ def _setup_autoincrement(
     conn_col: Column[Any],
     metadata_col: Column[Any],
 ) -> None:
-
     if metadata_col.table._autoincrement_column is metadata_col:
         alter_column_op.kw["autoincrement"] = True
     elif metadata_col.autoincrement is True:
@@ -990,7 +981,6 @@ def _compare_type(
     conn_col: Column[Any],
     metadata_col: Column[Any],
 ) -> None:
-
     conn_type = conn_col.type
     alter_column_op.existing_type = conn_type
     metadata_type = metadata_col.type
@@ -1027,7 +1017,6 @@ def _compare_type(
 def _render_server_default_for_compare(
     metadata_default: Optional[Any], autogen_context: AutogenContext
 ) -> Optional[str]:
-
     if isinstance(metadata_default, sa_schema.DefaultClause):
         if isinstance(metadata_default.arg, str):
             metadata_default = metadata_default.arg
@@ -1129,7 +1118,6 @@ def _compare_server_default(
     conn_col: Column[Any],
     metadata_col: Column[Any],
 ) -> Optional[bool]:
-
     metadata_default = metadata_col.server_default
     conn_col_default = conn_col.server_default
     if conn_col_default is None and metadata_default is None:
@@ -1218,7 +1206,6 @@ def _compare_column_comment(
     conn_col: Column[Any],
     metadata_col: Column[Any],
 ) -> Optional[Literal[False]]:
-
     assert autogen_context.dialect is not None
     if not autogen_context.dialect.supports_comments:
         return None
@@ -1246,7 +1233,6 @@ def _compare_foreign_keys(
     conn_table: Optional[Table],
     metadata_table: Optional[Table],
 ) -> None:
-
     # if we're doing CREATE TABLE, all FKs are created
     # inline within the table def
     if conn_table is None or metadata_table is None:
@@ -1366,7 +1352,6 @@ def _compare_table_comment(
     conn_table: Optional[Table],
     metadata_table: Optional[Table],
 ) -> None:
-
     assert autogen_context.dialect is not None
     if not autogen_context.dialect.supports_comments:
         return

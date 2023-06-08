@@ -479,7 +479,6 @@ class ScriptDirectory:
             multiple_heads="Multiple heads are present; please specify a "
             "single target revision"
         ):
-
             heads_revs = self.get_revisions(heads)
 
             steps = []
@@ -502,7 +501,6 @@ class ScriptDirectory:
             dests = self.get_revisions(revision) or [None]
 
             for dest in dests:
-
                 if dest is None:
                     # dest is 'base'.  Return a "delete branch" migration
                     # for all applicable heads.

@@ -119,7 +119,6 @@ class RevisionPathTest(MigrationTest):
         )
 
     def test_invalid_relative_upgrade_path(self):
-
         assert_raises_message(
             util.CommandError,
             "Relative revision -2 didn't produce 2 migrations",
@@ -137,7 +136,6 @@ class RevisionPathTest(MigrationTest):
         )
 
     def test_downgrade_path(self):
-
         self._assert_downgrade(
             self.c.revision,
             self.e.revision,
@@ -153,7 +151,6 @@ class RevisionPathTest(MigrationTest):
         )
 
     def test_relative_downgrade_path(self):
-
         self._assert_downgrade(
             "-1", self.c.revision, [self.down_(self.c)], {self.b.revision}
         )
@@ -180,7 +177,6 @@ class RevisionPathTest(MigrationTest):
         )
 
     def test_invalid_relative_downgrade_path(self):
-
         assert_raises_message(
             util.CommandError,
             "Relative revision -5 didn't produce 5 migrations",
@@ -198,7 +194,6 @@ class RevisionPathTest(MigrationTest):
         )
 
     def test_invalid_move_rev_to_none(self):
-
         assert_raises_message(
             util.CommandError,
             r"Destination %s is not a valid downgrade "
@@ -209,7 +204,6 @@ class RevisionPathTest(MigrationTest):
         )
 
     def test_invalid_move_higher_to_lower(self):
-
         assert_raises_message(
             util.CommandError,
             r"Destination %s is not a valid downgrade "
@@ -282,7 +276,6 @@ class BranchedPathTest(MigrationTest):
         )
 
     def test_upgrade_single_branch(self):
-
         self._assert_upgrade(
             self.d1.revision,
             self.b.revision,
@@ -321,7 +314,6 @@ class BranchedPathTest(MigrationTest):
         )
 
     def test_relative_upgrade(self):
-
         self._assert_upgrade(
             "c2branch@head-1",
             self.b.revision,
@@ -616,7 +608,6 @@ class BranchFromMergepointTest(MigrationTest):
         )
 
     def test_mergepoint_to_only_one_side_downgrade(self):
-
         self._assert_downgrade(
             self.b1.revision,
             (self.d2.revision, self.d1.revision),
@@ -691,7 +682,6 @@ class BranchFrom3WayMergepointTest(MigrationTest):
         clear_staging_env()
 
     def test_mergepoint_to_only_one_side_upgrade(self):
-
         self._assert_upgrade(
             self.d1.revision,
             (self.d3.revision, self.d2.revision, self.b1.revision),
@@ -708,7 +698,6 @@ class BranchFrom3WayMergepointTest(MigrationTest):
         )
 
     def test_mergepoint_to_two_sides_upgrade(self):
-
         self._assert_upgrade(
             self.d1.revision,
             (self.d3.revision, self.b2.revision, self.b1.revision),
@@ -1176,7 +1165,6 @@ class DependsOnBranchTestFour(MigrationTest):
         clear_staging_env()
 
     def test_dependencies_are_normalized(self):
-
         heads = [self.b4.revision]
 
         self._assert_downgrade(
@@ -1378,7 +1366,6 @@ class MergedPathTest(MigrationTest):
         )
 
     def test_upgrade_across_merge_point(self):
-
         eq_(
             self.env._upgrade_revs(self.f.revision, self.b.revision),
             [
@@ -1393,7 +1380,6 @@ class MergedPathTest(MigrationTest):
         )
 
     def test_downgrade_across_merge_point(self):
-
         eq_(
             self.env._downgrade_revs(self.b.revision, self.f.revision),
             [

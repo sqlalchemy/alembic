@@ -25,7 +25,6 @@ from .. import util
 from ..operations import Operations
 
 if TYPE_CHECKING:
-
     from sqlalchemy.engine import URL
     from sqlalchemy.engine.base import Connection
     from sqlalchemy.sql.elements import ClauseElement

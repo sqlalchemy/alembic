@@ -49,7 +49,6 @@ def coerce_resource_to_filename(fname: str) -> str:
 
     """
     if not os.path.isabs(fname) and ":" in fname:
-
         tokens = fname.split(":")
 
         # from https://importlib-resources.readthedocs.io/en/latest/migration.html#pkg-resources-resource-filename  # noqa E501

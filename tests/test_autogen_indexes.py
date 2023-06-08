@@ -1446,7 +1446,6 @@ def _lots_of_indexes(flatten: bool = False):
     req = config.requirements.reflects_indexes_column_sorting
 
     if flatten:
-
         flat = list(itertools.chain.from_iterable(diff_pairs))
         for f1, f2 in with_sort:
             flat.extend([(f1, req), (f2, req)])

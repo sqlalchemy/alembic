@@ -14,7 +14,6 @@ if TYPE_CHECKING:
 def alter_column(
     operations: "Operations", operation: "ops.AlterColumnOp"
 ) -> None:
-
     compiler = operations.impl.dialect.statement_compiler(
         operations.impl.dialect, None
     )

@@ -337,7 +337,6 @@ class ApplyBatchImpl:
         for const in (
             list(self.named_constraints.values()) + self.unnamed_constraints
         ):
-
             const_columns = {c.key for c in _columns_for_constraint(const)}
 
             if not const_columns.issubset(self.column_transfers):

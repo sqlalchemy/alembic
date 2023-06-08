@@ -90,7 +90,6 @@ class PostgresqlImpl(DefaultImpl):
         self._exec(CreateIndex(index))
 
     def prep_table_for_batch(self, batch_impl, table):
-
         for constraint in table.constraints:
             if (
                 constraint.name is not None
@@ -157,7 +156,6 @@ class PostgresqlImpl(DefaultImpl):
         existing_autoincrement: Optional[bool] = None,
         **kw: Any,
     ) -> None:
-
         using = kw.pop("postgresql_using", None)
 
         if using is not None and type_ is None:
@@ -239,7 +237,6 @@ class PostgresqlImpl(DefaultImpl):
         metadata_unique_constraints,
         metadata_indexes,
     ):
-
         doubled_constraints = {
             index
             for index in conn_indexes
@@ -638,7 +635,6 @@ def _render_inline_exclude_constraint(
 
 
 def _postgresql_autogenerate_prefix(autogen_context: AutogenContext) -> str:
-
     imports = autogen_context.imports
     if imports is not None:
         imports.add("from sqlalchemy.dialects import postgresql")

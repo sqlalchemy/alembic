@@ -264,7 +264,6 @@ assert not context.requires_connection()
         command.downgrade(self.cfg, "%s:%s" % (b, a), sql=True)
 
     def test_running_comments_not_in_sql(self):
-
         message = "this is a very long \nand multiline\nmessage"
 
         d = command.revision(self.cfg, message=message)

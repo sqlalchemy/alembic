@@ -279,7 +279,6 @@ class AutogenFixtureTest(_ComparesFKs):
         return_ops=False,
         max_identifier_length=None,
     ):
-
         if max_identifier_length:
             dialect = self.bind.dialect
             existing_length = dialect.max_identifier_length

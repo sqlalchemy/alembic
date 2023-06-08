@@ -100,7 +100,6 @@ class SQLiteImpl(DefaultImpl):
         rendered_metadata_default: Optional[str],
         rendered_inspector_default: Optional[str],
     ) -> bool:
-
         if rendered_metadata_default is not None:
             rendered_metadata_default = re.sub(
                 r"^\((.+)\)$", r"\1", rendered_metadata_default
@@ -193,7 +192,6 @@ class SQLiteImpl(DefaultImpl):
         metadata_unique_constraints,
         metadata_indexes,
     ):
-
         self._skip_functional_indexes(metadata_indexes, conn_indexes)
 
 

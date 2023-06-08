@@ -957,7 +957,6 @@ class PostgresqlAutogenRenderTest(TestBase):
         )
 
     def test_postgresql_array_type(self):
-
         eq_ignore_whitespace(
             autogenerate.render._repr_type(
                 ARRAY(Integer), self.autogen_context
@@ -1011,7 +1010,6 @@ class PostgresqlAutogenRenderTest(TestBase):
         )
 
     def test_generic_array_type(self):
-
         eq_ignore_whitespace(
             autogenerate.render._repr_type(
                 types.ARRAY(Integer), self.autogen_context
@@ -1341,7 +1339,6 @@ class PGUniqueIndexAutogenerateTest(AutogenFixtureTest, TestBase):
 
     @config.requirements.btree_gist
     def test_exclude_const_unchanged(self):
-
         m1 = MetaData()
         m2 = MetaData()
 

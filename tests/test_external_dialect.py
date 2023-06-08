@@ -101,7 +101,6 @@ class ExternalDialectRenderTest(TestBase):
         )
 
     def test_external_nested_render_sqla_type(self):
-
         eq_ignore_whitespace(
             autogenerate.render._repr_type(
                 EXT_ARRAY(sqla_types.Integer), self.autogen_context
@@ -126,7 +125,6 @@ class ExternalDialectRenderTest(TestBase):
         )
 
     def test_external_nested_render_external_type(self):
-
         eq_ignore_whitespace(
             autogenerate.render._repr_type(
                 EXT_ARRAY(FOOBARTYPE), self.autogen_context

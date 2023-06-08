@@ -64,7 +64,6 @@ def assert_raises_message_context_ok(
 def _assert_raises(
     except_cls, callable_, args, kwargs, msg=None, check_context=False
 ):
-
     with _expect_raises(except_cls, msg, check_context) as ec:
         callable_(*args, **kwargs)
     return ec.error
@@ -104,7 +103,6 @@ def expect_raises_message(except_cls, msg, check_context=True):
 
 
 def eq_ignore_whitespace(a, b, msg=None):
-
     a = re.sub(r"^\s+?|\n", "", a)
     a = re.sub(r" {2,}", " ", a)
     b = re.sub(r"^\s+?|\n", "", b)
@@ -120,7 +118,6 @@ def _get_dialect(name):
     if name is None or name == "default":
         return default.DefaultDialect()
     else:
-
         d = sqla_compat._create_url(name).get_dialect()()
 
         if name == "postgresql":

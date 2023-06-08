@@ -98,7 +98,6 @@ class MSSQLImpl(DefaultImpl):
         existing_nullable: Optional[bool] = None,
         **kw: Any,
     ) -> None:
-
         if nullable is not None:
             if type_ is not None:
                 # the NULL/NOT NULL alter will handle
@@ -231,9 +230,7 @@ class MSSQLImpl(DefaultImpl):
         rendered_metadata_default,
         rendered_inspector_default,
     ):
-
         if rendered_metadata_default is not None:
-
             rendered_metadata_default = re.sub(
                 r"[\(\) \"\']", "", rendered_metadata_default
             )

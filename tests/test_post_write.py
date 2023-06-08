@@ -154,7 +154,6 @@ class RunHookTest(TestBase):
         ), mock.patch(
             "alembic.script.write_hooks.subprocess"
         ) as mock_subprocess:
-
             rev = command.revision(self.cfg, message="x")
 
         eq_(importlib_metadata_get.mock_calls, [mock.call("console_scripts")])
@@ -191,7 +190,6 @@ black.options = -l 79
 
     @combinations(True, False)
     def test_filename_interpolation(self, posix):
-
         input_config = """
 [post_write_hooks]
 hooks = black
@@ -223,7 +221,6 @@ black.options = arg1 REVISION_SCRIPT_FILENAME 'multi-word arg' \
             )
 
     def test_path_in_config(self):
-
         input_config = """
 [post_write_hooks]
 hooks = black

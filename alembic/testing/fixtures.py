@@ -134,7 +134,6 @@ def op_fixture(
     literal_binds=False,
     native_boolean=None,
 ):
-
     opts = {}
     if naming_convention:
         opts["target_metadata"] = MetaData(naming_convention=naming_convention)
@@ -217,7 +216,6 @@ def op_fixture(
 
 
 class AlterColRoundTripFixture:
-
     # since these tests are about syntax, use more recent SQLAlchemy as some of
     # the type / server default compare logic might not work on older
     # SQLAlchemy versions as seems to be the case for SQLAlchemy 1.1 on Oracle

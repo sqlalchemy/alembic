@@ -1210,7 +1210,6 @@ class CommandLineTest(TestBase):
             )
 
     def test_init_w_package(self):
-
         path = os.path.join(_get_staging_directory(), "foobar")
 
         with mock.patch("alembic.command.open") as open_:

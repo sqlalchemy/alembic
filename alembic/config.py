@@ -24,7 +24,6 @@ from .util import compat
 
 
 class Config:
-
     r"""Represent an Alembic configuration.
 
     Within an ``env.py`` script, this is available
@@ -563,7 +562,6 @@ class CommandLine:
                 and fn.__name__[0] != "_"
                 and fn.__module__ == "alembic.command"
             ):
-
                 spec = compat.inspect_getfullargspec(fn)
                 if spec[3] is not None:
                     positional = spec[0][1 : -len(spec[3])]

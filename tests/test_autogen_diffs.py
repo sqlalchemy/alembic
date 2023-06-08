@@ -238,7 +238,6 @@ class AutogenDefaultSchemaTest(AutogenFixtureTest, TestBase):
     __backend__ = True
 
     def test_uses_explcit_schema_in_default_one(self):
-
         default_schema = self.bind.dialect.default_schema_name
 
         m1 = MetaData()
@@ -251,7 +250,6 @@ class AutogenDefaultSchemaTest(AutogenFixtureTest, TestBase):
         eq_(diffs, [])
 
     def test_uses_explcit_schema_in_default_two(self):
-
         default_schema = self.bind.dialect.default_schema_name
 
         m1 = MetaData()
@@ -268,7 +266,6 @@ class AutogenDefaultSchemaTest(AutogenFixtureTest, TestBase):
         eq_(diffs[0][1].c.keys(), ["y"])
 
     def test_uses_explcit_schema_in_default_three(self):
-
         default_schema = self.bind.dialect.default_schema_name
 
         m1 = MetaData()
@@ -300,7 +297,6 @@ class AutogenDefaultSchemaIsNoneTest(AutogenFixtureTest, TestBase):
         eq_(self.bind.dialect.default_schema_name, None)
 
     def test_no_default_schema(self):
-
         m1 = MetaData()
         m2 = MetaData()
 
@@ -854,7 +850,6 @@ class CompareTypeSpecificityTest(TestBase):
     def test_compare_type(
         self, impl_fixture, inspected_type, metadata_type, expected
     ):
-
         is_(
             impl_fixture.compare_type(
                 Column("x", inspected_type), Column("x", metadata_type)
@@ -1440,7 +1435,6 @@ class AutogenKeyTest(AutogenTest, TestBase):
     symbols = ["someothertable", "sometable"]
 
     def test_autogen(self):
-
         uo = ops.UpgradeOps(ops=[])
 
         ctx = self.autogen_context
