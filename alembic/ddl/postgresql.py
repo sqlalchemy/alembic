@@ -80,15 +80,17 @@ class PostgresqlImpl(DefaultImpl):
     )
     identity_attrs_ignore = ("on_null", "order")
 
-    def create_index(self, index):
+    def create_index(self, index: Index, **kw: Any) -> None:
         # this likely defaults to None if not present, so get()
         # should normally not return the default value.  being
         # defensive in any case
         postgresql_include = index.kwargs.get("postgresql_include", None) or ()
         for col in postgresql_include:
-            if col not in index.table.c:
-                index.table.append_column(Column(col, sqltypes.NullType))
-        self._exec(CreateIndex(index))
+            if col not in index.table.c:  # type: ignore[union-attr]
+                index.table.append_column(  # type: ignore[union-attr]
+                    Column(col, sqltypes.NullType)
+                )
+        self._exec(CreateIndex(index, **kw))
 
     def prep_table_for_batch(self, batch_impl, table):
         for constraint in table.constraints:

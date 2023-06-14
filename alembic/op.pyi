@@ -684,6 +684,11 @@ def create_index(
         reserved word. This flag is only needed to force quoting of a
         reserved word which is not known by the SQLAlchemy dialect.
 
+    :param if_not_exists: If True, adds IF NOT EXISTS operator when
+        creating the new index.
+
+    .. versionadded:: 1.12.0
+
     :param \**kw: Additional keyword arguments not mentioned above are
         dialect specific, and passed in the form
         ``<dialectname>_<argname>``.
@@ -971,6 +976,10 @@ def drop_index(
      quoting of the schema outside of the default behavior, use
      the SQLAlchemy construct
      :class:`~sqlalchemy.sql.elements.quoted_name`.
+    :param if_exists: If True, adds IF EXISTS operator when
+        dropping the index.
+
+    .. versionadded:: 1.12.0
     :param \**kw: Additional keyword arguments not mentioned above are
         dialect specific, and passed in the form
         ``<dialectname>_<argname>``.

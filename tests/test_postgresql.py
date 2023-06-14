@@ -122,6 +122,12 @@ class PostgresqlOpTest(TestBase):
         op.create_index("i", "t", ["c1", "c2"], unique=False)
         context.assert_("CREATE INDEX i ON t (c1, c2)")
 
+    @config.requirements.sqlalchemy_2
+    def test_create_index_postgresql_if_not_exists(self):
+        context = op_fixture("postgresql")
+        op.create_index("i", "t", ["c1", "c2"], if_not_exists=True)
+        context.assert_("CREATE INDEX IF NOT EXISTS i ON t (c1, c2)")
+
     @config.combinations("include_table", "no_table", argnames="include_table")
     def test_drop_index_postgresql_concurrently(self, include_table):
         context = op_fixture("postgresql")
@@ -134,6 +140,12 @@ class PostgresqlOpTest(TestBase):
         else:
             op.drop_index("geocoded", postgresql_concurrently=True)
         context.assert_("DROP INDEX CONCURRENTLY geocoded")
+
+    @config.requirements.sqlalchemy_2
+    def test_drop_index_postgresql_if_exists(self):
+        context = op_fixture("postgresql")
+        op.drop_index("geocoded", if_exists=True)
+        context.assert_("DROP INDEX IF EXISTS geocoded")
 
     def test_alter_column_type_using(self):
         context = op_fixture("postgresql")
