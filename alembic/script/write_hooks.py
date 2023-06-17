@@ -85,7 +85,9 @@ def _run_hooks(path: str, hook_config: Mapping[str, str]) -> None:
                 "Key %s.type is required for post write hook %r" % (name, name)
             ) from ke
         else:
-            with util.status("Running post write hook {name!r}", newline=True):
+            with util.status(
+                "Running post write hook %r" % name, newline=True
+            ):
                 _invoke(type_, path, opts)
 
 
