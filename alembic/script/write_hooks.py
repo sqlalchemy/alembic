@@ -56,7 +56,7 @@ def _invoke(
         hook = _registry[name]
     except KeyError as ke:
         raise util.CommandError(
-            "No formatter with name '%s' registered" % name
+            f"No formatter with name '{name}' registered"
         ) from ke
     else:
         return hook(revision, options)
@@ -82,10 +82,12 @@ def _run_hooks(path: str, hook_config: Mapping[str, str]) -> None:
             type_ = opts["type"]
         except KeyError as ke:
             raise util.CommandError(
-                "Key %s.type is required for post write hook %r" % (name, name)
+                f"Key {name}.type is required for post write hook {name!r}"
             ) from ke
         else:
-            with util.status("Running post write hook {name!r}", newline=True):
+            with util.status(
+                f"Running post write hook {name!r}", newline=True
+            ):
                 _invoke(type_, path, opts)
 
 
@@ -118,8 +120,8 @@ def console_scripts(
         entrypoint_name = options["entrypoint"]
     except KeyError as ke:
         raise util.CommandError(
-            "Key %s.entrypoint is required for post write hook %r"
-            % (options["_hook_name"], options["_hook_name"])
+            f"Key {options['_hook_name']}.entrypoint is required for post "
+            f"write hook {options['_hook_name']!r}"
         ) from ke
     for entry in compat.importlib_metadata_get("console_scripts"):
         if entry.name == entrypoint_name:
@@ -141,7 +143,7 @@ def console_scripts(
         [
             sys.executable,
             "-c",
-            "import %s; %s.%s()" % (impl.module, impl.module, impl.attr),
+            f"import {impl.module}; {impl.module}.{impl.attr}()",
         ]
         + cmdline_options_list,
         cwd=cwd,
