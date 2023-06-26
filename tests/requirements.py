@@ -1,4 +1,5 @@
 from sqlalchemy import exc as sqla_exc
+from sqlalchemy import Index
 from sqlalchemy import text
 
 from alembic.testing import exclusions
@@ -430,3 +431,23 @@ class DefaultRequirements(SuiteRequirements):
     @property
     def indexes_with_expressions(self):
         return exclusions.only_on(["postgresql", "sqlite>=3.9.0"])
+
+    @property
+    def nulls_not_distinct_sa(self):
+        def _has_nulls_not_distinct():
+            try:
+                Index("foo", "bar", postgresql_nulls_not_distinct=True)
+                return True
+            except sqla_exc.ArgumentError:
+                return False
+
+        return exclusions.only_if(
+            _has_nulls_not_distinct,
+            "sqlalchemy with nulls not distinct support needed",
+        )
+
+    @property
+    def nulls_not_distinct_db(self):
+        return self.nulls_not_distinct_sa + exclusions.only_on(
+            ["postgresql>=15"]
+        )

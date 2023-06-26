@@ -444,11 +444,11 @@ class _uq_constraint_sig(_constraint_sig):
     is_index = False
     is_unique = True
 
-    def __init__(self, const: UniqueConstraint) -> None:
+    def __init__(self, const: UniqueConstraint, impl: DefaultImpl) -> None:
         self.const = const
         self.name = const.name
-        self.sig = ("UNIQUE_CONSTRAINT",) + tuple(
-            sorted([col.name for col in const.columns])
+        self.sig = ("UNIQUE_CONSTRAINT",) + impl.create_unique_constraint_sig(
+            const
         )
 
     @property
@@ -616,6 +616,7 @@ def _compare_indexes_and_uniques(
     # 2a. if the dialect dupes unique indexes as unique constraints
     # (mysql and oracle), correct for that
 
+    impl = autogen_context.migration_context.impl
     if unique_constraints_duplicate_unique_indexes:
         _correct_for_uq_duplicates_uix(
             conn_uniques,
@@ -623,6 +624,7 @@ def _compare_indexes_and_uniques(
             metadata_unique_constraints,
             metadata_indexes,
             autogen_context.dialect,
+            impl,
         )
 
     # 3. give the dialect a chance to omit indexes and constraints that
@@ -640,15 +642,16 @@ def _compare_indexes_and_uniques(
     # Index and UniqueConstraint so we can easily work with them
     # interchangeably
     metadata_unique_constraints_sig = {
-        _uq_constraint_sig(uq) for uq in metadata_unique_constraints
+        _uq_constraint_sig(uq, impl) for uq in metadata_unique_constraints
     }
 
-    impl = autogen_context.migration_context.impl
     metadata_indexes_sig = {
         _ix_constraint_sig(ix, impl) for ix in metadata_indexes
     }
 
-    conn_unique_constraints = {_uq_constraint_sig(uq) for uq in conn_uniques}
+    conn_unique_constraints = {
+        _uq_constraint_sig(uq, impl) for uq in conn_uniques
+    }
 
     conn_indexes_sig = {_ix_constraint_sig(ix, impl) for ix in conn_indexes}
 
@@ -858,6 +861,7 @@ def _correct_for_uq_duplicates_uix(
     metadata_unique_constraints,
     metadata_indexes,
     dialect,
+    impl,
 ):
     # dedupe unique indexes vs. constraints, since MySQL / Oracle
     # doesn't really have unique constraints as a separate construct.
@@ -880,7 +884,7 @@ def _correct_for_uq_duplicates_uix(
     }
 
     unnamed_metadata_uqs = {
-        _uq_constraint_sig(cons).sig
+        _uq_constraint_sig(cons, impl).sig
         for name, cons in metadata_cons_names
         if name is None
     }
@@ -904,7 +908,7 @@ def _correct_for_uq_duplicates_uix(
     for overlap in uqs_dupe_indexes:
         if overlap not in metadata_uq_names:
             if (
-                _uq_constraint_sig(uqs_dupe_indexes[overlap]).sig
+                _uq_constraint_sig(uqs_dupe_indexes[overlap], impl).sig
                 not in unnamed_metadata_uqs
             ):
                 conn_unique_constraints.discard(uqs_dupe_indexes[overlap])

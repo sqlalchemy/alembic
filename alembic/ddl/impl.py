@@ -668,6 +668,12 @@ class DefaultImpl(metaclass=ImplMeta):
         # order of col matters in an index
         return tuple(col.name for col in index.columns)
 
+    def create_unique_constraint_sig(
+        self, const: UniqueConstraint
+    ) -> Tuple[Any, ...]:
+        # order of col does not matters in an unique constraint
+        return tuple(sorted([col.name for col in const.columns]))
+
     def _skip_functional_indexes(self, metadata_indexes, conn_indexes):
         conn_indexes_by_name = {c.name: c for c in conn_indexes}
 

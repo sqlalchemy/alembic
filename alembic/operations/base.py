@@ -86,7 +86,7 @@ class AbstractOperations(util.ModuleClsProxy):
     @classmethod
     def register_operation(
         cls, name: str, sourcename: Optional[str] = None
-    ) -> Callable[..., Any]:
+    ) -> Callable[[_T], _T]:
         """Register a new operation for this class.
 
         This method is normally used to add new operations

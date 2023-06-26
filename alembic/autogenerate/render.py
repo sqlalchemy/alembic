@@ -26,6 +26,7 @@ from ..util import sqla_compat
 if TYPE_CHECKING:
     from typing import Literal
 
+    from sqlalchemy.sql.base import DialectKWArgs
     from sqlalchemy.sql.elements import ColumnElement
     from sqlalchemy.sql.elements import TextClause
     from sqlalchemy.sql.schema import CheckConstraint
@@ -268,6 +269,15 @@ def _drop_table(autogen_context: AutogenContext, op: ops.DropTableOp) -> str:
     return text
 
 
+def _render_dialect_kwargs_items(
+    autogen_context: AutogenContext, item: DialectKWArgs
+) -> list[str]:
+    return [
+        f"{key}={_render_potential_expr(val, autogen_context)}"
+        for key, val in item.dialect_kwargs.items()
+    ]
+
+
 @renderers.dispatch_for(ops.CreateIndexOp)
 def _add_index(autogen_context: AutogenContext, op: ops.CreateIndexOp) -> str:
     index = op.to_index()
@@ -286,6 +296,8 @@ def _add_index(autogen_context: AutogenContext, op: ops.CreateIndexOp) -> str:
         )
 
     assert index.table is not None
+
+    opts = _render_dialect_kwargs_items(autogen_context, index)
     text = tmpl % {
         "prefix": _alembic_autogenerate_prefix(autogen_context),
         "name": _render_gen_name(autogen_context, index.name),
@@ -297,18 +309,7 @@ def _add_index(autogen_context: AutogenContext, op: ops.CreateIndexOp) -> str:
         "schema": (", schema=%r" % _ident(index.table.schema))
         if index.table.schema
         else "",
-        "kwargs": (
-            ", "
-            + ", ".join(
-                [
-                    "%s=%s"
-                    % (key, _render_potential_expr(val, autogen_context))
-                    for key, val in index.kwargs.items()
-                ]
-            )
-        )
-        if len(index.kwargs)
-        else "",
+        "kwargs": ", " + ", ".join(opts) if opts else "",
     }
     return text
 
@@ -326,24 +327,13 @@ def _drop_index(autogen_context: AutogenContext, op: ops.DropIndexOp) -> str:
             "%(prefix)sdrop_index(%(name)r, "
             "table_name=%(table_name)r%(schema)s%(kwargs)s)"
         )
-
+    opts = _render_dialect_kwargs_items(autogen_context, index)
     text = tmpl % {
         "prefix": _alembic_autogenerate_prefix(autogen_context),
         "name": _render_gen_name(autogen_context, op.index_name),
         "table_name": _ident(op.table_name),
         "schema": ((", schema=%r" % _ident(op.schema)) if op.schema else ""),
-        "kwargs": (
-            ", "
-            + ", ".join(
-                [
-                    "%s=%s"
-                    % (key, _render_potential_expr(val, autogen_context))
-                    for key, val in index.kwargs.items()
-                ]
-            )
-        )
-        if len(index.kwargs)
-        else "",
+        "kwargs": ", " + ", ".join(opts) if opts else "",
     }
     return text
 
@@ -604,6 +594,7 @@ def _uq_constraint(
         opts.append(
             ("name", _render_gen_name(autogen_context, constraint.name))
         )
+    dialect_options = _render_dialect_kwargs_items(autogen_context, constraint)
 
     if alter:
         args = [repr(_render_gen_name(autogen_context, constraint.name))]
@@ -611,6 +602,7 @@ def _uq_constraint(
             args += [repr(_ident(constraint.table.name))]
         args.append(repr([_ident(col.name) for col in constraint.columns]))
         args.extend(["%s=%r" % (k, v) for k, v in opts])
+        args.extend(dialect_options)
         return "%(prefix)screate_unique_constraint(%(args)s)" % {
             "prefix": _alembic_autogenerate_prefix(autogen_context),
             "args": ", ".join(args),
@@ -618,6 +610,7 @@ def _uq_constraint(
     else:
         args = [repr(_ident(col.name)) for col in constraint.columns]
         args.extend(["%s=%r" % (k, v) for k, v in opts])
+        args.extend(dialect_options)
         return "%(prefix)sUniqueConstraint(%(args)s)" % {
             "prefix": _sqlalchemy_autogenerate_prefix(autogen_context),
             "args": ", ".join(args),
