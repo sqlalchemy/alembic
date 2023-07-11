@@ -379,8 +379,8 @@ class DefaultImpl(metaclass=ImplMeta):
             table, self.connection, checkfirst=False, _ddl_runner=self
         )
 
-    def create_index(self, index: Index) -> None:
-        self._exec(schema.CreateIndex(index))
+    def create_index(self, index: Index, **kw: Any) -> None:
+        self._exec(schema.CreateIndex(index, **kw))
 
     def create_table_comment(self, table: Table) -> None:
         self._exec(schema.SetTableComment(table))
@@ -391,8 +391,8 @@ class DefaultImpl(metaclass=ImplMeta):
     def create_column_comment(self, column: ColumnElement[Any]) -> None:
         self._exec(schema.SetColumnComment(column))
 
-    def drop_index(self, index: Index) -> None:
-        self._exec(schema.DropIndex(index))
+    def drop_index(self, index: Index, **kw: Any) -> None:
+        self._exec(schema.DropIndex(index, **kw))
 
     def bulk_insert(
         self,

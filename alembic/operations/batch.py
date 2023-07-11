@@ -185,11 +185,11 @@ class BatchOperationsImpl:
     def rename_table(self, *arg, **kw):
         self.batch.append(("rename_table", arg, kw))
 
-    def create_index(self, idx: Index) -> None:
-        self.batch.append(("create_index", (idx,), {}))
+    def create_index(self, idx: Index, **kw: Any) -> None:
+        self.batch.append(("create_index", (idx,), kw))
 
-    def drop_index(self, idx: Index) -> None:
-        self.batch.append(("drop_index", (idx,), {}))
+    def drop_index(self, idx: Index, **kw: Any) -> None:
+        self.batch.append(("drop_index", (idx,), kw))
 
     def create_table_comment(self, table):
         self.batch.append(("create_table_comment", (table,), {}))

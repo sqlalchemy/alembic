@@ -876,6 +876,7 @@ class CreateIndexOp(MigrateOperation):
         *,
         schema: Optional[str] = None,
         unique: bool = False,
+        if_not_exists: Optional[bool] = None,
         **kw: Any,
     ) -> None:
         self.index_name = index_name
@@ -883,6 +884,7 @@ class CreateIndexOp(MigrateOperation):
         self.columns = columns
         self.schema = schema
         self.unique = unique
+        self.if_not_exists = if_not_exists
         self.kw = kw
 
     def reverse(self) -> DropIndexOp:
@@ -928,6 +930,7 @@ class CreateIndexOp(MigrateOperation):
         *,
         schema: Optional[str] = None,
         unique: bool = False,
+        if_not_exists: Optional[bool] = None,
         **kw: Any,
     ) -> None:
         r"""Issue a "create index" instruction using the current
@@ -957,24 +960,34 @@ class CreateIndexOp(MigrateOperation):
          :class:`~sqlalchemy.sql.elements.quoted_name`.
         :param unique: If True, create a unique index.
 
-        :param quote:
-            Force quoting of this column's name on or off, corresponding
-            to ``True`` or ``False``. When left at its default
-            of ``None``, the column identifier will be quoted according to
-            whether the name is case sensitive (identifiers with at least one
-            upper case character are treated as case sensitive), or if it's a
-            reserved word. This flag is only needed to force quoting of a
-            reserved word which is not known by the SQLAlchemy dialect.
+        :param quote: Force quoting of this column's name on or off,
+         corresponding to ``True`` or ``False``. When left at its default
+         of ``None``, the column identifier will be quoted according to
+         whether the name is case sensitive (identifiers with at least one
+         upper case character are treated as case sensitive), or if it's a
+         reserved word. This flag is only needed to force quoting of a
+         reserved word which is not known by the SQLAlchemy dialect.
+
+        :param if_not_exists: If True, adds IF NOT EXISTS operator when
+         creating the new index.
+
+         .. versionadded:: 1.12.0
 
         :param \**kw: Additional keyword arguments not mentioned above are
-            dialect specific, and passed in the form
-            ``<dialectname>_<argname>``.
-            See the documentation regarding an individual dialect at
-            :ref:`dialect_toplevel` for detail on documented arguments.
+         dialect specific, and passed in the form
+         ``<dialectname>_<argname>``.
+         See the documentation regarding an individual dialect at
+         :ref:`dialect_toplevel` for detail on documented arguments.
 
         """
         op = cls(
-            index_name, table_name, columns, schema=schema, unique=unique, **kw
+            index_name,
+            table_name,
+            columns,
+            schema=schema,
+            unique=unique,
+            if_not_exists=if_not_exists,
+            **kw,
         )
         return operations.invoke(op)
 
@@ -1016,12 +1029,14 @@ class DropIndexOp(MigrateOperation):
         table_name: Optional[str] = None,
         *,
         schema: Optional[str] = None,
+        if_exists: Optional[bool] = None,
         _reverse: Optional[CreateIndexOp] = None,
         **kw: Any,
     ) -> None:
         self.index_name = index_name
         self.table_name = table_name
         self.schema = schema
+        self.if_exists = if_exists
         self._reverse = _reverse
         self.kw = kw
 
@@ -1065,6 +1080,7 @@ class DropIndexOp(MigrateOperation):
         table_name: Optional[str] = None,
         *,
         schema: Optional[str] = None,
+        if_exists: Optional[bool] = None,
         **kw: Any,
     ) -> None:
         r"""Issue a "drop index" instruction using the current
@@ -1081,14 +1097,26 @@ class DropIndexOp(MigrateOperation):
          quoting of the schema outside of the default behavior, use
          the SQLAlchemy construct
          :class:`~sqlalchemy.sql.elements.quoted_name`.
+
+        :param if_exists: If True, adds IF EXISTS operator when
+         dropping the index.
+
+         .. versionadded:: 1.12.0
+
         :param \**kw: Additional keyword arguments not mentioned above are
-            dialect specific, and passed in the form
-            ``<dialectname>_<argname>``.
-            See the documentation regarding an individual dialect at
-            :ref:`dialect_toplevel` for detail on documented arguments.
+         dialect specific, and passed in the form
+         ``<dialectname>_<argname>``.
+         See the documentation regarding an individual dialect at
+         :ref:`dialect_toplevel` for detail on documented arguments.
 
         """
-        op = cls(index_name, table_name=table_name, schema=schema, **kw)
+        op = cls(
+            index_name,
+            table_name=table_name,
+            schema=schema,
+            if_exists=if_exists,
+            **kw,
+        )
         return operations.invoke(op)
 
     @classmethod

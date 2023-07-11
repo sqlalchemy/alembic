@@ -170,7 +170,7 @@ class MSSQLImpl(DefaultImpl):
                 table_name, column_name, schema=schema, name=name
             )
 
-    def create_index(self, index: Index) -> None:
+    def create_index(self, index: Index, **kw: Any) -> None:
         # this likely defaults to None if not present, so get()
         # should normally not return the default value.  being
         # defensive in any case
@@ -179,7 +179,7 @@ class MSSQLImpl(DefaultImpl):
         for col in mssql_include:
             if col not in index.table.c:
                 index.table.append_column(Column(col, sqltypes.NullType))
-        self._exec(CreateIndex(index))
+        self._exec(CreateIndex(index, **kw))
 
     def bulk_insert(  # type:ignore[override]
         self, table: Union[TableClause, Table], rows: List[dict], **kw: Any
