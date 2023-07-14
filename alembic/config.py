@@ -200,7 +200,7 @@ class Config:
         self.config_args["here"] = here
         file_config = ConfigParser(self.config_args)
         if self.config_file_name:
-            file_config.read([self.config_file_name], "utf-8")
+            file_config.read([self.config_file_name], "locale")
         else:
             file_config.add_section(self.config_ini_section)
         return file_config
