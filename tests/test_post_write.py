@@ -256,3 +256,127 @@ black.cwd = /path/to/cwd
         self._run_black_with_config(
             input_config, expected_additional_arguments_fn, cwd="/path/to/cwd"
         )
+
+    def test_exec_executable_missing(self):
+        self.cfg = _no_sql_testing_config(
+            directives=(
+                "\n[post_write_hooks]\n"
+                "hooks=ruff\n"
+                "ruff.type=exec\n"
+            )
+        )
+        assert_raises_message(
+            util.CommandError,
+            "Key ruff.executable is required for post write hook 'ruff'",
+            command.revision,
+            self.cfg,
+            message="x",
+        )
+
+    def _run_ruff_with_config(
+        self, input_config, expected_additional_arguments_fn, cwd=None
+    ):
+        self.cfg = _no_sql_testing_config(directives=input_config)
+
+        with mock.patch(
+            "alembic.script.write_hooks.subprocess"
+        ) as mock_subprocess:
+            rev = command.revision(self.cfg, message="x")
+
+        eq_(
+            mock_subprocess.mock_calls,
+            [
+                mock.call.run(
+                    [
+                        "ruff",
+                    ]
+                    + expected_additional_arguments_fn(rev.path),
+                    cwd=cwd,
+                )
+            ],
+        )
+
+    def test_exec(self):
+        input_config = """
+[post_write_hooks]
+hooks = ruff
+ruff.type = exec
+ruff.executable = ruff
+ruff.options = --fix
+        """
+
+        def expected_additional_arguments_fn(rev_path):
+            return [rev_path, "--fix"]
+
+        self._run_ruff_with_config(
+            input_config, expected_additional_arguments_fn
+        )
+
+    @combinations(True, False)
+    def test_exec_with_filename_interpolation(self, posix):
+        input_config = """
+[post_write_hooks]
+hooks = ruff
+ruff.type = exec
+ruff.executable = ruff
+ruff.options = arg1 REVISION_SCRIPT_FILENAME 'multi-word arg' \
+    --flag1='REVISION_SCRIPT_FILENAME'
+        """
+
+        def expected_additional_arguments_fn(rev_path):
+            if compat.is_posix:
+                return [
+                    "arg1",
+                    rev_path,
+                    "multi-word arg",
+                    "--flag1=" + rev_path,
+                ]
+            else:
+                return [
+                    "arg1",
+                    rev_path,
+                    "'multi-word arg'",
+                    "--flag1='%s'" % rev_path,
+                ]
+
+        with mock.patch("alembic.util.compat.is_posix", posix):
+            self._run_ruff_with_config(
+                input_config, expected_additional_arguments_fn
+            )
+
+    def test_exec_with_path_in_config(self):
+        input_config = """
+[post_write_hooks]
+hooks = ruff
+ruff.type = exec
+ruff.executable = ruff
+ruff.options = arg1 REVISION_SCRIPT_FILENAME --config %(here)s/pyproject.toml
+        """
+
+        def expected_additional_arguments_fn(rev_path):
+            return [
+                "arg1",
+                rev_path,
+                "--config",
+                os.path.abspath(_get_staging_directory()) + "/pyproject.toml",
+            ]
+
+        self._run_ruff_with_config(
+            input_config, expected_additional_arguments_fn
+        )
+
+    def test_exec_with_cwd(self):
+        input_config = """
+[post_write_hooks]
+hooks = ruff
+ruff.type = exec
+ruff.executable = ruff
+ruff.cwd = /path/to/cwd
+        """
+
+        def expected_additional_arguments_fn(rev_path):
+            return [rev_path]
+
+        self._run_ruff_with_config(
+            input_config, expected_additional_arguments_fn, cwd="/path/to/cwd"
+        )
