@@ -274,7 +274,8 @@ black.cwd = /path/to/cwd
         )
 
     def _run_ruff_with_config(
-        self, input_config, expected_additional_arguments_fn, cwd=None
+        self, input_config, expected_additional_arguments_fn, executable="ruff",
+        cwd=None,
     ):
         self.cfg = _no_sql_testing_config(directives=input_config)
 
@@ -288,7 +289,7 @@ black.cwd = /path/to/cwd
             [
                 mock.call.run(
                     [
-                        "ruff",
+                        executable,
                     ]
                     + expected_additional_arguments_fn(rev.path),
                     cwd=cwd,
@@ -296,7 +297,7 @@ black.cwd = /path/to/cwd
             ],
         )
 
-    def test_exec(self):
+    def test_exec_with_path_search(self):
         input_config = """
 [post_write_hooks]
 hooks = ruff
@@ -310,6 +311,23 @@ ruff.options = --fix
 
         self._run_ruff_with_config(
             input_config, expected_additional_arguments_fn
+        )
+
+    def test_exec_with_full_pathname(self):
+        input_config = """
+[post_write_hooks]
+hooks = ruff
+ruff.type = exec
+ruff.executable = ./.venv/bin/ruff
+ruff.options = --fix
+        """
+
+        def expected_additional_arguments_fn(rev_path):
+            return [rev_path, "--fix"]
+
+        self._run_ruff_with_config(
+            input_config, expected_additional_arguments_fn,
+            executable="./.venv/bin/ruff",
         )
 
     @combinations(True, False)
