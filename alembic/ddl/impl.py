@@ -30,6 +30,7 @@ if TYPE_CHECKING:
     from sqlalchemy.engine import Dialect
     from sqlalchemy.engine.cursor import CursorResult
     from sqlalchemy.engine.reflection import Inspector
+    from sqlalchemy.sql.base import Executable
     from sqlalchemy.sql.elements import ClauseElement
     from sqlalchemy.sql.elements import ColumnElement
     from sqlalchemy.sql.elements import quoted_name
@@ -196,7 +197,7 @@ class DefaultImpl(metaclass=ImplMeta):
 
     def execute(
         self,
-        sql: Union[ClauseElement, str],
+        sql: Union[Executable, str],
         execution_options: Optional[dict[str, Any]] = None,
     ) -> None:
         self._exec(sql, execution_options)

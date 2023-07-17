@@ -27,7 +27,7 @@ from ..operations import Operations
 if TYPE_CHECKING:
     from sqlalchemy.engine import URL
     from sqlalchemy.engine.base import Connection
-    from sqlalchemy.sql.elements import ClauseElement
+    from sqlalchemy.sql.base import Executable
     from sqlalchemy.sql.schema import MetaData
     from sqlalchemy.sql.schema import SchemaItem
 
@@ -928,7 +928,7 @@ class EnvironmentContext(util.ModuleClsProxy):
 
     def execute(
         self,
-        sql: Union[ClauseElement, str],
+        sql: Union[Executable, str],
         execution_options: Optional[dict] = None,
     ) -> None:
         """Execute the given SQL using the current change context.
