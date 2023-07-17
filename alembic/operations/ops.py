@@ -28,9 +28,7 @@ from ..util import sqla_compat
 if TYPE_CHECKING:
     from typing import Literal
 
-    from sqlalchemy.sql.dml import Delete
-    from sqlalchemy.sql.dml import Insert
-    from sqlalchemy.sql.dml import Update
+    from sqlalchemy.sql.base import Executable
     from sqlalchemy.sql.elements import BinaryExpression
     from sqlalchemy.sql.elements import ColumnElement
     from sqlalchemy.sql.elements import conv
@@ -2441,7 +2439,7 @@ class ExecuteSQLOp(MigrateOperation):
 
     def __init__(
         self,
-        sqltext: Union[Delete, Insert, Update, TextClause, str],
+        sqltext: Union[Executable, str],
         *,
         execution_options: Optional[dict[str, Any]] = None,
     ) -> None:
@@ -2452,7 +2450,7 @@ class ExecuteSQLOp(MigrateOperation):
     def execute(
         cls,
         operations: Operations,
-        sqltext: Union[Delete, Insert, Update, TextClause, str],
+        sqltext: Union[Executable, str],
         *,
         execution_options: Optional[dict[str, Any]] = None,
     ) -> None:
@@ -2543,7 +2541,7 @@ class ExecuteSQLOp(MigrateOperation):
     def batch_execute(
         cls,
         operations: Operations,
-        sqltext: Union[Delete, Insert, Update, TextClause, str],
+        sqltext: Union[Executable, str],
         *,
         execution_options: Optional[dict[str, Any]] = None,
     ) -> None:
