@@ -79,6 +79,12 @@ sqlalchemy.url = driver://user:pass@localhost/dbname2
 # black.entrypoint = black
 # black.options = -l 79 REVISION_SCRIPT_FILENAME
 
+# format using "ruff" - use the exec runner, execute a binary
+# hooks = ruff
+# ruff.type = exec
+# ruff.executable = .venv/bin/ruff
+# ruff.options = --fix REVISION_SCRIPT_FILENAME
+
 # Logging configuration
 [loggers]
 keys = root,sqlalchemy,alembic
