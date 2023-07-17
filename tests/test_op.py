@@ -1074,6 +1074,65 @@ class OpTest(TestBase):
             "FOREIGN KEY(foo_bar) REFERENCES foo (bar))"
         )
 
+    def test_execute_delete(self):
+        context = op_fixture()
+
+        account = table(
+            "account", column("name", String), column("id", Integer)
+        )
+        op.execute(
+            account.delete()
+            .where(account.c.name == "account 1")
+        )
+        context.assert_(
+            "DELETE FROM account WHERE account.name = :name_1",
+        )
+
+    def test_execute_insert(self):
+        context = op_fixture()
+
+        account = table(
+            "account", column("name", String), column("id", Integer)
+        )
+        op.execute(
+            account.insert().values(name="account 1")
+        )
+        context.assert_(
+            "INSERT INTO account (name) VALUES (:name)",
+        )
+
+    def test_execute_update(self):
+        context = op_fixture()
+
+        account = table(
+            "account", column("name", String), column("id", Integer)
+        )
+        op.execute(
+            account.update()
+            .where(account.c.name == "account 1")
+            .values({"name": "account 2"})
+        )
+        context.assert_(
+            "UPDATE account SET name=:name "
+            "WHERE account.name = :name_1",
+        )
+
+    def test_execute_str(self):
+        context = op_fixture()
+
+        op.execute("SELECT 'test'")
+        context.assert_(
+            "SELECT 'test'",
+        )
+
+    def test_execute_textclause(self):
+        context = op_fixture()
+
+        op.execute(text("SELECT 'test'"))
+        context.assert_(
+            "SELECT 'test'",
+        )
+
     def test_inline_literal(self):
         context = op_fixture()
 
