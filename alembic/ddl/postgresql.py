@@ -256,8 +256,7 @@ class PostgresqlImpl(DefaultImpl):
         self, index: Index, expr: str, remove_suffix: str
     ) -> str:
         # start = expr
-        expr = expr.lower()
-        expr = expr.replace('"', "")
+        expr = expr.lower().replace('"', "").replace("'", "")
         if index.table is not None:
             # should not be needed, since include_table=False is in compile
             expr = expr.replace(f"{index.table.name.lower()}.", "")

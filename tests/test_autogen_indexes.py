@@ -13,6 +13,7 @@ from sqlalchemy import Numeric
 from sqlalchemy import PrimaryKeyConstraint
 from sqlalchemy import String
 from sqlalchemy import Table
+from sqlalchemy import text
 from sqlalchemy import UniqueConstraint
 from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION
 from sqlalchemy.sql.expression import asc
@@ -1401,6 +1402,10 @@ def _lots_of_indexes(flatten: bool = False):
         (
             lambda t: Index("SomeIndex", t.c.ff + 42),
             lambda t: Index("SomeIndex", 42 + t.c.ff),
+        ),
+        (
+            lambda t: Index("SomeIndex", text("coalesce(z, -1)"), _table=t),
+            lambda t: Index("SomeIndex", text("coalesce(q, '-1')"), _table=t),
         ),
     ]
 
