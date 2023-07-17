@@ -6,6 +6,7 @@ from configparser import ConfigParser
 import inspect
 import os
 import sys
+from locale import getencoding
 from typing import Any
 from typing import cast
 from typing import Dict
@@ -200,7 +201,9 @@ class Config:
         self.config_args["here"] = here
         file_config = ConfigParser(self.config_args)
         if self.config_file_name:
-            file_config.read([self.config_file_name], "locale")
+            # python >=3.10 supports "locale" instead of locale.getencoding()
+            # https://docs.python.org/3/whatsnew/3.10.html#optional-encodingwarning-and-encoding-locale-option
+            file_config.read([self.config_file_name], getencoding())
         else:
             file_config.add_section(self.config_ini_section)
         return file_config
