@@ -155,7 +155,7 @@ class DefaultImpl(metaclass=ImplMeta):
 
     def _exec(
         self,
-        construct: Union[ClauseElement, str],
+        construct: Union[Executable, str],
         execution_options: Optional[dict[str, Any]] = None,
         multiparams: Sequence[dict] = (),
         params: Dict[str, Any] = util.immutabledict(),
