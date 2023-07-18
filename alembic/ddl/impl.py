@@ -13,7 +13,12 @@ from typing import Tuple
 from typing import Type
 from typing import TYPE_CHECKING
 from typing import Union
+from typing import cast as type_cast
+from typing_extensions import Protocol
 
+from sqlalchemy import Engine
+from sqlalchemy import ClauseElement
+from sqlalchemy import Compiled
 from sqlalchemy import cast
 from sqlalchemy import schema
 from sqlalchemy import text
@@ -31,7 +36,6 @@ if TYPE_CHECKING:
     from sqlalchemy.engine.cursor import CursorResult
     from sqlalchemy.engine.reflection import Inspector
     from sqlalchemy.sql.base import Executable
-    from sqlalchemy.sql.elements import ClauseElement
     from sqlalchemy.sql.elements import ColumnElement
     from sqlalchemy.sql.elements import quoted_name
     from sqlalchemy.sql.schema import Column
@@ -47,6 +51,17 @@ if TYPE_CHECKING:
     from ..autogenerate.api import AutogenContext
     from ..operations.batch import ApplyBatchImpl
     from ..operations.batch import BatchOperationsImpl
+
+
+class _ExecutableWithCompile(Protocol):
+
+    def compile(
+        self,
+        bind: Optional[Union[Engine, Connection]] = None,
+        dialect: Optional[Dialect] = None,
+        **kw: Any,
+    ) -> Compiled:
+        ...
 
 
 class ImplMeta(type):
@@ -174,7 +189,7 @@ class DefaultImpl(metaclass=ImplMeta):
             else:
                 compile_kw = {}
 
-            compiled = construct.compile(
+            compiled = type_cast(_ExecutableWithCompile, construct).compile(
                 dialect=self.dialect, **compile_kw  # type: ignore[arg-type]
             )
             self.static_output(
