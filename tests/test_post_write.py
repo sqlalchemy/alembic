@@ -318,7 +318,7 @@ ruff.options = --fix
 [post_write_hooks]
 hooks = ruff
 ruff.type = exec
-ruff.executable = ./.venv/bin/ruff
+ruff.executable = %(here)s/.venv/bin/ruff
 ruff.options = --fix
         """
 
@@ -327,7 +327,7 @@ ruff.options = --fix
 
         self._run_ruff_with_config(
             input_config, expected_additional_arguments_fn,
-            executable="./.venv/bin/ruff",
+            executable=os.path.abspath(_get_staging_directory()) + "/.venv/bin/ruff",
         )
 
     @combinations(True, False)

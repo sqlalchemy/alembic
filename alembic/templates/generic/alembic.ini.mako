@@ -77,7 +77,7 @@ sqlalchemy.url = driver://user:pass@localhost/dbname
 # format using "ruff" - use the exec runner, execute a binary
 # hooks = ruff
 # ruff.type = exec
-# ruff.executable = .venv/bin/ruff
+# ruff.executable = %(here)s/.venv/bin/ruff
 # ruff.options = --fix REVISION_SCRIPT_FILENAME
 
 # Logging configuration
