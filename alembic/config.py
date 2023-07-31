@@ -201,9 +201,7 @@ class Config:
         self.config_args["here"] = here
         file_config = ConfigParser(self.config_args)
         if self.config_file_name:
-            # python >=3.10 supports "locale" instead of locale.getencoding()
-            # https://docs.python.org/3/whatsnew/3.10.html#optional-encodingwarning-and-encoding-locale-option
-            file_config.read([self.config_file_name], getencoding())
+            compat.read_config_parser(file_config, [self.config_file_name])
         else:
             file_config.add_section(self.config_ini_section)
         return file_config

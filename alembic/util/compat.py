@@ -12,6 +12,7 @@ from sqlalchemy.util.compat import inspect_formatargspec  # noqa
 is_posix = os.name == "posix"
 
 py311 = sys.version_info >= (3, 11)
+py310 = sys.version_info >= (3, 10)
 py39 = sys.version_info >= (3, 9)
 py38 = sys.version_info >= (3, 8)
 
@@ -58,3 +59,9 @@ def formatannotation_fwdref(annotation, base_module=None):
     elif isinstance(annotation, typing.TypeVar):
         return repr(annotation).replace("~", "")
     return repr(annotation).replace("~", "")
+
+def read_config_parser(file_config, file_argument):
+    if py310:
+        return file_config.read(file_argument, encoding="locale")
+    else:
+        return file_config.read(file_argument)
