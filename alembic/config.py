@@ -6,7 +6,6 @@ from configparser import ConfigParser
 import inspect
 import os
 import sys
-from locale import getencoding
 from typing import Any
 from typing import cast
 from typing import Dict
