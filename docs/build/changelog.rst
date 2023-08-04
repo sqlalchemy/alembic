@@ -4,6 +4,10 @@ Changelog
 ==========
 
 .. changelog::
+    :version: 1.11.3
+    :include_notes_from: unreleased
+
+.. changelog::
     :version: 1.11.2
     :released: August 4, 2023
 
