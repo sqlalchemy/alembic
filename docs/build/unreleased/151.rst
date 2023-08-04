@@ -1,6 +1,0 @@
-.. change::
-    :tags: feature, operations
-    :tickets: 151
-
-    Added parameters if_exists and if_not_exists for index operations.
-    Pull request courtesy of Max Adrian.

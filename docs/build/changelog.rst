@@ -5,7 +5,34 @@ Changelog
 
 .. changelog::
     :version: 1.11.2
-    :include_notes_from: unreleased
+    :released: August 4, 2023
+
+    .. change::
+        :tags: usecase, typing
+        :tickets: 1253
+
+        Added typing to the default script mako templates.
+
+    .. change::
+        :tags: usecase, autogenerate
+        :tickets: 1248
+
+        Added support in autogenerate for NULLS NOT DISTINCT in
+        the PostgreSQL dialect.
+
+    .. change::
+        :tags: bug
+        :tickets: 1261
+
+        Fixed format string logged when running a post write hook
+        Pull request curtesy of Mathieu Défosse.
+
+    .. change::
+        :tags: feature, operations
+        :tickets: 151
+
+        Added parameters if_exists and if_not_exists for index operations.
+        Pull request courtesy of Max Adrian.
 
 .. changelog::
     :version: 1.11.1

@@ -1,5 +1,0 @@
-.. change::
-    :tags: usecase, typing
-    :tickets: 1253
-
-    Added typing to the default script mako templates.

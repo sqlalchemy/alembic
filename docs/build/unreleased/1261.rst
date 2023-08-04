@@ -1,6 +1,0 @@
-.. change::
-    :tags: bug
-    :tickets: 1261
-
-    Fixed format string logged when running a post write hook
-    Pull request curtesy of Mathieu Défosse.
