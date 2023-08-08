@@ -21,7 +21,7 @@ Changelog
         :tags: usecase, autogenerate
         :tickets: 1248
 
-        Added support in autogenerate for NULLS NOT DISTINCT in
+        Added support in autogenerate for ``NULLS NOT DISTINCT`` in
         the PostgreSQL dialect.
 
     .. change::

@@ -287,7 +287,9 @@ _IndexColumnSortingOps: Mapping[str, Any] = util.immutabledict(
 )
 
 
-def _make_index(params: Dict[str, Any], conn_table: Table) -> Optional[Index]:
+def _make_index(
+    impl: DefaultImpl, params: Dict[str, Any], conn_table: Table
+) -> Optional[Index]:
     exprs: list[Union[Column[Any], TextClause]] = []
     sorting = params.get("column_sorting")
 
@@ -306,7 +308,11 @@ def _make_index(params: Dict[str, Any], conn_table: Table) -> Optional[Index]:
                     item = _IndexColumnSortingOps[operator](item)
         exprs.append(item)
     ix = sa_schema.Index(
-        params["name"], *exprs, unique=params["unique"], _table=conn_table
+        params["name"],
+        *exprs,
+        unique=params["unique"],
+        _table=conn_table,
+        **impl.adjust_reflected_dialect_options(params, "index"),
     )
     if "duplicates_constraint" in params:
         ix.info["duplicates_constraint"] = params["duplicates_constraint"]
@@ -314,11 +320,12 @@ def _make_index(params: Dict[str, Any], conn_table: Table) -> Optional[Index]:
 
 
 def _make_unique_constraint(
-    params: Dict[str, Any], conn_table: Table
+    impl: DefaultImpl, params: Dict[str, Any], conn_table: Table
 ) -> UniqueConstraint:
     uq = sa_schema.UniqueConstraint(
         *[conn_table.c[cname] for cname in params["column_names"]],
         name=params["name"],
+        **impl.adjust_reflected_dialect_options(params, "unique_constraint"),
     )
     if "duplicates_index" in params:
         uq.info["duplicates_index"] = params["duplicates_index"]
@@ -532,6 +539,7 @@ def _compare_indexes_and_uniques(
     inspector = autogen_context.inspector
     is_create_table = conn_table is None
     is_drop_table = metadata_table is None
+    impl = autogen_context.migration_context.impl
 
     # 1a. get raw indexes and unique constraints from metadata ...
     if metadata_table is not None:
@@ -603,20 +611,21 @@ def _compare_indexes_and_uniques(
             conn_uniques = set()  # type:ignore[assignment]
         else:
             conn_uniques = {  # type:ignore[assignment]
-                _make_unique_constraint(uq_def, conn_table)
+                _make_unique_constraint(impl, uq_def, conn_table)
                 for uq_def in conn_uniques
             }
 
         conn_indexes = {  # type:ignore[assignment]
             index
-            for index in (_make_index(ix, conn_table) for ix in conn_indexes)
+            for index in (
+                _make_index(impl, ix, conn_table) for ix in conn_indexes
+            )
             if index is not None
         }
 
     # 2a. if the dialect dupes unique indexes as unique constraints
     # (mysql and oracle), correct for that
 
-    impl = autogen_context.migration_context.impl
     if unique_constraints_duplicate_unique_indexes:
         _correct_for_uq_duplicates_uix(
             conn_uniques,

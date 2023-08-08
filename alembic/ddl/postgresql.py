@@ -4,6 +4,7 @@ import logging
 import re
 from typing import Any
 from typing import cast
+from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Sequence
@@ -310,16 +311,10 @@ class PostgresqlImpl(DefaultImpl):
     def _dialect_sig(
         self, item: Union[Index, UniqueConstraint]
     ) -> Tuple[Any, ...]:
-        if (
-            item.dialect_kwargs.get("postgresql_nulls_not_distinct")
-            is not None
-        ):
-            return (
-                (
-                    "nulls_not_distinct",
-                    item.dialect_kwargs["postgresql_nulls_not_distinct"],
-                ),
-            )
+        # only the positive case is returned by sqlalchemy reflection so
+        # None and False are threated the same
+        if item.dialect_kwargs.get("postgresql_nulls_not_distinct"):
+            return ("nulls_not_distinct",)
         return ()
 
     def create_index_sig(self, index: Index) -> Tuple[Any, ...]:
@@ -341,6 +336,15 @@ class PostgresqlImpl(DefaultImpl):
         return tuple(
             sorted([col.name for col in const.columns])
         ) + self._dialect_sig(const)
+
+    def adjust_reflected_dialect_options(
+        self, reflected_options: Dict[str, Any], kind: str
+    ) -> Dict[str, Any]:
+        options: Dict[str, Any]
+        options = reflected_options.get("dialect_options", {}).copy()
+        if not options.get("postgresql_include"):
+            options.pop("postgresql_include", None)
+        return options
 
     def _compile_element(self, element: ClauseElement) -> str:
         return element.compile(

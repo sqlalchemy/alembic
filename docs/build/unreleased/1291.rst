@@ -1,0 +1,6 @@
+.. change::
+    :tags: bug, autogenerate
+    :tickets: 1291
+
+    Fixed issue with ``NULLS NOT DISTINCT`` detection in postgresql that
+    would keep detecting changes in the index or unique constraint.

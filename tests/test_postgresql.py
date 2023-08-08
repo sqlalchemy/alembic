@@ -1447,7 +1447,13 @@ class PGUniqueIndexAutogenerateTest(AutogenFixtureTest, TestBase):
         eq_(len(diffs), 1)
 
 
-case = combinations(False, True, None, argnames="case", id_="s")
+case = combinations(
+    ("nulls_not_distinct=False", False),
+    ("nulls_not_distinct=True", True),
+    ("nulls_not_distinct=None", None),
+    argnames="case",
+    id_="ia",
+)
 name_type = combinations(
     (
         "index",
@@ -1545,3 +1551,25 @@ class PGNullsNotDistinctAutogenerateTest(AutogenFixtureTest, TestBase):
         eq_(diffs[1][0], f"add_{name}")
         eq_(diffs[1][1].name, "nnd_obj")
         eq_(diffs[1][1].dialect_kwargs["postgresql_nulls_not_distinct"], to)
+
+    @case
+    @name_type
+    def test_no_change(self, case, name, type_):
+        m1 = MetaData()
+        m2 = MetaData()
+        Table(
+            "tbl",
+            m1,
+            Column("id", Integer, primary_key=True),
+            Column("name", String),
+            type_(case),
+        )
+        Table(
+            "tbl",
+            m2,
+            Column("id", Integer, primary_key=True),
+            Column("name", String),
+            type_(case),
+        )
+        diffs = self._fixture(m1, m2)
+        eq_(len(diffs), 0, str(diffs))

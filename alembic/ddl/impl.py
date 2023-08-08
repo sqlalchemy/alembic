@@ -691,6 +691,11 @@ class DefaultImpl(metaclass=ImplMeta):
                 )
                 metadata_indexes.discard(idx)
 
+    def adjust_reflected_dialect_options(
+        self, reflected_object: Dict[str, Any], kind: str
+    ) -> Dict[str, Any]:
+        return reflected_object.get("dialect_options", {})
+
 
 def _compare_identity_options(
     attributes, metadata_io, inspector_io, default_io

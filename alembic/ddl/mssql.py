@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from typing import Any
+from typing import Dict
 from typing import List
 from typing import Optional
 from typing import TYPE_CHECKING
@@ -262,6 +263,17 @@ class MSSQLImpl(DefaultImpl):
             is_alter = False
 
         return diff, ignored, is_alter
+
+    def adjust_reflected_dialect_options(
+        self, reflected_object: Dict[str, Any], kind: str
+    ) -> Dict[str, Any]:
+        options: Dict[str, Any]
+        options = reflected_object.get("dialect_options", {}).copy()
+        if not options.get("mssql_include"):
+            options.pop("mssql_include", None)
+        if not options.get("mssql_clustered"):
+            options.pop("mssql_clustered", None)
+        return options
 
 
 class _ExecDropConstraint(Executable, ClauseElement):
