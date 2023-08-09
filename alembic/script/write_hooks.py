@@ -152,9 +152,7 @@ def console_scripts(
 
 
 @register("exec")
-def exec(
-    path: str, options: dict, ignore_output: bool = False
-) -> None:
+def exec_(path: str, options: dict, ignore_output: bool = False) -> None:
     try:
         executable = options["executable"]
     except KeyError as ke:

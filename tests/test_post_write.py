@@ -260,9 +260,7 @@ black.cwd = /path/to/cwd
     def test_exec_executable_missing(self):
         self.cfg = _no_sql_testing_config(
             directives=(
-                "\n[post_write_hooks]\n"
-                "hooks=ruff\n"
-                "ruff.type=exec\n"
+                "\n[post_write_hooks]\n" "hooks=ruff\n" "ruff.type=exec\n"
             )
         )
         assert_raises_message(
@@ -274,7 +272,10 @@ black.cwd = /path/to/cwd
         )
 
     def _run_ruff_with_config(
-        self, input_config, expected_additional_arguments_fn, executable="ruff",
+        self,
+        input_config,
+        expected_additional_arguments_fn,
+        executable="ruff",
         cwd=None,
     ):
         self.cfg = _no_sql_testing_config(directives=input_config)
@@ -326,8 +327,10 @@ ruff.options = --fix
             return [rev_path, "--fix"]
 
         self._run_ruff_with_config(
-            input_config, expected_additional_arguments_fn,
-            executable=os.path.abspath(_get_staging_directory()) + "/.venv/bin/ruff",
+            input_config,
+            expected_additional_arguments_fn,
+            executable=os.path.abspath(_get_staging_directory())
+            + "/.venv/bin/ruff",
         )
 
     @combinations(True, False)
