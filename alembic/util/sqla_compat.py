@@ -3,6 +3,7 @@ from __future__ import annotations
 import contextlib
 import re
 from typing import Any
+from typing import Dict
 from typing import Iterable
 from typing import Iterator
 from typing import Mapping
@@ -22,6 +23,7 @@ from sqlalchemy.schema import CheckConstraint
 from sqlalchemy.schema import Column
 from sqlalchemy.schema import ForeignKeyConstraint
 from sqlalchemy.sql import visitors
+from sqlalchemy.sql.base import DialectKWArgs
 from sqlalchemy.sql.elements import BindParameter
 from sqlalchemy.sql.elements import ColumnClause
 from sqlalchemy.sql.elements import quoted_name
@@ -80,9 +82,10 @@ class _Unsupported:
 try:
     from sqlalchemy import Computed
 except ImportError:
+    if not TYPE_CHECKING:
 
-    class Computed(_Unsupported):  # type: ignore
-        pass
+        class Computed(_Unsupported):
+            pass
 
     has_computed = False
     has_computed_reflection = False
@@ -93,26 +96,54 @@ else:
 try:
     from sqlalchemy import Identity
 except ImportError:
+    if not TYPE_CHECKING:
 
-    class Identity(_Unsupported):  # type: ignore
-        pass
+        class Identity(_Unsupported):
+            pass
 
     has_identity = False
 else:
-    # attributes common to Identity and Sequence
-    _identity_options_attrs = (
-        "start",
-        "increment",
-        "minvalue",
-        "maxvalue",
-        "nominvalue",
-        "nomaxvalue",
-        "cycle",
-        "cache",
-        "order",
-    )
-    # attributes of Identity
-    _identity_attrs = _identity_options_attrs + ("on_null",)
+    identity_has_dialect_kwargs = issubclass(Identity, DialectKWArgs)
+
+    def _get_identity_options_dict(
+        identity: Union[Identity, schema.Sequence, None],
+        dialect_kwargs: bool = False,
+    ) -> Dict[str, Any]:
+        if identity is None:
+            return {}
+        elif identity_has_dialect_kwargs:
+            as_dict = identity._as_dict()  # type: ignore
+            if dialect_kwargs:
+                assert isinstance(identity, DialectKWArgs)
+                as_dict.update(identity.dialect_kwargs)
+        else:
+            as_dict = {}
+            if isinstance(identity, Identity):
+                # always=None means something different than always=False
+                as_dict["always"] = identity.always
+                if identity.on_null is not None:
+                    as_dict["on_null"] = identity.on_null
+            # attributes common to Identity and Sequence
+            attrs = (
+                "start",
+                "increment",
+                "minvalue",
+                "maxvalue",
+                "nominvalue",
+                "nomaxvalue",
+                "cycle",
+                "cache",
+                "order",
+            )
+            as_dict.update(
+                {
+                    key: getattr(identity, key, None)
+                    for key in attrs
+                    if getattr(identity, key, None) is not None
+                }
+            )
+        return as_dict
+
     has_identity = True
 
 if sqla_2:

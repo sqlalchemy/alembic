@@ -51,16 +51,13 @@ class MSSQLImpl(DefaultImpl):
     batch_separator = "GO"
 
     type_synonyms = DefaultImpl.type_synonyms + ({"VARCHAR", "NVARCHAR"},)
-    identity_attrs_ignore = (
+    identity_attrs_ignore = DefaultImpl.identity_attrs_ignore + (
         "minvalue",
         "maxvalue",
         "nominvalue",
         "nomaxvalue",
         "cycle",
         "cache",
-        "order",
-        "on_null",
-        "order",
     )
 
     def __init__(self, *arg, **kw) -> None:
