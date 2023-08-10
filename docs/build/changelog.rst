@@ -215,7 +215,7 @@ Changelog
         Added support for autogenerate comparison of indexes on PostgreSQL which
         include SQL sort option, such as ``ASC`` or ``NULLS FIRST``.
         The sort options are correctly detected only when defined using the
-        sqlalchemy modifier functions, such as ``asc()`` or ``nulls_first``,
+        sqlalchemy modifier functions, such as ``asc()`` or ``nulls_first()``,
         or the equivalent methods.
         Passing sort options inside the ``postgresql_ops`` dict is not supported.
 
