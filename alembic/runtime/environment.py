@@ -30,6 +30,7 @@ if TYPE_CHECKING:
     from sqlalchemy.sql.elements import ClauseElement
     from sqlalchemy.sql.schema import MetaData
     from sqlalchemy.sql.schema import SchemaItem
+    from sqlalchemy.sql.type_api import TypeEngine
 
     from .migration import MigrationInfo
     from ..autogenerate.api import AutogenContext
@@ -88,6 +89,17 @@ CompareServerDefault = Callable[
         Optional[str],
         Optional[FetchedValue],
         Optional[str],
+    ],
+    Optional[bool],
+]
+
+CompareType = Callable[
+    [
+        MigrationContext,
+        "Column[Any]",
+        "Column[Any]",
+        "TypeEngine[Any]",
+        "TypeEngine[Any]",
     ],
     Optional[bool],
 ]
@@ -410,7 +422,7 @@ class EnvironmentContext(util.ModuleClsProxy):
         process_revision_directives: Optional[
             ProcessRevisionDirectiveFn
         ] = None,
-        compare_type: bool = False,
+        compare_type: Union[bool, CompareType] = True,
         compare_server_default: Union[bool, CompareServerDefault] = False,
         render_item: Optional[RenderItemFn] = None,
         literal_binds: bool = False,
@@ -548,12 +560,16 @@ class EnvironmentContext(util.ModuleClsProxy):
          to produce candidate upgrade/downgrade operations.
         :param compare_type: Indicates type comparison behavior during
          an autogenerate
-         operation.  Defaults to ``False`` which disables type
-         comparison.  Set to
-         ``True`` to turn on default type comparison, which has varied
-         accuracy depending on backend.   See :ref:`compare_types`
+         operation.  Defaults to ``True`` turning on type comparison, which
+         has good accuracy on most backends.   See :ref:`compare_types`
          for an example as well as information on other type
-         comparison options.
+         comparison options. Set to ``False`` which disables type
+         comparison. A callable can also be passed to provide custom type
+         comparison, see :ref:`compare_types` for additional details.
+
+         .. versionchanged:: 1.12.0 The default value of
+            :paramref:`.EnvironmentContext.configure.compare_type` has been
+            changed to ``True``.
 
          .. seealso::
 
@@ -880,8 +896,7 @@ class EnvironmentContext(util.ModuleClsProxy):
 
         if render_item is not None:
             opts["render_item"] = render_item
-        if compare_type is not None:
-            opts["compare_type"] = compare_type
+        opts["compare_type"] = compare_type
         if compare_server_default is not None:
             opts["compare_server_default"] = compare_server_default
         opts["script"] = self.script
