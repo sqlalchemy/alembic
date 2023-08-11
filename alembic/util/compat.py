@@ -3,8 +3,8 @@ from __future__ import annotations
 import io
 import os
 import sys
-import typing
 from configparser import ConfigParser
+import typing
 from typing import Sequence
 from typing import Union
 
