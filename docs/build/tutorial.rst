@@ -200,7 +200,7 @@ The file generated with the "generic" configuration looks like::
     # black.entrypoint = black
     # black.options = -l 79 REVISION_SCRIPT_FILENAME
 
-    # format using "ruff" - use the exec runner, execute a binary
+    # lint with attempts to fix using "ruff" - use the exec runner, execute a binary
     # hooks = ruff
     # ruff.type = exec
     # ruff.executable = %(here)s/.venv/bin/ruff

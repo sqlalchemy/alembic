@@ -730,8 +730,8 @@ Basic Formatter Configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The ``alembic.ini`` samples now include commented-out configuration
-illustrating how to configure code-formatting tools to run against the newly
-generated file path.    Example::
+illustrating how to configure code-formatting tools, or other tools like linters
+to run against the newly generated file path.    Example::
 
   [post_write_hooks]
 
@@ -753,6 +753,8 @@ configuration for the ``"black"`` post write hook, which includes:
   ``subprocess.run()`` to execute an arbitrary binary.  For a custom-written
   hook function, this configuration variable would refer to the name under
   which the custom hook was registered; see the next section for an example.
+
+.. versionadded:: 1.12 added new ``exec`` runner
 
 The following configuration option is specific to the ``"console_scripts"``
 hook runner:
@@ -787,7 +789,7 @@ The following options are supported by both ``"console_scripts"`` and ``"exec"``
         autopep8.entrypoint = autopep8
         autopep8.options = --in-place REVISION_SCRIPT_FILENAME
 
-* ``cwd`` - optional working directory from which the formatting tool is run.
+* ``cwd`` - optional working directory from which the code processing tool is run.
 
 When running ``alembic revision -m "rev1"``, we will now see the ``black``
 tool's output as well::
