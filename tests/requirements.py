@@ -397,9 +397,12 @@ class DefaultRequirements(SuiteRequirements):
     @property
     def stubs_test(self):
         def requirements():
+            import warnings
+
             try:
-                import black  # noqa
-                import zimports  # noqa
+                with warnings.catch_warnings(action="ignore"):
+                    import black  # noqa
+                    import zimports  # noqa
 
                 return False
             except Exception:
