@@ -200,7 +200,7 @@ class Config:
         self.config_args["here"] = here
         file_config = ConfigParser(self.config_args)
         if self.config_file_name:
-            file_config.read([self.config_file_name])
+            compat.read_config_parser(file_config, [self.config_file_name])
         else:
             file_config.add_section(self.config_ini_section)
         return file_config
