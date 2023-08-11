@@ -4,7 +4,9 @@ import io
 import os
 import sys
 import typing
+from configparser import ConfigParser
 from typing import Sequence
+from typing import Union
 
 from sqlalchemy.util import inspect_getfullargspec  # noqa
 from sqlalchemy.util.compat import inspect_formatargspec  # noqa
@@ -60,7 +62,11 @@ def formatannotation_fwdref(annotation, base_module=None):
         return repr(annotation).replace("~", "")
     return repr(annotation).replace("~", "")
 
-def read_config_parser(file_config, file_argument):
+
+def read_config_parser(
+    file_config: ConfigParser,
+    file_argument: Sequence[Union[str, os.PathLike[str]]],
+) -> list[str]:
     if py310:
         return file_config.read(file_argument, encoding="locale")
     else:
