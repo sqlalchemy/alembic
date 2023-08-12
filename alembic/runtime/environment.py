@@ -466,9 +466,6 @@ class EnvironmentContext(util.ModuleClsProxy):
          ``connection`` and ``url`` are not passed.
         :param dialect_opts: dictionary of options to be passed to dialect
          constructor.
-
-         .. versionadded:: 1.0.12
-
         :param transactional_ddl: Force the usage of "transactional"
          DDL on or off;
          this otherwise defaults to whether or not the dialect in
@@ -639,8 +636,6 @@ class EnvironmentContext(util.ModuleClsProxy):
                 include_schemas = True,
                 include_name = include_name
             )
-
-         .. versionadded:: 1.5
 
          .. seealso::
 

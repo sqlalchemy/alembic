@@ -54,9 +54,6 @@ def init(
     :param package: when True, write ``__init__.py`` files into the
      environment location as well as the versions/ location.
 
-     .. versionadded:: 1.2
-
-
     """
 
     if os.access(directory, os.F_OK) and os.listdir(directory):
@@ -625,9 +622,6 @@ def stamp(
      .. note:: this parameter is called "revisions" in the command line
         interface.
 
-     .. versionchanged:: 1.2  The revision may be a single revision or
-        list of revisions when stamping multiple branch heads.
-
     :param sql: use ``--sql`` mode
 
     :param tag: an arbitrary "tag" that can be intercepted by custom
@@ -635,8 +629,6 @@ def stamp(
      method.
 
     :param purge: delete all entries in the version table before stamping.
-
-     .. versionadded:: 1.2
 
     """
 

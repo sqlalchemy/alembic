@@ -64,10 +64,6 @@ local path is also in ``sys.path``. This allows us to run the ``alembic``
 command line tool from this directory without our project being "installed" in
 that environment.
 
-.. versionchanged:: 1.5.5  Fixed a long-standing issue where the ``alembic``
-   command-line tool would not preserve the default ``sys.path`` of ``.``
-   by implementing ``prepend_sys_path`` option.
-
 As a final step, the `virtualenv activate <https://virtualenv.pypa.io/en/latest/userguide/#activate-script>`_
 tool can be used so that the ``alembic`` command is available without any
 path information, within the context of the current shell::

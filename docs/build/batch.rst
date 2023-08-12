@@ -119,7 +119,7 @@ database that have no identifying name.  On all other backends, the
 target database will always generate some kind of name, if one is not
 given.
 
-The first challenge this represents is that an unnamed constraint can't
+The challenge this represents is that an unnamed constraint can't
 by itself be targeted by the :meth:`.BatchOperations.drop_constraint` method.
 An unnamed FOREIGN KEY constraint is implicit whenever the
 :class:`~sqlalchemy.schema.ForeignKey`
@@ -128,23 +128,15 @@ passing them a name.  Only on SQLite will these constraints remain entirely
 unnamed when they are created on the target database; an automatically generated
 name will be assigned in the case of all other database backends.
 
-A second issue is that SQLAlchemy itself has inconsistent behavior in
-dealing with SQLite constraints as far as names.   Prior to version 1.0,
-SQLAlchemy omits the name of foreign key constraints when reflecting them
-against the SQLite backend.  So even if the target application has gone through
-the steps to apply names to the constraints as stated in the database,
-they still aren't targetable within the batch reflection process prior
-to SQLAlchemy 1.0.
-
 Within the scope of batch mode, this presents the issue that the
 :meth:`.BatchOperations.drop_constraint` method requires a constraint name
 in order to target the correct constraint.
 
 In order to overcome this, the :meth:`.Operations.batch_alter_table` method supports a
 :paramref:`~.Operations.batch_alter_table.naming_convention` argument, so that
-all reflected constraints, including foreign keys that are unnamed, or
-were named but SQLAlchemy isn't loading this name, may be given a name,
-as described in :ref:`autogen_naming_conventions`.   Usage is as follows::
+all reflected constraints, including foreign keys that are unnamed may be
+given a name, as described in :ref:`autogen_naming_conventions`. 
+Usage is as follows::
 
     naming_convention = {
         "fk":
@@ -157,26 +149,6 @@ as described in :ref:`autogen_naming_conventions`.   Usage is as follows::
 
 Note that the naming convention feature requires at least
 **SQLAlchemy 0.9.4** for support.
-
-Including unnamed UNIQUE constraints
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-A similar, but frustratingly slightly different, issue is that in the
-case of UNIQUE constraints, we again have the issue that SQLite allows
-unnamed UNIQUE constraints to exist on the database, however in this case,
-SQLAlchemy prior to version 1.0 doesn't reflect these constraints at all.
-It does properly reflect named unique constraints with their names, however.
-
-So in this case, the workaround for foreign key names is still not sufficient
-prior to SQLAlchemy 1.0.  If our table includes unnamed unique constraints,
-and we'd like them to be re-created along with the table, we need to include
-them directly, which can be via the
-:paramref:`~.Operations.batch_alter_table.table_args` argument::
-
-    with self.op.batch_alter_table(
-            "bar", table_args=(UniqueConstraint('username'),)
-        ):
-        batch_op.add_column(Column('foo', Integer))
 
 .. _batch_schematype_constraints:
 

@@ -1319,24 +1319,16 @@ follows::
                 elem.table_name, schema=elem.schema
             ) as batch_ops:
                 for table_elem in elem.ops:
-                    # work around Alembic issue #753 (fixed in 1.5.0)
-                    if hasattr(table_elem, "column"):
-                        table_elem.column = table_elem.column.copy()
                     batch_ops.invoke(table_elem)
 
         elif hasattr(elem, "ops"):
             stack.extend(elem.ops)
         else:
-            # work around Alembic issue #753 (fixed in 1.5.0)
-            if hasattr(elem, "column"):
-                elem.column = elem.column.copy()
             operations.invoke(elem)
 
 Above, we detect elements that have a collection of operations by looking
 for the ``.ops`` attribute.   A check for :class:`.ModifyTableOps` allows
-us to use a batch context if we are supporting that.   Finally there's a
-workaround for an Alembic issue that exists for SQLAlchemy 1.3.20 and greater
-combined with Alembic older than 1.5.
+us to use a batch context if we are supporting that.
 
 A full example follows.  The overall setup here is copied from the example
 at :func:`.autogenerate.compare_metadata`::
@@ -1400,17 +1392,11 @@ at :func:`.autogenerate.compare_metadata`::
                 elem.table_name, schema=elem.schema
             ) as batch_ops:
                 for table_elem in elem.ops:
-                    # work around Alembic issue #753 (fixed in 1.5.0)
-                    if hasattr(table_elem, "column"):
-                        table_elem.column = table_elem.column.copy()
                     batch_ops.invoke(table_elem)
 
         elif hasattr(elem, "ops"):
             stack.extend(elem.ops)
         else:
-            # work around Alembic issue #753 (fixed in 1.5.0)
-            if hasattr(elem, "column"):
-                elem.column = elem.column.copy()
             operations.invoke(elem)
 
 

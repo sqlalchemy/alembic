@@ -181,9 +181,6 @@ def alter_column(
      Set to ``None`` to have the default removed.
     :param comment: optional string text of a new comment to add to the
      column.
-
-     .. versionadded:: 1.0.6
-
     :param new_column_name: Optional; specify a string name here to
      indicate the new name within a column rename operation.
     :param type\_: Optional; a :class:`~sqlalchemy.types.TypeEngine`
@@ -217,9 +214,6 @@ def alter_column(
     :param existing_comment: string text of the existing comment on the
      column to be maintained.  Required on MySQL if the existing comment
      on the column is not being changed.
-
-     .. versionadded:: 1.0.6
-
     :param schema: Optional schema name to operate within.  To control
      quoting of the schema outside of the default behavior, use
      the SQLAlchemy construct
@@ -373,8 +367,6 @@ def batch_alter_table(
      The ordering of columns not included in the partial_reordering
      set is undefined.   Therefore it is best to specify the complete
      ordering of all columns for best results.
-
-     .. versionadded:: 1.4.0
 
     .. note:: batch mode requires SQLAlchemy 0.8 or above.
 
@@ -827,8 +819,6 @@ def create_table_comment(
 ) -> None:
     """Emit a COMMENT ON operation to set the comment for a table.
 
-    .. versionadded:: 1.0.6
-
     :param table_name: string name of the target table.
     :param comment: string value of the comment being registered against
      the specified table.
@@ -1020,8 +1010,6 @@ def drop_table_comment(
 ) -> None:
     """Issue a "drop table comment" operation to
     remove an existing comment set on a table.
-
-    .. versionadded:: 1.0.6
 
     :param table_name: string name of the target table.
     :param existing_comment: An optional string value of a comment already

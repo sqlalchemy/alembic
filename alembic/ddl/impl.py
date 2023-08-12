@@ -571,8 +571,6 @@ class DefaultImpl(metaclass=ImplMeta):
         """Render a SQL expression that is typically a server default,
         index expression, etc.
 
-        .. versionadded:: 1.0.11
-
         """
 
         compile_kw = {

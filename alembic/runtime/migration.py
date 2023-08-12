@@ -320,8 +320,6 @@ class MigrationContext:
             migrations whether or not one of them has an autocommit block.
 
 
-        .. versionadded:: 1.2.0
-
         """
         _in_connection_transaction = self._in_connection_transaction()
 

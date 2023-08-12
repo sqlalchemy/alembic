@@ -1482,8 +1482,6 @@ class CreateTableCommentOp(AlterTableOp):
     ) -> None:
         """Emit a COMMENT ON operation to set the comment for a table.
 
-        .. versionadded:: 1.0.6
-
         :param table_name: string name of the target table.
         :param comment: string value of the comment being registered against
          the specified table.
@@ -1518,8 +1516,6 @@ class CreateTableCommentOp(AlterTableOp):
     ) -> None:
         """Emit a COMMENT ON operation to set the comment for a table
         using the current batch migration context.
-
-        .. versionadded:: 1.6.0
 
         :param comment: string value of the comment being registered against
          the specified table.
@@ -1595,8 +1591,6 @@ class DropTableCommentOp(AlterTableOp):
         """Issue a "drop table comment" operation to
         remove an existing comment set on a table.
 
-        .. versionadded:: 1.0.6
-
         :param table_name: string name of the target table.
         :param existing_comment: An optional string value of a comment already
          registered on the specified table.
@@ -1622,8 +1616,6 @@ class DropTableCommentOp(AlterTableOp):
         """Issue a "drop table comment" operation to
         remove an existing comment set on a table using the current
         batch operations context.
-
-        .. versionadded:: 1.6.0
 
         :param existing_comment: An optional string value of a comment already
          registered on the specified table.
@@ -1873,9 +1865,6 @@ class AlterColumnOp(AlterTableOp):
          Set to ``None`` to have the default removed.
         :param comment: optional string text of a new comment to add to the
          column.
-
-         .. versionadded:: 1.0.6
-
         :param new_column_name: Optional; specify a string name here to
          indicate the new name within a column rename operation.
         :param type\_: Optional; a :class:`~sqlalchemy.types.TypeEngine`
@@ -1909,9 +1898,6 @@ class AlterColumnOp(AlterTableOp):
         :param existing_comment: string text of the existing comment on the
          column to be maintained.  Required on MySQL if the existing comment
          on the column is not being changed.
-
-         .. versionadded:: 1.0.6
-
         :param schema: Optional schema name to operate within.  To control
          quoting of the schema outside of the default behavior, use
          the SQLAlchemy construct
@@ -1972,16 +1958,12 @@ class AlterColumnOp(AlterTableOp):
         :param insert_before: String name of an existing column which this
          column should be placed before, when creating the new table.
 
-         .. versionadded:: 1.4.0
-
         :param insert_after: String name of an existing column which this
          column should be placed after, when creating the new table.  If
          both :paramref:`.BatchOperations.alter_column.insert_before`
          and :paramref:`.BatchOperations.alter_column.insert_after` are
          omitted, the column is inserted after the last existing column
          in the table.
-
-         .. versionadded:: 1.4.0
 
         .. seealso::
 

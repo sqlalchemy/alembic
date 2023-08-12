@@ -350,8 +350,6 @@ class AbstractOperations(util.ModuleClsProxy):
          set is undefined.   Therefore it is best to specify the complete
          ordering of all columns for best results.
 
-         .. versionadded:: 1.4.0
-
         .. note:: batch mode requires SQLAlchemy 0.8 or above.
 
         .. seealso::
@@ -709,9 +707,6 @@ class Operations(AbstractOperations):
              Set to ``None`` to have the default removed.
             :param comment: optional string text of a new comment to add to the
              column.
-
-             .. versionadded:: 1.0.6
-
             :param new_column_name: Optional; specify a string name here to
              indicate the new name within a column rename operation.
             :param type\_: Optional; a :class:`~sqlalchemy.types.TypeEngine`
@@ -745,9 +740,6 @@ class Operations(AbstractOperations):
             :param existing_comment: string text of the existing comment on the
              column to be maintained.  Required on MySQL if the existing comment
              on the column is not being changed.
-
-             .. versionadded:: 1.0.6
-
             :param schema: Optional schema name to operate within.  To control
              quoting of the schema outside of the default behavior, use
              the SQLAlchemy construct
@@ -1223,8 +1215,6 @@ class Operations(AbstractOperations):
         ) -> None:
             """Emit a COMMENT ON operation to set the comment for a table.
 
-            .. versionadded:: 1.0.6
-
             :param table_name: string name of the target table.
             :param comment: string value of the comment being registered against
              the specified table.
@@ -1428,8 +1418,6 @@ class Operations(AbstractOperations):
             """Issue a "drop table comment" operation to
             remove an existing comment set on a table.
 
-            .. versionadded:: 1.0.6
-
             :param table_name: string name of the target table.
             :param existing_comment: An optional string value of a comment already
              registered on the specified table.
@@ -1629,16 +1617,12 @@ class BatchOperations(AbstractOperations):
             :param insert_before: String name of an existing column which this
              column should be placed before, when creating the new table.
 
-             .. versionadded:: 1.4.0
-
             :param insert_after: String name of an existing column which this
              column should be placed after, when creating the new table.  If
              both :paramref:`.BatchOperations.alter_column.insert_before`
              and :paramref:`.BatchOperations.alter_column.insert_after` are
              omitted, the column is inserted after the last existing column
              in the table.
-
-             .. versionadded:: 1.4.0
 
             .. seealso::
 
@@ -1759,8 +1743,6 @@ class BatchOperations(AbstractOperations):
             """Emit a COMMENT ON operation to set the comment for a table
             using the current batch migration context.
 
-            .. versionadded:: 1.6.0
-
             :param comment: string value of the comment being registered against
              the specified table.
             :param existing_comment: String value of a comment
@@ -1831,8 +1813,6 @@ class BatchOperations(AbstractOperations):
             """Issue a "drop table comment" operation to
             remove an existing comment set on a table using the current
             batch operations context.
-
-            .. versionadded:: 1.6.0
 
             :param existing_comment: An optional string value of a comment already
              registered on the specified table.

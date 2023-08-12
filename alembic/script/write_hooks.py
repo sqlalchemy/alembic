@@ -25,8 +25,6 @@ def register(name: str) -> Callable:
 
     See the documentation linked below for an example.
 
-    .. versionadded:: 1.2.0
-
     .. seealso::
 
         :ref:`post_write_hooks_custom`

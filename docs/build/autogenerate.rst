@@ -142,14 +142,6 @@ Autogenerate can **optionally detect**:
   The type comparison logic is fully extensible as well; see
   :ref:`compare_types` for details.
 
-  .. versionchanged:: 1.4 type comparison code has been reworked such that
-     column types are compared based on their rendered DDL, which should allow
-     the functionality enabled by
-     :paramref:`.EnvironmentContext.configure.compare_type`
-     to be much more accurate, correctly accounting for the behavior of
-     SQLAlchemy "generic" types as well as major arguments specified within
-     types.
-
 * Change of server default.  This will occur if you set
   the :paramref:`.EnvironmentContext.configure.compare_server_default`
   parameter to ``True``, or to a custom callable function.
@@ -393,9 +385,6 @@ rules that include both :class:`~sqlalchemy.schema.MetaData` and reflected
 object, the :paramref:`.EnvironmentContext.configure.include_object` hook
 discussed in the next section is more appropriate.
 
-.. versionadded:: 1.5 added the :paramref:`.EnvironmentContext.configure.include_name`
-    hook.
-
 Omitting Based on Object
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -629,8 +618,6 @@ is set to True::
      database backend sets as a default value without generating false
      positives.
 
-.. versionchanged:: 1.4.0 Added the text and keyword comparison for column types
-
 Alternatively, the :paramref:`.EnvironmentContext.configure.compare_type`
 parameter accepts a callable function which may be used to implement custom type
 comparison logic, for cases such as where special user defined types
@@ -698,10 +685,6 @@ first; if it returns ``None``, then the ``compare_against_backend`` method
 will be used, if present on the metadata type.  If that returns ``None``,
 then a basic check for type equivalence is run.
 
-.. versionadded:: 1.4.0 - added column keyword comparisons and the
-   ``type_synonyms`` property.
-
-
 .. _post_write_hooks:
 
 Applying Post Processing and Python Code Formatters to Generated Revisions
@@ -719,8 +702,6 @@ path to the newly generated file as well as configuration options.
 
 The post write hooks, when configured,  run against generated revision files
 regardless of whether or not the autogenerate feature was used.
-
-.. versionadded:: 1.2
 
 .. note::
 
