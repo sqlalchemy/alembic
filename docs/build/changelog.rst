@@ -5,7 +5,33 @@ Changelog
 
 .. changelog::
     :version: 1.11.3
-    :include_notes_from: unreleased
+    :released: August 16, 2023
+
+    .. change::
+        :tags: bug, autogenerate, postgresql
+        :tickets: 1270
+
+        Improved autogenerate compare of expression based indexes on PostgreSQL
+        to produce fewer wrong detections.
+
+    .. change::
+        :tags: bug, autogenerate
+        :tickets: 1291
+
+        Fixed issue with ``NULLS NOT DISTINCT`` detection in postgresql that
+        would keep detecting changes in the index or unique constraint.
+
+    .. change::
+        :tags: bug, commands
+        :tickets: 1273
+
+        Added ``encoding="locale"`` setting to the use of Python's
+        ``ConfigParser.read()``, so that a warning is not generated when using the
+        recently added Python feature ``PYTHONWARNDEFAULTENCODING`` specified in
+        :pep:`597`. The encoding is passed as the ``"locale"`` string under Python
+        3.10 and greater, which indicates that the system-level locale should be
+        used, as was the case already here.  Pull request courtesy Kevin Kirsche.
+
 
 .. changelog::
     :version: 1.11.2

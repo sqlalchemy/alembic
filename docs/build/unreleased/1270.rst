@@ -1,6 +1,0 @@
-.. change::
-    :tags: bug, autogenerate, postgresql
-    :tickets: 1270
-
-    Improved autogenerate compare of expression based indexes on PostgreSQL
-    to produce fewer wrong detections.
