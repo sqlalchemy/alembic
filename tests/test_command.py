@@ -16,6 +16,7 @@ from sqlalchemy.sql.schema import Column
 from alembic import __version__
 from alembic import command
 from alembic import config
+from alembic import testing
 from alembic import util
 from alembic.script import ScriptDirectory
 from alembic.testing import assert_raises
@@ -201,6 +202,74 @@ finally:
         self._eq_cmd_output(
             buf, [self.c, self.b, self.a], currents=(self.b,), env_token=True
         )
+
+
+class RevisionEnvironmentTest(_BufMixin, TestBase):
+    @classmethod
+    def setup(cls):
+        cls.env = staging_env()
+        cls.cfg = _sqlite_testing_config()
+        cls._setup_env_file()
+
+    def teardown(self):
+        self.cfg.set_main_option("revision_environment", "false")
+        clear_staging_env()
+
+    @classmethod
+    def _setup_env_file(self):
+        env_file_fixture(
+            r"""
+
+from sqlalchemy import MetaData, engine_from_config
+target_metadata = MetaData()
+
+engine = engine_from_config(
+    config.get_section(config.config_ini_section),
+    prefix='sqlalchemy.')
+
+connection = engine.connect()
+
+context.configure(
+    connection=connection, target_metadata=target_metadata
+)
+
+try:
+    with context.begin_transaction():
+        config.stdout.write(u"environment included OK\n")
+        context.run_migrations()
+finally:
+    connection.close()
+    engine.dispose()
+"""
+        )
+
+    def _assert_env_token(self, buf, expected):
+        if expected:
+            assert "environment included OK" in buf.getvalue().decode(
+                "ascii", "replace"
+            )
+        else:
+            assert "environment included OK" not in buf.getvalue().decode(
+                "ascii", "replace"
+            )
+
+    @testing.combinations(True, False, argnames="rev_env")
+    def test_merge_cmd_revision_environment(self, rev_env):
+        if rev_env:
+            self.cfg.set_main_option("revision_environment", "true")
+        self.cfg.stdout = buf = self._buf_fixture()
+        cfg = self.cfg
+        self.a, self.b, self.c = three_rev_fixture(cfg)
+        self.d, self.e, self.f = multi_heads_fixture(
+            cfg, self.a, self.b, self.c
+        )
+        command.merge(self.cfg, "heads", rev_id="merge_revision")
+        self._assert_env_token(buf, rev_env)
+        rev = ScriptDirectory.from_config(self.cfg).get_revision(
+            "merge_revision"
+        )
+
+        assert os.path.exists(rev.path)
 
 
 class CurrentTest(_BufMixin, TestBase):

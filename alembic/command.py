@@ -329,6 +329,23 @@ def merge(
         "config": config  # Let templates use config for
         # e.g. multiple databases
     }
+
+    environment = util.asbool(config.get_main_option("revision_environment"))
+
+    if environment:
+
+        def nothing(rev, context):
+            return []
+
+        with EnvironmentContext(
+            config,
+            script,
+            fn=nothing,
+            as_sql=False,
+            template_args=template_args,
+        ):
+            script.run_env()
+
     return script.generate_revision(
         rev_id or util.rev_id(),
         message,
