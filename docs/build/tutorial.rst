@@ -199,6 +199,12 @@ The file generated with the "generic" configuration looks like::
     # black.entrypoint = black
     # black.options = -l 79 REVISION_SCRIPT_FILENAME
 
+    # lint with attempts to fix using "ruff" - use the exec runner, execute a binary
+    # hooks = ruff
+    # ruff.type = exec
+    # ruff.executable = %(here)s/.venv/bin/ruff
+    # ruff.options = --fix REVISION_SCRIPT_FILENAME
+
     # Logging configuration
     [loggers]
     keys = root,sqlalchemy,alembic

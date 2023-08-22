@@ -714,13 +714,14 @@ regardless of whether or not the autogenerate feature was used.
     rather than at commit time, and also can be useful for projects that prefer
     not to use pre-commit.
 
+.. _post_write_hooks_config:
 
-Basic Formatter Configuration
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Basic Post Processor Configuration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The ``alembic.ini`` samples now include commented-out configuration
-illustrating how to configure code-formatting tools to run against the newly
-generated file path.    Example::
+illustrating how to configure code-formatting tools, or other tools like linters
+to run against the newly generated file path.    Example::
 
   [post_write_hooks]
 
@@ -736,19 +737,30 @@ Above, we configure ``hooks`` to be a single post write hook labeled
 configuration for the ``"black"`` post write hook, which includes:
 
 * ``type`` - this is the type of hook we are running.  Alembic includes
-  a hook runner called ``"console_scripts"``, which is specifically a
+  two hook runners: ``"console_scripts"``, which is specifically a
   Python function that uses ``subprocess.run()`` to invoke a separate
-  Python script against the revision file.  For a custom-written hook
-  function, this configuration variable would refer to the name under
+  Python script against the revision file; and ``"exec"``, which uses
+  ``subprocess.run()`` to execute an arbitrary binary.  For a custom-written
+  hook function, this configuration variable would refer to the name under
   which the custom hook was registered; see the next section for an example.
 
-The following configuration options are specific to the ``"console_scripts"``
+.. versionadded:: 1.12 added new ``exec`` runner
+
+The following configuration option is specific to the ``"console_scripts"``
 hook runner:
 
 * ``entrypoint`` - the name of the `setuptools entrypoint <https://setuptools.readthedocs.io/en/latest/pkg_resources.html#entry-points>`_
   that is used to define the console script.   Within the scope of standard
   Python console scripts, this name will match the name of the shell command
   that is usually run for the code formatting tool, in this case ``black``.
+
+The following configuration option is specific to the ``"exec"`` hook runner:
+
+* ``executable`` - the name of the executable to invoke.  Can be either a
+bare executable name which will be searched in ``$PATH``, or a full pathname
+to avoid potential issues with path interception.
+
+The following options are supported by both ``"console_scripts"`` and ``"exec"``:
 
 * ``options`` - a line of command-line options that will be passed to
   the code formatting tool.  In this case, we want to run the command
@@ -767,7 +779,7 @@ hook runner:
         autopep8.entrypoint = autopep8
         autopep8.options = --in-place REVISION_SCRIPT_FILENAME
 
-* ``cwd`` - optional working directory from which the console script is run.
+* ``cwd`` - optional working directory from which the code processing tool is run.
 
 When running ``alembic revision -m "rev1"``, we will now see the ``black``
 tool's output as well::
