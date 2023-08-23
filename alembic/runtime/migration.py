@@ -178,7 +178,7 @@ class MigrationContext:
         else:
             self.output_buffer = opts.get("output_buffer", sys.stdout)
 
-        self._user_compare_type = opts.get("compare_type", False)
+        self._user_compare_type = opts.get("compare_type", True)
         self._user_compare_server_default = opts.get(
             "compare_server_default", False
         )

@@ -26,6 +26,7 @@ if TYPE_CHECKING:
     from sqlalchemy.sql.schema import FetchedValue
     from sqlalchemy.sql.schema import MetaData
     from sqlalchemy.sql.schema import SchemaItem
+    from sqlalchemy.sql.type_api import TypeEngine
 
     from .autogenerate.api import AutogenContext
     from .config import Config
@@ -145,7 +146,19 @@ def configure(
             [MigrationContext, Tuple[str, str], List[MigrateOperation]], None
         ]
     ] = None,
-    compare_type: bool = False,
+    compare_type: Union[
+        bool,
+        Callable[
+            [
+                MigrationContext,
+                Column[Any],
+                Column[Any],
+                TypeEngine,
+                TypeEngine,
+            ],
+            Optional[bool],
+        ],
+    ] = True,
     compare_server_default: Union[
         bool,
         Callable[
@@ -308,12 +321,16 @@ def configure(
      to produce candidate upgrade/downgrade operations.
     :param compare_type: Indicates type comparison behavior during
      an autogenerate
-     operation.  Defaults to ``False`` which disables type
-     comparison.  Set to
-     ``True`` to turn on default type comparison, which has varied
-     accuracy depending on backend.   See :ref:`compare_types`
+     operation.  Defaults to ``True`` turning on type comparison, which
+     has good accuracy on most backends.   See :ref:`compare_types`
      for an example as well as information on other type
-     comparison options.
+     comparison options. Set to ``False`` which disables type
+     comparison. A callable can also be passed to provide custom type
+     comparison, see :ref:`compare_types` for additional details.
+
+     .. versionchanged:: 1.12.0 The default value of
+        :paramref:`.EnvironmentContext.configure.compare_type` has been
+        changed to ``True``.
 
      .. seealso::
 

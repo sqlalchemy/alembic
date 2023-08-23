@@ -1755,9 +1755,14 @@ class PGCompareMetaData(ModelOne, AutogenTest, TestBase):
             diffs[4][3],
         )
 
-        eq_(diffs[5][0][0], "modify_nullable")
-        eq_(diffs[5][0][5], False)
-        eq_(diffs[5][0][6], True)
+        eq_(diffs[5][0][0], "modify_type")
+        eq_(diffs[5][0][1:4], ("test_schema", "order", "amount"))
+        eq_(diffs[5][0][5].precision, 8)
+        eq_(diffs[5][0][6].precision, 10)
+
+        eq_(diffs[5][1][0], "modify_nullable")
+        eq_(diffs[5][1][5], False)
+        eq_(diffs[5][1][6], True)
 
 
 class OrigObjectTest(TestBase):
