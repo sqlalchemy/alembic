@@ -1258,6 +1258,30 @@ class PostgresqlAutogenRenderTest(TestBase):
             "name='TExclID'))",
         )
 
+    def test_drop_exclude_constraint(self):
+        """test for #1300"""
+
+        autogen_context = self.autogen_context
+
+        m = MetaData()
+        t = Table(
+            "TTable", m, Column("XColumn", String), Column("YColumn", String)
+        )
+
+        op_obj = ops.DropConstraintOp.from_constraint(
+            ExcludeConstraint(
+                (t.c.XColumn, ">"),
+                where=t.c.XColumn != 2,
+                using="gist",
+                name="t_excl_x",
+            )
+        )
+
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(autogen_context, op_obj),
+            "op.drop_constraint('t_excl_x', 'TTable',  type_='exclude')",
+        )
+
     def test_json_type(self):
         eq_ignore_whitespace(
             autogenerate.render._repr_type(JSON(), self.autogen_context),

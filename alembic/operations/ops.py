@@ -164,6 +164,7 @@ class DropConstraintOp(MigrateOperation):
             "check_constraint": "check",
             "column_check_constraint": "check",
             "table_or_column_check_constraint": "check",
+            "exclude_constraint": "exclude",
         }
 
         constraint_table = sqla_compat._table_for_constraint(constraint)
