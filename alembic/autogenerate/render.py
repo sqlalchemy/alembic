@@ -409,8 +409,8 @@ def _drop_constraint(
         "prefix": _alembic_autogenerate_prefix(autogen_context),
         "name": _render_gen_name(autogen_context, op.constraint_name),
         "table_name": _ident(op.table_name),
-        "type": (", type_=%r" % 
-            _ident(op.constraint_type)) if op.constraint_type else "",
+        "type": (", type_=%r" %
+                 _ident(op.constraint_type)) if op.constraint_type else "",
         "schema": (", schema=%r" % _ident(op.schema)) if op.schema else "",
     }
     return text
