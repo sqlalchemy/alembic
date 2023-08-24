@@ -164,7 +164,6 @@ class DropConstraintOp(MigrateOperation):
             "check_constraint": "check",
             "column_check_constraint": "check",
             "table_or_column_check_constraint": "check",
-            "exclude_constraint": "exclude",
         }
 
         constraint_table = sqla_compat._table_for_constraint(constraint)
@@ -172,7 +171,7 @@ class DropConstraintOp(MigrateOperation):
             sqla_compat.constraint_name_or_none(constraint.name),
             constraint_table.name,
             schema=constraint_table.schema,
-            type_=types[constraint.__visit_name__],
+            type_=types.get(constraint.__visit_name__, "generic"),
             _reverse=AddConstraintOp.from_constraint(constraint),
         )
 
