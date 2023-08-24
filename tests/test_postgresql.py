@@ -1279,7 +1279,7 @@ class PostgresqlAutogenRenderTest(TestBase):
 
         eq_ignore_whitespace(
             autogenerate.render_op_text(autogen_context, op_obj),
-            "op.drop_constraint('t_excl_x', 'TTable',  type_='generic')",
+            "op.drop_constraint('t_excl_x', 'TTable')",
         )
 
     def test_json_type(self):

@@ -808,6 +808,11 @@ class OpTest(TestBase):
         op.drop_constraint("foo_bar_bat", "t1", type_="foreignkey")
         context.assert_("ALTER TABLE t1 DROP CONSTRAINT foo_bar_bat")
 
+    def test_drop_constraint_type_generic(self):
+        context = op_fixture()
+        op.drop_constraint("foo_bar_bat", "t1")
+        context.assert_("ALTER TABLE t1 DROP CONSTRAINT foo_bar_bat")
+
     def test_drop_constraint_legacy_type(self):
         """#1245"""
         context = op_fixture()
