@@ -398,18 +398,18 @@ def _drop_constraint(
     autogen_context: AutogenContext, op: ops.DropConstraintOp
 ) -> str:
     if autogen_context._has_batch:
-        template = "%(prefix)sdrop_constraint" "(%(name)r, type_=%(type)r)"
+        template = "%(prefix)sdrop_constraint" "(%(name)r%(type)s)"
     else:
         template = (
             "%(prefix)sdrop_constraint"
-            "(%(name)r, '%(table_name)s'%(schema)s, type_=%(type)r)"
+            "(%(name)r, '%(table_name)s'%(schema)s%(type)s)"
         )
 
     text = template % {
         "prefix": _alembic_autogenerate_prefix(autogen_context),
         "name": _render_gen_name(autogen_context, op.constraint_name),
         "table_name": _ident(op.table_name),
-        "type": op.constraint_type,
+        "type": (", type_=%r" % _ident(op.constraint_type)) if op.constraint_type else "",
         "schema": (", schema=%r" % _ident(op.schema)) if op.schema else "",
     }
     return text
