@@ -1388,12 +1388,25 @@ class AutogenRenderTest(TestBase):
             "sa.ForeignKeyConstraint(['c'], ['t2.c_rem'], initially='XYZ')",
         )
 
+        fk = ForeignKeyConstraint([t1.c.c], [t2.c.c_rem], match="FULL")
+        eq_ignore_whitespace(
+            re.sub(
+                r"u'",
+                "'",
+                autogenerate.render._render_constraint(
+                    fk, self.autogen_context, m
+                ),
+            ),
+            "sa.ForeignKeyConstraint(['c'], ['t2.c_rem'], match='FULL')",
+        )
+
         fk = ForeignKeyConstraint(
             [t1.c.c],
             [t2.c.c_rem],
             initially="XYZ",
             ondelete="CASCADE",
             deferrable=True,
+            match="FULL",
         )
         eq_ignore_whitespace(
             re.sub(
@@ -1404,7 +1417,8 @@ class AutogenRenderTest(TestBase):
                 ),
             ),
             "sa.ForeignKeyConstraint(['c'], ['t2.c_rem'], "
-            "ondelete='CASCADE', initially='XYZ', deferrable=True)",
+            "ondelete='CASCADE', initially='XYZ', deferrable=True, "
+            "match='FULL')",
         )
 
     def test_render_fk_constraint_resolve_key(self):
