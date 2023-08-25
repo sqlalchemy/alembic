@@ -367,6 +367,7 @@ def _add_fk_constraint(
         "initially",
         "deferrable",
         "use_alter",
+        "match",
     ]
     if not autogen_context._has_batch:
         kwargs.insert(0, "source_schema")
@@ -977,6 +978,8 @@ def _populate_render_fk_opts(
         opts.append(("deferrable", repr(constraint.deferrable)))
     if constraint.use_alter:
         opts.append(("use_alter", repr(constraint.use_alter)))
+    if constraint.match:
+        opts.append(("match", repr(constraint.match)))
 
 
 @_constraint_renderers.dispatch_for(sa_schema.ForeignKeyConstraint)
