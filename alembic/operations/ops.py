@@ -545,6 +545,8 @@ class CreateForeignKeyOp(AddConstraintOp):
             kw["deferrable"] = fk_constraint.deferrable
         if fk_constraint.use_alter:
             kw["use_alter"] = fk_constraint.use_alter
+        if fk_constraint.match:
+            kw["match"] = fk_constraint.match
 
         (
             source_schema,

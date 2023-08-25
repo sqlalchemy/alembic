@@ -169,6 +169,11 @@ class PostgresqlOpTest(TestBase):
             "WHERE (x > 5)"
         )
 
+    def test_drop_exclude_or_other_constraint(self):
+        context = op_fixture("postgresql")
+        op.drop_constraint("t_excl_x", "TTable", type_=None)
+        context.assert_('ALTER TABLE "TTable" DROP CONSTRAINT t_excl_x')
+
     def test_create_exclude_constraint_quoted_literal(self):
         context = op_fixture("postgresql")
         op.create_exclude_constraint(
