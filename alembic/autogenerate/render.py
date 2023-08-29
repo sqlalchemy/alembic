@@ -398,22 +398,21 @@ def _add_check_constraint(constraint, autogen_context):
 def _drop_constraint(
     autogen_context: AutogenContext, op: ops.DropConstraintOp
 ) -> str:
-    if autogen_context._has_batch:
-        template = "%(prefix)sdrop_constraint" "(%(name)r, type_=%(type)r)"
-    else:
-        template = (
-            "%(prefix)sdrop_constraint"
-            "(%(name)r, '%(table_name)s'%(schema)s, type_=%(type)r)"
-        )
+    prefix = _alembic_autogenerate_prefix(autogen_context)
+    name = _render_gen_name(autogen_context, op.constraint_name)
+    schema = _ident(op.schema) if op.schema else None
+    type_ = _ident(op.constraint_type) if op.constraint_type else None
 
-    text = template % {
-        "prefix": _alembic_autogenerate_prefix(autogen_context),
-        "name": _render_gen_name(autogen_context, op.constraint_name),
-        "table_name": _ident(op.table_name),
-        "type": op.constraint_type,
-        "schema": (", schema=%r" % _ident(op.schema)) if op.schema else "",
-    }
-    return text
+    params_strs = []
+    params_strs.append(repr(name))
+    if not autogen_context._has_batch:
+        params_strs.append(repr(_ident(op.table_name)))
+        if schema is not None:
+            params_strs.append(f"schema={schema!r}")
+    if type_ is not None:
+        params_strs.append(f"type_={type_!r}")
+
+    return f"{prefix}drop_constraint({', '.join(params_strs)})"
 
 
 @renderers.dispatch_for(ops.AddColumnOp)

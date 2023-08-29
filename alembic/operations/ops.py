@@ -171,7 +171,7 @@ class DropConstraintOp(MigrateOperation):
             sqla_compat.constraint_name_or_none(constraint.name),
             constraint_table.name,
             schema=constraint_table.schema,
-            type_=types[constraint.__visit_name__],
+            type_=types.get(constraint.__visit_name__),
             _reverse=AddConstraintOp.from_constraint(constraint),
         )
 

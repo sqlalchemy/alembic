@@ -1,0 +1,12 @@
+.. change::
+    :tags: bug, operations
+    :tickets: 1300
+
+    Added support for ``op.drop_constraint()`` to support PostrgreSQL
+    ``ExcludeConstraint`` objects, as well as other constraint-like objects
+    that may be present in third party dialects, by resolving the ``type_``
+    parameter to be ``None`` for this case.   Autogenerate has also been
+    enhanced to exclude the ``type_`` parameter from rendering within this
+    command when  ``type_`` is ``None``.  Pull request courtesy David Hills.
+
+
