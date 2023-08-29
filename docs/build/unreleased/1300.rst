@@ -1,0 +1,7 @@
+.. change::
+    :tags: bug
+    :tickets: 1300
+
+    Fix for exception when generating drop_constraint for ExcludeConstraint 
+    Postgres migrations.
+    
