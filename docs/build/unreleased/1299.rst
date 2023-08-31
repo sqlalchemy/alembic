@@ -1,8 +1,0 @@
-.. change::
-    :tags: bug, commmands
-    :tickets: 1299
-
-    Fixed issue where the ``revision_environment`` directive in ``alembic.ini``
-    was ignored by the ``alembic merge`` command, leading to issues when other
-    configurational elements depend upon ``env.py`` being invoked within the
-    command.

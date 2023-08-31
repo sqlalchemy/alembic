@@ -1,9 +1,0 @@
-.. change::
-    :tags: usecase, autogenerate
-    :tickets: 1248
-
-    Change the default value of
-    :paramref:`.EnvironmentContext.configure.compare_type` to ``True``.
-    As Alembic's autogenerate for types was dramatically improved in
-    version 1.4 released in 2020, the type comparison feature is now much
-    more reliable so is now enabled by default.
