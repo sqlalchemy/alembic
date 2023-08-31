@@ -14,6 +14,7 @@ from .script import ScriptDirectory
 if TYPE_CHECKING:
     from alembic.config import Config
     from alembic.script.base import Script
+    from alembic.script.revision import _RevIdType
     from .runtime.environment import ProcessRevisionDirectiveFn
 
 
@@ -124,7 +125,7 @@ def revision(
     sql: bool = False,
     head: str = "head",
     splice: bool = False,
-    branch_label: Optional[str] = None,
+    branch_label: Optional[_RevIdType] = None,
     version_path: Optional[str] = None,
     rev_id: Optional[str] = None,
     depends_on: Optional[str] = None,
@@ -244,9 +245,7 @@ def revision(
         return scripts
 
 
-def check(
-    config: "Config",
-) -> None:
+def check(config: "Config") -> None:
     """Check if revision command with autogenerate has pending upgrade ops.
 
     :param config: a :class:`.Config` object.
@@ -302,9 +301,9 @@ def check(
 
 def merge(
     config: Config,
-    revisions: str,
+    revisions: _RevIdType,
     message: Optional[str] = None,
-    branch_label: Optional[str] = None,
+    branch_label: Optional[_RevIdType] = None,
     rev_id: Optional[str] = None,
 ) -> Optional[Script]:
     """Merge two revisions together.  Creates a new migration file.
@@ -623,7 +622,7 @@ def current(config: Config, verbose: bool = False) -> None:
 
 def stamp(
     config: Config,
-    revision: str,
+    revision: _RevIdType,
     sql: bool = False,
     tag: Optional[str] = None,
     purge: bool = False,

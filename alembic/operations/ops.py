@@ -30,7 +30,6 @@ if TYPE_CHECKING:
 
     from sqlalchemy.sql.dml import Insert
     from sqlalchemy.sql.dml import Update
-    from sqlalchemy.sql.elements import BinaryExpression
     from sqlalchemy.sql.elements import ColumnElement
     from sqlalchemy.sql.elements import conv
     from sqlalchemy.sql.elements import quoted_name
@@ -788,7 +787,7 @@ class CreateCheckConstraintOp(AddConstraintOp):
         operations: Operations,
         constraint_name: Optional[str],
         table_name: str,
-        condition: Union[str, BinaryExpression, TextClause],
+        condition: Union[str, ColumnElement[bool], TextClause],
         *,
         schema: Optional[str] = None,
         **kw: Any,
@@ -841,7 +840,7 @@ class CreateCheckConstraintOp(AddConstraintOp):
         cls,
         operations: BatchOperations,
         constraint_name: str,
-        condition: Union[str, BinaryExpression, TextClause],
+        condition: Union[str, ColumnElement[bool], TextClause],
         **kw: Any,
     ) -> None:
         """Issue a "create check constraint" instruction using the
