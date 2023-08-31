@@ -29,18 +29,19 @@ if True:  # avoid flake/zimports messing with the order
     import sqlalchemy as sa
 
 TRIM_MODULE = [
-    "alembic.runtime.migration.",
+    "alembic.autogenerate.api.",
     "alembic.operations.base.",
     "alembic.operations.ops.",
-    "alembic.autogenerate.api.",
+    "alembic.runtime.migration.",
     "sqlalchemy.engine.base.",
     "sqlalchemy.engine.url.",
+    "sqlalchemy.sql.base.",
+    "sqlalchemy.sql.dml.",
+    "sqlalchemy.sql.elements.",
+    "sqlalchemy.sql.functions.",
     "sqlalchemy.sql.schema.",
     "sqlalchemy.sql.selectable.",
-    "sqlalchemy.sql.elements.",
     "sqlalchemy.sql.type_api.",
-    "sqlalchemy.sql.functions.",
-    "sqlalchemy.sql.dml.",
     "typing.",
 ]
 ADDITIONAL_ENV = {

@@ -35,10 +35,10 @@ if TYPE_CHECKING:
 
     from sqlalchemy import Table
     from sqlalchemy.engine import Connection
+    from sqlalchemy.sql import Executable
     from sqlalchemy.sql.expression import ColumnElement
     from sqlalchemy.sql.expression import TableClause
     from sqlalchemy.sql.expression import TextClause
-    from sqlalchemy.sql.expression import Update
     from sqlalchemy.sql.functions import Function
     from sqlalchemy.sql.schema import Column
     from sqlalchemy.sql.schema import Computed
@@ -1433,7 +1433,7 @@ class Operations(AbstractOperations):
 
         def execute(
             self,
-            sqltext: Union[str, TextClause, Update],
+            sqltext: Union[Executable, str],
             *,
             execution_options: Optional[dict[str, Any]] = None,
         ) -> None:
@@ -1502,9 +1502,8 @@ class Operations(AbstractOperations):
             * a string
             * a :func:`sqlalchemy.sql.expression.text` construct.
             * a :func:`sqlalchemy.sql.expression.insert` construct.
-            * a :func:`sqlalchemy.sql.expression.update`,
-              :func:`sqlalchemy.sql.expression.insert`,
-              or :func:`sqlalchemy.sql.expression.delete`  construct.
+            * a :func:`sqlalchemy.sql.expression.update` construct.
+            * a :func:`sqlalchemy.sql.expression.delete` construct.
             * Any "executable" described in SQLAlchemy Core documentation,
               noting that no result set is returned.
 
@@ -1822,7 +1821,7 @@ class BatchOperations(AbstractOperations):
 
         def execute(
             self,
-            sqltext: Union[str, TextClause, Update],
+            sqltext: Union[Executable, str],
             *,
             execution_options: Optional[dict[str, Any]] = None,
         ) -> None:

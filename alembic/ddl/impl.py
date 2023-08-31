@@ -32,7 +32,8 @@ if TYPE_CHECKING:
     from sqlalchemy.engine import Dialect
     from sqlalchemy.engine.cursor import CursorResult
     from sqlalchemy.engine.reflection import Inspector
-    from sqlalchemy.sql.elements import ClauseElement
+    from sqlalchemy.sql import ClauseElement
+    from sqlalchemy.sql import Executable
     from sqlalchemy.sql.elements import ColumnElement
     from sqlalchemy.sql.elements import quoted_name
     from sqlalchemy.sql.schema import Column
@@ -159,7 +160,7 @@ class DefaultImpl(metaclass=ImplMeta):
 
     def _exec(
         self,
-        construct: Union[ClauseElement, str],
+        construct: Union[Executable, str],
         execution_options: Optional[dict[str, Any]] = None,
         multiparams: Sequence[dict] = (),
         params: Dict[str, Any] = util.immutabledict(),
@@ -171,6 +172,7 @@ class DefaultImpl(metaclass=ImplMeta):
                 # TODO: coverage
                 raise Exception("Execution arguments not allowed with as_sql")
 
+            compile_kw: dict[str, Any]
             if self.literal_binds and not isinstance(
                 construct, schema.DDLElement
             ):
@@ -178,9 +180,9 @@ class DefaultImpl(metaclass=ImplMeta):
             else:
                 compile_kw = {}
 
-            compiled = construct.compile(
-                dialect=self.dialect, **compile_kw  # type: ignore[arg-type]
-            )
+            if TYPE_CHECKING:
+                assert isinstance(construct, ClauseElement)
+            compiled = construct.compile(dialect=self.dialect, **compile_kw)
             self.static_output(
                 str(compiled).replace("\t", "    ").strip()
                 + self.command_terminator
@@ -195,13 +197,11 @@ class DefaultImpl(metaclass=ImplMeta):
                 assert isinstance(multiparams, tuple)
                 multiparams += (params,)
 
-            return conn.execute(  # type: ignore[call-overload]
-                construct, multiparams
-            )
+            return conn.execute(construct, multiparams)
 
     def execute(
         self,
-        sql: Union[ClauseElement, str],
+        sql: Union[Executable, str],
         execution_options: Optional[dict[str, Any]] = None,
     ) -> None:
         self._exec(sql, execution_options)
@@ -578,13 +578,10 @@ class DefaultImpl(metaclass=ImplMeta):
 
         """
 
-        compile_kw = {
-            "compile_kwargs": {"literal_binds": True, "include_table": False}
-        }
+        compile_kw = {"literal_binds": True, "include_table": False}
+
         return str(
-            expr.compile(
-                dialect=self.dialect, **compile_kw  # type: ignore[arg-type]
-            )
+            expr.compile(dialect=self.dialect, compile_kwargs=compile_kw)
         )
 
     def _compat_autogen_column_reflect(self, inspector: Inspector) -> Callable:

@@ -21,7 +21,7 @@ from typing import Union
 if TYPE_CHECKING:
     from sqlalchemy.engine.base import Connection
     from sqlalchemy.engine.url import URL
-    from sqlalchemy.sql.elements import ClauseElement
+    from sqlalchemy.sql import Executable
     from sqlalchemy.sql.schema import Column
     from sqlalchemy.sql.schema import FetchedValue
     from sqlalchemy.sql.schema import MetaData
@@ -629,7 +629,7 @@ def configure(
     """
 
 def execute(
-    sql: Union[ClauseElement, str], execution_options: Optional[dict] = None
+    sql: Union[Executable, str], execution_options: Optional[dict] = None
 ) -> None:
     """Execute the given SQL using the current change context.
 
