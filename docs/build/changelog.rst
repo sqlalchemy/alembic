@@ -2778,7 +2778,7 @@ Changelog
       in SQLAlchemy 1.1.  When the source column indicates autoincrement
       as True or "auto", the flag will render as True if the original column
       contextually indicates that it should have "autoincrement" keywords,
-      and when the source column explcitly sets it to False, this is also
+      and when the source column explicitly sets it to False, this is also
       rendered.  The behavior is intended to preserve the AUTO_INCREMENT flag
       on MySQL as the column is fully recreated on this backend.  Note that this
       flag does **not** support alteration of a column's "autoincrement" status,
