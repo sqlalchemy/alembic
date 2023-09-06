@@ -392,7 +392,7 @@ However, when using branch labels, we usually want to use them using a syntax
 known as "branch at" syntax; this syntax allows us to state that we want to
 use a specific revision, let's say a "head" revision, in terms of a *specific*
 branch.  While normally, we can't refer to ``alembic upgrade head`` when
-there's multiple heads, we *can* refer to this head specifcally using
+there's multiple heads, we *can* refer to this head specifically using
 ``shoppingcart@head`` syntax::
 
     $ alembic upgrade shoppingcart@head
