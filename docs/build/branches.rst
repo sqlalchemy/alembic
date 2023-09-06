@@ -117,7 +117,7 @@ turn it into a "diamond" structure::
 
 We create the merge file using ``alembic merge``; with this command, we can
 pass to it an argument such as ``heads``, meaning we'd like to merge all
-heads.  Or, we can pass it individual revision numbers sequentally::
+heads.  Or, we can pass it individual revision numbers sequentially::
 
     $ alembic merge -m "merge ae1 and 27c" ae1027 27c6a
       Generating /path/to/foo/versions/53fffde5ad5_merge_ae1_and_27c.py ... done
