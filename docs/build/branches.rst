@@ -4,7 +4,7 @@ Working with Branches
 =====================
 
 A **branch** describes a point in a migration stream when two or more
-versions refer to the same parent migration as their anscestor.  Branches
+versions refer to the same parent migration as their ancestor.  Branches
 occur naturally when two divergent source trees, both containing Alembic
 revision files created independently within those source trees, are merged
 together into one.  When this occurs, the challenge of a branch is to **merge** the
