@@ -707,7 +707,7 @@ are descendants::
 What we see is that the full history of the ``networking`` branch, in terms
 of an "upgrade" to the "head", will include that the tree building
 up ``55af2cb1c267, add another account column``
-will be pulled in first.   Interstingly, we don't see this displayed
+will be pulled in first.   Interestingly, we don't see this displayed
 when we display history in the other direction, e.g. from ``networking@base``::
 
     $ alembic history -r networking@base:
