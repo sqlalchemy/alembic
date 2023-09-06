@@ -120,7 +120,7 @@ Alembic is developed by `Mike Bayer <http://techspot.zzzeek.org>`_, and is
 part of the SQLAlchemy_ project.
 
 User issues, discussion of potential bugs and features are most easily
-discussed using `Github Discussions <https://github.com/sqlalchemy/alembic/discussions/>`_.
+discussed using `GitHub Discussions <https://github.com/sqlalchemy/alembic/discussions/>`_.
 
 .. _bugs:
 
