@@ -25,7 +25,7 @@ Changelog
 
 
     .. change::
-        :tags: bug, commmands
+        :tags: bug, commands
         :tickets: 1299
 
         Fixed issue where the ``revision_environment`` directive in ``alembic.ini``
