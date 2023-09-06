@@ -4784,7 +4784,7 @@ Changelog
         :tickets: 93
 
       Added :meth:`.Operations.create_primary_key`
-      operation, will genenerate an ADD CONSTRAINT
+      operation, will generate an ADD CONSTRAINT
       for a primary key.
 
     .. change::
