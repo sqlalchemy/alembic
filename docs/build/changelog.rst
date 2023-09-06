@@ -1072,7 +1072,7 @@ Changelog
         internally; instead, the state variables of each operation object will be
         used to produce the corresponding construct when the operation is invoked.
         The rationale is so that environments which make use of
-        operation-manipulation schemes such as those those discussed in
+        operation-manipulation schemes such as those discussed in
         :ref:`autogen_rewriter` are better supported, allowing end-user code to
         manipulate the public attributes of these objects which will then be
         expressed in the final output, an example is
