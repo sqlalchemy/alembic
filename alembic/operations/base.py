@@ -1489,7 +1489,7 @@ class Operations(AbstractOperations):
                 )
 
             Additionally, when passing the statement as a plain string, it is first
-            coerceed into a :func:`sqlalchemy.sql.expression.text` construct
+            coerced into a :func:`sqlalchemy.sql.expression.text` construct
             before being passed along.  In the less likely case that the
             literal SQL string contains a colon, it must be escaped with a
             backslash, as::
