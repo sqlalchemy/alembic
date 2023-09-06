@@ -1129,7 +1129,7 @@ class RevisionMap:
                         if not symbol_list:
                             # check the case where there are multiple branches
                             # but there is currently a single heads, since all
-                            # other branch heads are dependant of the current
+                            # other branch heads are dependent of the current
                             # single heads.
                             all_current = cast(
                                 Set[Revision], self._get_all_current(cr_tuple)
