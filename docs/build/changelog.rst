@@ -2114,7 +2114,7 @@ Changelog
         unconditionally, as in the vast majority of cases the server default is to
         be CURRENT_TIMESTAMP which may also be potentially bundled with an "ON
         UPDATE CURRENT_TIMESTAMP" directive, which SQLAlchemy does not currently
-        support as a distinct field.  The fix addiionally improves the server
+        support as a distinct field.  The fix additionally improves the server
         default comparison logic when the "ON UPDATE" clause is present and
         there are parenthesis to be adjusted for as is the case on some MariaDB
         versions.
