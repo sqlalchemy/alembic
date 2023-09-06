@@ -15,7 +15,7 @@ Changelog
         :tags: bug, operations
         :tickets: 1300
 
-        Added support for ``op.drop_constraint()`` to support PostrgreSQL
+        Added support for ``op.drop_constraint()`` to support PostgreSQL
         ``ExcludeConstraint`` objects, as well as other constraint-like objects
         that may be present in third party dialects, by resolving the ``type_``
         parameter to be ``None`` for this case.   Autogenerate has also been
