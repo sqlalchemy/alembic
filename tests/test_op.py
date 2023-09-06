@@ -1305,7 +1305,7 @@ class ObjectFromToTest(TestBase):
 
     As of #803 the constructs try to behave more intelligently
     about the state they were given, so that they can both "reverse"
-    themselves but also take into accout their current state.
+    themselves but also take into account their current state.
 
     """
 
