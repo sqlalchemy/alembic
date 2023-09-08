@@ -38,6 +38,7 @@ if TYPE_CHECKING:
     from ..runtime.migration import MigrationContext
     from ..script.base import Script
     from ..script.base import ScriptDirectory
+    from ..script.revision import _GetRevArg
 
 
 def compare_metadata(context: MigrationContext, metadata: MetaData) -> Any:
@@ -555,18 +556,18 @@ class RevisionContext:
         )
 
     def run_autogenerate(
-        self, rev: tuple, migration_context: MigrationContext
+        self, rev: _GetRevArg, migration_context: MigrationContext
     ) -> None:
         self._run_environment(rev, migration_context, True)
 
     def run_no_autogenerate(
-        self, rev: tuple, migration_context: MigrationContext
+        self, rev: _GetRevArg, migration_context: MigrationContext
     ) -> None:
         self._run_environment(rev, migration_context, False)
 
     def _run_environment(
         self,
-        rev: tuple,
+        rev: _GetRevArg,
         migration_context: MigrationContext,
         autogenerate: bool,
     ) -> None:

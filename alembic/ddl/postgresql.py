@@ -57,8 +57,8 @@ if TYPE_CHECKING:
     from sqlalchemy.dialects.postgresql.hstore import HSTORE
     from sqlalchemy.dialects.postgresql.json import JSON
     from sqlalchemy.dialects.postgresql.json import JSONB
-    from sqlalchemy.sql.elements import BinaryExpression
     from sqlalchemy.sql.elements import ClauseElement
+    from sqlalchemy.sql.elements import ColumnElement
     from sqlalchemy.sql.elements import quoted_name
     from sqlalchemy.sql.schema import MetaData
     from sqlalchemy.sql.schema import Table
@@ -513,7 +513,7 @@ class CreateExcludeConstraintOp(ops.AddConstraintOp):
             Sequence[Tuple[str, str]],
             Sequence[Tuple[ColumnClause[Any], str]],
         ],
-        where: Optional[Union[BinaryExpression, str]] = None,
+        where: Optional[Union[ColumnElement[bool], str]] = None,
         schema: Optional[str] = None,
         _orig_constraint: Optional[ExcludeConstraint] = None,
         **kw,
@@ -538,9 +538,7 @@ class CreateExcludeConstraintOp(ops.AddConstraintOp):
                 (expr, op)
                 for expr, name, op in constraint._render_exprs  # type:ignore[attr-defined] # noqa
             ],
-            where=cast(
-                "Optional[Union[BinaryExpression, str]]", constraint.where
-            ),
+            where=cast("ColumnElement[bool] | None", constraint.where),
             schema=constraint_table.schema,
             _orig_constraint=constraint,
             deferrable=constraint.deferrable,

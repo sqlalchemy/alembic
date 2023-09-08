@@ -26,6 +26,7 @@ from ..runtime import migration
 from ..util import not_none
 
 if TYPE_CHECKING:
+    from .revision import _GetRevArg
     from .revision import _RevIdType
     from .revision import Revision
     from ..config import Config
@@ -296,7 +297,7 @@ class ScriptDirectory:
             ):
                 yield cast(Script, rev)
 
-    def get_revisions(self, id_: _RevIdType) -> Tuple[Optional[Script], ...]:
+    def get_revisions(self, id_: _GetRevArg) -> Tuple[Optional[Script], ...]:
         """Return the :class:`.Script` instance with the given rev identifier,
         symbolic name, or sequence of identifiers.
 
@@ -630,8 +631,7 @@ class ScriptDirectory:
         self,
         revid: str,
         message: Optional[str],
-        head: Optional[str] = None,
-        refresh: bool = False,
+        head: Optional[_RevIdType] = None,
         splice: Optional[bool] = False,
         branch_labels: Optional[_RevIdType] = None,
         version_path: Optional[str] = None,
@@ -653,7 +653,6 @@ class ScriptDirectory:
         :param splice: if True, allow the "head" version to not be an
          actual head; otherwise, the selected head must be a head
          (e.g. endpoint) revision.
-        :param refresh: deprecated.
 
         """
         if head is None:

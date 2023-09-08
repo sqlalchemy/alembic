@@ -1157,7 +1157,7 @@ class RevisionStep(MigrationStep):
             self.to_revisions[0],
         )
 
-    def _unmerge_to_revisions(self, heads: Collection[str]) -> Tuple[str, ...]:
+    def _unmerge_to_revisions(self, heads: Set[str]) -> Tuple[str, ...]:
         other_heads = set(heads).difference([self.revision.revision])
         if other_heads:
             ancestors = {
@@ -1171,7 +1171,7 @@ class RevisionStep(MigrationStep):
             return self.to_revisions
 
     def unmerge_branch_idents(
-        self, heads: Collection[str]
+        self, heads: Set[str]
     ) -> Tuple[str, str, Tuple[str, ...]]:
         to_revisions = self._unmerge_to_revisions(heads)
 

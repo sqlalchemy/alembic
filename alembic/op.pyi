@@ -24,7 +24,7 @@ from sqlalchemy.sql.expression import Update
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import Connection
-    from sqlalchemy.sql.elements import BinaryExpression
+    from sqlalchemy.sql.elements import ColumnElement
     from sqlalchemy.sql.elements import conv
     from sqlalchemy.sql.elements import TextClause
     from sqlalchemy.sql.functions import Function
@@ -481,7 +481,7 @@ def bulk_insert(
 def create_check_constraint(
     constraint_name: Optional[str],
     table_name: str,
-    condition: Union[str, BinaryExpression, TextClause],
+    condition: Union[str, ColumnElement[bool], TextClause],
     *,
     schema: Optional[str] = None,
     **kw: Any,

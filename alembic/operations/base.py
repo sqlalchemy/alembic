@@ -35,7 +35,7 @@ if TYPE_CHECKING:
 
     from sqlalchemy import Table
     from sqlalchemy.engine import Connection
-    from sqlalchemy.sql.expression import BinaryExpression
+    from sqlalchemy.sql.expression import ColumnElement
     from sqlalchemy.sql.expression import TableClause
     from sqlalchemy.sql.expression import TextClause
     from sqlalchemy.sql.expression import Update
@@ -861,7 +861,7 @@ class Operations(AbstractOperations):
             self,
             constraint_name: Optional[str],
             table_name: str,
-            condition: Union[str, BinaryExpression, TextClause],
+            condition: Union[str, ColumnElement[bool], TextClause],
             *,
             schema: Optional[str] = None,
             **kw: Any,
@@ -1635,7 +1635,7 @@ class BatchOperations(AbstractOperations):
         def create_check_constraint(
             self,
             constraint_name: str,
-            condition: Union[str, BinaryExpression, TextClause],
+            condition: Union[str, ColumnElement[bool], TextClause],
             **kw: Any,
         ) -> None:
             """Issue a "create check constraint" instruction using the
