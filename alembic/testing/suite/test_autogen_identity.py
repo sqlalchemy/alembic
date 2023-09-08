@@ -4,6 +4,7 @@ from sqlalchemy import Integer
 from sqlalchemy import MetaData
 from sqlalchemy import Table
 
+from alembic.util import sqla_compat
 from ._autogen_fixtures import AutogenFixtureTest
 from ... import testing
 from ...testing import config
@@ -78,15 +79,32 @@ class AutogenerateIdentityTest(AutogenFixtureTest, TestBase):
         m2 = MetaData()
 
         for m in (m1, m2):
-            Table(
-                "user",
-                m,
-                Column("id", Integer, sa.Identity(start=2)),
-            )
+            id_ = sa.Identity(start=2)
+            Table("user", m, Column("id", Integer, id_))
 
         diffs = self._fixture(m1, m2)
 
         eq_(diffs, [])
+
+    def test_dialect_kwargs_changes(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        if sqla_compat.identity_has_dialect_kwargs:
+            args = {"oracle_on_null": True, "oracle_order": True}
+        else:
+            args = {"on_null": True, "order": True}
+
+        Table("user", m1, Column("id", Integer, sa.Identity(start=2)))
+        id_ = sa.Identity(start=2, **args)
+        Table("user", m2, Column("id", Integer, id_))
+
+        diffs = self._fixture(m1, m2)
+        if config.db.name == "oracle":
+            is_true(len(diffs), 1)
+            eq_(diffs[0][0][0], "modify_default")
+        else:
+            eq_(diffs, [])
 
     @testing.combinations(
         (None, dict(start=2)),
@@ -206,36 +224,3 @@ class AutogenerateIdentityTest(AutogenFixtureTest, TestBase):
         removed = diffs[5]
 
         is_true(isinstance(removed, sa.Identity))
-
-    def test_identity_on_null(self):
-        m1 = MetaData()
-        m2 = MetaData()
-
-        Table(
-            "user",
-            m1,
-            Column("id", Integer, sa.Identity(start=2, on_null=True)),
-            Column("other", sa.Text),
-        )
-
-        Table(
-            "user",
-            m2,
-            Column("id", Integer, sa.Identity(start=2, on_null=False)),
-            Column("other", sa.Text),
-        )
-
-        diffs = self._fixture(m1, m2)
-        if not config.requirements.supports_identity_on_null.enabled:
-            eq_(diffs, [])
-        else:
-            eq_(len(diffs[0]), 1)
-            diffs = diffs[0][0]
-            eq_(diffs[0], "modify_default")
-            eq_(diffs[2], "user")
-            eq_(diffs[3], "id")
-            old = diffs[5]
-            new = diffs[6]
-
-            is_true(isinstance(old, sa.Identity))
-            is_true(isinstance(new, sa.Identity))

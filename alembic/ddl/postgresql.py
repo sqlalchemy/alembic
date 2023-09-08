@@ -79,7 +79,6 @@ class PostgresqlImpl(DefaultImpl):
     type_synonyms = DefaultImpl.type_synonyms + (
         {"FLOAT", "DOUBLE PRECISION"},
     )
-    identity_attrs_ignore = ("on_null", "order")
 
     def create_index(self, index: Index, **kw: Any) -> None:
         # this likely defaults to None if not present, so get()

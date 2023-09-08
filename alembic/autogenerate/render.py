@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections import OrderedDict
 from io import StringIO
 import re
 from typing import Any
@@ -760,25 +759,14 @@ def _render_computed(
 def _render_identity(
     identity: Identity, autogen_context: AutogenContext
 ) -> str:
-    # always=None means something different than always=False
-    kwargs = OrderedDict(always=identity.always)
-    if identity.on_null is not None:
-        kwargs["on_null"] = identity.on_null
-    kwargs.update(_get_identity_options(identity))
+    kwargs = sqla_compat._get_identity_options_dict(
+        identity, dialect_kwargs=True
+    )
 
     return "%(prefix)sIdentity(%(kwargs)s)" % {
         "prefix": _sqlalchemy_autogenerate_prefix(autogen_context),
         "kwargs": (", ".join("%s=%s" % pair for pair in kwargs.items())),
     }
-
-
-def _get_identity_options(identity_options: Identity) -> OrderedDict:
-    kwargs = OrderedDict()
-    for attr in sqla_compat._identity_options_attrs:
-        value = getattr(identity_options, attr, None)
-        if value is not None:
-            kwargs[attr] = value
-    return kwargs
 
 
 def _repr_type(

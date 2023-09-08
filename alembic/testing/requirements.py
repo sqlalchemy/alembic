@@ -196,7 +196,3 @@ class SuiteRequirements(Requirements):
         return exclusions.only_if(
             exclusions.BooleanPredicate(sqla_compat.has_identity)
         )
-
-    @property
-    def supports_identity_on_null(self):
-        return exclusions.closed()

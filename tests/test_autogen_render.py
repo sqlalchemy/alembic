@@ -49,6 +49,7 @@ from alembic.testing import eq_ignore_whitespace
 from alembic.testing import mock
 from alembic.testing import TestBase
 from alembic.testing.fixtures import op_fixture
+from alembic.util import sqla_compat
 
 
 class AutogenRenderTest(TestBase):
@@ -2150,15 +2151,13 @@ class AutogenRenderTest(TestBase):
             % persisted,
         )
 
-    @config.requirements.identity_columns_api
-    @testing.combinations(
+    identity_comb = testing.combinations(
         ({}, "sa.Identity(always=False)"),
         (dict(always=None), "sa.Identity(always=None)"),
         (dict(always=True), "sa.Identity(always=True)"),
         (
             dict(
                 always=False,
-                on_null=True,
                 start=2,
                 increment=4,
                 minvalue=-3,
@@ -2167,13 +2166,30 @@ class AutogenRenderTest(TestBase):
                 nomaxvalue=True,
                 cycle=True,
                 cache=42,
-                order=True,
             ),
-            "sa.Identity(always=False, on_null=True, start=2, increment=4, "
+            "sa.Identity(always=False, start=2, increment=4, "
             "minvalue=-3, maxvalue=99, nominvalue=True, nomaxvalue=True, "
-            "cycle=True, cache=42, order=True)",
+            "cycle=True, cache=42)",
+        ),
+        (
+            dict(start=42, oracle_on_null=True, oracle_order=False),
+            "sa.Identity(always=False, start=42, oracle_on_null=True, "
+            "oracle_order=False)",
+            testing.exclusions.only_if(
+                lambda: sqla_compat.identity_has_dialect_kwargs
+            ),
+        ),
+        (
+            dict(start=42, on_null=True, order=False),
+            "sa.Identity(always=False, on_null=True, start=42, order=False)",
+            testing.exclusions.only_if(
+                lambda: not sqla_compat.identity_has_dialect_kwargs
+            ),
         ),
     )
+
+    @config.requirements.identity_columns_api
+    @identity_comb
     def test_render_add_column_identity(self, kw, text):
         col = Column("x", Integer, sa.Identity(**kw))
         op_obj = ops.AddColumnOp("foo", col)
@@ -2184,29 +2200,7 @@ class AutogenRenderTest(TestBase):
         )
 
     @config.requirements.identity_columns_api
-    @testing.combinations(
-        ({}, "sa.Identity(always=False)"),
-        (dict(always=None), "sa.Identity(always=None)"),
-        (dict(always=True), "sa.Identity(always=True)"),
-        (
-            dict(
-                always=False,
-                on_null=True,
-                start=2,
-                increment=4,
-                minvalue=-3,
-                maxvalue=99,
-                nominvalue=True,
-                nomaxvalue=True,
-                cycle=True,
-                cache=42,
-                order=True,
-            ),
-            "sa.Identity(always=False, on_null=True, start=2, increment=4, "
-            "minvalue=-3, maxvalue=99, nominvalue=True, nomaxvalue=True, "
-            "cycle=True, cache=42, order=True)",
-        ),
-    )
+    @identity_comb
     def test_render_alter_column_add_identity(self, kw, text):
         op_obj = ops.AlterColumnOp(
             "foo",

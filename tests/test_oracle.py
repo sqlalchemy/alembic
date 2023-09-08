@@ -1,12 +1,17 @@
+import sqlalchemy as sa
 from sqlalchemy import Column
 from sqlalchemy import exc
 from sqlalchemy import Integer
+from sqlalchemy import MetaData
+from sqlalchemy import Table
 
 from alembic import command
 from alembic import op
 from alembic.testing import assert_raises_message
 from alembic.testing import combinations
 from alembic.testing import config
+from alembic.testing import eq_
+from alembic.testing import is_true
 from alembic.testing.env import _no_sql_testing_config
 from alembic.testing.env import clear_staging_env
 from alembic.testing.env import staging_env
@@ -14,6 +19,7 @@ from alembic.testing.env import three_rev_fixture
 from alembic.testing.fixtures import capture_context_buffer
 from alembic.testing.fixtures import op_fixture
 from alembic.testing.fixtures import TestBase
+from alembic.testing.suite._autogen_fixtures import AutogenFixtureTest
 from alembic.util import sqla_compat
 
 
@@ -253,31 +259,48 @@ class OpTest(TestBase):
     #        'ALTER TABLE y.t RENAME COLUMN c TO c2'
     #    )
 
+
+class IdentityTest(AutogenFixtureTest, TestBase):
+    __requires__ = ("identity_columns",)
+    __backend__ = True
+    __only_on__ = "oracle"
+
     def _identity_qualification(self, kw):
         always = kw.get("always", False)
         if always is None:
             return ""
         qualification = "ALWAYS" if always else "BY DEFAULT"
-        if kw.get("on_null", False):
+        if kw.get("oracle_on_null", False):
             qualification += " ON NULL"
         return qualification
 
-    @config.requirements.identity_columns
+    def _adapt_identity_kw(self, data):
+        res = data.copy()
+        if not sqla_compat.identity_has_dialect_kwargs:
+            for k in data:
+                if k.startswith("oracle_"):
+                    res[k[7:]] = res.pop(k)
+        return res
+
     @combinations(
         ({}, None),
         (dict(always=True), None),
-        (dict(always=None, order=True), "ORDER"),
+        (dict(always=None, oracle_order=True), "ORDER"),
         (
             dict(start=3, increment=33, maxvalue=99, cycle=True),
             "INCREMENT BY 33 START WITH 3 MAXVALUE 99 CYCLE",
         ),
-        (dict(on_null=True, start=42), "START WITH 42"),
+        (dict(oracle_on_null=True, start=42), "START WITH 42"),
     )
     def test_add_column_identity(self, kw, text):
         context = op_fixture("oracle")
         op.add_column(
             "t1",
-            Column("some_column", Integer, sqla_compat.Identity(**kw)),
+            Column(
+                "some_column",
+                Integer,
+                sqla_compat.Identity(**self._adapt_identity_kw(kw)),
+            ),
         )
         qualification = self._identity_qualification(kw)
         options = " (%s)" % text if text else ""
@@ -286,7 +309,6 @@ class OpTest(TestBase):
             "INTEGER GENERATED %s AS IDENTITY%s" % (qualification, options)
         )
 
-    @config.requirements.identity_columns
     @combinations(
         ({}, None),
         (dict(always=True), None),
@@ -295,14 +317,14 @@ class OpTest(TestBase):
             dict(start=3, increment=33, maxvalue=99, cycle=True),
             "INCREMENT BY 33 START WITH 3 MAXVALUE 99 CYCLE",
         ),
-        (dict(on_null=True, start=42), "START WITH 42"),
+        (dict(oracle_on_null=True, start=42), "START WITH 42"),
     )
     def test_add_identity_to_column(self, kw, text):
         context = op_fixture("oracle")
         op.alter_column(
             "t1",
             "some_column",
-            server_default=sqla_compat.Identity(**kw),
+            server_default=sqla_compat.Identity(**self._adapt_identity_kw(kw)),
             existing_server_default=None,
         )
         qualification = self._identity_qualification(kw)
@@ -312,7 +334,6 @@ class OpTest(TestBase):
             "GENERATED %s AS IDENTITY%s" % (qualification, options)
         )
 
-    @config.requirements.identity_columns
     def test_remove_identity_from_column(self):
         context = op_fixture("oracle")
         op.alter_column(
@@ -323,7 +344,6 @@ class OpTest(TestBase):
         )
         context.assert_("ALTER TABLE t1 MODIFY some_column DROP IDENTITY")
 
-    @config.requirements.identity_columns
     @combinations(
         ({}, dict(always=True), None),
         (
@@ -350,7 +370,13 @@ class OpTest(TestBase):
                 maxvalue=9999,
                 minvalue=0,
             ),
-            dict(always=False, start=3, order=True, on_null=False, cache=2),
+            dict(
+                always=False,
+                start=3,
+                oracle_order=True,
+                oracle_on_null=False,
+                cache=2,
+            ),
             "START WITH 3 CACHE 2 ORDER",
         ),
         (
@@ -364,8 +390,12 @@ class OpTest(TestBase):
         op.alter_column(
             "t1",
             "some_column",
-            server_default=sqla_compat.Identity(**updated),
-            existing_server_default=sqla_compat.Identity(**existing),
+            server_default=sqla_compat.Identity(
+                **self._adapt_identity_kw(updated)
+            ),
+            existing_server_default=sqla_compat.Identity(
+                **self._adapt_identity_kw(existing)
+            ),
         )
 
         qualification = self._identity_qualification(updated)
@@ -374,3 +404,49 @@ class OpTest(TestBase):
             "ALTER TABLE t1 MODIFY some_column "
             "GENERATED %s AS IDENTITY%s" % (qualification, options)
         )
+
+    def test_identity_on_null(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table(
+            "user",
+            m1,
+            Column(
+                "id",
+                Integer,
+                sqla_compat.Identity(
+                    **self._adapt_identity_kw(
+                        dict(start=2, oracle_on_null=True)
+                    )
+                ),
+            ),
+            Column("other", sa.Text),
+        )
+
+        Table(
+            "user",
+            m2,
+            Column(
+                "id",
+                Integer,
+                sa.Identity(
+                    **self._adapt_identity_kw(
+                        dict(start=2, oracle_on_null=False)
+                    )
+                ),
+            ),
+            Column("other", sa.Text),
+        )
+
+        diffs = self._fixture(m1, m2)
+        eq_(len(diffs[0]), 1)
+        diffs = diffs[0][0]
+        eq_(diffs[0], "modify_default")
+        eq_(diffs[2], "user")
+        eq_(diffs[3], "id")
+        old = diffs[5]
+        new = diffs[6]
+
+        is_true(isinstance(old, sa.Identity))
+        is_true(isinstance(new, sa.Identity))

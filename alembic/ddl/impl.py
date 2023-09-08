@@ -5,7 +5,9 @@ import re
 from typing import Any
 from typing import Callable
 from typing import Dict
+from typing import Iterable
 from typing import List
+from typing import Mapping
 from typing import Optional
 from typing import Sequence
 from typing import Set
@@ -86,8 +88,11 @@ class DefaultImpl(metaclass=ImplMeta):
     command_terminator = ";"
     type_synonyms: Tuple[Set[str], ...] = ({"NUMERIC", "DECIMAL"},)
     type_arg_extract: Sequence[str] = ()
-    # on_null is known to be supported only by oracle
-    identity_attrs_ignore: Tuple[str, ...] = ("on_null",)
+    # These attributes are deprecated in SQLAlchemy via #10247. They need to
+    # be ignored to support older version that did not use dialect kwargs.
+    # They only apply to Oracle and are replaced by oracle_order,
+    # oracle_on_null
+    identity_attrs_ignore: Tuple[str, ...] = ("order", "on_null")
 
     def __init__(
         self,
@@ -638,10 +643,10 @@ class DefaultImpl(metaclass=ImplMeta):
         # ignored contains the attributes that were not considered
         # because assumed to their default values in the db.
         diff, ignored = _compare_identity_options(
-            sqla_compat._identity_attrs,
             metadata_identity,
             inspector_identity,
             sqla_compat.Identity(),
+            skip={"always"},
         )
 
         meta_always = getattr(metadata_identity, "always", None)
@@ -696,20 +701,50 @@ class DefaultImpl(metaclass=ImplMeta):
 
 
 def _compare_identity_options(
-    attributes, metadata_io, inspector_io, default_io
+    metadata_io: Union[schema.Identity, schema.Sequence, None],
+    inspector_io: Union[schema.Identity, schema.Sequence, None],
+    default_io: Union[schema.Identity, schema.Sequence],
+    skip: Set[str],
 ):
     # this can be used for identity or sequence compare.
     # default_io is an instance of IdentityOption with all attributes to the
     # default value.
+    meta_d = sqla_compat._get_identity_options_dict(metadata_io)
+    insp_d = sqla_compat._get_identity_options_dict(inspector_io)
+
     diff = set()
     ignored_attr = set()
-    for attr in attributes:
-        meta_value = getattr(metadata_io, attr, None)
-        default_value = getattr(default_io, attr, None)
-        conn_value = getattr(inspector_io, attr, None)
-        if conn_value != meta_value:
-            if meta_value == default_value:
-                ignored_attr.add(attr)
-            else:
-                diff.add(attr)
+
+    def check_dicts(
+        meta_dict: Mapping[str, Any],
+        insp_dict: Mapping[str, Any],
+        default_dict: Mapping[str, Any],
+        attrs: Iterable[str],
+    ):
+        for attr in set(attrs).difference(skip):
+            meta_value = meta_dict.get(attr)
+            insp_value = insp_dict.get(attr)
+            if insp_value != meta_value:
+                default_value = default_dict.get(attr)
+                if meta_value == default_value:
+                    ignored_attr.add(attr)
+                else:
+                    diff.add(attr)
+
+    check_dicts(
+        meta_d,
+        insp_d,
+        sqla_compat._get_identity_options_dict(default_io),
+        set(meta_d).union(insp_d),
+    )
+    if sqla_compat.identity_has_dialect_kwargs:
+        # use only the dialect kwargs in inspector_io since metadata_io
+        # can have options for many backends
+        check_dicts(
+            getattr(metadata_io, "dialect_kwargs", {}),
+            getattr(inspector_io, "dialect_kwargs", {}),
+            default_io.dialect_kwargs,  # type: ignore[union-attr]
+            getattr(inspector_io, "dialect_kwargs", {}),
+        )
+
     return diff, ignored_attr

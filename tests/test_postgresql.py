@@ -444,7 +444,7 @@ class PostgresqlOpTest(TestBase):
                 maxvalue=9999,
                 minvalue=0,
             ),
-            dict(always=False, start=3, order=True, on_null=False, cache=2),
+            dict(always=False, start=3, cache=2),
             "SET CACHE 2",
         ),
         (
