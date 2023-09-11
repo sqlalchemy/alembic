@@ -794,7 +794,7 @@ class BatchApplyTest(TestBase):
         new_table = self._assert_impl(
             impl,
             colnames=["id", "email", "user_id"],
-            ddl_not_contains="CONSTRAINT fk1",
+            ddl_not_contains="CONSTRAINT ufk",
         )
         eq_(list(new_table.foreign_keys), [])
 
