@@ -197,7 +197,7 @@ def alter_column(
      don't otherwise specify a new type, as well as for
      when nullability is being changed on a SQL Server
      column.  It is also used if the type is a so-called
-     SQLlchemy "schema" type which may define a constraint (i.e.
+     SQLAlchemy "schema" type which may define a constraint (i.e.
      :class:`~sqlalchemy.types.Boolean`,
      :class:`~sqlalchemy.types.Enum`),
      so that the constraint can be dropped.
