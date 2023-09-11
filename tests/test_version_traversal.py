@@ -1331,7 +1331,7 @@ class MergedPathTest(MigrationTest):
             ([], self.c2.revision, self.e.revision),
         )
 
-    def test_stamp_labled_head_across_merge_from_multiple_branch(self):
+    def test_stamp_labeled_head_across_merge_from_multiple_branch(self):
         # this is testing that filter_for_lineage() checks for
         # d1 both in terms of "c2branch" as well as that the "head"
         # revision "f" is the head of both d1 and d2
