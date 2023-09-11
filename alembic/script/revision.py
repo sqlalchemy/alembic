@@ -1090,13 +1090,13 @@ class RevisionMap:
     ) -> Tuple[Optional[str], Optional[_RevisionOrBase]]:
         """
         Parse downgrade command syntax :target to retrieve the target revision
-        and branch label (if any) given the :current_revisons stamp of the
+        and branch label (if any) given the :current_revisions stamp of the
         database.
 
         Returns a tuple (branch_label, target_revision) where branch_label
         is a string from the command specifying the branch to consider (or
         None if no branch given), and target_revision is a Revision object
-        which the command refers to. target_revsions is None if the command
+        which the command refers to. target_revisions is None if the command
         refers to 'base'. The target may be specified in absolute form, or
         relative to :current_revisions.
         """
@@ -1139,7 +1139,7 @@ class RevisionMap:
                         if not symbol_list:
                             # check the case where there are multiple branches
                             # but there is currently a single heads, since all
-                            # other branch heads are dependant of the current
+                            # other branch heads are dependent of the current
                             # single heads.
                             all_current = cast(
                                 Set[Revision], self._get_all_current(cr_tuple)
@@ -1206,7 +1206,7 @@ class RevisionMap:
     ) -> Tuple[Optional[_RevisionOrBase], ...]:
         """
         Parse upgrade command syntax :target to retrieve the target revision
-        and given the :current_revisons stamp of the database.
+        and given the :current_revisions stamp of the database.
 
         Returns a tuple of Revision objects which should be iterated/upgraded
         to. The target may be specified in absolute form, or relative to

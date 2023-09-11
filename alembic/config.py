@@ -34,7 +34,7 @@ class Config:
 
         some_param = context.config.get_main_option("my option")
 
-    When invoking Alembic programatically, a new
+    When invoking Alembic programmatically, a new
     :class:`.Config` can be created by passing
     the name of an .ini file to the constructor::
 

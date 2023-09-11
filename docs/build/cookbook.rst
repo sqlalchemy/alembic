@@ -275,7 +275,7 @@ changes to them, we have to refer to the whole definition at once.
 If we need to add a new column to a view, for example, we have to drop
 it entirely and recreate it fresh with the extra column added, referring to
 the whole structure; but to make it even tougher, if we wish to support
-downgrade operarations in our migration scripts,
+downgrade operations in our migration scripts,
 we need to refer to the *previous* version of that
 construct fully, and we'd much rather not have to type out the whole
 definition in multiple places.

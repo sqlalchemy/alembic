@@ -118,7 +118,7 @@ of ``unique=True`` and type out the whole constraint::
                 )
 
 There's a solution to all this naming work, which is to use an **automated
-naming convention**.  For some years, SQLAlchemy has encourgaged the use of
+naming convention**.  For some years, SQLAlchemy has encouraged the use of
 DDL Events in order to create naming schemes.  The :meth:`~sqlalchemy.events.DDLEvents.after_parent_attach`
 event in particular is the best place to intercept when :class:`~sqlalchemy.schema.Constraint`
 and :class:`~sqlalchemy.schema.Index` objects are being associated with a parent

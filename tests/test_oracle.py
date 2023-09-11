@@ -35,7 +35,7 @@ class FullEnvironmentTests(TestBase):
     def teardown_class(cls):
         clear_staging_env()
 
-    def test_begin_comit(self):
+    def test_begin_commit(self):
         with capture_context_buffer(transactional_ddl=True) as buf:
             command.upgrade(self.cfg, self.a, sql=True)
         assert "SET TRANSACTION READ WRITE\n\n/" in buf.getvalue()

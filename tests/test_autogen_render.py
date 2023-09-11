@@ -1094,7 +1094,7 @@ class AutogenRenderTest(TestBase):
 
     def test_render_add_column_system(self):
         # this would never actually happen since "system" columns
-        # can't be added in any case.   Howver it will render as
+        # can't be added in any case.   However it will render as
         # part of op.CreateTableOp.
         op_obj = ops.AddColumnOp("foo", Column("xmin", Integer, system=True))
         eq_ignore_whitespace(
@@ -2121,7 +2121,7 @@ class AutogenRenderTest(TestBase):
 
     @config.requirements.computed_columns_api
     @testing.combinations((True,), (False,))
-    def test_render_alter_column_computed_modify_default_perisisted(
+    def test_render_alter_column_computed_modify_default_persisted(
         self, persisted
     ):
         op_obj = ops.AlterColumnOp(
@@ -2137,7 +2137,7 @@ class AutogenRenderTest(TestBase):
 
     @config.requirements.computed_columns_api
     @testing.combinations((True,), (False,))
-    def test_render_alter_column_computed_existing_default_perisisted(
+    def test_render_alter_column_computed_existing_default_persisted(
         self, persisted
     ):
         c = sa.Computed("42", persisted=persisted)

@@ -237,7 +237,7 @@ class AutogenDefaultSchemaTest(AutogenFixtureTest, TestBase):
     __only_on__ = "postgresql"
     __backend__ = True
 
-    def test_uses_explcit_schema_in_default_one(self):
+    def test_uses_explicit_schema_in_default_one(self):
         default_schema = self.bind.dialect.default_schema_name
 
         m1 = MetaData()
@@ -249,7 +249,7 @@ class AutogenDefaultSchemaTest(AutogenFixtureTest, TestBase):
         diffs = self._fixture(m1, m2, include_schemas=True)
         eq_(diffs, [])
 
-    def test_uses_explcit_schema_in_default_two(self):
+    def test_uses_explicit_schema_in_default_two(self):
         default_schema = self.bind.dialect.default_schema_name
 
         m1 = MetaData()
@@ -265,7 +265,7 @@ class AutogenDefaultSchemaTest(AutogenFixtureTest, TestBase):
         eq_(diffs[0][1].schema, "test_schema")
         eq_(diffs[0][1].c.keys(), ["y"])
 
-    def test_uses_explcit_schema_in_default_three(self):
+    def test_uses_explicit_schema_in_default_three(self):
         default_schema = self.bind.dialect.default_schema_name
 
         m1 = MetaData()

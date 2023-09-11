@@ -65,7 +65,7 @@ The goals of Alembic are:
 * Provide a library of ALTER constructs that can be used by any SQLAlchemy
   application. The DDL constructs build upon SQLAlchemy's own DDLElement base
   and can be used standalone by any application or script.
-* At long last, bring SQLite and its inablity to ALTER things into the fold,
+* At long last, bring SQLite and its inability to ALTER things into the fold,
   but in such a way that SQLite's very special workflow needs are accommodated
   in an explicit way that makes the most of a bad situation, through the
   concept of a "batch" migration, where multiple changes to a table can

@@ -4,7 +4,7 @@ Working with Branches
 =====================
 
 A **branch** describes a point in a migration stream when two or more
-versions refer to the same parent migration as their anscestor.  Branches
+versions refer to the same parent migration as their ancestor.  Branches
 occur naturally when two divergent source trees, both containing Alembic
 revision files created independently within those source trees, are merged
 together into one.  When this occurs, the challenge of a branch is to **merge** the
@@ -117,7 +117,7 @@ turn it into a "diamond" structure::
 
 We create the merge file using ``alembic merge``; with this command, we can
 pass to it an argument such as ``heads``, meaning we'd like to merge all
-heads.  Or, we can pass it individual revision numbers sequentally::
+heads.  Or, we can pass it individual revision numbers sequentially::
 
     $ alembic merge -m "merge ae1 and 27c" ae1027 27c6a
       Generating /path/to/foo/versions/53fffde5ad5_merge_ae1_and_27c.py ... done
@@ -392,7 +392,7 @@ However, when using branch labels, we usually want to use them using a syntax
 known as "branch at" syntax; this syntax allows us to state that we want to
 use a specific revision, let's say a "head" revision, in terms of a *specific*
 branch.  While normally, we can't refer to ``alembic upgrade head`` when
-there's multiple heads, we *can* refer to this head specifcally using
+there's multiple heads, we *can* refer to this head specifically using
 ``shoppingcart@head`` syntax::
 
     $ alembic upgrade shoppingcart@head
@@ -707,7 +707,7 @@ are descendants::
 What we see is that the full history of the ``networking`` branch, in terms
 of an "upgrade" to the "head", will include that the tree building
 up ``55af2cb1c267, add another account column``
-will be pulled in first.   Interstingly, we don't see this displayed
+will be pulled in first.   Interestingly, we don't see this displayed
 when we display history in the other direction, e.g. from ``networking@base``::
 
     $ alembic history -r networking@base:

@@ -102,7 +102,7 @@ class ConfigTest(TestBase):
         cfg.attributes["connection"] = m1
         eq_(cfg.attributes["connection"], m1)
 
-    def test_attributes_construtor(self):
+    def test_attributes_constructor(self):
         m1 = mock.Mock()
         m2 = mock.Mock()
         cfg = config.Config(attributes={"m1": m1})

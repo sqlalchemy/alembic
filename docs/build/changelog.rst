@@ -15,7 +15,7 @@ Changelog
         :tags: bug, operations
         :tickets: 1300
 
-        Added support for ``op.drop_constraint()`` to support PostrgreSQL
+        Added support for ``op.drop_constraint()`` to support PostgreSQL
         ``ExcludeConstraint`` objects, as well as other constraint-like objects
         that may be present in third party dialects, by resolving the ``type_``
         parameter to be ``None`` for this case.   Autogenerate has also been
@@ -25,7 +25,7 @@ Changelog
 
 
     .. change::
-        :tags: bug, commmands
+        :tags: bug, commands
         :tickets: 1299
 
         Fixed issue where the ``revision_environment`` directive in ``alembic.ini``
@@ -1072,7 +1072,7 @@ Changelog
         internally; instead, the state variables of each operation object will be
         used to produce the corresponding construct when the operation is invoked.
         The rationale is so that environments which make use of
-        operation-manipulation schemes such as those those discussed in
+        operation-manipulation schemes such as those discussed in
         :ref:`autogen_rewriter` are better supported, allowing end-user code to
         manipulate the public attributes of these objects which will then be
         expressed in the final output, an example is
@@ -1849,7 +1849,7 @@ Changelog
         unconditionally erase the version table before stamping anything.  This is
         useful for development where non-existent version identifiers might be left
         within the table.  Additionally, ``alembic.stamp`` now supports a list of
-        revision identifiers, which are intended to allow setting up muliple heads
+        revision identifiers, which are intended to allow setting up multiple heads
         at once.  Overall handling of version identifiers within the
         ``alembic.stamp`` command has been improved with many new tests and
         use cases added.
@@ -2114,7 +2114,7 @@ Changelog
         unconditionally, as in the vast majority of cases the server default is to
         be CURRENT_TIMESTAMP which may also be potentially bundled with an "ON
         UPDATE CURRENT_TIMESTAMP" directive, which SQLAlchemy does not currently
-        support as a distinct field.  The fix addiionally improves the server
+        support as a distinct field.  The fix additionally improves the server
         default comparison logic when the "ON UPDATE" clause is present and
         there are parenthesis to be adjusted for as is the case on some MariaDB
         versions.
@@ -2778,7 +2778,7 @@ Changelog
       in SQLAlchemy 1.1.  When the source column indicates autoincrement
       as True or "auto", the flag will render as True if the original column
       contextually indicates that it should have "autoincrement" keywords,
-      and when the source column explcitly sets it to False, this is also
+      and when the source column explicitly sets it to False, this is also
       rendered.  The behavior is intended to preserve the AUTO_INCREMENT flag
       on MySQL as the column is fully recreated on this backend.  Note that this
       flag does **not** support alteration of a column's "autoincrement" status,
@@ -3900,7 +3900,7 @@ Changelog
 
       Added a rule for Postgresql to not render a "drop unique" and "drop index"
       given the same name; for now it is assumed that the "index" is the
-      implicit one Postgreql generates.   Future integration with
+      implicit one PostgreSQL generates.   Future integration with
       new SQLAlchemy 1.0 features will improve this to be more
       resilient.
 
@@ -4784,7 +4784,7 @@ Changelog
         :tickets: 93
 
       Added :meth:`.Operations.create_primary_key`
-      operation, will genenerate an ADD CONSTRAINT
+      operation, will generate an ADD CONSTRAINT
       for a primary key.
 
     .. change::

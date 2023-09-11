@@ -227,7 +227,7 @@ nullable=True))
     # ### end Alembic commands ###""",  # noqa,
         )
 
-    def test_imports_maintined(self):
+    def test_imports_maintained(self):
         template_args = {}
         self.context.opts["render_as_batch"] = True
 
