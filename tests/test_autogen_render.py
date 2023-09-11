@@ -2120,7 +2120,7 @@ class AutogenRenderTest(TestBase):
 
     @config.requirements.computed_columns_api
     @testing.combinations((True,), (False,))
-    def test_render_alter_column_computed_modify_default_perisisted(
+    def test_render_alter_column_computed_modify_default_persisted(
         self, persisted
     ):
         op_obj = ops.AlterColumnOp(
@@ -2136,7 +2136,7 @@ class AutogenRenderTest(TestBase):
 
     @config.requirements.computed_columns_api
     @testing.combinations((True,), (False,))
-    def test_render_alter_column_computed_existing_default_perisisted(
+    def test_render_alter_column_computed_existing_default_persisted(
         self, persisted
     ):
         c = sa.Computed("42", persisted=persisted)
