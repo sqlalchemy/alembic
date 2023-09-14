@@ -106,7 +106,7 @@ def init(
             os.path.join(os.path.abspath(directory), "__init__.py"),
             os.path.join(os.path.abspath(versions), "__init__.py"),
         ]:
-            with util.status("Adding {path!r}", **config.messaging_opts):
+            with util.status(f"Adding {path!r}", **config.messaging_opts):
                 with open(path, "w"):
                     pass
 
