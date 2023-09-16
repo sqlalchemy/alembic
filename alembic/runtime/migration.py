@@ -40,7 +40,7 @@ if TYPE_CHECKING:
     from sqlalchemy.engine.base import Connection
     from sqlalchemy.engine.base import Transaction
     from sqlalchemy.engine.mock import MockConnection
-    from sqlalchemy.sql.elements import ClauseElement
+    from sqlalchemy.sql import Executable
 
     from .environment import EnvironmentContext
     from ..config import Config
@@ -651,7 +651,7 @@ class MigrationContext:
 
     def execute(
         self,
-        sql: Union[ClauseElement, str],
+        sql: Union[Executable, str],
         execution_options: Optional[dict] = None,
     ) -> None:
         """Execute a SQL construct or string statement.

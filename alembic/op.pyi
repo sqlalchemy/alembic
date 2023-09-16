@@ -19,14 +19,13 @@ from typing import TYPE_CHECKING
 from typing import TypeVar
 from typing import Union
 
-from sqlalchemy.sql.expression import TableClause
-from sqlalchemy.sql.expression import Update
-
 if TYPE_CHECKING:
     from sqlalchemy.engine import Connection
+    from sqlalchemy.sql import Executable
     from sqlalchemy.sql.elements import ColumnElement
     from sqlalchemy.sql.elements import conv
     from sqlalchemy.sql.elements import TextClause
+    from sqlalchemy.sql.expression import TableClause
     from sqlalchemy.sql.functions import Function
     from sqlalchemy.sql.schema import Column
     from sqlalchemy.sql.schema import Computed
@@ -1024,7 +1023,7 @@ def drop_table_comment(
     """
 
 def execute(
-    sqltext: Union[str, TextClause, Update],
+    sqltext: Union[Executable, str],
     *,
     execution_options: Optional[dict[str, Any]] = None,
 ) -> None:
@@ -1093,9 +1092,8 @@ def execute(
     * a string
     * a :func:`sqlalchemy.sql.expression.text` construct.
     * a :func:`sqlalchemy.sql.expression.insert` construct.
-    * a :func:`sqlalchemy.sql.expression.update`,
-      :func:`sqlalchemy.sql.expression.insert`,
-      or :func:`sqlalchemy.sql.expression.delete`  construct.
+    * a :func:`sqlalchemy.sql.expression.update` construct.
+    * a :func:`sqlalchemy.sql.expression.delete` construct.
     * Any "executable" described in SQLAlchemy Core documentation,
       noting that no result set is returned.
 
