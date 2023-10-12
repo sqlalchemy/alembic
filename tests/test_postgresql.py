@@ -1299,6 +1299,22 @@ class PostgresqlAutogenRenderTest(TestBase):
             "postgresql.JSONB(astext_type=sa.Text())",
         )
 
+    def test_jsonb_expression_in_index(self):
+        """test #1322"""
+
+        m = MetaData()
+        t = Table("tbl", m, Column("c", JSONB()))
+        idx = Index("my_idx", t.c.c["foo"].astext)
+
+        eq_ignore_whitespace(
+            autogenerate.render.render_op_text(
+                self.autogen_context,
+                ops.CreateIndexOp.from_index(idx),
+            ),
+            "op.create_index('my_idx', 'tbl', "
+            "[sa.text(\"(c ->> 'foo')\")], unique=False)",
+        )
+
     @config.requirements.nulls_not_distinct_sa
     def test_render_unique_nulls_not_distinct_constraint(self):
         m = MetaData()

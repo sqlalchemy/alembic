@@ -351,6 +351,29 @@ class PostgresqlImpl(DefaultImpl):
             compile_kwargs={"literal_binds": True, "include_table": False},
         ).string
 
+    def render_ddl_sql_expr(
+        self,
+        expr: ClauseElement,
+        is_server_default: bool = False,
+        is_index: bool = False,
+        **kw: Any,
+    ) -> str:
+        """Render a SQL expression that is typically a server default,
+        index expression, etc.
+
+        """
+
+        # apply self_group to index expressions;
+        # see https://github.com/sqlalchemy/sqlalchemy/blob/
+        # 82fa95cfce070fab401d020c6e6e4a6a96cc2578/
+        # lib/sqlalchemy/dialects/postgresql/base.py#L2261
+        if is_index and not isinstance(expr, ColumnClause):
+            expr = expr.self_group()
+
+        return super().render_ddl_sql_expr(
+            expr, is_server_default=is_server_default, is_index=is_index, **kw
+        )
+
     def render_type(
         self, type_: TypeEngine, autogen_context: AutogenContext
     ) -> Union[str, Literal[False]]:

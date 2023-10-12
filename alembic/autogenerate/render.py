@@ -543,8 +543,10 @@ def _ident(name: Optional[Union[quoted_name, str]]) -> Optional[str]:
 def _render_potential_expr(
     value: Any,
     autogen_context: AutogenContext,
+    *,
     wrap_in_text: bool = True,
     is_server_default: bool = False,
+    is_index: bool = False,
 ) -> str:
     if isinstance(value, sql.ClauseElement):
         if wrap_in_text:
@@ -555,7 +557,7 @@ def _render_potential_expr(
         return template % {
             "prefix": _sqlalchemy_autogenerate_prefix(autogen_context),
             "sql": autogen_context.migration_context.impl.render_ddl_sql_expr(
-                value, is_server_default=is_server_default
+                value, is_server_default=is_server_default, is_index=is_index
             ),
         }
 
@@ -569,7 +571,7 @@ def _get_index_rendered_expressions(
     return [
         repr(_ident(getattr(exp, "name", None)))
         if isinstance(exp, sa_schema.Column)
-        else _render_potential_expr(exp, autogen_context)
+        else _render_potential_expr(exp, autogen_context, is_index=True)
         for exp in idx.expressions
     ]
 
