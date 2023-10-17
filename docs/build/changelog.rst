@@ -1722,6 +1722,9 @@ Changelog
         also be resolved.   Thanks very much to Paul Becotte  for lots of hard work
         and patience on this one.
 
+        .. note:: *updated* - this change also removes support for the
+           ``compare_against_backend`` SQLAlchemy type hook.
+
         .. seealso::
 
             :ref:`autogenerate_detects` - updated comments on type comparison
@@ -3508,6 +3511,7 @@ Changelog
       supplying a method ``compare_against_backend``.
       Added a new documentation section :ref:`compare_types` describing
       type comparison fully.
+
 
     .. change::
       :tags: feature, operations

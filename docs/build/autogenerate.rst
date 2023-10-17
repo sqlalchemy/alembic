@@ -647,47 +647,6 @@ returned by
 local model environment.  A return value of ``None`` indicates that default
 type comparison to proceed.
 
-Additionally, custom types that are part of imported or third party
-packages which have special behaviors such as per-dialect behavior
-should implement a method called ``compare_against_backend()``
-on their SQLAlchemy type.   If this method is present, it will be called
-where it can also return True or False to specify the types compare as
-equivalent or not; if it returns None, default type comparison logic
-will proceed::
-
-    class MySpecialType(TypeDecorator):
-
-        # ...
-
-        def compare_against_backend(self, dialect, conn_type):
-            # return True if this type is the same as the given database type,
-            # or None to allow the default implementation to compare these
-            # types. a return value of False means the given type does not
-            # match this type.
-
-            if dialect.name == 'postgresql':
-                return isinstance(conn_type, postgresql.UUID)
-            else:
-                return isinstance(conn_type, String)
-
-.. warning::
-
-    The boolean return values for the above
-    ``compare_against_backend`` method, which is part of SQLAlchemy and not
-    Alembic, are **the opposite** of that of the
-    :paramref:`.EnvironmentContext.configure.compare_type` callable, returning
-    ``True`` for types that are the same vs. ``False`` for types that are
-    different. The :paramref:`.EnvironmentContext.configure.compare_type`
-    callable on the other hand should return ``True`` for types that are
-    **different**.
-
-The order of precedence regarding the
-:paramref:`.EnvironmentContext.configure.compare_type` callable vs. the
-type itself implementing ``compare_against_backend`` is that the
-:paramref:`.EnvironmentContext.configure.compare_type` callable is favored
-first; if it returns ``None``, then the ``compare_against_backend`` method
-will be used, if present on the metadata type.  If that returns ``None``,
-then the default check for type equivalence is run.
 
 .. _post_write_hooks:
 
