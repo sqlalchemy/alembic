@@ -30,7 +30,7 @@ if TYPE_CHECKING:
 
     from .autogenerate.api import AutogenContext
     from .config import Config
-    from .operations.ops import MigrateOperation
+    from .operations.ops import MigrationScript
     from .runtime.migration import _ProxyTransaction
     from .runtime.migration import MigrationContext
     from .runtime.migration import MigrationInfo
@@ -143,7 +143,7 @@ def configure(
     include_schemas: bool = False,
     process_revision_directives: Optional[
         Callable[
-            [MigrationContext, Tuple[str, str], List[MigrateOperation]], None
+            [MigrationContext, Tuple[str, str], List[MigrationScript]], None
         ]
     ] = None,
     compare_type: Union[

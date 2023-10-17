@@ -5,6 +5,7 @@ from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import Iterator
+from typing import List
 from typing import Optional
 from typing import Sequence
 from typing import Set
@@ -507,6 +508,8 @@ class AutogenContext:
 class RevisionContext:
     """Maintains configuration and state that's specific to a revision
     file generation operation."""
+
+    generated_revisions: List[MigrationScript]
 
     def __init__(
         self,

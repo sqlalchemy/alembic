@@ -36,13 +36,13 @@ if TYPE_CHECKING:
     from ..autogenerate.api import AutogenContext
     from ..config import Config
     from ..ddl import DefaultImpl
-    from ..operations.ops import MigrateOperation
+    from ..operations.ops import MigrationScript
     from ..script.base import ScriptDirectory
 
 _RevNumber = Optional[Union[str, Tuple[str, ...]]]
 
 ProcessRevisionDirectiveFn = Callable[
-    [MigrationContext, Tuple[str, str], List["MigrateOperation"]], None
+    [MigrationContext, Tuple[str, str], List["MigrationScript"]], None
 ]
 
 RenderItemFn = Callable[

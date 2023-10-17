@@ -900,14 +900,26 @@ hook in :meth:`.MigrationContext.configure` which removes the
 single :class:`.MigrationScript` directive if it is empty of
 any operations::
 
+    # for typing purposes
+    from alembic.environment import MigrationContext
+
+    # this typing-only import requires alembic 1.12.1 or above
+    from alembic.operations import MigrationScript
+
 
     def run_migrations_online():
 
         # ...
 
-        def process_revision_directives(context, revision, directives):
+        def process_revision_directives(
+            context: MigrationContext,
+            revision: tuple[str, str],
+            directives: list[MigrationScript],
+        ):
+            assert config.cmd_opts is not None
             if config.cmd_opts.autogenerate:
                 script = directives[0]
+                assert script.upgrade_ops is not None
                 if script.upgrade_ops.is_empty():
                     directives[:] = []
 
