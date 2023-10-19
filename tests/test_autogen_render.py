@@ -1983,6 +1983,27 @@ class AutogenRenderTest(TestBase):
             ")",
         )
 
+    def test_render_table_with_info(self):
+        m = MetaData()
+        t = Table(
+            "test",
+            m,
+            Column("id", Integer, primary_key=True),
+            Column("q", Integer, ForeignKey("address.id")),
+            info={"oracle_partition": "PARTITION BY ..."},
+        )
+        op_obj = ops.CreateTableOp.from_table(t)
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.create_table('test',"
+            "sa.Column('id', sa.Integer(), nullable=False),"
+            "sa.Column('q', sa.Integer(), nullable=True),"
+            "sa.ForeignKeyConstraint(['q'], ['address.id'], ),"
+            "sa.PrimaryKeyConstraint('id'),"
+            "info={'oracle_partition': 'PARTITION BY ...'}"
+            ")",
+        )
+
     def test_render_add_column_with_comment(self):
         op_obj = ops.AddColumnOp(
             "foo", Column("x", Integer, comment="This is a Column")
