@@ -221,9 +221,12 @@ class ScriptDirectory:
 
         prepend_sys_path = config.get_main_option("prepend_sys_path")
         if prepend_sys_path:
-            sys.path[:0] = list(
-                _split_on_space_comma_colon.split(prepend_sys_path)
-            )
+            if os.name == 'nt':
+                prepend_paths = _split_on_space_comma.split(prepend_sys_path)
+            else:
+                prepend_paths = _split_on_space_comma_colon.split(prepend_sys_path)
+            
+            sys.path[:0] = (os.path.normpath(path.strip()) for path in prepend_paths)
 
         rvl = config.get_main_option("recursive_version_locations") == "true"
         return ScriptDirectory(
