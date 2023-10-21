@@ -1346,105 +1346,139 @@ class AutogenerateIndexTest(AutogenFixtureTest, TestBase):
 def _lots_of_indexes(flatten: bool = False):
     diff_pairs = [
         (
-            lambda t: Index("SomeIndex", "y", func.lower(t.c.x)),
-            lambda t: Index("SomeIndex", func.lower(t.c.x)),
+            lambda t: Index("idx", "y", func.lower(t.c.x)),
+            lambda t: Index("idx", func.lower(t.c.x)),
         ),
         (
-            lambda CapT: Index("SomeIndex", "y", func.lower(CapT.c.XCol)),
-            lambda CapT: Index("SomeIndex", func.lower(CapT.c.XCol)),
+            lambda CapT: Index("idx", "y", func.lower(CapT.c.XCol)),
+            lambda CapT: Index("idx", func.lower(CapT.c.XCol)),
         ),
         (
-            lambda t: Index(
-                "SomeIndex", "y", func.lower(column("x")), _table=t
-            ),
-            lambda t: Index("SomeIndex", func.lower(column("x")), _table=t),
+            lambda t: Index("idx", "y", func.lower(column("x")), _table=t),
+            lambda t: Index("idx", func.lower(column("x")), _table=t),
         ),
         (
-            lambda t: Index("SomeIndex", t.c.y, func.lower(t.c.x)),
-            lambda t: Index("SomeIndex", func.lower(t.c.x), t.c.y),
+            lambda t: Index("idx", t.c.y, func.lower(t.c.x)),
+            lambda t: Index("idx", func.lower(t.c.x), t.c.y),
         ),
         (
-            lambda t: Index("SomeIndex", t.c.y, func.lower(t.c.x)),
-            lambda t: Index("SomeIndex", t.c.y, func.lower(t.c.q)),
+            lambda t: Index("idx", t.c.y, func.lower(t.c.x)),
+            lambda t: Index("idx", t.c.y, func.lower(t.c.q)),
         ),
         (
-            lambda t: Index("SomeIndex", t.c.z, func.lower(t.c.x)),
-            lambda t: Index("SomeIndex", t.c.y, func.lower(t.c.x)),
+            lambda t: Index("idx", t.c.z, func.lower(t.c.x)),
+            lambda t: Index("idx", t.c.y, func.lower(t.c.x)),
         ),
         (
-            lambda t: Index("SomeIndex", func.lower(t.c.x)),
-            lambda t: Index("SomeIndex", t.c.y, func.lower(t.c.x)),
+            lambda t: Index("idx", func.lower(t.c.x)),
+            lambda t: Index("idx", t.c.y, func.lower(t.c.x)),
         ),
         (
-            lambda t: Index("SomeIndex", t.c.y, func.upper(t.c.x)),
-            lambda t: Index("SomeIndex", t.c.y, func.lower(t.c.x)),
+            lambda t: Index("idx", t.c.y, func.upper(t.c.x)),
+            lambda t: Index("idx", t.c.y, func.lower(t.c.x)),
         ),
         (
-            lambda t: Index("SomeIndex", t.c.y, t.c.ff + 1),
-            lambda t: Index("SomeIndex", t.c.y, t.c.ff + 3),
+            lambda t: Index("idx", t.c.y, t.c.ff + 1),
+            lambda t: Index("idx", t.c.y, t.c.ff + 3),
         ),
         (
-            lambda t: Index("SomeIndex", t.c.y, func.lower(t.c.x)),
-            lambda t: Index("SomeIndex", t.c.y, func.lower(t.c.x + t.c.q)),
+            lambda t: Index("idx", t.c.y, func.lower(t.c.x)),
+            lambda t: Index("idx", t.c.y, func.lower(t.c.x + t.c.q)),
         ),
         (
-            lambda t: Index("SomeIndex", t.c.y, t.c.z + 3),
-            lambda t: Index("SomeIndex", t.c.y, t.c.z * 3),
+            lambda t: Index("idx", t.c.y, t.c.z + 3),
+            lambda t: Index("idx", t.c.y, t.c.z * 3),
         ),
         (
-            lambda t: Index("SomeIndex", func.lower(t.c.x), t.c.q + "42"),
-            lambda t: Index("SomeIndex", func.lower(t.c.q), t.c.x + "42"),
+            lambda t: Index("idx", func.lower(t.c.x), t.c.q + "42"),
+            lambda t: Index("idx", func.lower(t.c.q), t.c.x + "42"),
         ),
         (
-            lambda t: Index("SomeIndex", func.lower(t.c.x), t.c.z + 42),
-            lambda t: Index("SomeIndex", t.c.z + 42, func.lower(t.c.q)),
+            lambda t: Index("idx", func.lower(t.c.x), t.c.z + 42),
+            lambda t: Index("idx", t.c.z + 42, func.lower(t.c.q)),
         ),
         (
-            lambda t: Index("SomeIndex", t.c.ff + 42),
-            lambda t: Index("SomeIndex", 42 + t.c.ff),
+            lambda t: Index("idx", t.c.ff + 42),
+            lambda t: Index("idx", 42 + t.c.ff),
         ),
         (
-            lambda t: Index("SomeIndex", text("coalesce(z, -1)"), _table=t),
-            lambda t: Index("SomeIndex", text("coalesce(q, '-1')"), _table=t),
+            lambda t: Index("idx", text("coalesce(z, -1)"), _table=t),
+            lambda t: Index("idx", text("coalesce(q, '-1')"), _table=t),
+        ),
+        (
+            lambda t: Index("idx", t.c.y.cast(Integer)),
+            lambda t: Index("idx", t.c.x.cast(Integer)),
         ),
     ]
 
     with_sort = [
         (
-            lambda t: Index("SomeIndex", "y", func.lower(t.c.x)),
-            lambda t: Index("SomeIndex", "y", desc(func.lower(t.c.x))),
+            lambda t: Index("idx", "y", func.lower(t.c.x)),
+            lambda t: Index("idx", "y", desc(func.lower(t.c.x))),
         ),
         (
-            lambda t: Index("SomeIndex", "y", func.lower(t.c.x)),
-            lambda t: Index("SomeIndex", desc("y"), func.lower(t.c.x)),
+            lambda t: Index("idx", "y", func.lower(t.c.x)),
+            lambda t: Index("idx", desc("y"), func.lower(t.c.x)),
         ),
         (
-            lambda t: Index("SomeIndex", "y", func.lower(t.c.x)),
-            lambda t: Index("SomeIndex", "y", nullsfirst(func.lower(t.c.x))),
+            lambda t: Index("idx", "y", func.lower(t.c.x)),
+            lambda t: Index("idx", "y", nullsfirst(func.lower(t.c.x))),
         ),
         (
-            lambda t: Index("SomeIndex", "y", func.lower(t.c.x)),
-            lambda t: Index("SomeIndex", nullsfirst("y"), func.lower(t.c.x)),
+            lambda t: Index("idx", "y", func.lower(t.c.x)),
+            lambda t: Index("idx", nullsfirst("y"), func.lower(t.c.x)),
         ),
         (
-            lambda t: Index("SomeIndex", asc(func.lower(t.c.x))),
-            lambda t: Index("SomeIndex", desc(func.lower(t.c.x))),
+            lambda t: Index("idx", asc(func.lower(t.c.x))),
+            lambda t: Index("idx", desc(func.lower(t.c.x))),
         ),
         (
-            lambda t: Index("SomeIndex", desc(func.lower(t.c.x))),
-            lambda t: Index("SomeIndex", asc(func.lower(t.c.x))),
+            lambda t: Index("idx", desc(func.lower(t.c.x))),
+            lambda t: Index("idx", asc(func.lower(t.c.x))),
         ),
         (
-            lambda t: Index("SomeIndex", nullslast(asc(func.lower(t.c.x)))),
-            lambda t: Index("SomeIndex", nullslast(desc(func.lower(t.c.x)))),
+            lambda t: Index("idx", nullslast(asc(func.lower(t.c.x)))),
+            lambda t: Index("idx", nullslast(desc(func.lower(t.c.x)))),
         ),
         (
-            lambda t: Index("SomeIndex", nullslast(desc(func.lower(t.c.x)))),
-            lambda t: Index("SomeIndex", nullsfirst(desc(func.lower(t.c.x)))),
+            lambda t: Index("idx", nullslast(desc(func.lower(t.c.x)))),
+            lambda t: Index("idx", nullsfirst(desc(func.lower(t.c.x)))),
         ),
         (
-            lambda t: Index("SomeIndex", nullsfirst(func.lower(t.c.x))),
-            lambda t: Index("SomeIndex", desc(func.lower(t.c.x))),
+            lambda t: Index("idx", nullsfirst(func.lower(t.c.x))),
+            lambda t: Index("idx", desc(func.lower(t.c.x))),
+        ),
+        (
+            lambda t: Index(
+                "idx", text("x nulls first"), text("lower(y)"), _table=t
+            ),
+            lambda t: Index(
+                "idx", text("x nulls last"), text("lower(y)"), _table=t
+            ),
+        ),
+        (
+            lambda t: Index(
+                "idx", text("x nulls last"), text("lower(y)"), _table=t
+            ),
+            lambda t: Index(
+                "idx", text("x nulls first"), text("lower(y)"), _table=t
+            ),
+        ),
+        (
+            lambda t: Index(
+                "idx", text("x nulls first"), text("lower(y)"), _table=t
+            ),
+            lambda t: Index(
+                "idx", text("y nulls first"), text("lower(x)"), _table=t
+            ),
+        ),
+        (
+            lambda t: Index(
+                "idx", text("x nulls last"), text("lower(y)"), _table=t
+            ),
+            lambda t: Index(
+                "idx", text("y nulls last"), text("lower(x)"), _table=t
+            ),
         ),
     ]
 
@@ -1464,32 +1498,50 @@ def _lost_of_equal_indexes(_lots_of_indexes):
         (fn, fn) if not isinstance(fn, tuple) else (fn[0], fn[0], fn[1])
         for fn in _lots_of_indexes(flatten=True)
     ]
+
     equal_pairs += [
         (
-            lambda t: Index("SomeIndex", "y", func.lower(t.c.x)),
-            lambda t: Index("SomeIndex", "y", asc(func.lower(t.c.x))),
+            lambda t: Index("idx", "y", func.lower(t.c.x)),
+            lambda t: Index("idx", "y", asc(func.lower(t.c.x))),
             config.requirements.reflects_indexes_column_sorting,
         ),
         (
-            lambda t: Index("SomeIndex", "y", func.lower(t.c.x)),
-            lambda t: Index("SomeIndex", "y", nullslast(func.lower(t.c.x))),
+            lambda t: Index("idx", "y", func.lower(t.c.x)),
+            lambda t: Index("idx", "y", nullslast(func.lower(t.c.x))),
             config.requirements.reflects_indexes_column_sorting,
         ),
         (
-            lambda t: Index("SomeIndex", "y", func.lower(t.c.x)),
-            lambda t: Index(
-                "SomeIndex", "y", nullslast(asc(func.lower(t.c.x)))
-            ),
+            lambda t: Index("idx", "y", func.lower(t.c.x)),
+            lambda t: Index("idx", "y", nullslast(asc(func.lower(t.c.x)))),
             config.requirements.reflects_indexes_column_sorting,
         ),
         (
-            lambda t: Index("SomeIndex", "y", desc(func.lower(t.c.x))),
-            lambda t: Index(
-                "SomeIndex", "y", nullsfirst(desc(func.lower(t.c.x)))
-            ),
+            lambda t: Index("idx", "y", desc(func.lower(t.c.x))),
+            lambda t: Index("idx", "y", nullsfirst(desc(func.lower(t.c.x)))),
             config.requirements.reflects_indexes_column_sorting,
         ),
     ]
+
+    # textual_sorting
+    equal_pairs += [
+        (
+            # use eval to avoid resolve lambda complaining about the closure
+            eval(f'lambda t: Index("idx", text({conn!r}), _table=t)'),
+            eval(f'lambda t: Index("idx", text({meta!r}), _table=t)'),
+            config.requirements.reflects_indexes_column_sorting,
+        )
+        for meta, conn in (
+            ("z nulls first", "z nulls first"),
+            ("z nulls last", "z"),
+            ("z asc", "z"),
+            ("z asc nulls first", "z nulls first"),
+            ("z asc nulls last", "z"),
+            ("z desc", "z desc"),
+            ("z desc nulls first", "z desc"),
+            ("z desc nulls last", "z desc nulls last"),
+        )
+    ]
+
     return equal_pairs
 
 
@@ -1595,9 +1647,8 @@ class AutogenerateExpressionIndexTest(AutogenFixtureTest, TestBase):
     ):
         m1, m2, old_fixture_tables, new_fixture_tables = index_changed_tables
 
-        old, new = resolve_lambda(
-            old_fn, **old_fixture_tables
-        ), resolve_lambda(new_fn, **new_fixture_tables)
+        old = resolve_lambda(old_fn, **old_fixture_tables)
+        new = resolve_lambda(new_fn, **new_fixture_tables)
 
         if self.has_reflection:
             diffs = self._fixture(m1, m2)
@@ -1611,9 +1662,9 @@ class AutogenerateExpressionIndexTest(AutogenFixtureTest, TestBase):
         else:
             with expect_warnings(
                 r"Skipped unsupported reflection of expression-based index "
-                r"SomeIndex",
+                r"idx",
                 r"autogenerate skipping metadata-specified expression-based "
-                r"index 'SomeIndex'; dialect '.*' under SQLAlchemy .* "
+                r"index 'idx'; dialect '.*' under SQLAlchemy .* "
                 r"can't reflect these "
                 r"indexes so they can't be compared",
             ):

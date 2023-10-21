@@ -1,6 +1,7 @@
 from itertools import zip_longest
 
 from sqlalchemy import schema
+from sqlalchemy.sql.elements import ClauseList
 
 
 class CompareTable:
@@ -59,6 +60,14 @@ class CompareIndex:
 
     def __ne__(self, other):
         return not self.__eq__(other)
+
+    def __repr__(self):
+        expr = ClauseList(*self.index.expressions)
+        try:
+            expr_str = expr.compile().string
+        except Exception:
+            expr_str = str(expr)
+        return f"<CompareIndex {self.index.name}({expr_str})>"
 
 
 class CompareCheckConstraint:

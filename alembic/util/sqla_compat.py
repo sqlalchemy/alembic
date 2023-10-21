@@ -524,14 +524,6 @@ def _render_literal_bindparam(
     return compiler.render_literal_bindparam(element, **kw)
 
 
-def _get_index_expressions(idx):
-    return list(idx.expressions)
-
-
-def _get_index_column_names(idx):
-    return [getattr(exp, "name", None) for exp in _get_index_expressions(idx)]
-
-
 def _column_kwargs(col: Column) -> Mapping:
     if sqla_13:
         return col.kwargs
@@ -630,10 +622,15 @@ else:
 
 
 def is_expression_index(index: Index) -> bool:
-    expr: Any
     for expr in index.expressions:
-        while isinstance(expr, UnaryExpression):
-            expr = expr.element
-        if not isinstance(expr, ColumnClause) or expr.is_literal:
+        if is_expression(expr):
             return True
+    return False
+
+
+def is_expression(expr: Any) -> bool:
+    while isinstance(expr, UnaryExpression):
+        expr = expr.element
+    if not isinstance(expr, ColumnClause) or expr.is_literal:
+        return True
     return False
