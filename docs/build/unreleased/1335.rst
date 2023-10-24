@@ -1,0 +1,6 @@
+.. change::
+    :tags: usecase
+    :tickets: 1335
+
+    The check command now works when there are custom SQL statements added to the
+    diff stream via :class:`.ExecuteSQLOp`.
