@@ -1,5 +1,5 @@
 .. change::
-    :tags: typing
+    :tags: typing, bug
     :tickets: 930
 
     Improve typing of the revision parameter in various command functions.
