@@ -32,14 +32,8 @@ if TYPE_CHECKING:
 _RevIdType = Union[str, List[str], Tuple[str, ...]]
 _GetRevArg = Union[
     str,
-    List[Optional[str]],
-    Tuple[Optional[str], ...],
-    FrozenSet[Optional[str]],
-    Set[Optional[str]],
-    List[str],
-    Tuple[str, ...],
-    FrozenSet[str],
-    Set[str],
+    Iterable[Optional[str]],
+    Iterable[str],
 ]
 _RevisionIdentifierType = Union[str, Tuple[str, ...], None]
 _RevisionOrStr = Union["Revision", str]
@@ -738,7 +732,7 @@ class RevisionMap:
         )
 
     def _resolve_revision_number(
-        self, id_: Optional[str]
+        self, id_: Optional[_GetRevArg]
     ) -> Tuple[Tuple[str, ...], Optional[str]]:
         branch_label: Optional[str]
         if isinstance(id_, str) and "@" in id_:

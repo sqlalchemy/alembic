@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import contextlib
 from typing import Any
-from typing import Callable
 from typing import Dict
 from typing import Iterator
 from typing import List
@@ -35,6 +34,7 @@ if TYPE_CHECKING:
     from ..operations.ops import UpgradeOps
     from ..runtime.environment import NameFilterParentNames
     from ..runtime.environment import NameFilterType
+    from ..runtime.environment import ProcessRevisionDirectiveFn
     from ..runtime.environment import RenderItemFn
     from ..runtime.migration import MigrationContext
     from ..script.base import Script
@@ -510,13 +510,16 @@ class RevisionContext:
     file generation operation."""
 
     generated_revisions: List[MigrationScript]
+    process_revision_directives: Optional[ProcessRevisionDirectiveFn]
 
     def __init__(
         self,
         config: Config,
         script_directory: ScriptDirectory,
         command_args: Dict[str, Any],
-        process_revision_directives: Optional[Callable] = None,
+        process_revision_directives: Optional[
+            ProcessRevisionDirectiveFn
+        ] = None,
     ) -> None:
         self.config = config
         self.script_directory = script_directory

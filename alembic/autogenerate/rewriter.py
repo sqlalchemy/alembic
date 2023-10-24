@@ -9,19 +9,19 @@ from typing import Type
 from typing import TYPE_CHECKING
 from typing import Union
 
-from alembic import util
-from alembic.operations import ops
+from .. import util
+from ..operations import ops
 
 if TYPE_CHECKING:
-    from alembic.operations.ops import AddColumnOp
-    from alembic.operations.ops import AlterColumnOp
-    from alembic.operations.ops import CreateTableOp
-    from alembic.operations.ops import MigrateOperation
-    from alembic.operations.ops import MigrationScript
-    from alembic.operations.ops import ModifyTableOps
-    from alembic.operations.ops import OpContainer
-    from alembic.runtime.migration import MigrationContext
-    from alembic.script.revision import Revision
+    from ..operations.ops import AddColumnOp
+    from ..operations.ops import AlterColumnOp
+    from ..operations.ops import CreateTableOp
+    from ..operations.ops import MigrateOperation
+    from ..operations.ops import MigrationScript
+    from ..operations.ops import ModifyTableOps
+    from ..operations.ops import OpContainer
+    from ..runtime.environment import _GetRevArg
+    from ..runtime.migration import MigrationContext
 
 
 class Rewriter:
@@ -119,7 +119,7 @@ class Rewriter:
     def _rewrite(
         self,
         context: MigrationContext,
-        revision: Revision,
+        revision: _GetRevArg,
         directive: MigrateOperation,
     ) -> Iterator[MigrateOperation]:
         try:
@@ -142,7 +142,7 @@ class Rewriter:
     def __call__(
         self,
         context: MigrationContext,
-        revision: Revision,
+        revision: _GetRevArg,
         directives: List[MigrationScript],
     ) -> None:
         self.process_revision_directives(context, revision, directives)
@@ -153,7 +153,7 @@ class Rewriter:
     def _traverse_script(
         self,
         context: MigrationContext,
-        revision: Revision,
+        revision: _GetRevArg,
         directive: MigrationScript,
     ) -> None:
         upgrade_ops_list = []
@@ -180,7 +180,7 @@ class Rewriter:
     def _traverse_op_container(
         self,
         context: MigrationContext,
-        revision: Revision,
+        revision: _GetRevArg,
         directive: OpContainer,
     ) -> None:
         self._traverse_list(context, revision, directive.ops)
@@ -189,7 +189,7 @@ class Rewriter:
     def _traverse_any_directive(
         self,
         context: MigrationContext,
-        revision: Revision,
+        revision: _GetRevArg,
         directive: MigrateOperation,
     ) -> None:
         pass
@@ -197,7 +197,7 @@ class Rewriter:
     def _traverse_for(
         self,
         context: MigrationContext,
-        revision: Revision,
+        revision: _GetRevArg,
         directive: MigrateOperation,
     ) -> Any:
         directives = list(self._rewrite(context, revision, directive))
@@ -209,7 +209,7 @@ class Rewriter:
     def _traverse_list(
         self,
         context: MigrationContext,
-        revision: Revision,
+        revision: _GetRevArg,
         directives: Any,
     ) -> None:
         dest = []
@@ -221,7 +221,7 @@ class Rewriter:
     def process_revision_directives(
         self,
         context: MigrationContext,
-        revision: Revision,
+        revision: _GetRevArg,
         directives: List[MigrationScript],
     ) -> None:
         self._traverse_list(context, revision, directives)
