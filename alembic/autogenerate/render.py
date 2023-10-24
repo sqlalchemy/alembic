@@ -245,6 +245,11 @@ def _add_table(autogen_context: AutogenContext, op: ops.CreateTableOp) -> str:
     comment = table.comment
     if comment:
         text += ",\ncomment=%r" % _ident(comment)
+
+    info = table.info
+    if info:
+        text += f",\ninfo={info!r}"
+
     for k in sorted(op.kw):
         text += ",\n%s=%r" % (k.replace(" ", "_"), op.kw[k])
 

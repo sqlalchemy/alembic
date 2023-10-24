@@ -23,6 +23,7 @@ from .migration import _ProxyTransaction
 from .migration import MigrationContext
 from .. import util
 from ..operations import Operations
+from ..script.revision import _GetRevArg
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import URL
@@ -42,7 +43,7 @@ if TYPE_CHECKING:
 _RevNumber = Optional[Union[str, Tuple[str, ...]]]
 
 ProcessRevisionDirectiveFn = Callable[
-    [MigrationContext, Tuple[str, str], List["MigrationScript"]], None
+    [MigrationContext, _GetRevArg, List["MigrationScript"]], None
 ]
 
 RenderItemFn = Callable[

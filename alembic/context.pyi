@@ -7,6 +7,7 @@ from typing import Callable
 from typing import Collection
 from typing import ContextManager
 from typing import Dict
+from typing import Iterable
 from typing import List
 from typing import Literal
 from typing import Mapping
@@ -143,7 +144,12 @@ def configure(
     include_schemas: bool = False,
     process_revision_directives: Optional[
         Callable[
-            [MigrationContext, Tuple[str, str], List[MigrationScript]], None
+            [
+                MigrationContext,
+                Union[str, Iterable[Optional[str]], Iterable[str]],
+                List[MigrationScript],
+            ],
+            None,
         ]
     ] = None,
     compare_type: Union[
