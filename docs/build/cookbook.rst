@@ -917,7 +917,7 @@ any operations::
             directives: list[MigrationScript],
         ):
             assert config.cmd_opts is not None
-            if config.cmd_opts.autogenerate:
+            if getattr(config.cmd_opts, 'autogenerate', False):
                 script = directives[0]
                 assert script.upgrade_ops is not None
                 if script.upgrade_ops.is_empty():
