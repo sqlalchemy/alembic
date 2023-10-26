@@ -4,7 +4,6 @@ from pathlib import Path
 import re
 from unittest.mock import patch
 
-from dateutil import tz
 import sqlalchemy as sa
 from sqlalchemy import Column
 from sqlalchemy import inspect
@@ -40,6 +39,11 @@ from alembic.testing.env import three_rev_fixture
 from alembic.testing.env import write_script
 from alembic.testing.fixtures import TestBase
 from alembic.util import CommandError
+
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:
+    from backports.zoneinfo import ZoneInfo
 
 env, abc, def_ = None, None, None
 
@@ -189,12 +193,16 @@ class ScriptNamingTest(TestBase):
 
     @testing.combinations(
         (
-            datetime.datetime(2012, 7, 25, 15, 8, 5, tzinfo=tz.gettz("UTC")),
+            datetime.datetime(
+                2012, 7, 25, 15, 8, 5, tzinfo=datetime.timezone.utc
+            ),
             "%s/versions/1343228885_12345_this_is_a_"
             "message_2012_7_25_15_8_5.py",
         ),
         (
-            datetime.datetime(2012, 7, 25, 15, 8, 6, tzinfo=tz.gettz("UTC")),
+            datetime.datetime(
+                2012, 7, 25, 15, 8, 6, tzinfo=datetime.timezone.utc
+            ),
             "%s/versions/1343228886_12345_this_is_a_"
             "message_2012_7_25_15_8_6.py",
         ),
@@ -227,7 +235,8 @@ class ScriptNamingTest(TestBase):
         with mock.patch(
             "alembic.script.base.datetime",
             mock.Mock(
-                datetime=mock.Mock(utcnow=lambda: given, now=lambda: given)
+                datetime=mock.Mock(utcnow=lambda: given, now=lambda: given),
+                timezone=datetime.timezone,
             ),
         ):
             create_date = script._generate_create_date()
@@ -238,7 +247,7 @@ class ScriptNamingTest(TestBase):
             "EST5EDT",
             datetime.datetime(2012, 7, 25, 15, 8, 5),
             datetime.datetime(
-                2012, 7, 25, 11, 8, 5, tzinfo=tz.gettz("EST5EDT")
+                2012, 7, 25, 11, 8, 5, tzinfo=ZoneInfo("EST5EDT")
             ),
         )
 
@@ -247,7 +256,7 @@ class ScriptNamingTest(TestBase):
             "est5edt",
             datetime.datetime(2012, 7, 25, 15, 8, 5),
             datetime.datetime(
-                2012, 7, 25, 11, 8, 5, tzinfo=tz.gettz("EST5EDT")
+                2012, 7, 25, 11, 8, 5, tzinfo=ZoneInfo("EST5EDT")
             ),
         )
 
@@ -255,7 +264,7 @@ class ScriptNamingTest(TestBase):
         self._test_tz(
             "utc",
             datetime.datetime(2012, 7, 25, 15, 8, 5),
-            datetime.datetime(2012, 7, 25, 15, 8, 5, tzinfo=tz.gettz("UTC")),
+            datetime.datetime(2012, 7, 25, 15, 8, 5, tzinfo=ZoneInfo("UTC")),
         )
 
     def test_custom_tzdata_tz(self):
@@ -263,7 +272,7 @@ class ScriptNamingTest(TestBase):
             "Europe/Berlin",
             datetime.datetime(2012, 7, 25, 15, 8, 5),
             datetime.datetime(
-                2012, 7, 25, 17, 8, 5, tzinfo=tz.gettz("Europe/Berlin")
+                2012, 7, 25, 17, 8, 5, tzinfo=ZoneInfo("Europe/Berlin")
             ),
         )
 
@@ -284,10 +293,12 @@ class ScriptNamingTest(TestBase):
             datetime.datetime(2012, 7, 25, 15, 8, 5),
         )
 
-    def test_no_dateutil_module(self):
-        with patch("alembic.script.base.tz", new=None):
+    def test_no_zoneinfo_module(self):
+        with patch("alembic.script.base.ZoneInfo", new=None):
             with expect_raises_message(
-                CommandError, "The library 'python-dateutil' is required"
+                CommandError,
+                "Python >= 3.9 is required for timezone support or"
+                "the 'backports.zoneinfo' package must be installed.",
             ):
                 self._test_tz(
                     "utc",

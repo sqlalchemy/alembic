@@ -23,6 +23,7 @@ from . import revision
 from . import write_hooks
 from .. import util
 from ..runtime import migration
+from ..util import compat
 from ..util import not_none
 
 if TYPE_CHECKING:
@@ -35,9 +36,14 @@ if TYPE_CHECKING:
     from ..runtime.migration import StampStep
 
 try:
-    from dateutil import tz
+    if compat.py39:
+        from zoneinfo import ZoneInfo
+        from zoneinfo import ZoneInfoNotFoundError
+    else:
+        from backports.zoneinfo import ZoneInfo  # type: ignore[import-not-found,no-redef] # noqa: E501
+        from backports.zoneinfo import ZoneInfoNotFoundError  # type: ignore[import-not-found,no-redef] # noqa: E501
 except ImportError:
-    tz = None  # type: ignore[assignment]
+    ZoneInfo = None  # type: ignore[assignment, misc]
 
 _sourceless_rev_file = re.compile(r"(?!\.\#|__init__)(.*\.py)(c|o)?$")
 _only_source_rev_file = re.compile(r"(?!\.\#|__init__)(.*\.py)$")
@@ -604,23 +610,26 @@ class ScriptDirectory:
 
     def _generate_create_date(self) -> datetime.datetime:
         if self.timezone is not None:
-            if tz is None:
+            if ZoneInfo is None:
                 raise util.CommandError(
-                    "The library 'python-dateutil' is required "
-                    "for timezone support"
+                    "Python >= 3.9 is required for timezone support or"
+                    "the 'backports.zoneinfo' package must be installed."
                 )
             # First, assume correct capitalization
-            tzinfo = tz.gettz(self.timezone)
+            try:
+                tzinfo = ZoneInfo(self.timezone)
+            except ZoneInfoNotFoundError:
+                tzinfo = None
             if tzinfo is None:
-                # Fall back to uppercase
-                tzinfo = tz.gettz(self.timezone.upper())
-            if tzinfo is None:
-                raise util.CommandError(
-                    "Can't locate timezone: %s" % self.timezone
-                )
+                try:
+                    tzinfo = ZoneInfo(self.timezone.upper())
+                except ZoneInfoNotFoundError:
+                    raise util.CommandError(
+                        "Can't locate timezone: %s" % self.timezone
+                    ) from None
             create_date = (
                 datetime.datetime.utcnow()
-                .replace(tzinfo=tz.tzutc())
+                .replace(tzinfo=datetime.timezone.utc)
                 .astimezone(tzinfo)
             )
         else:

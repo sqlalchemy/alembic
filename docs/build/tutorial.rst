@@ -141,9 +141,9 @@ The file generated with the "generic" configuration looks like::
 
     # timezone to use when rendering the date within the migration file
     # as well as the filename.
-    # If specified, requires the python-dateutil library that can be
-    # installed by adding `alembic[tz]` to the pip requirements
-    # string value is passed to dateutil.tz.gettz()
+    # If specified, requires the python>=3.9 or backports.zoneinfo library.
+    # Any requied deps can installed by adding `alembic[tz]` to the pip requirements
+    # string value is passed to ZoneInfo()
     # leave blank for localtime
     # timezone =
 
@@ -297,16 +297,18 @@ This file contains the following features:
 
 * ``timezone`` - an optional timezone name (e.g. ``UTC``, ``EST5EDT``, etc.)
   that will be applied to the timestamp which renders inside the migration
-  file's comment as well as within the filename. This option requires installing
-  the ``python-dateutil`` library. If ``timezone`` is specified,
+  file's comment as well as within the filename. This option requires Python>=3.9
+  or installing the ``backports.zoneinfo`` library. If ``timezone`` is specified,
   the create date object is no longer derived from ``datetime.datetime.now()``
   and is instead generated as::
 
       datetime.datetime.utcnow().replace(
-            tzinfo=dateutil.tz.tzutc()
-      ).astimezone(
-          dateutil.tz.gettz(<timezone>)
-      )
+        tzinfo=datetime.timezone.utc
+      ).astimezone(ZoneInfo(<timezone>))
+
+  .. versionchanged:: 1.13.0 Python standard library ``zoneinfo`` is now used
+     for timezone rendering in migrations; previously ``python-dateutil``
+     was used.
 
 * ``truncate_slug_length`` - defaults to 40, the max number of characters
   to include in the "slug" field.

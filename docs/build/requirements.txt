@@ -1,7 +1,7 @@
 git+https://github.com/sqlalchemyorg/changelog.git#egg=changelog
 git+https://github.com/sqlalchemyorg/sphinx-paramlinks.git#egg=sphinx-paramlinks
 git+https://github.com/sqlalchemy/sqlalchemy.git
-python-dateutil
+backports.zoneinfo;python_version<"3.9"
 # because there's a dependency in pyfiles.py
 Mako
 importlib-metadata;python_version<"3.9"

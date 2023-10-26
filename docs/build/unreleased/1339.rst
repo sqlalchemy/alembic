@@ -1,0 +1,9 @@
+.. change::
+    :tags: usecase
+    :tickets: 1339
+
+    Replaced ``python-dateutil`` with the standard library module
+    `zoneinfo <https://docs.python.org/3.11/library/zoneinfo.html#module-zoneinfo>`.
+    This module was added in Python 3.9, so previous version will been
+    to install the backport of it, available by installing the ``backports.zoneinfo``
+    library. The ``alembic[tz]`` option has been updated accordingly.
