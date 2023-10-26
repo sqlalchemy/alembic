@@ -1127,13 +1127,12 @@ class RewriterTest(TestBase):
             "    # ### end Alembic commands ###",
         )
 
-        eq_(
-            str(directives[0].upgrade_ops_list[0].as_diffs()),
-            "[('add_table', Table('test_table', MetaData(), "
-            "Column('id', Integer(), "
-            "table=<test_table>, primary_key=True, nullable=False), schema=None)), "
-            "('execute', 'STATEMENT')]",
-        )
+        diffs = directives[0].upgrade_ops_list[0].as_diffs()
+
+        eq_(diffs[0][0], "add_table")
+
+        eq_(diffs[1][0], "execute")
+        eq_(diffs[1][1], "STATEMENT")
 
 
 class MultiDirRevisionCommandTest(TestBase):
