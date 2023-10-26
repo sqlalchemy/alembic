@@ -1,0 +1,9 @@
+.. change::
+    :tags: bug, operations
+    :tickets: 1335
+
+    Repaired :class:`.ExecuteSQLOp` so that it can participate in "diff"
+    operations; while this object is typically not present in a reflected
+    operation stream, custom hooks may be adding this construct where it needs
+    to have the correct ``to_diff_tuple()`` method.  Pull request courtesy
+    Sebastian Bayer.

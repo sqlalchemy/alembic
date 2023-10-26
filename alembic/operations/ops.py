@@ -2539,6 +2539,9 @@ class ExecuteSQLOp(MigrateOperation):
             operations, sqltext, execution_options=execution_options
         )
 
+    def to_diff_tuple(self) -> Tuple[str, Union[Executable, str]]:
+        return ("execute", self.sqltext)
+
 
 class OpContainer(MigrateOperation):
     """Represent a sequence of operations operation."""
