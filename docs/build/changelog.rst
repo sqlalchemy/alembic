@@ -5,7 +5,74 @@ Changelog
 
 .. changelog::
     :version: 1.12.1
-    :include_notes_from: unreleased
+    :released: October 26, 2023
+
+    .. change::
+        :tags: bug, autogenerate, regression
+        :tickets: 1329
+
+        Fixed regression caused by :ticket:`879` released in 1.7.0 where the
+        ".info" dictionary of ``Table`` would not render in autogenerate create
+        table statements.  This can be useful for custom create table DDL rendering
+        schemes so it is restored.
+
+    .. change::
+        :tags: bug, typing
+        :tickets: 1325
+
+        Improved typing in the
+        :paramref:`.EnvironmentContext.configure.process_revision_directives`
+        callable to better indicate that the passed-in type is
+        :class:`.MigrationScript`, not the :class:`.MigrationOperation` base class,
+        and added typing to the example at :ref:`cookbook_no_empty_migrations` to
+        illustrate.
+
+    .. change::
+        :tags: bug, operations
+        :tickets: 1335
+
+        Repaired :class:`.ExecuteSQLOp` so that it can participate in "diff"
+        operations; while this object is typically not present in a reflected
+        operation stream, custom hooks may be adding this construct where it needs
+        to have the correct ``to_diff_tuple()`` method.  Pull request courtesy
+        Sebastian Bayer.
+
+    .. change::
+        :tags: typing, bug
+        :tickets: 1058, 1277
+
+        Improved the ``op.execute()`` method to correctly accept the
+        ``Executable`` type that is the same which is used in SQLAlchemy
+        ``Connection.execute()``.  Pull request courtesy Mihail Milushev.
+
+    .. change::
+        :tags: typing, bug
+        :tickets: 930
+
+        Improve typing of the revision parameter in various command functions.
+
+    .. change::
+        :tags: typing, bug
+        :tickets: 1266
+
+        Properly type the :paramref:`.Operations.create_check_constraint.condition`
+        parameter of :meth:`.Operations.create_check_constraint` to accept boolean
+        expressions.
+
+    .. change::
+        :tags: bug, postgresql
+        :tickets: 1322
+
+        Fixed autogen render issue where expressions inside of indexes for PG need
+        to be double-parenthesized, meaning a single parens must be present within
+        the generated ``text()`` construct.
+
+    .. change::
+        :tags: usecase
+        :tickets: 1304
+
+        Alembic now accommodates for Sequence and Identity that support dialect kwargs.
+        This is a change that will be added to SQLAlchemy v2.1.
 
 .. changelog::
     :version: 1.12.0

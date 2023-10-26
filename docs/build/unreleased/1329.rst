@@ -1,8 +1,0 @@
-.. change::
-    :tags: bug, autogenerate, regression
-    :tickets: 1329
-
-    Fixed regression caused by :ticket:`879` released in 1.7.0 where the
-    ".info" dictionary of ``Table`` would not render in autogenerate create
-    table statements.  This can be useful for custom create table DDL rendering
-    schemes so it is restored.

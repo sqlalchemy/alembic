@@ -1,6 +1,0 @@
-.. change::
-    :tags: usecase
-    :tickets: 1304
-
-    Alembic now accommodates for Sequence and Identity that support dialect kwargs.
-    This is a change that will be added to SQLAlchemy v2.1.

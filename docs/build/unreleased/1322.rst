@@ -1,7 +1,0 @@
-.. change::
-    :tags: bug, postgresql
-    :tickets: 1322
-
-    Fixed autogen render issue where expressions inside of indexes for PG need
-    to be double-parenthesized, meaning a single parens must be present within
-    the generated ``text()`` construct.
