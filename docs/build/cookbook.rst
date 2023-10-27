@@ -901,6 +901,7 @@ single :class:`.MigrationScript` directive if it is empty of
 any operations::
 
     # for typing purposes
+    from collections.abc import Iterable
     from alembic.environment import MigrationContext
 
     # this typing-only import requires alembic 1.12.1 or above
@@ -913,7 +914,7 @@ any operations::
 
         def process_revision_directives(
             context: MigrationContext,
-            revision: tuple[str, str],
+            revision: str | Iterable[str | None] | Iterable[str],
             directives: list[MigrationScript],
         ):
             assert config.cmd_opts is not None
