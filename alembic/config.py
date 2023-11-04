@@ -339,6 +339,27 @@ class Config:
             ),
         )
 
+    def get_separator_char(self, name: str) -> Optional[str]:
+        separator = self.get_main_option(name)
+
+        split_on_path = {
+            None: None,
+            "space": " ",
+            "newline": "\n",
+            "os": os.pathsep,
+            ":": ":",
+            ";": ";",
+        }
+
+        try:
+            return split_on_path[separator]
+        except KeyError as ke:
+            raise ValueError(
+                "'%s' is not a valid value for %s; "
+                "expected 'space', 'newline', 'os', ':', ';'"
+                % (separator, name)
+            ) from ke
+
 
 class MessagingOptions(TypedDict, total=False):
     quiet: bool

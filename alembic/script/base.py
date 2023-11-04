@@ -180,53 +180,41 @@ class ScriptDirectory:
         version_locations_str = config.get_main_option("version_locations")
         version_locations: Optional[List[str]]
         if version_locations_str:
-            version_path_separator = config.get_main_option(
+            split_char = config.get_separator_char(
                 "version_path_separator"
             )
 
-            split_on_path = {
-                None: None,
-                "space": " ",
-                "newline": "\n",
-                "os": os.pathsep,
-                ":": ":",
-                ";": ";",
-            }
-
-            try:
-                split_char: Optional[str] = split_on_path[
-                    version_path_separator
-                ]
-            except KeyError as ke:
-                raise ValueError(
-                    "'%s' is not a valid value for "
-                    "version_path_separator; "
-                    "expected 'space', 'newline', 'os', ':', ';'"
-                    % version_path_separator
-                ) from ke
+            if split_char is None:
+                # legacy behaviour for backwards compatibility
+                version_locations = _split_on_space_comma.split(
+                    version_locations_str
+                )
             else:
-                if split_char is None:
-                    # legacy behaviour for backwards compatibility
-                    version_locations = _split_on_space_comma.split(
-                        version_locations_str
-                    )
-                else:
-                    version_locations = [
-                        x.strip()
-                        for x in version_locations_str.split(split_char)
-                        if x
-                    ]
+                version_locations = [
+                    x.strip()
+                    for x in version_locations_str.split(split_char)
+                    if x
+                ]
         else:
             version_locations = None
 
         prepend_sys_path = config.get_main_option("prepend_sys_path")
         if prepend_sys_path:
-            if os.name == 'nt':
-                prepend_paths = _split_on_space_comma.split(prepend_sys_path)
+            split_char = config.get_separator_char(
+                "prepend_sys_path_separator"
+            )
+
+            if split_char is None:
+                # legacy behaviour for backwards compatibility
+                sys.path[:0] = list(
+                    _split_on_space_comma_colon.split(prepend_sys_path)
+                )
             else:
-                prepend_paths = _split_on_space_comma_colon.split(prepend_sys_path)
-            
-            sys.path[:0] = (os.path.normpath(path.strip()) for path in prepend_paths)
+                sys.path[:0] = (
+                    path.strip()
+                    for path in prepend_sys_path.split(split_char)
+                    if path
+                )
 
         rvl = config.get_main_option("recursive_version_locations") == "true"
         return ScriptDirectory(
