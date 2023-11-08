@@ -1267,7 +1267,7 @@ class OpTest(TestBase):
         ):
             op.run_async(go)
 
-    @config.requirements.sqlalchemy_14
+    @config.requirements.asyncio
     def test_run_async_ok(self):
         from sqlalchemy.ext.asyncio import AsyncConnection
 

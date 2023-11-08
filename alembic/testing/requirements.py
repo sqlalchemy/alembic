@@ -96,6 +96,18 @@ class SuiteRequirements(Requirements):
         )
 
     @property
+    def asyncio(self):
+        def go(config):
+            try:
+                import greenlet  # noqa: F401
+            except ImportError:
+                return False
+            else:
+                return True
+
+        return self.sqlalchemy_14 + exclusions.only_if(go)
+
+    @property
     def comments(self):
         return exclusions.only_if(
             lambda config: config.db.dialect.supports_comments
