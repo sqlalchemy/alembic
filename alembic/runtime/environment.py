@@ -10,6 +10,7 @@ from typing import Mapping
 from typing import MutableMapping
 from typing import Optional
 from typing import overload
+from typing import Sequence
 from typing import TextIO
 from typing import Tuple
 from typing import TYPE_CHECKING
@@ -416,7 +417,7 @@ class EnvironmentContext(util.ModuleClsProxy):
         tag: Optional[str] = None,
         template_args: Optional[Dict[str, Any]] = None,
         render_as_batch: bool = False,
-        target_metadata: Optional[MetaData] = None,
+        target_metadata: Union[MetaData, Sequence[MetaData], None] = None,
         include_name: Optional[IncludeNameFn] = None,
         include_object: Optional[IncludeObjectFn] = None,
         include_schemas: bool = False,
