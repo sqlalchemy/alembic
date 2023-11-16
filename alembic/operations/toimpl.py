@@ -5,7 +5,7 @@ from sqlalchemy import schema as sa_schema
 from . import ops
 from .base import Operations
 from ..util.sqla_compat import _copy
-from ..util.sqla_compat import sqla_2
+from ..util.sqla_compat import sqla_14
 
 if TYPE_CHECKING:
     from sqlalchemy.sql.schema import Table
@@ -98,8 +98,8 @@ def create_index(
     idx = operation.to_index(operations.migration_context)
     kw = {}
     if operation.if_not_exists is not None:
-        if not sqla_2:
-            raise NotImplementedError("SQLAlchemy 2.0+ required")
+        if not sqla_14:
+            raise NotImplementedError("SQLAlchemy 1.4+ required")
 
         kw["if_not_exists"] = operation.if_not_exists
     operations.impl.create_index(idx, **kw)
@@ -109,8 +109,8 @@ def create_index(
 def drop_index(operations: "Operations", operation: "ops.DropIndexOp") -> None:
     kw = {}
     if operation.if_exists is not None:
-        if not sqla_2:
-            raise NotImplementedError("SQLAlchemy 2.0+ required")
+        if not sqla_14:
+            raise NotImplementedError("SQLAlchemy 1.4+ required")
 
         kw["if_exists"] = operation.if_exists
 
