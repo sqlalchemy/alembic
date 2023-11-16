@@ -122,7 +122,7 @@ class PostgresqlOpTest(TestBase):
         op.create_index("i", "t", ["c1", "c2"], unique=False)
         context.assert_("CREATE INDEX i ON t (c1, c2)")
 
-    @config.requirements.sqlalchemy_2
+    @config.requirements.sqlalchemy_14
     def test_create_index_postgresql_if_not_exists(self):
         context = op_fixture("postgresql")
         op.create_index("i", "t", ["c1", "c2"], if_not_exists=True)
@@ -141,7 +141,7 @@ class PostgresqlOpTest(TestBase):
             op.drop_index("geocoded", postgresql_concurrently=True)
         context.assert_("DROP INDEX CONCURRENTLY geocoded")
 
-    @config.requirements.sqlalchemy_2
+    @config.requirements.sqlalchemy_14
     def test_drop_index_postgresql_if_exists(self):
         context = op_fixture("postgresql")
         op.drop_index("geocoded", if_exists=True)
