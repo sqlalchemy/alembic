@@ -829,7 +829,7 @@ class OpTest(TestBase):
         op.create_index("ik_test", "t1", ["foo", "bar"])
         context.assert_("CREATE INDEX ik_test ON t1 (foo, bar)")
 
-    @config.requirements.sqlalchemy_2
+    @config.requirements.sqlalchemy_14
     def test_create_index_if_not_exists(self):
         context = op_fixture()
         op.create_index("ik_test", "t1", ["foo", "bar"], if_not_exists=True)
@@ -891,7 +891,7 @@ class OpTest(TestBase):
         op.drop_index("ik_test", schema="foo")
         context.assert_("DROP INDEX foo.ik_test")
 
-    @config.requirements.sqlalchemy_2
+    @config.requirements.sqlalchemy_14
     def test_drop_index_if_exists(self):
         context = op_fixture()
         op.drop_index("ik_test", if_exists=True)
