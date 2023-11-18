@@ -1,0 +1,8 @@
+.. change::
+    :tags: bug, autogenerate
+    :tickets: 1361
+
+    Fixed autogenerate issue where ``create_table_comment()`` and
+    ``drop_table_comment()`` rendering in a batch table modify would include
+    the "table" and "schema" arguments, which are not accepted in batch as
+    these are already part of the top level block.
