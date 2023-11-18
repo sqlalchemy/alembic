@@ -16,7 +16,6 @@ is_posix = os.name == "posix"
 py311 = sys.version_info >= (3, 11)
 py310 = sys.version_info >= (3, 10)
 py39 = sys.version_info >= (3, 9)
-py38 = sys.version_info >= (3, 8)
 
 
 # produce a wrapper that allows encoded text to stream

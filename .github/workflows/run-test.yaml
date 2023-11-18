@@ -30,25 +30,29 @@ jobs:
           - "windows-latest"
           - "macos-latest"
         python-version:
-          - "3.7"
           - "3.8"
           - "3.9"
           - "3.10"
           - "3.11"
+          - "3.12"
         sqlalchemy:
           - sqla13
           - sqla14
           - sqlamain
+        exclude:
+          # sqla13 does not seem to support 3.12
+          - sqlalchemy: sqla13
+            python-version: "3.12"
 
       fail-fast: false
 
     # steps to run in each job. Some are github actions, others run shell commands
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Set up python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
           architecture: ${{ matrix.architecture }}
@@ -73,15 +77,16 @@ jobs:
           - "3.9"
           - "3.10"
           - "3.11"
+          - "3.12"
 
       fail-fast: false
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Set up python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
           architecture: ${{ matrix.architecture }}

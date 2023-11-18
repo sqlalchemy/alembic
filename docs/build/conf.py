@@ -259,8 +259,6 @@ latex_documents = [
 # latex_use_modindex = True
 
 
-# {'python': ('http://docs.python.org/3.2', None)}
-
 autoclass_content = "both"
 
 intersphinx_mapping = {
