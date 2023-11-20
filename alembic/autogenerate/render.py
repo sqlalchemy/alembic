@@ -164,14 +164,22 @@ def _render_modify_table(
 def _render_create_table_comment(
     autogen_context: AutogenContext, op: ops.CreateTableCommentOp
 ) -> str:
-    templ = (
-        "{prefix}create_table_comment(\n"
-        "{indent}'{tname}',\n"
-        "{indent}{comment},\n"
-        "{indent}existing_comment={existing},\n"
-        "{indent}schema={schema}\n"
-        ")"
-    )
+    if autogen_context._has_batch:
+        templ = (
+            "{prefix}create_table_comment(\n"
+            "{indent}{comment},\n"
+            "{indent}existing_comment={existing}\n"
+            ")"
+        )
+    else:
+        templ = (
+            "{prefix}create_table_comment(\n"
+            "{indent}'{tname}',\n"
+            "{indent}{comment},\n"
+            "{indent}existing_comment={existing},\n"
+            "{indent}schema={schema}\n"
+            ")"
+        )
     return templ.format(
         prefix=_alembic_autogenerate_prefix(autogen_context),
         tname=op.table_name,
@@ -188,13 +196,20 @@ def _render_create_table_comment(
 def _render_drop_table_comment(
     autogen_context: AutogenContext, op: ops.DropTableCommentOp
 ) -> str:
-    templ = (
-        "{prefix}drop_table_comment(\n"
-        "{indent}'{tname}',\n"
-        "{indent}existing_comment={existing},\n"
-        "{indent}schema={schema}\n"
-        ")"
-    )
+    if autogen_context._has_batch:
+        templ = (
+            "{prefix}drop_table_comment(\n"
+            "{indent}existing_comment={existing}\n"
+            ")"
+        )
+    else:
+        templ = (
+            "{prefix}drop_table_comment(\n"
+            "{indent}'{tname}',\n"
+            "{indent}existing_comment={existing},\n"
+            "{indent}schema={schema}\n"
+            ")"
+        )
     return templ.format(
         prefix=_alembic_autogenerate_prefix(autogen_context),
         tname=op.table_name,
