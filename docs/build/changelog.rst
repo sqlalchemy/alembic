@@ -4,7 +4,7 @@ Changelog
 ==========
 
 .. changelog::
-    :version: 1.12.2
+    :version: 1.13.0
     :include_notes_from: unreleased
 
 .. changelog::
