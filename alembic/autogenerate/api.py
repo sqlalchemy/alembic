@@ -17,6 +17,7 @@ from . import compare
 from . import render
 from .. import util
 from ..operations import ops
+from ..util import sqla_compat
 
 """Provide the 'autogenerate' feature which can produce migration operations
 automatically."""
@@ -440,7 +441,7 @@ class AutogenContext:
     def run_object_filters(
         self,
         object_: SchemaItem,
-        name: Optional[str],
+        name: sqla_compat._ConstraintName,
         type_: NameFilterType,
         reflected: bool,
         compare_to: Optional[SchemaItem],

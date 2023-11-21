@@ -1,3 +1,5 @@
+import itertools
+
 from sqlalchemy import BigInteger
 from sqlalchemy import Boolean
 from sqlalchemy import Column
@@ -33,6 +35,7 @@ from sqlalchemy.sql.expression import literal_column
 from alembic import autogenerate
 from alembic import command
 from alembic import op
+from alembic import testing
 from alembic import util
 from alembic.autogenerate import api
 from alembic.autogenerate.compare import _compare_server_default
@@ -47,6 +50,9 @@ from alembic.testing import config
 from alembic.testing import eq_
 from alembic.testing import eq_ignore_whitespace
 from alembic.testing import provide_metadata
+from alembic.testing import resolve_lambda
+from alembic.testing import schemacompare
+from alembic.testing.assertions import expect_warnings
 from alembic.testing.env import _no_sql_testing_config
 from alembic.testing.env import clear_staging_env
 from alembic.testing.env import staging_env
@@ -1490,6 +1496,217 @@ class PGUniqueIndexAutogenerateTest(AutogenFixtureTest, TestBase):
         eq_(diffs[0][0], "remove_constraint")
         eq_(diffs[0][1].name, "uq_name")
         eq_(len(diffs), 1)
+
+
+def _lots_of_indexes(flatten: bool = False):
+    diff_pairs = [
+        (
+            lambda t: Index("idx", t.c.jb["foo"]),
+            lambda t: Index("idx", t.c.jb["bar"]),
+        ),
+        (
+            lambda t: Index("idx", t.c.jb["foo"]),
+            lambda t: Index("idx", t.c.jb["not_jsonb_path_ops"]),
+        ),
+        (
+            lambda t: Index("idx", t.c.jb["not_jsonb_path_ops"]),
+            lambda t: Index("idx", t.c.jb["bar"]),
+        ),
+        (
+            lambda t: Index("idx", t.c.aa),
+            lambda t: Index("idx", t.c.not_jsonb_path_ops),
+        ),
+        (
+            lambda t: Index("idx", t.c.not_jsonb_path_ops),
+            lambda t: Index("idx", t.c.aa),
+        ),
+        (
+            lambda t: Index(
+                "idx",
+                t.c.jb["foo"].label("x"),
+                postgresql_using="gin",
+                postgresql_ops={"x": "jsonb_path_ops"},
+            ),
+            lambda t: Index(
+                "idx",
+                t.c.jb["bar"].label("x"),
+                postgresql_using="gin",
+                postgresql_ops={"x": "jsonb_path_ops"},
+            ),
+        ),
+        (
+            lambda t: Index("idx", t.c.jb["foo"].astext),
+            lambda t: Index("idx", t.c.jb["bar"].astext),
+        ),
+        (
+            lambda t: Index("idx", t.c.jb["foo"].as_integer()),
+            lambda t: Index("idx", t.c.jb["bar"].as_integer()),
+        ),
+        (
+            lambda t: Index("idx", text("(jb->'x')"), _table=t),
+            lambda t: Index("idx", text("(jb->'y')"), _table=t),
+        ),
+    ]
+    if flatten:
+        return list(itertools.chain.from_iterable(diff_pairs))
+    else:
+        return diff_pairs
+
+
+def _equal_indexes():
+    the_indexes = [(fn, fn) for fn in _lots_of_indexes(True)]
+    the_indexes += [
+        (
+            lambda t: Index("idx", text("(jb->'x')"), _table=t),
+            lambda t: Index("idx", text("(jb -> 'x')"), _table=t),
+        ),
+        (
+            lambda t: Index("idx", text("cast(jb->'x' as integer)"), _table=t),
+            lambda t: Index("idx", text("(jb -> 'x')::integer"), _table=t),
+        ),
+    ]
+    return the_indexes
+
+
+def _index_op_clause():
+    def make_idx(t, *expr):
+        return Index(
+            "idx",
+            *(text(e) if isinstance(e, str) else e for e in expr),
+            postgresql_using="gin",
+            _table=t,
+        )
+
+    return [
+        (
+            False,
+            lambda t: make_idx(t, "(jb->'x')jsonb_path_ops"),
+            lambda t: make_idx(t, "(jb->'x')jsonb_path_ops"),
+        ),
+        (
+            False,
+            lambda t: make_idx(t, "aa array_ops"),
+            lambda t: make_idx(t, "aa array_ops"),
+        ),
+        (
+            False,
+            lambda t: make_idx(t, "(jb->'x')jsonb_path_ops"),
+            lambda t: make_idx(t, "(jb->'y')jsonb_path_ops"),
+        ),
+        (
+            False,
+            lambda t: make_idx(t, "aa array_ops"),
+            lambda t: make_idx(t, "jb array_ops"),
+        ),
+        (
+            False,
+            lambda t: make_idx(t, "aa array_ops", "(jb->'y')jsonb_path_ops"),
+            lambda t: make_idx(t, "(jb->'y')jsonb_path_ops", "aa array_ops"),
+        ),
+        (
+            True,
+            lambda t: make_idx(t, "aa array_ops", text("(jb->'x')")),
+            lambda t: make_idx(t, "aa array_ops", text("(jb->'y')")),
+        ),
+        (
+            True,
+            lambda t: make_idx(t, text("(jb->'x')"), "aa array_ops"),
+            lambda t: make_idx(t, text("(jb->'y')"), "aa array_ops"),
+        ),
+        (
+            True,
+            lambda t: make_idx(t, "aa array_ops", text("(jb->'x')")),
+            lambda t: make_idx(t, "jb array_ops", text("(jb->'y')")),
+        ),
+        (
+            True,
+            lambda t: make_idx(t, text("(jb->'x')"), "aa array_ops"),
+            lambda t: make_idx(t, text("(jb->'y')"), "jb array_ops"),
+        ),
+    ]
+
+
+class PGIndexAutogenerateTest(AutogenFixtureTest, TestBase):
+    __backend__ = True
+    __only_on__ = "postgresql"
+    __requires__ = ("reflect_indexes_with_expressions",)
+
+    @testing.fixture
+    def index_tables(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        t_old = Table(
+            "exp_index",
+            m1,
+            Column("id", Integer, primary_key=True),
+            Column("aa", ARRAY(Integer)),
+            Column("jb", JSONB),
+            Column("not_jsonb_path_ops", Integer),
+        )
+
+        t_new = Table(
+            "exp_index",
+            m2,
+            Column("id", Integer, primary_key=True),
+            Column("aa", ARRAY(Integer)),
+            Column("jb", JSONB),
+            Column("not_jsonb_path_ops", Integer),
+        )
+
+        return m1, m2, t_old, t_new
+
+    @combinations(*_lots_of_indexes(), argnames="old_fn, new_fn")
+    def test_expression_indexes_changed(self, index_tables, old_fn, new_fn):
+        m1, m2, old_table, new_table = index_tables
+
+        old = resolve_lambda(old_fn, t=old_table)
+        new = resolve_lambda(new_fn, t=new_table)
+
+        diffs = self._fixture(m1, m2)
+        eq_(
+            diffs,
+            [
+                ("remove_index", schemacompare.CompareIndex(old, True)),
+                ("add_index", schemacompare.CompareIndex(new)),
+            ],
+        )
+
+    @combinations(*_equal_indexes(), argnames="fn1, fn2")
+    def test_expression_indexes_no_change(self, index_tables, fn1, fn2):
+        m1, m2, old_table, new_table = index_tables
+
+        resolve_lambda(fn1, t=old_table)
+        resolve_lambda(fn2, t=new_table)
+
+        diffs = self._fixture(m1, m2)
+        eq_(diffs, [])
+
+    @combinations(*_index_op_clause(), argnames="changed, old_fn, new_fn")
+    def test_expression_indexes_warn_operator(
+        self, index_tables, changed, old_fn, new_fn
+    ):
+        m1, m2, old_table, new_table = index_tables
+
+        old = old_fn(t=old_table)
+        new = new_fn(t=new_table)
+
+        with expect_warnings(
+            r"Expression #\d .+ in index 'idx' detected to include "
+            "an operator clause. Expression compare cannot proceed. "
+            "Please move the operator clause to the "
+        ):
+            diffs = self._fixture(m1, m2)
+        if changed:
+            eq_(
+                diffs,
+                [
+                    ("remove_index", schemacompare.CompareIndex(old, True)),
+                    ("add_index", schemacompare.CompareIndex(new)),
+                ],
+            )
+        else:
+            eq_(diffs, [])
 
 
 case = combinations(

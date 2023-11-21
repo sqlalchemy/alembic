@@ -899,7 +899,7 @@ class CreateIndexOp(MigrateOperation):
         return cls(
             index.name,  # type: ignore[arg-type]
             index.table.name,
-            sqla_compat._get_index_expressions(index),
+            index.expressions,
             schema=index.table.schema,
             unique=index.unique,
             **index.kwargs,

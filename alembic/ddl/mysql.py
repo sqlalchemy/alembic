@@ -20,7 +20,6 @@ from .base import format_column_name
 from .base import format_server_default
 from .impl import DefaultImpl
 from .. import util
-from ..autogenerate import compare
 from ..util import sqla_compat
 from ..util.sqla_compat import _is_mariadb
 from ..util.sqla_compat import _is_type_bound
@@ -272,10 +271,12 @@ class MySQLImpl(DefaultImpl):
 
     def correct_for_autogen_foreignkeys(self, conn_fks, metadata_fks):
         conn_fk_by_sig = {
-            compare._fk_constraint_sig(fk).sig: fk for fk in conn_fks
+            self._create_reflected_constraint_sig(fk).unnamed_no_options: fk
+            for fk in conn_fks
         }
         metadata_fk_by_sig = {
-            compare._fk_constraint_sig(fk).sig: fk for fk in metadata_fks
+            self._create_metadata_constraint_sig(fk).unnamed_no_options: fk
+            for fk in metadata_fks
         }
 
         for sig in set(conn_fk_by_sig).intersection(metadata_fk_by_sig):
