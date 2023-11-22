@@ -26,6 +26,7 @@ from alembic.testing import is_false
 from alembic.testing import is_true
 from alembic.testing import mock
 from alembic.testing.env import _get_staging_directory
+from alembic.testing.env import _multidb_testing_config
 from alembic.testing.env import _no_sql_testing_config
 from alembic.testing.env import _sqlite_file_db
 from alembic.testing.env import _sqlite_testing_config
@@ -663,6 +664,53 @@ finally:
                 command.check,
                 self.cfg,
             )
+
+
+class CheckTestMultiDB(CheckTest):
+    def setUp(self):
+        self.engine1 = _sqlite_file_db(tempname="eng1.db")
+        self.engine2 = _sqlite_file_db(tempname="eng2.db")
+        self.engine3 = _sqlite_file_db(tempname="eng3.db")
+
+        self.env = staging_env(template="multidb")
+        self.cfg = _multidb_testing_config(
+            {
+                "engine1": self.engine1,
+                "engine2": self.engine2,
+                "engine3": self.engine3,
+            }
+        )
+
+    def _env_fixture(self):
+        env_file_fixture(
+            """
+
+import re
+from sqlalchemy import MetaData, engine_from_config
+
+db_names = config.get_main_option("databases", "")
+for db_name in re.split(r",\\s*", db_names):
+    engine = engine_from_config(
+        config.get_section(db_name),
+        prefix="sqlalchemy.",
+    )
+    connection = engine.connect()
+    metadata = MetaData()
+    context.configure(
+        connection=connection,
+        target_metadata=metadata,
+    )
+
+    try:
+        with context.begin_transaction():
+            context.run_migrations()
+    finally:
+        connection.close()
+        engine.dispose()
+
+
+"""
+        )
 
 
 class _StampTest:
