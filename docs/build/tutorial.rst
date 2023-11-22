@@ -142,7 +142,7 @@ The file generated with the "generic" configuration looks like::
     # timezone to use when rendering the date within the migration file
     # as well as the filename.
     # If specified, requires the python>=3.9 or backports.zoneinfo library.
-    # Any requied deps can installed by adding `alembic[tz]` to the pip requirements
+    # Any required deps can installed by adding `alembic[tz]` to the pip requirements
     # string value is passed to ZoneInfo()
     # leave blank for localtime
     # timezone =
