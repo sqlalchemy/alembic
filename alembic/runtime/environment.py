@@ -404,10 +404,7 @@ class EnvironmentContext(util.ModuleClsProxy):
         if as_dictionary:
             dict_value = {}
             for arg in value:
-                try:
-                    x_key, x_value = arg.split("=", 1)
-                except ValueError:
-                    x_key, x_value = arg, ""
+                x_key, _, x_value = arg.partition("=")
                 dict_value[x_key] = x_value
             value = dict_value
 
