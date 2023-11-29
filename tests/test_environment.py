@@ -54,6 +54,11 @@ class EnvironmentTest(TestBase):
         env = self._fixture()
         eq_(env.get_x_argument(as_dictionary=True), {})
 
+    def test_x_arg_empty_value(self):
+        env = self._fixture()
+        self.cfg.cmd_opts = mock.Mock(x=["y"])
+        eq_(env.get_x_argument(as_dictionary=True), {"y": ""})
+
     def test_tag_arg(self):
         env = self._fixture(tag="x")
         eq_(env.get_tag_argument(), "x")
