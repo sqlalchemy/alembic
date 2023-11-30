@@ -762,6 +762,9 @@ def get_x_argument(
     then returned. If there is no `=` in the argument, value is an empty
     string.
 
+    .. versionchanged:: 1.13.0 Support to `as_dictionary=True` and args
+    without `=`, generating an empty string instead of crashing.
+
     For example, to support passing a database URL on the command line,
     the standard ``env.py`` script can be modified like this::
 
