@@ -1,5 +1,0 @@
-.. change::
-    :tags: installation, changed
-    :tickets: 1359
-
-    Alembic 1.13 now supports Python 3.8 and above.

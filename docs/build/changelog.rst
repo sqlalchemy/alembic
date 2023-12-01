@@ -5,7 +5,63 @@ Changelog
 
 .. changelog::
     :version: 1.13.0
-    :include_notes_from: unreleased
+    :released: December 1, 2023
+
+    .. change::
+        :tags: bug, commands
+        :tickets: 1234
+
+        Fixed issue where the ``alembic check`` command did not function correctly
+        with upgrade structures that have multiple, top-level elements, as are
+        generated from the "multi-env" environment template.  Pull request courtesy
+        Neil Williams.
+
+    .. change::
+        :tags: usecase, operations
+        :tickets: 1323
+
+        Updated logic introduced in :ticket:`151` to allow ``if_exists`` and
+        ``if_not_exists`` on index operations also on SQLAlchemy
+        1.4 series. Previously this feature was mistakenly requiring
+        the 2.0 series.
+
+    .. change::
+        :tags: usecase
+        :tickets: 1339
+
+        Replaced ``python-dateutil`` with the standard library module
+        `zoneinfo <https://docs.python.org/3.11/library/zoneinfo.html#module-zoneinfo>`_.
+        This module was added in Python 3.9, so previous version will been
+        to install the backport of it, available by installing the ``backports.zoneinfo``
+        library. The ``alembic[tz]`` option has been updated accordingly.
+
+    .. change::
+        :tags: installation, changed
+        :tickets: 1359
+
+        Alembic 1.13 now supports Python 3.8 and above.
+
+    .. change::
+        :tags: bug, autogenerate
+        :tickets: 1361
+
+        Fixed autogenerate issue where ``create_table_comment()`` and
+        ``drop_table_comment()`` rendering in a batch table modify would include
+        the "table" and "schema" arguments, which are not accepted in batch as
+        these are already part of the top level block.
+
+    .. change::
+        :tags: bug, postgresql
+        :tickets: 1321, 1327, 1356
+
+        Additional fixes to PostgreSQL expression index compare feature.
+        The compare now correctly accommodates casts and differences in
+        spacing.
+        Added detection logic for operation clauses inside the expression,
+        skipping the compare of these expressions.
+        To accommodate these changes the logic for the comparison of the
+        indexes and unique constraints was moved to the dialect
+        implementation, allowing greater flexibility.
 
 .. changelog::
     :version: 1.12.1

@@ -1,8 +1,0 @@
-.. change::
-    :tags: usecase, operations
-    :tickets: 1323
-
-    Updated logic introduced in :ticket:`151` to allow ``if_exists`` and
-    ``if_not_exists`` on index operations also on SQLAlchemy
-    1.4 series. Previously this feature was mistakenly requiring
-    the 2.0 series.

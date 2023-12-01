@@ -1,8 +1,0 @@
-.. change::
-    :tags: bug, commands
-    :tickets: 1234
-
-    Fixed issue where the ``alembic check`` command did not function correctly
-    with upgrade structures that have multiple, top-level elements, as are
-    generated from the "multi-env" environment template.  Pull request courtesy
-    Neil Williams.
