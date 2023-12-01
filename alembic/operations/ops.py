@@ -1054,6 +1054,7 @@ class DropIndexOp(MigrateOperation):
             table_name=index.table.name,
             schema=index.table.schema,
             _reverse=CreateIndexOp.from_index(index),
+            unique=index.unique,
             **index.kwargs,
         )
 
