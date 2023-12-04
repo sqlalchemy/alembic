@@ -367,7 +367,11 @@ class EnvironmentContext(util.ModuleClsProxy):
         The return value is a list, returned directly from the ``argparse``
         structure.  If ``as_dictionary=True`` is passed, the ``x`` arguments
         are parsed using ``key=value`` format into a dictionary that is
-        then returned.
+        then returned. If there is no ``=`` in the argument, value is an empty
+        string.
+
+        .. versionchanged:: 1.13.1 Support ``as_dictionary=True`` when
+           arguments are passed without the ``=`` symbol.
 
         For example, to support passing a database URL on the command line,
         the standard ``env.py`` script can be modified like this::
@@ -401,7 +405,12 @@ class EnvironmentContext(util.ModuleClsProxy):
         else:
             value = []
         if as_dictionary:
-            value = dict(arg.split("=", 1) for arg in value)
+            dict_value = {}
+            for arg in value:
+                x_key, _, x_value = arg.partition("=")
+                dict_value[x_key] = x_value
+            value = dict_value
+
         return value
 
     def configure(

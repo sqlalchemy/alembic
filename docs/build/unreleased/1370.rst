@@ -1,0 +1,9 @@
+.. change::
+    :tags: bug, environment
+    :tickets: 1369
+
+    Fixed issue where ``get_x_arguments(as_dictionary=True)`` would fail if an
+    argument key were passed without an equal sign ``=`` or a value.
+    Behavior is repaired where this condition is detected and will return a
+    blank string for the given key, consistent with the behavior where the
+    ``=`` sign is present and no value.  Pull request courtesy Iuri de Silvio.

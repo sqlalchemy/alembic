@@ -759,7 +759,11 @@ def get_x_argument(
     The return value is a list, returned directly from the ``argparse``
     structure.  If ``as_dictionary=True`` is passed, the ``x`` arguments
     are parsed using ``key=value`` format into a dictionary that is
-    then returned.
+    then returned. If there is no ``=`` in the argument, value is an empty
+    string.
+
+    .. versionchanged:: 1.13.1 Support ``as_dictionary=True`` when
+       arguments are passed without the ``=`` symbol.
 
     For example, to support passing a database URL on the command line,
     the standard ``env.py`` script can be modified like this::
