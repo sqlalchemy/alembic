@@ -1783,6 +1783,7 @@ class OrigObjectTest(TestBase):
             Column("x", Integer()),
         )
         self.ix = Index("ix1", t.c.id)
+        self.ix_unique = Index("ix2", t.c.id, unique=True)
         fk = ForeignKeyConstraint(["t_id"], ["t.id"])
         q = Table("q", m, Column("t_id", Integer()), fk)
         self.table = t
@@ -1904,6 +1905,14 @@ class OrigObjectTest(TestBase):
         op = ops.CreateIndexOp.from_index(self.ix)
         eq_(op.to_index(), schemacompare.CompareIndex(self.ix))
         eq_(op.reverse().to_index(), schemacompare.CompareIndex(self.ix))
+
+    def test_create_unique_index(self):
+        op = ops.CreateIndexOp.from_index(self.ix_unique)
+        eq_(op.to_index(), schemacompare.CompareIndex(self.ix_unique))
+        eq_(
+            op.reverse().to_index(),
+            schemacompare.CompareIndex(self.ix_unique),
+        )
 
 
 class MultipleMetaDataTest(AutogenFixtureTest, TestBase):

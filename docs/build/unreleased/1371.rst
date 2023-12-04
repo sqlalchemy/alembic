@@ -1,0 +1,7 @@
+.. change::
+    :tags: bug, autogenerate
+    :tickets: 1370
+
+    Fixed issue where the "unique" flag of an ``Index`` would not be maintained
+    when generating downgrade migrations.  Pull request courtesy Iuri de
+    Silvio.
