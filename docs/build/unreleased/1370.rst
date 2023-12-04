@@ -1,0 +1,7 @@
+.. change::
+    :tags: bug, autogenerate
+    :tickets: 1370
+
+    Fixed issue with ``get_x_arguments(as_dictionary=True)`` and args without
+    ``=``. Now args without ``=`` are supported and generate an empty string as
+    their value.
