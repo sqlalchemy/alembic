@@ -1,0 +1,6 @@
+.. change::
+    :tags: bug, autogenerate
+    :tickets: 1370
+
+    Fixed issue with downgrade migration of unique indexes autogenerating
+    non-unique indexes.
