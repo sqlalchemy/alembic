@@ -1909,7 +1909,10 @@ class OrigObjectTest(TestBase):
     def test_create_unique_index(self):
         op = ops.CreateIndexOp.from_index(self.ix_unique)
         eq_(op.to_index(), schemacompare.CompareIndex(self.ix_unique))
-        eq_(op.reverse().to_index(), schemacompare.CompareIndex(self.ix_unique))
+        eq_(
+            op.reverse().to_index(),
+            schemacompare.CompareIndex(self.ix_unique),
+        )
 
 
 class MultipleMetaDataTest(AutogenFixtureTest, TestBase):
