@@ -286,7 +286,7 @@ class PostgresqlImpl(DefaultImpl):
         # NOTE: when parsing the connection expression this cleanup could
         # be skipped
         for rs in self._default_modifiers_re:
-            if match := rs.search(expr):
+            if match == rs.search(expr):
                 start, end = match.span(1)
                 expr = expr[:start] + expr[end:]
                 break
