@@ -1168,7 +1168,17 @@ class RevisionStep(MigrationStep):
             }
             return tuple(set(self.to_revisions).difference(ancestors))
         else:
-            return self.to_revisions
+            # For each revision we plan to return, compute its ancestors (excluding self),
+            # and remove those from the final output since they are already accounted for.
+            ancestors = {
+                r.revision
+                for to_revision in self.to_revisions
+                for r in self.revision_map._get_ancestor_nodes(
+                    self.revision_map.get_revisions(to_revision), check=False
+                )
+                if r.revision != to_revision
+            }
+            return tuple(set(self.to_revisions).difference(ancestors))
 
     def unmerge_branch_idents(
         self, heads: Set[str]

@@ -1176,6 +1176,40 @@ class DependsOnBranchTestFour(MigrationTest):
         )
 
 
+class DependsOnBranchTestFive(MigrationTest):
+    @classmethod
+    def setup_class(cls):
+        """
+        issue #1373
+
+        Structure::
+
+            <base> -> a1 ------+
+                      ^        |
+                      |        +-> bmerge
+                      |        |
+                      +-- b1 --+
+        """
+        cls.env = env = staging_env()
+        cls.a1 = env.generate_revision("a1", "->a1")
+        cls.b1 = env.generate_revision("b1", "->b1", head="base", depends_on="a1")
+        cls.bmerge = env.generate_revision("bmerge"," bmerge", head=[cls.a1.revision, cls.b1.revision])
+
+    @classmethod
+    def teardown_class(cls):
+        clear_staging_env()
+
+    def test_downgrade_to_depends_on(self):
+        # Upgrade from a1 to b1 just has heads={"b1"}.
+        self._assert_upgrade(self.b1.revision, self.a1.revision, expected=[self.up_(self.b1)], expected_heads={self.b1.revision})
+
+        # Upgrade from b1 to bmerge just has {"bmerge"}
+        self._assert_upgrade(self.bmerge.revision, self.b1.revision, expected=[self.up_(self.bmerge)], expected_heads={self.bmerge.revision})
+
+        # Downgrading from bmerge to a1 should return back to heads={"b1"}.
+        self._assert_downgrade(self.a1.revision, self.bmerge.revision, expected=[self.down_(self.bmerge)], expected_heads={self.b1.revision})
+
+
 class DependsOnBranchLabelTest(MigrationTest):
     @classmethod
     def setup_class(cls):
