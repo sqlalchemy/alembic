@@ -1168,8 +1168,9 @@ class RevisionStep(MigrationStep):
             }
             return tuple(set(self.to_revisions).difference(ancestors))
         else:
-            # For each revision we plan to return, compute its ancestors (excluding self),
-            # and remove those from the final output since they are already accounted for.
+            # for each revision we plan to return, compute its ancestors
+            # (excluding self), and remove those from the final output since
+            # they are already accounted for.
             ancestors = {
                 r.revision
                 for to_revision in self.to_revisions
