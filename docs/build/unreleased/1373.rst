@@ -1,0 +1,8 @@
+.. change::
+    :tags: bug, versioning
+    :tickets: 1373
+
+    Fixed bug in versioning model where a downgrade across a revision with two
+    down revisions with one down revision depending on the other, would produce
+    an erroneous state in the alembic_version table, making upgrades impossible
+    without manually repairing the table.
