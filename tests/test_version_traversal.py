@@ -1212,7 +1212,7 @@ class DependsOnBranchTestFive(MigrationTest):
             {self.b1.revision},
         )
 
-        # Upgrade from b1 to bmerge just has {"bmerge"}
+        # Upgrade from b1 to bmerge just has {"bmerge"}.
         self._assert_upgrade(
             self.bmerge.revision,
             self.b1.revision,
@@ -1223,6 +1223,14 @@ class DependsOnBranchTestFive(MigrationTest):
         # Downgrading from bmerge to a1 should return back to heads={"b1"}.
         self._assert_downgrade(
             self.a1.revision,
+            self.bmerge.revision,
+            [self.down_(self.bmerge)],
+            {self.b1.revision},
+        )
+
+        # Downgrading from bmerge to b1 also returns back to heads={"b1"}.
+        self._assert_downgrade(
+            self.b1.revision,
             self.bmerge.revision,
             [self.down_(self.bmerge)],
             {self.b1.revision},
