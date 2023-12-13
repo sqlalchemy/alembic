@@ -5,6 +5,7 @@ import re
 from typing import Any
 from typing import Callable
 from typing import cast
+from typing import Dict
 from typing import FrozenSet
 from typing import Iterator
 from typing import List
@@ -15,6 +16,7 @@ from typing import Set
 from typing import Tuple
 from typing import Type
 from typing import TYPE_CHECKING
+from typing import TypeVar
 from typing import Union
 
 from sqlalchemy.types import NULLTYPE
@@ -53,6 +55,9 @@ if TYPE_CHECKING:
     from ..runtime.migration import MigrationContext
     from ..script.revision import _RevIdType
 
+_T = TypeVar("_T", bound=Any)
+_AC = TypeVar("_AC", bound="AddConstraintOp")
+
 
 class MigrateOperation:
     """base class for migration command and organization objects.
@@ -70,7 +75,7 @@ class MigrateOperation:
     """
 
     @util.memoized_property
-    def info(self):
+    def info(self) -> Dict[Any, Any]:
         """A dictionary that may be used to store arbitrary information
         along with this :class:`.MigrateOperation` object.
 
@@ -92,12 +97,14 @@ class AddConstraintOp(MigrateOperation):
     add_constraint_ops = util.Dispatcher()
 
     @property
-    def constraint_type(self):
+    def constraint_type(self) -> str:
         raise NotImplementedError()
 
     @classmethod
-    def register_add_constraint(cls, type_: str) -> Callable:
-        def go(klass):
+    def register_add_constraint(
+        cls, type_: str
+    ) -> Callable[[Type[_AC]], Type[_AC]]:
+        def go(klass: Type[_AC]) -> Type[_AC]:
             cls.add_constraint_ops.dispatch_for(type_)(klass.from_constraint)
             return klass
 
@@ -105,7 +112,7 @@ class AddConstraintOp(MigrateOperation):
 
     @classmethod
     def from_constraint(cls, constraint: Constraint) -> AddConstraintOp:
-        return cls.add_constraint_ops.dispatch(constraint.__visit_name__)(
+        return cls.add_constraint_ops.dispatch(constraint.__visit_name__)(  # type: ignore[no-any-return]  # noqa: E501
             constraint
         )
 
@@ -398,7 +405,7 @@ class CreateUniqueConstraintOp(AddConstraintOp):
 
         uq_constraint = cast("UniqueConstraint", constraint)
 
-        kw: dict = {}
+        kw: Dict[str, Any] = {}
         if uq_constraint.deferrable:
             kw["deferrable"] = uq_constraint.deferrable
         if uq_constraint.initially:
@@ -532,7 +539,7 @@ class CreateForeignKeyOp(AddConstraintOp):
     @classmethod
     def from_constraint(cls, constraint: Constraint) -> CreateForeignKeyOp:
         fk_constraint = cast("ForeignKeyConstraint", constraint)
-        kw: dict = {}
+        kw: Dict[str, Any] = {}
         if fk_constraint.onupdate:
             kw["onupdate"] = fk_constraint.onupdate
         if fk_constraint.ondelete:
@@ -897,7 +904,7 @@ class CreateIndexOp(MigrateOperation):
     def from_index(cls, index: Index) -> CreateIndexOp:
         assert index.table is not None
         return cls(
-            index.name,  # type: ignore[arg-type]
+            index.name,
             index.table.name,
             index.expressions,
             schema=index.table.schema,
@@ -1183,7 +1190,7 @@ class CreateTableOp(MigrateOperation):
 
         return cls(
             table.name,
-            list(table.c) + list(table.constraints),  # type:ignore[arg-type]
+            list(table.c) + list(table.constraints),
             schema=table.schema,
             _namespace_metadata=_namespace_metadata,
             # given a Table() object, this Table will contain full Index()
@@ -1535,7 +1542,7 @@ class CreateTableCommentOp(AlterTableOp):
         )
         return operations.invoke(op)
 
-    def reverse(self):
+    def reverse(self) -> Union[CreateTableCommentOp, DropTableCommentOp]:
         """Reverses the COMMENT ON operation against a table."""
         if self.existing_comment is None:
             return DropTableCommentOp(
@@ -1551,14 +1558,16 @@ class CreateTableCommentOp(AlterTableOp):
                 schema=self.schema,
             )
 
-    def to_table(self, migration_context=None):
+    def to_table(
+        self, migration_context: Optional[MigrationContext] = None
+    ) -> Table:
         schema_obj = schemaobj.SchemaObjects(migration_context)
 
         return schema_obj.table(
             self.table_name, schema=self.schema, comment=self.comment
         )
 
-    def to_diff_tuple(self):
+    def to_diff_tuple(self) -> Tuple[Any, ...]:
         return ("add_table_comment", self.to_table(), self.existing_comment)
 
 
@@ -1630,18 +1639,20 @@ class DropTableCommentOp(AlterTableOp):
         )
         return operations.invoke(op)
 
-    def reverse(self):
+    def reverse(self) -> CreateTableCommentOp:
         """Reverses the COMMENT ON operation against a table."""
         return CreateTableCommentOp(
             self.table_name, self.existing_comment, schema=self.schema
         )
 
-    def to_table(self, migration_context=None):
+    def to_table(
+        self, migration_context: Optional[MigrationContext] = None
+    ) -> Table:
         schema_obj = schemaobj.SchemaObjects(migration_context)
 
         return schema_obj.table(self.table_name, schema=self.schema)
 
-    def to_diff_tuple(self):
+    def to_diff_tuple(self) -> Tuple[Any, ...]:
         return ("remove_table_comment", self.to_table())
 
 
@@ -1818,8 +1829,10 @@ class AlterColumnOp(AlterTableOp):
         comment: Optional[Union[str, Literal[False]]] = False,
         server_default: Any = False,
         new_column_name: Optional[str] = None,
-        type_: Optional[Union[TypeEngine, Type[TypeEngine]]] = None,
-        existing_type: Optional[Union[TypeEngine, Type[TypeEngine]]] = None,
+        type_: Optional[Union[TypeEngine[Any], Type[TypeEngine[Any]]]] = None,
+        existing_type: Optional[
+            Union[TypeEngine[Any], Type[TypeEngine[Any]]]
+        ] = None,
         existing_server_default: Optional[
             Union[str, bool, Identity, Computed]
         ] = False,
@@ -1939,8 +1952,10 @@ class AlterColumnOp(AlterTableOp):
         comment: Optional[Union[str, Literal[False]]] = False,
         server_default: Any = False,
         new_column_name: Optional[str] = None,
-        type_: Optional[Union[TypeEngine, Type[TypeEngine]]] = None,
-        existing_type: Optional[Union[TypeEngine, Type[TypeEngine]]] = None,
+        type_: Optional[Union[TypeEngine[Any], Type[TypeEngine[Any]]]] = None,
+        existing_type: Optional[
+            Union[TypeEngine[Any], Type[TypeEngine[Any]]]
+        ] = None,
         existing_server_default: Optional[
             Union[str, bool, Identity, Computed]
         ] = False,
@@ -2020,11 +2035,11 @@ class AddColumnOp(AlterTableOp):
     ) -> Tuple[str, Optional[str], str, Column[Any]]:
         return ("add_column", self.schema, self.table_name, self.column)
 
-    def to_column(self) -> Column:
+    def to_column(self) -> Column[Any]:
         return self.column
 
     @classmethod
-    def from_column(cls, col: Column) -> AddColumnOp:
+    def from_column(cls, col: Column[Any]) -> AddColumnOp:
         return cls(col.table.name, col, schema=col.table.schema)
 
     @classmethod
@@ -2215,7 +2230,7 @@ class DropColumnOp(AlterTableOp):
 
     def to_column(
         self, migration_context: Optional[MigrationContext] = None
-    ) -> Column:
+    ) -> Column[Any]:
         if self._reverse is not None:
             return self._reverse.column
         schema_obj = schemaobj.SchemaObjects(migration_context)
@@ -2299,7 +2314,7 @@ class BulkInsertOp(MigrateOperation):
     def __init__(
         self,
         table: Union[Table, TableClause],
-        rows: List[dict],
+        rows: List[Dict[str, Any]],
         *,
         multiinsert: bool = True,
     ) -> None:
@@ -2312,7 +2327,7 @@ class BulkInsertOp(MigrateOperation):
         cls,
         operations: Operations,
         table: Union[Table, TableClause],
-        rows: List[dict],
+        rows: List[Dict[str, Any]],
         *,
         multiinsert: bool = True,
     ) -> None:
@@ -2608,7 +2623,7 @@ class UpgradeOps(OpContainer):
         self.upgrade_token = upgrade_token
 
     def reverse_into(self, downgrade_ops: DowngradeOps) -> DowngradeOps:
-        downgrade_ops.ops[:] = list(  # type:ignore[index]
+        downgrade_ops.ops[:] = list(
             reversed([op.reverse() for op in self.ops])
         )
         return downgrade_ops
@@ -2635,7 +2650,7 @@ class DowngradeOps(OpContainer):
         super().__init__(ops=ops)
         self.downgrade_token = downgrade_token
 
-    def reverse(self):
+    def reverse(self) -> UpgradeOps:
         return UpgradeOps(
             ops=list(reversed([op.reverse() for op in self.ops]))
         )
@@ -2666,6 +2681,8 @@ class MigrationScript(MigrateOperation):
     """
 
     _needs_render: Optional[bool]
+    _upgrade_ops: List[UpgradeOps]
+    _downgrade_ops: List[DowngradeOps]
 
     def __init__(
         self,
@@ -2693,7 +2710,7 @@ class MigrationScript(MigrateOperation):
         self.downgrade_ops = downgrade_ops
 
     @property
-    def upgrade_ops(self):
+    def upgrade_ops(self) -> Optional[UpgradeOps]:
         """An instance of :class:`.UpgradeOps`.
 
         .. seealso::
@@ -2712,13 +2729,15 @@ class MigrationScript(MigrateOperation):
             return self._upgrade_ops[0]
 
     @upgrade_ops.setter
-    def upgrade_ops(self, upgrade_ops):
+    def upgrade_ops(
+        self, upgrade_ops: Union[UpgradeOps, List[UpgradeOps]]
+    ) -> None:
         self._upgrade_ops = util.to_list(upgrade_ops)
         for elem in self._upgrade_ops:
             assert isinstance(elem, UpgradeOps)
 
     @property
-    def downgrade_ops(self):
+    def downgrade_ops(self) -> Optional[DowngradeOps]:
         """An instance of :class:`.DowngradeOps`.
 
         .. seealso::
@@ -2737,7 +2756,9 @@ class MigrationScript(MigrateOperation):
             return self._downgrade_ops[0]
 
     @downgrade_ops.setter
-    def downgrade_ops(self, downgrade_ops):
+    def downgrade_ops(
+        self, downgrade_ops: Union[DowngradeOps, List[DowngradeOps]]
+    ) -> None:
         self._downgrade_ops = util.to_list(downgrade_ops)
         for elem in self._downgrade_ops:
             assert isinstance(elem, DowngradeOps)

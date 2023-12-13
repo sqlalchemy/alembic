@@ -160,8 +160,8 @@ def configure(
                 MigrationContext,
                 Column[Any],
                 Column[Any],
-                TypeEngine,
-                TypeEngine,
+                TypeEngine[Any],
+                TypeEngine[Any],
             ],
             Optional[bool],
         ],
@@ -636,7 +636,8 @@ def configure(
     """
 
 def execute(
-    sql: Union[Executable, str], execution_options: Optional[dict] = None
+    sql: Union[Executable, str],
+    execution_options: Optional[Dict[str, Any]] = None,
 ) -> None:
     """Execute the given SQL using the current change context.
 
@@ -805,7 +806,7 @@ def is_offline_mode() -> bool:
 
     """
 
-def is_transactional_ddl():
+def is_transactional_ddl() -> bool:
     """Return True if the context is configured to expect a
     transactional DDL capable backend.
 

@@ -1,3 +1,6 @@
+# mypy: allow-untyped-defs, allow-incomplete-defs, allow-untyped-calls
+# mypy: no-warn-return-any, allow-any-generics
+
 from __future__ import annotations
 
 import re
@@ -11,13 +14,13 @@ from sqlalchemy import cast
 from sqlalchemy import JSON
 from sqlalchemy import schema
 from sqlalchemy import sql
-from sqlalchemy.ext.compiler import compiles
 
 from .base import alter_table
 from .base import format_table_name
 from .base import RenameTable
 from .impl import DefaultImpl
 from .. import util
+from ..util.sqla_compat import compiles
 
 if TYPE_CHECKING:
     from sqlalchemy.engine.reflection import Inspector
@@ -71,13 +74,13 @@ class SQLiteImpl(DefaultImpl):
     def add_constraint(self, const: Constraint):
         # attempt to distinguish between an
         # auto-gen constraint and an explicit one
-        if const._create_rule is None:  # type:ignore[attr-defined]
+        if const._create_rule is None:
             raise NotImplementedError(
                 "No support for ALTER of constraints in SQLite dialect. "
                 "Please refer to the batch mode feature which allows for "
                 "SQLite migrations using a copy-and-move strategy."
             )
-        elif const._create_rule(self):  # type:ignore[attr-defined]
+        elif const._create_rule(self):
             util.warn(
                 "Skipping unsupported ALTER for "
                 "creation of implicit constraint. "
@@ -86,7 +89,7 @@ class SQLiteImpl(DefaultImpl):
             )
 
     def drop_constraint(self, const: Constraint):
-        if const._create_rule is None:  # type:ignore[attr-defined]
+        if const._create_rule is None:
             raise NotImplementedError(
                 "No support for ALTER of constraints in SQLite dialect. "
                 "Please refer to the batch mode feature which allows for "
@@ -177,8 +180,7 @@ class SQLiteImpl(DefaultImpl):
         new_type: TypeEngine,
     ) -> None:
         if (
-            existing.type._type_affinity  # type:ignore[attr-defined]
-            is not new_type._type_affinity  # type:ignore[attr-defined]
+            existing.type._type_affinity is not new_type._type_affinity
             and not isinstance(new_type, JSON)
         ):
             existing_transfer["expr"] = cast(

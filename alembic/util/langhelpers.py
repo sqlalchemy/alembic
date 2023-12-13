@@ -5,33 +5,46 @@ from collections.abc import Iterable
 import textwrap
 from typing import Any
 from typing import Callable
+from typing import cast
 from typing import Dict
 from typing import List
 from typing import Mapping
+from typing import MutableMapping
+from typing import NoReturn
 from typing import Optional
 from typing import overload
 from typing import Sequence
+from typing import Set
 from typing import Tuple
+from typing import Type
+from typing import TYPE_CHECKING
 from typing import TypeVar
 from typing import Union
 import uuid
 import warnings
 
-from sqlalchemy.util import asbool  # noqa
-from sqlalchemy.util import immutabledict  # noqa
-from sqlalchemy.util import memoized_property  # noqa
-from sqlalchemy.util import to_list  # noqa
-from sqlalchemy.util import unique_list  # noqa
+from sqlalchemy.util import asbool as asbool  # noqa: F401
+from sqlalchemy.util import immutabledict as immutabledict  # noqa: F401
+from sqlalchemy.util import to_list as to_list  # noqa: F401
+from sqlalchemy.util import unique_list as unique_list
 
 from .compat import inspect_getfullargspec
 
+if True:
+    # zimports workaround :(
+    from sqlalchemy.util import (  # noqa: F401
+        memoized_property as memoized_property,
+    )
+
 
 EMPTY_DICT: Mapping[Any, Any] = immutabledict()
-_T = TypeVar("_T")
+_T = TypeVar("_T", bound=Any)
+
+_C = TypeVar("_C", bound=Callable[..., Any])
 
 
 class _ModuleClsMeta(type):
-    def __setattr__(cls, key: str, value: Callable) -> None:
+    def __setattr__(cls, key: str, value: Callable[..., Any]) -> None:
         super().__setattr__(key, value)
         cls._update_module_proxies(key)  # type: ignore
 
@@ -45,9 +58,13 @@ class ModuleClsProxy(metaclass=_ModuleClsMeta):
 
     """
 
-    _setups: Dict[type, Tuple[set, list]] = collections.defaultdict(
-        lambda: (set(), [])
-    )
+    _setups: Dict[
+        Type[Any],
+        Tuple[
+            Set[str],
+            List[Tuple[MutableMapping[str, Any], MutableMapping[str, Any]]],
+        ],
+    ] = collections.defaultdict(lambda: (set(), []))
 
     @classmethod
     def _update_module_proxies(cls, name: str) -> None:
@@ -70,18 +87,33 @@ class ModuleClsProxy(metaclass=_ModuleClsMeta):
                 del globals_[attr_name]
 
     @classmethod
-    def create_module_class_proxy(cls, globals_, locals_):
+    def create_module_class_proxy(
+        cls,
+        globals_: MutableMapping[str, Any],
+        locals_: MutableMapping[str, Any],
+    ) -> None:
         attr_names, modules = cls._setups[cls]
         modules.append((globals_, locals_))
         cls._setup_proxy(globals_, locals_, attr_names)
 
     @classmethod
-    def _setup_proxy(cls, globals_, locals_, attr_names):
+    def _setup_proxy(
+        cls,
+        globals_: MutableMapping[str, Any],
+        locals_: MutableMapping[str, Any],
+        attr_names: Set[str],
+    ) -> None:
         for methname in dir(cls):
             cls._add_proxied_attribute(methname, globals_, locals_, attr_names)
 
     @classmethod
-    def _add_proxied_attribute(cls, methname, globals_, locals_, attr_names):
+    def _add_proxied_attribute(
+        cls,
+        methname: str,
+        globals_: MutableMapping[str, Any],
+        locals_: MutableMapping[str, Any],
+        attr_names: Set[str],
+    ) -> None:
         if not methname.startswith("_"):
             meth = getattr(cls, methname)
             if callable(meth):
@@ -92,10 +124,15 @@ class ModuleClsProxy(metaclass=_ModuleClsMeta):
                 attr_names.add(methname)
 
     @classmethod
-    def _create_method_proxy(cls, name, globals_, locals_):
+    def _create_method_proxy(
+        cls,
+        name: str,
+        globals_: MutableMapping[str, Any],
+        locals_: MutableMapping[str, Any],
+    ) -> Callable[..., Any]:
         fn = getattr(cls, name)
 
-        def _name_error(name, from_):
+        def _name_error(name: str, from_: Exception) -> NoReturn:
             raise NameError(
                 "Can't invoke function '%s', as the proxy object has "
                 "not yet been "
@@ -119,7 +156,9 @@ class ModuleClsProxy(metaclass=_ModuleClsMeta):
                 translations,
             )
 
-            def translate(fn_name, spec, translations, args, kw):
+            def translate(
+                fn_name: str, spec: Any, translations: Any, args: Any, kw: Any
+            ) -> Any:
                 return_kw = {}
                 return_args = []
 
@@ -176,15 +215,15 @@ class ModuleClsProxy(metaclass=_ModuleClsMeta):
                 "doc": fn.__doc__,
             }
         )
-        lcl = {}
+        lcl: MutableMapping[str, Any] = {}
 
-        exec(func_text, globals_, lcl)
-        return lcl[name]
+        exec(func_text, cast("Dict[str, Any]", globals_), lcl)
+        return cast("Callable[..., Any]", lcl[name])
 
 
-def _with_legacy_names(translations):
-    def decorate(fn):
-        fn._legacy_translations = translations
+def _with_legacy_names(translations: Any) -> Any:
+    def decorate(fn: _C) -> _C:
+        fn._legacy_translations = translations  # type: ignore[attr-defined]
         return fn
 
     return decorate
@@ -195,21 +234,25 @@ def rev_id() -> str:
 
 
 @overload
-def to_tuple(x: Any, default: tuple) -> tuple:
+def to_tuple(x: Any, default: Tuple[Any, ...]) -> Tuple[Any, ...]:
     ...
 
 
 @overload
-def to_tuple(x: None, default: Optional[_T] = None) -> _T:
+def to_tuple(x: None, default: Optional[_T] = ...) -> _T:
     ...
 
 
 @overload
-def to_tuple(x: Any, default: Optional[tuple] = None) -> tuple:
+def to_tuple(
+    x: Any, default: Optional[Tuple[Any, ...]] = None
+) -> Tuple[Any, ...]:
     ...
 
 
-def to_tuple(x, default=None):
+def to_tuple(
+    x: Any, default: Optional[Tuple[Any, ...]] = None
+) -> Optional[Tuple[Any, ...]]:
     if x is None:
         return default
     elif isinstance(x, str):
@@ -226,13 +269,13 @@ def dedupe_tuple(tup: Tuple[str, ...]) -> Tuple[str, ...]:
 
 class Dispatcher:
     def __init__(self, uselist: bool = False) -> None:
-        self._registry: Dict[tuple, Any] = {}
+        self._registry: Dict[Tuple[Any, ...], Any] = {}
         self.uselist = uselist
 
     def dispatch_for(
         self, target: Any, qualifier: str = "default"
-    ) -> Callable:
-        def decorate(fn):
+    ) -> Callable[[_C], _C]:
+        def decorate(fn: _C) -> _C:
             if self.uselist:
                 self._registry.setdefault((target, qualifier), []).append(fn)
             else:
@@ -244,7 +287,7 @@ class Dispatcher:
 
     def dispatch(self, obj: Any, qualifier: str = "default") -> Any:
         if isinstance(obj, str):
-            targets: Sequence = [obj]
+            targets: Sequence[Any] = [obj]
         elif isinstance(obj, type):
             targets = obj.__mro__
         else:
@@ -259,11 +302,13 @@ class Dispatcher:
             raise ValueError("no dispatch function for object: %s" % obj)
 
     def _fn_or_list(
-        self, fn_or_list: Union[List[Callable], Callable]
-    ) -> Callable:
+        self, fn_or_list: Union[List[Callable[..., Any]], Callable[..., Any]]
+    ) -> Callable[..., Any]:
         if self.uselist:
 
-            def go(*arg, **kw):
+            def go(*arg: Any, **kw: Any) -> None:
+                if TYPE_CHECKING:
+                    assert isinstance(fn_or_list, Sequence)
                 for fn in fn_or_list:
                     fn(*arg, **kw)
 

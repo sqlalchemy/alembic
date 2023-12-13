@@ -1,3 +1,6 @@
+# mypy: allow-untyped-defs, allow-incomplete-defs, allow-untyped-calls
+# mypy: no-warn-return-any, allow-any-generics
+
 from __future__ import annotations
 
 import logging
@@ -23,8 +26,8 @@ from sqlalchemy import text
 
 from . import _autogen
 from . import base
-from ._autogen import _constraint_sig
-from ._autogen import ComparisonResult
+from ._autogen import _constraint_sig as _constraint_sig
+from ._autogen import ComparisonResult as ComparisonResult
 from .. import util
 from ..util import sqla_compat
 

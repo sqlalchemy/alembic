@@ -1,3 +1,6 @@
+# mypy: allow-untyped-defs, allow-incomplete-defs, allow-untyped-calls
+# mypy: no-warn-return-any, allow-any-generics
+
 from typing import TYPE_CHECKING
 
 from sqlalchemy import schema as sa_schema

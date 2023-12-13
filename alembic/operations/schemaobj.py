@@ -1,3 +1,6 @@
+# mypy: allow-untyped-defs, allow-incomplete-defs, allow-untyped-calls
+# mypy: no-warn-return-any, allow-any-generics
+
 from __future__ import annotations
 
 from typing import Any
@@ -274,10 +277,8 @@ class SchemaObjects:
         ForeignKey.
 
         """
-        if isinstance(fk._colspec, str):  # type:ignore[attr-defined]
-            table_key, cname = fk._colspec.rsplit(  # type:ignore[attr-defined]
-                ".", 1
-            )
+        if isinstance(fk._colspec, str):
+            table_key, cname = fk._colspec.rsplit(".", 1)
             sname, tname = self._parse_table_key(table_key)
             if table_key not in metadata.tables:
                 rel_t = sa_schema.Table(tname, metadata, schema=sname)

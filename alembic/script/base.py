@@ -41,7 +41,7 @@ try:
         from zoneinfo import ZoneInfoNotFoundError
     else:
         from backports.zoneinfo import ZoneInfo  # type: ignore[import-not-found,no-redef] # noqa: E501
-        from backports.zoneinfo import ZoneInfoNotFoundError  # type: ignore[import-not-found,no-redef] # noqa: E501
+        from backports.zoneinfo import ZoneInfoNotFoundError  # type: ignore[no-redef] # noqa: E501
 except ImportError:
     ZoneInfo = None  # type: ignore[assignment, misc]
 
@@ -119,7 +119,7 @@ class ScriptDirectory:
             return loc[0]
 
     @util.memoized_property
-    def _version_locations(self):
+    def _version_locations(self) -> Sequence[str]:
         if self.version_locations:
             return [
                 os.path.abspath(util.coerce_resource_to_filename(location))
@@ -303,24 +303,22 @@ class ScriptDirectory:
             ):
                 yield cast(Script, rev)
 
-    def get_revisions(self, id_: _GetRevArg) -> Tuple[Optional[Script], ...]:
+    def get_revisions(self, id_: _GetRevArg) -> Tuple[Script, ...]:
         """Return the :class:`.Script` instance with the given rev identifier,
         symbolic name, or sequence of identifiers.
 
         """
         with self._catch_revision_errors():
             return cast(
-                Tuple[Optional[Script], ...],
+                Tuple[Script, ...],
                 self.revision_map.get_revisions(id_),
             )
 
-    def get_all_current(self, id_: Tuple[str, ...]) -> Set[Optional[Script]]:
+    def get_all_current(self, id_: Tuple[str, ...]) -> Set[Script]:
         with self._catch_revision_errors():
-            return cast(
-                Set[Optional[Script]], self.revision_map._get_all_current(id_)
-            )
+            return cast(Set[Script], self.revision_map._get_all_current(id_))
 
-    def get_revision(self, id_: str) -> Optional[Script]:
+    def get_revision(self, id_: str) -> Script:
         """Return the :class:`.Script` instance with the given rev id.
 
         .. seealso::
@@ -330,7 +328,7 @@ class ScriptDirectory:
         """
 
         with self._catch_revision_errors():
-            return cast(Optional[Script], self.revision_map.get_revision(id_))
+            return cast(Script, self.revision_map.get_revision(id_))
 
     def as_revision_number(
         self, id_: Optional[str]
@@ -585,7 +583,7 @@ class ScriptDirectory:
         util.load_python_file(self.dir, "env.py")
 
     @property
-    def env_py_location(self):
+    def env_py_location(self) -> str:
         return os.path.abspath(os.path.join(self.dir, "env.py"))
 
     def _generate_template(self, src: str, dest: str, **kw: Any) -> None:
@@ -684,7 +682,7 @@ class ScriptDirectory:
                 self.revision_map.get_revisions(head),
             )
             for h in heads:
-                assert h != "base"
+                assert h != "base"  # type: ignore[comparison-overlap]
 
         if len(set(heads)) != len(heads):
             raise util.CommandError("Duplicate head revisions specified")
@@ -823,7 +821,7 @@ class Script(revision.Revision):
         self.path = path
         super().__init__(
             rev_id,
-            module.down_revision,  # type: ignore[attr-defined]
+            module.down_revision,
             branch_labels=util.to_tuple(
                 getattr(module, "branch_labels", None), default=()
             ),
@@ -856,7 +854,7 @@ class Script(revision.Revision):
         if doc:
             if hasattr(self.module, "_alembic_source_encoding"):
                 doc = doc.decode(  # type: ignore[attr-defined]
-                    self.module._alembic_source_encoding  # type: ignore[attr-defined] # noqa
+                    self.module._alembic_source_encoding
                 )
             return doc.strip()  # type: ignore[union-attr]
         else:
@@ -898,7 +896,7 @@ class Script(revision.Revision):
         )
         return entry
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "%s -> %s%s%s%s, %s" % (
             self._format_down_revision(),
             self.revision,

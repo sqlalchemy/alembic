@@ -228,9 +228,9 @@ class EnvironmentContext(util.ModuleClsProxy):
         has been configured.
 
         """
-        return self.context_opts.get("as_sql", False)
+        return self.context_opts.get("as_sql", False)  # type: ignore[no-any-return]  # noqa: E501
 
-    def is_transactional_ddl(self):
+    def is_transactional_ddl(self) -> bool:
         """Return True if the context is configured to expect a
         transactional DDL capable backend.
 
@@ -339,7 +339,7 @@ class EnvironmentContext(util.ModuleClsProxy):
             line.
 
         """
-        return self.context_opts.get("tag", None)
+        return self.context_opts.get("tag", None)  # type: ignore[no-any-return]  # noqa: E501
 
     @overload
     def get_x_argument(self, as_dictionary: Literal[False]) -> List[str]:
@@ -950,7 +950,7 @@ class EnvironmentContext(util.ModuleClsProxy):
     def execute(
         self,
         sql: Union[Executable, str],
-        execution_options: Optional[dict] = None,
+        execution_options: Optional[Dict[str, Any]] = None,
     ) -> None:
         """Execute the given SQL using the current change context.
 

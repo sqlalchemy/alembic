@@ -1,3 +1,6 @@
+# mypy: allow-untyped-defs, allow-incomplete-defs, allow-untyped-calls
+# mypy: no-warn-return-any, allow-any-generics
+
 from __future__ import annotations
 
 import re
@@ -9,7 +12,6 @@ from typing import TYPE_CHECKING
 from typing import Union
 
 from sqlalchemy import types as sqltypes
-from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.schema import Column
 from sqlalchemy.schema import CreateIndex
 from sqlalchemy.sql.base import Executable
@@ -30,6 +32,7 @@ from .base import RenameTable
 from .impl import DefaultImpl
 from .. import util
 from ..util import sqla_compat
+from ..util.sqla_compat import compiles
 
 if TYPE_CHECKING:
     from typing import Literal

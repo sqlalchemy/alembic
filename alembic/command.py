@@ -1,3 +1,5 @@
+# mypy: allow-untyped-defs, allow-untyped-calls
+
 from __future__ import annotations
 
 import os
@@ -18,7 +20,7 @@ if TYPE_CHECKING:
     from .runtime.environment import ProcessRevisionDirectiveFn
 
 
-def list_templates(config: Config):
+def list_templates(config: Config) -> None:
     """List available templates.
 
     :param config: a :class:`.Config` object.

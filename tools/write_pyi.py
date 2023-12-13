@@ -127,9 +127,7 @@ def generate_pyi_for_proxy(
         {"entrypoint": "zimports", "options": "-e"},
         ignore_output=ignore_output,
     )
-    # note that we do not distribute pyproject.toml with the distribution
-    # right now due to user complaints, so we can't refer to it here because
-    # this all has to run as part of the test suite
+
     console_scripts(
         str(destination_path),
         {"entrypoint": "black", "options": "-l79"},
@@ -189,6 +187,8 @@ def _generate_stub_for_meth(
             retval = str(annotation)
         else:
             retval = annotation
+
+        retval = re.sub(r"TypeEngine\b", "TypeEngine[Any]", retval)
 
         retval = retval.replace("~", "")  # typevar repr as "~T"
         for trim in TRIM_MODULE:

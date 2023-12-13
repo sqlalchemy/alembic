@@ -1,3 +1,6 @@
+# mypy: allow-untyped-defs, allow-incomplete-defs, allow-untyped-calls
+# mypy: no-warn-return-any, allow-any-generics
+
 from __future__ import annotations
 
 from typing import Any
@@ -17,7 +20,7 @@ from sqlalchemy import PrimaryKeyConstraint
 from sqlalchemy import schema as sql_schema
 from sqlalchemy import Table
 from sqlalchemy import types as sqltypes
-from sqlalchemy.events import SchemaEventTarget
+from sqlalchemy.sql.schema import SchemaEventTarget
 from sqlalchemy.util import OrderedDict
 from sqlalchemy.util import topological
 
@@ -374,7 +377,7 @@ class ApplyBatchImpl:
         for idx_existing in self.indexes.values():
             # this is a lift-and-move from Table.to_metadata
 
-            if idx_existing._column_flag:  # type: ignore
+            if idx_existing._column_flag:
                 continue
 
             idx_copy = Index(
@@ -403,9 +406,7 @@ class ApplyBatchImpl:
     def _setup_referent(
         self, metadata: MetaData, constraint: ForeignKeyConstraint
     ) -> None:
-        spec = constraint.elements[
-            0
-        ]._get_colspec()  # type:ignore[attr-defined]
+        spec = constraint.elements[0]._get_colspec()
         parts = spec.split(".")
         tname = parts[-2]
         if len(parts) == 3:
@@ -546,9 +547,7 @@ class ApplyBatchImpl:
             else:
                 sql_schema.DefaultClause(
                     server_default  # type: ignore[arg-type]
-                )._set_parent(  # type:ignore[attr-defined]
-                    existing
-                )
+                )._set_parent(existing)
         if autoincrement is not None:
             existing.autoincrement = bool(autoincrement)
 

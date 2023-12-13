@@ -1,0 +1,9 @@
+.. change::
+    :tags: bug, typing
+    :tickets: 1377
+
+    Updated pep-484 typing to pass mypy "strict" mode, however including
+    per-module qualifications for specific typing elements not yet complete.
+    This allows us to catch specific typing issues that have been ongoing
+    such as import symbols not properly exported.
+
