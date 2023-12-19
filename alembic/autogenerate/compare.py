@@ -1,3 +1,6 @@
+# mypy: allow-untyped-defs, allow-incomplete-defs, allow-untyped-calls
+# mypy: no-warn-return-any, allow-any-generics
+
 from __future__ import annotations
 
 import contextlib
@@ -577,9 +580,7 @@ def _compare_indexes_and_uniques(
     # 5. index things by name, for those objects that have names
     metadata_names = {
         cast(str, c.md_name_to_sql_name(autogen_context)): c
-        for c in metadata_unique_constraints_sig.union(
-            metadata_indexes_sig  # type:ignore[arg-type]
-        )
+        for c in metadata_unique_constraints_sig.union(metadata_indexes_sig)
         if c.is_named
     }
 
@@ -1240,7 +1241,7 @@ def _compare_foreign_keys(
             obj.const, obj.name, "foreign_key_constraint", False, compare_to
         ):
             modify_table_ops.ops.append(
-                ops.CreateForeignKeyOp.from_constraint(const.const)
+                ops.CreateForeignKeyOp.from_constraint(const.const)  # type: ignore[has-type]  # noqa: E501
             )
 
             log.info(

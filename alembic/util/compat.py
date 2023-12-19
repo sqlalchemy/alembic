@@ -1,3 +1,5 @@
+# mypy: no-warn-unused-ignores
+
 from __future__ import annotations
 
 from configparser import ConfigParser
@@ -5,11 +7,20 @@ import io
 import os
 import sys
 import typing
+from typing import Any
+from typing import List
+from typing import Optional
 from typing import Sequence
 from typing import Union
 
-from sqlalchemy.util import inspect_getfullargspec  # noqa
-from sqlalchemy.util.compat import inspect_formatargspec  # noqa
+if True:
+    # zimports hack for too-long names
+    from sqlalchemy.util import (  # noqa: F401
+        inspect_getfullargspec as inspect_getfullargspec,
+    )
+    from sqlalchemy.util.compat import (  # noqa: F401
+        inspect_formatargspec as inspect_formatargspec,
+    )
 
 is_posix = os.name == "posix"
 
@@ -27,9 +38,13 @@ class EncodedIO(io.TextIOWrapper):
 
 
 if py39:
-    from importlib import resources as importlib_resources
-    from importlib import metadata as importlib_metadata
-    from importlib.metadata import EntryPoint
+    from importlib import resources as _resources
+
+    importlib_resources = _resources
+    from importlib import metadata as _metadata
+
+    importlib_metadata = _metadata
+    from importlib.metadata import EntryPoint as EntryPoint
 else:
     import importlib_resources  # type:ignore # noqa
     import importlib_metadata  # type:ignore # noqa
@@ -39,12 +54,14 @@ else:
 def importlib_metadata_get(group: str) -> Sequence[EntryPoint]:
     ep = importlib_metadata.entry_points()
     if hasattr(ep, "select"):
-        return ep.select(group=group)  # type: ignore
+        return ep.select(group=group)
     else:
         return ep.get(group, ())  # type: ignore
 
 
-def formatannotation_fwdref(annotation, base_module=None):
+def formatannotation_fwdref(
+    annotation: Any, base_module: Optional[Any] = None
+) -> str:
     """vendored from python 3.7"""
     # copied over _formatannotation from sqlalchemy 2.0
 
@@ -65,7 +82,7 @@ def formatannotation_fwdref(annotation, base_module=None):
 def read_config_parser(
     file_config: ConfigParser,
     file_argument: Sequence[Union[str, os.PathLike[str]]],
-) -> list[str]:
+) -> List[str]:
     if py310:
         return file_config.read(file_argument, encoding="locale")
     else:

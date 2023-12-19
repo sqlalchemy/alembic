@@ -12,6 +12,7 @@ from typing import List
 from typing import Literal
 from typing import Mapping
 from typing import Optional
+from typing import overload
 from typing import Sequence
 from typing import Tuple
 from typing import Type
@@ -35,12 +36,28 @@ if TYPE_CHECKING:
     from sqlalchemy.sql.type_api import TypeEngine
     from sqlalchemy.util import immutabledict
 
-    from .operations.ops import BatchOperations
+    from .operations.base import BatchOperations
+    from .operations.ops import AddColumnOp
+    from .operations.ops import AddConstraintOp
+    from .operations.ops import AlterColumnOp
+    from .operations.ops import AlterTableOp
+    from .operations.ops import BulkInsertOp
+    from .operations.ops import CreateIndexOp
+    from .operations.ops import CreateTableCommentOp
+    from .operations.ops import CreateTableOp
+    from .operations.ops import DropColumnOp
+    from .operations.ops import DropConstraintOp
+    from .operations.ops import DropIndexOp
+    from .operations.ops import DropTableCommentOp
+    from .operations.ops import DropTableOp
+    from .operations.ops import ExecuteSQLOp
     from .operations.ops import MigrateOperation
     from .runtime.migration import MigrationContext
     from .util.sqla_compat import _literal_bindparam
 
 _T = TypeVar("_T")
+_C = TypeVar("_C", bound=Callable[..., Any])
+
 ### end imports ###
 
 def add_column(
@@ -132,8 +149,8 @@ def alter_column(
     comment: Union[str, Literal[False], None] = False,
     server_default: Any = False,
     new_column_name: Optional[str] = None,
-    type_: Union[TypeEngine, Type[TypeEngine], None] = None,
-    existing_type: Union[TypeEngine, Type[TypeEngine], None] = None,
+    type_: Union[TypeEngine[Any], Type[TypeEngine[Any]], None] = None,
+    existing_type: Union[TypeEngine[Any], Type[TypeEngine[Any]], None] = None,
     existing_server_default: Union[
         str, bool, Identity, Computed, None
     ] = False,
@@ -230,7 +247,7 @@ def batch_alter_table(
     table_name: str,
     schema: Optional[str] = None,
     recreate: Literal["auto", "always", "never"] = "auto",
-    partial_reordering: Optional[tuple] = None,
+    partial_reordering: Optional[Tuple[Any, ...]] = None,
     copy_from: Optional[Table] = None,
     table_args: Tuple[Any, ...] = (),
     table_kwargs: Mapping[str, Any] = immutabledict({}),
@@ -377,7 +394,7 @@ def batch_alter_table(
 
 def bulk_insert(
     table: Union[Table, TableClause],
-    rows: List[dict],
+    rows: List[Dict[str, Any]],
     *,
     multiinsert: bool = True,
 ) -> None:
@@ -1162,7 +1179,7 @@ def get_context() -> MigrationContext:
 
     """
 
-def implementation_for(op_cls: Any) -> Callable[..., Any]:
+def implementation_for(op_cls: Any) -> Callable[[_C], _C]:
     """Register an implementation for a given :class:`.MigrateOperation`.
 
     This is part of the operation extensibility API.
@@ -1174,7 +1191,7 @@ def implementation_for(op_cls: Any) -> Callable[..., Any]:
     """
 
 def inline_literal(
-    value: Union[str, int], type_: Optional[TypeEngine] = None
+    value: Union[str, int], type_: Optional[TypeEngine[Any]] = None
 ) -> _literal_bindparam:
     r"""Produce an 'inline literal' expression, suitable for
     using in an INSERT, UPDATE, or DELETE statement.
@@ -1218,6 +1235,27 @@ def inline_literal(
 
     """
 
+@overload
+def invoke(operation: CreateTableOp) -> Table: ...
+@overload
+def invoke(
+    operation: Union[
+        AddConstraintOp,
+        DropConstraintOp,
+        CreateIndexOp,
+        DropIndexOp,
+        AddColumnOp,
+        AlterColumnOp,
+        AlterTableOp,
+        CreateTableCommentOp,
+        DropTableCommentOp,
+        DropColumnOp,
+        BulkInsertOp,
+        DropTableOp,
+        ExecuteSQLOp,
+    ]
+) -> None: ...
+@overload
 def invoke(operation: MigrateOperation) -> Any:
     """Given a :class:`.MigrateOperation`, invoke it in terms of
     this :class:`.Operations` instance.
@@ -1226,7 +1264,7 @@ def invoke(operation: MigrateOperation) -> Any:
 
 def register_operation(
     name: str, sourcename: Optional[str] = None
-) -> Callable[[_T], _T]:
+) -> Callable[[Type[_T]], Type[_T]]:
     """Register a new operation for this class.
 
     This method is normally used to add new operations

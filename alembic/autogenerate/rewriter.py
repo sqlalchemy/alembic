@@ -16,12 +16,14 @@ if TYPE_CHECKING:
     from ..operations.ops import AddColumnOp
     from ..operations.ops import AlterColumnOp
     from ..operations.ops import CreateTableOp
+    from ..operations.ops import DowngradeOps
     from ..operations.ops import MigrateOperation
     from ..operations.ops import MigrationScript
     from ..operations.ops import ModifyTableOps
     from ..operations.ops import OpContainer
-    from ..runtime.environment import _GetRevArg
+    from ..operations.ops import UpgradeOps
     from ..runtime.migration import MigrationContext
+    from ..script.revision import _GetRevArg
 
 
 class Rewriter:
@@ -101,7 +103,7 @@ class Rewriter:
             Type[CreateTableOp],
             Type[ModifyTableOps],
         ],
-    ) -> Callable:
+    ) -> Callable[..., Any]:
         """Register a function as rewriter for a given type.
 
         The function should receive three arguments, which are
@@ -156,7 +158,7 @@ class Rewriter:
         revision: _GetRevArg,
         directive: MigrationScript,
     ) -> None:
-        upgrade_ops_list = []
+        upgrade_ops_list: List[UpgradeOps] = []
         for upgrade_ops in directive.upgrade_ops_list:
             ret = self._traverse_for(context, revision, upgrade_ops)
             if len(ret) != 1:
@@ -164,9 +166,10 @@ class Rewriter:
                     "Can only return single object for UpgradeOps traverse"
                 )
             upgrade_ops_list.append(ret[0])
-        directive.upgrade_ops = upgrade_ops_list
 
-        downgrade_ops_list = []
+        directive.upgrade_ops = upgrade_ops_list  # type: ignore
+
+        downgrade_ops_list: List[DowngradeOps] = []
         for downgrade_ops in directive.downgrade_ops_list:
             ret = self._traverse_for(context, revision, downgrade_ops)
             if len(ret) != 1:
@@ -174,7 +177,7 @@ class Rewriter:
                     "Can only return single object for DowngradeOps traverse"
                 )
             downgrade_ops_list.append(ret[0])
-        directive.downgrade_ops = downgrade_ops_list
+        directive.downgrade_ops = downgrade_ops_list  # type: ignore
 
     @_traverse.dispatch_for(ops.OpContainer)
     def _traverse_op_container(

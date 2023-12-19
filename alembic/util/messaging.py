@@ -5,6 +5,7 @@ from contextlib import contextmanager
 import logging
 import sys
 import textwrap
+from typing import Iterator
 from typing import Optional
 from typing import TextIO
 from typing import Union
@@ -53,7 +54,9 @@ def write_outstream(
 
 
 @contextmanager
-def status(status_msg: str, newline: bool = False, quiet: bool = False):
+def status(
+    status_msg: str, newline: bool = False, quiet: bool = False
+) -> Iterator[None]:
     msg(status_msg + " ...", newline, flush=True, quiet=quiet)
     try:
         yield
@@ -66,7 +69,7 @@ def status(status_msg: str, newline: bool = False, quiet: bool = False):
             write_outstream(sys.stdout, "  done\n")
 
 
-def err(message: str, quiet: bool = False):
+def err(message: str, quiet: bool = False) -> None:
     log.error(message)
     msg(f"FAILED: {message}", quiet=quiet)
     sys.exit(-1)
@@ -74,7 +77,7 @@ def err(message: str, quiet: bool = False):
 
 def obfuscate_url_pw(input_url: str) -> str:
     u = url.make_url(input_url)
-    return sqla_compat.url_render_as_string(u, hide_password=True)
+    return sqla_compat.url_render_as_string(u, hide_password=True)  # type: ignore  # noqa: E501
 
 
 def warn(msg: str, stacklevel: int = 2) -> None:

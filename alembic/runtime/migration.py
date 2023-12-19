@@ -1,3 +1,6 @@
+# mypy: allow-untyped-defs, allow-incomplete-defs, allow-untyped-calls
+# mypy: no-warn-return-any, allow-any-generics
+
 from __future__ import annotations
 
 from contextlib import contextmanager
@@ -521,7 +524,7 @@ class MigrationContext:
                 start_from_rev = None
             elif start_from_rev is not None and self.script:
                 start_from_rev = [
-                    cast("Script", self.script.get_revision(sfr)).revision
+                    self.script.get_revision(sfr).revision
                     for sfr in util.to_list(start_from_rev)
                     if sfr not in (None, "base")
                 ]
@@ -652,7 +655,7 @@ class MigrationContext:
     def execute(
         self,
         sql: Union[Executable, str],
-        execution_options: Optional[dict] = None,
+        execution_options: Optional[Dict[str, Any]] = None,
     ) -> None:
         """Execute a SQL construct or string statement.
 
@@ -1000,6 +1003,12 @@ class MigrationStep:
     is_upgrade: bool
     migration_fn: Any
 
+    if TYPE_CHECKING:
+
+        @property
+        def doc(self) -> Optional[str]:
+            ...
+
     @property
     def name(self) -> str:
         return self.migration_fn.__name__
@@ -1048,13 +1057,9 @@ class RevisionStep(MigrationStep):
         self.revision = revision
         self.is_upgrade = is_upgrade
         if is_upgrade:
-            self.migration_fn = (
-                revision.module.upgrade  # type:ignore[attr-defined]
-            )
+            self.migration_fn = revision.module.upgrade
         else:
-            self.migration_fn = (
-                revision.module.downgrade  # type:ignore[attr-defined]
-            )
+            self.migration_fn = revision.module.downgrade
 
     def __repr__(self):
         return "RevisionStep(%r, is_upgrade=%r)" % (
@@ -1070,7 +1075,7 @@ class RevisionStep(MigrationStep):
         )
 
     @property
-    def doc(self) -> str:
+    def doc(self) -> Optional[str]:
         return self.revision.doc
 
     @property
@@ -1294,7 +1299,7 @@ class StampStep(MigrationStep):
     def __eq__(self, other):
         return (
             isinstance(other, StampStep)
-            and other.from_revisions == self.revisions
+            and other.from_revisions == self.from_revisions
             and other.to_revisions == self.to_revisions
             and other.branch_move == self.branch_move
             and self.is_upgrade == other.is_upgrade

@@ -1,3 +1,5 @@
+# mypy: allow-untyped-calls
+
 from __future__ import annotations
 
 from contextlib import contextmanager
@@ -10,7 +12,9 @@ from typing import Dict
 from typing import Iterator
 from typing import List  # noqa
 from typing import Mapping
+from typing import NoReturn
 from typing import Optional
+from typing import overload
 from typing import Sequence  # noqa
 from typing import Tuple
 from typing import Type  # noqa
@@ -47,11 +51,27 @@ if TYPE_CHECKING:
     from sqlalchemy.types import TypeEngine
 
     from .batch import BatchOperationsImpl
+    from .ops import AddColumnOp
+    from .ops import AddConstraintOp
+    from .ops import AlterColumnOp
+    from .ops import AlterTableOp
+    from .ops import BulkInsertOp
+    from .ops import CreateIndexOp
+    from .ops import CreateTableCommentOp
+    from .ops import CreateTableOp
+    from .ops import DropColumnOp
+    from .ops import DropConstraintOp
+    from .ops import DropIndexOp
+    from .ops import DropTableCommentOp
+    from .ops import DropTableOp
+    from .ops import ExecuteSQLOp
     from .ops import MigrateOperation
     from ..ddl import DefaultImpl
     from ..runtime.migration import MigrationContext
 __all__ = ("Operations", "BatchOperations")
 _T = TypeVar("_T")
+
+_C = TypeVar("_C", bound=Callable[..., Any])
 
 
 class AbstractOperations(util.ModuleClsProxy):
@@ -86,7 +106,7 @@ class AbstractOperations(util.ModuleClsProxy):
     @classmethod
     def register_operation(
         cls, name: str, sourcename: Optional[str] = None
-    ) -> Callable[[_T], _T]:
+    ) -> Callable[[Type[_T]], Type[_T]]:
         """Register a new operation for this class.
 
         This method is normally used to add new operations
@@ -103,7 +123,7 @@ class AbstractOperations(util.ModuleClsProxy):
 
         """
 
-        def register(op_cls):
+        def register(op_cls: Type[_T]) -> Type[_T]:
             if sourcename is None:
                 fn = getattr(op_cls, name)
                 source_name = fn.__name__
@@ -122,8 +142,11 @@ class AbstractOperations(util.ModuleClsProxy):
                 *spec, formatannotation=formatannotation_fwdref
             )
             num_defaults = len(spec[3]) if spec[3] else 0
+
+            defaulted_vals: Tuple[Any, ...]
+
             if num_defaults:
-                defaulted_vals = name_args[0 - num_defaults :]
+                defaulted_vals = tuple(name_args[0 - num_defaults :])
             else:
                 defaulted_vals = ()
 
@@ -164,7 +187,7 @@ class AbstractOperations(util.ModuleClsProxy):
 
             globals_ = dict(globals())
             globals_.update({"op_cls": op_cls})
-            lcl = {}
+            lcl: Dict[str, Any] = {}
 
             exec(func_text, globals_, lcl)
             setattr(cls, name, lcl[name])
@@ -180,7 +203,7 @@ class AbstractOperations(util.ModuleClsProxy):
         return register
 
     @classmethod
-    def implementation_for(cls, op_cls: Any) -> Callable[..., Any]:
+    def implementation_for(cls, op_cls: Any) -> Callable[[_C], _C]:
         """Register an implementation for a given :class:`.MigrateOperation`.
 
         This is part of the operation extensibility API.
@@ -191,7 +214,7 @@ class AbstractOperations(util.ModuleClsProxy):
 
         """
 
-        def decorate(fn):
+        def decorate(fn: _C) -> _C:
             cls._to_impl.dispatch_for(op_cls)(fn)
             return fn
 
@@ -213,7 +236,7 @@ class AbstractOperations(util.ModuleClsProxy):
         table_name: str,
         schema: Optional[str] = None,
         recreate: Literal["auto", "always", "never"] = "auto",
-        partial_reordering: Optional[tuple] = None,
+        partial_reordering: Optional[Tuple[Any, ...]] = None,
         copy_from: Optional[Table] = None,
         table_args: Tuple[Any, ...] = (),
         table_kwargs: Mapping[str, Any] = util.immutabledict(),
@@ -381,6 +404,35 @@ class AbstractOperations(util.ModuleClsProxy):
         """
 
         return self.migration_context
+
+    @overload
+    def invoke(self, operation: CreateTableOp) -> Table:
+        ...
+
+    @overload
+    def invoke(
+        self,
+        operation: Union[
+            AddConstraintOp,
+            DropConstraintOp,
+            CreateIndexOp,
+            DropIndexOp,
+            AddColumnOp,
+            AlterColumnOp,
+            AlterTableOp,
+            CreateTableCommentOp,
+            DropTableCommentOp,
+            DropColumnOp,
+            BulkInsertOp,
+            DropTableOp,
+            ExecuteSQLOp,
+        ],
+    ) -> None:
+        ...
+
+    @overload
+    def invoke(self, operation: MigrateOperation) -> Any:
+        ...
 
     def invoke(self, operation: MigrateOperation) -> Any:
         """Given a :class:`.MigrateOperation`, invoke it in terms of
@@ -659,8 +711,10 @@ class Operations(AbstractOperations):
             comment: Union[str, Literal[False], None] = False,
             server_default: Any = False,
             new_column_name: Optional[str] = None,
-            type_: Union[TypeEngine, Type[TypeEngine], None] = None,
-            existing_type: Union[TypeEngine, Type[TypeEngine], None] = None,
+            type_: Union[TypeEngine[Any], Type[TypeEngine[Any]], None] = None,
+            existing_type: Union[
+                TypeEngine[Any], Type[TypeEngine[Any]], None
+            ] = None,
             existing_server_default: Union[
                 str, bool, Identity, Computed, None
             ] = False,
@@ -756,7 +810,7 @@ class Operations(AbstractOperations):
         def bulk_insert(
             self,
             table: Union[Table, TableClause],
-            rows: List[dict],
+            rows: List[Dict[str, Any]],
             *,
             multiinsert: bool = True,
         ) -> None:
@@ -1560,7 +1614,7 @@ class BatchOperations(AbstractOperations):
 
     impl: BatchOperationsImpl
 
-    def _noop(self, operation):
+    def _noop(self, operation: Any) -> NoReturn:
         raise NotImplementedError(
             "The %s method does not apply to a batch table alter operation."
             % operation
@@ -1596,8 +1650,10 @@ class BatchOperations(AbstractOperations):
             comment: Union[str, Literal[False], None] = False,
             server_default: Any = False,
             new_column_name: Optional[str] = None,
-            type_: Union[TypeEngine, Type[TypeEngine], None] = None,
-            existing_type: Union[TypeEngine, Type[TypeEngine], None] = None,
+            type_: Union[TypeEngine[Any], Type[TypeEngine[Any]], None] = None,
+            existing_type: Union[
+                TypeEngine[Any], Type[TypeEngine[Any]], None
+            ] = None,
             existing_server_default: Union[
                 str, bool, Identity, Computed, None
             ] = False,
@@ -1652,7 +1708,7 @@ class BatchOperations(AbstractOperations):
 
         def create_exclude_constraint(
             self, constraint_name: str, *elements: Any, **kw: Any
-        ):
+        ) -> Optional[Table]:
             """Issue a "create exclude constraint" instruction using the
             current batch migration context.
 

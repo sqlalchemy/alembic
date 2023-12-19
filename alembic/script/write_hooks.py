@@ -1,3 +1,6 @@
+# mypy: allow-untyped-defs, allow-incomplete-defs, allow-untyped-calls
+# mypy: no-warn-return-any, allow-any-generics
+
 from __future__ import annotations
 
 import shlex

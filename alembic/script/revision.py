@@ -14,6 +14,7 @@ from typing import Iterator
 from typing import List
 from typing import Optional
 from typing import overload
+from typing import Protocol
 from typing import Sequence
 from typing import Set
 from typing import Tuple
@@ -45,6 +46,18 @@ _TR = TypeVar("_TR", bound=Optional[_RevisionOrStr])
 
 _relative_destination = re.compile(r"(?:(.+?)@)?(\w+)?((?:\+|-)\d+)")
 _revision_illegal_chars = ["@", "-", "+"]
+
+
+class _CollectRevisionsProtocol(Protocol):
+    def __call__(
+        self,
+        upper: _RevisionIdentifierType,
+        lower: _RevisionIdentifierType,
+        inclusive: bool,
+        implicit_base: bool,
+        assert_relative_length: bool,
+    ) -> Tuple[Set[Revision], Tuple[Optional[_RevisionOrBase], ...]]:
+        ...
 
 
 class RevisionError(Exception):
@@ -396,7 +409,7 @@ class RevisionMap:
                 for rev in self._get_ancestor_nodes(
                     [revision],
                     include_dependencies=False,
-                    map_=cast(_RevisionMapType, map_),
+                    map_=map_,
                 ):
                     if rev is revision:
                         continue
@@ -791,7 +804,7 @@ class RevisionMap:
         The iterator yields :class:`.Revision` objects.
 
         """
-        fn: Callable
+        fn: _CollectRevisionsProtocol
         if select_for_downgrade:
             fn = self._collect_downgrade_revisions
         else:
@@ -818,7 +831,7 @@ class RevisionMap:
     ) -> Iterator[Any]:
         if omit_immediate_dependencies:
 
-            def fn(rev):
+            def fn(rev: Revision) -> Iterable[str]:
                 if rev not in targets:
                     return rev._all_nextrev
                 else:
@@ -826,12 +839,12 @@ class RevisionMap:
 
         elif include_dependencies:
 
-            def fn(rev):
+            def fn(rev: Revision) -> Iterable[str]:
                 return rev._all_nextrev
 
         else:
 
-            def fn(rev):
+            def fn(rev: Revision) -> Iterable[str]:
                 return rev.nextrev
 
         return self._iterate_related_revisions(
@@ -847,12 +860,12 @@ class RevisionMap:
     ) -> Iterator[Revision]:
         if include_dependencies:
 
-            def fn(rev):
+            def fn(rev: Revision) -> Iterable[str]:
                 return rev._normalized_down_revisions
 
         else:
 
-            def fn(rev):
+            def fn(rev: Revision) -> Iterable[str]:
                 return rev._versioned_down_revisions
 
         return self._iterate_related_revisions(
@@ -861,7 +874,7 @@ class RevisionMap:
 
     def _iterate_related_revisions(
         self,
-        fn: Callable,
+        fn: Callable[[Revision], Iterable[str]],
         targets: Collection[Optional[_RevisionOrBase]],
         map_: Optional[_RevisionMapType],
         check: bool = False,
@@ -923,7 +936,7 @@ class RevisionMap:
 
         id_to_rev = self._revision_map
 
-        def get_ancestors(rev_id):
+        def get_ancestors(rev_id: str) -> Set[str]:
             return {
                 r.revision
                 for r in self._get_ancestor_nodes([id_to_rev[rev_id]])
@@ -1041,7 +1054,7 @@ class RevisionMap:
         children: Sequence[Optional[_RevisionOrBase]]
         for _ in range(abs(steps)):
             if steps > 0:
-                assert initial != "base"
+                assert initial != "base"  # type: ignore[comparison-overlap]
                 # Walk up
                 walk_up = [
                     is_revision(rev)
@@ -1055,7 +1068,7 @@ class RevisionMap:
                     children = walk_up
             else:
                 # Walk down
-                if initial == "base":
+                if initial == "base":  # type: ignore[comparison-overlap]
                     children = ()
                 else:
                     children = self.get_revisions(
@@ -1189,7 +1202,7 @@ class RevisionMap:
         # No relative destination given, revision specified is absolute.
         branch_label, _, symbol = target.rpartition("@")
         if not branch_label:
-            branch_label = None  # type:ignore[assignment]
+            branch_label = None
         return branch_label, self.get_revision(symbol)
 
     def _parse_upgrade_target(
@@ -1301,11 +1314,11 @@ class RevisionMap:
     def _collect_downgrade_revisions(
         self,
         upper: _RevisionIdentifierType,
-        target: _RevisionIdentifierType,
+        lower: _RevisionIdentifierType,
         inclusive: bool,
         implicit_base: bool,
         assert_relative_length: bool,
-    ) -> Any:
+    ) -> Tuple[Set[Revision], Tuple[Optional[_RevisionOrBase], ...]]:
         """
         Compute the set of current revisions specified by :upper, and the
         downgrade target specified by :target. Return all dependents of target
@@ -1316,7 +1329,7 @@ class RevisionMap:
 
         branch_label, target_revision = self._parse_downgrade_target(
             current_revisions=upper,
-            target=target,
+            target=lower,
             assert_relative_length=assert_relative_length,
         )
         if target_revision == "base":
@@ -1408,7 +1421,7 @@ class RevisionMap:
         inclusive: bool,
         implicit_base: bool,
         assert_relative_length: bool,
-    ) -> Tuple[Set[Revision], Tuple[Optional[_RevisionOrBase]]]:
+    ) -> Tuple[Set[Revision], Tuple[Revision, ...]]:
         """
         Compute the set of required revisions specified by :upper, and the
         current set of active revisions specified by :lower. Find the
@@ -1500,7 +1513,7 @@ class RevisionMap:
             )
             needs.intersection_update(lower_descendents)
 
-        return needs, tuple(targets)  # type:ignore[return-value]
+        return needs, tuple(targets)
 
     def _get_all_current(
         self, id_: Tuple[str, ...]

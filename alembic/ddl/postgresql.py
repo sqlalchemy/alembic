@@ -1,3 +1,6 @@
+# mypy: allow-untyped-defs, allow-incomplete-defs, allow-untyped-calls
+# mypy: no-warn-return-any, allow-any-generics
+
 from __future__ import annotations
 
 import logging
@@ -30,7 +33,6 @@ from .base import alter_column
 from .base import alter_table
 from .base import AlterColumn
 from .base import ColumnComment
-from .base import compiles
 from .base import format_column_name
 from .base import format_table_name
 from .base import format_type
@@ -45,6 +47,7 @@ from ..operations import schemaobj
 from ..operations.base import BatchOperations
 from ..operations.base import Operations
 from ..util import sqla_compat
+from ..util.sqla_compat import compiles
 
 if TYPE_CHECKING:
     from typing import Literal
@@ -136,7 +139,9 @@ class PostgresqlImpl(DefaultImpl):
             metadata_default = literal_column(metadata_default)
 
         # run a real compare against the server
-        return not self.connection.scalar(
+        conn = self.connection
+        assert conn is not None
+        return not conn.scalar(
             sqla_compat._select(
                 literal_column(conn_col_default) == metadata_default
             )
@@ -623,9 +628,8 @@ class CreateExcludeConstraintOp(ops.AddConstraintOp):
         return cls(
             constraint.name,
             constraint_table.name,
-            [
-                (expr, op)
-                for expr, name, op in constraint._render_exprs  # type:ignore[attr-defined] # noqa
+            [  # type: ignore
+                (expr, op) for expr, name, op in constraint._render_exprs
             ],
             where=cast("ColumnElement[bool] | None", constraint.where),
             schema=constraint_table.schema,
@@ -652,7 +656,7 @@ class CreateExcludeConstraintOp(ops.AddConstraintOp):
             expr,
             name,
             oper,
-        ) in excl._render_exprs:  # type:ignore[attr-defined]
+        ) in excl._render_exprs:
             t.append_column(Column(name, NULLTYPE))
         t.append_constraint(excl)
         return excl
@@ -710,7 +714,7 @@ class CreateExcludeConstraintOp(ops.AddConstraintOp):
         constraint_name: str,
         *elements: Any,
         **kw: Any,
-    ):
+    ) -> Optional[Table]:
         """Issue a "create exclude constraint" instruction using the
         current batch migration context.
 
@@ -782,10 +786,13 @@ def _exclude_constraint(
         args = [
             "(%s, %r)"
             % (
-                _render_potential_column(sqltext, autogen_context),
+                _render_potential_column(
+                    sqltext,  # type:ignore[arg-type]
+                    autogen_context,
+                ),
                 opstring,
             )
-            for sqltext, name, opstring in constraint._render_exprs  # type:ignore[attr-defined] # noqa
+            for sqltext, name, opstring in constraint._render_exprs
         ]
         if constraint.where is not None:
             args.append(

@@ -1,3 +1,6 @@
+# mypy: allow-untyped-defs, allow-incomplete-defs, allow-untyped-calls
+# mypy: no-warn-return-any, allow-any-generics
+
 from __future__ import annotations
 
 from io import StringIO
@@ -849,7 +852,7 @@ def _render_Variant_type(
 ) -> str:
     base_type, variant_mapping = sqla_compat._get_variant_mapping(type_)
     base = _repr_type(base_type, autogen_context, _skip_variants=True)
-    assert base is not None and base is not False
+    assert base is not None and base is not False  # type: ignore[comparison-overlap]  # noqa:E501
     for dialect in sorted(variant_mapping):
         typ = variant_mapping[dialect]
         base += ".with_variant(%s, %r)" % (
@@ -946,7 +949,7 @@ def _fk_colspec(
     won't fail if the remote table can't be resolved.
 
     """
-    colspec = fk._get_colspec()  # type:ignore[attr-defined]
+    colspec = fk._get_colspec()
     tokens = colspec.split(".")
     tname, colname = tokens[-2:]
 
@@ -1016,8 +1019,7 @@ def _render_foreign_key(
         % {
             "prefix": _sqlalchemy_autogenerate_prefix(autogen_context),
             "cols": ", ".join(
-                "%r" % _ident(cast("Column", f.parent).name)
-                for f in constraint.elements
+                repr(_ident(f.parent.name)) for f in constraint.elements
             ),
             "refcols": ", ".join(
                 repr(_fk_colspec(f, apply_metadata_schema, namespace_metadata))
@@ -1058,12 +1060,10 @@ def _render_check_constraint(
     # ideally SQLAlchemy would give us more of a first class
     # way to detect this.
     if (
-        constraint._create_rule  # type:ignore[attr-defined]
-        and hasattr(
-            constraint._create_rule, "target"  # type:ignore[attr-defined]
-        )
+        constraint._create_rule
+        and hasattr(constraint._create_rule, "target")
         and isinstance(
-            constraint._create_rule.target,  # type:ignore[attr-defined]
+            constraint._create_rule.target,
             sqltypes.TypeEngine,
         )
     ):

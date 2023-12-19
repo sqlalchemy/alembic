@@ -1,3 +1,6 @@
+# mypy: allow-untyped-defs, allow-incomplete-defs, allow-untyped-calls
+# mypy: no-warn-return-any, allow-any-generics
+
 from __future__ import annotations
 
 import functools
@@ -173,7 +176,7 @@ class ColumnComment(AlterColumn):
         self.comment = comment
 
 
-@compiles(RenameTable)
+@compiles(RenameTable)  # type: ignore[misc]
 def visit_rename_table(
     element: RenameTable, compiler: DDLCompiler, **kw
 ) -> str:
@@ -183,7 +186,7 @@ def visit_rename_table(
     )
 
 
-@compiles(AddColumn)
+@compiles(AddColumn)  # type: ignore[misc]
 def visit_add_column(element: AddColumn, compiler: DDLCompiler, **kw) -> str:
     return "%s %s" % (
         alter_table(compiler, element.table_name, element.schema),
@@ -191,7 +194,7 @@ def visit_add_column(element: AddColumn, compiler: DDLCompiler, **kw) -> str:
     )
 
 
-@compiles(DropColumn)
+@compiles(DropColumn)  # type: ignore[misc]
 def visit_drop_column(element: DropColumn, compiler: DDLCompiler, **kw) -> str:
     return "%s %s" % (
         alter_table(compiler, element.table_name, element.schema),
@@ -199,7 +202,7 @@ def visit_drop_column(element: DropColumn, compiler: DDLCompiler, **kw) -> str:
     )
 
 
-@compiles(ColumnNullable)
+@compiles(ColumnNullable)  # type: ignore[misc]
 def visit_column_nullable(
     element: ColumnNullable, compiler: DDLCompiler, **kw
 ) -> str:
@@ -210,7 +213,7 @@ def visit_column_nullable(
     )
 
 
-@compiles(ColumnType)
+@compiles(ColumnType)  # type: ignore[misc]
 def visit_column_type(element: ColumnType, compiler: DDLCompiler, **kw) -> str:
     return "%s %s %s" % (
         alter_table(compiler, element.table_name, element.schema),
@@ -219,7 +222,7 @@ def visit_column_type(element: ColumnType, compiler: DDLCompiler, **kw) -> str:
     )
 
 
-@compiles(ColumnName)
+@compiles(ColumnName)  # type: ignore[misc]
 def visit_column_name(element: ColumnName, compiler: DDLCompiler, **kw) -> str:
     return "%s RENAME %s TO %s" % (
         alter_table(compiler, element.table_name, element.schema),
@@ -228,7 +231,7 @@ def visit_column_name(element: ColumnName, compiler: DDLCompiler, **kw) -> str:
     )
 
 
-@compiles(ColumnDefault)
+@compiles(ColumnDefault)  # type: ignore[misc]
 def visit_column_default(
     element: ColumnDefault, compiler: DDLCompiler, **kw
 ) -> str:
@@ -241,7 +244,7 @@ def visit_column_default(
     )
 
 
-@compiles(ComputedColumnDefault)
+@compiles(ComputedColumnDefault)  # type: ignore[misc]
 def visit_computed_column(
     element: ComputedColumnDefault, compiler: DDLCompiler, **kw
 ):
@@ -251,7 +254,7 @@ def visit_computed_column(
     )
 
 
-@compiles(IdentityColumnDefault)
+@compiles(IdentityColumnDefault)  # type: ignore[misc]
 def visit_identity_column(
     element: IdentityColumnDefault, compiler: DDLCompiler, **kw
 ):

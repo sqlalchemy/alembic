@@ -28,6 +28,7 @@ if TYPE_CHECKING:
     from sqlalchemy.engine import Inspector
     from sqlalchemy.sql.schema import MetaData
     from sqlalchemy.sql.schema import SchemaItem
+    from sqlalchemy.sql.schema import Table
 
     from ..config import Config
     from ..operations.ops import DowngradeOps
@@ -165,6 +166,7 @@ def compare_metadata(context: MigrationContext, metadata: MetaData) -> Any:
     """
 
     migration_script = produce_migrations(context, metadata)
+    assert migration_script.upgrade_ops is not None
     return migration_script.upgrade_ops.as_diffs()
 
 
@@ -331,7 +333,7 @@ class AutogenContext:
         self,
         migration_context: MigrationContext,
         metadata: Optional[MetaData] = None,
-        opts: Optional[dict] = None,
+        opts: Optional[Dict[str, Any]] = None,
         autogenerate: bool = True,
     ) -> None:
         if (
@@ -465,7 +467,7 @@ class AutogenContext:
     run_filters = run_object_filters
 
     @util.memoized_property
-    def sorted_tables(self):
+    def sorted_tables(self) -> List[Table]:
         """Return an aggregate of the :attr:`.MetaData.sorted_tables`
         collection(s).
 
@@ -481,7 +483,7 @@ class AutogenContext:
         return result
 
     @util.memoized_property
-    def table_key_to_table(self):
+    def table_key_to_table(self) -> Dict[str, Table]:
         """Return an aggregate  of the :attr:`.MetaData.tables` dictionaries.
 
         The :attr:`.MetaData.tables` collection is a dictionary of table key
@@ -492,7 +494,7 @@ class AutogenContext:
         objects contain the same table key, an exception is raised.
 
         """
-        result = {}
+        result: Dict[str, Table] = {}
         for m in util.to_list(self.metadata):
             intersect = set(result).intersection(set(m.tables))
             if intersect:

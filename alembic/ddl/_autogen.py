@@ -1,3 +1,6 @@
+# mypy: allow-untyped-defs, allow-incomplete-defs, allow-untyped-calls
+# mypy: no-warn-return-any, allow-any-generics
+
 from __future__ import annotations
 
 from typing import Any
@@ -19,7 +22,6 @@ from sqlalchemy.sql.schema import Index
 from sqlalchemy.sql.schema import UniqueConstraint
 from typing_extensions import TypeGuard
 
-from alembic.ddl.base import _fk_spec
 from .. import util
 from ..util import sqla_compat
 
@@ -275,7 +277,7 @@ class _fk_constraint_sig(_constraint_sig[ForeignKeyConstraint]):
             ondelete,
             deferrable,
             initially,
-        ) = _fk_spec(const)
+        ) = sqla_compat._fk_spec(const)
 
         self._sig: Tuple[Any, ...] = (
             self.source_schema,

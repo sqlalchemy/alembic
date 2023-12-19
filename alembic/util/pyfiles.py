@@ -8,6 +8,8 @@ import importlib.util
 import os
 import re
 import tempfile
+from types import ModuleType
+from typing import Any
 from typing import Optional
 
 from mako import exceptions
@@ -18,7 +20,7 @@ from .exc import CommandError
 
 
 def template_to_file(
-    template_file: str, dest: str, output_encoding: str, **kw
+    template_file: str, dest: str, output_encoding: str, **kw: Any
 ) -> None:
     template = Template(filename=template_file)
     try:
@@ -82,7 +84,7 @@ def pyc_file_from_path(path: str) -> Optional[str]:
         return None
 
 
-def load_python_file(dir_: str, filename: str):
+def load_python_file(dir_: str, filename: str) -> ModuleType:
     """Load a file from the given path as a Python module."""
 
     module_id = re.sub(r"\W", "_", filename)
@@ -99,10 +101,12 @@ def load_python_file(dir_: str, filename: str):
                 module = load_module_py(module_id, pyc_path)
     elif ext in (".pyc", ".pyo"):
         module = load_module_py(module_id, path)
+    else:
+        assert False
     return module
 
 
-def load_module_py(module_id: str, path: str):
+def load_module_py(module_id: str, path: str) -> ModuleType:
     spec = importlib.util.spec_from_file_location(module_id, path)
     assert spec
     module = importlib.util.module_from_spec(spec)

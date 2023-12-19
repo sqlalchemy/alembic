@@ -16,15 +16,15 @@ exclude = [
 show_error_codes = true
 
 [[tool.mypy.overrides]]
+
 module = [
-    'alembic.operations.ops',
-    'alembic.op',
-    'alembic.context',
-    'alembic.autogenerate.api',
-    'alembic.runtime.*',
+    "alembic.*"
 ]
 
-disallow_incomplete_defs = true
+warn_unused_ignores = true
+strict = true
+
+
 
 [[tool.mypy.overrides]]
 module = [
