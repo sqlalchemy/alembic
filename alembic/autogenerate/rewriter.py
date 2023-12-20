@@ -4,7 +4,7 @@ from typing import Any
 from typing import Callable
 from typing import Iterator
 from typing import List
-from typing import Optional
+from typing import Tuple
 from typing import Type
 from typing import TYPE_CHECKING
 from typing import Union
@@ -24,6 +24,10 @@ if TYPE_CHECKING:
     from ..operations.ops import UpgradeOps
     from ..runtime.migration import MigrationContext
     from ..script.revision import _GetRevArg
+
+ProcessRevisionDirectiveFn = Callable[
+    ["MigrationContext", "_GetRevArg", List["MigrationScript"]], None
+]
 
 
 class Rewriter:
@@ -54,15 +58,21 @@ class Rewriter:
 
     _traverse = util.Dispatcher()
 
-    _chained: Optional[Rewriter] = None
+    _chained: Tuple[Union[ProcessRevisionDirectiveFn, Rewriter], ...] = ()
 
     def __init__(self) -> None:
         self.dispatch = util.Dispatcher()
 
-    def chain(self, other: Rewriter) -> Rewriter:
+    def chain(
+        self,
+        other: Union[
+            ProcessRevisionDirectiveFn,
+            Rewriter,
+        ],
+    ) -> Rewriter:
         """Produce a "chain" of this :class:`.Rewriter` to another.
 
-        This allows two rewriters to operate serially on a stream,
+        This allows two or more rewriters to operate serially on a stream,
         e.g.::
 
             writer1 = autogenerate.Rewriter()
@@ -91,7 +101,7 @@ class Rewriter:
         """
         wr = self.__class__.__new__(self.__class__)
         wr.__dict__.update(self.__dict__)
-        wr._chained = other
+        wr._chained += (other,)
         return wr
 
     def rewrites(
@@ -148,8 +158,8 @@ class Rewriter:
         directives: List[MigrationScript],
     ) -> None:
         self.process_revision_directives(context, revision, directives)
-        if self._chained:
-            self._chained(context, revision, directives)
+        for process_revision_directives in self._chained:
+            process_revision_directives(context, revision, directives)
 
     @_traverse.dispatch_for(ops.MigrationScript)
     def _traverse_script(
