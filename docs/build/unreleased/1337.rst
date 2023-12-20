@@ -2,6 +2,7 @@
     :tags: bug, autogenerate
     :tickets: 1337
 
-    Fixes `autogenerate.Rewriter` so that more than two instances could be
-    chained together correctly, and `process_revision_directives` callable
-    could also be chained.
+    Fixed :class:`.Rewriter` so that more than two instances could be chained
+    together correctly, also allowing multiple ``process_revision_directives``
+    callables to be chained.  Pull request courtesy zrotceh.
+
