@@ -5,7 +5,56 @@ Changelog
 
 .. changelog::
     :version: 1.13.1
-    :include_notes_from: unreleased
+    :released: December 20, 2023
+
+    .. change::
+        :tags: bug, autogenerate
+        :tickets: 1337
+
+        Fixed :class:`.Rewriter` so that more than two instances could be chained
+        together correctly, also allowing multiple ``process_revision_directives``
+        callables to be chained.  Pull request courtesy zrotceh.
+
+
+    .. change::
+        :tags: bug, environment
+        :tickets: 1369
+
+        Fixed issue where the method :meth:`.EnvironmentContext.get_x_argument`
+        using the :paramref:`.EnvironmentContext.get_x_argument.as_dictionary`
+        parameter would fail if an argument key were passed on the command line as
+        a name alone, that is, without an equal sign ``=`` or a value. Behavior is
+        repaired where this condition is detected and will return a blank string
+        for the given key, consistent with the behavior where the ``=`` sign is
+        present and no value.  Pull request courtesy Iuri de Silvio.
+
+    .. change::
+        :tags: bug, autogenerate
+        :tickets: 1370
+
+        Fixed issue where the "unique" flag of an ``Index`` would not be maintained
+        when generating downgrade migrations.  Pull request courtesy Iuri de
+        Silvio.
+
+    .. change::
+        :tags: bug, versioning
+        :tickets: 1373
+
+        Fixed bug in versioning model where a downgrade across a revision with two
+        down revisions with one down revision depending on the other, would produce
+        an erroneous state in the alembic_version table, making upgrades impossible
+        without manually repairing the table.  Thanks much to Saif Hakim for
+        the great work on this.
+
+    .. change::
+        :tags: bug, typing
+        :tickets: 1377
+
+        Updated pep-484 typing to pass mypy "strict" mode, however including
+        per-module qualifications for specific typing elements not yet complete.
+        This allows us to catch specific typing issues that have been ongoing
+        such as import symbols not properly exported.
+
 
 .. changelog::
     :version: 1.13.0

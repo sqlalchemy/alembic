@@ -1,8 +1,0 @@
-.. change::
-    :tags: bug, autogenerate
-    :tickets: 1337
-
-    Fixed :class:`.Rewriter` so that more than two instances could be chained
-    together correctly, also allowing multiple ``process_revision_directives``
-    callables to be chained.  Pull request courtesy zrotceh.
-
