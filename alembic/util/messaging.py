@@ -95,11 +95,17 @@ def msg(
             write_outstream(sys.stdout, "\n")
     else:
         # left indent output lines
-        lines = textwrap.wrap(msg, TERMWIDTH)
+        indent = "  "
+        lines = textwrap.wrap(
+            msg,
+            TERMWIDTH,
+            initial_indent=indent,
+            subsequent_indent=indent,
+        )
         if len(lines) > 1:
             for line in lines[0:-1]:
-                write_outstream(sys.stdout, "  ", line, "\n")
-        write_outstream(sys.stdout, "  ", lines[-1], ("\n" if newline else ""))
+                write_outstream(sys.stdout, line, "\n")
+        write_outstream(sys.stdout, lines[-1], ("\n" if newline else ""))
     if flush:
         sys.stdout.flush()
 
