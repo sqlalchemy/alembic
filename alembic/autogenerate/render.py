@@ -834,7 +834,7 @@ def _repr_type(
             prefix = _sqlalchemy_autogenerate_prefix(autogen_context)
             return "%s%r" % (prefix, type_)
     elif isinstance(type_, sqltypes.TypeDecorator):
-        return _repr_type(type_.impl_instance, autogen_context, _skip_variants)
+        return _repr_type(cast("TypeEngine", type_.impl), autogen_context, _skip_variants)
     else:
         prefix = _user_autogenerate_prefix(autogen_context, type_)
         return "%s%r" % (prefix, type_)
