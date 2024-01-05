@@ -1,0 +1,6 @@
+.. change::
+    :tags: bug, commands
+    :tickets: 1384
+
+    Fixed bug in alembic command stdout where long messages were not properly
+    wrapping at the terminal width.
