@@ -803,9 +803,6 @@ def _repr_type(
     if rendered is not False:
         return rendered
 
-    if isinstance(type_, sqltypes.TypeDecorator):
-        type_ = type_.impl
-
     if hasattr(autogen_context.migration_context, "impl"):
         impl_rt = autogen_context.migration_context.impl.render_type(
             type_, autogen_context
@@ -836,6 +833,8 @@ def _repr_type(
         else:
             prefix = _sqlalchemy_autogenerate_prefix(autogen_context)
             return "%s%r" % (prefix, type_)
+    elif isinstance(type_, sqltypes.TypeDecorator):
+        return _repr_type(type_.impl_instance, autogen_context, _skip_variants)
     else:
         prefix = _user_autogenerate_prefix(autogen_context, type_)
         return "%s%r" % (prefix, type_)
