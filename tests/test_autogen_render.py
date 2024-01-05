@@ -33,6 +33,7 @@ from sqlalchemy.sql import false
 from sqlalchemy.sql import literal_column
 from sqlalchemy.sql import table
 from sqlalchemy.types import TIMESTAMP
+from sqlalchemy.types import TypeDecorator
 from sqlalchemy.types import UserDefinedType
 
 from alembic import autogenerate
@@ -1071,6 +1072,21 @@ class AutogenRenderTest(TestBase):
     def test_render_add_column(self):
         op_obj = ops.AddColumnOp(
             "foo", Column("x", Integer, server_default="5")
+        )
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.add_column('foo', sa.Column('x', sa.Integer(), "
+            "server_default='5', nullable=True))",
+        )
+
+    def test_render_add_column_type_decorator(self):
+        self.autogen_context.opts["user_module_prefix"] = None
+
+        class MyType(TypeDecorator):
+            impl = Integer
+
+        op_obj = ops.AddColumnOp(
+            "foo", Column("x", MyType, server_default="5")
         )
         eq_ignore_whitespace(
             autogenerate.render_op_text(self.autogen_context, op_obj),

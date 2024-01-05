@@ -803,6 +803,9 @@ def _repr_type(
     if rendered is not False:
         return rendered
 
+    if isinstance(type_, sqltypes.TypeDecorator):
+        type_ = type_.impl
+
     if hasattr(autogen_context.migration_context, "impl"):
         impl_rt = autogen_context.migration_context.impl.render_type(
             type_, autogen_context
