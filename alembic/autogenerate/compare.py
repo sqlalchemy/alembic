@@ -983,7 +983,7 @@ def _normalize_computed_default(sqltext: str) -> str:
 
     """
 
-    return re.sub(r"[ \(\)'\"`\[\]]", "", sqltext).lower()
+    return re.sub(r"[ \(\)'\"`\[\]\t\r\n]", "", sqltext).lower()
 
 
 def _compare_computed_default(
