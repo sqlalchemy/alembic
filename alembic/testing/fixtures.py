@@ -50,6 +50,12 @@ class TestBase(SQLAlchemyTestBase):
         )
 
     @testing.fixture
+    def as_sql_migration_context(self, connection):
+        return MigrationContext.configure(
+            connection, opts=dict(transaction_per_migration=True, as_sql=True)
+        )
+
+    @testing.fixture
     def connection(self):
         with config.db.connect() as conn:
             yield conn

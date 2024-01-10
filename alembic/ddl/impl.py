@@ -168,16 +168,15 @@ class DefaultImpl(metaclass=ImplMeta):
     def _exec(
         self,
         construct: Union[Executable, str],
-        execution_options: Optional[dict[str, Any]] = None,
-        multiparams: Sequence[dict] = (),
-        params: Dict[str, Any] = util.immutabledict(),
+        execution_options: Optional[Mapping[str, Any]] = None,
+        multiparams: Optional[Sequence[Mapping[str, Any]]] = None,
+        params: Mapping[str, Any] = util.immutabledict(),
     ) -> Optional[CursorResult]:
         if isinstance(construct, str):
             construct = text(construct)
         if self.as_sql:
-            if multiparams or params:
-                # TODO: coverage
-                raise Exception("Execution arguments not allowed with as_sql")
+            if multiparams is not None or params:
+                raise TypeError("SQL parameters not allowed with as_sql")
 
             compile_kw: dict[str, Any]
             if self.literal_binds and not isinstance(
@@ -200,11 +199,16 @@ class DefaultImpl(metaclass=ImplMeta):
             assert conn is not None
             if execution_options:
                 conn = conn.execution_options(**execution_options)
-            if params:
-                assert isinstance(multiparams, tuple)
-                multiparams += (params,)
 
-            return conn.execute(construct, multiparams)
+            if params and multiparams is not None:
+                raise TypeError(
+                    "Can't send params and multiparams at the same time"
+                )
+
+            if multiparams:
+                return conn.execute(construct, multiparams)
+            else:
+                return conn.execute(construct, params)
 
     def execute(
         self,
