@@ -1,0 +1,6 @@
+.. change::
+    :tags: usecase, autogenerate
+    :tickets: 1391
+
+    Improve computed column compare function to support multi-line expressions.
+    Pull request courtesy of Georg Wicke-Arndt.

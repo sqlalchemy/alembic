@@ -124,6 +124,7 @@ class AutogenerateComputedTest(AutogenFixtureTest, TestBase):
         lambda: (None, None),
         lambda: (sa.Computed("5"), sa.Computed("5")),
         lambda: (sa.Computed("bar*5"), sa.Computed("bar*5")),
+        lambda: (sa.Computed("bar*5"), sa.Computed("bar * \r\n\t5")),
         (
             lambda: (sa.Computed("bar*5"), None),
             config.requirements.computed_doesnt_reflect_as_server_default,
