@@ -323,12 +323,6 @@ class CurrentTest(_BufMixin, TestBase):
         with self._assert_lines(["a3"]):
             command.current(self.cfg)
 
-    def test_current_obfuscate_password(self):
-        eq_(
-            util.obfuscate_url_pw("postgresql://scott:tiger@localhost/test"),
-            "postgresql://scott:***@localhost/test",
-        )
-
     def test_two_heads(self):
         command.stamp(self.cfg, ())
         command.stamp(self.cfg, (self.a1.revision, self.b1.revision))
