@@ -3,6 +3,7 @@ from __future__ import annotations
 import collections
 from collections.abc import Iterable
 import textwrap
+from time import timezone
 from typing import Any
 from typing import Callable
 from typing import cast
@@ -20,7 +21,7 @@ from typing import Type
 from typing import TYPE_CHECKING
 from typing import TypeVar
 from typing import Union
-import uuid
+from datetime import datetime, timezone
 import warnings
 
 from sqlalchemy.util import asbool as asbool  # noqa: F401
@@ -230,7 +231,7 @@ def _with_legacy_names(translations: Any) -> Any:
 
 
 def rev_id() -> str:
-    return uuid.uuid4().hex[-12:]
+    return datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f')[:-6]
 
 
 @overload
