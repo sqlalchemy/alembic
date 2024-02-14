@@ -223,10 +223,12 @@ class SchemaObjects:
         t = sa_schema.Table(name, m, *cols, **kw)
 
         constraints = [
-            sqla_compat._copy(elem, target_table=t)
-            if getattr(elem, "parent", None) is not t
-            and getattr(elem, "parent", None) is not None
-            else elem
+            (
+                sqla_compat._copy(elem, target_table=t)
+                if getattr(elem, "parent", None) is not t
+                and getattr(elem, "parent", None) is not None
+                else elem
+            )
             for elem in columns
             if isinstance(elem, (Constraint, Index))
         ]

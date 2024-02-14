@@ -274,9 +274,11 @@ class AlterColRoundTripFixture:
                 "x",
                 column.name,
                 existing_type=column.type,
-                existing_server_default=column.server_default
-                if column.server_default is not None
-                else False,
+                existing_server_default=(
+                    column.server_default
+                    if column.server_default is not None
+                    else False
+                ),
                 existing_nullable=True if column.nullable else False,
                 # existing_comment=column.comment,
                 nullable=to_.get("nullable", None),
@@ -304,9 +306,13 @@ class AlterColRoundTripFixture:
             new_col["type"],
             new_col.get("default", None),
             compare.get("type", old_col["type"]),
-            compare["server_default"].text
-            if "server_default" in compare
-            else column.server_default.arg.text
-            if column.server_default is not None
-            else None,
+            (
+                compare["server_default"].text
+                if "server_default" in compare
+                else (
+                    column.server_default.arg.text
+                    if column.server_default is not None
+                    else None
+                )
+            ),
         )

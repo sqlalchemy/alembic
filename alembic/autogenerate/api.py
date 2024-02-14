@@ -596,9 +596,9 @@ class RevisionContext:
         migration_script = self.generated_revisions[-1]
         if not getattr(migration_script, "_needs_render", False):
             migration_script.upgrade_ops_list[-1].upgrade_token = upgrade_token
-            migration_script.downgrade_ops_list[
-                -1
-            ].downgrade_token = downgrade_token
+            migration_script.downgrade_ops_list[-1].downgrade_token = (
+                downgrade_token
+            )
             migration_script._needs_render = True
         else:
             migration_script._upgrade_ops.append(

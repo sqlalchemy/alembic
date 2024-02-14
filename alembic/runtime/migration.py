@@ -86,7 +86,6 @@ class _ProxyTransaction:
 
 
 class MigrationContext:
-
     """Represent the database state made available to a migration
     script.
 
@@ -218,9 +217,11 @@ class MigrationContext:
             log.info("Generating static SQL")
         log.info(
             "Will assume %s DDL.",
-            "transactional"
-            if self.impl.transactional_ddl
-            else "non-transactional",
+            (
+                "transactional"
+                if self.impl.transactional_ddl
+                else "non-transactional"
+            ),
         )
 
     @classmethod
@@ -345,9 +346,9 @@ class MigrationContext:
             # except that it will not know it's in "autocommit" and will
             # emit deprecation warnings when an autocommit action takes
             # place.
-            self.connection = (
-                self.impl.connection
-            ) = base_connection.execution_options(isolation_level="AUTOCOMMIT")
+            self.connection = self.impl.connection = (
+                base_connection.execution_options(isolation_level="AUTOCOMMIT")
+            )
 
             # sqlalchemy future mode will "autobegin" in any case, so take
             # control of that "transaction" here
@@ -1006,8 +1007,7 @@ class MigrationStep:
     if TYPE_CHECKING:
 
         @property
-        def doc(self) -> Optional[str]:
-            ...
+        def doc(self) -> Optional[str]: ...
 
     @property
     def name(self) -> str:

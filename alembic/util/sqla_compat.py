@@ -59,8 +59,7 @@ _CE = TypeVar("_CE", bound=Union["ColumnElement[Any]", "SchemaItem"])
 
 
 class _CompilerProtocol(Protocol):
-    def __call__(self, element: Any, compiler: Any, **kw: Any) -> str:
-        ...
+    def __call__(self, element: Any, compiler: Any, **kw: Any) -> str: ...
 
 
 def _safe_int(value: str) -> Union[int, str]:
@@ -95,8 +94,7 @@ if TYPE_CHECKING:
 
     def compiles(
         element: Type[ClauseElement], *dialects: str
-    ) -> Callable[[_CompilerProtocol], _CompilerProtocol]:
-        ...
+    ) -> Callable[[_CompilerProtocol], _CompilerProtocol]: ...
 
 else:
     from sqlalchemy.ext.compiler import compiles

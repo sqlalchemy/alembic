@@ -77,7 +77,6 @@ _impls: Dict[str, Type[DefaultImpl]] = {}
 
 
 class DefaultImpl(metaclass=ImplMeta):
-
     """Provide the entrypoint for major migration operations,
     including database-specific behavioral variances.
 
@@ -425,13 +424,15 @@ class DefaultImpl(metaclass=ImplMeta):
                 self._exec(
                     sqla_compat._insert_inline(table).values(
                         **{
-                            k: sqla_compat._literal_bindparam(
-                                k, v, type_=table.c[k].type
+                            k: (
+                                sqla_compat._literal_bindparam(
+                                    k, v, type_=table.c[k].type
+                                )
+                                if not isinstance(
+                                    v, sqla_compat._literal_bindparam
+                                )
+                                else v
                             )
-                            if not isinstance(
-                                v, sqla_compat._literal_bindparam
-                            )
-                            else v
                             for k, v in row.items()
                         }
                     )

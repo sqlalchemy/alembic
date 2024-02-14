@@ -53,7 +53,6 @@ from alembic.util import sqla_compat
 
 
 class AutogenRenderTest(TestBase):
-
     """test individual directives"""
 
     def setUp(self):

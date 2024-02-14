@@ -24,9 +24,9 @@ class MigrationTransactionTest(TestBase):
             self.context = MigrationContext.configure(
                 dialect=conn.dialect, opts=opts
             )
-            self.context.output_buffer = (
-                self.context.impl.output_buffer
-            ) = io.StringIO()
+            self.context.output_buffer = self.context.impl.output_buffer = (
+                io.StringIO()
+            )
         else:
             self.context = MigrationContext.configure(
                 connection=conn, opts=opts

@@ -221,8 +221,7 @@ class Config:
     @overload
     def get_section(
         self, name: str, default: None = ...
-    ) -> Optional[Dict[str, str]]:
-        ...
+    ) -> Optional[Dict[str, str]]: ...
 
     # "default" here could also be a TypeVar
     # _MT = TypeVar("_MT", bound=Mapping[str, str]),
@@ -230,14 +229,12 @@ class Config:
     @overload
     def get_section(
         self, name: str, default: Dict[str, str]
-    ) -> Dict[str, str]:
-        ...
+    ) -> Dict[str, str]: ...
 
     @overload
     def get_section(
         self, name: str, default: Mapping[str, str]
-    ) -> Union[Dict[str, str], Mapping[str, str]]:
-        ...
+    ) -> Union[Dict[str, str], Mapping[str, str]]: ...
 
     def get_section(
         self, name: str, default: Optional[Mapping[str, str]] = None
@@ -313,14 +310,12 @@ class Config:
             return default
 
     @overload
-    def get_main_option(self, name: str, default: str) -> str:
-        ...
+    def get_main_option(self, name: str, default: str) -> str: ...
 
     @overload
     def get_main_option(
         self, name: str, default: Optional[str] = None
-    ) -> Optional[str]:
-        ...
+    ) -> Optional[str]: ...
 
     def get_main_option(
         self, name: str, default: Optional[str] = None

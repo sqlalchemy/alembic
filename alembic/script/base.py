@@ -56,7 +56,6 @@ _split_on_space_comma_colon = re.compile(r", *|(?: +)|\:")
 
 
 class ScriptDirectory:
-
     """Provides operations upon an Alembic script directory.
 
     This object is useful to get information as to current revisions,
@@ -732,9 +731,11 @@ class ScriptDirectory:
         if depends_on:
             with self._catch_revision_errors():
                 resolved_depends_on = [
-                    dep
-                    if dep in rev.branch_labels  # maintain branch labels
-                    else rev.revision  # resolve partial revision identifiers
+                    (
+                        dep
+                        if dep in rev.branch_labels  # maintain branch labels
+                        else rev.revision
+                    )  # resolve partial revision identifiers
                     for rev, dep in [
                         (not_none(self.revision_map.get_revision(dep)), dep)
                         for dep in util.to_list(depends_on)
@@ -808,7 +809,6 @@ class ScriptDirectory:
 
 
 class Script(revision.Revision):
-
     """Represent a single revision file in a ``versions/`` directory.
 
     The :class:`.Script` instance is returned by methods
@@ -930,9 +930,11 @@ class Script(revision.Revision):
         if head_indicators or tree_indicators:
             text += "%s%s%s" % (
                 " (head)" if self._is_real_head else "",
-                " (effective head)"
-                if self.is_head and not self._is_real_head
-                else "",
+                (
+                    " (effective head)"
+                    if self.is_head and not self._is_real_head
+                    else ""
+                ),
                 " (current)" if self._db_current_indicator else "",
             )
         if tree_indicators:

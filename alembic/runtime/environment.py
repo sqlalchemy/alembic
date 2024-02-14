@@ -108,7 +108,6 @@ CompareType = Callable[
 
 
 class EnvironmentContext(util.ModuleClsProxy):
-
     """A configurational facade made available in an ``env.py`` script.
 
     The :class:`.EnvironmentContext` acts as a *facade* to the more
@@ -342,18 +341,17 @@ class EnvironmentContext(util.ModuleClsProxy):
         return self.context_opts.get("tag", None)  # type: ignore[no-any-return]  # noqa: E501
 
     @overload
-    def get_x_argument(self, as_dictionary: Literal[False]) -> List[str]:
-        ...
+    def get_x_argument(self, as_dictionary: Literal[False]) -> List[str]: ...
 
     @overload
-    def get_x_argument(self, as_dictionary: Literal[True]) -> Dict[str, str]:
-        ...
+    def get_x_argument(
+        self, as_dictionary: Literal[True]
+    ) -> Dict[str, str]: ...
 
     @overload
     def get_x_argument(
         self, as_dictionary: bool = ...
-    ) -> Union[List[str], Dict[str, str]]:
-        ...
+    ) -> Union[List[str], Dict[str, str]]: ...
 
     def get_x_argument(
         self, as_dictionary: bool = False

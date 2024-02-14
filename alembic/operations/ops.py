@@ -1371,9 +1371,9 @@ class DropTableOp(MigrateOperation):
             info=self.info.copy() if self.info else {},
             prefixes=list(self.prefixes) if self.prefixes else [],
             schema=self.schema,
-            _constraints_included=self._reverse._constraints_included
-            if self._reverse
-            else False,
+            _constraints_included=(
+                self._reverse._constraints_included if self._reverse else False
+            ),
             **self.table_kw,
         )
         return t

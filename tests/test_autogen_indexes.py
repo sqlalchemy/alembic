@@ -642,9 +642,11 @@ class AutogenerateUniqueIndexTest(AutogenFixtureTest, TestBase):
         diffs = {
             (
                 cmd,
-                isinstance(obj, (UniqueConstraint, Index))
-                if obj.name is not None
-                else False,
+                (
+                    isinstance(obj, (UniqueConstraint, Index))
+                    if obj.name is not None
+                    else False
+                ),
             )
             for cmd, obj in diffs
         }
@@ -1800,7 +1802,6 @@ class NoUqReflectionIndexTest(NoUqReflection, AutogenerateUniqueIndexTest):
 
 
 class NoUqReportsIndAsUqTest(NoUqReflectionIndexTest):
-
     """this test suite simulates the condition where:
 
     a. the dialect doesn't report unique constraints

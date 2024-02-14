@@ -406,8 +406,7 @@ class AbstractOperations(util.ModuleClsProxy):
         return self.migration_context
 
     @overload
-    def invoke(self, operation: CreateTableOp) -> Table:
-        ...
+    def invoke(self, operation: CreateTableOp) -> Table: ...
 
     @overload
     def invoke(
@@ -427,12 +426,10 @@ class AbstractOperations(util.ModuleClsProxy):
             DropTableOp,
             ExecuteSQLOp,
         ],
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
-    def invoke(self, operation: MigrateOperation) -> Any:
-        ...
+    def invoke(self, operation: MigrateOperation) -> Any: ...
 
     def invoke(self, operation: MigrateOperation) -> Any:
         """Given a :class:`.MigrateOperation`, invoke it in terms of

@@ -287,18 +287,22 @@ class _fk_constraint_sig(_constraint_sig[ForeignKeyConstraint]):
             self.target_table,
             tuple(self.target_columns),
         ) + (
-            (None if onupdate.lower() == "no action" else onupdate.lower())
-            if onupdate
-            else None,
-            (None if ondelete.lower() == "no action" else ondelete.lower())
-            if ondelete
-            else None,
+            (
+                (None if onupdate.lower() == "no action" else onupdate.lower())
+                if onupdate
+                else None
+            ),
+            (
+                (None if ondelete.lower() == "no action" else ondelete.lower())
+                if ondelete
+                else None
+            ),
             # convert initially + deferrable into one three-state value
-            "initially_deferrable"
-            if initially and initially.lower() == "deferred"
-            else "deferrable"
-            if deferrable
-            else "not deferrable",
+            (
+                "initially_deferrable"
+                if initially and initially.lower() == "deferred"
+                else "deferrable" if deferrable else "not deferrable"
+            ),
         )
 
     @util.memoized_property

@@ -40,7 +40,6 @@ _ServerDefault = Union["TextClause", "FetchedValue", "Function[Any]", str]
 
 
 class AlterTable(DDLElement):
-
     """Represent an ALTER TABLE statement.
 
     Only the string name and optional schema name of the table
@@ -238,9 +237,11 @@ def visit_column_default(
     return "%s %s %s" % (
         alter_table(compiler, element.table_name, element.schema),
         alter_column(compiler, element.column_name),
-        "SET DEFAULT %s" % format_server_default(compiler, element.default)
-        if element.default is not None
-        else "DROP DEFAULT",
+        (
+            "SET DEFAULT %s" % format_server_default(compiler, element.default)
+            if element.default is not None
+            else "DROP DEFAULT"
+        ),
     )
 
 

@@ -56,8 +56,7 @@ class _CollectRevisionsProtocol(Protocol):
         inclusive: bool,
         implicit_base: bool,
         assert_relative_length: bool,
-    ) -> Tuple[Set[Revision], Tuple[Optional[_RevisionOrBase], ...]]:
-        ...
+    ) -> Tuple[Set[Revision], Tuple[Optional[_RevisionOrBase], ...]]: ...
 
 
 class RevisionError(Exception):
@@ -720,9 +719,11 @@ class RevisionMap:
             resolved_target = target
 
         resolved_test_against_revs = [
-            self._revision_for_ident(test_against_rev)
-            if not isinstance(test_against_rev, Revision)
-            else test_against_rev
+            (
+                self._revision_for_ident(test_against_rev)
+                if not isinstance(test_against_rev, Revision)
+                else test_against_rev
+            )
             for test_against_rev in util.to_tuple(
                 test_against_revs, default=()
             )
@@ -1016,9 +1017,9 @@ class RevisionMap:
                         # each time but it was getting complicated
                         current_heads[current_candidate_idx] = heads_to_add[0]
                         current_heads.extend(heads_to_add[1:])
-                        ancestors_by_idx[
-                            current_candidate_idx
-                        ] = get_ancestors(heads_to_add[0])
+                        ancestors_by_idx[current_candidate_idx] = (
+                            get_ancestors(heads_to_add[0])
+                        )
                         ancestors_by_idx.extend(
                             get_ancestors(head) for head in heads_to_add[1:]
                         )
@@ -1183,9 +1184,13 @@ class RevisionMap:
                         branch_label = symbol
                 # Walk down the tree to find downgrade target.
                 rev = self._walk(
-                    start=self.get_revision(symbol)
-                    if branch_label is None
-                    else self.get_revision("%s@%s" % (branch_label, symbol)),
+                    start=(
+                        self.get_revision(symbol)
+                        if branch_label is None
+                        else self.get_revision(
+                            "%s@%s" % (branch_label, symbol)
+                        )
+                    ),
                     steps=rel_int,
                     no_overwalk=assert_relative_length,
                 )
@@ -1303,9 +1308,13 @@ class RevisionMap:
                 )
             return (
                 self._walk(
-                    start=self.get_revision(symbol)
-                    if branch_label is None
-                    else self.get_revision("%s@%s" % (branch_label, symbol)),
+                    start=(
+                        self.get_revision(symbol)
+                        if branch_label is None
+                        else self.get_revision(
+                            "%s@%s" % (branch_label, symbol)
+                        )
+                    ),
                     steps=relative,
                     no_overwalk=assert_relative_length,
                 ),
@@ -1694,15 +1703,13 @@ class Revision:
 
 
 @overload
-def tuple_rev_as_scalar(rev: None) -> None:
-    ...
+def tuple_rev_as_scalar(rev: None) -> None: ...
 
 
 @overload
 def tuple_rev_as_scalar(
     rev: Union[Tuple[_T, ...], List[_T]]
-) -> Union[_T, Tuple[_T, ...], List[_T]]:
-    ...
+) -> Union[_T, Tuple[_T, ...], List[_T]]: ...
 
 
 def tuple_rev_as_scalar(
