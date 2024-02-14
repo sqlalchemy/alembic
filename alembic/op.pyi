@@ -942,7 +942,7 @@ def drop_column(
     """
 
 def drop_constraint(
-    constraint_name: str,
+    constraint_name: Optional[str],
     table_name: str,
     type_: Optional[str] = None,
     *,
