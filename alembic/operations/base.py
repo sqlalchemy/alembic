@@ -1721,7 +1721,7 @@ class BatchOperations(AbstractOperations):
 
         def create_foreign_key(
             self,
-            constraint_name: str,
+            constraint_name: Optional[str],
             referent_table: str,
             local_cols: List[str],
             remote_cols: List[str],
