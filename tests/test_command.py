@@ -64,7 +64,7 @@ class HistoryTest(_BufMixin, TestBase):
     def teardown_class(cls):
         clear_staging_env()
 
-    def teardown(self):
+    def tearDown(self):
         self.cfg.set_main_option("revision_environment", "false")
 
     @classmethod
@@ -206,13 +206,12 @@ finally:
 
 
 class RevisionEnvironmentTest(_BufMixin, TestBase):
-    @classmethod
-    def setup(cls):
-        cls.env = staging_env()
-        cls.cfg = _sqlite_testing_config()
-        cls._setup_env_file()
+    def setUp(self):
+        self.env = staging_env()
+        self.cfg = _sqlite_testing_config()
+        self._setup_env_file()
 
-    def teardown(self):
+    def tearDown(self):
         self.cfg.set_main_option("revision_environment", "false")
         clear_staging_env()
 
@@ -1144,7 +1143,7 @@ class CommandLineTest(TestBase):
         cls.cfg = _sqlite_testing_config()
         cls.a, cls.b, cls.c = three_rev_fixture(cls.cfg)
 
-    def teardown(self):
+    def tearDown(self):
         os.environ.pop("ALEMBIC_CONFIG", None)
 
     @classmethod
