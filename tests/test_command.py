@@ -65,7 +65,6 @@ class HistoryTest(_BufMixin, TestBase):
         clear_staging_env()
 
     def teardown(self):
-        breakpoint()
         self.cfg.set_main_option("revision_environment", "false")
 
     @classmethod
