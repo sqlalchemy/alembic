@@ -2,6 +2,7 @@
 
 [alembic]
 # path to migration scripts
+# Use forward slashes (/) also on windows to provide an os agnostic path
 script_location = ${script_location}
 
 # template used to generate migration file names; The default value is %%(rev)s_%%(slug)s
@@ -22,8 +23,7 @@ prepend_sys_path = .
 # leave blank for localtime
 # timezone =
 
-# max length of characters to apply to the
-# "slug" field
+# max length of characters to apply to the "slug" field
 # truncate_slug_length = 40
 
 # set to 'true' to run the environment during
