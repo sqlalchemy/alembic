@@ -349,7 +349,7 @@ class CreatePrimaryKeyOp(AddConstraintOp):
     def batch_create_primary_key(
         cls,
         operations: BatchOperations,
-        constraint_name: str,
+        constraint_name: Optional[str],
         columns: List[str],
     ) -> None:
         """Issue a "create primary key" instruction using the
