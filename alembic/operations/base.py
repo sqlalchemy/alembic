@@ -1771,7 +1771,7 @@ class BatchOperations(AbstractOperations):
             ...
 
         def create_primary_key(
-            self, constraint_name: str, columns: List[str]
+            self, constraint_name: Optional[str], columns: List[str]
         ) -> None:
             """Issue a "create primary key" instruction using the
             current batch migration context.
