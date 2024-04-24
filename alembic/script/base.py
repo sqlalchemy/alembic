@@ -609,7 +609,7 @@ class ScriptDirectory:
         if self.timezone is not None:
             if ZoneInfo is None:
                 raise util.CommandError(
-                    "Python >= 3.9 is required for timezone support or"
+                    "Python >= 3.9 is required for timezone support or "
                     "the 'backports.zoneinfo' package must be installed."
                 )
             # First, assume correct capitalization
