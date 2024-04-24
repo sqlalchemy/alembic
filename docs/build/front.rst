@@ -50,7 +50,7 @@ The install will add the ``alembic`` command to the virtual environment.  All
 operations with Alembic in terms of this specific virtual environment will then
 proceed through the usage of this command, as in::
 
-    $ /path/to/your/project/.venv/bin/alembic init .
+    $ /path/to/your/project/.venv/bin/alembic init alembic
 
 The next step is **optional**.   If our project itself has a ``setup.py``
 file, we can also install it in the local virtual environment in
