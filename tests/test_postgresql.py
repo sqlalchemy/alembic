@@ -860,7 +860,7 @@ class PostgresqlDetectSerialTest(TestBase):
 
     @provide_metadata
     def _expect_default(self, c_expected, col, seq=None):
-        Table("t", self.metadata, col)
+        Table("t", self.metadata, col, schema="test_schema")
 
         self.autogen_context.metadata = self.metadata
 
@@ -871,7 +871,9 @@ class PostgresqlDetectSerialTest(TestBase):
         insp = inspect(config.db)
 
         uo = ops.UpgradeOps(ops=[])
-        _compare_tables({(None, "t")}, set(), insp, uo, self.autogen_context)
+        _compare_tables(
+            {("test_schema", "t")}, set(), insp, uo, self.autogen_context
+        )
         diffs = uo.as_diffs()
         tab = diffs[0][1]
 
@@ -884,12 +886,12 @@ class PostgresqlDetectSerialTest(TestBase):
 
         insp = inspect(config.db)
         uo = ops.UpgradeOps(ops=[])
-        m2 = MetaData()
+        m2 = MetaData(schema="test_schema")
         Table("t", m2, Column("x", BigInteger()))
         self.autogen_context.metadata = m2
         _compare_tables(
-            {(None, "t")},
-            {(None, "t")},
+            {("test_schema", "t")},
+            {("test_schema", "t")},
             insp,
             uo,
             self.autogen_context,
@@ -907,9 +909,9 @@ class PostgresqlDetectSerialTest(TestBase):
         self._expect_default(None, Column("x", Integer, primary_key=True))
 
     def test_separate_seq(self):
-        seq = Sequence("x_id_seq")
+        seq = Sequence("x_id_seq", schema="test_schema")
         self._expect_default(
-            "nextval('x_id_seq'::regclass)",
+            "nextval('test_schema.x_id_seq'::regclass)",
             Column(
                 "x", Integer, server_default=seq.next_value(), primary_key=True
             ),
@@ -917,9 +919,9 @@ class PostgresqlDetectSerialTest(TestBase):
         )
 
     def test_numeric(self):
-        seq = Sequence("x_id_seq")
+        seq = Sequence("x_id_seq", schema="test_schema")
         self._expect_default(
-            "nextval('x_id_seq'::regclass)",
+            "nextval('test_schema.x_id_seq'::regclass)",
             Column(
                 "x",
                 Numeric(8, 2),
