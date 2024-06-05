@@ -218,7 +218,8 @@ class PostgresqlImpl(DefaultImpl):
                         "join pg_class t on t.oid=d.refobjid "
                         "join pg_attribute a on a.attrelid=t.oid and "
                         "a.attnum=d.refobjsubid "
-                        "where c.relkind='S' and c.relname=:seqname"
+                        "where c.relkind='S' and "
+                        "c.oid=cast(:seqname as regclass)"
                     ),
                     seqname=seq_match.group(1),
                 ).first()
