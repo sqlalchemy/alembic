@@ -146,9 +146,7 @@ pygments_style = "sphinx"
 
 # The theme to use for HTML and HTML Help pages.  Major themes that come with
 # Sphinx are currently 'default' and 'sphinxdoc'.
-html_theme = "nature"
-
-html_style = "nature_override.css"
+html_theme = "sphinx_book_theme"
 
 
 # Theme options are theme-specific and customize the look and feel of a theme
@@ -181,6 +179,8 @@ html_style = "nature_override.css"
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
 
+html_css_files = ["site_custom_css.css"]
+
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
 # html_last_updated_fmt = '%b %d, %Y'
@@ -192,10 +192,11 @@ html_static_path = ["_static"]
 # Custom sidebar templates, maps document names to template names.
 html_sidebars = {
     "**": [
+        "navbar-logo.html",
         "site_custom_sidebars.html",
-        "localtoc.html",
-        "searchbox.html",
-        "relations.html",
+        "icon-links.html",
+        "search-button-field.html",
+        "sbt-sidebar-nav.html",
     ]
 }
 

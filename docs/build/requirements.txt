@@ -7,3 +7,6 @@ Mako
 importlib-metadata;python_version<"3.9"
 importlib-resources;python_version<"3.9"
 sphinx_copybutton==0.5.1
+sphinx-book-theme
+
+
