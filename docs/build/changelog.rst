@@ -5,7 +5,43 @@ Changelog
 
 .. changelog::
     :version: 1.13.2
-    :include_notes_from: unreleased
+    :released: June 26, 2024
+
+    .. change::
+        :tags: bug, commands
+        :tickets: 1384
+
+        Fixed bug in alembic command stdout where long messages were not properly
+        wrapping at the terminal width.   Pull request courtesy Saif Hakim.
+
+    .. change::
+        :tags: usecase, autogenerate
+        :tickets: 1391
+
+        Improve computed column compare function to support multi-line expressions.
+        Pull request courtesy of Georg Wicke-Arndt.
+
+    .. change::
+        :tags: bug, execution
+        :tickets: 1394
+
+        Fixed internal issue where Alembic would call ``connection.execute()``
+        sending an empty tuple to indicate "no params".  In SQLAlchemy 2.1 this
+        case will be deprecated as "empty sequence" is ambiguous as to its intent.
+
+
+    .. change::
+        :tags: bug, tests
+        :tickets: 1435
+
+        Fixes to support pytest 8.1 for the test suite.
+
+    .. change::
+        :tags: bug, autogenerate, postgresql
+        :tickets: 1479
+
+        Fixed the detection of serial column in autogenerate with tables
+        not under default schema on PostgreSQL
 
 .. changelog::
     :version: 1.13.1

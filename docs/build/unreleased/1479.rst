@@ -1,6 +1,0 @@
-.. change::
-    :tags: bug, autogenerate, postgresql
-    :tickets: 1479
-
-    Fixed the detection of serial column in autogenerate with tables
-    not under default schema on PostgreSQL

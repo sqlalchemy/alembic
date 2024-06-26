@@ -1,8 +1,0 @@
-.. change::
-    :tags: bug, execution
-    :tickets: 1394
-
-    Fixed internal issue where Alembic would call ``connection.execute()``
-    sending an empty tuple to indicate "no params".  In SQLAlchemy 2.1 this
-    case will be deprecated as "empty sequence" is ambiguous as to its intent.
-

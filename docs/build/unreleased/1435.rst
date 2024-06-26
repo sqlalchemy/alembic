@@ -1,5 +1,0 @@
-.. change::
-    :tags: bug, tests
-    :tickets: 1435
-
-    Fixes to support pytest 8.1 for the test suite.
