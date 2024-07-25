@@ -211,7 +211,7 @@ class ScriptDirectory:
                     )
                 else:
                     version_locations = [
-                        x for x in version_locations_str.split(split_char) if x
+                        x.strip() for x in version_locations_str.split(split_char) if x
                     ]
         else:
             version_locations = None

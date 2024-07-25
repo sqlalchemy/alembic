@@ -137,7 +137,7 @@ class ConfigTest(TestBase):
         (
             "multiline string 1",
             "newline",
-            "/foo\n/bar",
+            " /foo  \n/bar  ",
             ["/foo", "/bar"],
         ),
         (
