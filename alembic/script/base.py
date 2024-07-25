@@ -187,6 +187,7 @@ class ScriptDirectory:
             split_on_path = {
                 None: None,
                 "space": " ",
+                "newline": "\n",
                 "os": os.pathsep,
                 ":": ":",
                 ";": ";",
@@ -200,7 +201,7 @@ class ScriptDirectory:
                 raise ValueError(
                     "'%s' is not a valid value for "
                     "version_path_separator; "
-                    "expected 'space', 'os', ':', ';'" % version_path_separator
+                    "expected 'space', 'newline', 'os', ':', ';'" % version_path_separator
                 ) from ke
             else:
                 if split_char is None:

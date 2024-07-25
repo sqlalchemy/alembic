@@ -135,6 +135,12 @@ class ConfigTest(TestBase):
             ["/foo", "/bar"],
         ),
         (
+            "multiline string 1",
+            "newline",
+            "/foo\n/bar",
+            ["/foo", "/bar"],
+        ),
+        (
             "Linux pathsep 1",
             ":",
             "/Project A",
@@ -171,7 +177,7 @@ class ConfigTest(TestBase):
             "/foo|/bar",
             ValueError(
                 "'|' is not a valid value for version_path_separator; "
-                "expected 'space', 'os', ':', ';'"
+                "expected 'space', 'newline', 'os', ':', ';'"
             ),
         ),
         id_="iaaa",
@@ -188,7 +194,7 @@ class ConfigTest(TestBase):
         cfg.set_main_option("version_locations", string_value)
 
         if isinstance(expected_result, ValueError):
-            with expect_raises_message(ValueError, expected_result.args[0]):
+            with expect_raises_message(ValueError, str(expected_result), text_exact=True):
                 ScriptDirectory.from_config(cfg)
         else:
             s = ScriptDirectory.from_config(cfg)
