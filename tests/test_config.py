@@ -194,7 +194,8 @@ class ConfigTest(TestBase):
         cfg.set_main_option("version_locations", string_value)
 
         if isinstance(expected_result, ValueError):
-            with expect_raises_message(ValueError, str(expected_result), text_exact=True):
+            message = str(expected_result)
+            with expect_raises_message(ValueError, message, text_exact=True):
                 ScriptDirectory.from_config(cfg)
         else:
             s = ScriptDirectory.from_config(cfg)
