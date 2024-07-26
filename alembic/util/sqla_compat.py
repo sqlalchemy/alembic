@@ -527,7 +527,7 @@ class _textual_index_element(sql.ColumnElement):
         self.fake_column = schema.Column(self.text.text, sqltypes.NULLTYPE)
         table.append_column(self.fake_column)
 
-    def get_children(self):
+    def get_children(self, **kw):
         return [self.fake_column]
 
 
