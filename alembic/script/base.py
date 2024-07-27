@@ -201,7 +201,8 @@ class ScriptDirectory:
                 raise ValueError(
                     "'%s' is not a valid value for "
                     "version_path_separator; "
-                    "expected 'space', 'newline', 'os', ':', ';'" % version_path_separator
+                    "expected 'space', 'newline', 'os', ':', ';'"
+                    % version_path_separator
                 ) from ke
             else:
                 if split_char is None:
@@ -211,7 +212,9 @@ class ScriptDirectory:
                     )
                 else:
                     version_locations = [
-                        x.strip() for x in version_locations_str.split(split_char) if x
+                        x.strip()
+                        for x in version_locations_str.split(split_char)
+                        if x
                     ]
         else:
             version_locations = None
