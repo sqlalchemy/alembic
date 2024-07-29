@@ -7,12 +7,6 @@ Changelog
     :version: 1.13.3
     :include_notes_from: unreleased
 
-    .. change::
-        :tags: feature, environment
-        :tickets: 1509
-
-        Enhance ``version_locations`` parsing to handle paths containing newlines.
-
 .. changelog::
     :version: 1.13.2
     :released: June 26, 2024
