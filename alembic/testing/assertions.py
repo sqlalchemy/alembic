@@ -74,7 +74,9 @@ class _ErrorContainer:
 
 
 @contextlib.contextmanager
-def _expect_raises(except_cls, msg=None, check_context=False):
+def _expect_raises(
+    except_cls, msg=None, check_context=False, text_exact=False
+):
     ec = _ErrorContainer()
     if check_context:
         are_we_already_in_a_traceback = sys.exc_info()[0]
@@ -85,7 +87,10 @@ def _expect_raises(except_cls, msg=None, check_context=False):
         ec.error = err
         success = True
         if msg is not None:
-            assert re.search(msg, str(err), re.UNICODE), f"{msg} !~ {err}"
+            if text_exact:
+                assert str(err) == msg, f"{msg} != {err}"
+            else:
+                assert re.search(msg, str(err), re.UNICODE), f"{msg} !~ {err}"
         if check_context and not are_we_already_in_a_traceback:
             _assert_proper_exception_context(err)
         print(str(err).encode("utf-8"))
@@ -98,8 +103,12 @@ def expect_raises(except_cls, check_context=True):
     return _expect_raises(except_cls, check_context=check_context)
 
 
-def expect_raises_message(except_cls, msg, check_context=True):
-    return _expect_raises(except_cls, msg=msg, check_context=check_context)
+def expect_raises_message(
+    except_cls, msg, check_context=True, text_exact=False
+):
+    return _expect_raises(
+        except_cls, msg=msg, check_context=check_context, text_exact=text_exact
+    )
 
 
 def eq_ignore_whitespace(a, b, msg=None):
