@@ -2448,6 +2448,18 @@ class RenderNamingConventionTest(TestBase):
             "name=op.f('fk_ct_t_c_q')))",
         )
 
+    def test_added_fk(self):
+        t = Table("t", self.metadata, Column("c", Integer, ForeignKey("q.id")))
+
+        fk = list(t.foreign_key_constraints)[0]
+        eq_ignore_whitespace(
+            autogenerate.render._render_foreign_key(
+                fk, self.autogen_context, self.metadata
+            ),
+            "sa.ForeignKeyConstraint(['c'], ['q.id'], "
+            "name=op.f('fk_ct_t_c_q'))",
+        )
+
     def test_render_check_constraint_renamed(self):
         """test that constraints from autogenerate render with
         the naming convention name explicitly.  These names should
