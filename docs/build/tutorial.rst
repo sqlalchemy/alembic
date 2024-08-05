@@ -174,6 +174,7 @@ The file generated with the "generic" configuration looks like::
     # version_path_separator = :
     # version_path_separator = ;
     # version_path_separator = space
+    # version_path_separator = newline
     version_path_separator = os  # Use os.pathsep. Default configuration used for new projects.
 
     # set to 'true' to search source files recursively
