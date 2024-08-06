@@ -324,6 +324,8 @@ def _add_index(autogen_context: AutogenContext, op: ops.CreateIndexOp) -> str:
     assert index.table is not None
 
     opts = _render_dialect_kwargs_items(autogen_context, index)
+    if op.if_not_exists is not None:
+        opts.append("if_not_exists=%r" % bool(op.if_not_exists))
     text = tmpl % {
         "prefix": _alembic_autogenerate_prefix(autogen_context),
         "name": _render_gen_name(autogen_context, index.name),
@@ -356,6 +358,8 @@ def _drop_index(autogen_context: AutogenContext, op: ops.DropIndexOp) -> str:
             "table_name=%(table_name)r%(schema)s%(kwargs)s)"
         )
     opts = _render_dialect_kwargs_items(autogen_context, index)
+    if op.if_exists is not None:
+        opts.append("if_exists=%r" % bool(op.if_exists))
     text = tmpl % {
         "prefix": _alembic_autogenerate_prefix(autogen_context),
         "name": _render_gen_name(autogen_context, op.index_name),
