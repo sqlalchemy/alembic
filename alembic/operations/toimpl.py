@@ -79,8 +79,14 @@ def alter_column(
 
 @Operations.implementation_for(ops.DropTableOp)
 def drop_table(operations: "Operations", operation: "ops.DropTableOp") -> None:
+    kw = {}
+    if operation.if_exists is not None:
+        if not sqla_14:
+            raise NotImplementedError("SQLAlchemy 1.4+ required")
+
+        kw["if_exists"] = operation.if_exists
     operations.impl.drop_table(
-        operation.to_table(operations.migration_context)
+        operation.to_table(operations.migration_context), **kw
     )
 
 
@@ -127,8 +133,14 @@ def drop_index(operations: "Operations", operation: "ops.DropIndexOp") -> None:
 def create_table(
     operations: "Operations", operation: "ops.CreateTableOp"
 ) -> "Table":
+    kw = {}
+    if operation.if_not_exists is not None:
+        if not sqla_14:
+            raise NotImplementedError("SQLAlchemy 1.4+ required")
+
+        kw["if_not_exists"] = operation.if_not_exists
     table = operation.to_table(operations.migration_context)
-    operations.impl.create_table(table)
+    operations.impl.create_table(table, **kw)
     return table
 
 
