@@ -153,7 +153,27 @@ html_theme = "sphinx_book_theme"
 # further.  For a list of options available for each theme, see the
 # documentation.
 # NOTE: use nature_override.css, not this
-# html_theme_options = {}
+
+# mike got these just by copying from
+# https://github.com/executablebooks/sphinx-book-theme/blob/master/docs/conf.py#L103.
+# none of this seems to be clearly documented
+html_theme_options = {
+    "repository_url": "https://github.com/sqlalchemy/alembic",
+    "repository_branch": "main",
+    "icon_links": [
+        {
+            "name": "GitHub",
+            "url": "https://github.com/sqlalchemy/alembic",
+            "icon": "fa-brands fa-github",
+        },
+        {
+            "name": "PyPI",
+            "url": "https://pypi.org/project/alembic/",
+            "icon": "https://img.shields.io/pypi/dw/alembic",
+            "type": "url",
+        },
+    ],
+}
 
 # Add any paths that contain custom themes here, relative to this directory.
 # html_theme_path = []
