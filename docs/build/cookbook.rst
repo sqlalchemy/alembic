@@ -789,14 +789,19 @@ the approach must involve running Alembic multiple times against different
 database URLs.
 
 One common approach to multi-tenancy, particularly on the PostgreSQL database,
-is to install tenants within **individual PostgreSQL schemas**.  When using
-PostgreSQL's schemas, a special variable ``search_path`` is offered that is
-intended to assist with targeting of different schemas.
+is to install tenants within **individual PostgreSQL schemas**; similarly
+when using MySQL/MariaDB, **individual MySQL/MariaDB databases** are addressed
+in the same way as "schemas" on PostgreSQL.
 
-When using MySQL or MariaDB databases, a similar command is available at the
-SQL level called the``use`` command.  This command may be used in a similar
-fashion as that of PostgreSQL's ``search_path`` variable to achieve a similar
-effect.
+When using PostgreSQL's schemas, a special variable ``search_path`` is offered
+that is intended to assist with targeting of different schemas.  When using
+MySQL or MariaDB databases, a similar command is available at the SQL level
+called the ``USE`` command.  This command may be used in a similar fashion as
+that of PostgreSQL's ``search_path`` variable to achieve a similar effect.
+
+Overall, this recipe can be used on **any database that supports runtime
+modification of the current "tenant" via SQL commands on a particular
+connection**.
 
 .. note::  SQLAlchemy includes a system of directing a common set of
    ``Table`` metadata to many schemas called `schema_translate_map <https://docs.sqlalchemy.org/core/connections.html#translation-of-schema-names>`_.   Alembic at the time
