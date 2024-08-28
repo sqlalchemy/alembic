@@ -1,0 +1,5 @@
+.. change::
+    :tags: usecase, operations
+    :tickets: 1520
+
+    Support if_exists and if_not_exists on create/drop table commands

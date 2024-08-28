@@ -1254,7 +1254,7 @@ class Operations(AbstractOperations):
             :param if_not_exists: If True, adds IF NOT EXISTS operator when
              creating the table.
 
-             .. versionadded:: 1.13.4
+             .. versionadded:: 1.13.3
             :param \**kw: Other keyword arguments are passed to the underlying
              :class:`sqlalchemy.schema.Table` object created for the command.
 
@@ -1469,7 +1469,7 @@ class Operations(AbstractOperations):
             :param if_exists: If True, adds IF EXISTS operator when
              dropping the table.
 
-             .. versionadded:: 1.13.4
+             .. versionadded:: 1.13.3
             :param \**kw: Other keyword arguments are passed to the underlying
              :class:`sqlalchemy.schema.Table` object created for the command.
 
