@@ -907,6 +907,7 @@ class OpTest(TestBase):
         op.drop_table("tb_test", schema="foo")
         context.assert_("DROP TABLE foo.tb_test")
 
+    @config.requirements.sqlalchemy_14
     def test_drop_table_if_exists(self):
         context = op_fixture()
         op.drop_table("tb_test", if_exists=True)
@@ -1084,6 +1085,7 @@ class OpTest(TestBase):
             "FOREIGN KEY(foo_bar) REFERENCES foo (bar))"
         )
 
+    @config.requirements.sqlalchemy_14
     def test_create_table_if_not_exists(self):
         context = op_fixture()
         op.create_table(
