@@ -17,6 +17,8 @@ prepend_sys_path = .
 # as well as the filename.
 # If specified, requires the python>=3.9 or backports.zoneinfo library.
 # Any required deps can installed by adding `alembic[tz]` to the pip requirements
+# On some systems (Windows for one) time zone data might not be available
+# and an additional dependecy on `tzdata` is required.
 # string value is passed to ZoneInfo()
 # leave blank for localtime
 # timezone =
