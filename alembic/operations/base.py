@@ -1252,7 +1252,7 @@ class Operations(AbstractOperations):
              the SQLAlchemy construct
              :class:`~sqlalchemy.sql.elements.quoted_name`.
             :param if_not_exists: If True, adds IF NOT EXISTS operator when
-             creating the table.
+             creating the new table.
 
              .. versionadded:: 1.13.3
             :param \**kw: Other keyword arguments are passed to the underlying
