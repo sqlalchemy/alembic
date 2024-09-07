@@ -204,7 +204,7 @@ The file generated with the "generic" configuration looks like::
     # hooks = ruff
     # ruff.type = exec
     # ruff.executable = %(here)s/.venv/bin/ruff
-    # ruff.options = --fix REVISION_SCRIPT_FILENAME
+    # ruff.options = check --fix REVISION_SCRIPT_FILENAME
 
     # Logging configuration
     [loggers]
