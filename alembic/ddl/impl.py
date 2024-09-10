@@ -362,11 +362,11 @@ class DefaultImpl(metaclass=ImplMeta):
             base.RenameTable(old_table_name, new_table_name, schema=schema)
         )
 
-    def create_table(self, table: Table) -> None:
+    def create_table(self, table: Table, **kw: Any) -> None:
         table.dispatch.before_create(
             table, self.connection, checkfirst=False, _ddl_runner=self
         )
-        self._exec(schema.CreateTable(table))
+        self._exec(schema.CreateTable(table, **kw))
         table.dispatch.after_create(
             table, self.connection, checkfirst=False, _ddl_runner=self
         )
@@ -385,11 +385,11 @@ class DefaultImpl(metaclass=ImplMeta):
             if comment and with_comment:
                 self.create_column_comment(column)
 
-    def drop_table(self, table: Table) -> None:
+    def drop_table(self, table: Table, **kw: Any) -> None:
         table.dispatch.before_drop(
             table, self.connection, checkfirst=False, _ddl_runner=self
         )
-        self._exec(schema.DropTable(table))
+        self._exec(schema.DropTable(table, **kw))
         table.dispatch.after_drop(
             table, self.connection, checkfirst=False, _ddl_runner=self
         )

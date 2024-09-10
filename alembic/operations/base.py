@@ -1175,7 +1175,11 @@ class Operations(AbstractOperations):
             ...
 
         def create_table(
-            self, table_name: str, *columns: SchemaItem, **kw: Any
+            self,
+            table_name: str,
+            *columns: SchemaItem,
+            if_not_exists: Optional[bool] = None,
+            **kw: Any,
         ) -> Table:
             r"""Issue a "create table" instruction using the current migration
             context.
@@ -1247,6 +1251,10 @@ class Operations(AbstractOperations):
              quoting of the schema outside of the default behavior, use
              the SQLAlchemy construct
              :class:`~sqlalchemy.sql.elements.quoted_name`.
+            :param if_not_exists: If True, adds IF NOT EXISTS operator when
+             creating the new table.
+
+             .. versionadded:: 1.13.3
             :param \**kw: Other keyword arguments are passed to the underlying
              :class:`sqlalchemy.schema.Table` object created for the command.
 
@@ -1438,7 +1446,12 @@ class Operations(AbstractOperations):
             ...
 
         def drop_table(
-            self, table_name: str, *, schema: Optional[str] = None, **kw: Any
+            self,
+            table_name: str,
+            *,
+            schema: Optional[str] = None,
+            if_exists: Optional[bool] = None,
+            **kw: Any,
         ) -> None:
             r"""Issue a "drop table" instruction using the current
             migration context.
@@ -1453,6 +1466,10 @@ class Operations(AbstractOperations):
              quoting of the schema outside of the default behavior, use
              the SQLAlchemy construct
              :class:`~sqlalchemy.sql.elements.quoted_name`.
+            :param if_exists: If True, adds IF EXISTS operator when
+             dropping the table.
+
+             .. versionadded:: 1.13.3
             :param \**kw: Other keyword arguments are passed to the underlying
              :class:`sqlalchemy.schema.Table` object created for the command.
 
