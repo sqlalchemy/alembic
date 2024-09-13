@@ -2,5 +2,5 @@
     :tags: usecase, autogenerate
     :tickets: 151
 
-    Render `if_exists` and `if_not_exists` in `CreateIndexOp` and `DropIndexOp` in autogenerate context.
-    Pull request courtesy of Louis-Amaury Chaib
+    Render `if_exists` and `if_not_exists` in `CreateTableOp`, `CreateIndexOp`, `DropTableOp` and `DropIndexOp` in autogenerate context.
+    Pull request courtesy of Louis-Amaury Chaib (@lachaib).

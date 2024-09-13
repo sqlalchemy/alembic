@@ -279,6 +279,9 @@ def _add_table(autogen_context: AutogenContext, op: ops.CreateTableOp) -> str:
         prefixes = ", ".join("'%s'" % p for p in table._prefixes)
         text += ",\nprefixes=[%s]" % prefixes
 
+    if op.if_not_exists is not None:
+        text += ",\nif_not_exists=%r" % bool(op.if_not_exists)
+
     text += "\n)"
     return text
 
@@ -291,6 +294,10 @@ def _drop_table(autogen_context: AutogenContext, op: ops.DropTableOp) -> str:
     }
     if op.schema:
         text += ", schema=%r" % _ident(op.schema)
+
+    if op.if_exists is not None:
+        text += ", if_exists=%r" % bool(op.if_exists)
+
     text += ")"
     return text
 
