@@ -45,7 +45,7 @@ _T = TypeVar("_T")
 _TR = TypeVar("_TR", bound=Optional[_RevisionOrStr])
 
 _relative_destination = re.compile(r"(?:(.+?)@)?(\w+)?((?:\+|-)\d+)")
-_revision_illegal_chars = ["@", "-", "+"]
+_revision_illegal_chars = ["@", "-", "+", ":"]
 
 
 class _CollectRevisionsProtocol(Protocol):
