@@ -5,7 +5,50 @@ Changelog
 
 .. changelog::
     :version: 1.13.3
-    :include_notes_from: unreleased
+    :released: September 23, 2024
+
+    .. change::
+        :tags: usecase, autogenerate
+
+        Render ``if_exists`` and ``if_not_exists`` parameters in
+        :class:`.CreateTableOp`, :class:`.CreateIndexOp`, :class:`.DropTableOp` and
+        :class:`.DropIndexOp` in an autogenerate context.  While Alembic does not
+        set these parameters during an autogenerate run, they can be enabled using
+        a custom :class:`.Rewriter` in the ``env.py`` file, where they will now be
+        part of the rendered Python code in revision files.  Pull request courtesy
+        of Louis-Amaury Chaib (@lachaib).
+
+    .. change::
+        :tags: usecase, environment
+        :tickets: 1509
+
+        Enhance ``version_locations`` parsing to handle paths containing newlines.
+
+    .. change::
+        :tags: usecase, operations
+        :tickets: 1520
+
+        Added support for :paramref:`.Operations.create_table.if_not_exists` and
+        :paramref:`.Operations.drop_table.if_exists`, adding similar functionality
+        to render IF [NOT] EXISTS for table operations in a similar way as with
+        indexes. Pull request courtesy Aaron Griffin.
+
+
+    .. change::
+        :tags: change, general
+
+        The pin for ``setuptools<69.3`` in ``pyproject.toml`` has been removed.
+        This pin was to prevent a sudden change to :pep:`625` in setuptools from
+        taking place which changes the file name of SQLAlchemy's source
+        distribution on pypi to be an all lower case name, and the change was
+        extended to all SQLAlchemy projects to prevent any further surprises.
+        However, the presence of this pin is now holding back environments that
+        otherwise want to use a newer setuptools, so we've decided to move forward
+        with this change, with the assumption that build environments will have
+        largely accommodated the setuptools change by now.
+
+
+
 
 .. changelog::
     :version: 1.13.2
