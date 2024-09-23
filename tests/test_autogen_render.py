@@ -93,6 +93,20 @@ class AutogenRenderTest(TestBase):
             "['active', 'code'], unique=False)",
         )
 
+    def test_render_add_index_if_not_exists(self):
+        """
+        autogenerate.render._add_index
+        """
+        t = self.table()
+        idx = Index("test_active_code_idx", t.c.active, t.c.code)
+        op_obj = ops.CreateIndexOp.from_index(idx)
+        op_obj.if_not_exists = True
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.create_index('test_active_code_idx', 'test', "
+            "['active', 'code'], unique=False, if_not_exists=True)",
+        )
+
     @testing.emits_warning("Can't validate argument ")
     def test_render_add_index_custom_kwarg(self):
         t = self.table()
@@ -210,6 +224,20 @@ class AutogenRenderTest(TestBase):
         eq_ignore_whitespace(
             autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.drop_index('test_active_code_idx', table_name='test')",
+        )
+
+    def test_drop_index_if_exists(self):
+        """
+        autogenerate.render._drop_index
+        """
+        t = self.table()
+        idx = Index("test_active_code_idx", t.c.active, t.c.code)
+        op_obj = ops.DropIndexOp.from_index(idx)
+        op_obj.if_exists = True
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.drop_index('test_active_code_idx', table_name='test', "
+            "if_exists=True)",
         )
 
     def test_drop_index_text(self):
@@ -989,6 +1017,19 @@ class AutogenRenderTest(TestBase):
             "mysql_engine='InnoDB',sqlite_autoincrement=True)",
         )
 
+    def test_render_if_not_exists(self):
+        t = self.table()
+        op_obj = ops.CreateTableOp.from_table(t)
+        op_obj.if_not_exists = True
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.create_table('test',"
+            "sa.Column('id', sa.Integer(), nullable=False),"
+            "sa.Column('active', sa.Boolean(), nullable=True),"
+            "sa.Column('code', sa.String(length=255), nullable=True),"
+            "sa.PrimaryKeyConstraint('id'),if_not_exists=True)",
+        )
+
     def test_render_drop_table(self):
         op_obj = ops.DropTableOp.from_table(Table("sometable", MetaData()))
         eq_ignore_whitespace(
@@ -1003,6 +1044,15 @@ class AutogenRenderTest(TestBase):
         eq_ignore_whitespace(
             autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.drop_table('sometable', schema='foo')",
+        )
+
+    def test_render_drop_table_if_exists(self):
+        t = self.table()
+        op_obj = ops.DropTableOp.from_table(t)
+        op_obj.if_exists = True
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.drop_table('test', if_exists=True)",
         )
 
     def test_render_table_no_implicit_check(self):

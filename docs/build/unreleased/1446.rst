@@ -1,0 +1,10 @@
+.. change::
+    :tags: usecase, autogenerate
+
+    Render ``if_exists`` and ``if_not_exists`` parameters in
+    :class:`.CreateTableOp`, :class:`.CreateIndexOp`, :class:`.DropTableOp` and
+    :class:`.DropIndexOp` in an autogenerate context.  While Alembic does not
+    set these parameters during an autogenerate run, they can be enabled using
+    a custom :class:`.Rewriter` in the ``env.py`` file, where they will now be
+    part of the rendered Python code in revision files.  Pull request courtesy
+    of Louis-Amaury Chaib (@lachaib).
