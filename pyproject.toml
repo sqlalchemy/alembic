@@ -7,6 +7,16 @@ requires = [
 [tool.black]
 line-length = 79
 
+[tool.pytest.ini_options]
+addopts = "--tb native -v -r sfxX -p no:warnings -p no:logging --maxfail=100"
+python_files = "tests/test_*.py"
+markers = [
+    "backend: tests that should run on all backends; typically dialect-sensitive",
+    "mypy: mypy integration / plugin tests (not used by Alembic currently)",
+]
+
+
+
 [tool.mypy]
 
 exclude = [
