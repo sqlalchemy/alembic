@@ -277,7 +277,7 @@ class AutogenContext:
     """Maintains configuration and state that's specific to an
     autogenerate operation."""
 
-    metadata: Optional[MetaData] = None
+    metadata: Union[MetaData, Sequence[MetaData], None] = None
     """The :class:`~sqlalchemy.schema.MetaData` object
     representing the destination.
 
@@ -332,7 +332,7 @@ class AutogenContext:
     def __init__(
         self,
         migration_context: MigrationContext,
-        metadata: Optional[MetaData] = None,
+        metadata: Union[MetaData, Sequence[MetaData], None] = None,
         opts: Optional[Dict[str, Any]] = None,
         autogenerate: bool = True,
     ) -> None:
