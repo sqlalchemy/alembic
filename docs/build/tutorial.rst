@@ -217,12 +217,12 @@ The file generated with the "generic" configuration looks like::
     keys = generic
 
     [logger_root]
-    level = WARN
+    level = WARNING
     handlers = console
     qualname =
 
     [logger_sqlalchemy]
-    level = WARN
+    level = WARNING
     handlers =
     qualname = sqlalchemy.engine
 

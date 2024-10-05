@@ -118,7 +118,7 @@ keys = root,sqlalchemy
 keys = console
 
 [logger_root]
-level = WARN
+level = WARNING
 handlers = console
 qualname =
 
@@ -171,7 +171,7 @@ keys = root
 keys = console
 
 [logger_root]
-level = WARN
+level = WARNING
 handlers = console
 qualname =
 
@@ -216,7 +216,7 @@ keys = root
 keys = console
 
 [logger_root]
-level = WARN
+level = WARNING
 handlers = console
 qualname =
 
@@ -497,7 +497,7 @@ keys = root
 keys = console
 
 [logger_root]
-level = WARN
+level = WARNING
 handlers = console
 qualname =
 
