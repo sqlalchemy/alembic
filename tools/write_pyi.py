@@ -11,11 +11,11 @@ from tempfile import NamedTemporaryFile
 import textwrap
 import typing
 
+sys.path.append(str(Path(__file__).parent.parent))
+
 from alembic.autogenerate.api import AutogenContext
 from alembic.ddl.impl import DefaultImpl
 from alembic.runtime.migration import MigrationInfo
-
-sys.path.append(str(Path(__file__).parent.parent))
 
 if True:  # avoid flake/zimports messing with the order
     from alembic.operations.base import BatchOperations
