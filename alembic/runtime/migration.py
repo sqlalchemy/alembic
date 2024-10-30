@@ -540,7 +540,7 @@ class MigrationContext:
                 return ()
         assert self.connection is not None
         return tuple(
-            row[0] for row in self.connection.execute(self._version.select())
+            row[0] for row in self.connection.execute(self._version.select().with_only_columns(self._version.c.version_num))
         )
 
     def _ensure_version_table(self, purge: bool = False) -> None:
