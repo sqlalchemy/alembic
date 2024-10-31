@@ -24,10 +24,6 @@ from typing import Union
 
 from sqlalchemy import Column
 from sqlalchemy import literal_column
-from sqlalchemy import MetaData
-from sqlalchemy import PrimaryKeyConstraint
-from sqlalchemy import String
-from sqlalchemy import Table
 from sqlalchemy.engine import Engine
 from sqlalchemy.engine import url as sqla_url
 from sqlalchemy.engine.strategies import MockEngineStrategy
@@ -36,6 +32,7 @@ from .. import ddl
 from .. import util
 from ..util import sqla_compat
 from ..util.compat import EncodedIO
+from ..util.sqla_compat import _select
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import Dialect
@@ -190,18 +187,6 @@ class MigrationContext:
         self.version_table_schema = version_table_schema = opts.get(
             "version_table_schema", None
         )
-        self._version = Table(
-            version_table,
-            MetaData(),
-            Column("version_num", String(32), nullable=False),
-            schema=version_table_schema,
-        )
-        if opts.get("version_table_pk", True):
-            self._version.append_constraint(
-                PrimaryKeyConstraint(
-                    "version_num", name="%s_pkc" % version_table
-                )
-            )
 
         self._start_from_rev: Optional[str] = opts.get("starting_rev")
         self.impl = ddl.DefaultImpl.get_by_dialect(dialect)(
@@ -212,6 +197,13 @@ class MigrationContext:
             self.output_buffer,
             opts,
         )
+
+        self._version = self.impl.version_table_impl(
+            version_table=version_table,
+            version_table_schema=version_table_schema,
+            version_table_pk=opts.get("version_table_pk", True),
+        )
+
         log.info("Context impl %s.", self.impl.__class__.__name__)
         if self.as_sql:
             log.info("Generating static SQL")
@@ -540,7 +532,10 @@ class MigrationContext:
                 return ()
         assert self.connection is not None
         return tuple(
-            row[0] for row in self.connection.execute(self._version.select())
+            row[0]
+            for row in self.connection.execute(
+                _select(self._version.c.version_num)
+            )
         )
 
     def _ensure_version_table(self, purge: bool = False) -> None:

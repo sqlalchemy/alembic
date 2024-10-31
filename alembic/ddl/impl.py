@@ -21,7 +21,12 @@ from typing import TYPE_CHECKING
 from typing import Union
 
 from sqlalchemy import cast
+from sqlalchemy import Column
+from sqlalchemy import MetaData
+from sqlalchemy import PrimaryKeyConstraint
 from sqlalchemy import schema
+from sqlalchemy import String
+from sqlalchemy import Table
 from sqlalchemy import text
 
 from . import _autogen
@@ -43,11 +48,9 @@ if TYPE_CHECKING:
     from sqlalchemy.sql import Executable
     from sqlalchemy.sql.elements import ColumnElement
     from sqlalchemy.sql.elements import quoted_name
-    from sqlalchemy.sql.schema import Column
     from sqlalchemy.sql.schema import Constraint
     from sqlalchemy.sql.schema import ForeignKeyConstraint
     from sqlalchemy.sql.schema import Index
-    from sqlalchemy.sql.schema import Table
     from sqlalchemy.sql.schema import UniqueConstraint
     from sqlalchemy.sql.selectable import TableClause
     from sqlalchemy.sql.type_api import TypeEngine
@@ -135,6 +138,32 @@ class DefaultImpl(metaclass=ImplMeta):
         assert self.output_buffer is not None
         self.output_buffer.write(text + "\n\n")
         self.output_buffer.flush()
+
+    def version_table_impl(
+        self, *, version_table, version_table_schema, version_table_pk, **kw
+    ) -> Table:
+        """create the Table object for the version_table.
+
+        Provided as part of impl so that third party dialects can override
+        this.
+
+        .. versionadded:: 1.13.4
+
+        """
+        vt = Table(
+            version_table,
+            MetaData(),
+            Column("version_num", String(32), nullable=False),
+            schema=version_table_schema,
+        )
+        if version_table_pk:
+            vt.append_constraint(
+                PrimaryKeyConstraint(
+                    "version_num", name=f"{version_table}_pkc"
+                )
+            )
+
+        return vt
 
     def requires_recreate_in_batch(
         self, batch_op: BatchOperationsImpl

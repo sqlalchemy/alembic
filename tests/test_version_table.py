@@ -1,10 +1,13 @@
 from sqlalchemy import Column
 from sqlalchemy import inspect
+from sqlalchemy import Integer
 from sqlalchemy import MetaData
+from sqlalchemy import PrimaryKeyConstraint
 from sqlalchemy import String
 from sqlalchemy import Table
 
 from alembic import migration
+from alembic.ddl import impl
 from alembic.testing import assert_raises
 from alembic.testing import assert_raises_message
 from alembic.testing import config
@@ -373,3 +376,46 @@ class UpdateRevTest(TestBase):
                 self.connection.dialect, "supports_sane_rowcount", False
             ):
                 self.updater.update_to_step(_down("a", None, True))
+
+
+class CustomVersionTableTest(TestMigrationContext):
+
+    class MyDialectImpl(impl.DefaultImpl):
+
+        def version_table_impl(
+            self,
+            *,
+            version_table,
+            version_table_schema,
+            version_table_pk,
+            **kw,
+        ):
+            vt = Table(
+                version_table,
+                MetaData(),
+                Column("id", Integer, autoincrement=True),
+                Column("version_num", String(32), nullable=False),
+                schema=version_table_schema,
+            )
+            if version_table_pk:
+                vt.append_constraint(
+                    PrimaryKeyConstraint("id", name=f"{version_table}_pkc")
+                )
+            return vt
+
+    def setUp(self):
+        # nasty hack to get the sqlite dialect
+        # to use our custom dialect implementation
+        impl._impls["sqlite_bak"] = impl._impls["sqlite"]
+        impl._impls["sqlite"] = self.MyDialectImpl
+        super().setUp()
+
+    def tearDown(self):
+        super().tearDown()
+        impl._impls["sqlite"] = impl._impls["sqlite_bak"]
+
+    def test_custom_version_table(self):
+        context = migration.MigrationContext.configure(
+            dialect_name="sqlite",
+        )
+        eq_(len(context._version.columns), 2)
