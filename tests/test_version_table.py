@@ -1,3 +1,5 @@
+from typing import Optional
+
 from sqlalchemy import Column
 from sqlalchemy import inspect
 from sqlalchemy import Integer
@@ -385,9 +387,9 @@ class CustomVersionTableTest(TestMigrationContext):
         def version_table_impl(
             self,
             *,
-            version_table,
-            version_table_schema,
-            version_table_pk,
+            version_table: str,
+            version_table_schema: Optional[str],
+            version_table_pk: bool,
             **kw,
         ):
             vt = Table(

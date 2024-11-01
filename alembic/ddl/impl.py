@@ -140,14 +140,19 @@ class DefaultImpl(metaclass=ImplMeta):
         self.output_buffer.flush()
 
     def version_table_impl(
-        self, *, version_table, version_table_schema, version_table_pk, **kw
+        self,
+        *,
+        version_table: str,
+        version_table_schema: Optional[str],
+        version_table_pk: bool,
+        **kw,
     ) -> Table:
         """create the Table object for the version_table.
 
         Provided as part of impl so that third party dialects can override
         this.
 
-        .. versionadded:: 1.13.4
+        .. versionadded:: 1.14
 
         """
         vt = Table(
