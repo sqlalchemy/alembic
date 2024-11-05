@@ -2,8 +2,8 @@ Auto Generating Migrations
 ===========================
 
 Alembic can view the status of the database (pointed to by ``sqlalchemy.url`` in
-your ``alemic.ini`` file using the *previous* schema) and compare against the
-table metadata in the application (your ORM which defines the *latest* schema),
+your ``alemic.ini`` file using the *current* schema) and compare against the
+table metadata in the application (your ORM which defines the *proposed* schema),
 generating the "obvious" migrations based on a comparison.  This is achieved
 using the ``--autogenerate`` option to the ``alembic revision`` command, which
 places so-called *candidate* migrations into our new migrations file.  We
