@@ -1,0 +1,6 @@
+.. change::
+    :tags: bug, environment
+    :tickets: 1556
+
+    Added `tzdata` to `tz` extras, which is required on some platforms such as
+    Windows.  Pull request courtesy Danipulok.
