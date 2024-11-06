@@ -50,7 +50,9 @@ prepend_sys_path = .
 # version_path_separator = ;
 # version_path_separator = space
 # version_path_separator = newline
-version_path_separator = os  # Use os.pathsep. Default configuration used for new projects.
+#
+# Use os.pathsep. Default configuration used for new projects.
+version_path_separator = os
 
 # set to 'true' to search source files recursively
 # in each "version_locations" directory
