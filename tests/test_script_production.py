@@ -297,7 +297,7 @@ class ScriptNamingTest(TestBase):
         with patch("alembic.script.base.ZoneInfo", new=None):
             with expect_raises_message(
                 CommandError,
-                "Python >= 3.9 is required for timezone support or"
+                "Python >= 3.9 is required for timezone support or "
                 "the 'backports.zoneinfo' package must be installed.",
             ):
                 self._test_tz(

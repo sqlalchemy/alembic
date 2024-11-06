@@ -94,21 +94,29 @@ class MySQLImpl(DefaultImpl):
                     column_name,
                     schema=schema,
                     newname=name if name is not None else column_name,
-                    nullable=nullable
-                    if nullable is not None
-                    else existing_nullable
-                    if existing_nullable is not None
-                    else True,
+                    nullable=(
+                        nullable
+                        if nullable is not None
+                        else (
+                            existing_nullable
+                            if existing_nullable is not None
+                            else True
+                        )
+                    ),
                     type_=type_ if type_ is not None else existing_type,
-                    default=server_default
-                    if server_default is not False
-                    else existing_server_default,
-                    autoincrement=autoincrement
-                    if autoincrement is not None
-                    else existing_autoincrement,
-                    comment=comment
-                    if comment is not False
-                    else existing_comment,
+                    default=(
+                        server_default
+                        if server_default is not False
+                        else existing_server_default
+                    ),
+                    autoincrement=(
+                        autoincrement
+                        if autoincrement is not None
+                        else existing_autoincrement
+                    ),
+                    comment=(
+                        comment if comment is not False else existing_comment
+                    ),
                 )
             )
         elif (
@@ -123,21 +131,29 @@ class MySQLImpl(DefaultImpl):
                     column_name,
                     schema=schema,
                     newname=name if name is not None else column_name,
-                    nullable=nullable
-                    if nullable is not None
-                    else existing_nullable
-                    if existing_nullable is not None
-                    else True,
+                    nullable=(
+                        nullable
+                        if nullable is not None
+                        else (
+                            existing_nullable
+                            if existing_nullable is not None
+                            else True
+                        )
+                    ),
                     type_=type_ if type_ is not None else existing_type,
-                    default=server_default
-                    if server_default is not False
-                    else existing_server_default,
-                    autoincrement=autoincrement
-                    if autoincrement is not None
-                    else existing_autoincrement,
-                    comment=comment
-                    if comment is not False
-                    else existing_comment,
+                    default=(
+                        server_default
+                        if server_default is not False
+                        else existing_server_default
+                    ),
+                    autoincrement=(
+                        autoincrement
+                        if autoincrement is not None
+                        else existing_autoincrement
+                    ),
+                    comment=(
+                        comment if comment is not False else existing_comment
+                    ),
                 )
             )
         elif server_default is not False:
@@ -368,9 +384,11 @@ def _mysql_alter_default(
     return "%s ALTER COLUMN %s %s" % (
         alter_table(compiler, element.table_name, element.schema),
         format_column_name(compiler, element.column_name),
-        "SET DEFAULT %s" % format_server_default(compiler, element.default)
-        if element.default is not None
-        else "DROP DEFAULT",
+        (
+            "SET DEFAULT %s" % format_server_default(compiler, element.default)
+            if element.default is not None
+            else "DROP DEFAULT"
+        ),
     )
 
 

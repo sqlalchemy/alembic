@@ -141,7 +141,7 @@ The file generated with the "generic" configuration looks like::
 
     # timezone to use when rendering the date within the migration file
     # as well as the filename.
-    # If specified, requires the python>=3.9 or backports.zoneinfo library.
+    # If specified, requires the python>=3.9 or backports.zoneinfo library and tzdata library.
     # Any required deps can installed by adding `alembic[tz]` to the pip requirements
     # string value is passed to ZoneInfo()
     # leave blank for localtime
@@ -174,6 +174,7 @@ The file generated with the "generic" configuration looks like::
     # version_path_separator = :
     # version_path_separator = ;
     # version_path_separator = space
+    # version_path_separator = newline
     version_path_separator = os  # Use os.pathsep. Default configuration used for new projects.
 
     # set to 'true' to search source files recursively
@@ -203,7 +204,7 @@ The file generated with the "generic" configuration looks like::
     # hooks = ruff
     # ruff.type = exec
     # ruff.executable = %(here)s/.venv/bin/ruff
-    # ruff.options = --fix REVISION_SCRIPT_FILENAME
+    # ruff.options = check --fix REVISION_SCRIPT_FILENAME
 
     # Logging configuration
     [loggers]
@@ -216,12 +217,12 @@ The file generated with the "generic" configuration looks like::
     keys = generic
 
     [logger_root]
-    level = WARN
+    level = WARNING
     handlers = console
     qualname =
 
     [logger_sqlalchemy]
-    level = WARN
+    level = WARNING
     handlers =
     qualname = sqlalchemy.engine
 
@@ -298,9 +299,9 @@ This file contains the following features:
 * ``timezone`` - an optional timezone name (e.g. ``UTC``, ``EST5EDT``, etc.)
   that will be applied to the timestamp which renders inside the migration
   file's comment as well as within the filename. This option requires Python>=3.9
-  or installing the ``backports.zoneinfo`` library. If ``timezone`` is specified,
-  the create date object is no longer derived from ``datetime.datetime.now()``
-  and is instead generated as::
+  or installing the ``backports.zoneinfo`` library and the ``tzdata`` library. 
+  If ``timezone`` is specified, the create date object is no longer derived
+  from ``datetime.datetime.now()`` and is instead generated as::
 
       datetime.datetime.utcnow().replace(
         tzinfo=datetime.timezone.utc

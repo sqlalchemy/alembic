@@ -4,8 +4,112 @@ Changelog
 ==========
 
 .. changelog::
-    :version: 1.13.2
+    :version: 1.14.1
     :include_notes_from: unreleased
+
+.. changelog::
+    :version: 1.14.0
+    :released: November 4, 2024
+
+    .. change::
+        :tags: usecase, runtime
+        :tickets: 1560
+
+        Added a new hook to the :class:`.DefaultImpl`
+        :meth:`.DefaultImpl.version_table_impl`.  This allows third party dialects
+        to define the exact structure of the alembic_version table, to include use
+        cases where the table requires special directives and/or additional columns
+        so that it may function correctly on a particular backend.  This is not
+        intended as a user-expansion hook, only a dialect implementation hook to
+        produce a working alembic_version table. Pull request courtesy Maciek
+        Bryński.
+
+.. changelog::
+    :version: 1.13.3
+    :released: September 23, 2024
+
+    .. change::
+        :tags: usecase, autogenerate
+
+        Render ``if_exists`` and ``if_not_exists`` parameters in
+        :class:`.CreateTableOp`, :class:`.CreateIndexOp`, :class:`.DropTableOp` and
+        :class:`.DropIndexOp` in an autogenerate context.  While Alembic does not
+        set these parameters during an autogenerate run, they can be enabled using
+        a custom :class:`.Rewriter` in the ``env.py`` file, where they will now be
+        part of the rendered Python code in revision files.  Pull request courtesy
+        of Louis-Amaury Chaib (@lachaib).
+
+    .. change::
+        :tags: usecase, environment
+        :tickets: 1509
+
+        Enhance ``version_locations`` parsing to handle paths containing newlines.
+
+    .. change::
+        :tags: usecase, operations
+        :tickets: 1520
+
+        Added support for :paramref:`.Operations.create_table.if_not_exists` and
+        :paramref:`.Operations.drop_table.if_exists`, adding similar functionality
+        to render IF [NOT] EXISTS for table operations in a similar way as with
+        indexes. Pull request courtesy Aaron Griffin.
+
+
+    .. change::
+        :tags: change, general
+
+        The pin for ``setuptools<69.3`` in ``pyproject.toml`` has been removed.
+        This pin was to prevent a sudden change to :pep:`625` in setuptools from
+        taking place which changes the file name of SQLAlchemy's source
+        distribution on pypi to be an all lower case name, and the change was
+        extended to all SQLAlchemy projects to prevent any further surprises.
+        However, the presence of this pin is now holding back environments that
+        otherwise want to use a newer setuptools, so we've decided to move forward
+        with this change, with the assumption that build environments will have
+        largely accommodated the setuptools change by now.
+
+
+
+
+.. changelog::
+    :version: 1.13.2
+    :released: June 26, 2024
+
+    .. change::
+        :tags: bug, commands
+        :tickets: 1384
+
+        Fixed bug in alembic command stdout where long messages were not properly
+        wrapping at the terminal width.   Pull request courtesy Saif Hakim.
+
+    .. change::
+        :tags: usecase, autogenerate
+        :tickets: 1391
+
+        Improve computed column compare function to support multi-line expressions.
+        Pull request courtesy of Georg Wicke-Arndt.
+
+    .. change::
+        :tags: bug, execution
+        :tickets: 1394
+
+        Fixed internal issue where Alembic would call ``connection.execute()``
+        sending an empty tuple to indicate "no params".  In SQLAlchemy 2.1 this
+        case will be deprecated as "empty sequence" is ambiguous as to its intent.
+
+
+    .. change::
+        :tags: bug, tests
+        :tickets: 1435
+
+        Fixes to support pytest 8.1 for the test suite.
+
+    .. change::
+        :tags: bug, autogenerate, postgresql
+        :tickets: 1479
+
+        Fixed the detection of serial column in autogenerate with tables
+        not under default schema on PostgreSQL
 
 .. changelog::
     :version: 1.13.1

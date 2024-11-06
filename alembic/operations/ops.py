@@ -349,7 +349,7 @@ class CreatePrimaryKeyOp(AddConstraintOp):
     def batch_create_primary_key(
         cls,
         operations: BatchOperations,
-        constraint_name: str,
+        constraint_name: Optional[str],
         columns: List[str],
     ) -> None:
         """Issue a "create primary key" instruction using the
@@ -681,7 +681,7 @@ class CreateForeignKeyOp(AddConstraintOp):
     def batch_create_foreign_key(
         cls,
         operations: BatchOperations,
-        constraint_name: str,
+        constraint_name: Optional[str],
         referent_table: str,
         local_cols: List[str],
         remote_cols: List[str],
@@ -1159,6 +1159,7 @@ class CreateTableOp(MigrateOperation):
         columns: Sequence[SchemaItem],
         *,
         schema: Optional[str] = None,
+        if_not_exists: Optional[bool] = None,
         _namespace_metadata: Optional[MetaData] = None,
         _constraints_included: bool = False,
         **kw: Any,
@@ -1166,6 +1167,7 @@ class CreateTableOp(MigrateOperation):
         self.table_name = table_name
         self.columns = columns
         self.schema = schema
+        self.if_not_exists = if_not_exists
         self.info = kw.pop("info", {})
         self.comment = kw.pop("comment", None)
         self.prefixes = kw.pop("prefixes", None)
@@ -1228,6 +1230,7 @@ class CreateTableOp(MigrateOperation):
         operations: Operations,
         table_name: str,
         *columns: SchemaItem,
+        if_not_exists: Optional[bool] = None,
         **kw: Any,
     ) -> Table:
         r"""Issue a "create table" instruction using the current migration
@@ -1300,6 +1303,10 @@ class CreateTableOp(MigrateOperation):
          quoting of the schema outside of the default behavior, use
          the SQLAlchemy construct
          :class:`~sqlalchemy.sql.elements.quoted_name`.
+        :param if_not_exists: If True, adds IF NOT EXISTS operator when
+         creating the new table.
+
+         .. versionadded:: 1.13.3
         :param \**kw: Other keyword arguments are passed to the underlying
          :class:`sqlalchemy.schema.Table` object created for the command.
 
@@ -1307,7 +1314,7 @@ class CreateTableOp(MigrateOperation):
          to the parameters given.
 
         """
-        op = cls(table_name, columns, **kw)
+        op = cls(table_name, columns, if_not_exists=if_not_exists, **kw)
         return operations.invoke(op)
 
 
@@ -1320,11 +1327,13 @@ class DropTableOp(MigrateOperation):
         table_name: str,
         *,
         schema: Optional[str] = None,
+        if_exists: Optional[bool] = None,
         table_kw: Optional[MutableMapping[Any, Any]] = None,
         _reverse: Optional[CreateTableOp] = None,
     ) -> None:
         self.table_name = table_name
         self.schema = schema
+        self.if_exists = if_exists
         self.table_kw = table_kw or {}
         self.comment = self.table_kw.pop("comment", None)
         self.info = self.table_kw.pop("info", None)
@@ -1371,9 +1380,9 @@ class DropTableOp(MigrateOperation):
             info=self.info.copy() if self.info else {},
             prefixes=list(self.prefixes) if self.prefixes else [],
             schema=self.schema,
-            _constraints_included=self._reverse._constraints_included
-            if self._reverse
-            else False,
+            _constraints_included=(
+                self._reverse._constraints_included if self._reverse else False
+            ),
             **self.table_kw,
         )
         return t
@@ -1385,6 +1394,7 @@ class DropTableOp(MigrateOperation):
         table_name: str,
         *,
         schema: Optional[str] = None,
+        if_exists: Optional[bool] = None,
         **kw: Any,
     ) -> None:
         r"""Issue a "drop table" instruction using the current
@@ -1400,11 +1410,15 @@ class DropTableOp(MigrateOperation):
          quoting of the schema outside of the default behavior, use
          the SQLAlchemy construct
          :class:`~sqlalchemy.sql.elements.quoted_name`.
+        :param if_exists: If True, adds IF EXISTS operator when
+         dropping the table.
+
+         .. versionadded:: 1.13.3
         :param \**kw: Other keyword arguments are passed to the underlying
          :class:`sqlalchemy.schema.Table` object created for the command.
 
         """
-        op = cls(table_name, schema=schema, table_kw=kw)
+        op = cls(table_name, schema=schema, if_exists=if_exists, table_kw=kw)
         operations.invoke(op)
 
 

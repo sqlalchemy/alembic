@@ -56,7 +56,6 @@ _split_on_space_comma_colon = re.compile(r", *|(?: +)|\:")
 
 
 class ScriptDirectory:
-
     """Provides operations upon an Alembic script directory.
 
     This object is useful to get information as to current revisions,
@@ -188,6 +187,7 @@ class ScriptDirectory:
             split_on_path = {
                 None: None,
                 "space": " ",
+                "newline": "\n",
                 "os": os.pathsep,
                 ":": ":",
                 ";": ";",
@@ -201,7 +201,8 @@ class ScriptDirectory:
                 raise ValueError(
                     "'%s' is not a valid value for "
                     "version_path_separator; "
-                    "expected 'space', 'os', ':', ';'" % version_path_separator
+                    "expected 'space', 'newline', 'os', ':', ';'"
+                    % version_path_separator
                 ) from ke
             else:
                 if split_char is None:
@@ -211,7 +212,9 @@ class ScriptDirectory:
                     )
                 else:
                     version_locations = [
-                        x for x in version_locations_str.split(split_char) if x
+                        x.strip()
+                        for x in version_locations_str.split(split_char)
+                        if x
                     ]
         else:
             version_locations = None
@@ -610,7 +613,7 @@ class ScriptDirectory:
         if self.timezone is not None:
             if ZoneInfo is None:
                 raise util.CommandError(
-                    "Python >= 3.9 is required for timezone support or"
+                    "Python >= 3.9 is required for timezone support or "
                     "the 'backports.zoneinfo' package must be installed."
                 )
             # First, assume correct capitalization
@@ -732,9 +735,11 @@ class ScriptDirectory:
         if depends_on:
             with self._catch_revision_errors():
                 resolved_depends_on = [
-                    dep
-                    if dep in rev.branch_labels  # maintain branch labels
-                    else rev.revision  # resolve partial revision identifiers
+                    (
+                        dep
+                        if dep in rev.branch_labels  # maintain branch labels
+                        else rev.revision
+                    )  # resolve partial revision identifiers
                     for rev, dep in [
                         (not_none(self.revision_map.get_revision(dep)), dep)
                         for dep in util.to_list(depends_on)
@@ -808,7 +813,6 @@ class ScriptDirectory:
 
 
 class Script(revision.Revision):
-
     """Represent a single revision file in a ``versions/`` directory.
 
     The :class:`.Script` instance is returned by methods
@@ -930,9 +934,11 @@ class Script(revision.Revision):
         if head_indicators or tree_indicators:
             text += "%s%s%s" % (
                 " (head)" if self._is_real_head else "",
-                " (effective head)"
-                if self.is_head and not self._is_real_head
-                else "",
+                (
+                    " (effective head)"
+                    if self.is_head and not self._is_real_head
+                    else ""
+                ),
                 " (current)" if self._db_current_indicator else "",
             )
         if tree_indicators:

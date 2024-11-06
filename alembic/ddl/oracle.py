@@ -141,9 +141,11 @@ def visit_column_default(
     return "%s %s %s" % (
         alter_table(compiler, element.table_name, element.schema),
         alter_column(compiler, element.column_name),
-        "DEFAULT %s" % format_server_default(compiler, element.default)
-        if element.default is not None
-        else "DEFAULT NULL",
+        (
+            "DEFAULT %s" % format_server_default(compiler, element.default)
+            if element.default is not None
+            else "DEFAULT NULL"
+        ),
     )
 
 

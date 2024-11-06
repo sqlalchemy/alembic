@@ -164,6 +164,8 @@ parameter in ``env.py``, which is normally configured when autogenerate is
 used::
 
     # in your application's model:
+    from sqlalchemy import MetaData
+    from sqlalchemy.orm import DeclarativeBase
 
     class Base(DeclarativeBase):
         metadata = MetaData(naming_convention={

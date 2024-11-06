@@ -4,7 +4,7 @@
 # You can set these variables from the command line.
 SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
-AUTOBUILD     = sphinx-autobuild  --port 8080  --watch ../../lib
+AUTOBUILD     = sphinx-autobuild  --port 8080  --watch ../../alembic
 PAPER         =
 BUILDDIR      = output
 

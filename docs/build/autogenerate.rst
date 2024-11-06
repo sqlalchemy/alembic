@@ -246,6 +246,14 @@ The list of objects that are scanned in the target database connection include:
   :meth:`~sqlalchemy.engine.reflection.Inspector.get_foreign_keys` (as of this
   writing, CHECK constraints and primary key constraints are not yet included).
 
+.. seealso::
+
+    :ref:`sqla:schema_table_schema_name` - in depth introduction to how
+    SQLAlchemy interprets schema names
+
+    :ref:`sqla:postgresql_schema_reflection` - important notes specific to the
+    PostgreSQL database
+
 Omitting Schema Names from the Autogenerate Process
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

@@ -1,4 +1,5 @@
 """Test op functions against MSSQL."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -118,9 +119,9 @@ class OpTest(TestBase):
             expected_nullability = not existing_nullability
             args["nullable"] = expected_nullability
         else:
-            args[
-                "existing_nullable"
-            ] = expected_nullability = existing_nullability
+            args["existing_nullable"] = expected_nullability = (
+                existing_nullability
+            )
 
         op.alter_column("t", "c", **args)
 

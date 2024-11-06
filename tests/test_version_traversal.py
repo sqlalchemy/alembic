@@ -554,7 +554,6 @@ class BranchedPathTest(MigrationTest):
 
 
 class BranchFromMergepointTest(MigrationTest):
-
     """this is a form that will come up frequently in the
     "many independent roots with cross-dependencies" case.
 
@@ -617,7 +616,6 @@ class BranchFromMergepointTest(MigrationTest):
 
 
 class BranchFrom3WayMergepointTest(MigrationTest):
-
     """this is a form that will come up frequently in the
     "many independent roots with cross-dependencies" case.
 

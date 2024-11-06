@@ -329,19 +329,21 @@ class BatchApplyTest(TestBase):
         )
 
         args["tname_colnames"] = ", ".join(
-            "CAST(%(schema)stname.%(name)s AS %(type)s) AS %(cast_label)s"
-            % {
-                "schema": args["schema"],
-                "name": name,
-                "type": impl.new_table.c[name].type,
-                "cast_label": name if sqla_14 else "anon_1",
-            }
-            if (
-                impl.new_table.c[name].type._type_affinity
-                is not impl.table.c[name].type._type_affinity
+            (
+                "CAST(%(schema)stname.%(name)s AS %(type)s) AS %(cast_label)s"
+                % {
+                    "schema": args["schema"],
+                    "name": name,
+                    "type": impl.new_table.c[name].type,
+                    "cast_label": name if sqla_14 else "anon_1",
+                }
+                if (
+                    impl.new_table.c[name].type._type_affinity
+                    is not impl.table.c[name].type._type_affinity
+                )
+                else "%(schema)stname.%(name)s"
+                % {"schema": args["schema"], "name": name}
             )
-            else "%(schema)stname.%(name)s"
-            % {"schema": args["schema"], "name": name}
             for name in colnames
             if name in impl.table.c
         )

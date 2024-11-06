@@ -187,9 +187,11 @@ def _render_create_table_comment(
         prefix=_alembic_autogenerate_prefix(autogen_context),
         tname=op.table_name,
         comment="%r" % op.comment if op.comment is not None else None,
-        existing="%r" % op.existing_comment
-        if op.existing_comment is not None
-        else None,
+        existing=(
+            "%r" % op.existing_comment
+            if op.existing_comment is not None
+            else None
+        ),
         schema="'%s'" % op.schema if op.schema is not None else None,
         indent="    ",
     )
@@ -216,9 +218,11 @@ def _render_drop_table_comment(
     return templ.format(
         prefix=_alembic_autogenerate_prefix(autogen_context),
         tname=op.table_name,
-        existing="%r" % op.existing_comment
-        if op.existing_comment is not None
-        else None,
+        existing=(
+            "%r" % op.existing_comment
+            if op.existing_comment is not None
+            else None
+        ),
         schema="'%s'" % op.schema if op.schema is not None else None,
         indent="    ",
     )
@@ -275,6 +279,9 @@ def _add_table(autogen_context: AutogenContext, op: ops.CreateTableOp) -> str:
         prefixes = ", ".join("'%s'" % p for p in table._prefixes)
         text += ",\nprefixes=[%s]" % prefixes
 
+    if op.if_not_exists is not None:
+        text += ",\nif_not_exists=%r" % bool(op.if_not_exists)
+
     text += "\n)"
     return text
 
@@ -287,6 +294,10 @@ def _drop_table(autogen_context: AutogenContext, op: ops.DropTableOp) -> str:
     }
     if op.schema:
         text += ", schema=%r" % _ident(op.schema)
+
+    if op.if_exists is not None:
+        text += ", if_exists=%r" % bool(op.if_exists)
+
     text += ")"
     return text
 
@@ -320,6 +331,8 @@ def _add_index(autogen_context: AutogenContext, op: ops.CreateIndexOp) -> str:
     assert index.table is not None
 
     opts = _render_dialect_kwargs_items(autogen_context, index)
+    if op.if_not_exists is not None:
+        opts.append("if_not_exists=%r" % bool(op.if_not_exists))
     text = tmpl % {
         "prefix": _alembic_autogenerate_prefix(autogen_context),
         "name": _render_gen_name(autogen_context, index.name),
@@ -328,9 +341,11 @@ def _add_index(autogen_context: AutogenContext, op: ops.CreateIndexOp) -> str:
             _get_index_rendered_expressions(index, autogen_context)
         ),
         "unique": index.unique or False,
-        "schema": (", schema=%r" % _ident(index.table.schema))
-        if index.table.schema
-        else "",
+        "schema": (
+            (", schema=%r" % _ident(index.table.schema))
+            if index.table.schema
+            else ""
+        ),
         "kwargs": ", " + ", ".join(opts) if opts else "",
     }
     return text
@@ -350,6 +365,8 @@ def _drop_index(autogen_context: AutogenContext, op: ops.DropIndexOp) -> str:
             "table_name=%(table_name)r%(schema)s%(kwargs)s)"
         )
     opts = _render_dialect_kwargs_items(autogen_context, index)
+    if op.if_exists is not None:
+        opts.append("if_exists=%r" % bool(op.if_exists))
     text = tmpl % {
         "prefix": _alembic_autogenerate_prefix(autogen_context),
         "name": _render_gen_name(autogen_context, op.index_name),
@@ -592,9 +609,11 @@ def _get_index_rendered_expressions(
     idx: Index, autogen_context: AutogenContext
 ) -> List[str]:
     return [
-        repr(_ident(getattr(exp, "name", None)))
-        if isinstance(exp, sa_schema.Column)
-        else _render_potential_expr(exp, autogen_context, is_index=True)
+        (
+            repr(_ident(getattr(exp, "name", None)))
+            if isinstance(exp, sa_schema.Column)
+            else _render_potential_expr(exp, autogen_context, is_index=True)
+        )
         for exp in idx.expressions
     ]
 
@@ -1075,9 +1094,11 @@ def _render_check_constraint(
         )
     return "%(prefix)sCheckConstraint(%(sqltext)s%(opts)s)" % {
         "prefix": _sqlalchemy_autogenerate_prefix(autogen_context),
-        "opts": ", " + (", ".join("%s=%s" % (k, v) for k, v in opts))
-        if opts
-        else "",
+        "opts": (
+            ", " + (", ".join("%s=%s" % (k, v) for k, v in opts))
+            if opts
+            else ""
+        ),
         "sqltext": _render_potential_expr(
             constraint.sqltext, autogen_context, wrap_in_text=False
         ),

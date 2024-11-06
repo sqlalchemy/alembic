@@ -776,8 +776,8 @@ recreated again within the downgrade for this migration::
 
 .. _cookbook_postgresql_multi_tenancy:
 
-Rudimental Schema-Level Multi Tenancy for PostgreSQL Databases
-==============================================================
+Rudimental Schema-Level Multi Tenancy for PostgreSQL, MySQL, Other Databases
+============================================================================
 
 **Multi tenancy** refers to an application that accommodates for many
 clients simultaneously.   Within the scope of a database migrations tool,
@@ -789,9 +789,19 @@ the approach must involve running Alembic multiple times against different
 database URLs.
 
 One common approach to multi-tenancy, particularly on the PostgreSQL database,
-is to install tenants within **individual PostgreSQL schemas**.  When using
-PostgreSQL's schemas, a special variable ``search_path`` is offered that is
-intended to assist with targeting of different schemas.
+is to install tenants within **individual PostgreSQL schemas**; similarly
+when using MySQL/MariaDB, **individual MySQL/MariaDB databases** are addressed
+in the same way as "schemas" on PostgreSQL.
+
+When using PostgreSQL's schemas, a special variable ``search_path`` is offered
+that is intended to assist with targeting of different schemas.  When using
+MySQL or MariaDB databases, a similar command is available at the SQL level
+called the ``USE`` command.  This command may be used in a similar fashion as
+that of PostgreSQL's ``search_path`` variable to achieve a similar effect.
+
+Overall, this recipe can be used on **any database that supports runtime
+modification of the current "tenant" via SQL commands on a particular
+connection**.
 
 .. note::  SQLAlchemy includes a system of directing a common set of
    ``Table`` metadata to many schemas called `schema_translate_map <https://docs.sqlalchemy.org/core/connections.html#translation-of-schema-names>`_.   Alembic at the time
@@ -801,7 +811,7 @@ intended to assist with targeting of different schemas.
 
 The recipe below can be altered for flexibility.  The primary purpose of this
 recipe is to illustrate how to point the Alembic process towards one PostgreSQL
-schema or another.
+or MySQL/MariaDB schema or another.
 
 1. The model metadata used as the target for autogenerate must not include any
    schema name for tables; the schema must be non-present or set to ``None``.
@@ -841,12 +851,20 @@ schema or another.
             current_tenant = context.get_x_argument(as_dictionary=True).get("tenant")
             with connectable.connect() as connection:
 
-                # set search path on the connection, which ensures that
-                # PostgreSQL will emit all CREATE / ALTER / DROP statements
-                # in terms of this schema by default
-                connection.execute(text('set search_path to "%s"' % current_tenant))
-                # in SQLAlchemy v2+ the search path change needs to be committed
-                connection.commit()
+                if connection.dialect.name == "postgresql":
+                    # set search path on the connection, which ensures that
+                    # PostgreSQL will emit all CREATE / ALTER / DROP statements
+                    # in terms of this schema by default
+
+                    connection.execute(text('set search_path to "%s"' % current_tenant))
+                    # in SQLAlchemy v2+ the search path change needs to be committed
+                    connection.commit()
+                elif connection.dialect.name in ("mysql", "mariadb"):
+                    # set "USE" on the connection, which ensures that
+                    # MySQL/MariaDB will emit all CREATE / ALTER / DROP statements
+                    # in terms of this schema by default
+
+                    connection.execute(text('USE %s' % current_tenant))
 
                 # make use of non-supported SQLAlchemy attribute to ensure
                 # the dialect reflects tables in terms of the current tenant name
@@ -860,17 +878,18 @@ schema or another.
                 with context.begin_transaction():
                     context.run_migrations()
 
-   The current tenant is set using the PostgreSQL ``search_path`` variable on
-   the connection.  Note above we must employ a **non-supported SQLAlchemy
-   workaround** at the moment which is to hardcode the SQLAlchemy dialect's
-   default schema name to our target schema.
+   The current tenant is set using the PostgreSQL ``search_path`` variable, or
+   the MySQL/MariaDB ``USE`` statement, on the connection.  Note above we must
+   employ a **non-supported SQLAlchemy workaround** at the moment which is to
+   hardcode the SQLAlchemy dialect's default schema name to our target schema.
 
    It is also important to note that the above changes **remain on the connection
    permanently unless reversed explicitly**.  If the alembic application simply
    exits above, there is no issue.  However if the application attempts to
    continue using the above connection for other purposes, it may be necessary
    to reset these variables back to the default, which for PostgreSQL is usually
-   the name "public" however may be different based on configuration.
+   the name "public" however may be different based on configuration, and
+   for MySQL/MariaDB is typically the "database" portion of the database URL.
 
 
 4. Alembic operations will now proceed in terms of whichever schema we pass

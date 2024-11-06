@@ -40,7 +40,6 @@ _ServerDefault = Union["TextClause", "FetchedValue", "Function[Any]", str]
 
 
 class AlterTable(DDLElement):
-
     """Represent an ALTER TABLE statement.
 
     Only the string name and optional schema name of the table
@@ -176,7 +175,7 @@ class ColumnComment(AlterColumn):
         self.comment = comment
 
 
-@compiles(RenameTable)  # type: ignore[misc]
+@compiles(RenameTable)
 def visit_rename_table(
     element: RenameTable, compiler: DDLCompiler, **kw
 ) -> str:
@@ -186,7 +185,7 @@ def visit_rename_table(
     )
 
 
-@compiles(AddColumn)  # type: ignore[misc]
+@compiles(AddColumn)
 def visit_add_column(element: AddColumn, compiler: DDLCompiler, **kw) -> str:
     return "%s %s" % (
         alter_table(compiler, element.table_name, element.schema),
@@ -194,7 +193,7 @@ def visit_add_column(element: AddColumn, compiler: DDLCompiler, **kw) -> str:
     )
 
 
-@compiles(DropColumn)  # type: ignore[misc]
+@compiles(DropColumn)
 def visit_drop_column(element: DropColumn, compiler: DDLCompiler, **kw) -> str:
     return "%s %s" % (
         alter_table(compiler, element.table_name, element.schema),
@@ -202,7 +201,7 @@ def visit_drop_column(element: DropColumn, compiler: DDLCompiler, **kw) -> str:
     )
 
 
-@compiles(ColumnNullable)  # type: ignore[misc]
+@compiles(ColumnNullable)
 def visit_column_nullable(
     element: ColumnNullable, compiler: DDLCompiler, **kw
 ) -> str:
@@ -213,7 +212,7 @@ def visit_column_nullable(
     )
 
 
-@compiles(ColumnType)  # type: ignore[misc]
+@compiles(ColumnType)
 def visit_column_type(element: ColumnType, compiler: DDLCompiler, **kw) -> str:
     return "%s %s %s" % (
         alter_table(compiler, element.table_name, element.schema),
@@ -222,7 +221,7 @@ def visit_column_type(element: ColumnType, compiler: DDLCompiler, **kw) -> str:
     )
 
 
-@compiles(ColumnName)  # type: ignore[misc]
+@compiles(ColumnName)
 def visit_column_name(element: ColumnName, compiler: DDLCompiler, **kw) -> str:
     return "%s RENAME %s TO %s" % (
         alter_table(compiler, element.table_name, element.schema),
@@ -231,20 +230,22 @@ def visit_column_name(element: ColumnName, compiler: DDLCompiler, **kw) -> str:
     )
 
 
-@compiles(ColumnDefault)  # type: ignore[misc]
+@compiles(ColumnDefault)
 def visit_column_default(
     element: ColumnDefault, compiler: DDLCompiler, **kw
 ) -> str:
     return "%s %s %s" % (
         alter_table(compiler, element.table_name, element.schema),
         alter_column(compiler, element.column_name),
-        "SET DEFAULT %s" % format_server_default(compiler, element.default)
-        if element.default is not None
-        else "DROP DEFAULT",
+        (
+            "SET DEFAULT %s" % format_server_default(compiler, element.default)
+            if element.default is not None
+            else "DROP DEFAULT"
+        ),
     )
 
 
-@compiles(ComputedColumnDefault)  # type: ignore[misc]
+@compiles(ComputedColumnDefault)
 def visit_computed_column(
     element: ComputedColumnDefault, compiler: DDLCompiler, **kw
 ):
@@ -254,7 +255,7 @@ def visit_computed_column(
     )
 
 
-@compiles(IdentityColumnDefault)  # type: ignore[misc]
+@compiles(IdentityColumnDefault)
 def visit_identity_column(
     element: IdentityColumnDefault, compiler: DDLCompiler, **kw
 ):

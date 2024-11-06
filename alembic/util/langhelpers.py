@@ -234,20 +234,17 @@ def rev_id() -> str:
 
 
 @overload
-def to_tuple(x: Any, default: Tuple[Any, ...]) -> Tuple[Any, ...]:
-    ...
+def to_tuple(x: Any, default: Tuple[Any, ...]) -> Tuple[Any, ...]: ...
 
 
 @overload
-def to_tuple(x: None, default: Optional[_T] = ...) -> _T:
-    ...
+def to_tuple(x: None, default: Optional[_T] = ...) -> _T: ...
 
 
 @overload
 def to_tuple(
     x: Any, default: Optional[Tuple[Any, ...]] = None
-) -> Tuple[Any, ...]:
-    ...
+) -> Tuple[Any, ...]: ...
 
 
 def to_tuple(

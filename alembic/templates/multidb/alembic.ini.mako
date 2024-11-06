@@ -2,6 +2,7 @@
 
 [alembic]
 # path to migration scripts
+# Use forward slashes (/) also on windows to provide an os agnostic path
 script_location = ${script_location}
 
 # template used to generate migration file names; The default value is %%(rev)s_%%(slug)s
@@ -16,14 +17,13 @@ prepend_sys_path = .
 
 # timezone to use when rendering the date within the migration file
 # as well as the filename.
-# If specified, requires the python>=3.9 or backports.zoneinfo library.
+# If specified, requires the python>=3.9 or backports.zoneinfo library and tzdata library.
 # Any required deps can installed by adding `alembic[tz]` to the pip requirements
 # string value is passed to ZoneInfo()
 # leave blank for localtime
 # timezone =
 
-# max length of characters to apply to the
-# "slug" field
+# max length of characters to apply to the "slug" field
 # truncate_slug_length = 40
 
 # set to 'true' to run the environment during
@@ -49,6 +49,7 @@ prepend_sys_path = .
 # version_path_separator = :
 # version_path_separator = ;
 # version_path_separator = space
+# version_path_separator = newline
 #
 # Use os.pathsep. Default configuration used for new projects.
 version_path_separator = os
@@ -98,12 +99,12 @@ keys = console
 keys = generic
 
 [logger_root]
-level = WARN
+level = WARNING
 handlers = console
 qualname =
 
 [logger_sqlalchemy]
-level = WARN
+level = WARNING
 handlers =
 qualname = sqlalchemy.engine
 
