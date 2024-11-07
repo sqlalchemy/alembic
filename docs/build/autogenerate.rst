@@ -1,10 +1,12 @@
 Auto Generating Migrations
 ===========================
 
-Alembic can view the status of the database and compare against the table metadata
-in the application, generating the "obvious" migrations based on a comparison.  This
-is achieved using the ``--autogenerate`` option to the ``alembic revision`` command,
-which places so-called *candidate* migrations into our new migrations file.  We
+Alembic can view the status of the database (pointed to by ``sqlalchemy.url`` in
+your ``alemic.ini`` file using the *current* schema) and compare against the
+table metadata in the application (your ORM which defines the *proposed* schema),
+generating the "obvious" migrations based on a comparison.  This is achieved
+using the ``--autogenerate`` option to the ``alembic revision`` command, which
+places so-called *candidate* migrations into our new migrations file.  We
 review and modify these by hand as needed, then proceed normally.
 
 To use autogenerate, we first need to modify our ``env.py`` so that it gets access
