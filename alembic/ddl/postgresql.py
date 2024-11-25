@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING
 from typing import Union
 
 from sqlalchemy import Column
+from sqlalchemy import Float
 from sqlalchemy import literal_column
 from sqlalchemy import Numeric
 from sqlalchemy import text
@@ -132,7 +133,7 @@ class PostgresqlImpl(DefaultImpl):
         metadata_default = metadata_column.server_default.arg
 
         if isinstance(metadata_default, str):
-            if not isinstance(inspector_column.type, Numeric):
+            if not isinstance(inspector_column.type, (Numeric, Float)):
                 metadata_default = re.sub(r"^'|'$", "", metadata_default)
                 metadata_default = f"'{metadata_default}'"
 
