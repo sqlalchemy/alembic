@@ -1,0 +1,7 @@
+.. change::
+    :tags: usecase, sqlite
+    :tickets: 1576
+
+    Modified SQLite's dialect to render "ALTER TABLE <t> RENAME COLUMN" when
+    :meth:`.Operations.alter_column` is used with a straight rename, supporting
+    SQLite's recently added column rename feature.

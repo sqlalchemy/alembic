@@ -36,6 +36,11 @@ class SQLiteTest(TestBase):
         op.add_column("t1", Column("c1", Integer))
         context.assert_("ALTER TABLE t1 ADD COLUMN c1 INTEGER")
 
+    def test_rename_column(self):
+        context = op_fixture("sqlite")
+        op.alter_column("t1", column_name="old", new_column_name="new")
+        context.assert_("ALTER TABLE t1 RENAME COLUMN old TO new")
+
     def test_add_column_implicit_constraint(self):
         context = op_fixture("sqlite")
         op.add_column("t1", Column("c1", Boolean))
