@@ -16,6 +16,8 @@ from sqlalchemy import schema
 from sqlalchemy import sql
 
 from .base import alter_table
+from .base import ColumnName
+from .base import format_column_name
 from .base import format_table_name
 from .base import RenameTable
 from .impl import DefaultImpl
@@ -204,6 +206,15 @@ def visit_rename_table(
     return "%s RENAME TO %s" % (
         alter_table(compiler, element.table_name, element.schema),
         format_table_name(compiler, element.new_table_name, None),
+    )
+
+
+@compiles(ColumnName, "sqlite")
+def visit_column_name(element: ColumnName, compiler: DDLCompiler, **kw) -> str:
+    return "%s RENAME COLUMN %s TO %s" % (
+        alter_table(compiler, element.table_name, element.schema),
+        format_column_name(compiler, element.column_name),
+        format_column_name(compiler, element.newname),
     )
 
 
