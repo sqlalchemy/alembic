@@ -407,15 +407,19 @@ class DefaultRequirements(SuiteRequirements):
         imports = exclusions.skip_if(
             requirements, "black and zimports are required for this test"
         )
-        version = exclusions.only_if(
+        version_low = exclusions.only_if(
             lambda _: compat.py311, "python 3.11 is required"
+        )
+
+        version_high = exclusions.only_if(
+            lambda _: not compat.py313, "python 3.13 does not work right now"
         )
 
         sqlalchemy = exclusions.only_if(
             lambda _: sqla_compat.sqla_2, "sqlalchemy 2 is required"
         )
 
-        return imports + version + sqlalchemy
+        return imports + version_low + version_high + sqlalchemy
 
     @property
     def reflect_indexes_with_expressions(self):
