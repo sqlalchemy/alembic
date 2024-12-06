@@ -22,10 +22,12 @@ depends_on: Union[str, Sequence[str], None] = ${repr(depends_on)}
 
 
 def upgrade(engine_name: str) -> None:
+    """Upgrade schema."""
     globals()["upgrade_%s" % engine_name]()
 
 
 def downgrade(engine_name: str) -> None:
+    """Downgrade schema."""
     globals()["downgrade_%s" % engine_name]()
 
 <%
@@ -38,10 +40,12 @@ def downgrade(engine_name: str) -> None:
 % for db_name in re.split(r',\s*', db_names):
 
 def upgrade_${db_name}() -> None:
+    """Upgrade ${db_name} schema."""
     ${context.get("%s_upgrades" % db_name, "pass")}
 
 
 def downgrade_${db_name}() -> None:
+    """Downgrade ${db_name} schema."""
     ${context.get("%s_downgrades" % db_name, "pass")}
 
 % endfor
