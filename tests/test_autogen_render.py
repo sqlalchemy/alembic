@@ -26,6 +26,7 @@ from sqlalchemy import types
 from sqlalchemy import Unicode
 from sqlalchemy import UniqueConstraint
 from sqlalchemy import VARCHAR
+from sqlalchemy.dialects.mysql import LONGTEXT
 from sqlalchemy.engine.default import DefaultDialect
 from sqlalchemy.sql import and_
 from sqlalchemy.sql import column
@@ -1842,12 +1843,23 @@ class AutogenRenderTest(TestBase):
             .with_variant(CHAR(15), "oracle")
         )
 
-        # the new Black formatting will help a lot with this
         eq_ignore_whitespace(
             autogenerate.render._repr_type(type_, self.autogen_context),
             "sa.String(length=5)."
             "with_variant(sa.VARCHAR(length=10), 'mysql')."
             "with_variant(sa.CHAR(length=15), 'oracle')",
+        )
+
+    def test_render_reverse_variant(self):
+        """test #1585"""
+
+        self.autogen_context.opts["user_module_prefix"] = None
+
+        type_ = LONGTEXT().with_variant(String(10), "oracle")
+
+        eq_ignore_whitespace(
+            autogenerate.render._repr_type(type_, self.autogen_context),
+            "mysql.LONGTEXT()." "with_variant(sa.String(length=10), 'oracle')",
         )
 
     def test_repr_user_type_user_prefix_None(self):

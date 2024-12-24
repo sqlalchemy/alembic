@@ -1,0 +1,8 @@
+.. change::
+    :tags: bug, autogenerate
+    :tickets: 1585
+
+    Fixed bug where autogen render of a "variant" type would fail to catch the
+    variants if the leading type were a dialect-specific type, rather than a
+    generic type.
+

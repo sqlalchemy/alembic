@@ -831,7 +831,10 @@ def _repr_type(
 
     mod = type(type_).__module__
     imports = autogen_context.imports
-    if mod.startswith("sqlalchemy.dialects"):
+
+    if not _skip_variants and sqla_compat._type_has_variants(type_):
+        return _render_Variant_type(type_, autogen_context)
+    elif mod.startswith("sqlalchemy.dialects"):
         match = re.match(r"sqlalchemy\.dialects\.(\w+)", mod)
         assert match is not None
         dname = match.group(1)
@@ -843,8 +846,6 @@ def _repr_type(
             return "%s.%r" % (dname, type_)
     elif impl_rt:
         return impl_rt
-    elif not _skip_variants and sqla_compat._type_has_variants(type_):
-        return _render_Variant_type(type_, autogen_context)
     elif mod.startswith("sqlalchemy."):
         if "_render_%s_type" % type_.__visit_name__ in globals():
             fn = globals()["_render_%s_type" % type_.__visit_name__]
