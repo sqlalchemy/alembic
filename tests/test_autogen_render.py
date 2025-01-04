@@ -1668,28 +1668,36 @@ class AutogenRenderTest(TestBase):
             "existing_server_default='5')",
         )
 
+    def _check_enum_inherit_schema(self, enum):
+        if enum.inherit_schema:
+            return enum, ", inherit_schema=True"
+        else:
+            return enum, ""
+
     def test_render_enum(self):
-        eq_ignore_whitespace(
-            autogenerate.render._repr_type(
-                Enum("one", "two", "three", name="myenum"),
-                self.autogen_context,
-            ),
-            "sa.Enum('one', 'two', 'three', name='myenum')",
+        enum, extra = self._check_enum_inherit_schema(
+            Enum("one", "two", "three", name="myenum")
         )
         eq_ignore_whitespace(
-            autogenerate.render._repr_type(
-                Enum("one", "two", "three"), self.autogen_context
-            ),
-            "sa.Enum('one', 'two', 'three')",
+            autogenerate.render._repr_type(enum, self.autogen_context),
+            f"sa.Enum('one', 'two', 'three', name='myenum'{extra})",
+        )
+
+        enum, extra = self._check_enum_inherit_schema(
+            Enum("one", "two", "three")
+        )
+        eq_ignore_whitespace(
+            autogenerate.render._repr_type(enum, self.autogen_context),
+            f"sa.Enum('one', 'two', 'three'{extra})",
         )
 
     def test_render_non_native_enum(self):
+        enum, extra = self._check_enum_inherit_schema(
+            Enum("one", "two", "three", native_enum=False)
+        )
         eq_ignore_whitespace(
-            autogenerate.render._repr_type(
-                Enum("one", "two", "three", native_enum=False),
-                self.autogen_context,
-            ),
-            "sa.Enum('one', 'two', 'three', native_enum=False)",
+            autogenerate.render._repr_type(enum, self.autogen_context),
+            f"sa.Enum('one', 'two', 'three'{extra}, native_enum=False)",
         )
 
     def test_repr_plain_sqla_type(self):
