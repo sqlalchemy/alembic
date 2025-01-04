@@ -152,7 +152,7 @@ def alter_column(
     type_: Union[TypeEngine[Any], Type[TypeEngine[Any]], None] = None,
     existing_type: Union[TypeEngine[Any], Type[TypeEngine[Any]], None] = None,
     existing_server_default: Union[
-        str, bool, Identity, Computed, None
+        str, bool, Identity, Computed, TextClause, None
     ] = False,
     existing_nullable: Optional[bool] = None,
     existing_comment: Optional[str] = None,
