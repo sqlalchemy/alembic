@@ -730,8 +730,8 @@ hook runner:
 The following configuration option is specific to the ``"exec"`` hook runner:
 
 * ``executable`` - the name of the executable to invoke.  Can be either a
-bare executable name which will be searched in ``$PATH``, or a full pathname
-to avoid potential issues with path interception.
+  bare executable name which will be searched in ``$PATH``, or a full pathname
+  to avoid potential issues with path interception.
 
 The following options are supported by both ``"console_scripts"`` and ``"exec"``:
 
