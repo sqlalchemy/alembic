@@ -4,6 +4,10 @@ Changelog
 ==========
 
 .. changelog::
+    :version: 1.14.2
+    :include_notes_from: unreleased
+
+.. changelog::
     :version: 1.14.1
     :released: January 19, 2025
 
