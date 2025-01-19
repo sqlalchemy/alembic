@@ -5,7 +5,31 @@ Changelog
 
 .. changelog::
     :version: 1.14.1
-    :include_notes_from: unreleased
+    :released: January 19, 2025
+
+    .. change::
+        :tags: bug, environment
+        :tickets: 1556
+
+        Added `tzdata` to `tz` extras, which is required on some platforms such as
+        Windows.  Pull request courtesy Danipulok.
+
+    .. change::
+        :tags: usecase, sqlite
+        :tickets: 1576
+
+        Modified SQLite's dialect to render "ALTER TABLE <t> RENAME COLUMN" when
+        :meth:`.Operations.alter_column` is used with a straight rename, supporting
+        SQLite's recently added column rename feature.
+
+    .. change::
+        :tags: bug, autogenerate
+        :tickets: 1585
+
+        Fixed bug where autogen render of a "variant" type would fail to catch the
+        variants if the leading type were a dialect-specific type, rather than a
+        generic type.
+
 
 .. changelog::
     :version: 1.14.0
