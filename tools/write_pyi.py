@@ -218,6 +218,16 @@ def _generate_stub_for_meth(
     string_prefix = "r" if has_docs and chr(92) in fn_doc else ""
     if has_docs:
         noqua = " # noqa: E501" if file_info.docs_noqa_E501 else ""
+
+        if sys.version_info >= (3, 13):
+            # python 3.13 seems to remove the leading spaces from docs,
+            # but the following needs them, so re-add it
+            # https://docs.python.org/3/whatsnew/3.13.html#other-language-changes
+            indent = "        "
+            fn_doc = textwrap.indent(fn_doc, indent)[len(indent) :]
+            if fn_doc[-1] == "\n":
+                fn_doc += indent
+
         docs = f'{string_prefix}"""{fn_doc}"""{noqua}'
     else:
         docs = ""

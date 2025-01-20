@@ -612,20 +612,22 @@ class CheckTest(TestBase):
 
     def _env_fixture(self, version_table_pk=True):
         env_file_fixture(
-            """
+            f"""
 
 from sqlalchemy import MetaData, engine_from_config
 target_metadata = MetaData()
 
 engine = engine_from_config(
     config.get_section(config.config_ini_section),
-    prefix='sqlalchemy.')
+    prefix='sqlalchemy.'
+)
 
 connection = engine.connect()
 
 context.configure(
-    connection=connection, target_metadata=target_metadata,
-    version_table_pk=%r
+    connection=connection,
+    target_metadata=target_metadata,
+    version_table_pk={version_table_pk}
 )
 
 try:
@@ -636,7 +638,6 @@ finally:
     engine.dispose()
 
 """
-            % (version_table_pk,)
         )
 
     def test_check_no_changes(self):

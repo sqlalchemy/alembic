@@ -1377,7 +1377,7 @@ class NormPathTest(TestBase):
         script = ScriptDirectory.from_config(config)
 
         def normpath(path):
-            return path.replace("/", ":NORM:")
+            return path.replace(os.pathsep, ":NORM:")
 
         normpath = mock.Mock(side_effect=normpath)
 
@@ -1389,7 +1389,7 @@ class NormPathTest(TestBase):
                         os.path.join(
                             _get_staging_directory(), "scripts", "versions"
                         )
-                    ).replace("/", ":NORM:"),
+                    ).replace(os.pathsep, ":NORM:"),
                 ),
             )
 
@@ -1399,7 +1399,7 @@ class NormPathTest(TestBase):
                     os.path.join(
                         _get_staging_directory(), "scripts", "versions"
                     )
-                ).replace("/", ":NORM:"),
+                ).replace(os.pathsep, ":NORM:"),
             )
 
     def test_script_location_multiple(self):
@@ -1408,7 +1408,7 @@ class NormPathTest(TestBase):
         script = ScriptDirectory.from_config(config)
 
         def _normpath(path):
-            return path.replace("/", ":NORM:")
+            return path.replace(os.pathsep, ":NORM:")
 
         normpath = mock.Mock(side_effect=_normpath)
 

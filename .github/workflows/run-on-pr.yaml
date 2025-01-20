@@ -23,12 +23,13 @@ jobs:
       # run this job using this matrix, excluding some combinations below.
       matrix:
         os:
-          - "ubuntu-latest"
+          - "ubuntu-22.04"
         python-version:
           - "3.11"
         sqlalchemy:
           - sqla13
           - sqla14
+          - sqla20
           - sqlamain
       # abort all jobs as soon as one fails
       fail-fast: true

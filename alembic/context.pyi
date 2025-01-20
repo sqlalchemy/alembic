@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import Any
 from typing import Callable
 from typing import Collection
-from typing import ContextManager
 from typing import Dict
 from typing import Iterable
 from typing import List
@@ -19,6 +18,8 @@ from typing import TextIO
 from typing import Tuple
 from typing import TYPE_CHECKING
 from typing import Union
+
+from typing_extensions import ContextManager
 
 if TYPE_CHECKING:
     from sqlalchemy.engine.base import Connection
@@ -40,7 +41,9 @@ if TYPE_CHECKING:
 
 ### end imports ###
 
-def begin_transaction() -> Union[_ProxyTransaction, ContextManager[None]]:
+def begin_transaction() -> (
+    Union[_ProxyTransaction, ContextManager[None, Optional[bool]]]
+):
     """Return a context manager that will
     enclose an operation within a "transaction",
     as defined by the environment's offline

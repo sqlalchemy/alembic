@@ -11,7 +11,6 @@ from typing import Any
 from typing import Callable
 from typing import cast
 from typing import Collection
-from typing import ContextManager
 from typing import Dict
 from typing import Iterable
 from typing import Iterator
@@ -27,6 +26,7 @@ from sqlalchemy import literal_column
 from sqlalchemy.engine import Engine
 from sqlalchemy.engine import url as sqla_url
 from sqlalchemy.engine.strategies import MockEngineStrategy
+from typing_extensions import ContextManager
 
 from .. import ddl
 from .. import util
@@ -368,7 +368,7 @@ class MigrationContext:
 
     def begin_transaction(
         self, _per_migration: bool = False
-    ) -> Union[_ProxyTransaction, ContextManager[None]]:
+    ) -> Union[_ProxyTransaction, ContextManager[None, Optional[bool]]]:
         """Begin a logical transaction for migration operations.
 
         This method is used within an ``env.py`` script to demarcate where
