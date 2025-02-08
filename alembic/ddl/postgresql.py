@@ -846,5 +846,5 @@ def _render_potential_column(
         return render._render_potential_expr(
             value,
             autogen_context,
-            wrap_in_text=isinstance(value, (TextClause, FunctionElement)),
+            wrap_in_element=isinstance(value, (TextClause, FunctionElement)),
         )

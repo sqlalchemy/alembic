@@ -1,0 +1,7 @@
+.. change::
+    :tags: usecase, autogenerate
+    :tickets: 1603
+
+    Index autogenerate will now render labels for expressions
+    that use them. This is useful when applying operator classes
+    in PostgreSQL that can be keyed on the label name.

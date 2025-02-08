@@ -94,6 +94,32 @@ class AutogenRenderTest(TestBase):
             "['active', 'code'], unique=False)",
         )
 
+    def test_render_add_index_fn(self):
+        t = self.table(Column("other", String(100)))
+        idx = Index("test_fn_idx", t.c.code + t.c.other)
+        op_obj = ops.CreateIndexOp.from_index(idx)
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.create_index('test_fn_idx', 'test', "
+            "[sa.literal_column('code || other')], unique=False)",
+        )
+
+    def test_render_add_index_label(self):
+        t = self.table(Column("other", String(100)))
+        idx = Index(
+            "test_fn_idx",
+            (t.c.code + t.c.other).label("foo"),
+            t.c.id.label("bar"),
+        )
+        op_obj = ops.CreateIndexOp.from_index(idx)
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.create_index('test_fn_idx', 'test', ["
+            "sa.literal_column('code || other').label('foo'), "
+            "sa.literal_column('id').label('bar')"
+            "], unique=False)",
+        )
+
     def test_render_add_index_if_not_exists(self):
         """
         autogenerate.render._add_index
@@ -170,7 +196,7 @@ class AutogenRenderTest(TestBase):
         eq_ignore_whitespace(
             autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.create_index('test_active_code_idx', 'test', "
-            "['active', sa.text('lower(code)')], unique=False)",
+            "['active', sa.literal_column('lower(code)')], unique=False)",
         )
         op_obj_rev = op_obj.reverse()
         eq_ignore_whitespace(
@@ -186,7 +212,7 @@ class AutogenRenderTest(TestBase):
         eq_ignore_whitespace(
             autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.create_index('test_lower_code_idx', 'test', "
-            "[sa.text('lower(code)')], unique=False)",
+            "[sa.literal_column('lower(code)')], unique=False)",
         )
         op_obj_rev = op_obj.reverse()
         eq_ignore_whitespace(
@@ -202,7 +228,7 @@ class AutogenRenderTest(TestBase):
         eq_ignore_whitespace(
             autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.create_index('test_lower_code_idx', 'test', "
-            "[sa.text('CAST(code AS VARCHAR)')], unique=False)",
+            "[sa.literal_column('CAST(code AS VARCHAR)')], unique=False)",
         )
 
     def test_render_add_index_desc(self):
@@ -212,7 +238,7 @@ class AutogenRenderTest(TestBase):
         eq_ignore_whitespace(
             autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.create_index('test_desc_code_idx', 'test', "
-            "[sa.text('code DESC')], unique=False)",
+            "[sa.literal_column('code DESC')], unique=False)",
         )
 
     def test_drop_index(self):
@@ -256,7 +282,7 @@ class AutogenRenderTest(TestBase):
         eq_ignore_whitespace(
             autogenerate.render_op_text(self.autogen_context, op_obj_rev),
             "op.create_index('test_active_code_idx', 'test', "
-            "['active', sa.text('lower(code)')], unique=False)",
+            "['active', sa.literal_column('lower(code)')], unique=False)",
         )
 
     def test_drop_index_func(self):
@@ -274,7 +300,7 @@ class AutogenRenderTest(TestBase):
         eq_ignore_whitespace(
             autogenerate.render_op_text(self.autogen_context, op_obj_rev),
             "op.create_index('test_lower_code_idx', 'test', "
-            "[sa.text('lower(code)')], unique=False)",
+            "[sa.literal_column('lower(code)')], unique=False)",
         )
 
     @testing.emits_warning("Can't validate argument ")
