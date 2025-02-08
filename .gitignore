@@ -22,3 +22,4 @@ coverage.xml
 /docs/build/_build/
 /pysqlite_test_schema.db
 *.sqlite3
+.mypy_cache/

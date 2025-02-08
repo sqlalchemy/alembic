@@ -17,8 +17,10 @@ from typing import Union
 
 from sqlalchemy import Column
 from sqlalchemy import Float
+from sqlalchemy import Identity
 from sqlalchemy import literal_column
 from sqlalchemy import Numeric
+from sqlalchemy import select
 from sqlalchemy import text
 from sqlalchemy import types as sqltypes
 from sqlalchemy.dialects.postgresql import BIGINT
@@ -143,9 +145,7 @@ class PostgresqlImpl(DefaultImpl):
         conn = self.connection
         assert conn is not None
         return not conn.scalar(
-            sqla_compat._select(
-                literal_column(conn_col_default) == metadata_default
-            )
+            select(literal_column(conn_col_default) == metadata_default)
         )
 
     def alter_column(  # type:ignore[override]
@@ -586,7 +586,7 @@ def visit_identity_column(
                 )
             else:
                 text += "SET %s " % compiler.get_identity_options(
-                    sqla_compat.Identity(**{attr: getattr(identity, attr)})
+                    Identity(**{attr: getattr(identity, attr)})
                 )
         return text
 

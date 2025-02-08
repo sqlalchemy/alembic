@@ -3,10 +3,12 @@ import itertools
 from sqlalchemy import BigInteger
 from sqlalchemy import Boolean
 from sqlalchemy import Column
+from sqlalchemy import Computed
 from sqlalchemy import DateTime
 from sqlalchemy import exc
 from sqlalchemy import Float
 from sqlalchemy import func
+from sqlalchemy import Identity
 from sqlalchemy import Index
 from sqlalchemy import inspect
 from sqlalchemy import Integer
@@ -63,7 +65,6 @@ from alembic.testing.fixtures import op_fixture
 from alembic.testing.fixtures import TablesTest
 from alembic.testing.fixtures import TestBase
 from alembic.testing.suite._autogen_fixtures import AutogenFixtureTest
-from alembic.util import sqla_compat
 
 
 class PostgresqlOpTest(TestBase):
@@ -115,7 +116,6 @@ class PostgresqlOpTest(TestBase):
             "CREATE INDEX CONCURRENTLY geocoded ON locations (coordinates)"
         )
 
-    @config.requirements.sqlalchemy_14
     def test_create_index_postgresql_include(self):
         context = op_fixture("postgresql")
         op.create_index(
@@ -128,7 +128,6 @@ class PostgresqlOpTest(TestBase):
         op.create_index("i", "t", ["c1", "c2"], unique=False)
         context.assert_("CREATE INDEX i ON t (c1, c2)")
 
-    @config.requirements.sqlalchemy_14
     def test_create_index_postgresql_if_not_exists(self):
         context = op_fixture("postgresql")
         op.create_index("i", "t", ["c1", "c2"], if_not_exists=True)
@@ -147,7 +146,6 @@ class PostgresqlOpTest(TestBase):
             op.drop_index("geocoded", postgresql_concurrently=True)
         context.assert_("DROP INDEX CONCURRENTLY geocoded")
 
-    @config.requirements.sqlalchemy_14
     def test_drop_index_postgresql_if_exists(self):
         context = op_fixture("postgresql")
         op.drop_index("geocoded", if_exists=True)
@@ -334,7 +332,7 @@ class PostgresqlOpTest(TestBase):
         context = op_fixture("postgresql")
         op.add_column(
             "t1",
-            Column("some_column", Integer, sqla_compat.Computed("foo * 5")),
+            Column("some_column", Integer, Computed("foo * 5")),
         )
         context.assert_(
             "ALTER TABLE t1 ADD COLUMN some_column "
@@ -342,11 +340,11 @@ class PostgresqlOpTest(TestBase):
         )
 
     @combinations(
-        (lambda: sqla_compat.Computed("foo * 5"), lambda: None),
-        (lambda: None, lambda: sqla_compat.Computed("foo * 5")),
+        (lambda: Computed("foo * 5"), lambda: None),
+        (lambda: None, lambda: Computed("foo * 5")),
         (
-            lambda: sqla_compat.Computed("foo * 42"),
-            lambda: sqla_compat.Computed("foo * 5"),
+            lambda: Computed("foo * 42"),
+            lambda: Computed("foo * 5"),
         ),
     )
     @config.requirements.computed_columns
@@ -377,7 +375,7 @@ class PostgresqlOpTest(TestBase):
         context = op_fixture("postgresql")
         op.add_column(
             "t1",
-            Column("some_column", Integer, sqla_compat.Identity(**kw)),
+            Column("some_column", Integer, Identity(**kw)),
         )
         qualification = "ALWAYS" if kw.get("always", False) else "BY DEFAULT"
         options = " (%s)" % text if text else ""
@@ -400,7 +398,7 @@ class PostgresqlOpTest(TestBase):
         op.alter_column(
             "t1",
             "some_column",
-            server_default=sqla_compat.Identity(**kw),
+            server_default=Identity(**kw),
             existing_server_default=None,
         )
         qualification = "ALWAYS" if kw.get("always", False) else "BY DEFAULT"
@@ -417,7 +415,7 @@ class PostgresqlOpTest(TestBase):
             "t1",
             "some_column",
             server_default=None,
-            existing_server_default=sqla_compat.Identity(),
+            existing_server_default=Identity(),
         )
         context.assert_(
             "ALTER TABLE t1 ALTER COLUMN some_column DROP IDENTITY"
@@ -464,8 +462,8 @@ class PostgresqlOpTest(TestBase):
         op.alter_column(
             "t1",
             "some_column",
-            server_default=sqla_compat.Identity(**updated),
-            existing_server_default=sqla_compat.Identity(**existing),
+            server_default=Identity(**updated),
+            existing_server_default=Identity(**existing),
         )
         context.assert_("ALTER TABLE t1 ALTER COLUMN some_column %s" % text)
 

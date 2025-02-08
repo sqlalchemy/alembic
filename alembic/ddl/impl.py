@@ -459,7 +459,9 @@ class DefaultImpl(metaclass=ImplMeta):
         if self.as_sql:
             for row in rows:
                 self._exec(
-                    sqla_compat._insert_inline(table).values(
+                    table.insert()
+                    .inline()
+                    .values(
                         **{
                             k: (
                                 sqla_compat._literal_bindparam(
@@ -477,14 +479,10 @@ class DefaultImpl(metaclass=ImplMeta):
         else:
             if rows:
                 if multiinsert:
-                    self._exec(
-                        sqla_compat._insert_inline(table), multiparams=rows
-                    )
+                    self._exec(table.insert().inline(), multiparams=rows)
                 else:
                     for row in rows:
-                        self._exec(
-                            sqla_compat._insert_inline(table).values(**row)
-                        )
+                        self._exec(table.insert().inline().values(**row))
 
     def _tokenize_column_type(self, column: Column) -> Params:
         definition: str
@@ -693,7 +691,7 @@ class DefaultImpl(metaclass=ImplMeta):
         diff, ignored = _compare_identity_options(
             metadata_identity,
             inspector_identity,
-            sqla_compat.Identity(),
+            schema.Identity(),
             skip={"always"},
         )
 
@@ -874,12 +872,13 @@ def _compare_identity_options(
         set(meta_d).union(insp_d),
     )
     if sqla_compat.identity_has_dialect_kwargs:
+        assert hasattr(default_io, "dialect_kwargs")
         # use only the dialect kwargs in inspector_io since metadata_io
         # can have options for many backends
         check_dicts(
             getattr(metadata_io, "dialect_kwargs", {}),
             getattr(inspector_io, "dialect_kwargs", {}),
-            default_io.dialect_kwargs,  # type: ignore[union-attr]
+            default_io.dialect_kwargs,
             getattr(inspector_io, "dialect_kwargs", {}),
         )
 

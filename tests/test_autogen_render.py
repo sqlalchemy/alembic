@@ -2225,7 +2225,6 @@ class AutogenRenderTest(TestBase):
             ")",
         )
 
-    @config.requirements.computed_columns_api
     def test_render_add_column_computed(self):
         c = sa.Computed("5")
         op_obj = ops.AddColumnOp("foo", Column("x", Integer, c))
@@ -2235,7 +2234,6 @@ class AutogenRenderTest(TestBase):
             "sa.Computed('5', ), nullable=True))",
         )
 
-    @config.requirements.computed_columns_api
     @testing.combinations((True,), (False,))
     def test_render_add_column_computed_persisted(self, persisted):
         op_obj = ops.AddColumnOp(
@@ -2247,7 +2245,6 @@ class AutogenRenderTest(TestBase):
             "sa.Computed('5', persisted=%s), nullable=True))" % persisted,
         )
 
-    @config.requirements.computed_columns_api
     def test_render_alter_column_computed_modify_default(self):
         op_obj = ops.AlterColumnOp(
             "sometable", "somecolumn", modify_server_default=sa.Computed("7")
@@ -2258,7 +2255,6 @@ class AutogenRenderTest(TestBase):
             "server_default=sa.Computed('7', ))",
         )
 
-    @config.requirements.computed_columns_api
     def test_render_alter_column_computed_existing_default(self):
         op_obj = ops.AlterColumnOp(
             "sometable",
@@ -2271,7 +2267,6 @@ class AutogenRenderTest(TestBase):
             "existing_server_default=sa.Computed('42', ))",
         )
 
-    @config.requirements.computed_columns_api
     @testing.combinations((True,), (False,))
     def test_render_alter_column_computed_modify_default_persisted(
         self, persisted
@@ -2287,7 +2282,6 @@ class AutogenRenderTest(TestBase):
             "=sa.Computed('7', persisted=%s))" % persisted,
         )
 
-    @config.requirements.computed_columns_api
     @testing.combinations((True,), (False,))
     def test_render_alter_column_computed_existing_default_persisted(
         self, persisted
@@ -2340,7 +2334,6 @@ class AutogenRenderTest(TestBase):
         ),
     )
 
-    @config.requirements.identity_columns_api
     @identity_comb
     def test_render_add_column_identity(self, kw, text):
         col = Column("x", Integer, sa.Identity(**kw))
@@ -2351,7 +2344,6 @@ class AutogenRenderTest(TestBase):
             "%s, nullable=%r))" % (text, col.nullable),
         )
 
-    @config.requirements.identity_columns_api
     @identity_comb
     def test_render_alter_column_add_identity(self, kw, text):
         op_obj = ops.AlterColumnOp(
@@ -2367,7 +2359,6 @@ class AutogenRenderTest(TestBase):
             "server_default=%s)" % text,
         )
 
-    @config.requirements.identity_columns_api
     def test_render_alter_column_drop_identity(self):
         op_obj = ops.AlterColumnOp(
             "foo",

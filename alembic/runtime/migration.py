@@ -23,6 +23,7 @@ from typing import Union
 
 from sqlalchemy import Column
 from sqlalchemy import literal_column
+from sqlalchemy import select
 from sqlalchemy.engine import Engine
 from sqlalchemy.engine import url as sqla_url
 from sqlalchemy.engine.strategies import MockEngineStrategy
@@ -32,7 +33,6 @@ from .. import ddl
 from .. import util
 from ..util import sqla_compat
 from ..util.compat import EncodedIO
-from ..util.sqla_compat import _select
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import Dialect
@@ -534,7 +534,7 @@ class MigrationContext:
         return tuple(
             row[0]
             for row in self.connection.execute(
-                _select(self._version.c.version_num)
+                select(self._version.c.version_num)
             )
         )
 

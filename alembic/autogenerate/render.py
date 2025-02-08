@@ -28,6 +28,8 @@ from ..util import sqla_compat
 if TYPE_CHECKING:
     from typing import Literal
 
+    from sqlalchemy import Computed
+    from sqlalchemy import Identity
     from sqlalchemy.sql.base import DialectKWArgs
     from sqlalchemy.sql.elements import ColumnElement
     from sqlalchemy.sql.elements import TextClause
@@ -48,8 +50,6 @@ if TYPE_CHECKING:
     from alembic.config import Config
     from alembic.operations.ops import MigrationScript
     from alembic.operations.ops import ModifyTableOps
-    from alembic.util.sqla_compat import Computed
-    from alembic.util.sqla_compat import Identity
 
 
 MAX_PYTHON_ARGS = 255
@@ -741,7 +741,7 @@ def _render_column(
                 + [
                     "%s=%s"
                     % (key, _render_potential_expr(val, autogen_context))
-                    for key, val in sqla_compat._column_kwargs(column).items()
+                    for key, val in column.kwargs.items()
                 ]
             )
         ),

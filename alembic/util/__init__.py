@@ -25,11 +25,4 @@ from .pyfiles import coerce_resource_to_filename as coerce_resource_to_filename
 from .pyfiles import load_python_file as load_python_file
 from .pyfiles import pyc_file_from_path as pyc_file_from_path
 from .pyfiles import template_to_file as template_to_file
-from .sqla_compat import has_computed as has_computed
-from .sqla_compat import sqla_13 as sqla_13
-from .sqla_compat import sqla_14 as sqla_14
 from .sqla_compat import sqla_2 as sqla_2
-
-
-if not sqla_13:
-    raise CommandError("SQLAlchemy 1.3.0 or greater is required.")

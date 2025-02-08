@@ -25,6 +25,8 @@ from ..util.sqla_compat import _table_for_constraint  # noqa
 if TYPE_CHECKING:
     from typing import Any
 
+    from sqlalchemy import Computed
+    from sqlalchemy import Identity
     from sqlalchemy.sql.compiler import Compiled
     from sqlalchemy.sql.compiler import DDLCompiler
     from sqlalchemy.sql.elements import TextClause
@@ -33,8 +35,6 @@ if TYPE_CHECKING:
     from sqlalchemy.sql.type_api import TypeEngine
 
     from .impl import DefaultImpl
-    from ..util.sqla_compat import Computed
-    from ..util.sqla_compat import Identity
 
 _ServerDefault = Union["TextClause", "FetchedValue", "Function[Any]", str]
 

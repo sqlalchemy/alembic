@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 from typing import Union
 
 from sqlalchemy import cast
+from sqlalchemy import Computed
 from sqlalchemy import JSON
 from sqlalchemy import schema
 from sqlalchemy import sql
@@ -64,7 +65,7 @@ class SQLiteImpl(DefaultImpl):
                 ) and isinstance(col.server_default.arg, sql.ClauseElement):
                     return True
                 elif (
-                    isinstance(col.server_default, util.sqla_compat.Computed)
+                    isinstance(col.server_default, Computed)
                     and col.server_default.persisted
                 ):
                     return True

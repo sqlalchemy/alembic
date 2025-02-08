@@ -216,7 +216,7 @@ def _compare_tables(
                 (inspector),
                 # fmt: on
             )
-            sqla_compat._reflect_table(inspector, t)
+            inspector.reflect_table(t, include_columns=None)
         if autogen_context.run_object_filters(t, tname, "table", True, None):
             modify_table_ops = ops.ModifyTableOps(tname, [], schema=s)
 
@@ -246,7 +246,7 @@ def _compare_tables(
                 _compat_autogen_column_reflect(inspector),
                 # fmt: on
             )
-            sqla_compat._reflect_table(inspector, t)
+            inspector.reflect_table(t, include_columns=None)
         conn_column_info[(s, tname)] = t
 
     for s, tname in sorted(existing_tables, key=lambda x: (x[0] or "", x[1])):
@@ -1067,27 +1067,15 @@ def _compare_server_default(
         return False
 
     if sqla_compat._server_default_is_computed(metadata_default):
-        # return False in case of a computed column as the server
-        # default. Note that DDL for adding or removing "GENERATED AS" from
-        # an existing column is not currently known for any backend.
-        # Once SQLAlchemy can reflect "GENERATED" as the "computed" element,
-        # we would also want to ignore and/or warn for changes vs. the
-        # metadata (or support backend specific DDL if applicable).
-        if not sqla_compat.has_computed_reflection:
-            return False
-
-        else:
-            return (
-                _compare_computed_default(  # type:ignore[func-returns-value]
-                    autogen_context,
-                    alter_column_op,
-                    schema,
-                    tname,
-                    cname,
-                    conn_col,
-                    metadata_col,
-                )
-            )
+        return _compare_computed_default(  # type:ignore[func-returns-value]
+            autogen_context,
+            alter_column_op,
+            schema,
+            tname,
+            cname,
+            conn_col,
+            metadata_col,
+        )
     if sqla_compat._server_default_is_computed(conn_col_default):
         _warn_computed_not_supported(tname, cname)
         return False

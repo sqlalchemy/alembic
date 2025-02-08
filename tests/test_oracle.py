@@ -1,6 +1,8 @@
 import sqlalchemy as sa
 from sqlalchemy import Column
+from sqlalchemy import Computed
 from sqlalchemy import exc
+from sqlalchemy import Identity
 from sqlalchemy import Integer
 from sqlalchemy import MetaData
 from sqlalchemy import Table
@@ -82,7 +84,7 @@ class OpTest(TestBase):
         context = op_fixture("oracle")
         op.add_column(
             "t1",
-            Column("some_column", Integer, sqla_compat.Computed("foo * 5")),
+            Column("some_column", Integer, Computed("foo * 5")),
         )
         context.assert_(
             "ALTER TABLE t1 ADD some_column "
@@ -90,11 +92,11 @@ class OpTest(TestBase):
         )
 
     @combinations(
-        (lambda: sqla_compat.Computed("foo * 5"), lambda: None),
-        (lambda: None, lambda: sqla_compat.Computed("foo * 5")),
+        (lambda: Computed("foo * 5"), lambda: None),
+        (lambda: None, lambda: Computed("foo * 5")),
         (
-            lambda: sqla_compat.Computed("foo * 42"),
-            lambda: sqla_compat.Computed("foo * 5"),
+            lambda: Computed("foo * 42"),
+            lambda: Computed("foo * 5"),
         ),
     )
     @config.requirements.computed_columns
@@ -299,7 +301,7 @@ class IdentityTest(AutogenFixtureTest, TestBase):
             Column(
                 "some_column",
                 Integer,
-                sqla_compat.Identity(**self._adapt_identity_kw(kw)),
+                Identity(**self._adapt_identity_kw(kw)),
             ),
         )
         qualification = self._identity_qualification(kw)
@@ -324,7 +326,7 @@ class IdentityTest(AutogenFixtureTest, TestBase):
         op.alter_column(
             "t1",
             "some_column",
-            server_default=sqla_compat.Identity(**self._adapt_identity_kw(kw)),
+            server_default=Identity(**self._adapt_identity_kw(kw)),
             existing_server_default=None,
         )
         qualification = self._identity_qualification(kw)
@@ -340,7 +342,7 @@ class IdentityTest(AutogenFixtureTest, TestBase):
             "t1",
             "some_column",
             server_default=None,
-            existing_server_default=sqla_compat.Identity(),
+            existing_server_default=Identity(),
         )
         context.assert_("ALTER TABLE t1 MODIFY some_column DROP IDENTITY")
 
@@ -390,10 +392,8 @@ class IdentityTest(AutogenFixtureTest, TestBase):
         op.alter_column(
             "t1",
             "some_column",
-            server_default=sqla_compat.Identity(
-                **self._adapt_identity_kw(updated)
-            ),
-            existing_server_default=sqla_compat.Identity(
+            server_default=Identity(**self._adapt_identity_kw(updated)),
+            existing_server_default=Identity(
                 **self._adapt_identity_kw(existing)
             ),
         )
@@ -415,7 +415,7 @@ class IdentityTest(AutogenFixtureTest, TestBase):
             Column(
                 "id",
                 Integer,
-                sqla_compat.Identity(
+                Identity(
                     **self._adapt_identity_kw(
                         dict(start=2, oracle_on_null=True)
                     )
@@ -430,7 +430,7 @@ class IdentityTest(AutogenFixtureTest, TestBase):
             Column(
                 "id",
                 Integer,
-                sa.Identity(
+                Identity(
                     **self._adapt_identity_kw(
                         dict(start=2, oracle_on_null=False)
                     )

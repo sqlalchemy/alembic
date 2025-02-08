@@ -93,7 +93,7 @@ config = context.config
 def _sqlite_file_db(tempname="foo.db", future=False, scope=None, **options):
     dir_ = _join_path(_get_staging_directory(), "scripts")
     url = "sqlite:///%s/%s" % (dir_, tempname)
-    if scope and util.sqla_14:
+    if scope:
         options["scope"] = scope
     return testing_util.testing_engine(url=url, future=future, options=options)
 

@@ -8,6 +8,7 @@ from typing import Dict
 
 from sqlalchemy import exc as sa_exc
 from sqlalchemy.engine import default
+from sqlalchemy.engine import URL
 from sqlalchemy.testing.assertions import _expect_warnings
 from sqlalchemy.testing.assertions import eq_  # noqa
 from sqlalchemy.testing.assertions import is_  # noqa
@@ -16,8 +17,6 @@ from sqlalchemy.testing.assertions import is_not_  # noqa
 from sqlalchemy.testing.assertions import is_true  # noqa
 from sqlalchemy.testing.assertions import ne_  # noqa
 from sqlalchemy.util import decorator
-
-from ..util import sqla_compat
 
 
 def _assert_proper_exception_context(exception):
@@ -127,7 +126,7 @@ def _get_dialect(name):
     if name is None or name == "default":
         return default.DefaultDialect()
     else:
-        d = sqla_compat._create_url(name).get_dialect()()
+        d = URL.create(name).get_dialect()()
 
         if name == "postgresql":
             d.implicit_returning = True

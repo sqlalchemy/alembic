@@ -23,7 +23,6 @@ from .base import format_server_default
 from .impl import DefaultImpl
 from .. import util
 from ..util import sqla_compat
-from ..util.sqla_compat import _is_mariadb
 from ..util.sqla_compat import _is_type_bound
 from ..util.sqla_compat import compiles
 
@@ -475,7 +474,7 @@ def _mysql_drop_constraint(
         # note that SQLAlchemy as of 1.2 does not yet support
         # DROP CONSTRAINT for MySQL/MariaDB, so we implement fully
         # here.
-        if _is_mariadb(compiler.dialect):
+        if compiler.dialect.is_mariadb:  # type: ignore[attr-defined]
             return "ALTER TABLE %s DROP CONSTRAINT %s" % (
                 compiler.preparer.format_table(constraint.table),
                 compiler.preparer.format_constraint(constraint),

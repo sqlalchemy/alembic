@@ -7,8 +7,10 @@ from typing import Dict
 
 from sqlalchemy import CheckConstraint
 from sqlalchemy import Column
+from sqlalchemy import Computed
 from sqlalchemy import exc
 from sqlalchemy import ForeignKey
+from sqlalchemy import Identity
 from sqlalchemy import inspect
 from sqlalchemy import Integer
 from sqlalchemy import MetaData
@@ -32,7 +34,6 @@ from alembic.testing.env import three_rev_fixture
 from alembic.testing.fixtures import capture_context_buffer
 from alembic.testing.fixtures import op_fixture
 from alembic.testing.fixtures import TestBase
-from alembic.util import sqla_compat
 
 
 class FullEnvironmentTests(TestBase):
@@ -376,12 +377,11 @@ class OpTest(TestBase):
             "exec('alter table t drop constraint ' + @const_name)"
         )
 
-    @config.requirements.computed_columns_api
     def test_add_column_computed(self):
         context = op_fixture("mssql")
         op.add_column(
             "t1",
-            Column("some_column", Integer, sqla_compat.Computed("foo * 5")),
+            Column("some_column", Integer, Computed("foo * 5")),
         )
         context.assert_("ALTER TABLE t1 ADD some_column AS (foo * 5)")
 
@@ -463,11 +463,11 @@ class OpTest(TestBase):
         )
 
     @combinations(
-        (lambda: sqla_compat.Computed("foo * 5"), lambda: None),
-        (lambda: None, lambda: sqla_compat.Computed("foo * 5")),
+        (lambda: Computed("foo * 5"), lambda: None),
+        (lambda: None, lambda: Computed("foo * 5")),
         (
-            lambda: sqla_compat.Computed("foo * 42"),
-            lambda: sqla_compat.Computed("foo * 5"),
+            lambda: Computed("foo * 42"),
+            lambda: Computed("foo * 5"),
         ),
     )
     @config.requirements.computed_columns
@@ -496,7 +496,7 @@ class OpTest(TestBase):
         context = op_fixture("mssql")
         op.add_column(
             "t1",
-            Column("some_column", Integer, sqla_compat.Identity(**kw)),
+            Column("some_column", Integer, Identity(**kw)),
         )
         if "start" in kw or "increment" in kw:
             options = "(%s,%s)" % (
@@ -511,11 +511,11 @@ class OpTest(TestBase):
         )
 
     @combinations(
-        (lambda: sqla_compat.Identity(), lambda: None),
-        (lambda: None, lambda: sqla_compat.Identity()),
+        (lambda: Identity(), lambda: None),
+        (lambda: None, lambda: Identity()),
         (
-            lambda: sqla_compat.Identity(),
-            lambda: sqla_compat.Identity(),
+            lambda: Identity(),
+            lambda: Identity(),
         ),
     )
     @config.requirements.identity_columns

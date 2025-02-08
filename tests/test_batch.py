@@ -4,17 +4,20 @@ import re
 from sqlalchemy import Boolean
 from sqlalchemy import CheckConstraint
 from sqlalchemy import Column
+from sqlalchemy import Computed
 from sqlalchemy import DateTime
 from sqlalchemy import Enum
 from sqlalchemy import ForeignKey
 from sqlalchemy import ForeignKeyConstraint
 from sqlalchemy import func
+from sqlalchemy import Identity
 from sqlalchemy import Index
 from sqlalchemy import inspect
 from sqlalchemy import Integer
 from sqlalchemy import JSON
 from sqlalchemy import MetaData
 from sqlalchemy import PrimaryKeyConstraint
+from sqlalchemy import select
 from sqlalchemy import String
 from sqlalchemy import Table
 from sqlalchemy import Text
@@ -51,16 +54,6 @@ from alembic.util import CommandError
 from alembic.util import exc as alembic_exc
 from alembic.util.sqla_compat import _NONE_NAME
 from alembic.util.sqla_compat import _safe_commit_connection_transaction
-from alembic.util.sqla_compat import _select
-from alembic.util.sqla_compat import has_computed
-from alembic.util.sqla_compat import has_identity
-from alembic.util.sqla_compat import sqla_14
-
-if has_computed:
-    from alembic.util.sqla_compat import Computed
-
-if has_identity:
-    from alembic.util.sqla_compat import Identity
 
 
 class BatchApplyTest(TestBase):
@@ -335,7 +328,7 @@ class BatchApplyTest(TestBase):
                     "schema": args["schema"],
                     "name": name,
                     "type": impl.new_table.c[name].type,
-                    "cast_label": name if sqla_14 else "anon_1",
+                    "cast_label": name,
                 }
                 if (
                     impl.new_table.c[name].type._type_affinity
@@ -1145,12 +1138,8 @@ class CopyFromTest(TestBase):
             "data INTEGER, x INTEGER, toj JSON, fromj TEXT, PRIMARY KEY (id))",
             "INSERT INTO _alembic_tmp_foo (id, data, x, toj, fromj) "
             "SELECT foo.id, "
-            "CAST(foo.data AS INTEGER) AS %s, foo.x, foo.toj, "
-            "CAST(foo.fromj AS TEXT) AS %s FROM foo"
-            % (
-                ("data" if sqla_14 else "anon_1"),
-                ("fromj" if sqla_14 else "anon_2"),
-            ),
+            "CAST(foo.data AS INTEGER) AS data, foo.x, foo.toj, "
+            "CAST(foo.fromj AS TEXT) AS fromj FROM foo",
             "DROP TABLE foo",
             "ALTER TABLE _alembic_tmp_foo RENAME TO foo",
         )
@@ -1173,8 +1162,7 @@ class CopyFromTest(TestBase):
             "CREATE TABLE _alembic_tmp_foo (id INTEGER NOT NULL, "
             "data VARCHAR(50), x INTEGER, y INTEGER, PRIMARY KEY (id))",
             "INSERT INTO _alembic_tmp_foo (id, data, x, y) SELECT foo.id, "
-            "foo.data, foo.x, CAST(foo.y AS INTEGER) AS %s FROM foo"
-            % (("y" if sqla_14 else "anon_1"),),
+            "foo.data, foo.x, CAST(foo.y AS INTEGER) AS y FROM foo",
             "DROP TABLE foo",
             "ALTER TABLE _alembic_tmp_foo RENAME TO foo",
         )
@@ -1220,8 +1208,7 @@ class CopyFromTest(TestBase):
             "data VARCHAR(50), x INTEGER, y BOOLEAN, PRIMARY KEY (id), "
             "CONSTRAINT ck1 CHECK (y IN (0, 1)))",
             "INSERT INTO _alembic_tmp_foo (id, data, x, y) SELECT foo.id, "
-            "foo.data, foo.x, CAST(foo.y AS BOOLEAN) AS %s FROM foo"
-            % (("y" if sqla_14 else "anon_1"),),
+            "foo.data, foo.x, CAST(foo.y AS BOOLEAN) AS y FROM foo",
             "DROP TABLE foo",
             "ALTER TABLE _alembic_tmp_foo RENAME TO foo",
         )
@@ -1292,8 +1279,7 @@ class CopyFromTest(TestBase):
             "CREATE TABLE _alembic_tmp_foo (id INTEGER NOT NULL, "
             "data INTEGER, x INTEGER, PRIMARY KEY (id))",
             "INSERT INTO _alembic_tmp_foo (id, data, x) SELECT foo.id, "
-            "CAST(foo.data AS INTEGER) AS %s, foo.x FROM foo"
-            % (("data" if sqla_14 else "anon_1"),),
+            "CAST(foo.data AS INTEGER) AS data, foo.x FROM foo",
             "DROP TABLE foo",
             "ALTER TABLE _alembic_tmp_foo RENAME TO foo",
             "CREATE UNIQUE INDEX ix_data ON foo (data)",
@@ -1503,7 +1489,7 @@ class BatchRoundTripTest(TestBase):
             batch_op.alter_column("x", type_=DateTime())
 
         eq_(
-            self.conn.execute(_select(t.c.x)).fetchall(),
+            self.conn.execute(select(t.c.x)).fetchall(),
             [(datetime.datetime(2012, 5, 18, 15, 32, 5),)],
         )
 
@@ -1520,12 +1506,8 @@ class BatchRoundTripTest(TestBase):
 
         with self.conn.begin():
             self.conn.execute(t.insert())
-        res = self.conn.execute(_select(t.c.x))
-        if sqla_14:
-            assert res.scalar_one_or_none() is not None
-        else:
-            row = res.fetchone()
-            assert row["x"] is not None
+        res = self.conn.execute(select(t.c.x))
+        assert res.scalar_one_or_none() is not None
 
     def test_drop_col_schematype(self):
         self._boolean_fixture()
@@ -1566,8 +1548,7 @@ class BatchRoundTripTest(TestBase):
 
     def _assert_data(self, data, tablename="foo"):
         res = self.conn.execute(text("select * from %s" % tablename))
-        if sqla_14:
-            res = res.mappings()
+        res = res.mappings()
         eq_([dict(row) for row in res], data)
 
     def test_ix_existing(self):

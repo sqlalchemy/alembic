@@ -1,9 +1,11 @@
 from sqlalchemy import Boolean
 from sqlalchemy import Column
+from sqlalchemy import Computed
 from sqlalchemy import DATETIME
 from sqlalchemy import exc
 from sqlalchemy import Float
 from sqlalchemy import func
+from sqlalchemy import Identity
 from sqlalchemy import inspect
 from sqlalchemy import Integer
 from sqlalchemy import MetaData
@@ -25,7 +27,6 @@ from alembic.testing.env import staging_env
 from alembic.testing.fixtures import AlterColRoundTripFixture
 from alembic.testing.fixtures import op_fixture
 from alembic.testing.fixtures import TestBase
-from alembic.util import sqla_compat
 
 
 class MySQLOpTest(TestBase):
@@ -382,12 +383,11 @@ class MySQLOpTest(TestBase):
         op.drop_table_comment("t2", existing_comment="t2 table", schema="foo")
         context.assert_("ALTER TABLE foo.t2 COMMENT ''")
 
-    @config.requirements.computed_columns_api
     def test_add_column_computed(self):
         context = op_fixture("mysql")
         op.add_column(
             "t1",
-            Column("some_column", Integer, sqla_compat.Computed("foo * 5")),
+            Column("some_column", Integer, Computed("foo * 5")),
         )
         context.assert_(
             "ALTER TABLE t1 ADD COLUMN some_column "
@@ -469,14 +469,13 @@ class MySQLOpTest(TestBase):
         )
 
     @combinations(
-        (lambda: sqla_compat.Computed("foo * 5"), lambda: None),
-        (lambda: None, lambda: sqla_compat.Computed("foo * 5")),
+        (lambda: Computed("foo * 5"), lambda: None),
+        (lambda: None, lambda: Computed("foo * 5")),
         (
-            lambda: sqla_compat.Computed("foo * 42"),
-            lambda: sqla_compat.Computed("foo * 5"),
+            lambda: Computed("foo * 42"),
+            lambda: Computed("foo * 5"),
         ),
     )
-    @config.requirements.computed_columns_api
     def test_alter_column_computed_not_supported(self, sd, esd):
         op_fixture("mysql")
         assert_raises_message(
@@ -492,14 +491,10 @@ class MySQLOpTest(TestBase):
         )
 
     @combinations(
-        (lambda: sqla_compat.Identity(), lambda: None),
-        (lambda: None, lambda: sqla_compat.Identity()),
-        (
-            lambda: sqla_compat.Identity(),
-            lambda: sqla_compat.Identity(),
-        ),
+        (lambda: Identity(), lambda: None),
+        (lambda: None, lambda: Identity()),
+        (lambda: Identity(), lambda: Identity()),
     )
-    @config.requirements.identity_columns_api
     def test_alter_column_identity_not_supported(self, sd, esd):
         op_fixture()
         assert_raises_message(
@@ -633,7 +628,7 @@ class MySQLDefaultCompareTest(TestBase):
         insp = inspect(self.bind)
         cols = insp.get_columns(t1.name)
         refl = Table(t1.name, MetaData())
-        sqla_compat._reflect_table(insp, refl)
+        insp.reflect_table(refl, include_columns=None)
         ctx = self.autogen_context["context"]
         return ctx.impl.compare_server_default(
             refl.c[cols[0]["name"]], col, rendered, cols[0]["default"]

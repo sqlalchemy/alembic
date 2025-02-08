@@ -8,6 +8,7 @@ from typing import Any
 from typing import Dict
 
 from sqlalchemy import Column
+from sqlalchemy import create_mock_engine
 from sqlalchemy import inspect
 from sqlalchemy import MetaData
 from sqlalchemy import String
@@ -17,6 +18,7 @@ from sqlalchemy import text
 from sqlalchemy.testing import config
 from sqlalchemy.testing import mock
 from sqlalchemy.testing.assertions import eq_
+from sqlalchemy.testing.fixtures import FutureEngineMixin
 from sqlalchemy.testing.fixtures import TablesTest as SQLAlchemyTablesTest
 from sqlalchemy.testing.fixtures import TestBase as SQLAlchemyTestBase
 
@@ -26,8 +28,6 @@ from ..environment import EnvironmentContext
 from ..migration import MigrationContext
 from ..operations import Operations
 from ..util import sqla_compat
-from ..util.sqla_compat import create_mock_engine
-from ..util.sqla_compat import sqla_14
 from ..util.sqla_compat import sqla_2
 
 
@@ -63,14 +63,6 @@ class TestBase(SQLAlchemyTestBase):
 
 class TablesTest(TestBase, SQLAlchemyTablesTest):
     pass
-
-
-if sqla_14:
-    from sqlalchemy.testing.fixtures import FutureEngineMixin
-else:
-
-    class FutureEngineMixin:  # type:ignore[no-redef]
-        __requires__ = ("sqlalchemy_14",)
 
 
 FutureEngineMixin.is_sqlalchemy_future = True
@@ -190,12 +182,8 @@ def op_fixture(
         opts["as_sql"] = as_sql
     if literal_binds:
         opts["literal_binds"] = literal_binds
-    if not sqla_14 and dialect == "mariadb":
-        ctx_dialect = _get_dialect("mysql")
-        ctx_dialect.server_version_info = (10, 4, 0, "MariaDB")
 
-    else:
-        ctx_dialect = _get_dialect(dialect)
+    ctx_dialect = _get_dialect(dialect)
     if native_boolean is not None:
         ctx_dialect.supports_native_boolean = native_boolean
         # this is new as of SQLAlchemy 1.2.7 and is used by SQL Server,

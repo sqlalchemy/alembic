@@ -149,10 +149,7 @@ class DefaultRequirements(SuiteRequirements):
 
     @property
     def long_names(self):
-        if sqla_compat.sqla_14:
-            return exclusions.skip_if("oracle<18")
-        else:
-            return exclusions.skip_if("oracle")
+        return exclusions.skip_if("oracle<18")
 
     @property
     def reflects_pk_names(self):
@@ -243,38 +240,8 @@ class DefaultRequirements(SuiteRequirements):
     def computed_columns(self):
         # TODO: in theory if these could come from SQLAlchemy dialects
         # that would be helpful
-        return self.computed_columns_api + exclusions.skip_if(
+        return exclusions.skip_if(
             ["postgresql < 12", "sqlite < 3.31", "mysql < 5.7"]
-        )
-
-    @property
-    def computed_reflects_as_server_default(self):
-        # note that this rule will go away when SQLAlchemy correctly
-        # supports reflection of the "computed" construct; the element
-        # will consistently be present as both column.computed and
-        # column.server_default for all supported backends.
-        return (
-            self.computed_columns
-            + exclusions.only_if(
-                ["postgresql", "oracle"],
-                "backend reflects computed construct as a server default",
-            )
-            + exclusions.skip_if(self.computed_reflects_normally)
-        )
-
-    @property
-    def computed_doesnt_reflect_as_server_default(self):
-        # note that this rule will go away when SQLAlchemy correctly
-        # supports reflection of the "computed" construct; the element
-        # will consistently be present as both column.computed and
-        # column.server_default for all supported backends.
-        return (
-            self.computed_columns
-            + exclusions.skip_if(
-                ["postgresql", "oracle"],
-                "backend reflects computed construct as a server default",
-            )
-            + exclusions.skip_if(self.computed_reflects_normally)
         )
 
     @property
@@ -291,9 +258,10 @@ class DefaultRequirements(SuiteRequirements):
         # they prevent a column's name from being changed due to a bug in
         # MariaDB 10.2 as well as MySQL 8.0.16
         if exclusions.against(config, ["mysql", "mariadb"]):
-            if sqla_compat._is_mariadb(config.db.dialect):
-                mnvi = sqla_compat._mariadb_normalized_version_info
-                norm_version_info = mnvi(config.db.dialect)
+            if config.db.dialect.is_mariadb:
+                norm_version_info = (
+                    config.db.dialect._mariadb_normalized_version_info
+                )
                 return norm_version_info >= (10, 2) and norm_version_info < (
                     10,
                     2,
@@ -310,9 +278,10 @@ class DefaultRequirements(SuiteRequirements):
         # 1. we have mysql / mariadb and
         # 2. it enforces check constraints
         if exclusions.against(config, ["mysql", "mariadb"]):
-            if sqla_compat._is_mariadb(config.db.dialect):
-                mnvi = sqla_compat._mariadb_normalized_version_info
-                norm_version_info = mnvi(config.db.dialect)
+            if config.db.dialect.is_mariadb:
+                norm_version_info = (
+                    config.db.dialect._mariadb_normalized_version_info
+                )
                 return norm_version_info >= (10, 2)
             else:
                 norm_version_info = config.db.dialect.server_version_info
@@ -327,7 +296,7 @@ class DefaultRequirements(SuiteRequirements):
                 lambda config: exclusions.against(config, "mysql")
                 and (
                     (
-                        not config.db.dialect._is_mariadb
+                        not config.db.dialect.is_mariadb
                         and exclusions.against(config, "mysql >= 5.7")
                     )
                     or (
@@ -343,15 +312,10 @@ class DefaultRequirements(SuiteRequirements):
         )
 
     def _mssql_json(self, config):
-        if not sqla_compat.sqla_14:
-            return False
-        else:
-            return exclusions.against(config, "mssql")
+        return exclusions.against(config, "mssql")
 
     def _sqlite_json(self, config):
-        if not sqla_compat.sqla_14:
-            return False
-        elif not exclusions.against(config, "sqlite >= 3.9"):
+        if not exclusions.against(config, "sqlite >= 3.9"):
             return False
         else:
             with config.db.connect() as conn:
@@ -372,7 +336,7 @@ class DefaultRequirements(SuiteRequirements):
     def identity_columns(self):
         # TODO: in theory if these could come from SQLAlchemy dialects
         # that would be helpful
-        return self.identity_columns_api + exclusions.only_on(
+        return exclusions.only_on(
             ["postgresql >= 10", "oracle >= 12", "mssql"]
         )
 
@@ -380,9 +344,7 @@ class DefaultRequirements(SuiteRequirements):
     def identity_columns_alter(self):
         # TODO: in theory if these could come from SQLAlchemy dialects
         # that would be helpful
-        return self.identity_columns_api + exclusions.only_on(
-            ["postgresql >= 10", "oracle >= 12"]
-        )
+        return exclusions.only_on(["postgresql >= 10", "oracle >= 12"])
 
     @property
     def legacy_engine(self):
