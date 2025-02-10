@@ -30,7 +30,6 @@ jobs:
           - "windows-latest"
           - "macos-latest"
         python-version:
-          - "3.8"
           - "3.9"
           - "3.10"
           - "3.11"
@@ -44,9 +43,6 @@ jobs:
           # sqla14 does not support 3.13+
           - sqlalchemy: sqla14
             python-version: "3.13"
-          # sqlamain does not support 3.8
-          - sqlalchemy: sqlamain
-            python-version: "3.8"
 
       fail-fast: false
 
