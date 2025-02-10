@@ -25,7 +25,7 @@ jobs:
         os:
           - "ubuntu-22.04"
         python-version:
-          - "3.11"
+          - "3.12"
         sqlalchemy:
           - sqla14
           - sqla20
@@ -61,7 +61,7 @@ jobs:
         os:
           - "ubuntu-latest"
         python-version:
-          - "3.11"
+          - "3.12"
 
       fail-fast: false
 
