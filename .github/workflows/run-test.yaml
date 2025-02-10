@@ -37,16 +37,10 @@ jobs:
           - "3.12"
           - "3.13"
         sqlalchemy:
-          - sqla13
           - sqla14
           - sqla20
           - sqlamain
         exclude:
-          # sqla13 does not support 3.12+
-          - sqlalchemy: sqla13
-            python-version: "3.12"
-          - sqlalchemy: sqla13
-            python-version: "3.13"
           # sqla14 does not support 3.13+
           - sqlalchemy: sqla14
             python-version: "3.13"

@@ -27,7 +27,6 @@ jobs:
         python-version:
           - "3.11"
         sqlalchemy:
-          - sqla13
           - sqla14
           - sqla20
           - sqlamain
