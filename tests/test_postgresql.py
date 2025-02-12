@@ -1328,7 +1328,7 @@ class PostgresqlAutogenRenderTest(TestBase):
                 ops.CreateIndexOp.from_index(idx),
             ),
             "op.create_index('my_idx', 'tbl', "
-            "[sa.text(\"(c ->> 'foo')\")], unique=False)",
+            "[sa.literal_column(\"(c ->> 'foo')\")], unique=False)",
         )
 
     @config.requirements.nulls_not_distinct_sa

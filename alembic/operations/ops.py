@@ -35,7 +35,6 @@ if TYPE_CHECKING:
     from sqlalchemy.sql.elements import conv
     from sqlalchemy.sql.elements import quoted_name
     from sqlalchemy.sql.elements import TextClause
-    from sqlalchemy.sql.functions import Function
     from sqlalchemy.sql.schema import CheckConstraint
     from sqlalchemy.sql.schema import Column
     from sqlalchemy.sql.schema import Computed
@@ -933,7 +932,7 @@ class CreateIndexOp(MigrateOperation):
         operations: Operations,
         index_name: Optional[str],
         table_name: str,
-        columns: Sequence[Union[str, TextClause, Function[Any]]],
+        columns: Sequence[Union[str, TextClause, ColumnElement[Any]]],
         *,
         schema: Optional[str] = None,
         unique: bool = False,

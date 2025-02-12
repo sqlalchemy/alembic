@@ -27,7 +27,6 @@ if TYPE_CHECKING:
     from sqlalchemy.sql.elements import conv
     from sqlalchemy.sql.elements import TextClause
     from sqlalchemy.sql.expression import TableClause
-    from sqlalchemy.sql.functions import Function
     from sqlalchemy.sql.schema import Column
     from sqlalchemy.sql.schema import Computed
     from sqlalchemy.sql.schema import Identity
@@ -650,7 +649,7 @@ def create_foreign_key(
 def create_index(
     index_name: Optional[str],
     table_name: str,
-    columns: Sequence[Union[str, TextClause, Function[Any]]],
+    columns: Sequence[Union[str, TextClause, ColumnElement[Any]]],
     *,
     schema: Optional[str] = None,
     unique: bool = False,

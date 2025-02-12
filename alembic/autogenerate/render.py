@@ -19,6 +19,7 @@ from sqlalchemy import schema as sa_schema
 from sqlalchemy import sql
 from sqlalchemy import types as sqltypes
 from sqlalchemy.sql.elements import conv
+from sqlalchemy.sql.elements import Label
 from sqlalchemy.sql.elements import quoted_name
 
 from .. import util
@@ -584,23 +585,28 @@ def _render_potential_expr(
     value: Any,
     autogen_context: AutogenContext,
     *,
-    wrap_in_text: bool = True,
+    wrap_in_element: bool = True,
     is_server_default: bool = False,
     is_index: bool = False,
 ) -> str:
     if isinstance(value, sql.ClauseElement):
-        if wrap_in_text:
-            template = "%(prefix)stext(%(sql)r)"
+        sql_text = autogen_context.migration_context.impl.render_ddl_sql_expr(
+            value, is_server_default=is_server_default, is_index=is_index
+        )
+        if wrap_in_element:
+            prefix = _sqlalchemy_autogenerate_prefix(autogen_context)
+            element = "literal_column" if is_index else "text"
+            value_str = f"{prefix}{element}({sql_text!r})"
+            if (
+                is_index
+                and isinstance(value, Label)
+                and type(value.name) is str
+            ):
+                return value_str + f".label({value.name!r})"
+            else:
+                return value_str
         else:
-            template = "%(sql)r"
-
-        return template % {
-            "prefix": _sqlalchemy_autogenerate_prefix(autogen_context),
-            "sql": autogen_context.migration_context.impl.render_ddl_sql_expr(
-                value, is_server_default=is_server_default, is_index=is_index
-            ),
-        }
-
+            return repr(sql_text)
     else:
         return repr(value)
 
@@ -787,7 +793,7 @@ def _render_computed(
     computed: Computed, autogen_context: AutogenContext
 ) -> str:
     text = _render_potential_expr(
-        computed.sqltext, autogen_context, wrap_in_text=False
+        computed.sqltext, autogen_context, wrap_in_element=False
     )
 
     kwargs = {}
@@ -1101,7 +1107,7 @@ def _render_check_constraint(
             else ""
         ),
         "sqltext": _render_potential_expr(
-            constraint.sqltext, autogen_context, wrap_in_text=False
+            constraint.sqltext, autogen_context, wrap_in_element=False
         ),
     }
 
