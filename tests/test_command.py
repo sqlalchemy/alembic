@@ -1227,9 +1227,12 @@ class CommandLineTest(TestBase):
         assert not commands, "Commands without help text: %s" % commands
 
     def test_init_file_exists_and_is_not_empty(self):
-        with mock.patch(
-            "alembic.command.os.listdir", return_value=["file1", "file2"]
-        ), mock.patch("alembic.command.os.access", return_value=True):
+        with (
+            mock.patch(
+                "alembic.command.os.listdir", return_value=["file1", "file2"]
+            ),
+            mock.patch("alembic.command.os.access", return_value=True),
+        ):
             directory = "alembic"
             assert_raises_message(
                 util.CommandError,
@@ -1286,12 +1289,11 @@ class CommandLineTest(TestBase):
             else:
                 return ["file1", "file2", "alembic.ini.mako"]
 
-        with mock.patch(
-            "alembic.command.os.access", side_effect=access_
-        ), mock.patch("alembic.command.os.makedirs") as makedirs, mock.patch(
-            "alembic.command.os.listdir", side_effect=listdir_
-        ), mock.patch(
-            "alembic.command.ScriptDirectory"
+        with (
+            mock.patch("alembic.command.os.access", side_effect=access_),
+            mock.patch("alembic.command.os.makedirs") as makedirs,
+            mock.patch("alembic.command.os.listdir", side_effect=listdir_),
+            mock.patch("alembic.command.ScriptDirectory"),
         ):
             command.init(self.cfg, directory="foobar")
             eq_(
@@ -1306,10 +1308,10 @@ class CommandLineTest(TestBase):
             else:
                 return False
 
-        with mock.patch(
-            "alembic.command.os.access", side_effect=access_
-        ), mock.patch("alembic.command.os.makedirs") as makedirs, mock.patch(
-            "alembic.command.ScriptDirectory"
+        with (
+            mock.patch("alembic.command.os.access", side_effect=access_),
+            mock.patch("alembic.command.os.makedirs") as makedirs,
+            mock.patch("alembic.command.ScriptDirectory"),
         ):
             command.init(self.cfg, directory="foobar")
             eq_(

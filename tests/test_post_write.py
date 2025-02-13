@@ -148,12 +148,15 @@ class RunHookTest(TestBase):
         ]
 
         importlib_metadata_get = mock.Mock(return_value=retVal)
-        with mock.patch(
-            "alembic.util.compat.importlib_metadata_get",
-            importlib_metadata_get,
-        ), mock.patch(
-            "alembic.script.write_hooks.subprocess"
-        ) as mock_subprocess:
+        with (
+            mock.patch(
+                "alembic.util.compat.importlib_metadata_get",
+                importlib_metadata_get,
+            ),
+            mock.patch(
+                "alembic.script.write_hooks.subprocess"
+            ) as mock_subprocess,
+        ):
             rev = command.revision(self.cfg, message="x")
 
         eq_(importlib_metadata_get.mock_calls, [mock.call("console_scripts")])

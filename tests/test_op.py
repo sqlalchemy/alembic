@@ -1287,9 +1287,13 @@ class OpTest(TestBase):
         conn = op.get_bind()
         mock_conn = MagicMock()
         mock_fn = MagicMock()
-        with patch.object(conn.dialect, "is_async", True), patch.object(
-            AsyncConnection, "_retrieve_proxy_for_target", mock_conn
-        ), patch("sqlalchemy.util.await_only") as mock_await:
+        with (
+            patch.object(conn.dialect, "is_async", True),
+            patch.object(
+                AsyncConnection, "_retrieve_proxy_for_target", mock_conn
+            ),
+            patch("sqlalchemy.util.await_only") as mock_await,
+        ):
             res = op.run_async(mock_fn, 99, foo=42)
 
             eq_(res, mock_await.return_value)
