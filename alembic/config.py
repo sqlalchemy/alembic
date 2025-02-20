@@ -348,172 +348,144 @@ class CommandLine:
     def __init__(self, prog: Optional[str] = None) -> None:
         self._generate_args(prog)
 
+    _KWARGS_OPTS = {
+        "template": (
+            "-t",
+            "--template",
+            dict(
+                default="generic",
+                type=str,
+                help="Setup template for use with 'init'",
+            ),
+        ),
+        "message": (
+            "-m",
+            "--message",
+            dict(type=str, help="Message string to use with 'revision'"),
+        ),
+        "sql": (
+            "--sql",
+            dict(
+                action="store_true",
+                help="Don't emit SQL to database - dump to "
+                "standard output/file instead. See docs on "
+                "offline mode.",
+            ),
+        ),
+        "tag": (
+            "--tag",
+            dict(
+                type=str,
+                help="Arbitrary 'tag' name - can be used by custom env.py scripts.",
+            ),
+        ),
+        "head": (
+            "--head",
+            dict(
+                type=str,
+                help="Specify head revision or <branchname>@head "
+                "to base new revision on.",
+            ),
+        ),
+        "splice": (
+            "--splice",
+            dict(
+                action="store_true",
+                help="Allow a non-head revision as the 'head' to splice onto",
+            ),
+        ),
+        "depends_on": (
+            "--depends-on",
+            dict(
+                action="append",
+                help="Specify one or more revision identifiers "
+                "which this revision should depend on.",
+            ),
+        ),
+        "rev_id": (
+            "--rev-id",
+            dict(
+                type=str,
+                help="Specify a hardcoded revision id instead of generating one",
+            ),
+        ),
+        "version_path": (
+            "--version-path",
+            dict(
+                type=str,
+                help="Specify specific path from config for version file",
+            ),
+        ),
+        "branch_label": (
+            "--branch-label",
+            dict(
+                type=str,
+                help="Specify a branch label to apply to the new revision",
+            ),
+        ),
+        "verbose": (
+            "-v",
+            "--verbose",
+            dict(action="store_true", help="Use more verbose output"),
+        ),
+        "resolve_dependencies": (
+            "--resolve-dependencies",
+            dict(
+                action="store_true",
+                help="Treat dependency versions as down revisions",
+            ),
+        ),
+        "autogenerate": (
+            "--autogenerate",
+            dict(
+                action="store_true",
+                help="Populate revision script with candidate "
+                "migration operations, based on comparison "
+                "of database to model.",
+            ),
+        ),
+        "rev_range": (
+            "-r",
+            "--rev-range",
+            dict(
+                action="store",
+                help="Specify a revision range; format is [start]:[end]",
+            ),
+        ),
+        "indicate_current": (
+            "-i",
+            "--indicate-current",
+            dict(
+                action="store_true",
+                help="Indicate the current revision",
+            ),
+        ),
+        "purge": (
+            "--purge",
+            dict(
+                action="store_true",
+                help="Unconditionally erase the version table before stamping",
+            ),
+        ),
+        "package": (
+            "--package",
+            dict(
+                action="store_true",
+                help="Write empty __init__.py files to the "
+                "environment and version locations",
+            ),
+        ),
+    }
+    _POSITIONAL_HELP = {
+        "directory": "location of scripts directory",
+        "revision": "revision identifier",
+        "revisions": "one or more revisions, or 'heads' for all heads",
+    }
+    _POSITIONAL_TRANSLATIONS: dict[str, str] = {
+        command.stamp: {"revision": "revisions"}
+    }
+
     def _generate_args(self, prog: Optional[str]) -> None:
-        def add_options(
-            fn: Any, parser: Any, positional: Any, kwargs: Any
-        ) -> None:
-            kwargs_opts = {
-                "template": (
-                    "-t",
-                    "--template",
-                    dict(
-                        default="generic",
-                        type=str,
-                        help="Setup template for use with 'init'",
-                    ),
-                ),
-                "message": (
-                    "-m",
-                    "--message",
-                    dict(
-                        type=str, help="Message string to use with 'revision'"
-                    ),
-                ),
-                "sql": (
-                    "--sql",
-                    dict(
-                        action="store_true",
-                        help="Don't emit SQL to database - dump to "
-                        "standard output/file instead. See docs on "
-                        "offline mode.",
-                    ),
-                ),
-                "tag": (
-                    "--tag",
-                    dict(
-                        type=str,
-                        help="Arbitrary 'tag' name - can be used by "
-                        "custom env.py scripts.",
-                    ),
-                ),
-                "head": (
-                    "--head",
-                    dict(
-                        type=str,
-                        help="Specify head revision or <branchname>@head "
-                        "to base new revision on.",
-                    ),
-                ),
-                "splice": (
-                    "--splice",
-                    dict(
-                        action="store_true",
-                        help="Allow a non-head revision as the "
-                        "'head' to splice onto",
-                    ),
-                ),
-                "depends_on": (
-                    "--depends-on",
-                    dict(
-                        action="append",
-                        help="Specify one or more revision identifiers "
-                        "which this revision should depend on.",
-                    ),
-                ),
-                "rev_id": (
-                    "--rev-id",
-                    dict(
-                        type=str,
-                        help="Specify a hardcoded revision id instead of "
-                        "generating one",
-                    ),
-                ),
-                "version_path": (
-                    "--version-path",
-                    dict(
-                        type=str,
-                        help="Specify specific path from config for "
-                        "version file",
-                    ),
-                ),
-                "branch_label": (
-                    "--branch-label",
-                    dict(
-                        type=str,
-                        help="Specify a branch label to apply to the "
-                        "new revision",
-                    ),
-                ),
-                "verbose": (
-                    "-v",
-                    "--verbose",
-                    dict(action="store_true", help="Use more verbose output"),
-                ),
-                "resolve_dependencies": (
-                    "--resolve-dependencies",
-                    dict(
-                        action="store_true",
-                        help="Treat dependency versions as down revisions",
-                    ),
-                ),
-                "autogenerate": (
-                    "--autogenerate",
-                    dict(
-                        action="store_true",
-                        help="Populate revision script with candidate "
-                        "migration operations, based on comparison "
-                        "of database to model.",
-                    ),
-                ),
-                "rev_range": (
-                    "-r",
-                    "--rev-range",
-                    dict(
-                        action="store",
-                        help="Specify a revision range; "
-                        "format is [start]:[end]",
-                    ),
-                ),
-                "indicate_current": (
-                    "-i",
-                    "--indicate-current",
-                    dict(
-                        action="store_true",
-                        help="Indicate the current revision",
-                    ),
-                ),
-                "purge": (
-                    "--purge",
-                    dict(
-                        action="store_true",
-                        help="Unconditionally erase the version table "
-                        "before stamping",
-                    ),
-                ),
-                "package": (
-                    "--package",
-                    dict(
-                        action="store_true",
-                        help="Write empty __init__.py files to the "
-                        "environment and version locations",
-                    ),
-                ),
-            }
-            positional_help = {
-                "directory": "location of scripts directory",
-                "revision": "revision identifier",
-                "revisions": "one or more revisions, or 'heads' for all heads",
-            }
-            for arg in kwargs:
-                if arg in kwargs_opts:
-                    args = kwargs_opts[arg]
-                    args, kw = args[0:-1], args[-1]
-                    parser.add_argument(*args, **kw)
-
-            for arg in positional:
-                if (
-                    arg == "revisions"
-                    or fn in positional_translations
-                    and positional_translations[fn][arg] == "revisions"
-                ):
-                    subparser.add_argument(
-                        "revisions",
-                        nargs="+",
-                        help=positional_help.get("revisions"),
-                    )
-                else:
-                    subparser.add_argument(arg, help=positional_help.get(arg))
-
         parser = ArgumentParser(prog=prog)
 
         parser.add_argument(
@@ -532,7 +504,7 @@ class CommandLine:
             "--name",
             type=str,
             default="alembic",
-            help="Name of section in .ini file to " "use for Alembic config",
+            help="Name of section in .ini file to use for Alembic config",
         )
         parser.add_argument(
             "-x",
@@ -552,49 +524,78 @@ class CommandLine:
             action="store_true",
             help="Do not log to std output.",
         )
-        subparsers = parser.add_subparsers()
 
-        positional_translations: Dict[Any, Any] = {
-            command.stamp: {"revision": "revisions"}
-        }
-
-        for fn in [getattr(command, n) for n in dir(command)]:
+        self.subparsers = parser.add_subparsers()
+        alembic_commands = (
+            fn
+            for fn in (getattr(command, name) for name in dir(command))
             if (
                 inspect.isfunction(fn)
                 and fn.__name__[0] != "_"
                 and fn.__module__ == "alembic.command"
-            ):
-                spec = compat.inspect_getfullargspec(fn)
-                if spec[3] is not None:
-                    positional = spec[0][1 : -len(spec[3])]
-                    kwarg = spec[0][-len(spec[3]) :]
-                else:
-                    positional = spec[0][1:]
-                    kwarg = []
+            )
+        )
 
-                if fn in positional_translations:
-                    positional = [
-                        positional_translations[fn].get(name, name)
-                        for name in positional
-                    ]
+        for fn in alembic_commands:
+            self._register_command(fn)
 
-                # parse first line(s) of helptext without a line break
-                help_ = fn.__doc__
-                if help_:
-                    help_text = []
-                    for line in help_.split("\n"):
-                        if not line.strip():
-                            break
-                        else:
-                            help_text.append(line.strip())
-                else:
-                    help_text = []
-                subparser = subparsers.add_parser(
-                    fn.__name__, help=" ".join(help_text)
-                )
-                add_options(fn, subparser, positional, kwarg)
-                subparser.set_defaults(cmd=(fn, positional, kwarg))
         self.parser = parser
+
+    def _register_command(self, fn: Any) -> None:
+        fn, positional, kwarg, help_text = self._parse_command_from_function(fn)
+
+        subparser = self.subparsers.add_parser(fn.__name__, help=help_text)
+        subparser.set_defaults(cmd=(fn, positional, kwarg))
+
+        for arg in kwarg:
+            if arg in self._KWARGS_OPTS:
+                args = self._KWARGS_OPTS[arg]
+                args, kw = args[0:-1], args[-1]
+                subparser.add_argument(*args, **kw)
+
+        for arg in positional:
+            if (
+                arg == "revisions"
+                or fn in self._POSITIONAL_TRANSLATIONS
+                and self._POSITIONAL_TRANSLATIONS[fn][arg] == "revisions"
+            ):
+                subparser.add_argument(
+                    "revisions",
+                    nargs="+",
+                    help=self._POSITIONAL_HELP.get("revisions"),
+                )
+            else:
+                subparser.add_argument(arg, help=self._POSITIONAL_HELP.get(arg))
+
+    def _parse_command_from_function(self, fn: Any) -> tuple[Any, Any, Any, str]:
+        spec = compat.inspect_getfullargspec(fn)
+        if spec[3] is not None:
+            positional = spec[0][1 : -len(spec[3])]
+            kwarg = spec[0][-len(spec[3]) :]
+        else:
+            positional = spec[0][1:]
+            kwarg = []
+
+        if fn in self._POSITIONAL_TRANSLATIONS:
+            positional = [
+                self._POSITIONAL_TRANSLATIONS[fn].get(name, name) for name in positional
+            ]
+
+        # parse first line(s) of helptext without a line break
+        help_ = fn.__doc__
+        if help_:
+            help_lines = []
+            for line in help_.split("\n"):
+                if not line.strip():
+                    break
+                else:
+                    help_lines.append(line.strip())
+        else:
+            help_lines = []
+
+        help_text = " ".join(help_lines)
+
+        return fn, positional, kwarg, help_text
 
     def run_cmd(self, config: Config, options: Namespace) -> None:
         fn, positional, kwarg = options.cmd
