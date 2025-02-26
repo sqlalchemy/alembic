@@ -634,9 +634,9 @@ def _uq_constraint(
     has_batch = autogen_context._has_batch
 
     if constraint.deferrable:
-        opts.append(("deferrable", str(constraint.deferrable)))
+        opts.append(("deferrable", constraint.deferrable))
     if constraint.initially:
-        opts.append(("initially", str(constraint.initially)))
+        opts.append(("initially", constraint.initially))
     if not has_batch and alter and constraint.table.schema:
         opts.append(("schema", _ident(constraint.table.schema)))
     if not alter and constraint.name:

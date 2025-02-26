@@ -2437,11 +2437,11 @@ class RenderNamingConventionTest(TestBase):
         t = Table("t", self.metadata, Column("c", Integer))
         eq_ignore_whitespace(
             autogenerate.render._render_unique_constraint(
-                UniqueConstraint(t.c.c, deferrable="XYZ"),
+                UniqueConstraint(t.c.c, deferrable=True),
                 self.autogen_context,
                 None,
             ),
-            "sa.UniqueConstraint('c', deferrable='XYZ', "
+            "sa.UniqueConstraint('c', deferrable=True, "
             "name=op.f('uq_ct_t_c'))",
         )
 
