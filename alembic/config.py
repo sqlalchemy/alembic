@@ -481,7 +481,7 @@ class CommandLine:
         "revision": "revision identifier",
         "revisions": "one or more revisions, or 'heads' for all heads",
     }
-    _POSITIONAL_TRANSLATIONS: dict[str, str] = {
+    _POSITIONAL_TRANSLATIONS: dict[Any, dict[str, str]] = {
         command.stamp: {"revision": "revisions"}
     }
 
@@ -549,9 +549,9 @@ class CommandLine:
 
         for arg in kwarg:
             if arg in self._KWARGS_OPTS:
-                args = self._KWARGS_OPTS[arg]
-                args, kw = args[0:-1], args[-1]
-                subparser.add_argument(*args, **kw)
+                kwarg_opt = self._KWARGS_OPTS[arg]
+                args, kw = kwarg_opt[0:-1], kwarg_opt[-1]
+                subparser.add_argument(*args, **kw)  # type:ignore
 
         for arg in positional:
             if (
