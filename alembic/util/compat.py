@@ -7,6 +7,7 @@ import io
 import os
 import sys
 import typing
+from typing import cast
 from typing import Any
 from typing import List
 from typing import Optional
@@ -55,9 +56,9 @@ else:
 def importlib_metadata_get(group: str) -> Sequence[EntryPoint]:
     ep = importlib_metadata.entry_points()
     if hasattr(ep, "select"):
-        return ep.select(group=group)
+        return cast(Sequence[EntryPoint], ep.select(group=group))
     else:
-        return ep.get(group, ())  # type: ignore
+        return ep.get(group, ())
 
 
 def formatannotation_fwdref(
