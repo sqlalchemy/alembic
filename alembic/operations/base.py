@@ -705,14 +705,16 @@ class Operations(AbstractOperations):
             *,
             nullable: Optional[bool] = None,
             comment: Union[str, Literal[False], None] = False,
-            server_default: Any = False,
+            server_default: Union[
+                str, bool, Identity, Computed, TextClause
+            ] = False,
             new_column_name: Optional[str] = None,
             type_: Union[TypeEngine[Any], Type[TypeEngine[Any]], None] = None,
             existing_type: Union[
                 TypeEngine[Any], Type[TypeEngine[Any]], None
             ] = None,
             existing_server_default: Union[
-                str, bool, Identity, Computed, None
+                str, bool, Identity, Computed, TextClause, None
             ] = False,
             existing_nullable: Optional[bool] = None,
             existing_comment: Optional[str] = None,
