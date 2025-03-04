@@ -1,7 +1,0 @@
-.. change::
-    :tags: bug, environment
-    :tickets: 1567
-
-    Added a basic docstring to the migration template files so that the
-    upgrade/downgrade methods pass the D103 linter check which requires a
-    docstring for public functions.  Pull request courtesy Peter Cock.

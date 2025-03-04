@@ -1,7 +1,0 @@
-.. change::
-    :tags: bug, autogenerate
-    :tickets: 1613
-
-    Fixed autogenerate rendering bug where the ``deferrable`` element of
-    ``UniqueConstraint``, a bool, were being stringified rather than repr'ed
-    when generating Python code.
