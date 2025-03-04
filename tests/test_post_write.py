@@ -307,11 +307,11 @@ black.cwd = /path/to/cwd
 hooks = ruff
 ruff.type = exec
 ruff.executable = ruff
-ruff.options = --fix
+ruff.options = check --fix
         """
 
         def expected_additional_arguments_fn(rev_path):
-            return [rev_path, "--fix"]
+            return [rev_path, "check", "--fix"]
 
         self._run_ruff_with_config(
             input_config, expected_additional_arguments_fn
@@ -323,11 +323,11 @@ ruff.options = --fix
 hooks = ruff
 ruff.type = exec
 ruff.executable = %(here)s/.venv/bin/ruff
-ruff.options = --fix
+ruff.options = check --fix
         """
 
         def expected_additional_arguments_fn(rev_path):
-            return [rev_path, "--fix"]
+            return [rev_path, "check", "--fix"]
 
         self._run_ruff_with_config(
             input_config,
