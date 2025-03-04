@@ -5,7 +5,15 @@ Changelog
 
 .. changelog::
     :version: 1.15.1
-    :include_notes_from: unreleased
+    :released: March 4, 2025
+
+    .. change::
+        :tags: bug, installation
+        :tickets: 1616
+
+        Fixed an issue in the new :pep:`621` ``pyproject.toml`` layout that
+        prevented Alembic's template files from being included in the ``.whl`` file
+        in the distribution.
 
 .. changelog::
     :version: 1.15.0
