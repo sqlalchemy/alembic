@@ -76,19 +76,6 @@ namespaces = true
 [tool.setuptools.dynamic]
 version = {attr = "alembic.__version__"}
 
-[tool.distutils.egg_info]
-tag-build = "dev"
-
-[tool.distutils.upload_docs]
-upload-dir = "docs/build/output/html"
-
-[tool.distutils.upload]
-sign = 1
-identity = "C4DAFEE1"
-
-
-
-
 
 [tool.black]
 line-length = 79
