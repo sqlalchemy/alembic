@@ -9,7 +9,7 @@ Changelog
 
 .. changelog::
     :version: 1.15.0
-    :released: March 4, 2025
+    :released: March 4, 2025  (yanked due to issue #1616)
 
     .. change::
         :tags: bug, environment

@@ -59,10 +59,8 @@ package-dir = {"" = "."}
 license-files = ["LICENSE"]
 
 [tool.setuptools.package-data]
-alembic = ["*.pyi", "py.typed"]
+"*" = ["*.pyi", "py.typed", "*.mako", "README"]
 
-[tool.setuptools.exclude-package-data]
-alembic = ["test*"]
 
 [tool.setuptools.packages.find]
 include = ["alembic*"]

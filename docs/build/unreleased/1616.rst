@@ -1,0 +1,7 @@
+.. change::
+    :tags: bug, installation
+    :tickets: 1616
+
+    Fixed an issue in the new :pep:`621` ``pyproject.toml`` layout that
+    prevented Alembic's template files from being included in the ``.whl`` file
+    in the distribution.
