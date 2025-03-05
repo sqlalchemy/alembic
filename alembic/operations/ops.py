@@ -1840,14 +1840,16 @@ class AlterColumnOp(AlterTableOp):
         *,
         nullable: Optional[bool] = None,
         comment: Optional[Union[str, Literal[False]]] = False,
-        server_default: Any = False,
+        server_default: Union[
+            str, bool, Identity, Computed, TextClause
+        ] = False,
         new_column_name: Optional[str] = None,
         type_: Optional[Union[TypeEngine[Any], Type[TypeEngine[Any]]]] = None,
         existing_type: Optional[
             Union[TypeEngine[Any], Type[TypeEngine[Any]]]
         ] = None,
-        existing_server_default: Optional[
-            Union[str, bool, Identity, Computed]
+        existing_server_default: Union[
+            str, bool, Identity, Computed, TextClause, None
         ] = False,
         existing_nullable: Optional[bool] = None,
         existing_comment: Optional[str] = None,
