@@ -478,10 +478,15 @@ class CommandLine:
             ),
         ),
     }
-    _POSITIONAL_HELP = {
-        "directory": "location of scripts directory",
-        "revision": "revision identifier",
-        "revisions": "one or more revisions, or 'heads' for all heads",
+    _POSITIONAL_OPTS = {
+        "directory": dict(help="location of scripts directory"),
+        "revision": dict(
+            help="revision identifier",
+        ),
+        "revisions": dict(
+            nargs="+",
+            help="one or more revisions, or 'heads' for all heads",
+        ),
     }
     _POSITIONAL_TRANSLATIONS: dict[Any, dict[str, str]] = {
         command.stamp: {"revision": "revisions"}
@@ -552,24 +557,13 @@ class CommandLine:
         for arg in kwarg:
             if arg in self._KWARGS_OPTS:
                 kwarg_opt = self._KWARGS_OPTS[arg]
-                args, kw = kwarg_opt[0:-1], kwarg_opt[-1]
-                subparser.add_argument(*args, **kw)  # type:ignore
+                args, opts = kwarg_opt[0:-1], kwarg_opt[-1]
+                subparser.add_argument(*args, **opts)  # type:ignore
 
         for arg in positional:
-            if (
-                arg == "revisions"
-                or fn in self._POSITIONAL_TRANSLATIONS
-                and self._POSITIONAL_TRANSLATIONS[fn][arg] == "revisions"
-            ):
-                subparser.add_argument(
-                    "revisions",
-                    nargs="+",
-                    help=self._POSITIONAL_HELP.get("revisions"),
-                )
-            else:
-                subparser.add_argument(
-                    arg, help=self._POSITIONAL_HELP.get(arg)
-                )
+            if arg in self._POSITIONAL_OPTS:
+                opts = self._POSITIONAL_OPTS[arg]
+                subparser.add_argument(arg, **opts)  # type:ignore
 
     def _inspect_function(self, fn: Any) -> tuple[Any, Any, str]:
         spec = compat.inspect_getfullargspec(fn)
