@@ -376,7 +376,8 @@ class CommandLine:
             "--tag",
             dict(
                 type=str,
-                help="Arbitrary 'tag' name - can be used by custom env.py scripts.",
+                help="Arbitrary 'tag' name - can be used by "
+                "custom env.py scripts.",
             ),
         ),
         "head": (
@@ -406,7 +407,8 @@ class CommandLine:
             "--rev-id",
             dict(
                 type=str,
-                help="Specify a hardcoded revision id instead of generating one",
+                help="Specify a hardcoded revision id instead of "
+                "generating one",
             ),
         ),
         "version_path": (
@@ -542,7 +544,7 @@ class CommandLine:
         self.parser = parser
 
     def _register_command(self, fn: Any) -> None:
-        fn, positional, kwarg, help_text = self._parse_command_from_function(fn)
+        positional, kwarg, help_text = self._inspect_function(fn)
 
         subparser = self.subparsers.add_parser(fn.__name__, help=help_text)
         subparser.set_defaults(cmd=(fn, positional, kwarg))
@@ -565,9 +567,11 @@ class CommandLine:
                     help=self._POSITIONAL_HELP.get("revisions"),
                 )
             else:
-                subparser.add_argument(arg, help=self._POSITIONAL_HELP.get(arg))
+                subparser.add_argument(
+                    arg, help=self._POSITIONAL_HELP.get(arg)
+                )
 
-    def _parse_command_from_function(self, fn: Any) -> tuple[Any, Any, Any, str]:
+    def _inspect_function(self, fn: Any) -> tuple[Any, Any, str]:
         spec = compat.inspect_getfullargspec(fn)
         if spec[3] is not None:
             positional = spec[0][1 : -len(spec[3])]
@@ -578,7 +582,8 @@ class CommandLine:
 
         if fn in self._POSITIONAL_TRANSLATIONS:
             positional = [
-                self._POSITIONAL_TRANSLATIONS[fn].get(name, name) for name in positional
+                self._POSITIONAL_TRANSLATIONS[fn].get(name, name)
+                for name in positional
             ]
 
         # parse first line(s) of helptext without a line break
@@ -595,7 +600,7 @@ class CommandLine:
 
         help_text = " ".join(help_lines)
 
-        return fn, positional, kwarg, help_text
+        return positional, kwarg, help_text
 
     def run_cmd(self, config: Config, options: Namespace) -> None:
         fn, positional, kwarg = options.cmd
