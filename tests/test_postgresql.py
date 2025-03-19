@@ -128,7 +128,7 @@ class PostgresqlOpTest(TestBase):
         op.create_index("i", "t", ["c1", "c2"], unique=False)
         context.assert_("CREATE INDEX i ON t (c1, c2)")
 
-    def test_create_index_postgresql_if_not_exists(self):
+    def test_create_index_if_not_exists(self):
         context = op_fixture("postgresql")
         op.create_index("i", "t", ["c1", "c2"], if_not_exists=True)
         context.assert_("CREATE INDEX IF NOT EXISTS i ON t (c1, c2)")
@@ -146,7 +146,7 @@ class PostgresqlOpTest(TestBase):
             op.drop_index("geocoded", postgresql_concurrently=True)
         context.assert_("DROP INDEX CONCURRENTLY geocoded")
 
-    def test_drop_index_postgresql_if_exists(self):
+    def test_drop_index_if_exists(self):
         context = op_fixture("postgresql")
         op.drop_index("geocoded", if_exists=True)
         context.assert_("DROP INDEX IF EXISTS geocoded")
@@ -157,6 +157,16 @@ class PostgresqlOpTest(TestBase):
         context.assert_(
             "ALTER TABLE t ALTER COLUMN c TYPE INTEGER USING c::integer"
         )
+
+    def test_add_column_if_not_exists(self):
+        context = op_fixture("postgresql")
+        op.add_column("t", Column("c", Integer), if_not_exists=True)
+        context.assert_("ALTER TABLE t ADD COLUMN IF NOT EXISTS c INTEGER")
+
+    def test_drop_column_if_exists(self):
+        context = op_fixture("postgresql")
+        op.drop_column("t", "c", if_exists=True)
+        context.assert_("ALTER TABLE t DROP COLUMN IF EXISTS c")
 
     def test_col_w_pk_is_serial(self):
         context = op_fixture("postgresql")

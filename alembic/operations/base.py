@@ -618,6 +618,7 @@ class Operations(AbstractOperations):
             column: Column[Any],
             *,
             schema: Optional[str] = None,
+            if_not_exists: Optional[bool] = None,
         ) -> None:
             """Issue an "add column" instruction using the current
             migration context.
@@ -694,6 +695,9 @@ class Operations(AbstractOperations):
              quoting of the schema outside of the default behavior, use
              the SQLAlchemy construct
              :class:`~sqlalchemy.sql.elements.quoted_name`.
+            :param if_not_exists: If True, adds IF NOT EXISTS operator
+             when creating the new column for compatible dialects
+
 
             """  # noqa: E501
             ...
@@ -1382,6 +1386,8 @@ class Operations(AbstractOperations):
              then exec's a separate DROP CONSTRAINT for that default.  Only
              works if the column has exactly one FK constraint which refers to
              it, at the moment.
+            :param if_exists: If True, adds IF EXISTS operator when
+             dropping the new column for compatible dialects
 
             """  # noqa: E501
             ...
@@ -1646,6 +1652,7 @@ class BatchOperations(AbstractOperations):
             *,
             insert_before: Optional[str] = None,
             insert_after: Optional[str] = None,
+            if_not_exists: Optional[bool] = None,
         ) -> None:
             """Issue an "add column" instruction using the current
             batch migration context.
