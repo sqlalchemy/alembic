@@ -1708,7 +1708,7 @@ def tuple_rev_as_scalar(rev: None) -> None: ...
 
 @overload
 def tuple_rev_as_scalar(
-    rev: Union[Tuple[_T, ...], List[_T]]
+    rev: Union[Tuple[_T, ...], List[_T]],
 ) -> Union[_T, Tuple[_T, ...], List[_T]]: ...
 
 

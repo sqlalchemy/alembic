@@ -1,0 +1,9 @@
+.. change::
+    :tags: usecase, autogenerate, postgresql
+
+    Render `postgresql_if_exists`` and `postgresql_if_not_exists`` parameters in
+    :class:`.AddColumnOp` and :class:`.DropColumnOp`, in an autogenerate context. 
+    These parameters are only compatible as of now with PostgreSQL servers.
+    They can be enabled using a custom :class:`.Rewriter` in the ``env.py`` file, where they will now be
+    part of the rendered Python code in revision files. 
+    Pull request courtesy of Louis-Amaury Chaib (@lachaib).
