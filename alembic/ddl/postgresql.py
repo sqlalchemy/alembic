@@ -27,15 +27,18 @@ from sqlalchemy.dialects.postgresql import BIGINT
 from sqlalchemy.dialects.postgresql import ExcludeConstraint
 from sqlalchemy.dialects.postgresql import INTEGER
 from sqlalchemy.schema import CreateIndex
+from sqlalchemy.sql.compiler import DDLCompiler
 from sqlalchemy.sql.elements import ColumnClause
 from sqlalchemy.sql.elements import TextClause
 from sqlalchemy.sql.functions import FunctionElement
 from sqlalchemy.types import NULLTYPE
 
+from .base import AddColumn
 from .base import alter_column
 from .base import alter_table
 from .base import AlterColumn
 from .base import ColumnComment
+from .base import DropColumn
 from .base import format_column_name
 from .base import format_table_name
 from .base import format_type
@@ -51,6 +54,7 @@ from ..operations.base import BatchOperations
 from ..operations.base import Operations
 from ..util import sqla_compat
 from ..util.sqla_compat import compiles
+
 
 if TYPE_CHECKING:
     from typing import Literal
@@ -512,6 +516,34 @@ class PostgresqlColumnType(AlterColumn):
         self.using = using
 
 
+@compiles(AddColumn, "postgresql")
+def visit_add_column(element: AddColumn, compiler: PGDDLCompiler, **kw) -> str:
+    return "%s %s" % (
+        alter_table(compiler, element.table_name, element.schema),
+        add_column(
+            compiler,
+            element.column,
+            if_not_exists=element.if_not_exists,
+            **kw,
+        ),
+    )
+
+
+@compiles(DropColumn, "postgresql")
+def visit_drop_column(
+    element: DropColumn, compiler: PGDDLCompiler, **kw
+) -> str:
+    return "%s %s" % (
+        alter_table(compiler, element.table_name, element.schema),
+        drop_column(
+            compiler,
+            element.column.name,
+            if_exists=element.if_exists,
+            **kw,
+        ),
+    )
+
+
 @compiles(RenameTable, "postgresql")
 def visit_rename_table(
     element: RenameTable, compiler: PGDDLCompiler, **kw
@@ -848,3 +880,39 @@ def _render_potential_column(
             autogen_context,
             wrap_in_element=isinstance(value, (TextClause, FunctionElement)),
         )
+
+
+def add_column(
+    compiler: DDLCompiler,
+    column: Column[Any],
+    *,
+    if_not_exists: Optional[bool] = None,
+    **kw,
+) -> str:
+    text = "ADD COLUMN "
+    if if_not_exists:
+        text += "IF NOT EXISTS "
+
+    text += compiler.get_column_specification(column, **kw)
+
+    const = " ".join(
+        compiler.process(constraint) for constraint in column.constraints
+    )
+    if const:
+        text += " " + const
+
+    return text
+
+
+def drop_column(
+    compiler: DDLCompiler,
+    name: str,
+    *,
+    if_exists: Optional[bool] = None,
+    **kw,
+) -> str:
+    text = "DROP COLUMN "
+    if if_exists:
+        text += "IF EXISTS "
+    text += format_column_name(compiler, name)
+    return text

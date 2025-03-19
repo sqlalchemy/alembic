@@ -1168,6 +1168,19 @@ class AutogenRenderTest(TestBase):
             "server_default='5', nullable=True, somedialect_foobar='option'))",
         )
 
+    def test_render_add_column_if_not_exists(self):
+        op_obj = ops.AddColumnOp(
+            "foo",
+            Column("x", Integer, server_default="5", nullable=True),
+            if_not_exists=True,
+        )
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.add_column('foo', sa.Column('x', sa.Integer(), "
+            "server_default='5', nullable=True), "
+            "if_not_exists=True)",
+        )
+
     def test_render_add_column_system(self):
         # this would never actually happen since "system" columns
         # can't be added in any case.   However it will render as
@@ -1205,6 +1218,16 @@ class AutogenRenderTest(TestBase):
         eq_ignore_whitespace(
             autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.drop_column('bar', 'x', schema='foo')",
+        )
+
+    def test_render_drop_column_if_exists(self):
+        op_obj = ops.DropColumnOp.from_column_and_tablename(
+            None, "foo", Column("x", Integer, server_default="5")
+        )
+        op_obj.if_exists = True
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.drop_column('foo', 'x', if_exists=True)",
         )
 
     def test_render_quoted_server_default(self):

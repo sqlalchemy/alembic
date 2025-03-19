@@ -203,6 +203,7 @@ class MSSQLImpl(DefaultImpl):
         table_name: str,
         column: Column[Any],
         schema: Optional[str] = None,
+        if_exists: Optional[bool] = None,
         **kw,
     ) -> None:
         drop_default = kw.pop("mssql_drop_default", False)
@@ -222,7 +223,9 @@ class MSSQLImpl(DefaultImpl):
         drop_fks = kw.pop("mssql_drop_foreign_key", False)
         if drop_fks:
             self._exec(_ExecDropFKConstraint(table_name, column, schema))
-        super().drop_column(table_name, column, schema=schema, **kw)
+        super().drop_column(
+            table_name, column, schema=schema, if_exists=if_exists, **kw
+        )
 
     def compare_server_default(
         self,
