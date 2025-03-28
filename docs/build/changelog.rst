@@ -5,7 +5,17 @@ Changelog
 
 .. changelog::
     :version: 1.15.2
-    :include_notes_from: unreleased
+    :released: March 28, 2025
+
+    .. change::
+        :tags: bug, autogenerate
+        :tickets: 1635
+
+        Fixed issue where the "modified_name" of :class:`.AlterColumnOp` would not
+        be considered when rendering op directives for autogenerate. While
+        autogenerate cannot detect changes in column name, this would nonetheless
+        impact approaches that made use of this attribute in rewriter recipes. Pull
+        request courtesy lenvk.
 
 .. changelog::
     :version: 1.15.1
