@@ -299,9 +299,13 @@ def format_server_default(
     compiler: DDLCompiler,
     default: Optional[_ServerDefault],
 ) -> str:
-    return compiler.get_column_default_string(
+    # this can be updated to use compiler.render_default_string
+    # for SQLAlchemy 2.0 and above; not in 1.4
+    default_str = compiler.get_column_default_string(
         Column("x", Integer, server_default=default)
     )
+    assert default_str is not None
+    return default_str
 
 
 def format_type(compiler: DDLCompiler, type_: TypeEngine) -> str:
