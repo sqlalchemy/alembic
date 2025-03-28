@@ -1327,6 +1327,18 @@ class AutogenRenderTest(TestBase):
             {"from mypackage import MySpecialType"},
         )
 
+    def test_render_modify_name(self):
+        op_obj = ops.AlterColumnOp(
+            "sometable",
+            "somecolumn",
+            modify_name="newcolumnname",
+        )
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.alter_column('sometable', 'somecolumn', "
+            "new_column_name='newcolumnname')",
+        )
+
     def test_render_modify_type(self):
         op_obj = ops.AlterColumnOp(
             "sometable",
