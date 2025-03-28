@@ -46,6 +46,7 @@ if TYPE_CHECKING:
     from sqlalchemy.engine.reflection import Inspector
     from sqlalchemy.sql import ClauseElement
     from sqlalchemy.sql import Executable
+    from sqlalchemy.sql.elements import ColumnElement
     from sqlalchemy.sql.elements import quoted_name
     from sqlalchemy.sql.schema import Constraint
     from sqlalchemy.sql.schema import ForeignKeyConstraint
@@ -439,7 +440,7 @@ class DefaultImpl(metaclass=ImplMeta):
     def drop_table_comment(self, table: Table) -> None:
         self._exec(schema.DropTableComment(table))
 
-    def create_column_comment(self, column: Column[Any]) -> None:
+    def create_column_comment(self, column: ColumnElement[Any]) -> None:
         self._exec(schema.SetColumnComment(column))
 
     def drop_index(self, index: Index, **kw: Any) -> None:
