@@ -505,6 +505,7 @@ def _alter_column(
     type_ = op.modify_type
     nullable = op.modify_nullable
     comment = op.modify_comment
+    newname = op.modify_name
     autoincrement = op.kw.get("autoincrement", None)
     existing_type = op.existing_type
     existing_nullable = op.existing_nullable
@@ -533,6 +534,8 @@ def _alter_column(
         rendered = _render_server_default(server_default, autogen_context)
         text += ",\n%sserver_default=%s" % (indent, rendered)
 
+    if newname is not None:
+        text += ",\n%snew_column_name=%r" % (indent, newname)
     if type_ is not None:
         text += ",\n%stype_=%s" % (indent, _repr_type(type_, autogen_context))
     if nullable is not None:
