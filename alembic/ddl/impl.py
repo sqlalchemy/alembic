@@ -369,8 +369,16 @@ class DefaultImpl(metaclass=ImplMeta):
         table_name: str,
         column: Column[Any],
         schema: Optional[Union[str, quoted_name]] = None,
+        postgresql_if_not_exists: Optional[bool] = None,
     ) -> None:
-        self._exec(base.AddColumn(table_name, column, schema=schema))
+        self._exec(
+            base.AddColumn(
+                table_name,
+                column,
+                schema=schema,
+                postgresql_if_not_exists=postgresql_if_not_exists,
+            )
+        )
 
     def drop_column(
         self,
@@ -379,7 +387,14 @@ class DefaultImpl(metaclass=ImplMeta):
         schema: Optional[str] = None,
         **kw,
     ) -> None:
-        self._exec(base.DropColumn(table_name, column, schema=schema))
+        self._exec(
+            base.DropColumn(
+                table_name,
+                column,
+                schema=schema,
+                **kw,
+            )
+        )
 
     def add_constraint(self, const: Any) -> None:
         if const._create_rule is None or const._create_rule(self):
