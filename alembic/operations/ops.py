@@ -1841,7 +1841,7 @@ class AlterColumnOp(AlterTableOp):
         nullable: Optional[bool] = None,
         comment: Optional[Union[str, Literal[False]]] = False,
         server_default: Union[
-            str, bool, Identity, Computed, TextClause
+            str, bool, Identity, Computed, TextClause, None
         ] = False,
         new_column_name: Optional[str] = None,
         type_: Optional[Union[TypeEngine[Any], Type[TypeEngine[Any]]]] = None,
