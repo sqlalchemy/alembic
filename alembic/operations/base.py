@@ -706,7 +706,7 @@ class Operations(AbstractOperations):
             nullable: Optional[bool] = None,
             comment: Union[str, Literal[False], None] = False,
             server_default: Union[
-                str, bool, Identity, Computed, TextClause
+                str, bool, Identity, Computed, TextClause, None
             ] = False,
             new_column_name: Optional[str] = None,
             type_: Union[TypeEngine[Any], Type[TypeEngine[Any]], None] = None,
