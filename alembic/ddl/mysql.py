@@ -52,7 +52,9 @@ class MySQLImpl(DefaultImpl):
         table_name: str,
         column_name: str,
         nullable: Optional[bool] = None,
-        server_default: Union[_ServerDefault, Literal[False]] = False,
+        server_default: Optional[
+            Union[_ServerDefault, Literal[False]]
+        ] = False,
         name: Optional[str] = None,
         type_: Optional[TypeEngine] = None,
         schema: Optional[str] = None,
@@ -174,7 +176,7 @@ class MySQLImpl(DefaultImpl):
     def _is_mysql_allowed_functional_default(
         self,
         type_: Optional[TypeEngine],
-        server_default: Union[_ServerDefault, Literal[False]],
+        server_default: Optional[Union[_ServerDefault, Literal[False]]],
     ) -> bool:
         return (
             type_ is not None
@@ -325,7 +327,7 @@ class MySQLAlterDefault(AlterColumn):
         self,
         name: str,
         column_name: str,
-        default: _ServerDefault,
+        default: Optional[_ServerDefault],
         schema: Optional[str] = None,
     ) -> None:
         super(AlterColumn, self).__init__(name, schema=schema)
