@@ -153,7 +153,9 @@ class PostgresqlImpl(DefaultImpl):
         table_name: str,
         column_name: str,
         nullable: Optional[bool] = None,
-        server_default: Union[_ServerDefault, Literal[False]] = False,
+        server_default: Optional[
+            Union[_ServerDefault, Literal[False]]
+        ] = False,
         name: Optional[str] = None,
         type_: Optional[TypeEngine] = None,
         schema: Optional[str] = None,
