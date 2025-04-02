@@ -1,4 +1,5 @@
 import os
+import sys
 import tempfile
 
 from alembic import config
@@ -200,6 +201,104 @@ class ConfigTest(TestBase):
         else:
             s = ScriptDirectory.from_config(cfg)
             eq_(s.version_locations, expected_result)
+
+    @testing.combinations(
+        (
+            "legacy raw string 1",
+            None,
+            "/foo",
+            ["/foo"],
+        ),
+        (
+            "legacy raw string 2",
+            None,
+            "/foo /bar",
+            ["/foo", "/bar"],
+        ),
+        (
+            "legacy raw string 3",
+            "space",
+            "/foo",
+            ["/foo"],
+        ),
+        (
+            "legacy raw string 4",
+            "space",
+            "/foo /bar",
+            ["/foo", "/bar"],
+        ),
+        (
+            "multiline string 1",
+            "newline",
+            " /foo  \n/bar  ",
+            ["/foo", "/bar"],
+        ),
+        (
+            "Linux pathsep 1",
+            ":",
+            "/Project A",
+            ["/Project A"],
+        ),
+        (
+            "Linux pathsep 2",
+            ":",
+            "/Project A:/Project B",
+            ["/Project A", "/Project B"],
+        ),
+        (
+            "Windows pathsep 1",
+            ";",
+            r"C:\Project A",
+            [r"C:\Project A"],
+        ),
+        (
+            "Windows pathsep 2",
+            ";",
+            r"C:\Project A;C:\Project B",
+            [r"C:\Project A", r"C:\Project B"],
+        ),
+        (
+            "os pathsep",
+            "os",
+            r"path_number_one%(sep)spath_number_two%(sep)s"
+            % {"sep": os.pathsep},
+            [r"path_number_one", r"path_number_two"],
+        ),
+        (
+            "invalid pathsep 2",
+            "|",
+            "/foo|/bar",
+            ValueError(
+                "'|' is not a valid value for prepend_sys_path_separator; "
+                "expected 'space', 'newline', 'os', ':', ';'"
+            ),
+        ),
+        id_="iaaa",
+        argnames="separator, string_value, expected_result",
+    )
+    def test_prepend_sys_path_locations(self, separator, string_value, expected_result):
+        cfg = config.Config()
+        if separator is not None:
+            cfg.set_main_option(
+                "prepend_sys_path_separator",
+                separator,
+            )
+        cfg.set_main_option("script_location", tempfile.gettempdir())
+        cfg.set_main_option("prepend_sys_path", string_value)
+
+        if isinstance(expected_result, ValueError):
+            message = str(expected_result)
+            with expect_raises_message(ValueError, message, text_exact=True):
+                ScriptDirectory.from_config(cfg)
+        else:
+            restore_path = list(sys.path)
+            try:
+                sys.path.clear()
+
+                ScriptDirectory.from_config(cfg)
+                eq_(sys.path, expected_result)
+            finally:
+                sys.path = restore_path
 
 
 class StdoutOutputEncodingTest(TestBase):
