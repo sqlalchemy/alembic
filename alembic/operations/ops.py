@@ -2034,16 +2034,20 @@ class AddColumnOp(AlterTableOp):
         column: Column[Any],
         *,
         schema: Optional[str] = None,
+        postgresql_if_not_exists: Optional[bool] = None,
         **kw: Any,
     ) -> None:
         super().__init__(table_name, schema=schema)
         self.column = column
+        self.postgresql_if_not_exists = postgresql_if_not_exists
         self.kw = kw
 
     def reverse(self) -> DropColumnOp:
-        return DropColumnOp.from_column_and_tablename(
+        op = DropColumnOp.from_column_and_tablename(
             self.schema, self.table_name, self.column
         )
+        op.postgresql_if_exists = self.postgresql_if_not_exists
+        return op
 
     def to_diff_tuple(
         self,
@@ -2074,6 +2078,7 @@ class AddColumnOp(AlterTableOp):
         column: Column[Any],
         *,
         schema: Optional[str] = None,
+        postgresql_if_not_exists: Optional[bool] = None,
     ) -> None:
         """Issue an "add column" instruction using the current
         migration context.
@@ -2150,10 +2155,18 @@ class AddColumnOp(AlterTableOp):
          quoting of the schema outside of the default behavior, use
          the SQLAlchemy construct
          :class:`~sqlalchemy.sql.elements.quoted_name`.
+        :param postgresql_if_not_exists: If True, adds IF NOT EXISTS operator
+         when creating the new column for postgresql
+
 
         """
 
-        op = cls(table_name, column, schema=schema)
+        op = cls(
+            table_name,
+            column,
+            schema=schema,
+            postgresql_if_not_exists=postgresql_if_not_exists,
+        )
         return operations.invoke(op)
 
     @classmethod
@@ -2164,6 +2177,7 @@ class AddColumnOp(AlterTableOp):
         *,
         insert_before: Optional[str] = None,
         insert_after: Optional[str] = None,
+        postgresql_if_not_exists: Optional[bool] = None,
     ) -> None:
         """Issue an "add column" instruction using the current
         batch migration context.
@@ -2184,6 +2198,7 @@ class AddColumnOp(AlterTableOp):
             operations.impl.table_name,
             column,
             schema=operations.impl.schema,
+            postgresql_if_not_exists=postgresql_if_not_exists,
             **kw,
         )
         return operations.invoke(op)
@@ -2200,12 +2215,14 @@ class DropColumnOp(AlterTableOp):
         column_name: str,
         *,
         schema: Optional[str] = None,
+        postgresql_if_exists: Optional[bool] = None,
         _reverse: Optional[AddColumnOp] = None,
         **kw: Any,
     ) -> None:
         super().__init__(table_name, schema=schema)
         self.column_name = column_name
         self.kw = kw
+        self.postgresql_if_exists = postgresql_if_exists
         self._reverse = _reverse
 
     def to_diff_tuple(
@@ -2225,9 +2242,11 @@ class DropColumnOp(AlterTableOp):
                 "original column is not present"
             )
 
-        return AddColumnOp.from_column_and_tablename(
+        op = AddColumnOp.from_column_and_tablename(
             self.schema, self.table_name, self._reverse.column
         )
+        op.postgresql_if_not_exists = self.postgresql_if_exists
+        return op
 
     @classmethod
     def from_column_and_tablename(
@@ -2295,6 +2314,8 @@ class DropColumnOp(AlterTableOp):
          then exec's a separate DROP CONSTRAINT for that default.  Only
          works if the column has exactly one FK constraint which refers to
          it, at the moment.
+        :param postgresql_if_exists: If True, adds IF EXISTS operator when
+         dropping the new column for postgresql
 
         """
 

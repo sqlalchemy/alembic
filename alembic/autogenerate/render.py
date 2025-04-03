@@ -457,26 +457,39 @@ def _drop_constraint(
 
 @renderers.dispatch_for(ops.AddColumnOp)
 def _add_column(autogen_context: AutogenContext, op: ops.AddColumnOp) -> str:
-    schema, tname, column = op.schema, op.table_name, op.column
+    schema, tname, column, postgresql_if_not_exists = (
+        op.schema,
+        op.table_name,
+        op.column,
+        op.postgresql_if_not_exists,
+    )
     if autogen_context._has_batch:
         template = "%(prefix)sadd_column(%(column)s)"
     else:
         template = "%(prefix)sadd_column(%(tname)r, %(column)s"
         if schema:
             template += ", schema=%(schema)r"
+        if postgresql_if_not_exists is not None:
+            template += ", postgresql_if_not_exists=%(pg_if_not_exists)r"
         template += ")"
     text = template % {
         "prefix": _alembic_autogenerate_prefix(autogen_context),
         "tname": tname,
         "column": _render_column(column, autogen_context),
         "schema": schema,
+        "pg_if_not_exists": postgresql_if_not_exists,
     }
     return text
 
 
 @renderers.dispatch_for(ops.DropColumnOp)
 def _drop_column(autogen_context: AutogenContext, op: ops.DropColumnOp) -> str:
-    schema, tname, column_name = op.schema, op.table_name, op.column_name
+    schema, tname, column_name, postgresql_if_exists = (
+        op.schema,
+        op.table_name,
+        op.column_name,
+        op.postgresql_if_exists,
+    )
 
     if autogen_context._has_batch:
         template = "%(prefix)sdrop_column(%(cname)r)"
@@ -484,6 +497,8 @@ def _drop_column(autogen_context: AutogenContext, op: ops.DropColumnOp) -> str:
         template = "%(prefix)sdrop_column(%(tname)r, %(cname)r"
         if schema:
             template += ", schema=%(schema)r"
+        if postgresql_if_exists is not None:
+            template += ", postgresql_if_exists=%(postgresql_if_exists)r"
         template += ")"
 
     text = template % {
@@ -491,6 +506,7 @@ def _drop_column(autogen_context: AutogenContext, op: ops.DropColumnOp) -> str:
         "tname": _ident(tname),
         "cname": _ident(column_name),
         "schema": _ident(schema),
+        "postgresql_if_exists": postgresql_if_exists,
     }
     return text
 
