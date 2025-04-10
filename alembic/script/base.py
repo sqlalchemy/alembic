@@ -629,8 +629,7 @@ class ScriptDirectory:
                         "Can't locate timezone: %s" % self.timezone
                     ) from None
             create_date = (
-                datetime.datetime.utcnow()
-                .replace(tzinfo=datetime.timezone.utc)
+                datetime.datetime.now(tz=datetime.timezone.utc)
                 .astimezone(tzinfo)
             )
         else:
