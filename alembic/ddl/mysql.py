@@ -321,6 +321,8 @@ class MySQLImpl(DefaultImpl):
 class MariaDBImpl(MySQLImpl):
     __dialect__ = "mariadb"
 
+class StarrocksImpl(MySQLImpl):
+    __dialect__ = "starrocks"
 
 class MySQLAlterDefault(AlterColumn):
     def __init__(
