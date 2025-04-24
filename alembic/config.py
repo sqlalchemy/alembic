@@ -12,6 +12,7 @@ from typing import Dict
 from typing import Mapping
 from typing import Optional
 from typing import overload
+from typing import Protocol
 from typing import Sequence
 from typing import TextIO
 from typing import Union
@@ -344,7 +345,19 @@ class MessagingOptions(TypedDict, total=False):
     quiet: bool
 
 
+class CommandFunction(Protocol):
+    """A function that may be registered in the CLI as an alembic command. It must be a
+    named function and it must accept a :class:`.Config` object as the first argument.
+    """
+
+    __name__: str
+
+    def __call__(self, config: Config, *args: Any, **kwargs: Any) -> Any: ...
+
+
 class CommandLine:
+    """Provides the command line interface to Alembic."""
+
     def __init__(self, prog: Optional[str] = None) -> None:
         self._generate_args(prog)
 
@@ -534,7 +547,7 @@ class CommandLine:
 
         self.subparsers = parser.add_subparsers()
         alembic_commands = (
-            fn
+            cast(CommandFunction, fn)
             for fn in (getattr(command, name) for name in dir(command))
             if (
                 inspect.isfunction(fn)
@@ -544,11 +557,20 @@ class CommandLine:
         )
 
         for fn in alembic_commands:
-            self._register_command(fn)
+            self.register_command(fn)
 
         self.parser = parser
 
-    def _register_command(self, fn: Any) -> None:
+    def register_command(self, fn: CommandFunction) -> None:
+        """Registers a function as a CLI subcommand. The subcommand name
+        matches the function name, the arguments are extracted from the signature
+        and the help text is read from the docstring.
+
+        .. seealso::
+
+            :ref:`custom_commandline`
+        """
+
         positional, kwarg, help_text = self._inspect_function(fn)
 
         subparser = self.subparsers.add_parser(fn.__name__, help=help_text)
@@ -565,7 +587,7 @@ class CommandLine:
                 opts = self._POSITIONAL_OPTS[arg]
                 subparser.add_argument(arg, **opts)  # type:ignore
 
-    def _inspect_function(self, fn: Any) -> tuple[Any, Any, str]:
+    def _inspect_function(self, fn: CommandFunction) -> tuple[Any, Any, str]:
         spec = compat.inspect_getfullargspec(fn)
         if spec[3] is not None:
             positional = spec[0][1 : -len(spec[3])]
@@ -612,6 +634,7 @@ class CommandLine:
                 util.err(str(e), **config.messaging_opts)
 
     def main(self, argv: Optional[Sequence[str]] = None) -> None:
+        """Executes the command line with the provided arguments."""
         options = self.parser.parse_args(argv)
         if not hasattr(options, "cmd"):
             # see http://bugs.python.org/issue9253, argparse

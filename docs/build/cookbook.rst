@@ -1615,3 +1615,61 @@ The application maintains a version of schema with both versions.
 Writes are performed on both places, while the background script move all the remaining data across.
 This technique is very challenging and time demanding, since it requires custom application logic to
 handle the intermediate states.
+
+.. _custom_commandline:
+
+Extend ``CommandLine`` with custom commands
+===========================================
+
+While Alembic does not have a plugin system that would allow transparently extending the original ``alembic`` CLI
+with additional commands, it is possible to create your own instance of :class:`.CommandLine` and extend that via
+:meth:`.CommandLine.register_command`.
+
+.. code-block:: python
+
+    # myalembic.py
+
+    from alembic.config import CommandLine, Config
+
+
+    def frobnicate(config: Config, revision: str) -> None:
+        """Frobnicates according to the frobnication specification.
+
+        :param config: a :class:`.Config` instance
+        :param revision: the revision to frobnicate
+        """
+
+        config.print_stdout(f"Revision {revision} successfully frobnicated.")
+
+
+    def main():
+        cli = CommandLine()
+        cli.register_command(frobnicate)
+        cli.main()
+
+    if __name__ == "__main__":
+        main()
+
+Any named function may be registered as a command, provided it accepts a :class:`.Config` object as the first argument;
+a docstring is also recommended as it will show up in the help output of the CLI.
+
+.. code-block::
+
+    $ python -m myalembic -h
+    ...
+    positional arguments:
+      {branches,check,current,downgrade,edit,ensure_version,heads,history,init,list_templates,merge,revision,show,stamp,upgrade,frobnicate}
+        ...
+        frobnicate          Frobnicates according to the frobnication specification.
+
+    $ python -m myalembic frobnicate -h
+    usage: myalembic.py frobnicate [-h] revision
+
+    positional arguments:
+    revision    revision identifier
+
+    optional arguments:
+    -h, --help  show this help message and exit
+
+    $ python -m myalembic frobnicate 42
+    Revision 42 successfully frobnicated.

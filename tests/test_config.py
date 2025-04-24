@@ -256,3 +256,31 @@ class TemplateOutputEncodingTest(TestBase):
         self.cfg.set_main_option("output_encoding", "latin-1")
         script = ScriptDirectory.from_config(self.cfg)
         eq_(script.output_encoding, "latin-1")
+
+
+class CommandLineTest(TestBase):
+    def test_register_command(self):
+        cli = config.CommandLine()
+
+        fake_stdout = []
+            
+        def frobnicate(config: config.Config, revision: str) -> None:
+            """Frobnicates the revision.
+
+            :param config: a :class:`.Config` instance
+            :param revision: the revision to frobnicate
+            """
+
+            fake_stdout.append(f"Revision {revision} frobnicated.")
+
+        cli.register_command(frobnicate)
+
+        help_text = cli.parser.format_help()
+        assert frobnicate.__name__ in help_text
+        assert frobnicate.__doc__.split("\n")[0] in help_text
+
+        cli.main(["frobnicate", "abc42"])
+
+        assert fake_stdout == [
+            f"Revision abc42 frobnicated."
+        ]
