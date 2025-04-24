@@ -387,8 +387,8 @@ class DefaultImpl(metaclass=ImplMeta):
         if const._create_rule is None or const._create_rule(self):
             self._exec(schema.AddConstraint(const))
 
-    def drop_constraint(self, const: Constraint) -> None:
-        self._exec(schema.DropConstraint(const))
+    def drop_constraint(self, const: Constraint, **kw: Any) -> None:
+        self._exec(schema.DropConstraint(const, **kw))
 
     def rename_table(
         self,

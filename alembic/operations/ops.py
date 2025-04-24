@@ -140,12 +140,14 @@ class DropConstraintOp(MigrateOperation):
         type_: Optional[str] = None,
         *,
         schema: Optional[str] = None,
+        if_exists: Optional[bool] = None,
         _reverse: Optional[AddConstraintOp] = None,
     ) -> None:
         self.constraint_name = constraint_name
         self.table_name = table_name
         self.constraint_type = type_
         self.schema = schema
+        self.if_exists = if_exists
         self._reverse = _reverse
 
     def reverse(self) -> AddConstraintOp:
@@ -203,6 +205,7 @@ class DropConstraintOp(MigrateOperation):
         type_: Optional[str] = None,
         *,
         schema: Optional[str] = None,
+        if_exists: Optional[bool] = None,
     ) -> None:
         r"""Drop a constraint of the given name, typically via DROP CONSTRAINT.
 
@@ -214,10 +217,14 @@ class DropConstraintOp(MigrateOperation):
          quoting of the schema outside of the default behavior, use
          the SQLAlchemy construct
          :class:`~sqlalchemy.sql.elements.quoted_name`.
+        :param if_exists: If True, adds IF EXISTS operator when
+         dropping the constraint
+
+         .. versionadded:: 1.15.4
 
         """
 
-        op = cls(constraint_name, table_name, type_=type_, schema=schema)
+        op = cls(constraint_name, table_name, type_=type_, schema=schema, if_exists=if_exists)
         return operations.invoke(op)
 
     @classmethod

@@ -197,13 +197,17 @@ def create_constraint(
 def drop_constraint(
     operations: "Operations", operation: "ops.DropConstraintOp"
 ) -> None:
+    kw = {}
+    if operation.if_exists is not None:
+        kw["if_exists"] = operation.if_exists
     operations.impl.drop_constraint(
         operations.schema_obj.generic_constraint(
             operation.constraint_name,
             operation.table_name,
             operation.constraint_type,
             schema=operation.schema,
-        )
+        ),
+        **kw
     )
 
 
