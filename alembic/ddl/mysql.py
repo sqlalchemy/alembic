@@ -167,6 +167,7 @@ class MySQLImpl(DefaultImpl):
     def drop_constraint(
         self,
         const: Constraint,
+        **kw: Any,
     ) -> None:
         if isinstance(const, schema.CheckConstraint) and _is_type_bound(const):
             return
