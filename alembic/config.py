@@ -346,8 +346,9 @@ class MessagingOptions(TypedDict, total=False):
 
 
 class CommandFunction(Protocol):
-    """A function that may be registered in the CLI as an alembic command. It must be a
-    named function and it must accept a :class:`.Config` object as the first argument.
+    """A function that may be registered in the CLI as an alembic command.
+    It must be a named function and it must accept a :class:`.Config` object
+    as the first argument.
     """
 
     __name__: str
@@ -563,8 +564,8 @@ class CommandLine:
 
     def register_command(self, fn: CommandFunction) -> None:
         """Registers a function as a CLI subcommand. The subcommand name
-        matches the function name, the arguments are extracted from the signature
-        and the help text is read from the docstring.
+        matches the function name, the arguments are extracted from the
+        signature and the help text is read from the docstring.
 
         .. seealso::
 

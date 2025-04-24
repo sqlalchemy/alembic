@@ -263,7 +263,7 @@ class CommandLineTest(TestBase):
         cli = config.CommandLine()
 
         fake_stdout = []
-            
+
         def frobnicate(config: config.Config, revision: str) -> None:
             """Frobnicates the revision.
 
@@ -281,6 +281,4 @@ class CommandLineTest(TestBase):
 
         cli.main(["frobnicate", "abc42"])
 
-        assert fake_stdout == [
-            f"Revision abc42 frobnicated."
-        ]
+        assert fake_stdout == ["Revision abc42 frobnicated."]
