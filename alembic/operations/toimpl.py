@@ -7,7 +7,7 @@ from sqlalchemy import schema as sa_schema
 
 from . import ops
 from .base import Operations
-from ..util.sqla_compat import _copy
+from ..util.sqla_compat import _copy, sqla_2
 
 if TYPE_CHECKING:
     from sqlalchemy.sql.schema import Table
@@ -199,6 +199,8 @@ def drop_constraint(
 ) -> None:
     kw = {}
     if operation.if_exists is not None:
+        if not sqla_2:
+            raise NotImplementedError("SQLAlchemy 2.0 required")
         kw["if_exists"] = operation.if_exists
     operations.impl.drop_constraint(
         operations.schema_obj.generic_constraint(
