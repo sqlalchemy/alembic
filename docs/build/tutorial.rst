@@ -166,16 +166,33 @@ The file generated with the "generic" configuration looks like::
     # The path separator used here should be the separator specified by "version_path_separator" below.
     # version_locations = %(here)s/bar:%(here)s/bat:${script_location}/versions
 
-    # version path separator; As mentioned above, this is the character used to split
-    # version_locations. The default within new alembic.ini files is "os", which uses os.pathsep.
-    # If this key is omitted entirely, it falls back to the legacy behavior of splitting on spaces and/or commas.
-    # Valid values for version_path_separator are:
+    # path_separator (New in Alembic 1.16.0, supersedes version_path_separator);
+    # This indicates what character is used to
+    # split lists of file paths, including version_locations and prepend_sys_path
+    # within configparser files such as alembic.ini.
     #
-    # version_path_separator = :
-    # version_path_separator = ;
-    # version_path_separator = space
-    # version_path_separator = newline
-    version_path_separator = os  # Use os.pathsep. Default configuration used for new projects.
+    # The default rendered in new alembic.ini files is "os", which uses os.pathsep
+    # to provide os-dependent path splitting.
+    #
+    # Note that in order to support legacy alembic.ini files, this default does NOT
+    # take place if path_separator is not present in alembic.ini.  If this
+    # option is omitted entirely, fallback logic is as follows:
+    #
+    # 1. Parsing of the version_locations option falls back to using the legacy
+    #    "version_path_separator" key, which if absent then falls back to the legacy
+    #    behavior of splitting on spaces and/or commas.
+    # 2. Parsing of the prepend_sys_path option falls back to the legacy
+    #    behavior of splitting on spaces, commas, or colons.
+    #
+    # Valid values for path_separator are:
+    #
+    # path_separator = :
+    # path_separator = ;
+    # path_separator = space
+    # path_separator = newline
+    #
+    # Use os.pathsep. Default configuration used for new projects.
+    path_separator = os
 
     # set to 'true' to search source files recursively
     # in each "version_locations" directory
@@ -299,7 +316,7 @@ This file contains the following features:
 * ``timezone`` - an optional timezone name (e.g. ``UTC``, ``EST5EDT``, etc.)
   that will be applied to the timestamp which renders inside the migration
   file's comment as well as within the filename. This option requires Python>=3.9
-  or installing the ``backports.zoneinfo`` library and the ``tzdata`` library. 
+  or installing the ``backports.zoneinfo`` library and the ``tzdata`` library.
   If ``timezone`` is specified, the create date object is no longer derived
   from ``datetime.datetime.now()`` and is instead generated as::
 
@@ -341,9 +358,8 @@ This file contains the following features:
   allow revisions to exist in multiple directories simultaneously.
   See :ref:`multiple_bases` for examples.
 
-* ``version_path_separator`` - a separator of ``version_locations`` paths.
-  It should be defined if multiple ``version_locations`` is used.
-  See :ref:`multiple_bases` for examples.
+* ``path_separator`` - a separator character for the ``version_locations``
+  and ``prepend_sys_path`` path lists.  See :ref:`multiple_bases` for examples.
 
 * ``recursive_version_locations`` - when set to 'true', revision files
   are searched recursively in each "version_locations" directory.

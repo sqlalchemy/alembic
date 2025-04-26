@@ -5,6 +5,7 @@ from argparse import Namespace
 from configparser import ConfigParser
 import inspect
 import os
+import re
 import sys
 from typing import Any
 from typing import cast
@@ -339,6 +340,119 @@ class Config:
                 {"quiet": getattr(self.cmd_opts, "quiet", False)}
             ),
         )
+
+    def _get_file_separator_char(self, *names: str) -> Optional[str]:
+        for name in names:
+            separator = self.get_main_option(name)
+            if separator is not None:
+                break
+        else:
+            return None
+
+        split_on_path = {
+            "space": " ",
+            "newline": "\n",
+            "os": os.pathsep,
+            ":": ":",
+            ";": ";",
+        }
+
+        try:
+            sep = split_on_path[separator]
+        except KeyError as ke:
+            raise ValueError(
+                "'%s' is not a valid value for %s; "
+                "expected 'space', 'newline', 'os', ':', ';'"
+                % (separator, name)
+            ) from ke
+        else:
+            if name == "version_path_separator":
+                util.warn_deprecated(
+                    "The version_path_separator configuration parameter "
+                    "is deprecated; please use path_separator"
+                )
+            return sep
+
+    def get_version_locations_list(self) -> Optional[list[str]]:
+
+        version_locations_str = self.get_main_option("version_locations")
+
+        if version_locations_str:
+            split_char = self._get_file_separator_char(
+                "path_separator", "version_path_separator"
+            )
+
+            if split_char is None:
+
+                # legacy behaviour for backwards compatibility
+                util.warn_deprecated(
+                    "No path_separator found in configuration; "
+                    "falling back to legacy splitting on spaces/commas "
+                    "for version_locations.  Consider adding "
+                    "path_separator=os to Alembic config."
+                )
+
+                _split_on_space_comma = re.compile(r", *|(?: +)")
+                return _split_on_space_comma.split(version_locations_str)
+            else:
+                return [
+                    x.strip()
+                    for x in version_locations_str.split(split_char)
+                    if x
+                ]
+        else:
+            return None
+
+    def get_prepend_sys_paths_list(self) -> Optional[list[str]]:
+        prepend_sys_path_str = self.get_main_option("prepend_sys_path")
+
+        if prepend_sys_path_str:
+            split_char = self._get_file_separator_char("path_separator")
+
+            if split_char is None:
+
+                # legacy behaviour for backwards compatibility
+                util.warn_deprecated(
+                    "No path_separator found in configuration; "
+                    "falling back to legacy splitting on spaces, commas, "
+                    "and colons for prepend_sys_path.  Consider adding "
+                    "path_separator=os to Alembic config."
+                )
+
+                _split_on_space_comma_colon = re.compile(r", *|(?: +)|\:")
+                return _split_on_space_comma_colon.split(prepend_sys_path_str)
+            else:
+                return [
+                    x.strip()
+                    for x in prepend_sys_path_str.split(split_char)
+                    if x
+                ]
+        else:
+            return None
+
+    def get_hooks_list(self) -> list[PostWriteHookConfig]:
+        _split_on_space_comma = re.compile(r", *|(?: +)")
+
+        hook_config = self.get_section("post_write_hooks", {})
+        names = _split_on_space_comma.split(hook_config.get("hooks", ""))
+
+        hooks: list[PostWriteHookConfig] = []
+        for name in names:
+            if not name:
+                continue
+            opts = {
+                key[len(name) + 1 :]: hook_config[key]
+                for key in hook_config
+                if key.startswith(name + ".")
+            }
+
+            opts["_hook_name"] = name
+            hooks.append(opts)
+
+        return hooks
+
+
+PostWriteHookConfig = Mapping[str, str]
 
 
 class MessagingOptions(TypedDict, total=False):

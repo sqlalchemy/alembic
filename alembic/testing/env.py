@@ -157,6 +157,7 @@ script_location = {dir_}
 sqlalchemy.url = {url}
 sqlalchemy.future = {"true" if sqlalchemy_future else "false"}
 sourceless = {"true" if sourceless else "false"}
+path_separator = space
 version_locations = %(here)s/model1/ %(here)s/model2/ %(here)s/model3/ \
 {extra_version_location}
 

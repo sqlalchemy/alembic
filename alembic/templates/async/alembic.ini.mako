@@ -10,7 +10,8 @@ script_location = ${script_location}
 # file_template = %%(year)d_%%(month).2d_%%(day).2d_%%(hour).2d%%(minute).2d-%%(rev)s_%%(slug)s
 
 # sys.path path, will be prepended to sys.path if present.
-# defaults to the current working directory.
+# defaults to the current working directory.  for multiple paths, the path separator
+# is defined by "path_separator" below.
 prepend_sys_path = .
 
 # timezone to use when rendering the date within the migration file
@@ -36,21 +37,36 @@ prepend_sys_path = .
 # version location specification; This defaults
 # to ${script_location}/versions.  When using multiple version
 # directories, initial revisions must be specified with --version-path.
-# The path separator used here should be the separator specified by "version_path_separator" below.
+# The path separator used here should be the separator specified by "path_separator"
+# below.
 # version_locations = %(here)s/bar:%(here)s/bat:${script_location}/versions
 
-# version path separator; As mentioned above, this is the character used to split
-# version_locations. The default within new alembic.ini files is "os", which uses os.pathsep.
-# If this key is omitted entirely, it falls back to the legacy behavior of splitting on spaces and/or commas.
-# Valid values for version_path_separator are:
+# path_separator; This indicates what character is used to split lists of file
+# paths, including version_locations and prepend_sys_path within configparser
+# files such as alembic.ini.
+# The default rendered in new alembic.ini files is "os", which uses os.pathsep
+# to provide os-dependent path splitting.
 #
-# version_path_separator = :
-# version_path_separator = ;
-# version_path_separator = space
-# version_path_separator = newline
+# Note that in order to support legacy alembic.ini files, this default does NOT
+# take place if path_separator is not present in alembic.ini.  If this
+# option is omitted entirely, fallback logic is as follows:
+#
+# 1. Parsing of the version_locations option falls back to using the legacy
+#    "version_path_separator" key, which if absent then falls back to the legacy
+#    behavior of splitting on spaces and/or commas.
+# 2. Parsing of the prepend_sys_path option falls back to the legacy
+#    behavior of splitting on spaces, commas, or colons.
+#
+# Valid values for path_separator are:
+#
+# path_separator = :
+# path_separator = ;
+# path_separator = space
+# path_separator = newline
 #
 # Use os.pathsep. Default configuration used for new projects.
-version_path_separator = os
+path_separator = os
+
 
 # set to 'true' to search source files recursively
 # in each "version_locations" directory

@@ -167,6 +167,10 @@ def emits_python_deprecation_warning(*messages):
     return decorate
 
 
+def expect_deprecated(*messages, **kw):
+    return _expect_warnings(DeprecationWarning, messages, **kw)
+
+
 def expect_sqlalchemy_deprecated(*messages, **kw):
     return _expect_warnings(sa_exc.SADeprecationWarning, messages, **kw)
 

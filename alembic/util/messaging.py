@@ -81,6 +81,10 @@ def warn(msg: str, stacklevel: int = 2) -> None:
     warnings.warn(msg, UserWarning, stacklevel=stacklevel)
 
 
+def warn_deprecated(msg: str, stacklevel: int = 2) -> None:
+    warnings.warn(msg, DeprecationWarning, stacklevel=stacklevel)
+
+
 def msg(
     msg: str, newline: bool = True, flush: bool = False, quiet: bool = False
 ) -> None:

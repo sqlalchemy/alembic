@@ -15,6 +15,7 @@ from .assertions import assert_raises_message
 from .assertions import emits_python_deprecation_warning
 from .assertions import eq_
 from .assertions import eq_ignore_whitespace
+from .assertions import expect_deprecated
 from .assertions import expect_raises
 from .assertions import expect_raises_message
 from .assertions import expect_sqlalchemy_deprecated

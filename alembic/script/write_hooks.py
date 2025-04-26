@@ -10,13 +10,14 @@ from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import List
-from typing import Mapping
 from typing import Optional
-from typing import Union
+from typing import TYPE_CHECKING
 
 from .. import util
 from ..util import compat
 
+if TYPE_CHECKING:
+    from ..config import PostWriteHookConfig
 
 REVISION_SCRIPT_TOKEN = "REVISION_SCRIPT_FILENAME"
 
@@ -42,9 +43,7 @@ def register(name: str) -> Callable:
     return decorate
 
 
-def _invoke(
-    name: str, revision: str, options: Mapping[str, Union[str, int]]
-) -> Any:
+def _invoke(name: str, revision: str, options: PostWriteHookConfig) -> Any:
     """Invokes the formatter registered for the given name.
 
     :param name: The name of a formatter in the registry
@@ -63,24 +62,13 @@ def _invoke(
         return hook(revision, options)
 
 
-def _run_hooks(path: str, hook_config: Mapping[str, str]) -> None:
+def _run_hooks(path: str, hooks: list[PostWriteHookConfig]) -> None:
     """Invoke hooks for a generated revision."""
 
-    from .base import _split_on_space_comma
-
-    names = _split_on_space_comma.split(hook_config.get("hooks", ""))
-
-    for name in names:
-        if not name:
-            continue
-        opts = {
-            key[len(name) + 1 :]: hook_config[key]
-            for key in hook_config
-            if key.startswith(name + ".")
-        }
-        opts["_hook_name"] = name
+    for hook in hooks:
+        name = hook["_hook_name"]
         try:
-            type_ = opts["type"]
+            type_ = hook["type"]
         except KeyError as ke:
             raise util.CommandError(
                 f"Key {name}.type is required for post write hook {name!r}"
@@ -89,7 +77,7 @@ def _run_hooks(path: str, hook_config: Mapping[str, str]) -> None:
             with util.status(
                 f"Running post write hook {name!r}", newline=True
             ):
-                _invoke(type_, path, opts)
+                _invoke(type_, path, hook)
 
 
 def _parse_cmdline_options(cmdline_options_str: str, path: str) -> List[str]:

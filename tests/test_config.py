@@ -1,4 +1,5 @@
 import os
+import sys
 import tempfile
 
 from alembic import config
@@ -176,7 +177,7 @@ class ConfigTest(TestBase):
             "|",
             "/foo|/bar",
             ValueError(
-                "'|' is not a valid value for version_path_separator; "
+                "'|' is not a valid value for path_separator; "
                 "expected 'space', 'newline', 'os', ':', ';'"
             ),
         ),
@@ -187,7 +188,7 @@ class ConfigTest(TestBase):
         cfg = config.Config()
         if separator is not None:
             cfg.set_main_option(
-                "version_path_separator",
+                "path_separator",
                 separator,
             )
         cfg.set_main_option("script_location", tempfile.gettempdir())
@@ -198,8 +199,142 @@ class ConfigTest(TestBase):
             with expect_raises_message(ValueError, message, text_exact=True):
                 ScriptDirectory.from_config(cfg)
         else:
-            s = ScriptDirectory.from_config(cfg)
+            if separator is None:
+                with testing.expect_deprecated(
+                    "No path_separator found in configuration; "
+                    "falling back to legacy splitting on spaces/commas "
+                    "for version_locations"
+                ):
+                    s = ScriptDirectory.from_config(cfg)
+            else:
+                s = ScriptDirectory.from_config(cfg)
+
             eq_(s.version_locations, expected_result)
+
+    @testing.combinations(
+        (
+            "legacy raw string 1",
+            None,
+            "/foo",
+            ["/foo"],
+        ),
+        (
+            "legacy raw string 2",
+            None,
+            "/foo /bar",
+            ["/foo", "/bar"],
+        ),
+        (
+            "legacy raw string 3",
+            "space",
+            "/foo",
+            ["/foo"],
+        ),
+        (
+            "legacy raw string 4",
+            "space",
+            "/foo /bar",
+            ["/foo", "/bar"],
+        ),
+        (
+            "multiline string 1",
+            "newline",
+            " /foo  \n/bar  ",
+            ["/foo", "/bar"],
+        ),
+        (
+            "Linux pathsep 1",
+            ":",
+            "/Project A",
+            ["/Project A"],
+        ),
+        (
+            "Linux pathsep 2",
+            ":",
+            "/Project A:/Project B",
+            ["/Project A", "/Project B"],
+        ),
+        (
+            "Windows pathsep 1",
+            ";",
+            r"C:\Project A",
+            [r"C:\Project A"],
+        ),
+        (
+            "Windows pathsep 2",
+            ";",
+            r"C:\Project A;C:\Project B",
+            [r"C:\Project A", r"C:\Project B"],
+        ),
+        (
+            "os pathsep",
+            "os",
+            r"path_number_one%(sep)spath_number_two%(sep)s"
+            % {"sep": os.pathsep},
+            [r"path_number_one", r"path_number_two"],
+        ),
+        (
+            "invalid pathsep 2",
+            "|",
+            "/foo|/bar",
+            ValueError(
+                "'|' is not a valid value for path_separator; "
+                "expected 'space', 'newline', 'os', ':', ';'"
+            ),
+        ),
+        id_="iaaa",
+        argnames="separator, string_value, expected_result",
+    )
+    def test_prepend_sys_path_locations(
+        self, separator, string_value, expected_result
+    ):
+        cfg = config.Config()
+        if separator is not None:
+            cfg.set_main_option(
+                "path_separator",
+                separator,
+            )
+        cfg.set_main_option("script_location", tempfile.gettempdir())
+        cfg.set_main_option("prepend_sys_path", string_value)
+
+        if isinstance(expected_result, ValueError):
+            message = str(expected_result)
+            with expect_raises_message(ValueError, message, text_exact=True):
+                ScriptDirectory.from_config(cfg)
+        else:
+            restore_path = list(sys.path)
+            try:
+                sys.path.clear()
+
+                if separator is None:
+                    with testing.expect_deprecated(
+                        "No path_separator found in configuration; "
+                        "falling back to legacy splitting on spaces, commas, "
+                        "and colons for prepend_sys_path"
+                    ):
+                        ScriptDirectory.from_config(cfg)
+                else:
+                    ScriptDirectory.from_config(cfg)
+                eq_(sys.path, expected_result)
+            finally:
+                sys.path = restore_path
+
+    def test_version_path_separator_deprecation_warning(self):
+        cfg = config.Config()
+        cfg.set_main_option("script_location", tempfile.gettempdir())
+        cfg.set_main_option("version_path_separator", "space")
+        cfg.set_main_option(
+            "version_locations", "/path/one /path/two /path:/three"
+        )
+        with testing.expect_deprecated(
+            "The version_path_separator configuration parameter is "
+            "deprecated; please use path_separator"
+        ):
+            script = ScriptDirectory.from_config(cfg)
+        eq_(
+            script.version_locations,
+            ["/path/one", "/path/two", "/path:/three"],
+        )
 
 
 class StdoutOutputEncodingTest(TestBase):

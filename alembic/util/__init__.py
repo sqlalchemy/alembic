@@ -20,6 +20,7 @@ from .messaging import msg as msg
 from .messaging import obfuscate_url_pw as obfuscate_url_pw
 from .messaging import status as status
 from .messaging import warn as warn
+from .messaging import warn_deprecated as warn_deprecated
 from .messaging import write_outstream as write_outstream
 from .pyfiles import coerce_resource_to_filename as coerce_resource_to_filename
 from .pyfiles import load_python_file as load_python_file
