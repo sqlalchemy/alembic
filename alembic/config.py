@@ -584,9 +584,8 @@ class CommandLine:
                 subparser.add_argument(*args, **opts)  # type:ignore
 
         for arg in positional:
-            if arg in self._POSITIONAL_OPTS:
-                opts = self._POSITIONAL_OPTS[arg]
-                subparser.add_argument(arg, **opts)  # type:ignore
+            opts = self._POSITIONAL_OPTS.get(arg, {})
+            subparser.add_argument(arg, **opts)  # type:ignore
 
     def _inspect_function(self, fn: CommandFunction) -> tuple[Any, Any, str]:
         spec = compat.inspect_getfullargspec(fn)
