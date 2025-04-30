@@ -91,7 +91,7 @@ class SQLiteImpl(DefaultImpl):
                 "SQLite migrations using a copy-and-move strategy."
             )
 
-    def drop_constraint(self, const: Constraint):
+    def drop_constraint(self, const: Constraint, **kw: Any):
         if const._create_rule is None:
             raise NotImplementedError(
                 "No support for ALTER of constraints in SQLite dialect. "

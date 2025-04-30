@@ -24,6 +24,7 @@ if True:
 
 is_posix = os.name == "posix"
 
+py314 = sys.version_info >= (3, 14)
 py313 = sys.version_info >= (3, 13)
 py311 = sys.version_info >= (3, 11)
 py310 = sys.version_info >= (3, 10)

@@ -821,6 +821,19 @@ class OpTest(TestBase):
         op.drop_constraint("foo_bar_bat", "t1", schema="foo")
         context.assert_("ALTER TABLE foo.t1 DROP CONSTRAINT foo_bar_bat")
 
+    def test_drop_constraint_if_exists(self):
+        context = op_fixture()
+        if sqla_compat.sqla_2:
+            op.drop_constraint("foo_bar_bat", "t1", if_exists=True)
+            context.assert_(
+                "ALTER TABLE t1 DROP CONSTRAINT IF EXISTS foo_bar_bat"
+            )
+        else:
+            with expect_raises_message(
+                NotImplementedError, "SQLAlchemy 2.0 required"
+            ):
+                op.drop_constraint("foo_bar_bat", "t1", if_exists=True)
+
     def test_create_index(self):
         context = op_fixture()
         op.create_index("ik_test", "t1", ["foo", "bar"])

@@ -1393,6 +1393,7 @@ class Operations(AbstractOperations):
             type_: Optional[str] = None,
             *,
             schema: Optional[str] = None,
+            if_exists: Optional[bool] = None,
         ) -> None:
             r"""Drop a constraint of the given name, typically via DROP CONSTRAINT.
 
@@ -1404,6 +1405,10 @@ class Operations(AbstractOperations):
              quoting of the schema outside of the default behavior, use
              the SQLAlchemy construct
              :class:`~sqlalchemy.sql.elements.quoted_name`.
+            :param if_exists: If True, adds IF EXISTS operator when
+             dropping the constraint
+
+             .. versionadded:: 1.15.3
 
             """  # noqa: E501
             ...

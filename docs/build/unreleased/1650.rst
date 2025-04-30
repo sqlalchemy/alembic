@@ -1,0 +1,7 @@
+.. change::
+    :tags: usecase, operations
+    :tickets: 1650
+
+    Added :paramref:`.op.drop_constraint.if_exists` parameter to
+    :func:`.op.drop_constraint` which will render "DROP CONSTRAINT IF EXISTS".
+    Pull request courtesy Aaron Griffin.

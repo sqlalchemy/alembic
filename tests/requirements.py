@@ -374,7 +374,7 @@ class DefaultRequirements(SuiteRequirements):
         )
 
         version_high = exclusions.only_if(
-            lambda _: not compat.py313, "python 3.13 does not work right now"
+            lambda _: not compat.py314, "python 3.14 does not work right now"
         )
 
         sqlalchemy = exclusions.only_if(
