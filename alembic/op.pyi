@@ -1276,7 +1276,7 @@ def invoke(
         BulkInsertOp,
         DropTableOp,
         ExecuteSQLOp,
-    ]
+    ],
 ) -> None: ...
 @overload
 def invoke(operation: MigrateOperation) -> Any:
