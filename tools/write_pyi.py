@@ -13,11 +13,11 @@ import typing
 
 sys.path.append(str(Path(__file__).parent.parent))
 
-from alembic.autogenerate.api import AutogenContext
-from alembic.ddl.impl import DefaultImpl
-from alembic.runtime.migration import MigrationInfo
 
 if True:  # avoid flake/zimports messing with the order
+    from alembic.autogenerate.api import AutogenContext
+    from alembic.ddl.impl import DefaultImpl
+    from alembic.runtime.migration import MigrationInfo
     from alembic.operations.base import BatchOperations
     from alembic.operations.base import Operations
     from alembic.runtime.environment import EnvironmentContext
@@ -130,7 +130,7 @@ def generate_pyi_for_proxy(
 
     console_scripts(
         str(destination_path),
-        {"entrypoint": "black", "options": "-l79"},
+        {"entrypoint": "black", "options": "-l79 --target-version py39"},
         ignore_output=ignore_output,
     )
 
