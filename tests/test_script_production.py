@@ -235,7 +235,7 @@ class ScriptNamingTest(TestBase):
         with mock.patch(
             "alembic.script.base.datetime",
             mock.Mock(
-                datetime=mock.Mock(utcnow=lambda: given, now=lambda: given),
+                datetime=mock.Mock(now=lambda tz=None: given),
                 timezone=datetime.timezone,
             ),
         ):
