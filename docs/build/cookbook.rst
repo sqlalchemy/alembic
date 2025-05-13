@@ -1213,7 +1213,10 @@ projects had a need to maintain more than one Alembic version history in a singl
 project, where these version histories are completely independent of each other
 and each refer to their own alembic_version table, either across multiple databases,
 schemas, or namespaces.  A simple approach was added to support this, the
-``--name`` flag on the commandline.
+``--name`` flag on the commandline.    This flag allows named sections within
+the ``alembic.ini`` file to be present (but note it does **not apply** to
+``pyproject.toml`` configuration, where only the ``[tool.alembic]`` section
+is used).
 
 First, one would create an alembic.ini file of this form::
 

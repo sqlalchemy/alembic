@@ -83,12 +83,13 @@ class Config:
      Defaults to ``sys.stdout``.
 
     :param config_args: A dictionary of keys and values that will be used
-     for substitution in the alembic config file.  The dictionary as given
-     is **copied** to a new one, stored locally as the attribute
-     ``.config_args``. When the :attr:`.Config.file_config` attribute is
-     first invoked, the replacement variable ``here`` will be added to this
-     dictionary before the dictionary is passed to ``ConfigParser()``
-     to parse the .ini file.
+     for substitution in the alembic config file, as well as the pyproject.toml
+     file, depending on which / both are used.  The dictionary as given is
+     **copied** to two new, independent dictionaries, stored locally under the
+     attributes ``.config_args`` and ``.toml_args``.   Both of these
+     dictionaries will also be populated with the replacement variable
+     ``%(here)s``, which refers to the location of the .ini and/or .toml file
+     as appropriate.
 
     :param attributes: optional dictionary of arbitrary Python keys/values,
      which will be populated into the :attr:`.Config.attributes` dictionary.
@@ -102,6 +103,7 @@ class Config:
     def __init__(
         self,
         file_: Union[str, os.PathLike[str], None] = None,
+        toml_file: Union[str, os.PathLike[str], None] = None,
         ini_section: str = "alembic",
         output_buffer: Optional[TextIO] = None,
         stdout: TextIO = sys.stdout,
@@ -111,11 +113,13 @@ class Config:
     ) -> None:
         """Construct a new :class:`.Config`"""
         self.config_file_name = file_
+        self.toml_file_name = toml_file
         self.config_ini_section = ini_section
         self.output_buffer = output_buffer
         self.stdout = stdout
         self.cmd_opts = cmd_opts
         self.config_args = dict(config_args)
+        self.toml_args = dict(config_args)
         if attributes:
             self.attributes.update(attributes)
 
@@ -208,6 +212,26 @@ class Config:
             file_config.add_section(self.config_ini_section)
         return file_config
 
+    @util.memoized_property
+    def toml_alembic_config(self) -> Mapping[str, Any]:
+        """Return a dictionary of the [tool.alembic] section from
+        pyproject.toml"""
+
+        if self.toml_file_name and os.path.exists(self.toml_file_name):
+
+            here = os.path.abspath(os.path.dirname(self.toml_file_name))
+            self.toml_args["here"] = here
+
+            with open(self.toml_file_name, "rb") as f:
+                toml_data = compat.tomllib.load(f)
+                data = toml_data.get("tool", {}).get("alembic", {})
+                if not isinstance(data, dict):
+                    raise util.CommandError("Incorrect TOML format")
+                return data
+
+        else:
+            return {}
+
     def get_template_directory(self) -> str:
         """Return the directory where Alembic setup templates are found.
 
@@ -280,6 +304,12 @@ class Config:
         The value here will override whatever was in the .ini
         file.
 
+        Does **NOT** consume from the pyproject.toml file.
+
+        .. seealso::
+
+            :meth:`.Config.get_alembic_option` - includes pyproject support
+
         :param section: name of the section
 
         :param name: name of the value
@@ -328,8 +358,73 @@ class Config:
         section, unless the ``-n/--name`` flag were used to
         indicate a different section.
 
+        Does **NOT** consume from the pyproject.toml file.
+
+        .. seealso::
+
+            :meth:`.Config.get_alembic_option` - includes pyproject support
+
         """
         return self.get_section_option(self.config_ini_section, name, default)
+
+    @overload
+    def get_alembic_option(self, name: str, default: str) -> str: ...
+
+    @overload
+    def get_alembic_option(
+        self, name: str, default: Optional[str] = None
+    ) -> Optional[str]: ...
+
+    def get_alembic_option(
+        self, name: str, default: Optional[str] = None
+    ) -> Union[None, str, list[str], dict[str, str]]:
+        """Return an option from the "[alembic]" or "[tool.alembic]" section
+        of the configparser-parsed .ini file (e.g. ``alembic.ini``) or
+        toml-parsed ``pyproject.toml`` file.
+
+        The value returned is expected to be None, string, list of strings,
+        or dictionary of strings.   Within each type of string value, the
+        ``%(here)s`` token is substituted out with the absolute path of the
+        ``pyproject.toml`` file, as are other tokens which are extracted from
+        the :paramref:`.Config.config_args` dictionary.
+
+        Searches always prioritize the configparser namespace first, before
+        searching in the toml namespace.
+
+        If Alembic was run using the ``-n/--name`` flag to indicate an
+        alternate main section name, this is taken into account **only** for
+        the configparser-parsed .ini file.  The section name in toml is always
+        ``[tool.alembic]``.
+
+
+        .. versionadded:: 1.16.0
+
+        """
+
+        if self.file_config.has_option(self.config_ini_section, name):
+            return self.file_config.get(self.config_ini_section, name)
+        else:
+            USE_DEFAULT = object()
+            value: Union[None, str, list[str], dict[str, str]] = (
+                self.toml_alembic_config.get(name, USE_DEFAULT)
+            )
+            if value is USE_DEFAULT:
+                return default
+            if value is not None:
+                if isinstance(value, str):
+                    value = value % (self.toml_args)
+                elif isinstance(value, list):
+                    value = cast(
+                        "list[str]", [v % (self.toml_args) for v in value]
+                    )
+                elif isinstance(value, dict):
+                    value = cast(
+                        "dict[str, str]",
+                        {k: v % (self.toml_args) for k, v in value.items()},
+                    )
+                else:
+                    raise util.CommandError("unsupported TOML value type")
+            return value
 
     @util.memoized_property
     def messaging_opts(self) -> MessagingOptions:
@@ -401,9 +496,10 @@ class Config:
                     if x
                 ]
         else:
-            return None
+            return self.toml_alembic_config.get("version_locations", None)
 
     def get_prepend_sys_paths_list(self) -> Optional[list[str]]:
+
         prepend_sys_path_str = self.get_main_option("prepend_sys_path")
 
         if prepend_sys_path_str:
@@ -428,26 +524,35 @@ class Config:
                     if x
                 ]
         else:
-            return None
+            return self.toml_alembic_config.get("prepend_sys_path", None)
 
     def get_hooks_list(self) -> list[PostWriteHookConfig]:
-        _split_on_space_comma = re.compile(r", *|(?: +)")
-
-        hook_config = self.get_section("post_write_hooks", {})
-        names = _split_on_space_comma.split(hook_config.get("hooks", ""))
 
         hooks: list[PostWriteHookConfig] = []
-        for name in names:
-            if not name:
-                continue
-            opts = {
-                key[len(name) + 1 :]: hook_config[key]
-                for key in hook_config
-                if key.startswith(name + ".")
-            }
 
-            opts["_hook_name"] = name
-            hooks.append(opts)
+        if not self.file_config.has_section("post_write_hooks"):
+            hook_config = self.toml_alembic_config.get("post_write_hooks", {})
+            for cfg in hook_config:
+                opts = dict(cfg)
+                opts["_hook_name"] = opts.pop("name")
+                hooks.append(opts)
+
+        else:
+            _split_on_space_comma = re.compile(r", *|(?: +)")
+            hook_config = self.get_section("post_write_hooks", {})
+            names = _split_on_space_comma.split(hook_config.get("hooks", ""))
+
+            for name in names:
+                if not name:
+                    continue
+                opts = {
+                    key[len(name) + 1 :]: hook_config[key]
+                    for key in hook_config
+                    if key.startswith(name + ".")
+                }
+
+                opts["_hook_name"] = name
+                hooks.append(opts)
 
         return hooks
 
@@ -632,17 +737,19 @@ class CommandLine:
         parser.add_argument(
             "-c",
             "--config",
-            type=str,
-            default=os.environ.get("ALEMBIC_CONFIG", "alembic.ini"),
+            action="append",
             help="Alternate config file; defaults to value of "
-            'ALEMBIC_CONFIG environment variable, or "alembic.ini"',
+            'ALEMBIC_CONFIG environment variable, or "alembic.ini". '
+            "May also refer to pyproject.toml file.  May be specified twice "
+            "to reference both files separately",
         )
         parser.add_argument(
             "-n",
             "--name",
             type=str,
             default="alembic",
-            help="Name of section in .ini file to use for Alembic config",
+            help="Name of section in .ini file to use for Alembic config "
+            "(only applies to configparser config, not toml)",
         )
         parser.add_argument(
             "-x",
@@ -752,6 +859,46 @@ class CommandLine:
             else:
                 util.err(str(e), **config.messaging_opts)
 
+    def _inis_from_config(self, options: Namespace) -> tuple[str, str]:
+        names = options.config
+
+        alembic_config_env = os.environ.get("ALEMBIC_CONFIG")
+        if (
+            alembic_config_env
+            and os.path.basename(alembic_config_env) == "pyproject.toml"
+        ):
+            default_pyproject_toml = alembic_config_env
+            default_alembic_config = "alembic.ini"
+        elif alembic_config_env:
+            default_pyproject_toml = "pyproject.toml"
+            default_alembic_config = alembic_config_env
+        else:
+            default_alembic_config = "alembic.ini"
+            default_pyproject_toml = "pyproject.toml"
+
+        if not names:
+            return default_pyproject_toml, default_alembic_config
+
+        toml = ini = None
+
+        for name in names:
+            if os.path.basename(name) == "pyproject.toml":
+                if toml is not None:
+                    raise util.CommandError(
+                        "pyproject.toml indicated more than once"
+                    )
+                toml = name
+            else:
+                if ini is not None:
+                    raise util.CommandError(
+                        "only one ini file may be indicated"
+                    )
+                ini = name
+
+        return toml if toml else default_pyproject_toml, (
+            ini if ini else default_alembic_config
+        )
+
     def main(self, argv: Optional[Sequence[str]] = None) -> None:
         """Executes the command line with the provided arguments."""
         options = self.parser.parse_args(argv)
@@ -760,8 +907,10 @@ class CommandLine:
             # behavior changed incompatibly in py3.3
             self.parser.error("too few arguments")
         else:
+            toml, ini = self._inis_from_config(options)
             cfg = Config(
-                file_=options.config,
+                file_=ini,
+                toml_file=toml,
                 ini_section=options.name,
                 cmd_opts=options,
             )

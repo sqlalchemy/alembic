@@ -1,0 +1,21 @@
+.. change::
+    :tags: feature, environment
+    :tickets: 1082
+
+    Added optional :pep:`621` support to Alembic, where a subset of the
+    project-centric configuration normally found in the ``alembic.ini`` file
+    can now be retrieved from the project-wide ``pyproject.toml`` file.   A new
+    init template ``pyproject`` is added which illustrates a basic :pep:`621`
+    setup.  The :pep:`621` feature supports configuration values that are
+    relevant to code locations and code production only; it does not
+    accommodate database connectivity, configuration, or logging configuration.
+    These latter configurational elements remain as elements that can be
+    present either in the ``alembic.ini`` file, or retrieved elsewhere within
+    the ``env.py`` file.   The change also allows the ``alembic.ini`` file to
+    be completely optional if the ``pyproject.toml`` file contains a base
+    alembic configuration section.
+
+
+    .. seealso::
+
+        :ref:`using_pep_621`

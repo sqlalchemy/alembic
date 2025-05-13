@@ -32,6 +32,8 @@ needs of the application.
 The structure of this environment, including some generated migration scripts, looks like::
 
     yourproject/
+        alembic.ini
+        pyproject.toml
         alembic/
             env.py
             README
@@ -43,6 +45,11 @@ The structure of this environment, including some generated migration scripts, l
 
 The directory includes these directories/files:
 
+* ``alembic.ini`` - this is Alembic's main configuration file which is genereated by all templates.
+  A detailed walkthrough of this file is later in the section :ref:`tutorial_alembic_ini`.
+* ``pyproject.toml`` - most modern Python projects have a ``pyproject.toml`` file.  Alembic may
+  optionally store project related configuration in this file as well; to use a ``pyproject.toml``
+  configuration, see the section :ref:`using_pep_621`.
 * ``yourproject`` - this is the root of your application's source code, or some directory within it.
 * ``alembic`` - this directory lives within your application's source tree and is the home of the
   migration environment.   It can be named anything, and a project that uses multiple databases
@@ -106,6 +113,7 @@ command::
     Available templates:
 
     generic - Generic single-database configuration.
+    pyproject - pep-621 compliant configuration that includes pyproject.toml
     async - Generic single-database configuration with an async dbapi.
     multidb - Rudimentary multi-database configuration.
 
@@ -114,6 +122,12 @@ command::
       alembic init --template generic ./scripts
 
 .. versionchanged:: 1.8  The "pylons" environment template has been removed.
+
+.. versionchanged:: 1.16.0 A new ``pyproject`` template has been added.  See
+   the section :re3f:`using_pep_621` for background.
+
+`
+.. _tutorial_alembic_ini:
 
 Editing the .ini File
 =====================
@@ -128,8 +142,11 @@ The file generated with the "generic" configuration looks like::
     # A generic, single database configuration.
 
     [alembic]
-    # path to migration scripts
-    script_location = alembic
+    # path to migration scripts.
+    # this is typically a path given in POSIX (e.g. forward slashes)
+    # format, relative to the token %(here)s which refers to the location of this
+    # ini file
+    script_location = %(here)s/alembic
 
     # template used to generate migration file names; The default value is %%(rev)s_%%(slug)s
     # Uncomment the line below if you want the files to be prepended with date and time
@@ -161,10 +178,13 @@ The file generated with the "generic" configuration looks like::
     # sourceless = false
 
     # version location specification; This defaults
-    # to ${script_location}/versions.  When using multiple version
+    # to <script_location>/versions.  When using multiple version
     # directories, initial revisions must be specified with --version-path.
+    # the special token `%(here)s` is available which indicates the absolute path
+    # to this configuration file.
+    #
     # The path separator used here should be the separator specified by "version_path_separator" below.
-    # version_locations = %(here)s/bar:%(here)s/bat:${script_location}/versions
+    # version_locations = %(here)s/bar:%(here)s/bat:%(here)s/alembic/versions
 
     # path_separator (New in Alembic 1.16.0, supersedes version_path_separator);
     # This indicates what character is used to
@@ -269,6 +289,7 @@ This file contains the following features:
   core implementation does not directly read any other areas of the file, not
   including additional directives that may be consumed from the
   end-user-customizable ``env.py`` file (see note below). The name "alembic"
+  (for configparser config only, not ``pyproject.toml``)
   can be customized using the ``--name`` commandline flag; see
   :ref:`multiple_environments` for a basic example of this.
 
@@ -280,8 +301,10 @@ This file contains the following features:
      logging.
 
 * ``script_location`` - this is the location of the Alembic environment.   It is normally
-  specified as a filesystem location, either relative or absolute.  If the location is
-  a relative path, it's interpreted as relative to the current directory.
+  specified as a filesystem location relative to the ``%(here)s`` token, which
+  indicates where the config file itself is located.   The location may also
+  be a plain relative path, where it's interpreted as relative to the current directory,
+  or an absolute path.
 
   This is the only key required by Alembic in all cases.   The generation
   of the .ini file by the command ``alembic init alembic`` automatically placed the
@@ -359,7 +382,9 @@ This file contains the following features:
   See :ref:`multiple_bases` for examples.
 
 * ``path_separator`` - a separator character for the ``version_locations``
-  and ``prepend_sys_path`` path lists.  See :ref:`multiple_bases` for examples.
+  and ``prepend_sys_path`` path lists.  Only applies to configparser config,
+  not needed if ``pyproject.toml`` configuration is used.
+  See :ref:`multiple_bases` for examples.
 
 * ``recursive_version_locations`` - when set to 'true', revision files
   are searched recursively in each "version_locations" directory.
@@ -381,6 +406,173 @@ the SQLAlchemy URL is all that's needed::
 
     sqlalchemy.url = postgresql://scott:tiger@localhost/test
 
+.. _using_pep_621:
+
+Using pyproject.toml for configuration
+======================================
+
+.. versionadded:: 1.16.0
+
+As the ``alembic.ini`` file includes a subset of options that are specific to
+the organization and production of Python code within the local environment,
+these specific options may alternatively be placed in the application's
+``pyproject.toml`` file, to allow for :pep:`621` compliant configuration.
+
+Use of ``pyproject.toml`` does not preclude having an ``alembic.ini`` file as
+well, as ``alembic.ini`` is still the default location for **deployment**
+details such as database URLs, connectivity options, and logging to be present.
+However, as connectivity and logging is consumed only by user-managed code
+within the ``env.py`` file, it is feasible that the environment would not
+require the ``alembic.ini`` file itself to be present at all, if these
+configurational elements are consumed from other places elsewhere in the
+application.
+
+To start with a pyproject configuration, the most straightforward approach is
+to use the ``pyproject`` template::
+
+    alembic init --template pyproject alembic
+
+The output states that the existing pyproject file is being augmented with
+additional directives::
+
+    Creating directory /path/to/yourproject/alembic...done
+    Creating directory /path/to/yourproject/alembic/versions...done
+    Appending to /path/to/yourproject/pyproject.toml...done
+    Generating /path/to/yourproject/alembic.ini...done
+    Generating /path/to/yourproject/alembic/env.py...done
+    Generating /path/to/yourproject/alembic/README...done
+    Generating /path/to/yourproject/alembic/script.py.mako...done
+    Please edit configuration/connection/logging settings in
+    '/path/to/yourproject/pyproject.toml' and
+    '/path/to/yourproject/alembic.ini' before proceeding.
+
+Alembic's template runner will generate a new ``pyproject.toml`` file if
+one does not exist, or it will append directives to an existing ``pyproject.toml``
+file that does not already include alembic directives.
+
+Within the ``pyproject.toml`` file, the default section generated looks mostly
+like the ``alembic.ini`` file, with the welcome exception that lists of values
+are supported directly; this means the values ``prepend_sys_path`` and
+``version_locations`` are specified as lists.   The ``%(here)s`` token also
+remains available as the absolute path to the ``pyproject.toml`` file::
+
+    [tool.alembic]
+    # path to migration scripts
+    script_location = "%(here)s/alembic"
+
+    # template used to generate migration file names; The default value is %%(rev)s_%%(slug)s
+    # Uncomment the line below if you want the files to be prepended with date and time
+    # file_template = %%(year)d_%%(month).2d_%%(day).2d_%%(hour).2d%%(minute).2d-%%(rev)s_%%(slug)s
+
+    # additional paths to be prepended to sys.path. defaults to the current working directory.
+    prepend_sys_path = [
+        "."
+    ]
+
+    # timezone to use when rendering the date within the migration file
+    # as well as the filename.
+    # If specified, requires the python>=3.9 or backports.zoneinfo library and tzdata library.
+    # Any required deps can installed by adding `alembic[tz]` to the pip requirements
+    # string value is passed to ZoneInfo()
+    # leave blank for localtime
+    # timezone =
+
+    # max length of characters to apply to the
+    # "slug" field
+    # truncate_slug_length = 40
+
+    # set to 'true' to run the environment during
+    # the 'revision' command, regardless of autogenerate
+    # revision_environment = false
+
+    # set to 'true' to allow .pyc and .pyo files without
+    # a source .py file to be detected as revisions in the
+    # versions/ directory
+    # sourceless = false
+
+    # version location specification; This defaults
+    # to <script_location>/versions.  When using multiple version
+    # directories, initial revisions must be specified with --version-path.
+    # version_locations = [
+    #    "%(here)s/alembic/versions",
+    #    "%(here)s/foo/bar"
+    # ]
+
+    # set to 'true' to search source files recursively
+    # in each "version_locations" directory
+    # new in Alembic version 1.10
+    # recursive_version_locations = false
+
+    # the output encoding used when revision files
+    # are written from script.py.mako
+    # output_encoding = "utf-8"
+
+
+    # This section defines scripts or Python functions that are run
+    # on newly generated revision scripts.  See the documentation for further
+    # detail and examples
+    # [[tool.alembic.post_write_hooks]]
+    # format using "black" - use the console_scripts runner,
+    # against the "black" entrypoint
+    # name = "black"
+    # type = "console_scripts"
+    # entrypoint = "black"
+    # options = "-l 79 REVISION_SCRIPT_FILENAME"
+    #
+    # [[tool.alembic.post_write_hooks]]
+    # lint with attempts to fix using "ruff" - use the exec runner,
+    # execute a binary
+    # name = "ruff"
+    # type = "exec"
+    # executable = "%(here)s/.venv/bin/ruff"
+    # options = "check --fix REVISION_SCRIPT_FILENAME"
+
+
+The ``alembic.ini`` file for this template is truncated and contains
+only database configuration and logging configuration::
+
+    [alembic]
+
+    sqlalchemy.url = driver://user:pass@localhost/dbname
+
+    # Logging configuration
+    [loggers]
+    keys = root,sqlalchemy,alembic
+
+    [handlers]
+    keys = console
+
+    [formatters]
+    keys = generic
+
+    [logger_root]
+    level = WARNING
+    handlers = console
+    qualname =
+
+    [logger_sqlalchemy]
+    level = WARNING
+    handlers =
+    qualname = sqlalchemy.engine
+
+    [logger_alembic]
+    level = INFO
+    handlers =
+    qualname = alembic
+
+    [handler_console]
+    class = StreamHandler
+    args = (sys.stderr,)
+    level = NOTSET
+    formatter = generic
+
+    [formatter_generic]
+    format = %(levelname)-5.5s [%(name)s] %(message)s
+    datefmt = %H:%M:%S
+
+When ``env.py`` is configured to obtain database connectivity and logging
+configuration from places other than ``alembic.ini``, the file can be
+omitted altogether.
 
 .. _create_migration:
 

@@ -3,7 +3,9 @@ from __future__ import annotations
 import configparser
 from contextlib import contextmanager
 import io
+import os
 import re
+import shutil
 from typing import Any
 from typing import Dict
 
@@ -24,12 +26,12 @@ from sqlalchemy.testing.fixtures import TestBase as SQLAlchemyTestBase
 
 import alembic
 from .assertions import _get_dialect
+from .env import _get_staging_directory
 from ..environment import EnvironmentContext
 from ..migration import MigrationContext
 from ..operations import Operations
 from ..util import sqla_compat
 from ..util.sqla_compat import sqla_2
-
 
 testing_config = configparser.ConfigParser()
 testing_config.read(["test.cfg"])
@@ -37,6 +39,31 @@ testing_config.read(["test.cfg"])
 
 class TestBase(SQLAlchemyTestBase):
     is_sqlalchemy_future = sqla_2
+
+    @testing.fixture()
+    def clear_staging_dir(self):
+        yield
+        location = _get_staging_directory()
+        for filename in os.listdir(location):
+            file_path = os.path.join(location, filename)
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+
+    @contextmanager
+    def pushd(self, dirname):
+        current_dir = os.getcwd()
+        try:
+            os.chdir(dirname)
+            yield
+        finally:
+            os.chdir(current_dir)
+
+    @testing.fixture()
+    def pop_alembic_config_env(self):
+        yield
+        os.environ.pop("ALEMBIC_CONFIG", None)
 
     @testing.fixture()
     def ops_context(self, migration_context):

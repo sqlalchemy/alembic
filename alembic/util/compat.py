@@ -52,6 +52,11 @@ else:
     import importlib_metadata  # type:ignore # noqa
     from importlib_metadata import EntryPoint  # type:ignore # noqa
 
+if py311:
+    import tomllib as tomllib
+else:
+    import tomli as tomllib  # type: ignore  # noqa
+
 
 def importlib_metadata_get(group: str) -> Sequence[EntryPoint]:
     ep = importlib_metadata.entry_points()

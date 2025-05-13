@@ -30,6 +30,7 @@ dependencies = [
     "SQLAlchemy>=1.4.0",
     "Mako",
     "typing-extensions>=4.12",
+    "tomli;python_version<'3.11'",
 ]
 dynamic = ["version"]
 
@@ -111,3 +112,4 @@ module = [
     'sqlalchemy.testing.*'
 ]
 ignore_missing_imports = true
+

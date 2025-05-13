@@ -162,13 +162,13 @@ class ScriptDirectory:
         present.
 
         """
-        script_location = config.get_main_option("script_location")
+        script_location = config.get_alembic_option("script_location")
         if script_location is None:
             raise util.CommandError(
                 "No 'script_location' key found in configuration."
             )
         truncate_slug_length: Optional[int]
-        tsl = config.get_main_option("truncate_slug_length")
+        tsl = config.get_alembic_option("truncate_slug_length")
         if tsl is not None:
             truncate_slug_length = int(tsl)
         else:
@@ -178,17 +178,21 @@ class ScriptDirectory:
         if prepend_sys_path:
             sys.path[:0] = prepend_sys_path
 
-        rvl = config.get_main_option("recursive_version_locations") == "true"
+        rvl = (
+            config.get_alembic_option("recursive_version_locations") == "true"
+        )
         return ScriptDirectory(
             util.coerce_resource_to_filename(script_location),
-            file_template=config.get_main_option(
+            file_template=config.get_alembic_option(
                 "file_template", _default_file_template
             ),
             truncate_slug_length=truncate_slug_length,
-            sourceless=config.get_main_option("sourceless") == "true",
-            output_encoding=config.get_main_option("output_encoding", "utf-8"),
+            sourceless=config.get_alembic_option("sourceless") == "true",
+            output_encoding=config.get_alembic_option(
+                "output_encoding", "utf-8"
+            ),
             version_locations=config.get_version_locations_list(),
-            timezone=config.get_main_option("timezone"),
+            timezone=config.get_alembic_option("timezone"),
             hooks=config.get_hooks_list(),
             recursive_version_locations=rvl,
             messaging_opts=config.messaging_opts,
@@ -541,6 +545,15 @@ class ScriptDirectory:
     @property
     def env_py_location(self) -> str:
         return os.path.abspath(os.path.join(self.dir, "env.py"))
+
+    def _append_template(self, src: str, dest: str, **kw: Any) -> None:
+        with util.status(
+            f"Appending to existing {os.path.abspath(dest)}",
+            **self.messaging_opts,
+        ):
+            util.template_to_file(
+                src, dest, self.output_encoding, append=True, **kw
+            )
 
     def _generate_template(self, src: str, dest: str, **kw: Any) -> None:
         with util.status(

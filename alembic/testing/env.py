@@ -188,6 +188,50 @@ datefmt = %%H:%%M:%%S
     )
 
 
+def _no_sql_pyproject_config(dialect="postgresql", directives=""):
+    """use a postgresql url with no host so that
+    connections guaranteed to fail"""
+    dir_ = _join_path(_get_staging_directory(), "scripts")
+
+    return _write_toml_config(
+        f"""
+[tool.alembic]
+script_location ="{dir_}"
+{textwrap.dedent(directives)}
+
+        """,
+        f"""
+[alembic]
+sqlalchemy.url = {dialect}://
+
+[loggers]
+keys = root
+
+[handlers]
+keys = console
+
+[logger_root]
+level = WARNING
+handlers = console
+qualname =
+
+[handler_console]
+class = StreamHandler
+args = (sys.stderr,)
+level = NOTSET
+formatter = generic
+
+[formatters]
+keys = generic
+
+[formatter_generic]
+format = %%(levelname)-5.5s [%%(name)s] %%(message)s
+datefmt = %%H:%%M:%%S
+
+""",
+    )
+
+
 def _no_sql_testing_config(dialect="postgresql", directives=""):
     """use a postgresql url with no host so that
     connections guaranteed to fail"""
@@ -227,6 +271,13 @@ datefmt = %%H:%%M:%%S
     )
 
 
+def _write_toml_config(tomltext, initext):
+    cfg = _write_config_file(initext)
+    with open(cfg.toml_file_name, "w") as f:
+        f.write(tomltext)
+    return cfg
+
+
 def _write_config_file(text):
     cfg = _testing_config()
     with open(cfg.config_file_name, "w") as f:
@@ -239,7 +290,10 @@ def _testing_config():
 
     if not os.access(_get_staging_directory(), os.F_OK):
         os.mkdir(_get_staging_directory())
-    return Config(_join_path(_get_staging_directory(), "test_alembic.ini"))
+    return Config(
+        _join_path(_get_staging_directory(), "test_alembic.ini"),
+        _join_path(_get_staging_directory(), "pyproject.toml"),
+    )
 
 
 def write_script(

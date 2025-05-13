@@ -20,7 +20,12 @@ from .exc import CommandError
 
 
 def template_to_file(
-    template_file: str, dest: str, output_encoding: str, **kw: Any
+    template_file: str,
+    dest: str,
+    output_encoding: str,
+    *,
+    append: bool = False,
+    **kw: Any,
 ) -> None:
     template = Template(filename=template_file)
     try:
@@ -38,7 +43,7 @@ def template_to_file(
             "template-oriented traceback." % fname
         )
     else:
-        with open(dest, "wb") as f:
+        with open(dest, "ab" if append else "wb") as f:
             f.write(output)
 
 
@@ -112,3 +117,9 @@ def load_module_py(module_id: str, path: str) -> ModuleType:
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)  # type: ignore
     return module
+
+
+def relpath_via_abs_root(root: str, relative_path: str) -> str:
+    abs_root = os.path.abspath(root)
+    abs_path = os.path.abspath(relative_path)
+    return abs_path[len(os.path.commonpath([abs_root, abs_path])) + 1 :]
