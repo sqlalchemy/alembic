@@ -1,0 +1,8 @@
+.. change::
+    :tags: bug, operations
+    :tickets: 1656
+
+    The ExecuteSQLOp now takes into account the value configured
+    in :paramref:`configure.alembic_module_prefix` instead of always
+    defaulting to ``op.``.
+    Pull request curtesy of Avery Fischer.

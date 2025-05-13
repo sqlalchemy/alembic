@@ -2035,6 +2035,24 @@ class AutogenRenderTest(TestBase):
             op_obj,
         )
 
+    @testing.combinations(
+        ("test.",),
+        (None,),
+        argnames="alembic_module_prefix",
+    )
+    def test_render_executesql_alembic_module_prefix(
+        self,
+        alembic_module_prefix,
+    ):
+        self.autogen_context.opts.update(
+            alembic_module_prefix=alembic_module_prefix
+        )
+        op_obj = ops.ExecuteSQLOp("drop table foo")
+        eq_(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            f"{alembic_module_prefix or ''}execute('drop table foo')",
+        )
+
     def test_render_alter_column_modify_comment(self):
         op_obj = ops.AlterColumnOp(
             "sometable", "somecolumn", modify_comment="This is a comment"
