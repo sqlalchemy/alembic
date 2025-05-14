@@ -154,17 +154,24 @@ class AddColumn(AlterTable):
         name: str,
         column: Column[Any],
         schema: Optional[Union[quoted_name, str]] = None,
+        if_not_exists: Optional[bool] = None,
     ) -> None:
         super().__init__(name, schema=schema)
         self.column = column
+        self.if_not_exists = if_not_exists
 
 
 class DropColumn(AlterTable):
     def __init__(
-        self, name: str, column: Column[Any], schema: Optional[str] = None
+        self,
+        name: str,
+        column: Column[Any],
+        schema: Optional[str] = None,
+        if_exists: Optional[bool] = None,
     ) -> None:
         super().__init__(name, schema=schema)
         self.column = column
+        self.if_exists = if_exists
 
 
 class ColumnComment(AlterColumn):

@@ -93,7 +93,11 @@ def drop_column(
 ) -> None:
     column = operation.to_column(operations.migration_context)
     operations.impl.drop_column(
-        operation.table_name, column, schema=operation.schema, **operation.kw
+        operation.table_name,
+        column,
+        schema=operation.schema,
+        if_exists=operation.if_exists,
+        **operation.kw,
     )
 
 
@@ -168,7 +172,13 @@ def add_column(operations: "Operations", operation: "ops.AddColumnOp") -> None:
         column = _copy(column)
 
     t = operations.schema_obj.table(table_name, column, schema=schema)
-    operations.impl.add_column(table_name, column, schema=schema, **kw)
+    operations.impl.add_column(
+        table_name,
+        column,
+        schema=schema,
+        if_not_exists=operation.if_not_exists,
+        **kw,
+    )
 
     for constraint in t.constraints:
         if not isinstance(constraint, sa_schema.PrimaryKeyConstraint):
