@@ -11,7 +11,6 @@ from typing import Any
 from typing import cast
 from typing import Iterator
 from typing import List
-from typing import Mapping
 from typing import Optional
 from typing import Sequence
 from typing import Set
@@ -32,6 +31,7 @@ if TYPE_CHECKING:
     from .revision import Revision
     from ..config import Config
     from ..config import MessagingOptions
+    from ..config import PostWriteHookConfig
     from ..runtime.migration import RevisionStep
     from ..runtime.migration import StampStep
 
@@ -50,9 +50,6 @@ _only_source_rev_file = re.compile(r"(?!\.\#|__init__)(.*\.py)$")
 _legacy_rev = re.compile(r"([a-f0-9]+)\.py$")
 _slug_re = re.compile(r"\w+")
 _default_file_template = "%(rev)s_%(slug)s"
-_split_on_space_comma = re.compile(r", *|(?: +)")
-
-_split_on_space_comma_colon = re.compile(r", *|(?: +)|\:")
 
 
 class ScriptDirectory:
@@ -84,7 +81,7 @@ class ScriptDirectory:
         sourceless: bool = False,
         output_encoding: str = "utf-8",
         timezone: Optional[str] = None,
-        hook_config: Optional[Mapping[str, str]] = None,
+        hooks: list[PostWriteHookConfig] = [],
         recursive_version_locations: bool = False,
         messaging_opts: MessagingOptions = cast(
             "MessagingOptions", util.EMPTY_DICT
@@ -98,7 +95,7 @@ class ScriptDirectory:
         self.output_encoding = output_encoding
         self.revision_map = revision.RevisionMap(self._load_revisions)
         self.timezone = timezone
-        self.hook_config = hook_config
+        self.hooks = hooks
         self.recursive_version_locations = recursive_version_locations
         self.messaging_opts = messaging_opts
 
@@ -168,7 +165,7 @@ class ScriptDirectory:
         script_location = config.get_main_option("script_location")
         if script_location is None:
             raise util.CommandError(
-                "No 'script_location' key " "found in configuration."
+                "No 'script_location' key found in configuration."
             )
         truncate_slug_length: Optional[int]
         tsl = config.get_main_option("truncate_slug_length")
@@ -177,53 +174,9 @@ class ScriptDirectory:
         else:
             truncate_slug_length = None
 
-        version_locations_str = config.get_main_option("version_locations")
-        version_locations: Optional[List[str]]
-        if version_locations_str:
-            version_path_separator = config.get_main_option(
-                "version_path_separator"
-            )
-
-            split_on_path = {
-                None: None,
-                "space": " ",
-                "newline": "\n",
-                "os": os.pathsep,
-                ":": ":",
-                ";": ";",
-            }
-
-            try:
-                split_char: Optional[str] = split_on_path[
-                    version_path_separator
-                ]
-            except KeyError as ke:
-                raise ValueError(
-                    "'%s' is not a valid value for "
-                    "version_path_separator; "
-                    "expected 'space', 'newline', 'os', ':', ';'"
-                    % version_path_separator
-                ) from ke
-            else:
-                if split_char is None:
-                    # legacy behaviour for backwards compatibility
-                    version_locations = _split_on_space_comma.split(
-                        version_locations_str
-                    )
-                else:
-                    version_locations = [
-                        x.strip()
-                        for x in version_locations_str.split(split_char)
-                        if x
-                    ]
-        else:
-            version_locations = None
-
-        prepend_sys_path = config.get_main_option("prepend_sys_path")
+        prepend_sys_path = config.get_prepend_sys_paths_list()
         if prepend_sys_path:
-            sys.path[:0] = list(
-                _split_on_space_comma_colon.split(prepend_sys_path)
-            )
+            sys.path[:0] = prepend_sys_path
 
         rvl = config.get_main_option("recursive_version_locations") == "true"
         return ScriptDirectory(
@@ -234,9 +187,9 @@ class ScriptDirectory:
             truncate_slug_length=truncate_slug_length,
             sourceless=config.get_main_option("sourceless") == "true",
             output_encoding=config.get_main_option("output_encoding", "utf-8"),
-            version_locations=version_locations,
+            version_locations=config.get_version_locations_list(),
             timezone=config.get_main_option("timezone"),
-            hook_config=config.get_section("post_write_hooks", {}),
+            hooks=config.get_hooks_list(),
             recursive_version_locations=rvl,
             messaging_opts=config.messaging_opts,
         )
@@ -763,7 +716,7 @@ class ScriptDirectory:
             **kw,
         )
 
-        post_write_hooks = self.hook_config
+        post_write_hooks = self.hooks
         if post_write_hooks:
             write_hooks._run_hooks(path, post_write_hooks)
 

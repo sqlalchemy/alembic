@@ -521,8 +521,8 @@ that module.  So to start out, we can edit ``alembic.ini`` to refer
 to multiple directories;  we'll also state the current ``versions``
 directory as one of them::
 
-  # A separator for the location paths must be defined first.
-  version_path_separator = os  # Use os.pathsep.
+  # A separator for the location paths needs to be defined
+  path_separator = os  # Use os.pathsep.
   # version location specification; this defaults
   # to foo/versions.  When using multiple version
   # directories, initial revisions must be specified with --version-path
