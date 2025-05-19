@@ -442,7 +442,7 @@ def _drop_constraint(
     name = _render_gen_name(autogen_context, op.constraint_name)
     schema = _ident(op.schema) if op.schema else None
     type_ = _ident(op.constraint_type) if op.constraint_type else None
-
+    if_exists = op.if_exists
     params_strs = []
     params_strs.append(repr(name))
     if not autogen_context._has_batch:
@@ -451,6 +451,8 @@ def _drop_constraint(
             params_strs.append(f"schema={schema!r}")
     if type_ is not None:
         params_strs.append(f"type_={type_!r}")
+    if if_exists is not None:
+        params_strs.append(f"if_exists={if_exists}")
 
     return f"{prefix}drop_constraint({', '.join(params_strs)})"
 
