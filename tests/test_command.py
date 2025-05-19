@@ -5,6 +5,7 @@ from io import BytesIO
 from io import StringIO
 from io import TextIOWrapper
 import os
+import pathlib
 import re
 from typing import cast
 
@@ -1451,13 +1452,13 @@ class CommandLineTest(TestBase):
 
     def test_init_file_exists_and_is_empty(self):
         def access_(path, mode):
-            if "generic" in path or path == "foobar":
+            if "generic" in str(path) or str(path) == "foobar":
                 return True
             else:
                 return False
 
         def listdir_(path):
-            if path == "foobar":
+            if str(path) == "foobar":
                 return []
             else:
                 return ["file1", "file2", "alembic.ini.mako"]
@@ -1471,12 +1472,12 @@ class CommandLineTest(TestBase):
             command.init(self.cfg, directory="foobar")
             eq_(
                 makedirs.mock_calls,
-                [mock.call(os.path.normpath("foobar/versions"))],
+                [mock.call(pathlib.Path("foobar/versions"))],
             )
 
     def test_init_file_doesnt_exist(self):
         def access_(path, mode):
-            if "generic" in path:
+            if "generic" in str(path):
                 return True
             else:
                 return False
@@ -1490,8 +1491,8 @@ class CommandLineTest(TestBase):
             eq_(
                 makedirs.mock_calls,
                 [
-                    mock.call("foobar"),
-                    mock.call(os.path.normpath("foobar/versions")),
+                    mock.call(pathlib.Path("foobar")),
+                    mock.call(pathlib.Path("foobar/versions")),
                 ],
             )
 
@@ -1504,14 +1505,14 @@ class CommandLineTest(TestBase):
                 open_.mock_calls,
                 [
                     mock.call(
-                        os.path.abspath(os.path.join(path, "__init__.py")), "w"
+                        (pathlib.Path(path, "__init__.py")).absolute(), "w"
                     ),
                     mock.call().__enter__(),
                     mock.call().__exit__(None, None, None),
                     mock.call(
-                        os.path.abspath(
-                            os.path.join(path, "versions", "__init__.py")
-                        ),
+                        pathlib.Path(
+                            path, "versions", "__init__.py"
+                        ).absolute(),
                         "w",
                     ),
                     mock.call().__enter__(),

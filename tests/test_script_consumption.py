@@ -779,9 +779,9 @@ def downgrade():
 
         assert_raises_message(
             util.CommandError,
-            "Could not determine revision id from filename foobar_%s.py. "
+            f"Could not determine revision id from filename foobar_{a}.py. "
             "Be sure the 'revision' variable is declared "
-            "inside the script." % a,
+            "inside the script.",
             Script._from_path,
             script,
             path,

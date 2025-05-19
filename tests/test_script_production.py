@@ -185,10 +185,10 @@ class ScriptNamingTest(TestBase):
             script._rev_path(
                 script.versions, "12345", "this is a message", create_date
             ),
-            os.path.abspath(
+            Path(
                 "%s/versions/12345_this_is_a_"
                 "message_2012_7_25_15_8_5.py" % _get_staging_directory()
-            ),
+            ).absolute(),
         )
 
     @testing.combinations(
@@ -219,7 +219,7 @@ class ScriptNamingTest(TestBase):
             script._rev_path(
                 script.versions, "12345", "this is a message", create_date
             ),
-            os.path.abspath(expected % _get_staging_directory()),
+            Path(expected % _get_staging_directory()).absolute(),
         )
 
     def _test_tz(self, timezone_arg, given, expected):
@@ -1181,7 +1181,8 @@ class MultiDirRevisionCommandTest(TestBase):
     def test_multiple_dir_no_bases_invalid_version_path(self):
         assert_raises_message(
             util.CommandError,
-            "Path foo/bar/ is not represented in current version locations",
+            r"Path foo[/\\]bar is not represented in current version "
+            "locations",
             command.revision,
             self.cfg,
             message="x",
@@ -1377,49 +1378,27 @@ class NormPathTest(TestBase):
 
         script = ScriptDirectory.from_config(config)
 
-        def normpath(path):
-            return path.replace(os.pathsep, ":NORM:")
+        eq_(
+            script._version_locations,
+            [Path(_get_staging_directory(), "scripts", "versions").absolute()],
+        )
 
-        normpath = mock.Mock(side_effect=normpath)
-
-        with mock.patch("os.path.normpath", normpath):
-            eq_(
-                script._version_locations,
-                (
-                    os.path.abspath(
-                        os.path.join(
-                            _get_staging_directory(), "scripts", "versions"
-                        )
-                    ).replace(os.pathsep, ":NORM:"),
-                ),
-            )
-
-            eq_(
-                script.versions,
-                os.path.abspath(
-                    os.path.join(
-                        _get_staging_directory(), "scripts", "versions"
-                    )
-                ).replace(os.pathsep, ":NORM:"),
-            )
+        eq_(
+            Path(script.versions),
+            Path(_get_staging_directory(), "scripts", "versions").absolute(),
+        )
 
     def test_script_location_multiple(self):
         config = _multi_dir_testing_config()
 
         script = ScriptDirectory.from_config(config)
 
-        def _normpath(path):
-            return path.replace(os.pathsep, ":NORM:")
-
-        normpath = mock.Mock(side_effect=_normpath)
-
-        with mock.patch("os.path.normpath", normpath):
-            sd = Path(_get_staging_directory()).as_posix()
-            eq_(
-                script._version_locations,
-                [
-                    _normpath(os.path.abspath(sd + "/model1/")),
-                    _normpath(os.path.abspath(sd + "/model2/")),
-                    _normpath(os.path.abspath(sd + "/model3/")),
-                ],
-            )
+        sd = Path(_get_staging_directory()).as_posix()
+        eq_(
+            script._version_locations,
+            [
+                Path(sd, "model1").absolute(),
+                Path(sd, "model2").absolute(),
+                Path(sd, "model3").absolute(),
+            ],
+        )

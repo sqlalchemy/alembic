@@ -5,6 +5,7 @@ from argparse import Namespace
 from configparser import ConfigParser
 import inspect
 import os
+from pathlib import Path
 import re
 import sys
 from typing import Any
@@ -138,6 +139,25 @@ class Config:
     config_file_name: Union[str, os.PathLike[str], None] = None
     """Filesystem path to the .ini file in use."""
 
+    toml_file_name: Union[str, os.PathLike[str], None] = None
+    """Filesystem path to the pyproject.toml file in use.
+
+    .. versionadded:: 1.16.0
+
+    """
+
+    @property
+    def _config_file_path(self) -> Optional[Path]:
+        if self.config_file_name is None:
+            return None
+        return Path(self.config_file_name)
+
+    @property
+    def _toml_file_path(self) -> Optional[Path]:
+        if self.toml_file_name is None:
+            return None
+        return Path(self.toml_file_name)
+
     config_ini_section: str = None  # type:ignore[assignment]
     """Name of the config file section to read basic configuration
     from.  Defaults to ``alembic``, that is the ``[alembic]`` section
@@ -193,21 +213,21 @@ class Config:
     def file_config(self) -> ConfigParser:
         """Return the underlying ``ConfigParser`` object.
 
-        Direct access to the .ini file is available here,
+        Dir*-ect access to the .ini file is available here,
         though the :meth:`.Config.get_section` and
         :meth:`.Config.get_main_option`
         methods provide a possibly simpler interface.
 
         """
 
-        if self.config_file_name:
-            here = os.path.abspath(os.path.dirname(self.config_file_name))
+        if self._config_file_path:
+            here = self._config_file_path.absolute().parent
         else:
-            here = ""
-        self.config_args["here"] = here
+            here = Path()
+        self.config_args["here"] = here.as_posix()
         file_config = ConfigParser(self.config_args)
-        if self.config_file_name:
-            compat.read_config_parser(file_config, [self.config_file_name])
+        if self._config_file_path:
+            compat.read_config_parser(file_config, [self._config_file_path])
         else:
             file_config.add_section(self.config_ini_section)
         return file_config
@@ -217,12 +237,12 @@ class Config:
         """Return a dictionary of the [tool.alembic] section from
         pyproject.toml"""
 
-        if self.toml_file_name and os.path.exists(self.toml_file_name):
+        if self._toml_file_path and self._toml_file_path.exists():
 
-            here = os.path.abspath(os.path.dirname(self.toml_file_name))
-            self.toml_args["here"] = here
+            here = self._toml_file_path.absolute().parent
+            self.toml_args["here"] = here.as_posix()
 
-            with open(self.toml_file_name, "rb") as f:
+            with open(self._toml_file_path, "rb") as f:
                 toml_data = compat.tomllib.load(f)
                 data = toml_data.get("tool", {}).get("alembic", {})
                 if not isinstance(data, dict):
@@ -239,10 +259,21 @@ class Config:
         commands.
 
         """
+        return self._get_template_path().as_posix()
+
+    def _get_template_path(self) -> Path:
+        """Return the directory where Alembic setup templates are found.
+
+        This method is used by the alembic ``init`` and ``list_templates``
+        commands.
+
+        .. versionadded:: 1.16.0
+
+        """
         import alembic
 
-        package_dir = os.path.abspath(os.path.dirname(alembic.__file__))
-        return os.path.join(package_dir, "templates")
+        package_dir = Path(alembic.__file__).absolute().parent
+        return package_dir / "templates"
 
     @overload
     def get_section(

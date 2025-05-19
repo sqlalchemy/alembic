@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from abc import abstractmethod
+import os
+import pathlib
 import re
 from typing import Any
 from typing import Callable
@@ -2747,7 +2749,7 @@ class MigrationScript(MigrateOperation):
         head: Optional[str] = None,
         splice: Optional[bool] = None,
         branch_label: Optional[_RevIdType] = None,
-        version_path: Optional[str] = None,
+        version_path: Union[str, os.PathLike[str], None] = None,
         depends_on: Optional[_RevIdType] = None,
     ) -> None:
         self.rev_id = rev_id
@@ -2756,7 +2758,9 @@ class MigrationScript(MigrateOperation):
         self.head = head
         self.splice = splice
         self.branch_label = branch_label
-        self.version_path = version_path
+        self.version_path = (
+            pathlib.Path(version_path).as_posix() if version_path else None
+        )
         self.depends_on = depends_on
         self.upgrade_ops = upgrade_ops
         self.downgrade_ops = downgrade_ops
