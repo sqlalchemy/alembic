@@ -10,6 +10,7 @@ from typing import List
 from typing import Optional
 from typing import TYPE_CHECKING
 from typing import Union
+import warnings
 
 from sqlalchemy import types as sqltypes
 from sqlalchemy.schema import Column
@@ -206,6 +207,13 @@ class MSSQLImpl(DefaultImpl):
         if_exists: Optional[bool] = None,
         **kw,
     ) -> None:
+        if if_exists is not None:
+            # if exists is kept for compatibility with parent API
+            # but not supported by mssql
+            warnings.warn(
+                "The `if_exists` flag is not supported by mssql"
+                "and will be ignored"
+            )
         drop_default = kw.pop("mssql_drop_default", False)
         if drop_default:
             self._exec(
@@ -223,9 +231,7 @@ class MSSQLImpl(DefaultImpl):
         drop_fks = kw.pop("mssql_drop_foreign_key", False)
         if drop_fks:
             self._exec(_ExecDropFKConstraint(table_name, column, schema))
-        super().drop_column(
-            table_name, column, schema=schema, if_exists=if_exists, **kw
-        )
+        super().drop_column(table_name, column, schema=schema, **kw)
 
     def compare_server_default(
         self,

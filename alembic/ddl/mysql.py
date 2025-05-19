@@ -12,14 +12,12 @@ from typing import Union
 from sqlalchemy import schema
 from sqlalchemy import types as sqltypes
 
-from .base import AddColumn
 from .base import alter_table
 from .base import AlterColumn
 from .base import ColumnDefault
 from .base import ColumnName
 from .base import ColumnNullable
 from .base import ColumnType
-from .base import DropColumn
 from .base import format_column_name
 from .base import format_server_default
 from .impl import DefaultImpl
@@ -390,29 +388,6 @@ def _mysql_alter_default(
             if element.default is not None
             else "DROP DEFAULT"
         ),
-    )
-
-
-@compiles(AddColumn, "mysql", "mariadb")
-def _mysql_add_column(
-    element: AddColumn, compiler: MySQLDDLCompiler, **kw
-) -> str:
-
-    return "%s ADD COLUMN %s%s" % (
-        alter_table(compiler, element.table_name, element.schema),
-        "IF NOT EXISTS " if element.if_not_exists else "",
-        compiler.get_column_specification(element.column, **kw),
-    )
-
-
-@compiles(DropColumn, "mysql", "mariadb")
-def _mysql_drop_column(
-    element: DropColumn, compiler: MySQLDDLCompiler, **kw
-) -> str:
-    return "%s DROP COLUMN %s%s" % (
-        alter_table(compiler, element.table_name, element.schema),
-        "IF EXISTS " if element.if_exists else "",
-        format_column_name(compiler, element.column.name),
     )
 
 
