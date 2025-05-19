@@ -2,6 +2,8 @@
     :tags: usecase, operations
     :tickets: 1650
 
-    Added :paramref:`.op.drop_constraint.if_exists` parameter to
-    :func:`.op.drop_constraint` which will render "DROP CONSTRAINT IF EXISTS".
-    Pull request courtesy Aaron Griffin.
+    Added :paramref:`.Operations.drop_constraint.if_exists` parameter to
+    :meth:`.Operations.drop_constraint` which will render "DROP CONSTRAINT IF
+    EXISTS". The parameter also supports autogenerate rendering allowing them
+    to be turned on via a custom :class:`.Rewriter`.  Pull request courtesy
+    Aaron Griffin.

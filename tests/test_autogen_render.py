@@ -451,6 +451,20 @@ class AutogenRenderTest(TestBase):
             "schema=foo.camel_schema, type_='unique')",
         )
 
+    def test_render_drop_unique_constraint_if_exists(self):
+        """
+        autogenerate.render._drop_constraint
+        """
+        t = self.table()
+        uq = UniqueConstraint(t.c.code, name="uq_test_code")
+        op_obj = ops.DropConstraintOp.from_constraint(uq)
+        op_obj.if_exists = True
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.drop_constraint('uq_test_code', 'test', "
+            "type_='unique', if_exists=True)",
+        )
+
     def test_add_fk_constraint(self):
         m = MetaData()
         Table("a", m, Column("id", Integer, primary_key=True))

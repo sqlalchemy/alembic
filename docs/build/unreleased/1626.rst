@@ -1,5 +1,6 @@
 .. change::
     :tags: usecase, autogenerate, postgresql
+    :tickets: 1626
 
     Added :paramref:`.Operations.add_column.if_not_exists` and
     :paramref:`.Operations.drop_column.if_exists` to render ``IF [NOT] EXISTS``
