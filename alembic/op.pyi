@@ -60,7 +60,11 @@ _C = TypeVar("_C", bound=Callable[..., Any])
 ### end imports ###
 
 def add_column(
-    table_name: str, column: Column[Any], *, schema: Optional[str] = None
+    table_name: str,
+    column: Column[Any],
+    *,
+    schema: Optional[str] = None,
+    if_not_exists: Optional[bool] = None,
 ) -> None:
     """Issue an "add column" instruction using the current
     migration context.
@@ -137,6 +141,10 @@ def add_column(
      quoting of the schema outside of the default behavior, use
      the SQLAlchemy construct
      :class:`~sqlalchemy.sql.elements.quoted_name`.
+    :param if_not_exists: If True, adds IF NOT EXISTS operator
+     when creating the new column for compatible dialects
+
+     .. versionadded:: 1.16.0
 
     """
 
@@ -927,6 +935,11 @@ def drop_column(
      quoting of the schema outside of the default behavior, use
      the SQLAlchemy construct
      :class:`~sqlalchemy.sql.elements.quoted_name`.
+    :param if_exists: If True, adds IF EXISTS operator when
+     dropping the new column for compatible dialects
+
+     .. versionadded:: 1.16.0
+
     :param mssql_drop_check: Optional boolean.  When ``True``, on
      Microsoft SQL Server only, first
      drop the CHECK constraint on the column using a
@@ -948,7 +961,6 @@ def drop_column(
      then exec's a separate DROP CONSTRAINT for that default.  Only
      works if the column has exactly one FK constraint which refers to
      it, at the moment.
-
     """
 
 def drop_constraint(
@@ -972,7 +984,7 @@ def drop_constraint(
     :param if_exists: If True, adds IF EXISTS operator when
      dropping the constraint
 
-     .. versionadded:: 1.15.3
+     .. versionadded:: 1.16.0
 
     """
 

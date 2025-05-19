@@ -52,6 +52,7 @@ from ..operations.base import Operations
 from ..util import sqla_compat
 from ..util.sqla_compat import compiles
 
+
 if TYPE_CHECKING:
     from typing import Literal
 
@@ -148,10 +149,11 @@ class PostgresqlImpl(DefaultImpl):
             select(literal_column(conn_col_default) == metadata_default)
         )
 
-    def alter_column(  # type:ignore[override]
+    def alter_column(
         self,
         table_name: str,
         column_name: str,
+        *,
         nullable: Optional[bool] = None,
         server_default: Optional[
             Union[_ServerDefault, Literal[False]]

@@ -256,6 +256,7 @@ class DefaultImpl(metaclass=ImplMeta):
         self,
         table_name: str,
         column_name: str,
+        *,
         nullable: Optional[bool] = None,
         server_default: Optional[
             Union[_ServerDefault, Literal[False]]
@@ -370,18 +371,33 @@ class DefaultImpl(metaclass=ImplMeta):
         self,
         table_name: str,
         column: Column[Any],
+        *,
         schema: Optional[Union[str, quoted_name]] = None,
+        if_not_exists: Optional[bool] = None,
     ) -> None:
-        self._exec(base.AddColumn(table_name, column, schema=schema))
+        self._exec(
+            base.AddColumn(
+                table_name,
+                column,
+                schema=schema,
+                if_not_exists=if_not_exists,
+            )
+        )
 
     def drop_column(
         self,
         table_name: str,
         column: Column[Any],
+        *,
         schema: Optional[str] = None,
+        if_exists: Optional[bool] = None,
         **kw,
     ) -> None:
-        self._exec(base.DropColumn(table_name, column, schema=schema))
+        self._exec(
+            base.DropColumn(
+                table_name, column, schema=schema, if_exists=if_exists
+            )
+        )
 
     def add_constraint(self, const: Any) -> None:
         if const._create_rule is None or const._create_rule(self):

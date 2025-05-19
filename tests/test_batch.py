@@ -919,7 +919,10 @@ class BatchAPITest(TestBase):
             batch.impl.operations.impl.mock_calls,
             [
                 mock.call.drop_column(
-                    "tname", self.mock_schema.Column(), schema=None
+                    "tname",
+                    self.mock_schema.Column(),
+                    schema=None,
+                    if_exists=None,
                 )
             ],
         )
@@ -931,7 +934,9 @@ class BatchAPITest(TestBase):
             batch.add_column(column)
 
         assert (
-            mock.call.add_column("tname", column, schema=None)
+            mock.call.add_column(
+                "tname", column, schema=None, if_not_exists=None
+            )
             in batch.impl.operations.impl.mock_calls
         )
 

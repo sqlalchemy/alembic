@@ -109,6 +109,20 @@ class OpTest(TestBase):
         op.add_column("t1", Column("c1", Integer, nullable=False))
         context.assert_("ALTER TABLE t1 ADD COLUMN c1 INTEGER NOT NULL")
 
+    def test_add_column_exists_directives(self):
+        context = op_fixture()
+        op.add_column(
+            "t1", Column("c1", Integer, nullable=False), if_not_exists=True
+        )
+        context.assert_(
+            "ALTER TABLE t1 ADD COLUMN IF NOT EXISTS c1 INTEGER NOT NULL"
+        )
+
+    def test_drop_column_exists_directives(self):
+        context = op_fixture()
+        op.drop_column("t1", "c1", if_exists=True)
+        context.assert_("ALTER TABLE t1 DROP COLUMN IF EXISTS c1")
+
     def test_add_column_already_attached(self):
         context = op_fixture()
         c1 = Column("c1", Integer, nullable=False)

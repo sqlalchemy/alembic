@@ -154,17 +154,24 @@ class AddColumn(AlterTable):
         name: str,
         column: Column[Any],
         schema: Optional[Union[quoted_name, str]] = None,
+        if_not_exists: Optional[bool] = None,
     ) -> None:
         super().__init__(name, schema=schema)
         self.column = column
+        self.if_not_exists = if_not_exists
 
 
 class DropColumn(AlterTable):
     def __init__(
-        self, name: str, column: Column[Any], schema: Optional[str] = None
+        self,
+        name: str,
+        column: Column[Any],
+        schema: Optional[str] = None,
+        if_exists: Optional[bool] = None,
     ) -> None:
         super().__init__(name, schema=schema)
         self.column = column
+        self.if_exists = if_exists
 
 
 class ColumnComment(AlterColumn):
@@ -189,7 +196,9 @@ def visit_rename_table(
 def visit_add_column(element: AddColumn, compiler: DDLCompiler, **kw) -> str:
     return "%s %s" % (
         alter_table(compiler, element.table_name, element.schema),
-        add_column(compiler, element.column, **kw),
+        add_column(
+            compiler, element.column, if_not_exists=element.if_not_exists, **kw
+        ),
     )
 
 
@@ -197,7 +206,9 @@ def visit_add_column(element: AddColumn, compiler: DDLCompiler, **kw) -> str:
 def visit_drop_column(element: DropColumn, compiler: DDLCompiler, **kw) -> str:
     return "%s %s" % (
         alter_table(compiler, element.table_name, element.schema),
-        drop_column(compiler, element.column.name, **kw),
+        drop_column(
+            compiler, element.column.name, if_exists=element.if_exists, **kw
+        ),
     )
 
 
@@ -320,16 +331,29 @@ def alter_table(
     return "ALTER TABLE %s" % format_table_name(compiler, name, schema)
 
 
-def drop_column(compiler: DDLCompiler, name: str, **kw) -> str:
-    return "DROP COLUMN %s" % format_column_name(compiler, name)
+def drop_column(
+    compiler: DDLCompiler, name: str, if_exists: Optional[bool] = None, **kw
+) -> str:
+    return "DROP COLUMN %s%s" % (
+        "IF EXISTS " if if_exists else "",
+        format_column_name(compiler, name),
+    )
 
 
 def alter_column(compiler: DDLCompiler, name: str) -> str:
     return "ALTER COLUMN %s" % format_column_name(compiler, name)
 
 
-def add_column(compiler: DDLCompiler, column: Column[Any], **kw) -> str:
-    text = "ADD COLUMN %s" % compiler.get_column_specification(column, **kw)
+def add_column(
+    compiler: DDLCompiler,
+    column: Column[Any],
+    if_not_exists: Optional[bool] = None,
+    **kw,
+) -> str:
+    text = "ADD COLUMN %s%s" % (
+        "IF NOT EXISTS " if if_not_exists else "",
+        compiler.get_column_specification(column, **kw),
+    )
 
     const = " ".join(
         compiler.process(constraint) for constraint in column.constraints
