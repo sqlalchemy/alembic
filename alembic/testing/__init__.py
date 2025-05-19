@@ -9,6 +9,7 @@ from sqlalchemy.testing import uses_deprecated
 from sqlalchemy.testing.config import combinations
 from sqlalchemy.testing.config import fixture
 from sqlalchemy.testing.config import requirements as requires
+from sqlalchemy.testing.config import variation
 
 from .assertions import assert_raises
 from .assertions import assert_raises_message

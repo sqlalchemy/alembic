@@ -692,18 +692,29 @@ regardless of whether or not the autogenerate feature was used.
 Basic Post Processor Configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``alembic.ini`` samples now include commented-out configuration
+The template samples for ``alembic.ini`` as well as ``pyproject.toml`` for
+applicable templates now include commented-out configuration
 illustrating how to configure code-formatting tools, or other tools like linters
-to run against the newly generated file path.    Example::
+to run against the newly generated file path.  Example from an alembic.ini file::
 
-  [post_write_hooks]
+    [post_write_hooks]
 
-  # format using "black"
-  hooks=black
+    # format using "black"
+    hooks=black
 
-  black.type = console_scripts
-  black.entrypoint = black
-  black.options = -l 79
+    black.type = console_scripts
+    black.entrypoint = black
+    black.options = -l 79 REVISION_SCRIPT_FILENAME
+
+The same example configured in a pyproject.toml file would look like::
+
+    [[tool.alembic.post_write_hooks]]
+
+    # format using "black"
+    name = "black"
+    type = "console_scripts"
+    entrypoint = "black"
+    options = "-l 79 REVISION_SCRIPT_FILENAME"
 
 Above, we configure ``hooks`` to be a single post write hook labeled
 ``"black"``.   Note that this label is arbitrary.   We then define the
@@ -768,21 +779,37 @@ tool's output as well::
 Hooks may also be specified as a list of names, which correspond to hook
 runners that will run sequentially.  As an example, we can also run the
 `zimports <https://pypi.org/project/zimports/>`_ import rewriting tool (written
-by Alembic's author) subsequent to running the ``black`` tool, using a
-configuration as follows::
+by Alembic's author) subsequent to running the ``black`` tool.   The
+alembic.ini configuration would be as follows::
 
-  [post_write_hooks]
+    [post_write_hooks]
 
-  # format using "black", then "zimports"
-  hooks=black, zimports
+    # format using "black", then "zimports"
+    hooks=black, zimports
 
-  black.type = console_scripts
-  black.entrypoint = black
-  black.options = -l 79 REVISION_SCRIPT_FILENAME
+    black.type = console_scripts
+    black.entrypoint = black
+    black.options = -l 79 REVISION_SCRIPT_FILENAME
 
-  zimports.type = console_scripts
-  zimports.entrypoint = zimports
-  zimports.options = --style google REVISION_SCRIPT_FILENAME
+    zimports.type = console_scripts
+    zimports.entrypoint = zimports
+    zimports.options = --style google REVISION_SCRIPT_FILENAME
+
+The equivalent pyproject.toml configuration would be::
+
+    # format using "black", then "zimports"
+
+    [[tool.alembic.post_write_hooks]]
+    name = "black"
+    type="console_scripts"
+    entrypoint = "black"
+    options = "-l 79 REVISION_SCRIPT_FILENAME"
+
+    [[tool.alembic.post_write_hooks]]
+    name = "zimports"
+    type="console_scripts"
+    entrypoint = "zimports"
+    options = "--style google REVISION_SCRIPT_FILENAME"
 
 When using the above configuration, a newly generated revision file will
 be processed first by the "black" tool, then by the "zimports" tool.

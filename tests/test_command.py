@@ -1,3 +1,4 @@
+from configparser import RawConfigParser
 from contextlib import contextmanager
 import inspect
 from io import BytesIO
@@ -22,6 +23,7 @@ from alembic.script import ScriptDirectory
 from alembic.testing import assert_raises
 from alembic.testing import assert_raises_message
 from alembic.testing import eq_
+from alembic.testing import expect_raises_message
 from alembic.testing import is_false
 from alembic.testing import is_true
 from alembic.testing import mock
@@ -1187,6 +1189,106 @@ class CommandLineTest(TestBase):
             config.command.revision = orig_revision
         eq_(canary.mock_calls, [mock.call(self.cfg, message="foo")])
 
+    def test_config_file_failure_modes(self):
+        """with two config files supported at the same time, test failure
+        modes with multiple --config directives
+
+        """
+        c1 = config.CommandLine()
+
+        with expect_raises_message(
+            util.CommandError, "only one ini file may be indicated"
+        ):
+            c1.main(
+                argv=[
+                    "--config",
+                    "inione",
+                    "--config",
+                    "initwo.ini",
+                    "history",
+                ]
+            )
+
+        with expect_raises_message(
+            util.CommandError, "pyproject.toml indicated more than once"
+        ):
+            c1.main(
+                argv=[
+                    "--config",
+                    "pyproject.toml",
+                    "--config",
+                    "a/b/pyproject.toml",
+                    "history",
+                ]
+            )
+
+    @testing.combinations(
+        (
+            {"ALEMBIC_CONFIG": "some/pyproject.toml", "argv": []},
+            "some/pyproject.toml",
+            "alembic.ini",
+        ),
+        (
+            {"ALEMBIC_CONFIG": "some/path_to_alembic.ini", "argv": []},
+            "pyproject.toml",
+            "some/path_to_alembic.ini",
+        ),
+        (
+            {
+                "ALEMBIC_CONFIG": "some/path_to_alembic.ini",
+                "argv": [
+                    "--config",
+                    "foo/pyproject.toml",
+                    "--config",
+                    "bar/alembic.ini",
+                ],
+            },
+            "foo/pyproject.toml",
+            "bar/alembic.ini",
+        ),
+        (
+            {
+                "argv": [
+                    "--config",
+                    "foo/pyproject.toml",
+                    "--config",
+                    "bar/alembic.ini",
+                ],
+            },
+            "foo/pyproject.toml",
+            "bar/alembic.ini",
+        ),
+        (
+            {"argv": []},
+            "pyproject.toml",
+            "alembic.ini",
+        ),
+        (
+            {"argv": ["--config", "foo/pyproject.toml"]},
+            "foo/pyproject.toml",
+            "alembic.ini",
+        ),
+        (
+            {"argv": ["--config", "foo/some_alembic.ini"]},
+            "pyproject.toml",
+            "foo/some_alembic.ini",
+        ),
+        argnames=("args, expected_toml, expected_conf"),
+    )
+    def test_config_file_resolution(
+        self, args, expected_toml, expected_conf, pop_alembic_config_env
+    ):
+        """with two config files supported at the same time, test resolution
+        of --config / ALEMBIC_CONFIG to always "do what's expected"
+
+        """
+        c1 = config.CommandLine()
+        if "ALEMBIC_CONFIG" in args:
+            os.environ["ALEMBIC_CONFIG"] = args["ALEMBIC_CONFIG"]
+
+        options = c1.parser.parse_args(args["argv"])
+        eq_(c1._inis_from_config(options), (expected_toml, expected_conf))
+
     def test_help_text(self):
         commands = {
             fn.__name__
@@ -1275,6 +1377,77 @@ class CommandLineTest(TestBase):
 
         cfg = run_cmd.mock_calls[0][1][0]
         eq_(cfg.config_file_name, "myconf.conf")
+
+    @testing.combinations(
+        (
+            "pyproject",
+            "somepath/foobar",
+            "pyproject.toml",
+            "alembic.ini",
+            "%(here)s/somepath/foobar",
+            None,
+        ),
+        (
+            "pyproject",
+            "somepath/foobar",
+            "somepath/pyproject.toml",
+            "alembic.ini",
+            "%(here)s/foobar",
+            None,
+        ),
+        (
+            "generic",
+            "somepath/foobar",
+            "pyproject.toml",
+            "alembic.ini",
+            None,
+            "%(here)s/somepath/foobar",
+        ),
+        (
+            "generic",
+            "somepath/foobar",
+            "pyproject.toml",
+            "somepath/alembic.ini",
+            None,
+            "%(here)s/foobar",
+        ),
+        argnames="template,directory,toml_file_name,config_file_name,"
+        "expected_toml_location,expected_ini_location",
+    )
+    def test_init_file_relative_version_token(
+        self,
+        template,
+        directory,
+        toml_file_name,
+        config_file_name,
+        expected_toml_location,
+        expected_ini_location,
+        clear_staging_dir,
+    ):
+        """in 1.16.0 with the advent of pyproject.toml, we are also rendering
+        the script_location value relative to the ``%(here)s`` token, if
+        the given path is a relative path.   ``%(here)s`` is relative to the
+        owning config file either alembic.ini or pyproject.toml.
+
+        """
+        self.cfg.config_file_name = config_file_name
+        self.cfg.toml_file_name = toml_file_name
+        with self.pushd(os.path.join(_get_staging_directory())):
+            command.init(self.cfg, directory=directory, template=template)
+            if expected_toml_location is not None:
+                with open(self.cfg.toml_file_name, "rb") as f:
+                    toml = util.compat.tomllib.load(f)
+                eq_(
+                    toml["tool"]["alembic"]["script_location"],
+                    expected_toml_location,
+                )
+
+            cfg = RawConfigParser()
+            util.compat.read_config_parser(cfg, config_file_name)
+            eq_(
+                cfg.get("alembic", "script_location", fallback=None),
+                expected_ini_location,
+            )
 
     def test_init_file_exists_and_is_empty(self):
         def access_(path, mode):

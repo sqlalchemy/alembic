@@ -71,7 +71,8 @@ def _run_hooks(path: str, hooks: list[PostWriteHookConfig]) -> None:
             type_ = hook["type"]
         except KeyError as ke:
             raise util.CommandError(
-                f"Key {name}.type is required for post write hook {name!r}"
+                f"Key '{name}.type' (or 'type' in toml) is required "
+                f"for post write hook {name!r}"
             ) from ke
         else:
             with util.status(

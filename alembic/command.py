@@ -12,6 +12,7 @@ from . import autogenerate as autogen
 from . import util
 from .runtime.environment import EnvironmentContext
 from .script import ScriptDirectory
+from .util import compat
 
 if TYPE_CHECKING:
     from alembic.config import Config
@@ -82,7 +83,31 @@ def init(
     ):
         os.makedirs(versions)
 
+    if not os.path.isabs(directory):
+        # for non-absolute path, state config file in .ini / pyproject
+        # as relative to the %(here)s token, which is where the config
+        # file itself would be
+
+        if config.config_file_name is not None:
+            rel_dir = util.relpath_via_abs_root(
+                os.path.abspath(config.config_file_name), directory
+            )
+
+            ini_script_location_directory = os.path.join("%(here)s", rel_dir)
+        if config.toml_file_name is not None:
+            rel_dir = util.relpath_via_abs_root(
+                os.path.abspath(config.toml_file_name), directory
+            )
+
+            toml_script_location_directory = os.path.join("%(here)s", rel_dir)
+
+    else:
+        ini_script_location_directory = directory
+        toml_script_location_directory = directory
+
     script = ScriptDirectory(directory)
+
+    has_toml = False
 
     config_file: str | None = None
     for file_ in os.listdir(template_dir):
@@ -97,8 +122,38 @@ def init(
                 )
             else:
                 script._generate_template(
-                    file_path, config_file, script_location=directory
+                    file_path,
+                    config_file,
+                    script_location=ini_script_location_directory,
                 )
+        elif file_ == "pyproject.toml.mako":
+            has_toml = True
+            assert config.toml_file_name is not None
+            toml_file = os.path.abspath(config.toml_file_name)
+
+            if os.access(toml_file, os.F_OK):
+                with open(toml_file, "rb") as f:
+                    toml_data = compat.tomllib.load(f)
+                    if "tool" in toml_data and "alembic" in toml_data["tool"]:
+
+                        util.msg(
+                            f"File {config.toml_file_name!r} already exists "
+                            "and already has a [tool.alembic] section, "
+                            "skipping",
+                        )
+                        continue
+                script._append_template(
+                    file_path,
+                    toml_file,
+                    script_location=toml_script_location_directory,
+                )
+            else:
+                script._generate_template(
+                    file_path,
+                    toml_file,
+                    script_location=toml_script_location_directory,
+                )
+
         elif os.path.isfile(file_path):
             output_file = os.path.join(directory, file_)
             script._copy_file(file_path, output_file)
@@ -113,11 +168,20 @@ def init(
                     pass
 
     assert config_file is not None
-    util.msg(
-        "Please edit configuration/connection/logging "
-        f"settings in {config_file!r} before proceeding.",
-        **config.messaging_opts,
-    )
+
+    if has_toml:
+        util.msg(
+            f"Please edit configuration settings in {toml_file!r} and "
+            "configuration/connection/logging "
+            f"settings in {config_file!r} before proceeding.",
+            **config.messaging_opts,
+        )
+    else:
+        util.msg(
+            "Please edit configuration/connection/logging "
+            f"settings in {config_file!r} before proceeding.",
+            **config.messaging_opts,
+        )
 
 
 def revision(
