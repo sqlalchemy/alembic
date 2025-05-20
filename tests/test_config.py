@@ -1,7 +1,9 @@
 import os
+import pathlib
 import sys
 import tempfile
 
+from alembic import command
 from alembic import config
 from alembic import testing
 from alembic import util
@@ -12,7 +14,9 @@ from alembic.testing import assert_raises_message
 from alembic.testing import eq_
 from alembic.testing import mock
 from alembic.testing.assertions import expect_raises_message
+from alembic.testing.env import _get_staging_directory
 from alembic.testing.env import _no_sql_testing_config
+from alembic.testing.env import _testing_config
 from alembic.testing.env import _write_config_file
 from alembic.testing.env import clear_staging_env
 from alembic.testing.env import staging_env
@@ -335,6 +339,65 @@ class ConfigTest(TestBase):
             script.version_locations,
             ["/path/one", "/path/two", "/path:/three"],
         )
+
+
+class PyprojectConfigTest(TestBase):
+    @testing.fixture
+    def pyproject_only_env(self):
+        cfg = _testing_config()
+        path = pathlib.Path(_get_staging_directory(), "scripts")
+        command.init(cfg, str(path), template="pyproject")
+        cfg._config_file_path.unlink()
+        yield cfg
+        clear_staging_env()
+
+    def test_revision_command_no_alembicini(self, pyproject_only_env):
+        cfg = pyproject_only_env
+        path = pathlib.Path(_get_staging_directory(), "scripts")
+        pyproject_path = path.parent / "pyproject.toml"
+        eq_(pyproject_path, cfg._toml_file_path)
+        assert pyproject_path.exists()
+        assert not cfg._config_file_path.exists()
+
+        # the cfg contains the path to alembic.ini but the file
+        # is not present. the idea here is that all the required config
+        # should go to pyproject.toml first before raising.
+
+        ScriptDirectory.from_config(cfg)
+
+        command.revision(cfg, message="x")
+
+        command.history(cfg)
+
+    def test_no_config_at_all_still_raises(self, pyproject_only_env):
+        cfg = pyproject_only_env
+        cfg._toml_file_path.unlink()
+        assert not cfg._toml_file_path.exists()
+        assert not cfg._config_file_path.exists()
+
+        with expect_raises_message(
+            util.CommandError,
+            r"No 'script_location' key found in configuration.",
+        ):
+            ScriptDirectory.from_config(cfg)
+
+    def test_get_main_option_raises(self, pyproject_only_env):
+        cfg = pyproject_only_env
+
+        with expect_raises_message(
+            util.CommandError,
+            r"No config file '.*test_alembic.ini' found, "
+            r"or file has no '\[alembic\]' section",
+        ):
+            cfg.get_main_option("asdf")
+
+    def test_get_main_ini_added(self, pyproject_only_env):
+        cfg = pyproject_only_env
+
+        with cfg._config_file_path.open("w") as file_:
+            file_.write("[alembic]\nasdf = back_at_ya")
+
+        eq_(cfg.get_main_option("asdf"), "back_at_ya")
 
 
 class StdoutOutputEncodingTest(TestBase):

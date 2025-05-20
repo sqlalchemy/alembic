@@ -501,7 +501,9 @@ class Config:
 
     def get_version_locations_list(self) -> Optional[list[str]]:
 
-        version_locations_str = self.get_main_option("version_locations")
+        version_locations_str = self.file_config.get(
+            self.config_ini_section, "version_locations", fallback=None
+        )
 
         if version_locations_str:
             split_char = self._get_file_separator_char(
@@ -530,8 +532,9 @@ class Config:
             return self.toml_alembic_config.get("version_locations", None)
 
     def get_prepend_sys_paths_list(self) -> Optional[list[str]]:
-
-        prepend_sys_path_str = self.get_main_option("prepend_sys_path")
+        prepend_sys_path_str = self.file_config.get(
+            self.config_ini_section, "prepend_sys_path", fallback=None
+        )
 
         if prepend_sys_path_str:
             split_char = self._get_file_separator_char("path_separator")

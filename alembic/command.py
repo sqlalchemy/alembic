@@ -271,7 +271,9 @@ def revision(
         process_revision_directives=process_revision_directives,
     )
 
-    environment = util.asbool(config.get_main_option("revision_environment"))
+    environment = util.asbool(
+        config.get_alembic_option("revision_environment")
+    )
 
     if autogenerate:
         environment = True
@@ -411,7 +413,9 @@ def merge(
         # e.g. multiple databases
     }
 
-    environment = util.asbool(config.get_main_option("revision_environment"))
+    environment = util.asbool(
+        config.get_alembic_option("revision_environment")
+    )
 
     if environment:
 
@@ -584,7 +588,7 @@ def history(
         base = head = None
 
     environment = (
-        util.asbool(config.get_main_option("revision_environment"))
+        util.asbool(config.get_alembic_option("revision_environment"))
         or indicate_current
     )
 
