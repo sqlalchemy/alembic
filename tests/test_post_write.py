@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 import sys
 
 from alembic import command
@@ -305,7 +305,9 @@ black.options = arg1 REVISION_SCRIPT_FILENAME --config %(here)s/pyproject.toml
                 "arg1",
                 rev_path,
                 "--config",
-                os.path.abspath(_get_staging_directory()) + "/pyproject.toml",
+                Path(_get_staging_directory(), "pyproject.toml")
+                .absolute()
+                .as_posix(),
             ]
 
         self._run_black_with_config(
@@ -400,8 +402,9 @@ ruff.options = check --fix
         self._run_ruff_with_config(
             input_config,
             expected_additional_arguments_fn,
-            executable=os.path.abspath(_get_staging_directory())
-            + "/.venv/bin/ruff",
+            executable=Path(_get_staging_directory(), ".venv/bin/ruff")
+            .absolute()
+            .as_posix(),
         )
 
     @combinations(True, False)
@@ -450,7 +453,9 @@ ruff.options = arg1 REVISION_SCRIPT_FILENAME --config %(here)s/pyproject.toml
                 "arg1",
                 rev_path,
                 "--config",
-                os.path.abspath(_get_staging_directory()) + "/pyproject.toml",
+                Path(_get_staging_directory(), "pyproject.toml")
+                .absolute()
+                .as_posix(),
             ]
 
         self._run_ruff_with_config(

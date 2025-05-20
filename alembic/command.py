@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import pathlib
 from typing import List
 from typing import Optional
 from typing import TYPE_CHECKING
@@ -29,10 +30,10 @@ def list_templates(config: Config) -> None:
     """
 
     config.print_stdout("Available templates:\n")
-    for tempname in os.listdir(config.get_template_directory()):
-        with open(
-            os.path.join(config.get_template_directory(), tempname, "README")
-        ) as readme:
+    for tempname in config._get_template_path().iterdir():
+        with (
+            config._get_template_path() / tempname / "README"
+        ).open() as readme:
             synopsis = next(readme).rstrip()
         config.print_stdout("%s - %s", tempname, synopsis)
 
@@ -60,62 +61,68 @@ def init(
 
     """
 
-    if os.access(directory, os.F_OK) and os.listdir(directory):
+    directory_path = pathlib.Path(directory)
+    if directory_path.exists() and list(directory_path.iterdir()):
         raise util.CommandError(
-            "Directory %s already exists and is not empty" % directory
+            "Directory %s already exists and is not empty" % directory_path
         )
 
-    template_dir = os.path.join(config.get_template_directory(), template)
-    if not os.access(template_dir, os.F_OK):
-        raise util.CommandError("No such template %r" % template)
+    template_path = config._get_template_path() / template
 
-    if not os.access(directory, os.F_OK):
+    if not template_path.exists():
+        raise util.CommandError("No such template {template_path}")
+
+    # left as os.access() to suit unit test mocking
+    if not os.access(directory_path, os.F_OK):
         with util.status(
-            f"Creating directory {os.path.abspath(directory)!r}",
+            f"Creating directory {directory_path.absolute()!r}",
             **config.messaging_opts,
         ):
-            os.makedirs(directory)
+            os.makedirs(directory_path)
 
-    versions = os.path.join(directory, "versions")
+    versions = directory_path / "versions"
     with util.status(
-        f"Creating directory {os.path.abspath(versions)!r}",
+        f"Creating directory {versions.absolute()!r}",
         **config.messaging_opts,
     ):
         os.makedirs(versions)
 
-    if not os.path.isabs(directory):
+    if not directory_path.is_absolute():
         # for non-absolute path, state config file in .ini / pyproject
         # as relative to the %(here)s token, which is where the config
         # file itself would be
 
-        if config.config_file_name is not None:
-            rel_dir = util.relpath_via_abs_root(
-                os.path.abspath(config.config_file_name), directory
+        if config._config_file_path is not None:
+            rel_dir = compat.path_relative_to(
+                directory_path.absolute(),
+                config._config_file_path.absolute().parent,
+                walk_up=True,
             )
-
-            ini_script_location_directory = os.path.join("%(here)s", rel_dir)
-        if config.toml_file_name is not None:
-            rel_dir = util.relpath_via_abs_root(
-                os.path.abspath(config.toml_file_name), directory
+            ini_script_location_directory = ("%(here)s" / rel_dir).as_posix()
+        if config._toml_file_path is not None:
+            rel_dir = compat.path_relative_to(
+                directory_path.absolute(),
+                config._toml_file_path.absolute().parent,
+                walk_up=True,
             )
-
-            toml_script_location_directory = os.path.join("%(here)s", rel_dir)
+            toml_script_location_directory = ("%(here)s" / rel_dir).as_posix()
 
     else:
-        ini_script_location_directory = directory
-        toml_script_location_directory = directory
+        ini_script_location_directory = directory_path.as_posix()
+        toml_script_location_directory = directory_path.as_posix()
 
-    script = ScriptDirectory(directory)
+    script = ScriptDirectory(directory_path)
 
     has_toml = False
 
-    config_file: str | None = None
-    for file_ in os.listdir(template_dir):
-        file_path = os.path.join(template_dir, file_)
+    config_file: pathlib.Path | None = None
+
+    for file_path in template_path.iterdir():
+        file_ = file_path.name
         if file_ == "alembic.ini.mako":
             assert config.config_file_name is not None
-            config_file = os.path.abspath(config.config_file_name)
-            if os.access(config_file, os.F_OK):
+            config_file = pathlib.Path(config.config_file_name).absolute()
+            if config_file.exists():
                 util.msg(
                     f"File {config_file!r} already exists, skipping",
                     **config.messaging_opts,
@@ -128,11 +135,12 @@ def init(
                 )
         elif file_ == "pyproject.toml.mako":
             has_toml = True
-            assert config.toml_file_name is not None
-            toml_file = os.path.abspath(config.toml_file_name)
+            assert config._toml_file_path is not None
+            toml_path = config._toml_file_path.absolute()
 
-            if os.access(toml_file, os.F_OK):
-                with open(toml_file, "rb") as f:
+            if toml_path.exists():
+                # left as open() to suit unit test mocking
+                with open(toml_path, "rb") as f:
                     toml_data = compat.tomllib.load(f)
                     if "tool" in toml_data and "alembic" in toml_data["tool"]:
 
@@ -144,26 +152,27 @@ def init(
                         continue
                 script._append_template(
                     file_path,
-                    toml_file,
+                    toml_path,
                     script_location=toml_script_location_directory,
                 )
             else:
                 script._generate_template(
                     file_path,
-                    toml_file,
+                    toml_path,
                     script_location=toml_script_location_directory,
                 )
 
-        elif os.path.isfile(file_path):
-            output_file = os.path.join(directory, file_)
+        elif file_path.is_file():
+            output_file = directory_path / file_
             script._copy_file(file_path, output_file)
 
     if package:
         for path in [
-            os.path.join(os.path.abspath(directory), "__init__.py"),
-            os.path.join(os.path.abspath(versions), "__init__.py"),
+            directory_path.absolute() / "__init__.py",
+            versions.absolute() / "__init__.py",
         ]:
-            with util.status(f"Adding {path!r}", **config.messaging_opts):
+            with util.status(f"Adding {path!s}", **config.messaging_opts):
+                # left as open() to suit unit test mocking
                 with open(path, "w"):
                     pass
 
@@ -171,7 +180,7 @@ def init(
 
     if has_toml:
         util.msg(
-            f"Please edit configuration settings in {toml_file!r} and "
+            f"Please edit configuration settings in {toml_path!r} and "
             "configuration/connection/logging "
             f"settings in {config_file!r} before proceeding.",
             **config.messaging_opts,
@@ -192,7 +201,7 @@ def revision(
     head: str = "head",
     splice: bool = False,
     branch_label: Optional[_RevIdType] = None,
-    version_path: Optional[str] = None,
+    version_path: Union[str, os.PathLike[str], None] = None,
     rev_id: Optional[str] = None,
     depends_on: Optional[str] = None,
     process_revision_directives: Optional[ProcessRevisionDirectiveFn] = None,

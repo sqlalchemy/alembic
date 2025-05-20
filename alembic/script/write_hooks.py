@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import os
 import shlex
 import subprocess
 import sys
@@ -12,9 +13,11 @@ from typing import Dict
 from typing import List
 from typing import Optional
 from typing import TYPE_CHECKING
+from typing import Union
 
 from .. import util
 from ..util import compat
+from ..util.pyfiles import _preserving_path_as_str
 
 if TYPE_CHECKING:
     from ..config import PostWriteHookConfig
@@ -43,15 +46,20 @@ def register(name: str) -> Callable:
     return decorate
 
 
-def _invoke(name: str, revision: str, options: PostWriteHookConfig) -> Any:
+def _invoke(
+    name: str,
+    revision_path: Union[str, os.PathLike[str]],
+    options: PostWriteHookConfig,
+) -> Any:
     """Invokes the formatter registered for the given name.
 
     :param name: The name of a formatter in the registry
-    :param revision: A :class:`.MigrationRevision` instance
+    :param revision: string path to the revision file
     :param options: A dict containing kwargs passed to the
         specified formatter.
     :raises: :class:`alembic.util.CommandError`
     """
+    revision_path = _preserving_path_as_str(revision_path)
     try:
         hook = _registry[name]
     except KeyError as ke:
@@ -59,10 +67,12 @@ def _invoke(name: str, revision: str, options: PostWriteHookConfig) -> Any:
             f"No formatter with name '{name}' registered"
         ) from ke
     else:
-        return hook(revision, options)
+        return hook(revision_path, options)
 
 
-def _run_hooks(path: str, hooks: list[PostWriteHookConfig]) -> None:
+def _run_hooks(
+    path: Union[str, os.PathLike[str]], hooks: list[PostWriteHookConfig]
+) -> None:
     """Invoke hooks for a generated revision."""
 
     for hook in hooks:
