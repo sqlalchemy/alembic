@@ -31,11 +31,9 @@ def list_templates(config: Config) -> None:
 
     config.print_stdout("Available templates:\n")
     for tempname in config._get_template_path().iterdir():
-        with (
-            config._get_template_path() / tempname / "README"
-        ).open() as readme:
+        with (tempname / "README").open() as readme:
             synopsis = next(readme).rstrip()
-        config.print_stdout("%s - %s", tempname, synopsis)
+        config.print_stdout("%s - %s", tempname.name, synopsis)
 
     config.print_stdout("\nTemplates are used via the 'init' command, e.g.:")
     config.print_stdout("\n  alembic init --template generic ./scripts")
