@@ -980,12 +980,12 @@ class Script(revision.Revision):
                     # already in the names we got from the version directory.
                     # add as relative paths including __pycache__ token
                     names = {
-                        Path(filename).stem.split(".")[0] for filename in files
+                        Path(filename).name.split(".")[0] for filename in files
                     }
                     paths.extend(
                         py_cache_path / pyc
                         for pyc in py_cache_path.iterdir()
-                        if pyc.stem.split(".")[0] not in names
+                        if pyc.name.split(".")[0] not in names
                     )
 
             if not scriptdir.recursive_version_locations:
