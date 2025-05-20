@@ -80,6 +80,13 @@ path_separator = os
 # are written from script.py.mako
 # output_encoding = utf-8
 
+# for multiple database configuration, new named sections are added
+# which each include a distinct ``sqlalchemy.url`` entry.  A custom value
+# ``databases`` is added which indicates a listing of the per-database sections.
+# The ``databases`` entry as well as the URLs present in the ``[engine1]``
+# and ``[engine2]`` sections continue to be consumed by the user-maintained env.py
+# script only.
+
 databases = engine1, engine2
 
 [engine1]
@@ -105,7 +112,8 @@ sqlalchemy.url = driver://user:pass@localhost/dbname2
 # ruff.executable = %(here)s/.venv/bin/ruff
 # ruff.options = check --fix REVISION_SCRIPT_FILENAME
 
-# Logging configuration
+# Logging configuration.  This is also consumed by the user-maintained
+# env.py script only.
 [loggers]
 keys = root,sqlalchemy,alembic
 

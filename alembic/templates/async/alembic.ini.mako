@@ -81,6 +81,9 @@ path_separator = os
 # are written from script.py.mako
 # output_encoding = utf-8
 
+# database URL.  This is consumed by the user-maintained env.py script only.
+# other means of configuring database URLs may be customized within the env.py
+# file.
 sqlalchemy.url = driver://user:pass@localhost/dbname
 
 
@@ -101,7 +104,8 @@ sqlalchemy.url = driver://user:pass@localhost/dbname
 # ruff.executable = %(here)s/.venv/bin/ruff
 # ruff.options = check --fix REVISION_SCRIPT_FILENAME
 
-# Logging configuration
+# Logging configuration.  This is also consumed by the user-maintained
+# env.py script only.
 [loggers]
 keys = root,sqlalchemy,alembic
 

@@ -6,15 +6,15 @@ Alembic provides for the creation, management, and invocation of *change managem
 scripts for a relational database, using SQLAlchemy as the underlying engine.
 This tutorial will provide a full introduction to the theory and usage of this tool.
 
-To begin, make sure Alembic is installed as described at :ref:`installation`.
-As stated in the linked document, it is usually preferable that Alembic is
+To begin, make sure Alembic is installed; a common way to install within a
+local virtual environment is described at :ref:`installation`.
+As illustrated in that chapter, it is useful to have Alembic
 installed in the **same module / Python path as that of the target project**,
 usually using a `Python virtual environment
 <https://docs.python.org/3/tutorial/venv.html>`_, so that when the ``alembic``
 command is run, the Python script which is invoked by ``alembic``,  namely your
 project's ``env.py`` script, will have access to your application's models.
-This is not strictly necessary in all cases, however in the vast majority of
-cases is usually preferred.
+This is not strictly necessary, however is usually preferred.
 
 The tutorial below assumes the ``alembic`` command line utility is present in
 the local path and when invoked, will have access to the same Python module
@@ -106,8 +106,9 @@ Where above, the ``init`` command was called to generate a migrations directory 
     Please edit configuration/connection/logging settings in
     '/path/to/yourproject/alembic.ini' before proceeding.
 
-Alembic also includes other environment templates.  These can be listed out using the ``list_templates``
-command::
+The above layout is produced using a layout template called ``generic``.
+Alembic also includes other environment templates.  These can be listed out
+using the ``list_templates`` command::
 
     $ alembic list_templates
     Available templates:
@@ -121,23 +122,28 @@ command::
 
       alembic init --template generic ./scripts
 
-.. versionchanged:: 1.8  The "pylons" environment template has been removed.
-
 .. versionchanged:: 1.16.0 A new ``pyproject`` template has been added.  See
-   the section :re3f:`using_pep_621` for background.
+   the section :ref:`using_pep_621` for background.
 
-`
+
 .. _tutorial_alembic_ini:
 
 Editing the .ini File
 =====================
 
-Alembic placed a file ``alembic.ini`` into the current directory.  This is a file that the ``alembic``
-script looks for when invoked.  This file can exist in a different directory, with the location to it
-specified by either the ``--config`` option for the ``alembic`` runner or the ``ALEMBIC_CONFIG``
-environment variable (the former takes precedence).
+Alembic placed a file ``alembic.ini`` into the current directory. Alembic looks
+in the current directory for this file when any other commands are run; to
+indicate an alternative location, the ``--config`` option may be used, or the
+``ALEMBIC_CONFIG`` environment variable may be set.
 
-The file generated with the "generic" configuration looks like::
+.. tip::
+
+    The file generated with the ``generic`` configuration template contains all directives
+    for both source code configuration as well as database configuration.  When using
+    the ``pyproject`` template, the source code configuration elements will instead
+    be in a separate ``pyproject.toml`` file, described in the :ref:`next section <using_pep_621>`.
+
+The all-in-one .ini file created by ``generic`` is illustrated below::
 
     # A generic, single database configuration.
 
@@ -223,6 +229,9 @@ The file generated with the "generic" configuration looks like::
     # are written from script.py.mako
     # output_encoding = utf-8
 
+    # database URL.  This is consumed by the user-maintained env.py script only.
+    # other means of configuring database URLs may be customized within the env.py
+    # file.
     sqlalchemy.url = driver://user:pass@localhost/dbname
 
     # [post_write_hooks]
@@ -243,7 +252,8 @@ The file generated with the "generic" configuration looks like::
     # ruff.executable = %(here)s/.venv/bin/ruff
     # ruff.options = check --fix REVISION_SCRIPT_FILENAME
 
-    # Logging configuration
+    # Logging configuration.  This is also consumed by the user-maintained
+    # env.py script only.
     [loggers]
     keys = root,sqlalchemy,alembic
 
@@ -278,10 +288,12 @@ The file generated with the "generic" configuration looks like::
     format = %(levelname)-5.5s [%(name)s] %(message)s
     datefmt = %H:%M:%S
 
-The file is read using Python's :class:`ConfigParser.SafeConfigParser` object.  The
-``%(here)s`` variable is provided as a substitution variable, which
-can be used to produce absolute pathnames to directories and files, as we do above
-with the path to the Alembic script location.
+The ``alembic.ini`` file is consumed by Alembic using Python's
+`configparser.ConfigParser <https://docs.python.org/3/library/configparser.html#configparser.ConfigParser>`_
+library.  The ``%(here)s`` variable is
+provided as a substitution which is populated with the absolute path to the
+``alembic.ini`` file itself.  This can be used to produce correct pathnames
+to directories and files relative to where the config file is located.
 
 This file contains the following features:
 
@@ -333,8 +345,6 @@ This file contains the following features:
       ``%%(minute).2d``, ``%%(second).2d`` - components of the create date,
       by default ``datetime.datetime.now()`` unless the ``timezone``
       configuration option is also used.
-
-  .. versionadded:: 1.8  added 'epoch'
 
 * ``timezone`` - an optional timezone name (e.g. ``UTC``, ``EST5EDT``, etc.)
   that will be applied to the timestamp which renders inside the migration
@@ -422,10 +432,12 @@ Use of ``pyproject.toml`` does not preclude having an ``alembic.ini`` file as
 well, as ``alembic.ini`` is still the default location for **deployment**
 details such as database URLs, connectivity options, and logging to be present.
 However, as connectivity and logging is consumed only by user-managed code
-within the ``env.py`` file, it is feasible that the environment would not
+within the ``env.py`` file, it is feasible to have an environment that does not
 require the ``alembic.ini`` file itself to be present at all, if these
 configurational elements are consumed from other places elsewhere in the
-application.
+application.   Alembic will still run successfully if only a ``pyproject.toml``
+file is present and no ``alembic.ini`` is found.
+
 
 To start with a pyproject configuration, the most straightforward approach is
 to use the ``pyproject`` template::
@@ -533,9 +545,13 @@ only database configuration and logging configuration::
 
     [alembic]
 
+    # database URL.  This is consumed by the user-maintained env.py script only.
+    # other means of configuring database URLs may be customized within the env.py
+    # file.
     sqlalchemy.url = driver://user:pass@localhost/dbname
 
-    # Logging configuration
+    # Logging configuration.  This is also consumed by the user-maintained
+    # env.py script only.
     [loggers]
     keys = root,sqlalchemy,alembic
 

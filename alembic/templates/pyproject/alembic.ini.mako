@@ -2,6 +2,9 @@
 
 [alembic]
 
+# database URL.  This is consumed by the user-maintained env.py script only.
+# other means of configuring database URLs may be customized within the env.py
+# file.
 sqlalchemy.url = driver://user:pass@localhost/dbname
 
 
