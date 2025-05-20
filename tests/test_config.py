@@ -399,6 +399,149 @@ class PyprojectConfigTest(TestBase):
 
         eq_(cfg.get_main_option("asdf"), "back_at_ya")
 
+    def test_script_location(self, pyproject_only_env):
+        cfg = pyproject_only_env
+        with cfg._toml_file_path.open("wb") as file_:
+            file_.write(
+                rb"""
+
+[tool.alembic]
+script_location = "%(here)s/scripts"
+
+"""
+            )
+
+        new_cfg = config.Config(
+            file_=cfg.config_file_name, toml_file=cfg._toml_file_path
+        )
+        sd = ScriptDirectory.from_config(new_cfg)
+        eq_(
+            pathlib.Path(sd.dir),
+            pathlib.Path(_get_staging_directory(), "scripts").absolute(),
+        )
+
+    def test_version_locations(self, pyproject_only_env):
+
+        cfg = pyproject_only_env
+        with cfg._toml_file_path.open("ba") as file_:
+            file_.write(
+                b"""
+version_locations = [
+    "%(here)s/foo/bar"
+]
+"""
+            )
+
+        if "toml_alembic_config" in cfg.__dict__:
+            cfg.__dict__.pop("toml_alembic_config")
+
+        eq_(
+            cfg.get_version_locations_list(),
+            [
+                pathlib.Path(_get_staging_directory(), "foo/bar")
+                .absolute()
+                .as_posix()
+            ],
+        )
+
+    def test_prepend_sys_path(self, pyproject_only_env):
+
+        cfg = pyproject_only_env
+        with cfg._toml_file_path.open("wb") as file_:
+            file_.write(
+                rb"""
+
+[tool.alembic]
+script_location = "%(here)s/scripts"
+
+prepend_sys_path = [
+    ".",
+    "%(here)s/path/to/python",
+    "c:\\some\\path"
+]
+"""
+            )
+
+        if "toml_alembic_config" in cfg.__dict__:
+            cfg.__dict__.pop("toml_alembic_config")
+
+        eq_(
+            cfg.get_prepend_sys_paths_list(),
+            [
+                ".",
+                pathlib.Path(_get_staging_directory(), "path/to/python")
+                .absolute()
+                .as_posix(),
+                r"c:\some\path",
+            ],
+        )
+
+    def test_write_hooks(self, pyproject_only_env):
+
+        cfg = pyproject_only_env
+        with cfg._toml_file_path.open("wb") as file_:
+            file_.write(
+                rb"""
+
+[tool.alembic]
+script_location = "%(here)s/scripts"
+
+[[tool.alembic.post_write_hooks]]
+name = "myhook"
+type = "exec"
+executable = "%(here)s/.venv/bin/ruff"
+options = "-l 79 REVISION_SCRIPT_FILENAME"
+
+"""
+            )
+
+        if "toml_alembic_config" in cfg.__dict__:
+            cfg.__dict__.pop("toml_alembic_config")
+
+        eq_(
+            cfg.get_hooks_list(),
+            [
+                {
+                    "type": "exec",
+                    "executable": (
+                        cfg._toml_file_path.absolute().parent
+                        / ".venv/bin/ruff"
+                    ).as_posix(),
+                    "options": "-l 79 REVISION_SCRIPT_FILENAME",
+                    "_hook_name": "myhook",
+                }
+            ],
+        )
+
+    def test_string_list(self, pyproject_only_env):
+
+        cfg = pyproject_only_env
+        with cfg._toml_file_path.open("wb") as file_:
+            file_.write(
+                rb"""
+
+[tool.alembic]
+script_location = "%(here)s/scripts"
+
+my_list = [
+    "one",
+    "two %(here)s three"
+]
+
+"""
+            )
+        if "toml_alembic_config" in cfg.__dict__:
+            cfg.__dict__.pop("toml_alembic_config")
+
+        eq_(
+            cfg.get_alembic_option("my_list"),
+            [
+                "one",
+                f"two {cfg._toml_file_path.absolute().parent.as_posix()} "
+                "three",
+            ],
+        )
+
 
 class StdoutOutputEncodingTest(TestBase):
     def test_plain(self):
