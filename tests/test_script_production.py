@@ -235,7 +235,13 @@ class ScriptNamingTest(TestBase):
         with mock.patch(
             "alembic.script.base.datetime",
             mock.Mock(
-                datetime=mock.Mock(utcnow=lambda: given, now=lambda: given),
+                datetime=mock.Mock(
+                    now=lambda tz=None: (
+                        given.replace(tzinfo=datetime.timezone.utc)
+                        if timezone_arg
+                        else given
+                    )
+                ),
                 timezone=datetime.timezone,
             ),
         ):
@@ -275,6 +281,19 @@ class ScriptNamingTest(TestBase):
                 2012, 7, 25, 17, 8, 5, tzinfo=ZoneInfo("Europe/Berlin")
             ),
         )
+
+    def test_generates_a_date(self):
+        """test #1643"""
+        script = ScriptDirectory(
+            _get_staging_directory(),
+            file_template="%(rev)s_%(slug)s_"
+            "%(year)s_%(month)s_"
+            "%(day)s_%(hour)s_"
+            "%(minute)s_%(second)s",
+            timezone="utc",
+        )
+        # generates a date with no warnings
+        eq_(script._generate_create_date(), mock.ANY)
 
     def test_default_tz(self):
         self._test_tz(
