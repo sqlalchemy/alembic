@@ -14,6 +14,7 @@ from sqlalchemy import inspect
 from sqlalchemy import Integer
 from sqlalchemy import MetaData
 from sqlalchemy import Numeric
+from sqlalchemy import PrimaryKeyConstraint
 from sqlalchemy import String
 from sqlalchemy import Table
 from sqlalchemy import Text
@@ -145,6 +146,118 @@ class ModelOne:
             Column("description", String(100)),
             Column("order_id", Integer, ForeignKey("order.order_id")),
             CheckConstraint("len(description) > 5"),
+        )
+        return m
+
+
+class NamingConvModel:
+    __requires__ = ("unique_constraint_reflection",)
+    configure_opts = {"conv_all_constraint_names": True}
+    naming_convention = {
+        "ix": "ix_%(column_0_label)s",
+        "uq": "uq_%(table_name)s_%(constraint_name)s",
+        "ck": "ck_%(table_name)s_%(constraint_name)s",
+        "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+        "pk": "pk_%(table_name)s",
+    }
+
+    @classmethod
+    def _get_db_schema(cls):
+        # database side - assume all constraints have a name that
+        # we would assume here is a "db generated" name.  need to make
+        # sure these all render with op.f().
+        m = MetaData()
+        Table(
+            "x1",
+            m,
+            Column("q", Integer),
+            Index("db_x1_index_q", "q"),
+            PrimaryKeyConstraint("q", name="db_x1_primary_q"),
+        )
+        Table(
+            "x2",
+            m,
+            Column("q", Integer),
+            Column("p", ForeignKey("x1.q", name="db_x2_foreign_q")),
+            CheckConstraint("q > 5", name="db_x2_check_q"),
+        )
+        Table(
+            "x3",
+            m,
+            Column("q", Integer),
+            Column("r", Integer),
+            Column("s", Integer),
+            UniqueConstraint("q", name="db_x3_unique_q"),
+        )
+        Table(
+            "x4",
+            m,
+            Column("q", Integer),
+            PrimaryKeyConstraint("q", name="db_x4_primary_q"),
+        )
+        Table(
+            "x5",
+            m,
+            Column("q", Integer),
+            Column("p", ForeignKey("x4.q", name="db_x5_foreign_q")),
+            Column("r", Integer),
+            Column("s", Integer),
+            PrimaryKeyConstraint("q", name="db_x5_primary_q"),
+            UniqueConstraint("r", name="db_x5_unique_r"),
+            CheckConstraint("s > 5", name="db_x5_check_s"),
+        )
+        # SQLite and it's "no names needed" thing.  bleh.
+        # we can't have a name for these so you'll see "None" for the name.
+        Table(
+            "unnamed_sqlite",
+            m,
+            Column("q", Integer),
+            Column("r", Integer),
+            PrimaryKeyConstraint("q"),
+            UniqueConstraint("r"),
+        )
+        return m
+
+    @classmethod
+    def _get_model_schema(cls):
+        from sqlalchemy.sql.naming import conv
+
+        m = MetaData(naming_convention=cls.naming_convention)
+        Table(
+            "x1", m, Column("q", Integer, primary_key=True), Index(None, "q")
+        )
+        Table(
+            "x2",
+            m,
+            Column("q", Integer),
+            Column("p", ForeignKey("x1.q")),
+            CheckConstraint("q > 5", name="token_x2check1"),
+        )
+        Table(
+            "x3",
+            m,
+            Column("q", Integer),
+            Column("r", Integer),
+            Column("s", Integer),
+            UniqueConstraint("r", name="token_x3r"),
+            UniqueConstraint("s", name=conv("userdef_x3_unique_s")),
+        )
+        Table(
+            "x4",
+            m,
+            Column("q", Integer, primary_key=True),
+            Index("userdef_x4_idx_q", "q"),
+        )
+        Table(
+            "x6",
+            m,
+            Column("q", Integer, primary_key=True),
+            Column("p", ForeignKey("x4.q")),
+            Column("r", Integer),
+            Column("s", Integer),
+            UniqueConstraint("r", name="token_x6r"),
+            CheckConstraint("s > 5", "token_x6check1"),
+            CheckConstraint("s < 20", conv("userdef_x6_check_s")),
         )
         return m
 
