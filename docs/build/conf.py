@@ -100,7 +100,7 @@ copyright = "2010-2025, Mike Bayer"  # noqa
 # The short X.Y version.
 version = alembic.__version__
 # The full version, including alpha/beta/rc tags.
-release = "1.16.0"
+release = "1.16.1"
 release_date = "May 21, 2025"
 
 
