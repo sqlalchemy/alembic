@@ -73,14 +73,14 @@ def init(
     # left as os.access() to suit unit test mocking
     if not os.access(directory_path, os.F_OK):
         with util.status(
-            f"Creating directory {directory_path.absolute()!r}",
+            f"Creating directory {directory_path.absolute()}",
             **config.messaging_opts,
         ):
             os.makedirs(directory_path)
 
     versions = directory_path / "versions"
     with util.status(
-        f"Creating directory {versions.absolute()!r}",
+        f"Creating directory {versions.absolute()}",
         **config.messaging_opts,
     ):
         os.makedirs(versions)
@@ -178,15 +178,15 @@ def init(
 
     if has_toml:
         util.msg(
-            f"Please edit configuration settings in {toml_path!r} and "
+            f"Please edit configuration settings in {toml_path} and "
             "configuration/connection/logging "
-            f"settings in {config_file!r} before proceeding.",
+            f"settings in {config_file} before proceeding.",
             **config.messaging_opts,
         )
     else:
         util.msg(
             "Please edit configuration/connection/logging "
-            f"settings in {config_file!r} before proceeding.",
+            f"settings in {config_file} before proceeding.",
             **config.messaging_opts,
         )
 
