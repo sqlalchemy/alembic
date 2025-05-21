@@ -7,6 +7,7 @@ from io import TextIOWrapper
 import os
 import pathlib
 import re
+import shutil
 from typing import cast
 
 from sqlalchemy import exc as sqla_exc
@@ -1145,7 +1146,6 @@ class CommandLineTest(TestBase):
     def setup_class(cls):
         cls.env = staging_env()
         cls.cfg = _sqlite_testing_config()
-        cls.a, cls.b, cls.c = three_rev_fixture(cls.cfg)
 
     def tearDown(self):
         os.environ.pop("ALEMBIC_CONFIG", None)
@@ -1519,6 +1519,70 @@ class CommandLineTest(TestBase):
                     mock.call().__exit__(None, None, None),
                 ],
             )
+
+    @testing.fixture
+    def custom_template_fixture(self):
+        templates_path = pathlib.Path(
+            _get_staging_directory(), "my_special_templates_place"
+        )
+
+        os.makedirs(templates_path / "mytemplate")
+
+        with pathlib.Path(templates_path, "mytemplate", "myfile.txt").open(
+            "w"
+        ) as file_:
+            file_.write("This is myfile.txt")
+        with pathlib.Path(templates_path, "mytemplate", "README").open(
+            "w"
+        ) as file_:
+            file_.write("This is my template")
+        with pathlib.Path(
+            templates_path, "mytemplate", "alembic.ini.mako"
+        ).open("w") as file_:
+            file_.write("[alembic]\nscript_directory=%(here)s\n")
+
+        class MyConfig(config.Config):
+            def get_template_directory(self) -> str:
+                return templates_path.as_posix()
+
+        yield MyConfig(self.cfg.config_file_name)
+
+        shutil.rmtree(templates_path)
+
+    @testing.variation("cmd", ["list_templates", "init"])
+    def test_init_custom_template_location(self, cmd, custom_template_fixture):
+        """test #1660"""
+
+        cfg = custom_template_fixture
+
+        if cmd.init:
+            path = pathlib.Path(_get_staging_directory(), "foobar")
+            command.init(cfg, directory=path.as_posix(), template="mytemplate")
+
+            eq_(
+                (path / "myfile.txt").open().read(),
+                "This is myfile.txt",
+            )
+        elif cmd.list_templates:
+            cfg.stdout = buf = StringIO()
+            command.list_templates(cfg)
+            assert buf.getvalue().startswith(
+                "Available templates:\n\nmytemplate - This is my template"
+            )
+
+        else:
+            cmd.fail()
+
+    def test_init_no_such_template(self):
+        """test #1659"""
+
+        path = os.path.join(_get_staging_directory(), "foobar")
+
+        with expect_raises_message(
+            util.CommandError,
+            r"No such template .*asfd",
+        ):
+            command.init(self.cfg, directory=path, template="asfd")
 
     def test_version_text(self):
         buf = StringIO()
