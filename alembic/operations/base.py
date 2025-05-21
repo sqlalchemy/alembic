@@ -464,7 +464,7 @@ class AbstractOperations(util.ModuleClsProxy):
         names will be converted along conventions.  If the ``target_metadata``
         contains the naming convention
         ``{"ck": "ck_bool_%(table_name)s_%(constraint_name)s"}``, then the
-        output of the following:
+        output of the following::
 
             op.add_column("t", "x", Boolean(name="x"))
 
