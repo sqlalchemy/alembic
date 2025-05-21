@@ -68,7 +68,7 @@ def init(
     template_path = config._get_template_path() / template
 
     if not template_path.exists():
-        raise util.CommandError("No such template {template_path}")
+        raise util.CommandError(f"No such template {template_path}")
 
     # left as os.access() to suit unit test mocking
     if not os.access(directory_path, os.F_OK):

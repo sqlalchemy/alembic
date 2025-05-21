@@ -264,7 +264,10 @@ class Config:
         commands.
 
         """
-        return self._get_template_path().as_posix()
+        import alembic
+
+        package_dir = Path(alembic.__file__).absolute().parent
+        return str(package_dir / "templates")
 
     def _get_template_path(self) -> Path:
         """Return the directory where Alembic setup templates are found.
@@ -275,10 +278,7 @@ class Config:
         .. versionadded:: 1.16.0
 
         """
-        import alembic
-
-        package_dir = Path(alembic.__file__).absolute().parent
-        return package_dir / "templates"
+        return Path(self.get_template_directory())
 
     @overload
     def get_section(

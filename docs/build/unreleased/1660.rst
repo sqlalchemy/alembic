@@ -1,0 +1,16 @@
+.. change::
+    :tags: bug, command
+    :tickets: 1660
+
+    Fixed regression caused by the ``pathlib`` refactoring that removed the use
+    of :meth:`.Config.get_template_directory` as the canonical source of
+    templates; the method is still present however it no longer would be
+    consulted for a custom config subclass, as was the case with flask-migrate.
+
+.. change::
+    :tags: bug, command
+    :tickets: 1659
+
+    Fixed regression caused by the ``pathlib`` refactoring where the "missing
+    template" error message failed to render the name of the template that
+    could not be found.
