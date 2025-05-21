@@ -57,6 +57,7 @@ changelog_sections = [
     "feature",
     "usecase",
     "bug",
+    "refactored",
     "moved",
     "removed",
 ]

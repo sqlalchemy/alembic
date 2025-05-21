@@ -1,8 +1,10 @@
 .. change::
-    :tags: bug, operations
+    :tags: bug, autogenerate
     :tickets: 1656
 
-    The ExecuteSQLOp now takes into account the value configured
-    in :paramref:`configure.alembic_module_prefix` instead of always
-    defaulting to ``op.``.
-    Pull request curtesy of Avery Fischer.
+    The :meth:`.Operations.execute` operation when rendered in autogenerate
+    (which would necessarily be only when using a custom writer that embeds
+    :class:`.ExecuteSQLOp`) now correctly takes into account the value
+    configured in :paramref:`configure.alembic_module_prefix` when rendering
+    the operation with its prefixing namespace; previously this was hardcoded
+    to ``op.``. Pull request courtesy Avery Fischer.

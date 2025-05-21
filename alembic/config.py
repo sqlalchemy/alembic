@@ -25,6 +25,7 @@ from . import __version__
 from . import command
 from . import util
 from .util import compat
+from .util.pyfiles import _preserving_path_as_str
 
 
 class Config:
@@ -113,8 +114,12 @@ class Config:
         attributes: Optional[Dict[str, Any]] = None,
     ) -> None:
         """Construct a new :class:`.Config`"""
-        self.config_file_name = file_
-        self.toml_file_name = toml_file
+        self.config_file_name = (
+            _preserving_path_as_str(file_) if file_ else None
+        )
+        self.toml_file_name = (
+            _preserving_path_as_str(toml_file) if toml_file else None
+        )
         self.config_ini_section = ini_section
         self.output_buffer = output_buffer
         self.stdout = stdout
@@ -136,10 +141,10 @@ class Config:
 
     """
 
-    config_file_name: Union[str, os.PathLike[str], None] = None
+    config_file_name: Optional[str] = None
     """Filesystem path to the .ini file in use."""
 
-    toml_file_name: Union[str, os.PathLike[str], None] = None
+    toml_file_name: Optional[str] = None
     """Filesystem path to the pyproject.toml file in use.
 
     .. versionadded:: 1.16.0

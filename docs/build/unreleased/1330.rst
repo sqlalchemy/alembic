@@ -1,28 +1,29 @@
 .. change::
-    :tags: bug, environment
+    :tags: usecase, environment
     :tickets: 1330
 
-    Added new option to the ConfigParser config (typically via ``alembic.ini``)
-    ``path_separator``. This new option supersedes the previous similar
-    option ``version_path_separator``.   The new ``path_separator`` option
-    applies to the path splitting mechanism of both the ``version_locations``
-    option as well as the ``prepend_sys_path`` option, and in newly
-    rendered ``alembic.ini`` files will use the value ``os``, which means to
-    use the operating system path separator when splitting these string values
-    into a list of paths.
+    Added new option to the ConfigParser (e.g. ``alembic.ini``) configuration
+    ``path_separator``, which supersedes the existing ``version_path_separator``
+    option.  ``path_separator`` specifies the path separator character that
+    will be recognized for both the ``version_locations`` option as well
+    as the ``prepend_sys_path`` option, defaulting to ``os`` which indicates
+    that the value of ``os.pathsep`` should be used.
 
     The new attribute applies necessary os-dependent path splitting to the
     ``prepend_sys_path`` option so that windows paths which contain drive
     letters with colons are not inadvertently split, whereas previously
-    os-dependent path splitting were only available for the
-    ``version_locations`` option.
+    os-dependent path splitting were only available for the ``version_locations`` option.
 
-    Existing installations that do not have ``path_separator`` present
-    will continue to make use of ``version_path_separator`` when parsing the
-    ``version_locations`` option, or splitting on spaces / commas if
-    ``version_path_separator`` is also not present.  ``prepend_sys_path`` will
-    continue to be split on spaces/commas/colons if ``path_separator`` is
-    not present.   Under all of these fallback conditions, a deprecation
-    warning is now emitted encouraging to set ``path_separator``.
+    Existing installations that don't indicate ``path_separator``
+    will continue to use the older behavior, where ``version_path_separator``
+    may be configured for ``version_locations``, and ``prepend_sys_path``
+    continues to be split on spaces/commas/colons.  A deprecation warning
+    is emitted for these fallback scenarios.
+
+    When using the new ``pyproject.toml`` configuration detailed at
+    :ref:`using_pep_621`, the whole issue of "path separators" is sidestepped
+    and parameters like ``path_separator`` are unnecessary, as the TOML based
+    configuration configures version locations and sys path elements as
+    lists.
 
     Pull request courtesy Mike Werezak.
