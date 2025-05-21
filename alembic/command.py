@@ -122,7 +122,7 @@ def init(
             config_file = pathlib.Path(config.config_file_name).absolute()
             if config_file.exists():
                 util.msg(
-                    f"File {config_file!r} already exists, skipping",
+                    f"File {config_file} already exists, skipping",
                     **config.messaging_opts,
                 )
             else:
@@ -143,7 +143,7 @@ def init(
                     if "tool" in toml_data and "alembic" in toml_data["tool"]:
 
                         util.msg(
-                            f"File {config.toml_file_name!r} already exists "
+                            f"File {toml_path} already exists "
                             "and already has a [tool.alembic] section, "
                             "skipping",
                         )
