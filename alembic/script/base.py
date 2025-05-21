@@ -602,11 +602,10 @@ class ScriptDirectory:
                     raise util.CommandError(
                         "Can't locate timezone: %s" % self.timezone
                     ) from None
-            create_date = (
-                datetime.datetime.utcnow()
-                .replace(tzinfo=datetime.timezone.utc)
-                .astimezone(tzinfo)
-            )
+
+            create_date = datetime.datetime.now(
+                tz=datetime.timezone.utc
+            ).astimezone(tzinfo)
         else:
             create_date = datetime.datetime.now()
         return create_date

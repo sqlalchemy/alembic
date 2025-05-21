@@ -1,0 +1,7 @@
+.. change::
+    :tags: bug, environment
+    :tickets: 1643
+
+    Fixed issue where use of deprecated ``utcnow()`` function would generate
+    warnings.  Has been replaced with ``now(UTC)``.  Pull request courtesy
+    Jens Tröger.
