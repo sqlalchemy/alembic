@@ -1,9 +1,0 @@
-.. change::
-    :tags: bug, general
-    :tickets: 1637
-
-    The ``pyproject.toml`` file used by the Alembic project itself for its
-    Python package configuration has been amended to use the updated :pep:`639`
-    configuration for license, which eliminates loud deprecation warnings when
-    building the package.   Note this necessarily bumps setuptools build
-    requirement to 77.0.3.

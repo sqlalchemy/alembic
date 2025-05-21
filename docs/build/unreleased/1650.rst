@@ -1,9 +1,0 @@
-.. change::
-    :tags: usecase, operations
-    :tickets: 1650
-
-    Added :paramref:`.Operations.drop_constraint.if_exists` parameter to
-    :meth:`.Operations.drop_constraint` which will render ``DROP CONSTRAINT IF
-    EXISTS``. The parameter also supports autogenerate rendering allowing it to
-    be added to autogenerate scripts via a custom :class:`.Rewriter`.  Pull
-    request courtesy Aaron Griffin.

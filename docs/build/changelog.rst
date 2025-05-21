@@ -5,7 +5,170 @@ Changelog
 
 .. changelog::
     :version: 1.16.0
-    :include_notes_from: unreleased
+    :released: May 21, 2025
+
+    .. change::
+        :tags: feature, environment
+        :tickets: 1082
+
+        Added optional :pep:`621` support to Alembic, allowing all source code
+        related configuration (e.g. local file paths, post write hook
+        configurations, etc) to be configured in the project's ``pyproject.toml``
+        file.   A new init template ``pyproject`` is added which illustrates a
+        basic :pep:`621` setup.
+
+        Besides being better integrated with a Python project's existing source
+        code configuration, the TOML format allows for more flexible structures,
+        allowing configuration items like ``version_locations`` and
+        ``prepend_sys_path`` to be configured as lists of path strings without the
+        need for path separator characters used by ``ConfigParser`` format.   The
+        feature continues to support the ``%(here)s`` token which can substitute
+        the absolute parent directory of the ``pyproject.toml`` file when
+        consumed.
+
+        The :pep:`621` feature supports configuration values that are relevant to
+        source code organization and generation only; it does not accommodate
+        configuration of database connectivity or logging, which remain under the
+        category of "deployment" configuration and continue to be part of
+        ``alembic.ini``, or whatever configurational method is established by the
+        ``env.py`` file.   Using the combination of ``pyproject.toml`` for source
+        code configuration along with a custom database/logging configuration
+        method established in ``env.py`` will allow the ``alembic.ini`` file to be
+        omitted altogether.
+
+
+        .. seealso::
+
+            :ref:`using_pep_621`
+
+    .. change::
+        :tags: usecase, environment
+        :tickets: 1330
+
+        Added new option to the ConfigParser (e.g. ``alembic.ini``) configuration
+        ``path_separator``, which supersedes the existing ``version_path_separator``
+        option.  ``path_separator`` specifies the path separator character that
+        will be recognized for both the ``version_locations`` option as well
+        as the ``prepend_sys_path`` option, defaulting to ``os`` which indicates
+        that the value of ``os.pathsep`` should be used.
+
+        The new attribute applies necessary os-dependent path splitting to the
+        ``prepend_sys_path`` option so that windows paths which contain drive
+        letters with colons are not inadvertently split, whereas previously
+        os-dependent path splitting were only available for the ``version_locations`` option.
+
+        Existing installations that don't indicate ``path_separator``
+        will continue to use the older behavior, where ``version_path_separator``
+        may be configured for ``version_locations``, and ``prepend_sys_path``
+        continues to be split on spaces/commas/colons.  A deprecation warning
+        is emitted for these fallback scenarios.
+
+        When using the new ``pyproject.toml`` configuration detailed at
+        :ref:`using_pep_621`, the whole issue of "path separators" is sidestepped
+        and parameters like ``path_separator`` are unnecessary, as the TOML based
+        configuration configures version locations and sys path elements as
+        lists.
+
+        Pull request courtesy Mike Werezak.
+
+    .. change::
+        :tags: feature, commands
+        :tickets: 1610
+
+        Added new :meth:`.CommandLine.register_command` method to
+        :class:`.CommandLine`, intended to facilitate adding custom commands to
+        Alembic's command line tool with minimal code required; previously this
+        logic was embedded internally and was not publicly accessible.  A new
+        recipe demonstrating this use is added.   Pull request courtesy Mikhail
+        Bulash.
+
+        .. seealso::
+
+            :ref:`custom_commandline`
+
+    .. change::
+        :tags: usecase, operations
+        :tickets: 1626
+
+        Added :paramref:`.Operations.add_column.if_not_exists` and
+        :paramref:`.Operations.drop_column.if_exists` to render ``IF [NOT] EXISTS``
+        for ``ADD COLUMN`` and ``DROP COLUMN`` operations, a feature available on
+        some database backends such as PostgreSQL, MariaDB, as well as third party
+        backends.  The parameters also support autogenerate rendering allowing them
+        to be added to autogenerate scripts via a custom :class:`.Rewriter`.  Pull
+        request courtesy of Louis-Amaury Chaib (@lachaib).
+
+    .. change::
+        :tags: bug, general
+        :tickets: 1637
+
+        The ``pyproject.toml`` file used by the Alembic project itself for its
+        Python package configuration has been amended to use the updated :pep:`639`
+        configuration for license, which eliminates loud deprecation warnings when
+        building the package.   Note this necessarily bumps setuptools build
+        requirement to 77.0.3.
+
+    .. change::
+        :tags: bug, environment
+        :tickets: 1643
+
+        Fixed issue where use of deprecated ``utcnow()`` function would generate
+        warnings.  Has been replaced with ``now(UTC)``.  Pull request courtesy
+        Jens Tröger.
+
+    .. change::
+        :tags: usecase, operations
+        :tickets: 1650
+
+        Added :paramref:`.Operations.drop_constraint.if_exists` parameter to
+        :meth:`.Operations.drop_constraint` which will render ``DROP CONSTRAINT IF
+        EXISTS``. The parameter also supports autogenerate rendering allowing it to
+        be added to autogenerate scripts via a custom :class:`.Rewriter`.  Pull
+        request courtesy Aaron Griffin.
+
+    .. change::
+        :tags: bug, autogenerate
+        :tickets: 1656
+
+        The :meth:`.Operations.execute` operation when rendered in autogenerate
+        (which would necessarily be only when using a custom writer that embeds
+        :class:`.ExecuteSQLOp`) now correctly takes into account the value
+        configured in :paramref:`configure.alembic_module_prefix` when rendering
+        the operation with its prefixing namespace; previously this was hardcoded
+        to ``op.``. Pull request courtesy Avery Fischer.
+
+    .. change::
+        :tags: bug, autogenerate
+        :tickets: 264
+
+        The autogenerate process will now apply the :meth:`.Operations.f` modifier
+        to the names of all constraints and indexes that are reflected from the
+        target database when generating migrations, which has the effect that these
+        names will not have any subsequent naming conventions applied to them when
+        the migration operations proceed.  As reflected objects already include the
+        exact name that's present in the database, these names should not be
+        modified.   The fix repairs the issue when using custom naming conventions
+        which feature the ``%(constraint_name)s`` token would cause names to be
+        double-processed, leading to errors in migration runs.
+
+
+
+    .. change::
+        :tags: refactored, environment
+
+        The command, config and script modules now rely on ``pathlib.Path`` for
+        internal path manipulations, instead of ``os.path()`` operations.   This
+        has some impact on both public and private (i.e. underscored) API functions:
+
+        * Public API functions that accept parameters indicating file and directory
+          paths as strings will continue to do so, but now will also accept
+          ``os.PathLike`` objects as well.
+        * Public API functions and accessors that return directory paths as strings
+          such as :attr:`.ScriptDirectory.dir`, :attr:`.Config.config_file_name`
+          will continue to do so.
+        * Private API functions and accessors, i.e. all those that are prefixed
+          with an underscore, that previously returned directory paths as
+          strings may now return a Path object instead.
 
 .. changelog::
     :version: 1.15.2
