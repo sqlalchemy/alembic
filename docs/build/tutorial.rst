@@ -141,7 +141,7 @@ indicate an alternative location, the ``--config`` option may be used, or the
     The file generated with the ``generic`` configuration template contains all directives
     for both source code configuration as well as database configuration.  When using
     the ``pyproject`` template, the source code configuration elements will instead
-    be in a separate ``pyproject.toml`` file, described in the :ref:`next section <using_pep_621>`.
+    be in a separate ``pyproject.toml`` file, described in the section :ref:`using_pep_621`.
 
 The all-in-one .ini file created by ``generic`` is illustrated below::
 
@@ -232,6 +232,8 @@ The all-in-one .ini file created by ``generic`` is illustrated below::
     # database URL.  This is consumed by the user-maintained env.py script only.
     # other means of configuring database URLs may be customized within the env.py
     # file.
+    # See notes in "escaping characters in ini files" for guidelines on
+    # passwords
     sqlalchemy.url = driver://user:pass@localhost/dbname
 
     # [post_write_hooks]
@@ -294,6 +296,13 @@ library.  The ``%(here)s`` variable is
 provided as a substitution which is populated with the absolute path to the
 ``alembic.ini`` file itself.  This can be used to produce correct pathnames
 to directories and files relative to where the config file is located.
+
+.. tip:: Percent signs in ``alembic.ini`` configuration variables that are are
+   not part of an interpolation token like ``%(here)s``, including percent
+   signs that are part of the SQLAlchemy database URL for its own URL-escaping
+   requirements, must themselves be escaped.
+   See the section :ref:`escaping_percent_signs` for more information.
+
 
 This file contains the following features:
 
@@ -415,6 +424,141 @@ For starting up with just a single database and the generic configuration, setti
 the SQLAlchemy URL is all that's needed::
 
     sqlalchemy.url = postgresql://scott:tiger@localhost/test
+
+.. _escaping_percent_signs:
+
+Escaping Characters in ini files
+--------------------------------
+
+As mentioned previously, Alembic's .ini file format uses Python `ConfigParser
+<https://docs.python.org/3/library/configparser.html#configparser.ConfigParser>`_
+to parse the file.   ``ConfigParser`` 's `interpolation feature is enabled
+<https://docs.python.org/3/library/configparser.html#interpolation-of-values>`_
+in this operation to support the use of the ``%(here)s`` token, as well as any
+other tokens that are user-configurable via the :paramref:`.Config.config_args`
+parameter when creating a custom :class:`.Config` object.
+
+This means that any literal string that includes a percent sign that is not
+part of an interpolated variable must be escaped by doubling it.  That is, for
+a configuration value like this in a Python script::
+
+  my_configuration_value = "some % string"
+
+To be parsed from the .ini file would need to be placed as::
+
+  [alembic]
+
+  my_configuration_value = some %% string
+
+This escaping can be seen in the sample ``alembic.ini`` file, illustrated in
+such values as ``file_template``::
+
+    # template used to generate migration file names; The default value is %%(rev)s_%%(slug)s
+    file_template = %%(year)d_%%(month).2d_%%(day).2d_%%(hour).2d%%(minute).2d-%%(rev)s_%%(slug)s
+
+Where above, the actual ``file_template`` that is sent to Alembic's file generation system
+would be ``%(year)d_%(month).2d_%(day).2d_%(hour).2d%(minute).2d-%(rev)s_%(slug)s``.
+
+.. tip::  Alembic also employs percent-sign interpolation of values when retrieving
+   values from a ``pyproject.toml`` file, as documented at :ref:`using_pep_621`.
+   So the same percent-doubling steps must be applied in Alembic-parsed values,
+   for fields such as ``file_template``.
+
+For the SQLAlchemy URL, percent signs are used to escape syntactically-
+significant characters such as the ``@`` sign as well as the percent sign
+itself.  For a password such as ``"P@ssw%rd"``::
+
+  >>> my_actual_password = "P@ssw%rd"
+
+As `documented by SQLAlchemy <https://docs.sqlalchemy.org/core/engines.html#escaping-special-characters-such-as-signs-in-passwords>`_,
+the ``@`` sign as well as the percent sign when placed into a URL should be escaped with ``urllib.parse.quote_plus``::
+
+  >>> import urllib.parse
+  >>> sqlalchemy_quoted_password = urllib.parse.quote_plus(my_actual_password)
+  >>> sqlalchemy_quoted_password
+  'P%40ssw%25rd'
+
+This URL quoting can also be seen in SQLAlchemy's own stringification of
+URLs::
+
+  >>> from sqlalchemy import URL
+  >>> URL.create(
+  ...   "some_db", username="scott", password=my_actual_password, host="host"
+  ... ).render_as_string(hide_password=False)
+  'some_db://scott:P%40ssw%25rd@host'
+
+For the above escaped password string ``'P%40ssw%rd'`` to be placed into a ``ConfigParser`` file that
+includes interpolation of percent signs, ``%`` characters are doubled::
+
+  >>> sqlalchemy_quoted_password.replace("%", "%%")
+  'P%%40ssw%%25rd'
+
+Here's a complete program that will compose a URL and show the correct configparser form
+for a given set of database connection details, as well as illustrate how to assert these
+forms for correctness::
+
+    from sqlalchemy import URL, make_url
+
+    database_driver = input("database driver? ")
+    username = input("username? ")
+    password = input("password? ")
+    host = input("host? ")
+    port = input("port? ")
+    database = input("database? ")
+
+    sqlalchemy_url = URL.create(
+        drivername=database_driver,
+        username=username,
+        password=password,
+        host=host,
+        port=int(port),
+        database=database,
+    )
+
+    stringified_sqlalchemy_url = sqlalchemy_url.render_as_string(
+        hide_password=False
+    )
+
+    # assert make_url round trip
+    assert make_url(stringified_sqlalchemy_url) == sqlalchemy_url
+
+    print(
+        f"The correctly escaped string that can be passed "
+        f"to SQLAlchemy make_url() and create_engine() is:"
+        f"\n\n     {stringified_sqlalchemy_url!r}\n"
+    )
+
+    percent_replaced_url = stringified_sqlalchemy_url.replace("%", "%%")
+
+    # assert percent-interpolated plus make_url round trip
+    assert make_url(percent_replaced_url % {}) == sqlalchemy_url
+
+    print(
+        f"The SQLAlchemy URL that can be placed in a ConfigParser "
+        f"file such as alembic.ini is:\n\n      "
+        f"sqlalchemy.url = {percent_replaced_url}\n"
+    )
+
+The above program should eliminate any ambiguity when placing a SQLAlchemy
+URL into a configparser file::
+
+    $ python alembic_pw_script.py
+    database driver? postgresql+psycopg2
+    username? scott
+    password? P@ssw%rd
+    host? localhost
+    port? 5432
+    database? testdb
+    The correctly escaped string that can be passed to SQLAlchemy make_url() and create_engine() is:
+
+        'postgresql+psycopg2://scott:P%40ssw%25rd@localhost:5432/testdb'
+
+    The SQLAlchemy URL that can be placed in a ConfigParser file such as alembic.ini is:
+
+          sqlalchemy.url = postgresql+psycopg2://scott:P%%40ssw%%25rd@localhost:5432/testdb
+
+
+
 
 .. _using_pep_621:
 
@@ -539,6 +683,12 @@ remains available as the absolute path to the ``pyproject.toml`` file::
     # executable = "%(here)s/.venv/bin/ruff"
     # options = "check --fix REVISION_SCRIPT_FILENAME"
 
+.. tip:: As Alembic adds support for interpolation tokens like ``%(here)s`` to
+   its handling of ``pyproject.toml`` values, the same percent-sign escaping
+   steps that apply to ``alembic.ini`` configuration variables also apply
+   to ``pyproject.toml``, even though database URLs are not configured in this
+   file.  This escaping can be seen in the sample ``file_template`` value
+   above.   See the section :ref:`escaping_percent_signs` for background.
 
 The ``alembic.ini`` file for this template is truncated and contains
 only database configuration and logging configuration::
