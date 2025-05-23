@@ -297,7 +297,7 @@ provided as a substitution which is populated with the absolute path to the
 ``alembic.ini`` file itself.  This can be used to produce correct pathnames
 to directories and files relative to where the config file is located.
 
-.. tip:: Percent signs in ``alembic.ini`` configuration variables that are are
+.. tip:: Percent signs in ``alembic.ini`` configuration variables that are
    not part of an interpolation token like ``%(here)s``, including percent
    signs that are part of the SQLAlchemy database URL for its own URL-escaping
    requirements, must themselves be escaped.
