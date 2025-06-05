@@ -29,14 +29,14 @@ if TYPE_CHECKING:
     from sqlalchemy import Identity
     from sqlalchemy.sql.compiler import Compiled
     from sqlalchemy.sql.compiler import DDLCompiler
+    from sqlalchemy.sql.elements import ColumnElement
     from sqlalchemy.sql.elements import TextClause
-    from sqlalchemy.sql.functions import Function
     from sqlalchemy.sql.schema import FetchedValue
     from sqlalchemy.sql.type_api import TypeEngine
 
     from .impl import DefaultImpl
 
-_ServerDefault = Union["TextClause", "FetchedValue", "Function[Any]", str]
+_ServerDefault = Union["FetchedValue", str, "TextClause", "ColumnElement[Any]"]
 
 
 class AlterTable(DDLElement):
