@@ -43,6 +43,7 @@ if TYPE_CHECKING:
     from sqlalchemy.sql.schema import Constraint
     from sqlalchemy.sql.schema import ForeignKeyConstraint
     from sqlalchemy.sql.schema import Identity
+    from sqlalchemy.sql.schema import FetchedValue
     from sqlalchemy.sql.schema import Index
     from sqlalchemy.sql.schema import MetaData
     from sqlalchemy.sql.schema import PrimaryKeyConstraint
@@ -1696,7 +1697,9 @@ class AlterColumnOp(AlterTableOp):
         *,
         schema: Optional[str] = None,
         existing_type: Optional[Any] = None,
-        existing_server_default: Any = False,
+        existing_server_default: Optional[Union[
+            "FetchedValue", str, "TextClause", "ColumnElement[Any]"
+        ]] = None,
         existing_nullable: Optional[bool] = None,
         existing_comment: Optional[str] = None,
         modify_nullable: Optional[bool] = None,
@@ -1856,16 +1859,16 @@ class AlterColumnOp(AlterTableOp):
         nullable: Optional[bool] = None,
         comment: Optional[Union[str, Literal[False]]] = False,
         server_default: Union[
-            str, bool, Identity, Computed, TextClause, None
+            "FetchedValue", str, "TextClause", "ColumnElement[Any]", None, Literal[False]
         ] = False,
         new_column_name: Optional[str] = None,
         type_: Optional[Union[TypeEngine[Any], Type[TypeEngine[Any]]]] = None,
         existing_type: Optional[
             Union[TypeEngine[Any], Type[TypeEngine[Any]]]
         ] = None,
-        existing_server_default: Union[
-            str, bool, Identity, Computed, TextClause, None
-        ] = False,
+        existing_server_default: Optional[Union[
+            "FetchedValue", str, "TextClause", "ColumnElement[Any]"
+        ]] = None,
         existing_nullable: Optional[bool] = None,
         existing_comment: Optional[str] = None,
         schema: Optional[str] = None,
@@ -1980,15 +1983,17 @@ class AlterColumnOp(AlterTableOp):
         *,
         nullable: Optional[bool] = None,
         comment: Optional[Union[str, Literal[False]]] = False,
-        server_default: Any = False,
+        server_default: Union[
+            "FetchedValue", str, "TextClause", "ColumnElement[Any]", None, Literal[False]
+        ] = False,
         new_column_name: Optional[str] = None,
         type_: Optional[Union[TypeEngine[Any], Type[TypeEngine[Any]]]] = None,
         existing_type: Optional[
             Union[TypeEngine[Any], Type[TypeEngine[Any]]]
         ] = None,
-        existing_server_default: Optional[
-            Union[str, bool, Identity, Computed]
-        ] = False,
+        existing_server_default: Optional[Union[
+            "FetchedValue", str, "TextClause", "ColumnElement[Any]"
+        ]] = None,
         existing_nullable: Optional[bool] = None,
         existing_comment: Optional[str] = None,
         insert_before: Optional[str] = None,
