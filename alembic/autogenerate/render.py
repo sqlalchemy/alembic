@@ -18,6 +18,7 @@ from mako.pygen import PythonPrinter
 from sqlalchemy import schema as sa_schema
 from sqlalchemy import sql
 from sqlalchemy import types as sqltypes
+from sqlalchemy.sql.base import _DialectArgView
 from sqlalchemy.sql.elements import conv
 from sqlalchemy.sql.elements import Label
 from sqlalchemy.sql.elements import quoted_name
@@ -119,6 +120,15 @@ def _render_cmd_body(
     printer.writeline("# ### end Alembic commands ###")
 
     return buf.getvalue()
+
+
+def _render_dialect_kwargs_items(
+        autogen_context: AutogenContext, dialect_kwargs: _DialectArgView
+) -> list[str]:
+    return [
+        f"{key}={_render_potential_expr(val, autogen_context)}"
+        for key, val in dialect_kwargs.items()
+    ]
 
 
 def render_op(
@@ -303,15 +313,6 @@ def _drop_table(autogen_context: AutogenContext, op: ops.DropTableOp) -> str:
     return text
 
 
-def _render_dialect_kwargs_items(
-    autogen_context: AutogenContext, item: DialectKWArgs
-) -> list[str]:
-    return [
-        f"{key}={_render_potential_expr(val, autogen_context)}"
-        for key, val in item.dialect_kwargs.items()
-    ]
-
-
 @renderers.dispatch_for(ops.CreateIndexOp)
 def _add_index(autogen_context: AutogenContext, op: ops.CreateIndexOp) -> str:
     index = op.to_index()
@@ -331,7 +332,7 @@ def _add_index(autogen_context: AutogenContext, op: ops.CreateIndexOp) -> str:
 
     assert index.table is not None
 
-    opts = _render_dialect_kwargs_items(autogen_context, index)
+    opts = _render_dialect_kwargs_items(autogen_context, index.dialect_kwargs)
     if op.if_not_exists is not None:
         opts.append("if_not_exists=%r" % bool(op.if_not_exists))
     text = tmpl % {
@@ -365,7 +366,7 @@ def _drop_index(autogen_context: AutogenContext, op: ops.DropIndexOp) -> str:
             "%(prefix)sdrop_index(%(name)r, "
             "table_name=%(table_name)r%(schema)s%(kwargs)s)"
         )
-    opts = _render_dialect_kwargs_items(autogen_context, index)
+    opts = _render_dialect_kwargs_items(autogen_context, index.dialect_kwargs)
     if op.if_exists is not None:
         opts.append("if_exists=%r" % bool(op.if_exists))
     text = tmpl % {
@@ -418,9 +419,15 @@ def _add_fk_constraint(
             if value is not None:
                 args.append("%s=%r" % (k, value))
 
-    return "%(prefix)screate_foreign_key(%(args)s)" % {
+
+    # op.to_constraint() may fail with `multiple values for argument 'name'`.
+    dialect_kwarg_view = getattr(op.kw, "dialect_kwargs", {})
+    dialect_kwargs = _render_dialect_kwargs_items(autogen_context, dialect_kwarg_view)
+
+    return "%(prefix)screate_foreign_key(%(args)s%(dialect_kwargs)s)" % {
         "prefix": _alembic_autogenerate_prefix(autogen_context),
         "args": ", ".join(args),
+        "dialect_kwargs": ", " + ", ".join(dialect_kwargs) if dialect_kwargs else "",
     }
 
 
@@ -664,7 +671,7 @@ def _uq_constraint(
         opts.append(
             ("name", _render_gen_name(autogen_context, constraint.name))
         )
-    dialect_options = _render_dialect_kwargs_items(autogen_context, constraint)
+    dialect_options = _render_dialect_kwargs_items(autogen_context, constraint.dialect_kwargs)
 
     if alter:
         args = [repr(_render_gen_name(autogen_context, constraint.name))]
