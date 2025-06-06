@@ -133,6 +133,11 @@ class PostgresqlOpTest(TestBase):
         op.create_index("i", "t", ["c1", "c2"], if_not_exists=True)
         context.assert_("CREATE INDEX IF NOT EXISTS i ON t (c1, c2)")
 
+    def test_create_fk_postgresql_not_valid(self):
+        context = op_fixture("postgresql")
+        op.create_foreign_key("i", "t1", "t2", ["c1"], ["c2"], postgresql_not_valid=True)
+        context.assert_("ALTER TABLE t1 ADD CONSTRAINT i FOREIGN KEY(c1) REFERENCES t2 (c2) NOT VALID")
+
     @config.combinations("include_table", "no_table", argnames="include_table")
     def test_drop_index_postgresql_concurrently(self, include_table):
         context = op_fixture("postgresql")
