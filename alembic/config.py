@@ -75,7 +75,20 @@ class Config:
             alembic_cfg.attributes['connection'] = connection
             command.upgrade(alembic_cfg, "head")
 
-    :param file\_: name of the .ini file to open.
+    :param file\_: name of the .ini file to open if an ``alembic.ini`` is
+     to be used.    This should refer to the ``alembic.ini`` file, either as
+     a filename or a full path to the file.  This filename if passed must refer
+     to an **ini file in ConfigParser format** only.
+
+    :param toml\_file: name of the pyproject.toml file to open if a
+     ``pyproject.toml`` file is to be used.  This should refer to the
+     ``pyproject.toml`` file, either as a filename or a full path to the file.
+     This file must be in toml format. Both :paramref:`.Config.file\_` and
+     :paramref:`.Config.toml\_file` may be passed simultaneously, or
+     exclusively.
+
+     .. versionadded:: 1.16.0
+
     :param ini_section: name of the main Alembic section within the
      .ini file
     :param output_buffer: optional file-like input buffer which
