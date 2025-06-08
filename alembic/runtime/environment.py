@@ -338,7 +338,7 @@ class EnvironmentContext(util.ModuleClsProxy):
             line.
 
         """
-        return self.context_opts.get("tag", None)  # type: ignore[no-any-return]  # noqa: E501
+        return self.context_opts.get("tag", None)
 
     @overload
     def get_x_argument(self, as_dictionary: Literal[False]) -> List[str]: ...

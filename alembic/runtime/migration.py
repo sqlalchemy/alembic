@@ -175,7 +175,11 @@ class MigrationContext:
                 opts["output_encoding"],
             )
         else:
-            self.output_buffer = opts.get("output_buffer", sys.stdout)
+            self.output_buffer = opts.get(
+                "output_buffer", sys.stdout
+            )  # type:ignore[assignment]  # noqa: E501
+
+        self.transactional_ddl = transactional_ddl
 
         self._user_compare_type = opts.get("compare_type", True)
         self._user_compare_server_default = opts.get(

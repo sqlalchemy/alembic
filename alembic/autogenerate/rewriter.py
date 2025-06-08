@@ -177,7 +177,7 @@ class Rewriter:
                 )
             upgrade_ops_list.append(ret[0])
 
-        directive.upgrade_ops = upgrade_ops_list  # type: ignore
+        directive.upgrade_ops = upgrade_ops_list
 
         downgrade_ops_list: List[DowngradeOps] = []
         for downgrade_ops in directive.downgrade_ops_list:
@@ -187,7 +187,7 @@ class Rewriter:
                     "Can only return single object for DowngradeOps traverse"
                 )
             downgrade_ops_list.append(ret[0])
-        directive.downgrade_ops = downgrade_ops_list  # type: ignore
+        directive.downgrade_ops = downgrade_ops_list
 
     @_traverse.dispatch_for(ops.OpContainer)
     def _traverse_op_container(

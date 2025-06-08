@@ -1282,7 +1282,7 @@ def _compare_foreign_keys(
             obj.const, obj.name, "foreign_key_constraint", False, compare_to
         ):
             modify_table_ops.ops.append(
-                ops.CreateForeignKeyOp.from_constraint(const.const)  # type: ignore[has-type]  # noqa: E501
+                ops.CreateForeignKeyOp.from_constraint(const.const)
             )
 
             log.info(

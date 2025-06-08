@@ -846,7 +846,7 @@ class Script(revision.Revision):
                 doc = doc.decode(  # type: ignore[attr-defined]
                     self.module._alembic_source_encoding
                 )
-            return doc.strip()  # type: ignore[union-attr]
+            return doc.strip()
         else:
             return ""
 
