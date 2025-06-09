@@ -122,7 +122,6 @@ def _render_cmd_body(
     return buf.getvalue()
 
 
-
 def render_op(
     autogen_context: AutogenContext, op: ops.MigrateOperation
 ) -> List[str]:
@@ -306,7 +305,7 @@ def _drop_table(autogen_context: AutogenContext, op: ops.DropTableOp) -> str:
 
 
 def _render_dialect_kwargs_items(
-        autogen_context: AutogenContext, dialect_kwargs: _DialectArgView
+    autogen_context: AutogenContext, dialect_kwargs: _DialectArgView
 ) -> list[str]:
     return [
         f"{key}={_render_potential_expr(val, autogen_context)}"

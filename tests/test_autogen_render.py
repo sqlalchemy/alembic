@@ -2478,52 +2478,6 @@ class AutogenRenderTest(TestBase):
             "server_default=None)",
         )
 
-# class PostgresDialectKwargsTest(TestBase):
-#     def setUp(self):
-#         ctx_opts = {
-#             "sqlalchemy_module_prefix": "sa.",
-#             "alembic_module_prefix": "op.",
-#             "target_metadata": MetaData(),
-#         }
-#         context = MigrationContext.configure(
-#             dialect_name="postgresql", opts=ctx_opts
-#         )
-#         self.autogen_context = api.AutogenContext(context)
-#
-#     def test_add_fk_constraint__dialect_kwargs(self):
-#         t1 = Table(
-#             "t1",
-#             MetaData(),
-#             Column("c1", Integer, primary_key=True),
-#         )
-#         t2 = Table(
-#             "t2",
-#             MetaData(),
-#             Column("c2", Integer, primary_key=True),
-#         )
-#         item = ForeignKeyConstraint([t1.c.c1], [t2.c.c2], name="fk", postgresql_not_valid=True)
-#
-#         # fk_obj = ops.CreateForeignKeyOp(
-#         #     constraint_name="fk",
-#         #     source_table="t1",
-#         #     referent_table="t2",
-#         #     local_cols=["c1"],
-#         #     remote_cols=["c2"],
-#         #     **item.__dict__,
-#         #     postgresql_not_valid=True
-#         # )
-#         fk_obj = ops.CreateForeignKeyOp.from_constraint(item)
-#         print(fk_obj.kw)
-#         fk_obj.kw["postgresql_not_valid"] = True
-#
-#         print(fk_obj.kw)
-#         print(fk_obj.kw.get("dialect_kwargs", {}))
-#
-#         eq_ignore_whitespace(
-#             re.sub( r"u'", "'", autogenerate.render_op_text(self.autogen_context, fk_obj)),
-#             "op.create_foreign_key('fk', 't1', 't2', ['c1'], ['c2'], postgresql_not_valid=True)",
-#         )
-
 
 class RenderNamingConventionTest(TestBase):
     def setUp(self):
