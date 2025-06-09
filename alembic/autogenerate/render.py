@@ -390,6 +390,7 @@ def _add_unique_constraint(
 def _add_fk_constraint(
     autogen_context: AutogenContext, op: ops.CreateForeignKeyOp
 ) -> str:
+    constraint = op.to_constraint()
     args = [repr(_render_gen_name(autogen_context, op.constraint_name))]
     if not autogen_context._has_batch:
         args.append(repr(_ident(op.source_table)))
@@ -419,10 +420,7 @@ def _add_fk_constraint(
             if value is not None:
                 args.append("%s=%r" % (k, value))
 
-
-    # op.to_constraint() may fail with `multiple values for argument 'name'`.
-    dialect_kwarg_view = getattr(op.kw, "dialect_kwargs", {})
-    dialect_kwargs = _render_dialect_kwargs_items(autogen_context, dialect_kwarg_view)
+    dialect_kwargs = _render_dialect_kwargs_items(autogen_context, constraint.dialect_kwargs)
 
     return "%(prefix)screate_foreign_key(%(args)s%(dialect_kwargs)s)" % {
         "prefix": _alembic_autogenerate_prefix(autogen_context),
