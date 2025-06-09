@@ -719,9 +719,9 @@ class Operations(AbstractOperations):
             existing_type: Union[
                 TypeEngine[Any], Type[TypeEngine[Any]], None
             ] = None,
-            existing_server_default: Optional[Union[
+            existing_server_default: Union[
                 "FetchedValue", str, "TextClause", "ColumnElement[Any]", None, Literal[False]
-            ]] = None,
+            ] = False,
             existing_nullable: Optional[bool] = None,
             existing_comment: Optional[str] = None,
             schema: Optional[str] = None,
@@ -1687,9 +1687,9 @@ class BatchOperations(AbstractOperations):
             existing_type: Union[
                 TypeEngine[Any], Type[TypeEngine[Any]], None
             ] = None,
-            existing_server_default: Optional[Union[
+            existing_server_default: Union[
                 "FetchedValue", str, "TextClause", "ColumnElement[Any]", None, Literal[False]
-            ]] = None,
+            ] = False,
             existing_nullable: Optional[bool] = None,
             existing_comment: Optional[str] = None,
             insert_before: Optional[str] = None,

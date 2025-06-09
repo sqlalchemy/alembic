@@ -1697,9 +1697,9 @@ class AlterColumnOp(AlterTableOp):
         *,
         schema: Optional[str] = None,
         existing_type: Optional[Any] = None,
-        existing_server_default: Optional[Union[
-            "FetchedValue", str, "TextClause", "ColumnElement[Any]"
-        ]] = None,
+        existing_server_default: Union[
+            "FetchedValue", str, "TextClause", "ColumnElement[Any]", None, Literal[False]
+        ] = False,
         existing_nullable: Optional[bool] = None,
         existing_comment: Optional[str] = None,
         modify_nullable: Optional[bool] = None,
@@ -1866,9 +1866,9 @@ class AlterColumnOp(AlterTableOp):
         existing_type: Optional[
             Union[TypeEngine[Any], Type[TypeEngine[Any]]]
         ] = None,
-        existing_server_default: Optional[Union[
-            "FetchedValue", str, "TextClause", "ColumnElement[Any]"
-        ]] = None,
+        existing_server_default: Union[
+            "FetchedValue", str, "TextClause", "ColumnElement[Any]", None, Literal[False]
+        ] = False,
         existing_nullable: Optional[bool] = None,
         existing_comment: Optional[str] = None,
         schema: Optional[str] = None,
@@ -1991,9 +1991,9 @@ class AlterColumnOp(AlterTableOp):
         existing_type: Optional[
             Union[TypeEngine[Any], Type[TypeEngine[Any]]]
         ] = None,
-        existing_server_default: Optional[Union[
-            "FetchedValue", str, "TextClause", "ColumnElement[Any]"
-        ]] = None,
+        existing_server_default: Union[
+            "FetchedValue", str, "TextClause", "ColumnElement[Any]", None, Literal[False]
+        ] = False,
         existing_nullable: Optional[bool] = None,
         existing_comment: Optional[str] = None,
         insert_before: Optional[str] = None,
