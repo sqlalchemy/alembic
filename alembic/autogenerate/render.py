@@ -122,14 +122,6 @@ def _render_cmd_body(
     return buf.getvalue()
 
 
-def _render_dialect_kwargs_items(
-        autogen_context: AutogenContext, dialect_kwargs: _DialectArgView
-) -> list[str]:
-    return [
-        f"{key}={_render_potential_expr(val, autogen_context)}"
-        for key, val in dialect_kwargs.items()
-    ]
-
 
 def render_op(
     autogen_context: AutogenContext, op: ops.MigrateOperation
@@ -311,6 +303,15 @@ def _drop_table(autogen_context: AutogenContext, op: ops.DropTableOp) -> str:
 
     text += ")"
     return text
+
+
+def _render_dialect_kwargs_items(
+        autogen_context: AutogenContext, dialect_kwargs: _DialectArgView
+) -> list[str]:
+    return [
+        f"{key}={_render_potential_expr(val, autogen_context)}"
+        for key, val in dialect_kwargs.items()
+    ]
 
 
 @renderers.dispatch_for(ops.CreateIndexOp)
