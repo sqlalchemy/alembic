@@ -32,7 +32,6 @@ if TYPE_CHECKING:
 
     from sqlalchemy import Computed
     from sqlalchemy import Identity
-    from sqlalchemy.sql.base import DialectKWArgs
     from sqlalchemy.sql.elements import ColumnElement
     from sqlalchemy.sql.elements import TextClause
     from sqlalchemy.sql.schema import CheckConstraint
@@ -420,12 +419,15 @@ def _add_fk_constraint(
             if value is not None:
                 args.append("%s=%r" % (k, value))
 
-    dialect_kwargs = _render_dialect_kwargs_items(autogen_context, constraint.dialect_kwargs)
+    dialect_kwargs = _render_dialect_kwargs_items(
+        autogen_context, constraint.dialect_kwargs
+    )
 
     return "%(prefix)screate_foreign_key(%(args)s%(dialect_kwargs)s)" % {
         "prefix": _alembic_autogenerate_prefix(autogen_context),
         "args": ", ".join(args),
-        "dialect_kwargs": ", " + ", ".join(dialect_kwargs) if dialect_kwargs else "",
+        "dialect_kwargs": ", " + ", ".join(dialect_kwargs)
+        if dialect_kwargs else "",
     }
 
 
@@ -669,7 +671,9 @@ def _uq_constraint(
         opts.append(
             ("name", _render_gen_name(autogen_context, constraint.name))
         )
-    dialect_options = _render_dialect_kwargs_items(autogen_context, constraint.dialect_kwargs)
+    dialect_options = _render_dialect_kwargs_items(
+        autogen_context, constraint.dialect_kwargs
+    )
 
     if alter:
         args = [repr(_render_gen_name(autogen_context, constraint.name))]
