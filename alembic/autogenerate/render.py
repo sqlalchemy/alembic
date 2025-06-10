@@ -426,8 +426,9 @@ def _add_fk_constraint(
     return "%(prefix)screate_foreign_key(%(args)s%(dialect_kwargs)s)" % {
         "prefix": _alembic_autogenerate_prefix(autogen_context),
         "args": ", ".join(args),
-        "dialect_kwargs": ", " + ", ".join(dialect_kwargs)
-        if dialect_kwargs else "",
+        "dialect_kwargs": (
+            ", " + ", ".join(dialect_kwargs) if dialect_kwargs else ""
+        ),
     }
 
 

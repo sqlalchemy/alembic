@@ -326,7 +326,7 @@ class AutogenRenderTest(TestBase):
             re.sub(
                 r"u'",
                 "'",
-                autogenerate.render_op_text(self.autogen_context, fk_obj)
+                autogenerate.render_op_text(self.autogen_context, fk_obj),
             ),
             "op.create_foreign_key('fk', 'test', 'test', ['id'], ['id'], "
             "postgresql_not_valid=True)",
