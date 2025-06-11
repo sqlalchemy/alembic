@@ -27,6 +27,7 @@ def template_to_file(
     output_encoding: str,
     *,
     append: bool = False,
+    append_delimiter: Optional[bytes] = None,
     **kw: Any,
 ) -> None:
     template = Template(filename=_preserving_path_as_str(template_file))
@@ -45,6 +46,11 @@ def template_to_file(
             "template-oriented traceback." % fname
         )
     else:
+        if append and append_delimiter:
+            with open(dest, "rb") as f:
+                _exsiting = f.read()
+                if not _exsiting.endswith(append_delimiter):
+                    output = append_delimiter + output
         with open(dest, "ab" if append else "wb") as f:
             f.write(output)
 

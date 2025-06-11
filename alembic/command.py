@@ -152,6 +152,7 @@ def init(
                     file_path,
                     toml_path,
                     script_location=toml_script_location_directory,
+                    append_delimiter=b"\n\n",
                 )
             else:
                 script._generate_template(
