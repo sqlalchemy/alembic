@@ -47,10 +47,11 @@ def template_to_file(
         )
     else:
         if append and append_delimiter:
-            with open(dest, "rb") as f:
-                _exsiting = f.read()
-                if not _exsiting.endswith(append_delimiter):
-                    output = append_delimiter + output
+            if os.path.exists(dest):
+                with open(dest, "rb") as f:
+                    _exsiting = f.read()
+                    if not _exsiting.endswith(append_delimiter):
+                        output = append_delimiter + output
         with open(dest, "ab" if append else "wb") as f:
             f.write(output)
 
