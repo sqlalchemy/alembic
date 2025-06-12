@@ -314,6 +314,24 @@ class AutogenRenderTest(TestBase):
             "somedialect_foobar='option')",
         )
 
+    def test_add_fk_constraint__dialect_kwargs(self):
+        t1 = self.table()
+        t2 = self.table()
+        item = ForeignKeyConstraint(
+            [t1.c.id], [t2.c.id], name="fk", postgresql_not_valid=True
+        )
+        fk_obj = ops.CreateForeignKeyOp.from_constraint(item)
+
+        eq_ignore_whitespace(
+            re.sub(
+                r"u'",
+                "'",
+                autogenerate.render_op_text(self.autogen_context, fk_obj),
+            ),
+            "op.create_foreign_key('fk', 'test', 'test', ['id'], ['id'], "
+            "postgresql_not_valid=True)",
+        )
+
     def test_drop_index_batch(self):
         """
         autogenerate.render._drop_index
