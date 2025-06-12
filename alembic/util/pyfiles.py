@@ -46,6 +46,8 @@ def template_to_file(
         )
     else:
         with open(dest, "ab" if append else "wb") as f:
+            if append:
+                f.write(b"\n\n")
             f.write(output)
 
 
