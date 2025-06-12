@@ -7,13 +7,6 @@ Changelog
     :version: 1.16.2
     :include_notes_from: unreleased
 
-    .. change::
-        :tags: bug, command
-        :tickets: 1679
-
-        Updated ``utils.pyfiles.template_to_file`` to write two newlines before
-        the template file data in ``append``` mode.
-
 .. changelog::
     :version: 1.16.1
     :released: May 21, 2025
