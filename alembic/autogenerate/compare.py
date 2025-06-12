@@ -683,7 +683,7 @@ def _compare_indexes_and_uniques(
             ):
                 modify_ops.ops.append(ops.CreateIndexOp.from_index(obj.const))
                 log.info(
-                    "Detected added index '%r' on '%s'",
+                    "Detected added index %r on '%s'",
                     obj.name,
                     obj.column_names,
                 )
