@@ -554,13 +554,57 @@ class ScriptDirectory:
     def env_py_location(self) -> str:
         return str(Path(self.dir, "env.py"))
 
-    def _append_template(self, src: Path, dest: Path, **kw: Any) -> None:
-        with util.status(
-            f"Appending to existing {dest.absolute()}",
-            **self.messaging_opts,
-        ):
+
+    def _append_template(
+        self, template_path: Path, output_path: Union[str, Path], **kw: Any
+    ) -> None:
+        """
+        Append content from a Mako template to an existing file.
+        
+        Special handling for TOML files to ensure proper formatting between
+        sections, addressing issue #1679.
+        
+        Args:
+            template_path: Path to the template file
+            output_path: Path to the output file to append to
+            **kw: Keyword arguments for template rendering
+        """
+        output_path = Path(output_path)
+        
+        # For TOML files, we need special handling to ensure proper spacing
+        if output_path.suffix.lower() == '.toml' and output_path.exists():
+            # Read existing content
+            with open(output_path, 'r', encoding=self.output_encoding) as f:
+                existing_content = f.read()
+            
+            # Check if we need to add newlines before appending
+            existing_content = existing_content.rstrip()
+            
+            # Save the modified content back
+            with open(output_path, 'w', encoding=self.output_encoding) as f:
+                f.write(existing_content)
+                
+                # TOML convention: ensure 2 newlines between top-level sections
+                # The template should start with [tool.alembic], so we need proper spacing
+                if existing_content:
+                    f.write('\n\n')
+            
+            # Now append the template content
             util.template_to_file(
-                src, dest, self.output_encoding, append=True, **kw
+                template_path,
+                output_path,
+                self.output_encoding,
+                append=True,
+                **kw
+            )
+        else:
+            # For non-TOML files or new files, just use template_to_file directly
+            util.template_to_file(
+                template_path,
+                output_path,
+                self.output_encoding,
+                append=True,
+                **kw
             )
 
     def _generate_template(self, src: Path, dest: Path, **kw: Any) -> None:
