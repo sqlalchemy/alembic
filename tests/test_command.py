@@ -43,6 +43,7 @@ from alembic.testing.env import write_script
 from alembic.testing.fixtures import capture_context_buffer
 from alembic.testing.fixtures import capture_engine_context_buffer
 from alembic.testing.fixtures import TestBase
+from alembic.util import compat
 from alembic.util.sqla_compat import _connectable_has_table
 
 
@@ -1549,6 +1550,20 @@ class CommandLineTest(TestBase):
 
         shutil.rmtree(templates_path)
 
+    @testing.fixture
+    def existing_pyproject_fixture(self):
+        root = pathlib.Path(_get_staging_directory())
+
+        with (root / "pyproject.toml").open("w") as file_:
+            file_.write(
+                """[tool.sometool]
+someconfig = 'bar'"""
+            )
+        yield config.Config(
+            self.cfg.config_file_name, toml_file=root / "pyproject.toml"
+        )
+        shutil.rmtree(root)
+
     @testing.variation("cmd", ["list_templates", "init"])
     def test_init_custom_template_location(self, cmd, custom_template_fixture):
         """test #1660"""
@@ -1572,6 +1587,31 @@ class CommandLineTest(TestBase):
 
         else:
             cmd.fail()
+
+    def test_init_append_pyproject(self, existing_pyproject_fixture):
+        cfg = existing_pyproject_fixture
+        path = pathlib.Path(_get_staging_directory(), "myproject")
+        command.init(cfg, directory=path.as_posix(), template="pyproject")
+        with open(cfg.toml_file_name, "r") as f:
+            file_content = f.read()
+
+        assert file_content.startswith(
+            """[tool.sometool]
+someconfig = 'bar'\n\n[tool.alembic]"""
+        )
+        toml = compat.tomllib.loads(file_content)
+        eq_(
+            toml,
+            {
+                "tool": {
+                    "sometool": {"someconfig": "bar"},
+                    "alembic": {
+                        "script_location": "%(here)s/myproject",
+                        "prepend_sys_path": ["."],
+                    },
+                }
+            },
+        )
 
     def test_init_no_such_template(self):
         """test #1659"""

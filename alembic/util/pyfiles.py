@@ -26,7 +26,7 @@ def template_to_file(
     dest: Union[str, os.PathLike[str]],
     output_encoding: str,
     *,
-    append: bool = False,
+    append_with_newlines: bool = False,
     **kw: Any,
 ) -> None:
     template = Template(filename=_preserving_path_as_str(template_file))
@@ -45,7 +45,9 @@ def template_to_file(
             "template-oriented traceback." % fname
         )
     else:
-        with open(dest, "ab" if append else "wb") as f:
+        with open(dest, "ab" if append_with_newlines else "wb") as f:
+            if append_with_newlines:
+                f.write("\n\n".encode(output_encoding))
             f.write(output)
 
 

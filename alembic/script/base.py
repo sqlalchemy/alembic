@@ -560,7 +560,11 @@ class ScriptDirectory:
             **self.messaging_opts,
         ):
             util.template_to_file(
-                src, dest, self.output_encoding, append=True, **kw
+                src,
+                dest,
+                self.output_encoding,
+                append_with_newlines=True,
+                **kw,
             )
 
     def _generate_template(self, src: Path, dest: Path, **kw: Any) -> None:
