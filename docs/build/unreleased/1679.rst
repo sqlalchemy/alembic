@@ -1,8 +1,0 @@
-.. change::
-    :tags: bug, command
-    :tickets: 1679
-
-    Fixed rendering of ``pyproject.toml`` to include two newlines when
-    appending content to an existing file.  Pull request courtesy Jonathan
-    Vanasco.
-

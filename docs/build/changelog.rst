@@ -5,7 +5,27 @@ Changelog
 
 .. changelog::
     :version: 1.16.2
-    :include_notes_from: unreleased
+    :released: June 16, 2025
+
+    .. change::
+        :tags: bug, autogenerate
+        :tickets: 1671
+
+        Fixed issue where dialect-specific keyword arguments in ``dialect_kwargs``
+        were not rendered when rendering the :meth:`.Operations.create_foreign_key`
+        operation.   This prevented dialect-specific keywords from being rendered
+        using custom :class:`.Rewriter` recipes that modify
+        :class:`.ops.CreateForeignKeyOp`, similar to other issues such as
+        :ticket:`1635`.  Pull request courtesy Justin Malin.
+
+    .. change::
+        :tags: bug, command
+        :tickets: 1679
+
+        Fixed rendering of ``pyproject.toml`` to include two newlines when
+        appending content to an existing file.  Pull request courtesy Jonathan
+        Vanasco.
+
 
 .. changelog::
     :version: 1.16.1
