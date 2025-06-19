@@ -9,9 +9,11 @@ from sqlalchemy import Identity
 from sqlalchemy import inspect
 from sqlalchemy import Integer
 from sqlalchemy import MetaData
+from sqlalchemy import String
 from sqlalchemy import Table
 from sqlalchemy import text
 from sqlalchemy import TIMESTAMP
+from sqlalchemy.dialects.mysql import VARCHAR
 
 from alembic import op
 from alembic import util
@@ -239,6 +241,22 @@ class MySQLOpTest(TestBase):
             )
         op.invoke(operation)
         context.assert_("ALTER TABLE t MODIFY c FLOAT NULL DEFAULT 0")
+
+    def test_alter_column_change_collation(self):
+        context = op_fixture("mysql")
+        op.alter_column(
+            "t1",
+            "c1",
+            nullable=False,
+            existing_type=String(50),
+            type_=VARCHAR(
+                50, charset="utf8mb4", collation="utf8mb4/utf8mb4_unicode_ci"
+            ),
+        )
+        context.assert_(
+            "ALTER TABLE t1 MODIFY c1 VARCHAR(50) "
+            "CHARACTER SET utf8mb4 COLLATE utf8mb4/utf8mb4_unicode_ci NOT NULL"
+        )
 
     def test_col_not_nullable(self):
         context = op_fixture("mysql")
