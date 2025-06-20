@@ -1525,7 +1525,7 @@ use of most of its interface from async applications. Alembic currently does
 not provide an async api directly, but it can use an use SQLAlchemy Async
 engine to run the migrations and autogenerate.
 
-New configurations can use the template "async" to bootstrap an environment which
+New configurations can use the template "async" or "pyproject_async" to bootstrap an environment which
 can be used with async DBAPI like asyncpg, running the command::
 
     alembic init -t async <script_directory_here>

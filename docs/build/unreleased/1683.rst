@@ -1,0 +1,6 @@
+.. change::
+    :tags: usecase, commands
+    :tickets: 1683
+
+    Added new ``pyproject_async`` template, combining the new ``pyproject``
+    template with the ``async`` template.  Pull request courtesy Alc-Alc.
