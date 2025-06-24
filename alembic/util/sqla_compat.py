@@ -31,11 +31,9 @@ from sqlalchemy.sql.elements import BindParameter
 from sqlalchemy.sql.elements import ColumnClause
 from sqlalchemy.sql.elements import TextClause
 from sqlalchemy.sql.elements import UnaryExpression
+from sqlalchemy.sql.naming import _NONE_NAME as _NONE_NAME  # type: ignore[attr-defined] # noqa: E501
 from sqlalchemy.sql.visitors import traverse
 from typing_extensions import TypeGuard
-
-if True:
-    from sqlalchemy.sql.naming import _NONE_NAME as _NONE_NAME  # type: ignore[attr-defined] # noqa: E501
 
 if TYPE_CHECKING:
     from sqlalchemy import ClauseElement
@@ -81,7 +79,7 @@ if TYPE_CHECKING:
     ) -> Callable[[_CompilerProtocol], _CompilerProtocol]: ...
 
 else:
-    from sqlalchemy.ext.compiler import compiles
+    from sqlalchemy.ext.compiler import compiles  # noqa: I100,I202
 
 
 identity_has_dialect_kwargs = issubclass(schema.Identity, DialectKWArgs)
