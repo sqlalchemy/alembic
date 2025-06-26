@@ -248,10 +248,10 @@ The all-in-one .ini file created by ``generic`` is illustrated below::
     # black.entrypoint = black
     # black.options = -l 79 REVISION_SCRIPT_FILENAME
 
-    # lint with attempts to fix using "ruff" - use the exec runner, execute a binary
+    # lint with attempts to fix using "ruff" - use the module runner, against the "ruff" module
     # hooks = ruff
-    # ruff.type = exec
-    # ruff.executable = %(here)s/.venv/bin/ruff
+    # ruff.type = module
+    # ruff.module = ruff
     # ruff.options = check --fix REVISION_SCRIPT_FILENAME
 
     # Logging configuration.  This is also consumed by the user-maintained
