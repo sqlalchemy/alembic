@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import os
 import shlex
 import subprocess
@@ -173,6 +174,39 @@ def exec_(path: str, options: dict, ignore_output: bool = False) -> None:
             executable,
             *cmdline_options_list,
         ],
+        cwd=cwd,
+        **kw,
+    )
+
+
+@register("module")
+def module(path: str, options: dict, ignore_output: bool = False) -> None:
+    try:
+        module_name = options["module"]
+    except KeyError as ke:
+        raise util.CommandError(
+            f"Key {options['_hook_name']}.module is required for post "
+            f"write hook {options['_hook_name']!r}"
+        ) from ke
+
+    if importlib.util.find_spec(module_name) is None:
+        raise util.CommandError(f"Could not find module {module_name}")
+
+    cwd: Optional[str] = options.get("cwd", None)
+    cmdline_options_str = options.get("options", "")
+    cmdline_options_list = _parse_cmdline_options(cmdline_options_str, path)
+
+    kw: Dict[str, Any] = {}
+    if ignore_output:
+        kw["stdout"] = kw["stderr"] = subprocess.DEVNULL
+
+    subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            module_name,
+        ]
+        + cmdline_options_list,
         cwd=cwd,
         **kw,
     )
