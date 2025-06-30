@@ -1,3 +1,4 @@
+import importlib.util
 from pathlib import Path
 import sys
 
@@ -475,5 +476,195 @@ ruff.cwd = /path/to/cwd
             return [rev_path]
 
         self._run_ruff_with_config(
+            input_config, expected_additional_arguments_fn, cwd="/path/to/cwd"
+        )
+
+    def test_module_config_missing(self):
+        self.cfg = _no_sql_testing_config(
+            directives=(
+                """
+[post_write_hooks]
+hooks = ruff
+ruff.type = module
+                """
+            )
+        )
+        assert_raises_message(
+            util.CommandError,
+            "Key ruff.module is required for post write hook 'ruff'",
+            command.revision,
+            self.cfg,
+            message="x",
+        )
+
+    def test_module_not_found(self):
+        self.cfg = _no_sql_testing_config(
+            directives=(
+                """
+[post_write_hooks]
+hooks = ruff
+ruff.type = module
+ruff.module = ruff_not_found
+                """
+            )
+        )
+        assert_raises_message(
+            util.CommandError,
+            "Could not find module ruff_not_found",
+            command.revision,
+            self.cfg,
+            message="x",
+        )
+
+    def _run_black_module_with_config(
+        self,
+        input_config,
+        expected_additional_arguments_fn,
+        cwd=None,
+        use_toml=False,
+    ):
+        if use_toml:
+            self.cfg = _no_sql_pyproject_config(directives=input_config)
+        else:
+            self.cfg = _no_sql_testing_config(directives=input_config)
+
+        black_module_spec = importlib.util.find_spec("black")
+
+        importlib_util_find_spec = mock.Mock(return_value=black_module_spec)
+        with (
+            mock.patch(
+                "importlib.util.find_spec",
+                importlib_util_find_spec,
+            ),
+            mock.patch(
+                "alembic.script.write_hooks.subprocess"
+            ) as mock_subprocess,
+        ):
+            rev = command.revision(self.cfg, message="x")
+
+        eq_(importlib_util_find_spec.mock_calls, [mock.call("black")])
+        eq_(
+            mock_subprocess.mock_calls,
+            [
+                mock.call.run(
+                    [
+                        sys.executable,
+                        "-m",
+                        "black",
+                    ]
+                    + expected_additional_arguments_fn(rev.path),
+                    cwd=cwd,
+                )
+            ],
+        )
+
+    @testing.variation("config", ["ini", "toml"])
+    def test_module(self, config):
+        if config.ini:
+            input_config = """
+[post_write_hooks]
+hooks = black
+black.type = module
+black.module = black
+black.options = -l 79
+            """
+        else:
+            input_config = """
+    [[tool.alembic.post_write_hooks]]
+    name = "black"
+    type = "module"
+    module = "black"
+    options = "-l 79"
+    """
+
+        def expected_additional_arguments_fn(rev_path):
+            return [rev_path, "-l", "79"]
+
+        self._run_black_module_with_config(
+            input_config,
+            expected_additional_arguments_fn,
+            use_toml=config.toml,
+        )
+
+    @combinations(True, False, argnames="posix")
+    @testing.variation("config", ["ini", "toml"])
+    def test_module_filename_interpolation(self, posix, config):
+        if config.ini:
+            input_config = """
+[post_write_hooks]
+hooks = black
+black.type = module
+black.module = black
+black.options = arg1 REVISION_SCRIPT_FILENAME 'multi-word arg' \
+    --flag1='REVISION_SCRIPT_FILENAME'
+        """
+        else:
+            input_config = """
+[[tool.alembic.post_write_hooks]]
+name = "black"
+type = "module"
+module = "black"
+options = "arg1 REVISION_SCRIPT_FILENAME 'multi-word arg' --flag1='REVISION_SCRIPT_FILENAME'"
+"""  # noqa: E501
+
+        def expected_additional_arguments_fn(rev_path):
+            if compat.is_posix:
+                return [
+                    "arg1",
+                    rev_path,
+                    "multi-word arg",
+                    "--flag1=" + rev_path,
+                ]
+            else:
+                return [
+                    "arg1",
+                    rev_path,
+                    "'multi-word arg'",
+                    "--flag1='%s'" % rev_path,
+                ]
+
+        with mock.patch("alembic.util.compat.is_posix", posix):
+            self._run_black_module_with_config(
+                input_config,
+                expected_additional_arguments_fn,
+                use_toml=config.toml,
+            )
+
+    def test_module_path_in_config(self):
+        input_config = """
+[post_write_hooks]
+hooks = black
+black.type = module
+black.module = black
+black.options = arg1 REVISION_SCRIPT_FILENAME --config %(here)s/pyproject.toml
+        """
+
+        def expected_additional_arguments_fn(rev_path):
+            return [
+                "arg1",
+                rev_path,
+                "--config",
+                Path(_get_staging_directory(), "pyproject.toml")
+                .absolute()
+                .as_posix(),
+            ]
+
+        self._run_black_module_with_config(
+            input_config, expected_additional_arguments_fn
+        )
+
+    def test_module_black_with_cwd(self):
+        input_config = """
+[post_write_hooks]
+hooks = black
+black.type = module
+black.module = black
+black.cwd = /path/to/cwd
+        """
+
+        def expected_additional_arguments_fn(rev_path):
+            return [rev_path]
+
+        self._run_black_module_with_config(
             input_config, expected_additional_arguments_fn, cwd="/path/to/cwd"
         )

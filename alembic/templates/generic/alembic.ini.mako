@@ -98,10 +98,16 @@ sqlalchemy.url = driver://user:pass@localhost/dbname
 # black.entrypoint = black
 # black.options = -l 79 REVISION_SCRIPT_FILENAME
 
-# lint with attempts to fix using "ruff" - use the exec runner, execute a binary
+# lint with attempts to fix using "ruff" - use the module runner, against the "ruff" module
+# hooks = ruff
+# ruff.type = module
+# ruff.module = ruff
+# ruff.options = check --fix REVISION_SCRIPT_FILENAME
+
+# Alternatively, use the exec runner to execute a binary found on your PATH
 # hooks = ruff
 # ruff.type = exec
-# ruff.executable = %(here)s/.venv/bin/ruff
+# ruff.executable = ruff
 # ruff.options = check --fix REVISION_SCRIPT_FILENAME
 
 # Logging configuration.  This is also consumed by the user-maintained

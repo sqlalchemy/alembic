@@ -721,12 +721,16 @@ Above, we configure ``hooks`` to be a single post write hook labeled
 configuration for the ``"black"`` post write hook, which includes:
 
 * ``type`` - this is the type of hook we are running.  Alembic includes
-  two hook runners: ``"console_scripts"``, which is specifically a
-  Python function that uses ``subprocess.run()`` to invoke a separate
-  Python script against the revision file; and ``"exec"``, which uses
-  ``subprocess.run()`` to execute an arbitrary binary.  For a custom-written
-  hook function, this configuration variable would refer to the name under
-  which the custom hook was registered; see the next section for an example.
+  three hook runners:
+
+  * ``"console_scripts"``, which is specifically a Python function that uses
+    ``subprocess.run()`` to invoke a separate Python script against the revision file;
+  * ``"exec"``, which uses ``subprocess.run()`` to execute an arbitrary binary; and
+  * ``"module"``, which uses ``subprocess.run()`` to invoke a Python module directly.
+
+  For a custom-written hook function, this configuration variable would
+  refer to the name under which the custom hook was registered; see the
+  next section for an example.
 
 .. versionadded:: 1.12 added new ``exec`` runner
 
