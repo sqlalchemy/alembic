@@ -11,6 +11,7 @@ from sqlalchemy import DATETIME
 from sqlalchemy import DateTime
 from sqlalchemy import DefaultClause
 from sqlalchemy import Enum
+from sqlalchemy import FetchedValue
 from sqlalchemy import ForeignKey
 from sqlalchemy import ForeignKeyConstraint
 from sqlalchemy import func
@@ -2056,6 +2057,15 @@ class AutogenRenderTest(TestBase):
             result,
             "sa.Column('value', sa.Integer(), "
             "server_default='0', nullable=True)",
+        )
+
+    def test_render_server_default_fetched_value(self):
+        c = Column("value", Integer, server_default=FetchedValue())
+        result = autogenerate.render._render_column(c, self.autogen_context)
+        eq_(
+            result,
+            "sa.Column('value', sa.Integer(), "
+            "server_default=sa.FetchedValue(), nullable=True)",
         )
 
     def test_render_modify_reflected_int_server_default(self):
