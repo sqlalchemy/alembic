@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import os
 import shlex
 import subprocess
@@ -112,17 +113,35 @@ def _parse_cmdline_options(cmdline_options_str: str, path: str) -> List[str]:
     return cmdline_options_list
 
 
+def _get_required_option(options: dict, name: str) -> str:
+    try:
+        return options[name]
+    except KeyError as ke:
+        raise util.CommandError(
+            f"Key {options['_hook_name']}.{name} is required for post "
+            f"write hook {options['_hook_name']!r}"
+        ) from ke
+
+
+def _run_hook(
+    path: str, options: dict, ignore_output: bool, command: List[str]
+) -> None:
+    cwd: Optional[str] = options.get("cwd", None)
+    cmdline_options_str = options.get("options", "")
+    cmdline_options_list = _parse_cmdline_options(cmdline_options_str, path)
+
+    kw: Dict[str, Any] = {}
+    if ignore_output:
+        kw["stdout"] = kw["stderr"] = subprocess.DEVNULL
+
+    subprocess.run([*command, *cmdline_options_list], cwd=cwd, **kw)
+
+
 @register("console_scripts")
 def console_scripts(
     path: str, options: dict, ignore_output: bool = False
 ) -> None:
-    try:
-        entrypoint_name = options["entrypoint"]
-    except KeyError as ke:
-        raise util.CommandError(
-            f"Key {options['_hook_name']}.entrypoint is required for post "
-            f"write hook {options['_hook_name']!r}"
-        ) from ke
+    entrypoint_name = _get_required_option(options, "entrypoint")
     for entry in compat.importlib_metadata_get("console_scripts"):
         if entry.name == entrypoint_name:
             impl: Any = entry
@@ -131,48 +150,27 @@ def console_scripts(
         raise util.CommandError(
             f"Could not find entrypoint console_scripts.{entrypoint_name}"
         )
-    cwd: Optional[str] = options.get("cwd", None)
-    cmdline_options_str = options.get("options", "")
-    cmdline_options_list = _parse_cmdline_options(cmdline_options_str, path)
 
-    kw: Dict[str, Any] = {}
-    if ignore_output:
-        kw["stdout"] = kw["stderr"] = subprocess.DEVNULL
-
-    subprocess.run(
-        [
-            sys.executable,
-            "-c",
-            f"import {impl.module}; {impl.module}.{impl.attr}()",
-        ]
-        + cmdline_options_list,
-        cwd=cwd,
-        **kw,
-    )
+    command = [
+        sys.executable,
+        "-c",
+        f"import {impl.module}; {impl.module}.{impl.attr}()",
+    ]
+    _run_hook(path, options, ignore_output, command)
 
 
 @register("exec")
 def exec_(path: str, options: dict, ignore_output: bool = False) -> None:
-    try:
-        executable = options["executable"]
-    except KeyError as ke:
-        raise util.CommandError(
-            f"Key {options['_hook_name']}.executable is required for post "
-            f"write hook {options['_hook_name']!r}"
-        ) from ke
-    cwd: Optional[str] = options.get("cwd", None)
-    cmdline_options_str = options.get("options", "")
-    cmdline_options_list = _parse_cmdline_options(cmdline_options_str, path)
+    executable = _get_required_option(options, "executable")
+    _run_hook(path, options, ignore_output, command=[executable])
 
-    kw: Dict[str, Any] = {}
-    if ignore_output:
-        kw["stdout"] = kw["stderr"] = subprocess.DEVNULL
 
-    subprocess.run(
-        [
-            executable,
-            *cmdline_options_list,
-        ],
-        cwd=cwd,
-        **kw,
-    )
+@register("module")
+def module(path: str, options: dict, ignore_output: bool = False) -> None:
+    module_name = _get_required_option(options, "module")
+
+    if importlib.util.find_spec(module_name) is None:
+        raise util.CommandError(f"Could not find module {module_name}")
+
+    command = [sys.executable, "-m", module_name]
+    _run_hook(path, options, ignore_output, command)

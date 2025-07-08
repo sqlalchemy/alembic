@@ -1,0 +1,11 @@
+.. change::
+    :tags: usecase, autogenerate
+    :tickets: 1686
+
+    Add "module" post-write hook. This hook type is almost identical to the
+    console_scripts hook, except it's running `python -m black` instead of
+    using black's console_script. It is mainly useful for tools without
+    console scripts (e.g. ruff), but has semantics closer to the
+    console_scripts hook in that it finds the ruff module available to the
+    running interpreter instead of finding an executable by path. Pull request
+    courtesy Frazer McLean.

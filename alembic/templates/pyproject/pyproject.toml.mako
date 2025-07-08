@@ -67,10 +67,16 @@ prepend_sys_path = [
 # options = "-l 79 REVISION_SCRIPT_FILENAME"
 #
 # [[tool.alembic.post_write_hooks]]
-# lint with attempts to fix using "ruff" - use the exec runner,
-# execute a binary
+# lint with attempts to fix using "ruff" - use the module runner, against the "ruff" module
+# name = "ruff"
+# type = "module"
+# module = "ruff"
+# options = "check --fix REVISION_SCRIPT_FILENAME"
+#
+# [[tool.alembic.post_write_hooks]]
+# Alternatively, use the exec runner to execute a binary found on your PATH
 # name = "ruff"
 # type = "exec"
-# executable = "%(here)s/.venv/bin/ruff"
+# executable = "ruff"
 # options = "check --fix REVISION_SCRIPT_FILENAME"
 
