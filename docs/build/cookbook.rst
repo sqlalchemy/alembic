@@ -1127,7 +1127,7 @@ copying each column or constraint object and applying a new sorting scheme::
                 special_names.get(col.key, index)
                 if isinstance(col, Column)
                 else 2000,
-                col.copy(),
+                col,
             )
             for index, col in enumerate(op.columns)
         ]
