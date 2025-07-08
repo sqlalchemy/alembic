@@ -813,6 +813,8 @@ def _render_server_default(
             return _render_potential_expr(
                 default.arg, autogen_context, is_server_default=True
             )
+    elif isinstance(default, sa_schema.FetchedValue):
+        return _render_fetched_value(autogen_context)
 
     if isinstance(default, str) and repr_:
         default = repr(re.sub(r"^'|'$", "", default))
@@ -847,6 +849,12 @@ def _render_identity(
     return "%(prefix)sIdentity(%(kwargs)s)" % {
         "prefix": _sqlalchemy_autogenerate_prefix(autogen_context),
         "kwargs": (", ".join("%s=%s" % pair for pair in kwargs.items())),
+    }
+
+
+def _render_fetched_value(autogen_context: AutogenContext) -> str:
+    return "%(prefix)sFetchedValue()" % {
+        "prefix": _sqlalchemy_autogenerate_prefix(autogen_context),
     }
 
 

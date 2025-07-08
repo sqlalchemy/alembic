@@ -1,0 +1,7 @@
+.. change::
+    :tags: bug, autogenerate
+    :tickets: 1633
+
+    Fixed the rendering of ``server_default=FetchedValue()`` to ensure it is
+    preceded by the ``sa.`` prefix in the migration script. Pull request
+    courtesy david-fed.
