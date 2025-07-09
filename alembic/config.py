@@ -455,6 +455,19 @@ class Config:
         else:
             return self._get_toml_config_value(name, default=default)
 
+    def get_alembic_boolean_option(self, name: str) -> bool:
+        if self.file_config.has_option(self.config_ini_section, name):
+            return (
+                self.file_config.get(self.config_ini_section, name) == "true"
+            )
+        else:
+            value = self.toml_alembic_config.get(name, False)
+            if not isinstance(value, bool):
+                raise util.CommandError(
+                    f"boolean value expected for TOML parameter {name!r}"
+                )
+            return value
+
     def _get_toml_config_value(
         self, name: str, default: Optional[Any] = None
     ) -> Union[None, str, list[str], dict[str, str], list[dict[str, str]]]:
@@ -483,7 +496,9 @@ class Config:
                     {k: v % (self.toml_args) for k, v in value.items()},
                 )
             else:
-                raise util.CommandError("unsupported TOML value type")
+                raise util.CommandError(
+                    f"unsupported TOML value type for key: {name!r}"
+                )
         return value
 
     @util.memoized_property

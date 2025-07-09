@@ -186,16 +186,14 @@ class ScriptDirectory:
         if prepend_sys_path:
             sys.path[:0] = prepend_sys_path
 
-        rvl = (
-            config.get_alembic_option("recursive_version_locations") == "true"
-        )
+        rvl = config.get_alembic_boolean_option("recursive_version_locations")
         return ScriptDirectory(
             util.coerce_resource_to_filename(script_location),
             file_template=config.get_alembic_option(
                 "file_template", _default_file_template
             ),
             truncate_slug_length=truncate_slug_length,
-            sourceless=config.get_alembic_option("sourceless") == "true",
+            sourceless=config.get_alembic_boolean_option("sourceless"),
             output_encoding=config.get_alembic_option(
                 "output_encoding", "utf-8"
             ),

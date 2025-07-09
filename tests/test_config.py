@@ -542,6 +542,50 @@ my_list = [
             ],
         )
 
+    @testing.combinations(
+        "sourceless", "recursive_version_locations", argnames="paramname"
+    )
+    @testing.variation("argtype", ["true", "false", "omit", "wrongvalue"])
+    def test_bool(
+        self, pyproject_only_env, argtype: testing.Variation, paramname
+    ):
+
+        cfg = pyproject_only_env
+        with cfg._toml_file_path.open("w") as file_:
+
+            if argtype.true:
+                config_option = f"{paramname} = true"
+            elif argtype.false:
+                config_option = f"{paramname} = false"
+            elif argtype.omit:
+                config_option = ""
+            elif argtype.wrongvalue:
+                config_option = f"{paramname} = 'false'"
+            else:
+                argtype.fail()
+
+            file_.write(
+                rf"""
+
+[tool.alembic]
+script_location = "%(here)s/scripts"
+
+{config_option}
+"""
+            )
+        if "toml_alembic_config" in cfg.__dict__:
+            cfg.__dict__.pop("toml_alembic_config")
+
+        if argtype.wrongvalue:
+            with expect_raises_message(
+                util.CommandError,
+                f"boolean value expected for TOML parameter '{paramname}'",
+            ):
+                sd = ScriptDirectory.from_config(cfg)
+        else:
+            sd = ScriptDirectory.from_config(cfg)
+            eq_(getattr(sd, paramname), bool(argtype.true))
+
 
 class StdoutOutputEncodingTest(TestBase):
     def test_plain(self):
