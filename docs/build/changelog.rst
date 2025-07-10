@@ -5,7 +5,16 @@ Changelog
 
 .. changelog::
     :version: 1.16.4
-    :include_notes_from: unreleased
+    :released: July 10, 2025
+
+    .. change::
+        :tags: bug, config
+        :tickets: 1694
+
+        Fixed issue in new ``pyproject.toml`` support where boolean values, such as
+        those used for the ``recursive_version_locations`` and ``sourceless``
+        configuration parameters, would not be accepted.
+
 
 .. changelog::
     :version: 1.16.3
