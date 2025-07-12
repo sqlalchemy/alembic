@@ -70,7 +70,7 @@ class MySQLImpl(DefaultImpl):
             )
             or isinstance(expr, functions.FunctionElement)
         ):
-            expr = elements.Grouping(expr)  # type: ignore[arg-type]
+            expr = elements.Grouping(expr)
 
         return super().render_ddl_sql_expr(
             expr, is_server_default=is_server_default, is_index=is_index, **kw
