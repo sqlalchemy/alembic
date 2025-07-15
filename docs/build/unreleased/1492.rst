@@ -1,0 +1,7 @@
+.. change::
+    :tags: bug, mysql
+    :tickets: 1492
+
+    Fixed Python-side autogenerate rendering of index expressions in MySQL
+    dialect by aligning it with SQLAlchemy's MySQL index expression rules. Pull
+    request courtesy david-fed.

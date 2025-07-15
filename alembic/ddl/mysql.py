@@ -11,6 +11,9 @@ from typing import Union
 
 from sqlalchemy import schema
 from sqlalchemy import types as sqltypes
+from sqlalchemy.sql import elements
+from sqlalchemy.sql import functions
+from sqlalchemy.sql import operators
 
 from .base import alter_table
 from .base import AlterColumn
@@ -31,6 +34,7 @@ if TYPE_CHECKING:
 
     from sqlalchemy.dialects.mysql.base import MySQLDDLCompiler
     from sqlalchemy.sql.ddl import DropConstraint
+    from sqlalchemy.sql.elements import ClauseElement
     from sqlalchemy.sql.schema import Constraint
     from sqlalchemy.sql.type_api import TypeEngine
 
@@ -46,6 +50,31 @@ class MySQLImpl(DefaultImpl):
         {"JSON", "LONGTEXT"},
     )
     type_arg_extract = [r"character set ([\w\-_]+)", r"collate ([\w\-_]+)"]
+
+    def render_ddl_sql_expr(
+        self,
+        expr: ClauseElement,
+        is_server_default: bool = False,
+        is_index: bool = False,
+        **kw: Any,
+    ) -> str:
+        # apply Grouping to index expressions;
+        # see https://github.com/sqlalchemy/sqlalchemy/blob/
+        # 36da2eaf3e23269f2cf28420ae73674beafd0661/
+        # lib/sqlalchemy/dialects/mysql/base.py#L2191
+        if is_index and (
+            isinstance(expr, elements.BinaryExpression)
+            or (
+                isinstance(expr, elements.UnaryExpression)
+                and expr.modifier not in (operators.desc_op, operators.asc_op)
+            )
+            or isinstance(expr, functions.FunctionElement)
+        ):
+            expr = elements.Grouping(expr)
+
+        return super().render_ddl_sql_expr(
+            expr, is_server_default=is_server_default, is_index=is_index, **kw
+        )
 
     def alter_column(
         self,
