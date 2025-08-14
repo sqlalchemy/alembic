@@ -472,7 +472,7 @@ class Config:
         self, name: str, default: Optional[Any] = None
     ) -> Union[None, str, list[str], dict[str, str], list[dict[str, str]]]:
         USE_DEFAULT = object()
-        value: Union[None, str, list[str], dict[str, str]] = (
+        value: Union[None, str, list[str], dict[str, str], int] = (
             self.toml_alembic_config.get(name, USE_DEFAULT)
         )
         if value is USE_DEFAULT:
@@ -495,6 +495,8 @@ class Config:
                     "dict[str, str]",
                     {k: v % (self.toml_args) for k, v in value.items()},
                 )
+            elif isinstance(value, int):
+                value = str(value)
             else:
                 raise util.CommandError(
                     f"unsupported TOML value type for key: {name!r}"
