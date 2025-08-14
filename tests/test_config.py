@@ -586,6 +586,23 @@ script_location = "%(here)s/scripts"
             sd = ScriptDirectory.from_config(cfg)
             eq_(getattr(sd, paramname), bool(argtype.true))
 
+    def test_toml_int_value(self, pyproject_only_env):
+        cfg = pyproject_only_env
+        with cfg._toml_file_path.open("wb") as file_:
+            file_.write(
+                rb"""
+[tool.alembic]
+script_location = "%(here)s/scripts"
+
+my_int = 42
+"""
+            )
+        if "toml_alembic_config" in cfg.__dict__:
+            cfg.__dict__.pop("toml_alembic_config")
+
+        value = cfg.get_alembic_option("my_int")
+        eq_(value, "42")
+
 
 class StdoutOutputEncodingTest(TestBase):
     def test_plain(self):
