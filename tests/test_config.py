@@ -595,13 +595,20 @@ script_location = "%(here)s/scripts"
 script_location = "%(here)s/scripts"
 
 my_int = 42
+my_int_zero = 0
+my_int_negative = -7
+my_int_large = 12345678901234567890
+my_int_str = "123"
 """
             )
         if "toml_alembic_config" in cfg.__dict__:
             cfg.__dict__.pop("toml_alembic_config")
 
-        value = cfg.get_alembic_option("my_int")
-        eq_(value, "42")
+        eq_(cfg.get_alembic_option("my_int"), "42")
+        eq_(cfg.get_alembic_option("my_int_zero"), "0")
+        eq_(cfg.get_alembic_option("my_int_negative"), "-7")
+        eq_(cfg.get_alembic_option("my_int_large"), "12345678901234567890")
+        eq_(cfg.get_alembic_option("my_int_str"), "123")
 
 
 class StdoutOutputEncodingTest(TestBase):
