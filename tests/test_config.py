@@ -586,29 +586,50 @@ script_location = "%(here)s/scripts"
             sd = ScriptDirectory.from_config(cfg)
             eq_(getattr(sd, paramname), bool(argtype.true))
 
-    def test_toml_int_value(self, pyproject_only_env):
+    @testing.variation("arg_type", ["int", "string_int", "omit", "wrong_value"])
+    def test_truncate_slug_length_types(
+        self, pyproject_only_env, arg_type: testing.Variation
+    ):
+        param_name = "truncate_slug_length"
         cfg = pyproject_only_env
-        with cfg._toml_file_path.open("wb") as file_:
+        with cfg._toml_file_path.open("w") as file_:
+            if arg_type.int:
+                config_option = f"{param_name} = 42"
+            elif arg_type.string_int:
+                config_option = f"{param_name} = '42'"
+            elif arg_type.omit:
+                config_option = ""
+            elif arg_type.wrong_value:
+                config_option = f"{param_name} = 'wrong_value'"
+            else:
+                arg_type.fail()
+
             file_.write(
-                rb"""
+                rf"""
 [tool.alembic]
 script_location = "%(here)s/scripts"
 
-my_int = 42
-my_int_zero = 0
-my_int_negative = -7
-my_int_large = 12345678901234567890
-my_int_str = "123"
+{config_option}
 """
             )
         if "toml_alembic_config" in cfg.__dict__:
             cfg.__dict__.pop("toml_alembic_config")
 
-        eq_(cfg.get_alembic_option("my_int"), "42")
-        eq_(cfg.get_alembic_option("my_int_zero"), "0")
-        eq_(cfg.get_alembic_option("my_int_negative"), "-7")
-        eq_(cfg.get_alembic_option("my_int_large"), "12345678901234567890")
-        eq_(cfg.get_alembic_option("my_int_str"), "123")
+        if arg_type.wrong_value:
+            with expect_raises_message(
+                ValueError,
+                "invalid literal for int() with base 10: 'wrong_value'",
+                text_exact=True,
+            ):
+                sd = ScriptDirectory.from_config(cfg)
+        elif arg_type.omit:
+            sd = ScriptDirectory.from_config(cfg)
+
+            DEFAULT_TRUNCATE_SLUG_LENGTH = 40
+            eq_(getattr(sd, param_name), DEFAULT_TRUNCATE_SLUG_LENGTH)
+        else:
+            sd = ScriptDirectory.from_config(cfg)
+            eq_(getattr(sd, param_name), 42)
 
 
 class StdoutOutputEncodingTest(TestBase):
