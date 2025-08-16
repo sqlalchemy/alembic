@@ -4,3 +4,9 @@ project=sqlalchemy/alembic
 defaultbranch=main
 port=29418
 
+# non-standard config, used by publishthing
+httphost=gerrit.sqlalchemy.org
+
+
+
+
