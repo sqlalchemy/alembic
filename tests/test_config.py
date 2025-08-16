@@ -586,7 +586,9 @@ script_location = "%(here)s/scripts"
             sd = ScriptDirectory.from_config(cfg)
             eq_(getattr(sd, paramname), bool(argtype.true))
 
-    @testing.variation("arg_type", ["int", "string_int", "omit", "wrong_value"])
+    @testing.variation(
+        "arg_type", ["int", "string_int", "omit", "wrong_value"]
+    )
     def test_truncate_slug_length_types(
         self, pyproject_only_env, arg_type: testing.Variation
     ):

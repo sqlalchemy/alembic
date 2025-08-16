@@ -426,7 +426,9 @@ class Config:
 
     def get_alembic_option(
         self, name: str, default: Optional[str] = None
-    ) -> Union[None, str, list[str], dict[str, str], list[dict[str, str]], int]:
+    ) -> Union[
+        None, str, list[str], dict[str, str], list[dict[str, str]], int
+    ]:
         """Return an option from the "[alembic]" or "[tool.alembic]" section
         of the configparser-parsed .ini file (e.g. ``alembic.ini``) or
         toml-parsed ``pyproject.toml`` file.
@@ -470,7 +472,9 @@ class Config:
 
     def _get_toml_config_value(
         self, name: str, default: Optional[Any] = None
-    ) -> Union[None, str, list[str], dict[str, str], list[dict[str, str]], int]:
+    ) -> Union[
+        None, str, list[str], dict[str, str], list[dict[str, str]], int
+    ]:
         USE_DEFAULT = object()
         value: Union[None, str, list[str], dict[str, str], int] = (
             self.toml_alembic_config.get(name, USE_DEFAULT)
