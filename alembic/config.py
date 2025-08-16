@@ -426,7 +426,7 @@ class Config:
 
     def get_alembic_option(
         self, name: str, default: Optional[str] = None
-    ) -> Union[None, str, list[str], dict[str, str], list[dict[str, str]]]:
+    ) -> Union[None, str, list[str], dict[str, str], list[dict[str, str]], int]:
         """Return an option from the "[alembic]" or "[tool.alembic]" section
         of the configparser-parsed .ini file (e.g. ``alembic.ini``) or
         toml-parsed ``pyproject.toml`` file.
@@ -470,9 +470,9 @@ class Config:
 
     def _get_toml_config_value(
         self, name: str, default: Optional[Any] = None
-    ) -> Union[None, str, list[str], dict[str, str], list[dict[str, str]]]:
+    ) -> Union[None, str, list[str], dict[str, str], list[dict[str, str]], int]:
         USE_DEFAULT = object()
-        value: Union[None, str, list[str], dict[str, str], int] = (
+        value: Union[None, str, list[str], dict[str, str], list[dict[str,str]], int] = (
             self.toml_alembic_config.get(name, USE_DEFAULT)
         )
         if value is USE_DEFAULT:
@@ -496,7 +496,7 @@ class Config:
                     {k: v % (self.toml_args) for k, v in value.items()},
                 )
             elif isinstance(value, int):
-                value = str(value)
+                return value
             else:
                 raise util.CommandError(
                     f"unsupported TOML value type for key: {name!r}"
