@@ -586,6 +586,53 @@ script_location = "%(here)s/scripts"
             sd = ScriptDirectory.from_config(cfg)
             eq_(getattr(sd, paramname), bool(argtype.true))
 
+    @testing.variation(
+        "arg_type", ["int", "string_int", "omit", "wrong_value"]
+    )
+    def test_truncate_slug_length_types(
+        self, pyproject_only_env, arg_type: testing.Variation
+    ):
+        param_name = "truncate_slug_length"
+        cfg = pyproject_only_env
+        with cfg._toml_file_path.open("w") as file_:
+            if arg_type.int:
+                config_option = f"{param_name} = 42"
+            elif arg_type.string_int:
+                config_option = f"{param_name} = '42'"
+            elif arg_type.omit:
+                config_option = ""
+            elif arg_type.wrong_value:
+                config_option = f"{param_name} = 'wrong_value'"
+            else:
+                arg_type.fail()
+
+            file_.write(
+                rf"""
+[tool.alembic]
+script_location = "%(here)s/scripts"
+
+{config_option}
+"""
+            )
+        if "toml_alembic_config" in cfg.__dict__:
+            cfg.__dict__.pop("toml_alembic_config")
+
+        if arg_type.wrong_value:
+            with expect_raises_message(
+                ValueError,
+                "invalid literal for int() with base 10: 'wrong_value'",
+                text_exact=True,
+            ):
+                sd = ScriptDirectory.from_config(cfg)
+        elif arg_type.omit:
+            sd = ScriptDirectory.from_config(cfg)
+
+            DEFAULT_TRUNCATE_SLUG_LENGTH = 40
+            eq_(getattr(sd, param_name), DEFAULT_TRUNCATE_SLUG_LENGTH)
+        else:
+            sd = ScriptDirectory.from_config(cfg)
+            eq_(getattr(sd, param_name), 42)
+
 
 class StdoutOutputEncodingTest(TestBase):
     def test_plain(self):
