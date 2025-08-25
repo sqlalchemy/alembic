@@ -507,7 +507,7 @@ def _mysql_drop_constraint(
         # note that SQLAlchemy as of 1.2 does not yet support
         # DROP CONSTRAINT for MySQL/MariaDB, so we implement fully
         # here.
-        if compiler.dialect.is_mariadb:  # type: ignore[attr-defined]
+        if compiler.dialect.is_mariadb:
             return "ALTER TABLE %s DROP CONSTRAINT %s" % (
                 compiler.preparer.format_table(constraint.table),
                 compiler.preparer.format_constraint(constraint),
