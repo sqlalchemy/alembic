@@ -5,7 +5,23 @@ Changelog
 
 .. changelog::
     :version: 1.16.5
-    :include_notes_from: unreleased
+    :released: August 27, 2025
+
+    .. change::
+        :tags: bug, mysql
+        :tickets: 1492
+
+        Fixed Python-side autogenerate rendering of index expressions in MySQL
+        dialect by aligning it with SQLAlchemy's MySQL index expression rules. Pull
+        request courtesy david-fed.
+
+    .. change::
+        :tags: bug, config
+        :tickets: 1709
+
+        Fixed issue where new pyproject.toml config would fail to parse the integer
+        value used for the ``truncate_slug_length`` parameter.  Pull request
+        courtesy Luís Henrique Allebrandt Schunemann.
 
 .. changelog::
     :version: 1.16.4
