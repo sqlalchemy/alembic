@@ -43,6 +43,10 @@ jobs:
           # sqla14 does not support 3.13+
           - sqlalchemy: sqla14
             python-version: "3.13"
+          # sqlamain does not support 3.9
+          - sqlalchemy: main
+            python-version: "3.9"
+
 
       fail-fast: false
 
