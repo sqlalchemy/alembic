@@ -1763,7 +1763,10 @@ class AutogenRenderTest(TestBase):
         )
 
     def _check_enum_inherit_schema(self, enum):
-        if enum.inherit_schema:
+        if (
+            not sqla_compat._inherit_schema_deprecated()
+            and enum.inherit_schema
+        ):
             return enum, ", inherit_schema=True"
         else:
             return enum, ""

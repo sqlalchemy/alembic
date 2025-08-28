@@ -70,6 +70,7 @@ _vers = tuple(
 sqla_14_18 = _vers >= (1, 4, 18)
 sqla_14_26 = _vers >= (1, 4, 26)
 sqla_2 = _vers >= (2,)
+sqla_2_1 = _vers >= (2, 1)
 sqlalchemy_version = __version__
 
 if TYPE_CHECKING:
@@ -493,3 +494,9 @@ def is_expression(expr: Any) -> bool:
     if not isinstance(expr, ColumnClause) or expr.is_literal:
         return True
     return False
+
+
+def _inherit_schema_deprecated() -> bool:
+    # at some point in 2.1 inherit_schema was replaced with a property
+    # so that's preset at the class level, while before it wasn't.
+    return sqla_2_1 and hasattr(sqltypes.Enum, "inherit_schema")
