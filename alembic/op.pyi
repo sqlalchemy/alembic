@@ -983,6 +983,7 @@ def drop_constraint(
     if_exists: Optional[bool] = None,
 ) -> None: ...
 
+@overload
 def drop_constraint(
     constraint_name: Optional[str],
     table_name: str,
