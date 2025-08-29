@@ -1397,7 +1397,7 @@ class Operations(AbstractOperations):
 
         def drop_constraint(
             self,
-            constraint_name: str,
+            constraint_name: Optional[str],
             table_name: str,
             type_: Optional[str] = None,
             *,

@@ -202,7 +202,7 @@ class DropConstraintOp(MigrateOperation):
     def drop_constraint(
         cls,
         operations: Operations,
-        constraint_name: str,
+        constraint_name: Optional[str],
         table_name: str,
         type_: Optional[str] = None,
         *,

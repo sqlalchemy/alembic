@@ -963,8 +963,28 @@ def drop_column(
      it, at the moment.
     """
 
+@overload
 def drop_constraint(
     constraint_name: str,
+    table_name: str,
+    type_: Optional[str] = None,
+    *,
+    schema: Optional[str] = None,
+    if_exists: Optional[bool] = None,
+) -> None: ...
+
+@overload  
+def drop_constraint(
+    constraint_name: None,
+    table_name: str,
+    type_: str,
+    *,
+    schema: Optional[str] = None,
+    if_exists: Optional[bool] = None,
+) -> None: ...
+
+def drop_constraint(
+    constraint_name: Optional[str],
     table_name: str,
     type_: Optional[str] = None,
     *,
