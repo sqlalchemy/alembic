@@ -51,6 +51,40 @@ tz = ["tzdata"]
 [project.scripts]
 alembic = "alembic.config:main"
 
+[dependency-groups]
+tests = [
+    "pytest>8,<8.4",
+    "pytest-xdist",
+    "black==25.1.0"  # for test_post_write.py
+]
+
+coverage = [
+    "pytest-cov"
+]
+
+tests_postgresql = ["psycopg2>=2.7"]
+tests_mysql = ["mysqlclient>=1.4.0", "pymysql"]
+tests_oracle = ["cx_oracle", "oracledb"]
+tests_mssql = ["pyodbc"]
+
+lint = [
+    "flake8",
+    "flake8-import-order>=0.19.2",
+    "flake8-import-single==0.1.5",
+    "flake8-builtins",
+    "flake8-docstrings",
+    "flake8-rst-docstrings",
+    "pydocstyle<4.0.0",
+    "pygments",
+    "black==25.1.0"
+]
+
+mypy = [
+    "mypy>=1.16.0",
+    "nox",  # because we check noxfile.py
+    "pytest>8,<8.4",  # alembic/testing imports pytest
+]
+
 [tool.setuptools]
 include-package-data = true
 zip-safe = false

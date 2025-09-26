@@ -11,6 +11,7 @@ alembic.ini
 .coverage
 coverage.xml
 .tox
+.nox
 *.patch
 /scratch
 /scratch_test_*

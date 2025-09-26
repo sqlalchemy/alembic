@@ -4,7 +4,7 @@ recursive-include alembic/templates *.mako README *.py *.pyi
 recursive-include alembic *.py *.pyi py.typed
 recursive-include tools *.py
 
-include README* LICENSE CHANGES* tox.ini
+include README* LICENSE CHANGES* tox.ini noxfile.py
 
 prune docs/build/output
 
