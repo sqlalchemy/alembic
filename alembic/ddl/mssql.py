@@ -96,7 +96,9 @@ class MSSQLImpl(DefaultImpl):
         type_: Optional[TypeEngine] = None,
         schema: Optional[str] = None,
         existing_type: Optional[TypeEngine] = None,
-        existing_server_default: Optional[_ServerDefault] = None,
+        existing_server_default: Union[
+            _ServerDefault, Literal[False], None
+        ] = None,
         existing_nullable: Optional[bool] = None,
         **kw: Any,
     ) -> None:
