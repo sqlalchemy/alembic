@@ -55,7 +55,8 @@ alembic = "alembic.config:main"
 tests = [
     "pytest>8,<8.4",
     "pytest-xdist",
-    "black==25.1.0"  # for test_post_write.py
+    "black==25.1.0",  # for test_post_write.py
+    "tzdata"
 ]
 
 coverage = [

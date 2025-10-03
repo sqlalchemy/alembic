@@ -215,11 +215,10 @@ def lint(session: nox.Session) -> None:
 
 
 @nox.session(name="pyoptimize")
-@tox_parameters(["python"], [PYTHON_VERSIONS], base_tag="pyoptimize")
 def test_pyoptimize(session: nox.Session) -> None:
     """Run the script consumption suite against .pyo files rather than .pyc"""
 
-    session.install(*nox.project.dependency_groups(pyproject, "test"))
+    session.install(*nox.project.dependency_groups(pyproject, "tests"))
     session.install(".")
 
     session.env["PYTHONOPTIMIZE"] = "1"

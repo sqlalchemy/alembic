@@ -71,7 +71,7 @@ def tox_parameters(
 
     """
 
-    PY_RE = re.compile(r"(?:python)?([234]\.\d+t?)")
+    PY_RE = re.compile(r"(?:python)?([234]\.\d+(t?))")
 
     def _is_py_version(token):
         return bool(PY_RE.match(token))
@@ -84,8 +84,15 @@ def tox_parameters(
         name
 
         """
+        if sys.platform == "win32":
+            return token
+
         m = PY_RE.match(token)
-        if m:
+
+        # do this matching minimally so that it only happens for the
+        # free-threaded versions.  on windows, the "pythonx.y" syntax doesn't
+        # work due to the use of the "py" tool
+        if m and m.group(2) == "t":
             return f"python{m.group(1)}"
         else:
             return token
@@ -185,8 +192,7 @@ def tox_parameters(
     ]
 
     # for p in params:
-    #   print(f"PARAM {'-'.join(p.args)} TAGS {p.tags}")
-    # breakpoint()
+    #     print(f"PARAM {'-'.join(p.args)} TAGS {p.tags}")
 
     return nox.parametrize(names, params)
 
