@@ -23,6 +23,7 @@ version_table = Table(
     MetaData(),
     Column("version_num", String(32), nullable=False),
 )
+alembic_version_table = Table("alembic_version", MetaData())
 
 
 def _up(from_, to_, branch_presence_changed=False):
@@ -46,6 +47,7 @@ class TestMigrationContext(TestBase):
         self.transaction.rollback()
         with self.connection.begin():
             version_table.drop(self.connection, checkfirst=True)
+            alembic_version_table.drop(self.connection, checkfirst=True)
         self.connection.close()
 
     def make_one(self, **kwargs):
