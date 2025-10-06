@@ -12,6 +12,7 @@ from packaging.version import parse as parse_version
 
 if True:
     sys.path.insert(0, ".")
+    from tools.toxnox import move_junit_file
     from tools.toxnox import tox_parameters
     from tools.toxnox import extract_opts
 
@@ -168,17 +169,8 @@ def _tests(
 
     posargs, opts = extract_opts(session.posargs, "generate-junit")
 
-    # produce individual junit files that are per-database (or as close as we
-    # can get).  jenkins junit plugin will merge all the files...
-    if len(databases) == 1:
-        junitfile = f"junit-{databases[0]}.xml"
-        suite_name = f"pytest-{databases[0]}"
-    else:
-        junitfile = "junit-general.xml"
-        suite_name = "pytest-general"
-
     if opts.generate_junit:
-        cmd.extend(["--junitxml", junitfile])
+        cmd.extend(["--junitxml", "junit-tmp.xml"])
 
     cmd.extend(posargs)
 
@@ -188,12 +180,17 @@ def _tests(
     # get merged we can view each suite distinctly rather than them getting
     # overwritten with each other since they are running the same tests
     if opts.generate_junit:
-        import junitparser
 
-        xml = junitparser.JUnitXml.fromfile(junitfile)
-        for suite in xml:
-            suite.name = suite_name
-        xml.write(junitfile)
+        # produce individual junit files that are per-database (or as close as
+        # we can get).  jenkins junit plugin will merge all the files...
+        if len(databases) == 1:
+            junitfile = f"junit-{databases[0]}.xml"
+            suite_name = f"pytest-{databases[0]}"
+        else:
+            junitfile = "junit-general.xml"
+            suite_name = "pytest-general"
+
+        move_junit_file("junit-tmp.xml", junitfile, suite_name)
 
     # Run cleanup for oracle/mssql
     for database in databases:
