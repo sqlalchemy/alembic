@@ -352,7 +352,9 @@ class PostgresqlOpTest(TestBase):
         context = op_fixture("postgresql")
         op.add_column(
             "t1",
-            Column("some_column", Integer, Computed("foo * 5")),
+            Column(
+                "some_column", Integer, Computed("foo * 5", persisted=True)
+            ),
         )
         context.assert_(
             "ALTER TABLE t1 ADD COLUMN some_column "
