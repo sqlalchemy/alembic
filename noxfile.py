@@ -147,7 +147,7 @@ def _tests(
                 *nox.project.dependency_groups(pyproject, "tests_mysql")
             )
             cmd.extend(os.environ.get("TOX_MYSQL", "--db mysql").split())
-        elif databases == "oracle":
+        elif database == "oracle":
             # we'd like to use oracledb but SQLAlchemy 1.4 does not have
             # oracledb support...
             session.install(
@@ -159,7 +159,6 @@ def _tests(
                 session.env["NLS_LANG"] = os.environ.get("NLS_LANG")
             cmd.extend(os.environ.get("TOX_ORACLE", "--db oracle").split())
             cmd.extend("--write-idents db_idents.txt".split())
-
         elif database == "mssql":
             session.install(
                 *nox.project.dependency_groups(pyproject, "tests_mssql")
@@ -168,15 +167,33 @@ def _tests(
             cmd.extend("--write-idents db_idents.txt".split())
 
     posargs, opts = extract_opts(session.posargs, "generate-junit")
+
+    # produce individual junit files that are per-database (or as close as we
+    # can get).  jenkins junit plugin will merge all the files...
+    if len(databases) == 1:
+        junitfile = f"junit-{databases[0]}.xml"
+        suite_name = f"pytest-{databases[0]}"
+    else:
+        junitfile = "junit-general.xml"
+        suite_name = "pytest-general"
+
     if opts.generate_junit:
-        if len(databases) == 1:
-            cmd.extend(["--junitxml", f"junit-{databases[0]}.xml"])
-        else:
-            cmd.extend(["--junitxml", "junit-general.xml"])
+        cmd.extend(["--junitxml", junitfile])
 
     cmd.extend(posargs)
 
     session.run(*cmd)
+
+    # name the suites distinctly as well.   this is so that when they
+    # get merged we can view each suite distinctly rather than them getting
+    # overwritten with each other since they are running the same tests
+    if opts.generate_junit:
+        import junitparser
+
+        xml = junitparser.JUnitXml.fromfile(junitfile)
+        for suite in xml:
+            suite.name = suite_name
+        xml.write(junitfile)
 
     # Run cleanup for oracle/mssql
     for database in databases:

@@ -56,7 +56,8 @@ tests = [
     "pytest>8,<8.4",
     "pytest-xdist",
     "black==25.1.0",  # for test_post_write.py
-    "tzdata"
+    "tzdata",
+    "junitparser"
 ]
 
 coverage = [
