@@ -174,28 +174,28 @@ def _tests(
 
     cmd.extend(posargs)
 
-    session.run(*cmd)
+    try:
+        session.run(*cmd)
+    finally:
+        # name the suites distinctly as well.   this is so that when they get
+        # merged we can view each suite distinctly rather than them getting
+        # overwritten with each other since they are running the same tests
+        if opts.generate_junit:
+            # produce individual junit files that are per-database (or as close
+            # as we can get).  jenkins junit plugin will merge all the files...
+            if len(databases) == 1:
+                junitfile = f"junit-{databases[0]}.xml"
+                suite_name = f"pytest-{databases[0]}"
+            else:
+                junitfile = "junit-general.xml"
+                suite_name = "pytest-general"
 
-    # name the suites distinctly as well.   this is so that when they
-    # get merged we can view each suite distinctly rather than them getting
-    # overwritten with each other since they are running the same tests
-    if opts.generate_junit:
+            move_junit_file("junit-tmp.xml", junitfile, suite_name)
 
-        # produce individual junit files that are per-database (or as close as
-        # we can get).  jenkins junit plugin will merge all the files...
-        if len(databases) == 1:
-            junitfile = f"junit-{databases[0]}.xml"
-            suite_name = f"pytest-{databases[0]}"
-        else:
-            junitfile = "junit-general.xml"
-            suite_name = "pytest-general"
-
-        move_junit_file("junit-tmp.xml", junitfile, suite_name)
-
-    # Run cleanup for oracle/mssql
-    for database in databases:
-        if database in ["oracle", "mssql"]:
-            session.run("python", "reap_dbs.py", "db_idents.txt")
+        # Run cleanup for oracle/mssql
+        for database in databases:
+            if database in ["oracle", "mssql"]:
+                session.run("python", "reap_dbs.py", "db_idents.txt")
 
 
 @nox.session(name="pep484")
