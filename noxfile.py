@@ -184,8 +184,9 @@ def _tests(
             # produce individual junit files that are per-database (or as close
             # as we can get).  jenkins junit plugin will merge all the files...
             if len(databases) == 1:
-                junitfile = f"junit-{databases[0]}.xml"
-                suite_name = f"pytest-{databases[0]}"
+                tag = "-".join(databases)
+                junitfile = f"junit-{tag}.xml"
+                suite_name = f"pytest-{tag}"
             else:
                 junitfile = "junit-general.xml"
                 suite_name = "pytest-general"
