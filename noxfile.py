@@ -12,9 +12,9 @@ from packaging.version import parse as parse_version
 
 if True:
     sys.path.insert(0, ".")
-    from tools.toxnox import move_junit_file
     from tools.toxnox import tox_parameters
     from tools.toxnox import extract_opts
+    from tools.toxnox import OUR_PYTHON
 
 
 SQLA_REPO = os.environ.get(
@@ -59,31 +59,16 @@ def filter_sqla(
     [PYTHON_VERSIONS, SQLALCHEMY_VERSIONS, DATABASES],
     filter_=filter_sqla,
 )
-def tests(session: nox.Session, sqlalchemy: str, database: str) -> None:
+def tests(
+    session: nox.Session, python: str, sqlalchemy: str, database: str
+) -> None:
     """Run the main test suite against one database at a time"""
 
-    _tests(session, sqlalchemy, [database])
-
-
-@nox.session()
-@tox_parameters(
-    ["python", "sqlalchemy"],
-    [PYTHON_VERSIONS, SQLALCHEMY_VERSIONS],
-    filter_=filter_sqla,
-    base_tag="all",
-)
-def tests_alldb(session: nox.Session, sqlalchemy: str) -> None:
-    """Run the main test suite against all backends at once"""
-
-    _tests(session, sqlalchemy, DATABASES)
+    _tests(session, sqlalchemy, [database], python=python)
 
 
 @nox.session(name="coverage")
-@tox_parameters(
-    ["database"],
-    [DATABASES],
-    base_tag="coverage",
-)
+@tox_parameters(["database"], [DATABASES], base_tag="coverage")
 def coverage(session: nox.Session, database: str) -> None:
     """Run tests with coverage."""
 
@@ -94,6 +79,8 @@ def _tests(
     session: nox.Session,
     sqlalchemy: str,
     databases: Sequence[str],
+    *,
+    python: str = OUR_PYTHON,
     coverage: bool = False,
 ) -> None:
     if sqlalchemy == "sqla14":
@@ -170,29 +157,20 @@ def _tests(
     posargs, opts = extract_opts(session.posargs, "generate-junit")
 
     if opts.generate_junit:
-        cmd.extend(["--junitxml", "junit-tmp.xml"])
+        # produce individual junit files that are per-database (or as close
+        # as we can get).  jenkins junit plugin will merge all the files...
+        if len(databases) == 1:
+            tag = "-".join(databases)
+            junitfile = f"junit-{tag}.xml"
+        else:
+            junitfile = "junit-general.xml"
+        cmd.extend(["--junitxml", junitfile])
 
     cmd.extend(posargs)
 
     try:
         session.run(*cmd)
     finally:
-        # name the suites distinctly as well.   this is so that when they get
-        # merged we can view each suite distinctly rather than them getting
-        # overwritten with each other since they are running the same tests
-        if opts.generate_junit:
-            # produce individual junit files that are per-database (or as close
-            # as we can get).  jenkins junit plugin will merge all the files...
-            if len(databases) == 1:
-                tag = "-".join(databases)
-                junitfile = f"junit-{tag}.xml"
-                suite_name = f"pytest-{tag}"
-            else:
-                junitfile = "junit-general.xml"
-                suite_name = "pytest-general"
-
-            move_junit_file("junit-tmp.xml", junitfile, suite_name)
-
         # Run cleanup for oracle/mssql
         for database in databases:
             if database in ["oracle", "mssql"]:

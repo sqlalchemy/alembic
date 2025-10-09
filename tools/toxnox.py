@@ -11,7 +11,6 @@ would fall back to defaults.
 from __future__ import annotations
 
 import collections
-import os
 import re
 import sys
 from typing import Any
@@ -216,13 +215,3 @@ def extract_opts(posargs: List[str], *args: str) -> Tuple[List[str], Any]:
     return [arg for arg in posargs if not extract(arg)], return_tuple(
         *return_args
     )
-
-
-def move_junit_file(tmpfilename: str, newname: str, suite_name: str):
-    import junitparser
-
-    xml = junitparser.JUnitXml.fromfile(tmpfilename)
-    for suite in xml:
-        suite.name = suite_name
-    xml.write(newname)
-    os.unlink(tmpfilename)
