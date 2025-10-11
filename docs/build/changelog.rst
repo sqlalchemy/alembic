@@ -5,7 +5,21 @@ Changelog
 
 .. changelog::
     :version: 1.17.0
-    :include_notes_from: unreleased
+    :released: October 11, 2025
+
+    .. change::
+        :tags: change, tests
+
+        The top-level test runner has been changed to use ``nox``, adding a
+        ``noxfile.py`` as well as some included modules.   The ``tox.ini`` file
+        remains in place so that ``tox`` runs will continue to function in the near
+        term, however it will be eventually removed and improvements and
+        maintenance going forward will be only towards ``noxfile.py``.
+
+    .. change::
+        :tags: change, general
+
+        The minimum Python version is now 3.10, as Python 3.9 is EOL.
 
 .. changelog::
     :version: 1.16.5
