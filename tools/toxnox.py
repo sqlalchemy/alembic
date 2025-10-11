@@ -15,10 +15,7 @@ import re
 import sys
 from typing import Any
 from typing import Callable
-from typing import List
-from typing import Optional
 from typing import Sequence
-from typing import Tuple
 
 import nox
 
@@ -29,9 +26,9 @@ def tox_parameters(
     names: Sequence[str],
     token_lists: Sequence[Sequence[str]],
     *,
-    base_tag: Optional[str] = None,
-    filter_: Optional[Callable[..., bool]] = None,
-    always_include_in_tag: Optional[Sequence[str]] = None,
+    base_tag: str | None = None,
+    filter_: Callable[..., bool] | None = None,
+    always_include_in_tag: Sequence[str] | None = None,
 ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     r"""Decorator to create a parameter/tagging structure for a nox session
     function that acts to a large degree like tox's generative environments.
@@ -197,7 +194,7 @@ def tox_parameters(
     return nox.parametrize(names, params)
 
 
-def extract_opts(posargs: List[str], *args: str) -> Tuple[List[str], Any]:
+def extract_opts(posargs: list[str], *args: str) -> tuple[list[str], Any]:
 
     underscore_args = [arg.replace("-", "_") for arg in args]
     return_tuple = collections.namedtuple("options", underscore_args)

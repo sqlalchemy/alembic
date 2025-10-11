@@ -6,8 +6,6 @@ from glob import glob
 import os
 import shutil
 import sys
-from typing import Optional
-from typing import Sequence
 
 import nox
 from packaging.version import parse as parse_version
@@ -34,6 +32,7 @@ PYTHON_VERSIONS = [
 ]
 DATABASES = ["sqlite", "postgresql", "mysql", "oracle", "mssql"]
 SQLALCHEMY_VERSIONS = ["default", "sqla14", "sqla20", "sqlamain"]
+BACKEND = ["_nobackend", "backendonly"]
 
 pyproject = nox.project.load_toml("pyproject.toml")
 
@@ -42,7 +41,10 @@ nox.options.tags = ["py"]
 
 
 def filter_sqla(
-    python: str, sqlalchemy: str, database: Optional[str] = None
+    python: str,
+    sqlalchemy: str,
+    database: str | None = None,
+    backendonly: str | None = None,
 ) -> bool:
     python_version = parse_version(python.rstrip("t"))
     if sqlalchemy == "sqla14":
@@ -55,16 +57,26 @@ def filter_sqla(
 
 @nox.session()
 @tox_parameters(
-    ["python", "sqlalchemy", "database"],
-    [PYTHON_VERSIONS, SQLALCHEMY_VERSIONS, DATABASES],
+    ["python", "sqlalchemy", "database", "backendonly"],
+    [PYTHON_VERSIONS, SQLALCHEMY_VERSIONS, DATABASES, BACKEND],
     filter_=filter_sqla,
 )
 def tests(
-    session: nox.Session, python: str, sqlalchemy: str, database: str
+    session: nox.Session,
+    python: str,
+    sqlalchemy: str,
+    database: str,
+    backendonly: str,
 ) -> None:
     """Run the main test suite against one database at a time"""
 
-    _tests(session, sqlalchemy, [database], python=python)
+    _tests(
+        session,
+        sqlalchemy,
+        database,
+        python=python,
+        backendonly=backendonly == "backendonly",
+    )
 
 
 @nox.session(name="coverage")
@@ -72,23 +84,25 @@ def tests(
 def coverage(session: nox.Session, database: str) -> None:
     """Run tests with coverage."""
 
-    _tests(session, "default", [database], coverage=True)
+    _tests(session, "default", database, coverage=True)
 
 
 def _tests(
     session: nox.Session,
     sqlalchemy: str,
-    databases: Sequence[str],
+    database: str,
     *,
     python: str = OUR_PYTHON,
     coverage: bool = False,
+    backendonly: bool = False,
 ) -> None:
-    if sqlalchemy == "sqla14":
-        session.install(f"{SQLA_REPO}@rel_1_4#egg=sqlalchemy")
-    elif sqlalchemy == "sqla20":
-        session.install(f"{SQLA_REPO}@rel_2_0#egg=sqlalchemy")
-    elif sqlalchemy == "sqlamain":
-        session.install(f"{SQLA_REPO}#egg=sqlalchemy")
+    match sqlalchemy:
+        case "sqla14":
+            session.install(f"{SQLA_REPO}@rel_1_4#egg=sqlalchemy")
+        case "sqla20":
+            session.install(f"{SQLA_REPO}@rel_2_0#egg=sqlalchemy")
+        case "sqlamain":
+            session.install(f"{SQLA_REPO}#egg=sqlalchemy")
 
     # for sqlalchemy == "default", the alembic install will install
     # current released SQLAlchemy version as a dependency
@@ -120,22 +134,22 @@ def _tests(
 
     cmd.extend(os.environ.get("TOX_WORKERS", "-n4").split())
 
-    for database in databases:
-        if database == "sqlite":
+    match database:
+        case "sqlite":
             cmd.extend(os.environ.get("TOX_SQLITE", "--db sqlite").split())
-        elif database == "postgresql":
+        case "postgresql":
             session.install(
                 *nox.project.dependency_groups(pyproject, "tests_postgresql")
             )
             cmd.extend(
                 os.environ.get("TOX_POSTGRESQL", "--db postgresql").split()
             )
-        elif database == "mysql":
+        case "mysql":
             session.install(
                 *nox.project.dependency_groups(pyproject, "tests_mysql")
             )
             cmd.extend(os.environ.get("TOX_MYSQL", "--db mysql").split())
-        elif database == "oracle":
+        case "oracle":
             # we'd like to use oracledb but SQLAlchemy 1.4 does not have
             # oracledb support...
             session.install(
@@ -147,23 +161,21 @@ def _tests(
                 session.env["NLS_LANG"] = os.environ.get("NLS_LANG")
             cmd.extend(os.environ.get("TOX_ORACLE", "--db oracle").split())
             cmd.extend("--write-idents db_idents.txt".split())
-        elif database == "mssql":
+        case "mssql":
             session.install(
                 *nox.project.dependency_groups(pyproject, "tests_mssql")
             )
             cmd.extend(os.environ.get("TOX_MSSQL", "--db mssql").split())
             cmd.extend("--write-idents db_idents.txt".split())
 
+    if backendonly:
+        cmd.append("--backend-only")
+
     posargs, opts = extract_opts(session.posargs, "generate-junit")
 
     if opts.generate_junit:
-        # produce individual junit files that are per-database (or as close
-        # as we can get).  jenkins junit plugin will merge all the files...
-        if len(databases) == 1:
-            tag = "-".join(databases)
-            junitfile = f"junit-{tag}.xml"
-        else:
-            junitfile = "junit-general.xml"
+        # produce individual junit files that are per-database
+        junitfile = f"junit-{database}.xml"
         cmd.extend(["--junitxml", junitfile])
 
     cmd.extend(posargs)
@@ -172,9 +184,8 @@ def _tests(
         session.run(*cmd)
     finally:
         # Run cleanup for oracle/mssql
-        for database in databases:
-            if database in ["oracle", "mssql"]:
-                session.run("python", "reap_dbs.py", "db_idents.txt")
+        if database in ["oracle", "mssql"]:
+            session.run("python", "reap_dbs.py", "db_idents.txt")
 
         # Clean up scratch directories
         for scratch_dir in glob("scratch*"):
@@ -232,7 +243,7 @@ def test_pyoptimize(session: nox.Session) -> None:
 
     posargs, opts = extract_opts(session.posargs, "generate-junit")
     if opts.generate_junit:
-        cmd.extend(["--junitxml", "junit-general.xml"])
+        cmd.extend(["--junitxml", "junit-pyoptimize.xml"])
 
     cmd.extend(posargs)
 
