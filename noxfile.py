@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+from glob import glob
 import os
+import shutil
 import sys
 from typing import Optional
 from typing import Sequence
@@ -22,8 +24,6 @@ SQLA_REPO = os.environ.get(
 )
 
 PYTHON_VERSIONS = [
-    "3.8",
-    "3.9",
     "3.10",
     "3.11",
     "3.12",
@@ -48,7 +48,7 @@ def filter_sqla(
     if sqlalchemy == "sqla14":
         return python_version < parse_version("3.14")
     elif sqlalchemy == "sqlamain":
-        return python_version > parse_version("3.9")
+        return python_version >= parse_version("3.10")
     else:
         return True
 
@@ -175,6 +175,11 @@ def _tests(
         for database in databases:
             if database in ["oracle", "mssql"]:
                 session.run("python", "reap_dbs.py", "db_idents.txt")
+
+        # Clean up scratch directories
+        for scratch_dir in glob("scratch*"):
+            if os.path.isdir(scratch_dir):
+                shutil.rmtree(scratch_dir)
 
 
 @nox.session(name="pep484")

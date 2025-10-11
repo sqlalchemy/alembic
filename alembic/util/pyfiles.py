@@ -3,6 +3,7 @@ from __future__ import annotations
 import atexit
 from contextlib import ExitStack
 import importlib
+from importlib import resources
 import importlib.machinery
 import importlib.util
 import os
@@ -17,7 +18,6 @@ from typing import Union
 from mako import exceptions
 from mako.template import Template
 
-from . import compat
 from .exc import CommandError
 
 
@@ -68,11 +68,11 @@ def coerce_resource_to_filename(fname_or_resource: str) -> pathlib.Path:
         file_manager = ExitStack()
         atexit.register(file_manager.close)
 
-        ref = compat.importlib_resources.files(tokens[0])
+        ref = resources.files(tokens[0])
         for tok in tokens[1:]:
             ref = ref / tok
         fname_or_resource = file_manager.enter_context(  # type: ignore[assignment]  # noqa: E501
-            compat.importlib_resources.as_file(ref)
+            resources.as_file(ref)
         )
     return pathlib.Path(fname_or_resource)
 

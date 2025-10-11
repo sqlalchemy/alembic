@@ -8,6 +8,9 @@ import re
 import shutil
 from typing import Any
 from typing import Dict
+from typing import Generator
+from typing import Literal
+from typing import overload
 
 from sqlalchemy import Column
 from sqlalchemy import create_mock_engine
@@ -52,7 +55,7 @@ class TestBase(SQLAlchemyTestBase):
                 shutil.rmtree(file_path)
 
     @contextmanager
-    def pushd(self, dirname):
+    def pushd(self, dirname) -> Generator[None, None, None]:
         current_dir = os.getcwd()
         try:
             os.chdir(dirname)
@@ -108,8 +111,24 @@ def capture_db(dialect="postgresql://"):
 _engs: Dict[Any, Any] = {}
 
 
+@overload
 @contextmanager
-def capture_context_buffer(**kw):
+def capture_context_buffer(
+    bytes_io: Literal[True], **kw: Any
+) -> Generator[io.BytesIO, None, None]: ...
+
+
+@overload
+@contextmanager
+def capture_context_buffer(
+    **kw: Any,
+) -> Generator[io.StringIO, None, None]: ...
+
+
+@contextmanager
+def capture_context_buffer(
+    **kw: Any,
+) -> Generator[io.StringIO | io.BytesIO, None, None]:
     if kw.pop("bytes_io", False):
         buf = io.BytesIO()
     else:
@@ -127,7 +146,9 @@ def capture_context_buffer(**kw):
 
 
 @contextmanager
-def capture_engine_context_buffer(**kw):
+def capture_engine_context_buffer(
+    **kw: Any,
+) -> Generator[io.StringIO, None, None]:
     from .env import _sqlite_file_db
     from sqlalchemy import event
 

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from configparser import ConfigParser
+from importlib import metadata
+from importlib.metadata import EntryPoint
 import io
 import os
 from pathlib import Path
@@ -10,10 +12,7 @@ import sys
 import typing
 from typing import Any
 from typing import Iterator
-from typing import List
-from typing import Optional
 from typing import Sequence
-from typing import Union
 
 if True:
     # zimports hack for too-long names
@@ -30,8 +29,6 @@ py314 = sys.version_info >= (3, 14)
 py313 = sys.version_info >= (3, 13)
 py312 = sys.version_info >= (3, 12)
 py311 = sys.version_info >= (3, 11)
-py310 = sys.version_info >= (3, 10)
-py39 = sys.version_info >= (3, 9)
 
 
 # produce a wrapper that allows encoded text to stream
@@ -41,19 +38,6 @@ class EncodedIO(io.TextIOWrapper):
     def close(self) -> None:
         pass
 
-
-if py39:
-    from importlib import resources as _resources
-
-    importlib_resources = _resources
-    from importlib import metadata as _metadata
-
-    importlib_metadata = _metadata
-    from importlib.metadata import EntryPoint as EntryPoint
-else:
-    import importlib_resources  # type:ignore # noqa
-    import importlib_metadata  # type:ignore # noqa
-    from importlib_metadata import EntryPoint  # type:ignore # noqa
 
 if py311:
     import tomllib as tomllib
@@ -109,15 +93,18 @@ else:
 
 
 def importlib_metadata_get(group: str) -> Sequence[EntryPoint]:
-    ep = importlib_metadata.entry_points()
-    if hasattr(ep, "select"):
-        return ep.select(group=group)
-    else:
-        return ep.get(group, ())  # type: ignore
+    """provide a facade for metadata.entry_points().
+
+    This is no longer a "compat" function as of Python 3.10, however
+    the function is widely referenced in the test suite and elsewhere so is
+    still in this module for compatibility reasons.
+
+    """
+    return metadata.entry_points().select(group=group)
 
 
 def formatannotation_fwdref(
-    annotation: Any, base_module: Optional[Any] = None
+    annotation: Any, base_module: Any | None = None
 ) -> str:
     """vendored from python 3.7"""
     # copied over _formatannotation from sqlalchemy 2.0
@@ -138,9 +125,6 @@ def formatannotation_fwdref(
 
 def read_config_parser(
     file_config: ConfigParser,
-    file_argument: Sequence[Union[str, os.PathLike[str]]],
-) -> List[str]:
-    if py310:
-        return file_config.read(file_argument, encoding="locale")
-    else:
-        return file_config.read(file_argument)
+    file_argument: list[str | os.PathLike[str]],
+) -> list[str]:
+    return file_config.read(file_argument, encoding="locale")

@@ -19,8 +19,8 @@ prepend_sys_path = [
 
 # timezone to use when rendering the date within the migration file
 # as well as the filename.
-# If specified, requires the python>=3.9 or backports.zoneinfo library and tzdata library.
-# Any required deps can installed by adding `alembic[tz]` to the pip requirements
+# If specified, requires the tzdata library which can be installed by adding
+# `alembic[tz]` to the pip requirements.
 # string value is passed to ZoneInfo()
 # leave blank for localtime
 # timezone =

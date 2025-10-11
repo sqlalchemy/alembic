@@ -10,11 +10,7 @@ import subprocess
 import sys
 from typing import Any
 from typing import Callable
-from typing import Dict
-from typing import List
-from typing import Optional
 from typing import TYPE_CHECKING
-from typing import Union
 
 from .. import util
 from ..util import compat
@@ -49,7 +45,7 @@ def register(name: str) -> Callable:
 
 def _invoke(
     name: str,
-    revision_path: Union[str, os.PathLike[str]],
+    revision_path: str | os.PathLike[str],
     options: PostWriteHookConfig,
 ) -> Any:
     """Invokes the formatter registered for the given name.
@@ -72,7 +68,7 @@ def _invoke(
 
 
 def _run_hooks(
-    path: Union[str, os.PathLike[str]], hooks: list[PostWriteHookConfig]
+    path: str | os.PathLike[str], hooks: list[PostWriteHookConfig]
 ) -> None:
     """Invoke hooks for a generated revision."""
 
@@ -92,7 +88,7 @@ def _run_hooks(
                 _invoke(type_, path, hook)
 
 
-def _parse_cmdline_options(cmdline_options_str: str, path: str) -> List[str]:
+def _parse_cmdline_options(cmdline_options_str: str, path: str) -> list[str]:
     """Parse options from a string into a list.
 
     Also substitutes the revision script token with the actual filename of
@@ -124,13 +120,13 @@ def _get_required_option(options: dict, name: str) -> str:
 
 
 def _run_hook(
-    path: str, options: dict, ignore_output: bool, command: List[str]
+    path: str, options: dict, ignore_output: bool, command: list[str]
 ) -> None:
-    cwd: Optional[str] = options.get("cwd", None)
+    cwd: str | None = options.get("cwd", None)
     cmdline_options_str = options.get("options", "")
     cmdline_options_list = _parse_cmdline_options(cmdline_options_str, path)
 
-    kw: Dict[str, Any] = {}
+    kw: dict[str, Any] = {}
     if ignore_output:
         kw["stdout"] = kw["stderr"] = subprocess.DEVNULL
 
