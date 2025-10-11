@@ -75,9 +75,9 @@ lint = [
     "flake8-builtins",
     "flake8-docstrings",
     "flake8-rst-docstrings",
-    "pydocstyle<4.0.0",
+    "pydocstyle",
     "pygments",
-    "black==25.1.0"
+    "black==25.9.0"
 ]
 
 mypy = [
