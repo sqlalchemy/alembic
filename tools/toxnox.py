@@ -15,6 +15,7 @@ import re
 import sys
 from typing import Any
 from typing import Callable
+from typing import Generator
 from typing import Sequence
 
 import nox
@@ -70,31 +71,10 @@ def tox_parameters(
 
     PY_RE = re.compile(r"(?:python)?([234]\.\d+(t?))")
 
-    def _is_py_version(token):
+    def _is_py_version(token: str) -> bool:
         return bool(PY_RE.match(token))
 
-    def _expand_python_version(token):
-        """expand pyx.y(t) tags into executable names.
-
-        Works around nox issue fixed at
-        https://github.com/wntrblm/nox/pull/999 by providing full executable
-        name
-
-        """
-        if sys.platform == "win32":
-            return token
-
-        m = PY_RE.match(token)
-
-        # do this matching minimally so that it only happens for the
-        # free-threaded versions.  on windows, the "pythonx.y" syntax doesn't
-        # work due to the use of the "py" tool
-        if m and m.group(2) == "t":
-            return f"python{m.group(1)}"
-        else:
-            return token
-
-    def _python_to_tag(token):
+    def _python_to_tag(token: str) -> str:
         m = PY_RE.match(token)
         if m:
             return f"py{m.group(1).replace('.', '')}"
@@ -109,7 +89,11 @@ def tox_parameters(
     else:
         must_be_present = None
 
-    def _recur_param(prevtokens, prevtags, token_lists):
+    def _recur_param(
+        prevtokens: list[str],
+        prevtags: list[str],
+        token_lists: Sequence[Sequence[str]],
+    ) -> Generator[tuple[list[str], list[str], str], None, None]:
 
         if not token_lists:
             return
@@ -181,9 +165,7 @@ def tox_parameters(
                 )
 
     params = [
-        nox.param(
-            *[_expand_python_version(a) for a in args], tags=tags, id=ids
-        )
+        nox.param(*args, tags=tags, id=ids)
         for args, tags, ids in _recur_param([], [], token_lists)
         if filter_ is None or filter_(**dict(zip(names, args)))
     ]
@@ -195,14 +177,24 @@ def tox_parameters(
 
 
 def extract_opts(posargs: list[str], *args: str) -> tuple[list[str], Any]:
+    """Pop individual flag options from session.posargs.
 
+    Returns a named tuple with the individual flag options indicated,
+    as well the new posargs with those flags removed from the string list
+    so that the posargs can be forwarded onto pytest.
+
+    Basically if nox had an option for additional environmental flags that
+    didn't require putting them after ``--``, we wouldn't need this, but this
+    is probably more flexible.
+
+    """
     underscore_args = [arg.replace("-", "_") for arg in args]
-    return_tuple = collections.namedtuple("options", underscore_args)
+    return_tuple = collections.namedtuple("options", underscore_args)  # type: ignore  # noqa: E501
 
     look_for_args = {f"--{arg}": idx for idx, arg in enumerate(args)}
     return_args = [False for arg in args]
 
-    def extract(arg: str):
+    def extract(arg: str) -> bool:
         if arg in look_for_args:
             return_args[look_for_args[arg]] = True
             return True

@@ -10,6 +10,8 @@ import sys
 import nox
 from packaging.version import parse as parse_version
 
+nox.needs_version = ">=2025.10.16"
+
 if True:
     sys.path.insert(0, ".")
     from tools.toxnox import tox_parameters
