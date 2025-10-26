@@ -10,6 +10,7 @@ import re
 import shutil
 from typing import cast
 
+import pytest
 from sqlalchemy import exc as sqla_exc
 from sqlalchemy import text
 from sqlalchemy import VARCHAR
@@ -344,6 +345,35 @@ class CurrentTest(_BufMixin, TestBase):
         command.upgrade(self.cfg, (self.b3.revision))
         with self._assert_lines(["a2", "b3"]):
             command.current(self.cfg)
+
+    def test_check_if_head_success(self):
+        """
+        "--check-if-head" succeeds if all head revisions are applied.
+        """
+        command.stamp(self.cfg, ())
+        command.stamp(self.cfg, (self.a3.revision, self.b3.revision))
+        with self._assert_lines(["a3", "b3"]):
+            command.current(self.cfg, check_heads=True)
+
+    @pytest.mark.parametrize(
+        "revs", [("a2",), ("a3",), ("b3",), ("a2", "b3"), ("a3", "b2")]
+    )
+    def test_check_if_head_fail(self, revs):
+        """
+        "--check-if-head" succeeds if all head revisions are applied.
+        """
+        command.stamp(self.cfg, ())
+        command.stamp(
+            self.cfg, tuple(getattr(self, rev).revision for rev in revs)
+        )
+        assert_raises_message(
+            util.CommandError,
+            "Database is not on all head revisions",
+            command.current,
+            self.cfg,
+            check_heads=True,
+        )
+        command.stamp(self.cfg, ())
 
 
 class RevisionTest(TestBase):

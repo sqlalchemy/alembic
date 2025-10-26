@@ -681,10 +681,15 @@ def branches(config: Config, verbose: bool = False) -> None:
             )
 
 
-def current(config: Config, verbose: bool = False) -> None:
+def current(
+    config: Config, check_heads: bool = False, verbose: bool = False
+) -> None:
     """Display the current revision for a database.
 
     :param config: a :class:`.Config` instance.
+
+    :param check_heads: Check if all head revisions are applied to the
+        database.  Exit with an error if this is not the case.
 
     :param verbose: output in verbose mode.
 
@@ -698,6 +703,10 @@ def current(config: Config, verbose: bool = False) -> None:
                 "Current revision(s) for %s:",
                 util.obfuscate_url_pw(context.connection.engine.url),
             )
+        if check_heads and (
+            set(context.get_current_heads()) != set(script.get_heads())
+        ):
+            raise util.CommandError("Database is not on all head revisions")
         for rev in script.get_all_current(rev):
             config.print_stdout(rev.cmd_format(verbose))
 
