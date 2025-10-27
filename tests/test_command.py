@@ -10,7 +10,6 @@ import re
 import shutil
 from typing import cast
 
-import pytest
 from sqlalchemy import exc as sqla_exc
 from sqlalchemy import text
 from sqlalchemy import VARCHAR
@@ -355,8 +354,13 @@ class CurrentTest(_BufMixin, TestBase):
         with self._assert_lines(["a3", "b3"]):
             command.current(self.cfg, check_heads=True)
 
-    @pytest.mark.parametrize(
-        "revs", [("a2",), ("a3",), ("b3",), ("a2", "b3"), ("a3", "b2")]
+    @testing.combinations(
+        ["a2"],
+        ["a3"],
+        ["b3"],
+        ["a2", "b3"],
+        ["a3", "b2"],
+        argnames="revs",
     )
     def test_check_heads_fail(self, revs):
         """
