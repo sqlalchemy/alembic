@@ -810,7 +810,7 @@ class CommandLine:
         ),
         "check_heads": (
             "-c",
-            "--check-if-heads",
+            "--check-heads",
             dict(
                 action="store_true",
                 help=(

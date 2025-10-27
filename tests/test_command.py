@@ -346,9 +346,9 @@ class CurrentTest(_BufMixin, TestBase):
         with self._assert_lines(["a2", "b3"]):
             command.current(self.cfg)
 
-    def test_check_if_head_success(self):
+    def test_check_heads_success(self):
         """
-        "--check-if-head" succeeds if all head revisions are applied.
+        "--check-heads" succeeds if all head revisions are applied.
         """
         command.stamp(self.cfg, ())
         command.stamp(self.cfg, (self.a3.revision, self.b3.revision))
@@ -358,9 +358,9 @@ class CurrentTest(_BufMixin, TestBase):
     @pytest.mark.parametrize(
         "revs", [("a2",), ("a3",), ("b3",), ("a2", "b3"), ("a3", "b2")]
     )
-    def test_check_if_head_fail(self, revs):
+    def test_check_heads_fail(self, revs):
         """
-        "--check-if-head" succeeds if all head revisions are applied.
+        "--check-heads" succeeds if all head revisions are applied.
         """
         command.stamp(self.cfg, ())
         command.stamp(

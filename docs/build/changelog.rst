@@ -7,15 +7,6 @@ Changelog
     :version: 1.17.1
     :include_notes_from: unreleased
 
-    .. change::
-        :tags: usecase, commands
-        :tickets: 1705
-
-        Added ``--check-heads`` option to ``current`` command which
-        checks if all head revisions are applied to the database.
-        The command exists with a non-zero exit code if this is not the
-        case.
-
 .. changelog::
     :version: 1.17.0
     :released: October 11, 2025
