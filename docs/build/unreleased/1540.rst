@@ -1,0 +1,9 @@
+.. change::
+    :tags: bug, commands
+    :tickets: 1540
+
+    Disallow ':' character in custom revision identifiers. Previously, using a
+    colon in a revision ID (e.g., 'REV:1') would create the revision, however
+    revisions with colons in them are not correctly interpreted by other
+    commands, as it overlaps with the revision range syntax.   Pull request
+    courtesy Kim Wooseok with original implementation by Hrushikesh Patil.

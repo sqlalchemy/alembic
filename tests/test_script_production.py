@@ -395,6 +395,16 @@ class RevisionCommandTest(TestBase):
 
         assert_raises_message(
             util.CommandError,
+            r"Character\(s\) ':' not allowed in "
+            "revision identifier 'no:colons'",
+            command.revision,
+            self.cfg,
+            message="some message",
+            rev_id="no:colons",
+        )
+
+        assert_raises_message(
+            util.CommandError,
             r"Character\(s\) '-, @' not allowed in revision "
             "identifier 'no@atsigns-ordashes'",
             command.revision,
