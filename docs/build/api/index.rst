@@ -29,4 +29,5 @@ to run commands programmatically, as discussed in the section :doc:`/api/command
    autogenerate
    script
    ddl
+   exceptions
 
