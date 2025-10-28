@@ -1,0 +1,7 @@
+.. change::
+    :tags: usecase, revision
+    :tickets: 1540
+
+    Disallow ':' character in custom revision identifiers. Previously, using a colon in
+    a revision ID (e.g., 'REV:1') caused alembic to interpret it as a revision range,
+    resulting in upgrade failures.
