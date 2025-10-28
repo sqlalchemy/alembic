@@ -11,6 +11,9 @@ from typing import Union
 
 from sqlalchemy import schema
 from sqlalchemy import types as sqltypes
+from sqlalchemy.sql import elements
+from sqlalchemy.sql import functions
+from sqlalchemy.sql import operators
 
 from .base import alter_table
 from .base import AlterColumn
@@ -23,7 +26,6 @@ from .base import format_server_default
 from .impl import DefaultImpl
 from .. import util
 from ..util import sqla_compat
-from ..util.sqla_compat import _is_mariadb
 from ..util.sqla_compat import _is_type_bound
 from ..util.sqla_compat import compiles
 
@@ -32,6 +34,7 @@ if TYPE_CHECKING:
 
     from sqlalchemy.dialects.mysql.base import MySQLDDLCompiler
     from sqlalchemy.sql.ddl import DropConstraint
+    from sqlalchemy.sql.elements import ClauseElement
     from sqlalchemy.sql.schema import Constraint
     from sqlalchemy.sql.type_api import TypeEngine
 
@@ -48,12 +51,40 @@ class MySQLImpl(DefaultImpl):
     )
     type_arg_extract = [r"character set ([\w\-_]+)", r"collate ([\w\-_]+)"]
 
-    def alter_column(  # type:ignore[override]
+    def render_ddl_sql_expr(
+        self,
+        expr: ClauseElement,
+        is_server_default: bool = False,
+        is_index: bool = False,
+        **kw: Any,
+    ) -> str:
+        # apply Grouping to index expressions;
+        # see https://github.com/sqlalchemy/sqlalchemy/blob/
+        # 36da2eaf3e23269f2cf28420ae73674beafd0661/
+        # lib/sqlalchemy/dialects/mysql/base.py#L2191
+        if is_index and (
+            isinstance(expr, elements.BinaryExpression)
+            or (
+                isinstance(expr, elements.UnaryExpression)
+                and expr.modifier not in (operators.desc_op, operators.asc_op)
+            )
+            or isinstance(expr, functions.FunctionElement)
+        ):
+            expr = elements.Grouping(expr)
+
+        return super().render_ddl_sql_expr(
+            expr, is_server_default=is_server_default, is_index=is_index, **kw
+        )
+
+    def alter_column(
         self,
         table_name: str,
         column_name: str,
+        *,
         nullable: Optional[bool] = None,
-        server_default: Union[_ServerDefault, Literal[False]] = False,
+        server_default: Optional[
+            Union[_ServerDefault, Literal[False]]
+        ] = False,
         name: Optional[str] = None,
         type_: Optional[TypeEngine] = None,
         schema: Optional[str] = None,
@@ -166,6 +197,7 @@ class MySQLImpl(DefaultImpl):
     def drop_constraint(
         self,
         const: Constraint,
+        **kw: Any,
     ) -> None:
         if isinstance(const, schema.CheckConstraint) and _is_type_bound(const):
             return
@@ -175,7 +207,7 @@ class MySQLImpl(DefaultImpl):
     def _is_mysql_allowed_functional_default(
         self,
         type_: Optional[TypeEngine],
-        server_default: Union[_ServerDefault, Literal[False]],
+        server_default: Optional[Union[_ServerDefault, Literal[False]]],
     ) -> bool:
         return (
             type_ is not None
@@ -326,7 +358,7 @@ class MySQLAlterDefault(AlterColumn):
         self,
         name: str,
         column_name: str,
-        default: _ServerDefault,
+        default: Optional[_ServerDefault],
         schema: Optional[str] = None,
     ) -> None:
         super(AlterColumn, self).__init__(name, schema=schema)
@@ -475,7 +507,7 @@ def _mysql_drop_constraint(
         # note that SQLAlchemy as of 1.2 does not yet support
         # DROP CONSTRAINT for MySQL/MariaDB, so we implement fully
         # here.
-        if _is_mariadb(compiler.dialect):
+        if compiler.dialect.is_mariadb:
             return "ALTER TABLE %s DROP CONSTRAINT %s" % (
                 compiler.preparer.format_table(constraint.table),
                 compiler.preparer.format_constraint(constraint),

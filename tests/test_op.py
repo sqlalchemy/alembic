@@ -6,9 +6,11 @@ from unittest.mock import patch
 from sqlalchemy import Boolean
 from sqlalchemy import CheckConstraint
 from sqlalchemy import Column
+from sqlalchemy import Computed
 from sqlalchemy import event
 from sqlalchemy import exc
 from sqlalchemy import ForeignKey
+from sqlalchemy import Identity
 from sqlalchemy import Index
 from sqlalchemy import Integer
 from sqlalchemy import MetaData
@@ -106,6 +108,20 @@ class OpTest(TestBase):
         context = op_fixture()
         op.add_column("t1", Column("c1", Integer, nullable=False))
         context.assert_("ALTER TABLE t1 ADD COLUMN c1 INTEGER NOT NULL")
+
+    def test_add_column_exists_directives(self):
+        context = op_fixture()
+        op.add_column(
+            "t1", Column("c1", Integer, nullable=False), if_not_exists=True
+        )
+        context.assert_(
+            "ALTER TABLE t1 ADD COLUMN IF NOT EXISTS c1 INTEGER NOT NULL"
+        )
+
+    def test_drop_column_exists_directives(self):
+        context = op_fixture()
+        op.drop_column("t1", "c1", if_exists=True)
+        context.assert_("ALTER TABLE t1 DROP COLUMN IF EXISTS c1")
 
     def test_add_column_already_attached(self):
         context = op_fixture()
@@ -370,14 +386,13 @@ class OpTest(TestBase):
         context.assert_("ALTER TABLE foo.t ALTER COLUMN c DROP DEFAULT")
 
     @combinations(
-        (lambda: sqla_compat.Computed("foo * 5"), lambda: None),
-        (lambda: None, lambda: sqla_compat.Computed("foo * 5")),
+        (lambda: Computed("foo * 5"), lambda: None),
+        (lambda: None, lambda: Computed("foo * 5")),
         (
-            lambda: sqla_compat.Computed("foo * 42"),
-            lambda: sqla_compat.Computed("foo * 5"),
+            lambda: Computed("foo * 42"),
+            lambda: Computed("foo * 5"),
         ),
     )
-    @config.requirements.computed_columns_api
     def test_alter_column_computed_not_supported(self, sd, esd):
         op_fixture()
         assert_raises_message(
@@ -393,14 +408,10 @@ class OpTest(TestBase):
         )
 
     @combinations(
-        (lambda: sqla_compat.Identity(), lambda: None),
-        (lambda: None, lambda: sqla_compat.Identity()),
-        (
-            lambda: sqla_compat.Identity(),
-            lambda: sqla_compat.Identity(),
-        ),
+        (lambda: Identity(), lambda: None),
+        (lambda: None, lambda: Identity()),
+        (lambda: Identity(), lambda: Identity()),
     )
-    @config.requirements.identity_columns_api
     def test_alter_column_identity_not_supported(self, sd, esd):
         op_fixture()
         assert_raises_message(
@@ -824,12 +835,24 @@ class OpTest(TestBase):
         op.drop_constraint("foo_bar_bat", "t1", schema="foo")
         context.assert_("ALTER TABLE foo.t1 DROP CONSTRAINT foo_bar_bat")
 
+    def test_drop_constraint_if_exists(self):
+        context = op_fixture()
+        if sqla_compat.sqla_2:
+            op.drop_constraint("foo_bar_bat", "t1", if_exists=True)
+            context.assert_(
+                "ALTER TABLE t1 DROP CONSTRAINT IF EXISTS foo_bar_bat"
+            )
+        else:
+            with expect_raises_message(
+                NotImplementedError, "SQLAlchemy 2.0 required"
+            ):
+                op.drop_constraint("foo_bar_bat", "t1", if_exists=True)
+
     def test_create_index(self):
         context = op_fixture()
         op.create_index("ik_test", "t1", ["foo", "bar"])
         context.assert_("CREATE INDEX ik_test ON t1 (foo, bar)")
 
-    @config.requirements.sqlalchemy_14
     def test_create_index_if_not_exists(self):
         context = op_fixture()
         op.create_index("ik_test", "t1", ["foo", "bar"], if_not_exists=True)
@@ -891,7 +914,6 @@ class OpTest(TestBase):
         op.drop_index("ik_test", schema="foo")
         context.assert_("DROP INDEX foo.ik_test")
 
-    @config.requirements.sqlalchemy_14
     def test_drop_index_if_exists(self):
         context = op_fixture()
         op.drop_index("ik_test", if_exists=True)
@@ -907,7 +929,6 @@ class OpTest(TestBase):
         op.drop_table("tb_test", schema="foo")
         context.assert_("DROP TABLE foo.tb_test")
 
-    @config.requirements.sqlalchemy_14
     def test_drop_table_if_exists(self):
         context = op_fixture()
         op.drop_table("tb_test", if_exists=True)
@@ -1085,7 +1106,6 @@ class OpTest(TestBase):
             "FOREIGN KEY(foo_bar) REFERENCES foo (bar))"
         )
 
-    @config.requirements.sqlalchemy_14
     def test_create_table_if_not_exists(self):
         context = op_fixture()
         op.create_table(
@@ -1265,7 +1285,6 @@ class OpTest(TestBase):
             ("after_drop", "tb_test"),
         ]
 
-    @config.requirements.sqlalchemy_14
     def test_run_async_error(self):
         op_fixture()
 
@@ -1295,9 +1314,13 @@ class OpTest(TestBase):
         conn = op.get_bind()
         mock_conn = MagicMock()
         mock_fn = MagicMock()
-        with patch.object(conn.dialect, "is_async", True), patch.object(
-            AsyncConnection, "_retrieve_proxy_for_target", mock_conn
-        ), patch("sqlalchemy.util.await_only") as mock_await:
+        with (
+            patch.object(conn.dialect, "is_async", True),
+            patch.object(
+                AsyncConnection, "_retrieve_proxy_for_target", mock_conn
+            ),
+            patch("sqlalchemy.util.await_only") as mock_await,
+        ):
             res = op.run_async(mock_fn, 99, foo=42)
 
             eq_(res, mock_await.return_value)

@@ -13,8 +13,6 @@ import warnings
 
 from sqlalchemy.engine import url
 
-from . import sqla_compat
-
 log = logging.getLogger(__name__)
 
 # disable "no handler found" errors
@@ -76,12 +74,15 @@ def err(message: str, quiet: bool = False) -> None:
 
 
 def obfuscate_url_pw(input_url: str) -> str:
-    u = url.make_url(input_url)
-    return sqla_compat.url_render_as_string(u, hide_password=True)  # type: ignore  # noqa: E501
+    return url.make_url(input_url).render_as_string(hide_password=True)
 
 
 def warn(msg: str, stacklevel: int = 2) -> None:
     warnings.warn(msg, UserWarning, stacklevel=stacklevel)
+
+
+def warn_deprecated(msg: str, stacklevel: int = 2) -> None:
+    warnings.warn(msg, DeprecationWarning, stacklevel=stacklevel)
 
 
 def msg(

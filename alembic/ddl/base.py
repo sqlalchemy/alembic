@@ -25,6 +25,8 @@ from ..util.sqla_compat import _table_for_constraint  # noqa
 if TYPE_CHECKING:
     from typing import Any
 
+    from sqlalchemy import Computed
+    from sqlalchemy import Identity
     from sqlalchemy.sql.compiler import Compiled
     from sqlalchemy.sql.compiler import DDLCompiler
     from sqlalchemy.sql.elements import TextClause
@@ -33,8 +35,6 @@ if TYPE_CHECKING:
     from sqlalchemy.sql.type_api import TypeEngine
 
     from .impl import DefaultImpl
-    from ..util.sqla_compat import Computed
-    from ..util.sqla_compat import Identity
 
 _ServerDefault = Union["TextClause", "FetchedValue", "Function[Any]", str]
 
@@ -154,17 +154,24 @@ class AddColumn(AlterTable):
         name: str,
         column: Column[Any],
         schema: Optional[Union[quoted_name, str]] = None,
+        if_not_exists: Optional[bool] = None,
     ) -> None:
         super().__init__(name, schema=schema)
         self.column = column
+        self.if_not_exists = if_not_exists
 
 
 class DropColumn(AlterTable):
     def __init__(
-        self, name: str, column: Column[Any], schema: Optional[str] = None
+        self,
+        name: str,
+        column: Column[Any],
+        schema: Optional[str] = None,
+        if_exists: Optional[bool] = None,
     ) -> None:
         super().__init__(name, schema=schema)
         self.column = column
+        self.if_exists = if_exists
 
 
 class ColumnComment(AlterColumn):
@@ -175,7 +182,7 @@ class ColumnComment(AlterColumn):
         self.comment = comment
 
 
-@compiles(RenameTable)  # type: ignore[misc]
+@compiles(RenameTable)
 def visit_rename_table(
     element: RenameTable, compiler: DDLCompiler, **kw
 ) -> str:
@@ -185,23 +192,27 @@ def visit_rename_table(
     )
 
 
-@compiles(AddColumn)  # type: ignore[misc]
+@compiles(AddColumn)
 def visit_add_column(element: AddColumn, compiler: DDLCompiler, **kw) -> str:
     return "%s %s" % (
         alter_table(compiler, element.table_name, element.schema),
-        add_column(compiler, element.column, **kw),
+        add_column(
+            compiler, element.column, if_not_exists=element.if_not_exists, **kw
+        ),
     )
 
 
-@compiles(DropColumn)  # type: ignore[misc]
+@compiles(DropColumn)
 def visit_drop_column(element: DropColumn, compiler: DDLCompiler, **kw) -> str:
     return "%s %s" % (
         alter_table(compiler, element.table_name, element.schema),
-        drop_column(compiler, element.column.name, **kw),
+        drop_column(
+            compiler, element.column.name, if_exists=element.if_exists, **kw
+        ),
     )
 
 
-@compiles(ColumnNullable)  # type: ignore[misc]
+@compiles(ColumnNullable)
 def visit_column_nullable(
     element: ColumnNullable, compiler: DDLCompiler, **kw
 ) -> str:
@@ -212,7 +223,7 @@ def visit_column_nullable(
     )
 
 
-@compiles(ColumnType)  # type: ignore[misc]
+@compiles(ColumnType)
 def visit_column_type(element: ColumnType, compiler: DDLCompiler, **kw) -> str:
     return "%s %s %s" % (
         alter_table(compiler, element.table_name, element.schema),
@@ -221,7 +232,7 @@ def visit_column_type(element: ColumnType, compiler: DDLCompiler, **kw) -> str:
     )
 
 
-@compiles(ColumnName)  # type: ignore[misc]
+@compiles(ColumnName)
 def visit_column_name(element: ColumnName, compiler: DDLCompiler, **kw) -> str:
     return "%s RENAME %s TO %s" % (
         alter_table(compiler, element.table_name, element.schema),
@@ -230,7 +241,7 @@ def visit_column_name(element: ColumnName, compiler: DDLCompiler, **kw) -> str:
     )
 
 
-@compiles(ColumnDefault)  # type: ignore[misc]
+@compiles(ColumnDefault)
 def visit_column_default(
     element: ColumnDefault, compiler: DDLCompiler, **kw
 ) -> str:
@@ -245,7 +256,7 @@ def visit_column_default(
     )
 
 
-@compiles(ComputedColumnDefault)  # type: ignore[misc]
+@compiles(ComputedColumnDefault)
 def visit_computed_column(
     element: ComputedColumnDefault, compiler: DDLCompiler, **kw
 ):
@@ -255,7 +266,7 @@ def visit_computed_column(
     )
 
 
-@compiles(IdentityColumnDefault)  # type: ignore[misc]
+@compiles(IdentityColumnDefault)
 def visit_identity_column(
     element: IdentityColumnDefault, compiler: DDLCompiler, **kw
 ):
@@ -299,9 +310,13 @@ def format_server_default(
     compiler: DDLCompiler,
     default: Optional[_ServerDefault],
 ) -> str:
-    return compiler.get_column_default_string(
+    # this can be updated to use compiler.render_default_string
+    # for SQLAlchemy 2.0 and above; not in 1.4
+    default_str = compiler.get_column_default_string(
         Column("x", Integer, server_default=default)
     )
+    assert default_str is not None
+    return default_str
 
 
 def format_type(compiler: DDLCompiler, type_: TypeEngine) -> str:
@@ -316,16 +331,29 @@ def alter_table(
     return "ALTER TABLE %s" % format_table_name(compiler, name, schema)
 
 
-def drop_column(compiler: DDLCompiler, name: str, **kw) -> str:
-    return "DROP COLUMN %s" % format_column_name(compiler, name)
+def drop_column(
+    compiler: DDLCompiler, name: str, if_exists: Optional[bool] = None, **kw
+) -> str:
+    return "DROP COLUMN %s%s" % (
+        "IF EXISTS " if if_exists else "",
+        format_column_name(compiler, name),
+    )
 
 
 def alter_column(compiler: DDLCompiler, name: str) -> str:
     return "ALTER COLUMN %s" % format_column_name(compiler, name)
 
 
-def add_column(compiler: DDLCompiler, column: Column[Any], **kw) -> str:
-    text = "ADD COLUMN %s" % compiler.get_column_specification(column, **kw)
+def add_column(
+    compiler: DDLCompiler,
+    column: Column[Any],
+    if_not_exists: Optional[bool] = None,
+    **kw,
+) -> str:
+    text = "ADD COLUMN %s%s" % (
+        "IF NOT EXISTS " if if_not_exists else "",
+        compiler.get_column_specification(column, **kw),
+    )
 
     const = " ".join(
         compiler.process(constraint) for constraint in column.constraints

@@ -18,7 +18,9 @@ from mako.pygen import PythonPrinter
 from sqlalchemy import schema as sa_schema
 from sqlalchemy import sql
 from sqlalchemy import types as sqltypes
+from sqlalchemy.sql.base import _DialectArgView
 from sqlalchemy.sql.elements import conv
+from sqlalchemy.sql.elements import Label
 from sqlalchemy.sql.elements import quoted_name
 
 from .. import util
@@ -28,7 +30,8 @@ from ..util import sqla_compat
 if TYPE_CHECKING:
     from typing import Literal
 
-    from sqlalchemy.sql.base import DialectKWArgs
+    from sqlalchemy import Computed
+    from sqlalchemy import Identity
     from sqlalchemy.sql.elements import ColumnElement
     from sqlalchemy.sql.elements import TextClause
     from sqlalchemy.sql.schema import CheckConstraint
@@ -48,8 +51,6 @@ if TYPE_CHECKING:
     from alembic.config import Config
     from alembic.operations.ops import MigrationScript
     from alembic.operations.ops import ModifyTableOps
-    from alembic.util.sqla_compat import Computed
-    from alembic.util.sqla_compat import Identity
 
 
 MAX_PYTHON_ARGS = 255
@@ -279,6 +280,9 @@ def _add_table(autogen_context: AutogenContext, op: ops.CreateTableOp) -> str:
         prefixes = ", ".join("'%s'" % p for p in table._prefixes)
         text += ",\nprefixes=[%s]" % prefixes
 
+    if op.if_not_exists is not None:
+        text += ",\nif_not_exists=%r" % bool(op.if_not_exists)
+
     text += "\n)"
     return text
 
@@ -291,16 +295,20 @@ def _drop_table(autogen_context: AutogenContext, op: ops.DropTableOp) -> str:
     }
     if op.schema:
         text += ", schema=%r" % _ident(op.schema)
+
+    if op.if_exists is not None:
+        text += ", if_exists=%r" % bool(op.if_exists)
+
     text += ")"
     return text
 
 
 def _render_dialect_kwargs_items(
-    autogen_context: AutogenContext, item: DialectKWArgs
+    autogen_context: AutogenContext, dialect_kwargs: _DialectArgView
 ) -> list[str]:
     return [
         f"{key}={_render_potential_expr(val, autogen_context)}"
-        for key, val in item.dialect_kwargs.items()
+        for key, val in dialect_kwargs.items()
     ]
 
 
@@ -323,7 +331,9 @@ def _add_index(autogen_context: AutogenContext, op: ops.CreateIndexOp) -> str:
 
     assert index.table is not None
 
-    opts = _render_dialect_kwargs_items(autogen_context, index)
+    opts = _render_dialect_kwargs_items(autogen_context, index.dialect_kwargs)
+    if op.if_not_exists is not None:
+        opts.append("if_not_exists=%r" % bool(op.if_not_exists))
     text = tmpl % {
         "prefix": _alembic_autogenerate_prefix(autogen_context),
         "name": _render_gen_name(autogen_context, index.name),
@@ -355,7 +365,9 @@ def _drop_index(autogen_context: AutogenContext, op: ops.DropIndexOp) -> str:
             "%(prefix)sdrop_index(%(name)r, "
             "table_name=%(table_name)r%(schema)s%(kwargs)s)"
         )
-    opts = _render_dialect_kwargs_items(autogen_context, index)
+    opts = _render_dialect_kwargs_items(autogen_context, index.dialect_kwargs)
+    if op.if_exists is not None:
+        opts.append("if_exists=%r" % bool(op.if_exists))
     text = tmpl % {
         "prefix": _alembic_autogenerate_prefix(autogen_context),
         "name": _render_gen_name(autogen_context, op.index_name),
@@ -377,6 +389,7 @@ def _add_unique_constraint(
 def _add_fk_constraint(
     autogen_context: AutogenContext, op: ops.CreateForeignKeyOp
 ) -> str:
+    constraint = op.to_constraint()
     args = [repr(_render_gen_name(autogen_context, op.constraint_name))]
     if not autogen_context._has_batch:
         args.append(repr(_ident(op.source_table)))
@@ -406,9 +419,16 @@ def _add_fk_constraint(
             if value is not None:
                 args.append("%s=%r" % (k, value))
 
-    return "%(prefix)screate_foreign_key(%(args)s)" % {
+    dialect_kwargs = _render_dialect_kwargs_items(
+        autogen_context, constraint.dialect_kwargs
+    )
+
+    return "%(prefix)screate_foreign_key(%(args)s%(dialect_kwargs)s)" % {
         "prefix": _alembic_autogenerate_prefix(autogen_context),
         "args": ", ".join(args),
+        "dialect_kwargs": (
+            ", " + ", ".join(dialect_kwargs) if dialect_kwargs else ""
+        ),
     }
 
 
@@ -430,7 +450,7 @@ def _drop_constraint(
     name = _render_gen_name(autogen_context, op.constraint_name)
     schema = _ident(op.schema) if op.schema else None
     type_ = _ident(op.constraint_type) if op.constraint_type else None
-
+    if_exists = op.if_exists
     params_strs = []
     params_strs.append(repr(name))
     if not autogen_context._has_batch:
@@ -439,32 +459,47 @@ def _drop_constraint(
             params_strs.append(f"schema={schema!r}")
     if type_ is not None:
         params_strs.append(f"type_={type_!r}")
+    if if_exists is not None:
+        params_strs.append(f"if_exists={if_exists}")
 
     return f"{prefix}drop_constraint({', '.join(params_strs)})"
 
 
 @renderers.dispatch_for(ops.AddColumnOp)
 def _add_column(autogen_context: AutogenContext, op: ops.AddColumnOp) -> str:
-    schema, tname, column = op.schema, op.table_name, op.column
+    schema, tname, column, if_not_exists = (
+        op.schema,
+        op.table_name,
+        op.column,
+        op.if_not_exists,
+    )
     if autogen_context._has_batch:
         template = "%(prefix)sadd_column(%(column)s)"
     else:
         template = "%(prefix)sadd_column(%(tname)r, %(column)s"
         if schema:
             template += ", schema=%(schema)r"
+        if if_not_exists is not None:
+            template += ", if_not_exists=%(if_not_exists)r"
         template += ")"
     text = template % {
         "prefix": _alembic_autogenerate_prefix(autogen_context),
         "tname": tname,
         "column": _render_column(column, autogen_context),
         "schema": schema,
+        "if_not_exists": if_not_exists,
     }
     return text
 
 
 @renderers.dispatch_for(ops.DropColumnOp)
 def _drop_column(autogen_context: AutogenContext, op: ops.DropColumnOp) -> str:
-    schema, tname, column_name = op.schema, op.table_name, op.column_name
+    schema, tname, column_name, if_exists = (
+        op.schema,
+        op.table_name,
+        op.column_name,
+        op.if_exists,
+    )
 
     if autogen_context._has_batch:
         template = "%(prefix)sdrop_column(%(cname)r)"
@@ -472,6 +507,8 @@ def _drop_column(autogen_context: AutogenContext, op: ops.DropColumnOp) -> str:
         template = "%(prefix)sdrop_column(%(tname)r, %(cname)r"
         if schema:
             template += ", schema=%(schema)r"
+        if if_exists is not None:
+            template += ", if_exists=%(if_exists)r"
         template += ")"
 
     text = template % {
@@ -479,6 +516,7 @@ def _drop_column(autogen_context: AutogenContext, op: ops.DropColumnOp) -> str:
         "tname": _ident(tname),
         "cname": _ident(column_name),
         "schema": _ident(schema),
+        "if_exists": if_exists,
     }
     return text
 
@@ -493,6 +531,7 @@ def _alter_column(
     type_ = op.modify_type
     nullable = op.modify_nullable
     comment = op.modify_comment
+    newname = op.modify_name
     autoincrement = op.kw.get("autoincrement", None)
     existing_type = op.existing_type
     existing_nullable = op.existing_nullable
@@ -521,6 +560,8 @@ def _alter_column(
         rendered = _render_server_default(server_default, autogen_context)
         text += ",\n%sserver_default=%s" % (indent, rendered)
 
+    if newname is not None:
+        text += ",\n%snew_column_name=%r" % (indent, newname)
     if type_ is not None:
         text += ",\n%stype_=%s" % (indent, _repr_type(type_, autogen_context))
     if nullable is not None:
@@ -573,23 +614,28 @@ def _render_potential_expr(
     value: Any,
     autogen_context: AutogenContext,
     *,
-    wrap_in_text: bool = True,
+    wrap_in_element: bool = True,
     is_server_default: bool = False,
     is_index: bool = False,
 ) -> str:
     if isinstance(value, sql.ClauseElement):
-        if wrap_in_text:
-            template = "%(prefix)stext(%(sql)r)"
+        sql_text = autogen_context.migration_context.impl.render_ddl_sql_expr(
+            value, is_server_default=is_server_default, is_index=is_index
+        )
+        if wrap_in_element:
+            prefix = _sqlalchemy_autogenerate_prefix(autogen_context)
+            element = "literal_column" if is_index else "text"
+            value_str = f"{prefix}{element}({sql_text!r})"
+            if (
+                is_index
+                and isinstance(value, Label)
+                and type(value.name) is str
+            ):
+                return value_str + f".label({value.name!r})"
+            else:
+                return value_str
         else:
-            template = "%(sql)r"
-
-        return template % {
-            "prefix": _sqlalchemy_autogenerate_prefix(autogen_context),
-            "sql": autogen_context.migration_context.impl.render_ddl_sql_expr(
-                value, is_server_default=is_server_default, is_index=is_index
-            ),
-        }
-
+            return repr(sql_text)
     else:
         return repr(value)
 
@@ -617,16 +663,18 @@ def _uq_constraint(
     has_batch = autogen_context._has_batch
 
     if constraint.deferrable:
-        opts.append(("deferrable", str(constraint.deferrable)))
+        opts.append(("deferrable", constraint.deferrable))
     if constraint.initially:
-        opts.append(("initially", str(constraint.initially)))
+        opts.append(("initially", constraint.initially))
     if not has_batch and alter and constraint.table.schema:
         opts.append(("schema", _ident(constraint.table.schema)))
     if not alter and constraint.name:
         opts.append(
             ("name", _render_gen_name(autogen_context, constraint.name))
         )
-    dialect_options = _render_dialect_kwargs_items(autogen_context, constraint)
+    dialect_options = _render_dialect_kwargs_items(
+        autogen_context, constraint.dialect_kwargs
+    )
 
     if alter:
         args = [repr(_render_gen_name(autogen_context, constraint.name))]
@@ -730,7 +778,7 @@ def _render_column(
                 + [
                     "%s=%s"
                     % (key, _render_potential_expr(val, autogen_context))
-                    for key, val in sqla_compat._column_kwargs(column).items()
+                    for key, val in column.kwargs.items()
                 ]
             )
         ),
@@ -765,6 +813,8 @@ def _render_server_default(
             return _render_potential_expr(
                 default.arg, autogen_context, is_server_default=True
             )
+    elif isinstance(default, sa_schema.FetchedValue):
+        return _render_fetched_value(autogen_context)
 
     if isinstance(default, str) and repr_:
         default = repr(re.sub(r"^'|'$", "", default))
@@ -776,7 +826,7 @@ def _render_computed(
     computed: Computed, autogen_context: AutogenContext
 ) -> str:
     text = _render_potential_expr(
-        computed.sqltext, autogen_context, wrap_in_text=False
+        computed.sqltext, autogen_context, wrap_in_element=False
     )
 
     kwargs = {}
@@ -802,6 +852,12 @@ def _render_identity(
     }
 
 
+def _render_fetched_value(autogen_context: AutogenContext) -> str:
+    return "%(prefix)sFetchedValue()" % {
+        "prefix": _sqlalchemy_autogenerate_prefix(autogen_context),
+    }
+
+
 def _repr_type(
     type_: TypeEngine,
     autogen_context: AutogenContext,
@@ -820,7 +876,10 @@ def _repr_type(
 
     mod = type(type_).__module__
     imports = autogen_context.imports
-    if mod.startswith("sqlalchemy.dialects"):
+
+    if not _skip_variants and sqla_compat._type_has_variants(type_):
+        return _render_Variant_type(type_, autogen_context)
+    elif mod.startswith("sqlalchemy.dialects"):
         match = re.match(r"sqlalchemy\.dialects\.(\w+)", mod)
         assert match is not None
         dname = match.group(1)
@@ -832,8 +891,6 @@ def _repr_type(
             return "%s.%r" % (dname, type_)
     elif impl_rt:
         return impl_rt
-    elif not _skip_variants and sqla_compat._type_has_variants(type_):
-        return _render_Variant_type(type_, autogen_context)
     elif mod.startswith("sqlalchemy."):
         if "_render_%s_type" % type_.__visit_name__ in globals():
             fn = globals()["_render_%s_type" % type_.__visit_name__]
@@ -951,7 +1008,7 @@ def _render_primary_key(
 def _fk_colspec(
     fk: ForeignKey,
     metadata_schema: Optional[str],
-    namespace_metadata: MetaData,
+    namespace_metadata: Optional[MetaData],
 ) -> str:
     """Implement a 'safe' version of ForeignKey._get_colspec() that
     won't fail if the remote table can't be resolved.
@@ -975,7 +1032,10 @@ def _fk_colspec(
         # the FK constraint needs to be rendered in terms of the column
         # name.
 
-        if table_fullname in namespace_metadata.tables:
+        if (
+            namespace_metadata is not None
+            and table_fullname in namespace_metadata.tables
+        ):
             col = namespace_metadata.tables[table_fullname].c.get(colname)
             if col is not None:
                 colname = _ident(col.name)  # type: ignore[assignment]
@@ -1006,7 +1066,7 @@ def _populate_render_fk_opts(
 def _render_foreign_key(
     constraint: ForeignKeyConstraint,
     autogen_context: AutogenContext,
-    namespace_metadata: MetaData,
+    namespace_metadata: Optional[MetaData],
 ) -> Optional[str]:
     rendered = _user_defined_render("foreign_key", constraint, autogen_context)
     if rendered is not False:
@@ -1020,7 +1080,9 @@ def _render_foreign_key(
 
     _populate_render_fk_opts(constraint, opts)
 
-    apply_metadata_schema = namespace_metadata.schema
+    apply_metadata_schema = (
+        namespace_metadata.schema if namespace_metadata is not None else None
+    )
     return (
         "%(prefix)sForeignKeyConstraint([%(cols)s], "
         "[%(refcols)s], %(args)s)"
@@ -1089,7 +1151,7 @@ def _render_check_constraint(
             else ""
         ),
         "sqltext": _render_potential_expr(
-            constraint.sqltext, autogen_context, wrap_in_text=False
+            constraint.sqltext, autogen_context, wrap_in_element=False
         ),
     }
 
@@ -1101,7 +1163,10 @@ def _execute_sql(autogen_context: AutogenContext, op: ops.ExecuteSQLOp) -> str:
             "Autogenerate rendering of SQL Expression language constructs "
             "not supported here; please use a plain SQL string"
         )
-    return "op.execute(%r)" % op.sqltext
+    return "{prefix}execute({sqltext!r})".format(
+        prefix=_alembic_autogenerate_prefix(autogen_context),
+        sqltext=op.sqltext,
+    )
 
 
 renderers = default_renderers.branch()

@@ -2,21 +2,26 @@
 
 [alembic]
 # path to migration scripts.
-# Use forward slashes (/) also on windows to provide an os agnostic path
+# this is typically a path given in POSIX (e.g. forward slashes)
+# format, relative to the token %(here)s which refers to the location of this
+# ini file
 script_location = ${script_location}
 
 # template used to generate migration file names; The default value is %%(rev)s_%%(slug)s
 # Uncomment the line below if you want the files to be prepended with date and time
+# see https://alembic.sqlalchemy.org/en/latest/tutorial.html#editing-the-ini-file
+# for all available tokens
 # file_template = %%(year)d_%%(month).2d_%%(day).2d_%%(hour).2d%%(minute).2d-%%(rev)s_%%(slug)s
 
 # sys.path path, will be prepended to sys.path if present.
-# defaults to the current working directory.
+# defaults to the current working directory.  for multiple paths, the path separator
+# is defined by "path_separator" below.
 prepend_sys_path = .
 
 # timezone to use when rendering the date within the migration file
 # as well as the filename.
-# If specified, requires the python>=3.9 or backports.zoneinfo library.
-# Any required deps can installed by adding `alembic[tz]` to the pip requirements
+# If specified, requires the tzdata library which can be installed by adding
+# `alembic[tz]` to the pip requirements.
 # string value is passed to ZoneInfo()
 # leave blank for localtime
 # timezone =
@@ -34,21 +39,38 @@ prepend_sys_path = .
 # sourceless = false
 
 # version location specification; This defaults
-# to ${script_location}/versions.  When using multiple version
+# to <script_location>/versions.  When using multiple version
 # directories, initial revisions must be specified with --version-path.
-# The path separator used here should be the separator specified by "version_path_separator" below.
-# version_locations = %(here)s/bar:%(here)s/bat:${script_location}/versions
+# The path separator used here should be the separator specified by "path_separator"
+# below.
+# version_locations = %(here)s/bar:%(here)s/bat:%(here)s/alembic/versions
 
-# version path separator; As mentioned above, this is the character used to split
-# version_locations. The default within new alembic.ini files is "os", which uses os.pathsep.
-# If this key is omitted entirely, it falls back to the legacy behavior of splitting on spaces and/or commas.
-# Valid values for version_path_separator are:
+# path_separator; This indicates what character is used to split lists of file
+# paths, including version_locations and prepend_sys_path within configparser
+# files such as alembic.ini.
+# The default rendered in new alembic.ini files is "os", which uses os.pathsep
+# to provide os-dependent path splitting.
 #
-# version_path_separator = :
-# version_path_separator = ;
-# version_path_separator = space
-# version_path_separator = newline
-version_path_separator = os  # Use os.pathsep. Default configuration used for new projects.
+# Note that in order to support legacy alembic.ini files, this default does NOT
+# take place if path_separator is not present in alembic.ini.  If this
+# option is omitted entirely, fallback logic is as follows:
+#
+# 1. Parsing of the version_locations option falls back to using the legacy
+#    "version_path_separator" key, which if absent then falls back to the legacy
+#    behavior of splitting on spaces and/or commas.
+# 2. Parsing of the prepend_sys_path option falls back to the legacy
+#    behavior of splitting on spaces, commas, or colons.
+#
+# Valid values for path_separator are:
+#
+# path_separator = :
+# path_separator = ;
+# path_separator = space
+# path_separator = newline
+#
+# Use os.pathsep. Default configuration used for new projects.
+path_separator = os
+
 
 # set to 'true' to search source files recursively
 # in each "version_locations" directory
@@ -59,6 +81,9 @@ version_path_separator = os  # Use os.pathsep. Default configuration used for ne
 # are written from script.py.mako
 # output_encoding = utf-8
 
+# database URL.  This is consumed by the user-maintained env.py script only.
+# other means of configuring database URLs may be customized within the env.py
+# file.
 sqlalchemy.url = driver://user:pass@localhost/dbname
 
 
@@ -73,13 +98,20 @@ sqlalchemy.url = driver://user:pass@localhost/dbname
 # black.entrypoint = black
 # black.options = -l 79 REVISION_SCRIPT_FILENAME
 
-# lint with attempts to fix using "ruff" - use the exec runner, execute a binary
+# lint with attempts to fix using "ruff" - use the module runner, against the "ruff" module
+# hooks = ruff
+# ruff.type = module
+# ruff.module = ruff
+# ruff.options = check --fix REVISION_SCRIPT_FILENAME
+
+# Alternatively, use the exec runner to execute a binary found on your PATH
 # hooks = ruff
 # ruff.type = exec
-# ruff.executable = %(here)s/.venv/bin/ruff
-# ruff.options = --fix REVISION_SCRIPT_FILENAME
+# ruff.executable = ruff
+# ruff.options = check --fix REVISION_SCRIPT_FILENAME
 
-# Logging configuration
+# Logging configuration.  This is also consumed by the user-maintained
+# env.py script only.
 [loggers]
 keys = root,sqlalchemy,alembic
 
@@ -90,12 +122,12 @@ keys = console
 keys = generic
 
 [logger_root]
-level = WARN
+level = WARNING
 handlers = console
 qualname =
 
 [logger_sqlalchemy]
-level = WARN
+level = WARNING
 handlers =
 qualname = sqlalchemy.engine
 

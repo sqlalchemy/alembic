@@ -1,5 +1,6 @@
 import importlib.machinery
 import os
+from pathlib import Path
 import shutil
 import textwrap
 
@@ -16,7 +17,7 @@ from ..script import ScriptDirectory
 
 def _get_staging_directory():
     if provision.FOLLOWER_IDENT:
-        return "scratch_%s" % provision.FOLLOWER_IDENT
+        return f"scratch_{provision.FOLLOWER_IDENT}"
     else:
         return "scratch"
 
@@ -24,7 +25,7 @@ def _get_staging_directory():
 def staging_env(create=True, template="generic", sourceless=False):
     cfg = _testing_config()
     if create:
-        path = os.path.join(_get_staging_directory(), "scripts")
+        path = _join_path(_get_staging_directory(), "scripts")
         assert not os.path.exists(path), (
             "staging directory %s already exists; poor cleanup?" % path
         )
@@ -47,7 +48,7 @@ def staging_env(create=True, template="generic", sourceless=False):
                 "pep3147_everything",
             ), sourceless
             make_sourceless(
-                os.path.join(path, "env.py"),
+                _join_path(path, "env.py"),
                 "pep3147" if "pep3147" in sourceless else "simple",
             )
 
@@ -63,14 +64,14 @@ def clear_staging_env():
 
 
 def script_file_fixture(txt):
-    dir_ = os.path.join(_get_staging_directory(), "scripts")
-    path = os.path.join(dir_, "script.py.mako")
+    dir_ = _join_path(_get_staging_directory(), "scripts")
+    path = _join_path(dir_, "script.py.mako")
     with open(path, "w") as f:
         f.write(txt)
 
 
 def env_file_fixture(txt):
-    dir_ = os.path.join(_get_staging_directory(), "scripts")
+    dir_ = _join_path(_get_staging_directory(), "scripts")
     txt = (
         """
 from alembic import context
@@ -80,7 +81,7 @@ config = context.config
         + txt
     )
 
-    path = os.path.join(dir_, "env.py")
+    path = _join_path(dir_, "env.py")
     pyc_path = util.pyc_file_from_path(path)
     if pyc_path:
         os.unlink(pyc_path)
@@ -90,26 +91,26 @@ config = context.config
 
 
 def _sqlite_file_db(tempname="foo.db", future=False, scope=None, **options):
-    dir_ = os.path.join(_get_staging_directory(), "scripts")
+    dir_ = _join_path(_get_staging_directory(), "scripts")
     url = "sqlite:///%s/%s" % (dir_, tempname)
-    if scope and util.sqla_14:
+    if scope:
         options["scope"] = scope
     return testing_util.testing_engine(url=url, future=future, options=options)
 
 
 def _sqlite_testing_config(sourceless=False, future=False):
-    dir_ = os.path.join(_get_staging_directory(), "scripts")
-    url = "sqlite:///%s/foo.db" % dir_
+    dir_ = _join_path(_get_staging_directory(), "scripts")
+    url = f"sqlite:///{dir_}/foo.db"
 
     sqlalchemy_future = future or ("future" in config.db.__class__.__module__)
 
     return _write_config_file(
-        """
+        f"""
 [alembic]
-script_location = %s
-sqlalchemy.url = %s
-sourceless = %s
-%s
+script_location = {dir_}
+sqlalchemy.url = {url}
+sourceless = {"true" if sourceless else "false"}
+{"sqlalchemy.future = true" if sqlalchemy_future else ""}
 
 [loggers]
 keys = root,sqlalchemy
@@ -118,7 +119,7 @@ keys = root,sqlalchemy
 keys = console
 
 [logger_root]
-level = WARN
+level = WARNING
 handlers = console
 qualname =
 
@@ -140,29 +141,25 @@ keys = generic
 format = %%(levelname)-5.5s [%%(name)s] %%(message)s
 datefmt = %%H:%%M:%%S
     """
-        % (
-            dir_,
-            url,
-            "true" if sourceless else "false",
-            "sqlalchemy.future = true" if sqlalchemy_future else "",
-        )
     )
 
 
 def _multi_dir_testing_config(sourceless=False, extra_version_location=""):
-    dir_ = os.path.join(_get_staging_directory(), "scripts")
+    dir_ = _join_path(_get_staging_directory(), "scripts")
     sqlalchemy_future = "future" in config.db.__class__.__module__
 
     url = "sqlite:///%s/foo.db" % dir_
 
     return _write_config_file(
-        """
+        f"""
 [alembic]
-script_location = %s
-sqlalchemy.url = %s
-sqlalchemy.future = %s
-sourceless = %s
-version_locations = %%(here)s/model1/ %%(here)s/model2/ %%(here)s/model3/ %s
+script_location = {dir_}
+sqlalchemy.url = {url}
+sqlalchemy.future = {"true" if sqlalchemy_future else "false"}
+sourceless = {"true" if sourceless else "false"}
+path_separator = space
+version_locations = %(here)s/model1/ %(here)s/model2/ %(here)s/model3/ \
+{extra_version_location}
 
 [loggers]
 keys = root
@@ -171,7 +168,7 @@ keys = root
 keys = console
 
 [logger_root]
-level = WARN
+level = WARNING
 handlers = console
 qualname =
 
@@ -188,26 +185,24 @@ keys = generic
 format = %%(levelname)-5.5s [%%(name)s] %%(message)s
 datefmt = %%H:%%M:%%S
     """
-        % (
-            dir_,
-            url,
-            "true" if sqlalchemy_future else "false",
-            "true" if sourceless else "false",
-            extra_version_location,
-        )
     )
 
 
-def _no_sql_testing_config(dialect="postgresql", directives=""):
+def _no_sql_pyproject_config(dialect="postgresql", directives=""):
     """use a postgresql url with no host so that
     connections guaranteed to fail"""
-    dir_ = os.path.join(_get_staging_directory(), "scripts")
-    return _write_config_file(
-        """
+    dir_ = _join_path(_get_staging_directory(), "scripts")
+
+    return _write_toml_config(
+        f"""
+[tool.alembic]
+script_location ="{dir_}"
+{textwrap.dedent(directives)}
+
+        """,
+        f"""
 [alembic]
-script_location = %s
-sqlalchemy.url = %s://
-%s
+sqlalchemy.url = {dialect}://
 
 [loggers]
 keys = root
@@ -216,7 +211,46 @@ keys = root
 keys = console
 
 [logger_root]
-level = WARN
+level = WARNING
+handlers = console
+qualname =
+
+[handler_console]
+class = StreamHandler
+args = (sys.stderr,)
+level = NOTSET
+formatter = generic
+
+[formatters]
+keys = generic
+
+[formatter_generic]
+format = %%(levelname)-5.5s [%%(name)s] %%(message)s
+datefmt = %%H:%%M:%%S
+
+""",
+    )
+
+
+def _no_sql_testing_config(dialect="postgresql", directives=""):
+    """use a postgresql url with no host so that
+    connections guaranteed to fail"""
+    dir_ = _join_path(_get_staging_directory(), "scripts")
+    return _write_config_file(
+        f"""
+[alembic]
+script_location ={dir_}
+sqlalchemy.url = {dialect}://
+{directives}
+
+[loggers]
+keys = root
+
+[handlers]
+keys = console
+
+[logger_root]
+level = WARNING
 handlers = console
 qualname =
 
@@ -234,8 +268,14 @@ format = %%(levelname)-5.5s [%%(name)s] %%(message)s
 datefmt = %%H:%%M:%%S
 
 """
-        % (dir_, dialect, directives)
     )
+
+
+def _write_toml_config(tomltext, initext):
+    cfg = _write_config_file(initext)
+    with open(cfg.toml_file_name, "w") as f:
+        f.write(tomltext)
+    return cfg
 
 
 def _write_config_file(text):
@@ -250,7 +290,10 @@ def _testing_config():
 
     if not os.access(_get_staging_directory(), os.F_OK):
         os.mkdir(_get_staging_directory())
-    return Config(os.path.join(_get_staging_directory(), "test_alembic.ini"))
+    return Config(
+        _join_path(_get_staging_directory(), "test_alembic.ini"),
+        _join_path(_get_staging_directory(), "pyproject.toml"),
+    )
 
 
 def write_script(
@@ -270,9 +313,7 @@ def write_script(
     script = Script._from_path(scriptdir, path)
     old = scriptdir.revision_map.get_revision(script.revision)
     if old.down_revision != script.down_revision:
-        raise Exception(
-            "Can't change down_revision " "on a refresh operation."
-        )
+        raise Exception("Can't change down_revision on a refresh operation.")
     scriptdir.revision_map.add_revision(script, _replace=True)
 
     if sourceless:
@@ -312,9 +353,9 @@ def three_rev_fixture(cfg):
     write_script(
         script,
         a,
-        """\
+        f"""\
 "Rev A"
-revision = '%s'
+revision = '{a}'
 down_revision = None
 
 from alembic import op
@@ -327,8 +368,7 @@ def upgrade():
 def downgrade():
     op.execute("DROP STEP 1")
 
-"""
-        % a,
+""",
     )
 
     script.generate_revision(b, "revision b", refresh=True, head=a)
@@ -358,10 +398,10 @@ def downgrade():
     write_script(
         script,
         c,
-        """\
+        f"""\
 "Rev C"
-revision = '%s'
-down_revision = '%s'
+revision = '{c}'
+down_revision = '{b}'
 
 from alembic import op
 
@@ -373,8 +413,7 @@ def upgrade():
 def downgrade():
     op.execute("DROP STEP 3")
 
-"""
-        % (c, b),
+""",
     )
     return a, b, c
 
@@ -396,10 +435,10 @@ def multi_heads_fixture(cfg, a, b, c):
     write_script(
         script,
         d,
-        """\
+        f"""\
 "Rev D"
-revision = '%s'
-down_revision = '%s'
+revision = '{d}'
+down_revision = '{b}'
 
 from alembic import op
 
@@ -411,8 +450,7 @@ def upgrade():
 def downgrade():
     op.execute("DROP STEP 4")
 
-"""
-        % (d, b),
+""",
     )
 
     script.generate_revision(
@@ -421,10 +459,10 @@ def downgrade():
     write_script(
         script,
         e,
-        """\
+        f"""\
 "Rev E"
-revision = '%s'
-down_revision = '%s'
+revision = '{e}'
+down_revision = '{d}'
 
 from alembic import op
 
@@ -436,8 +474,7 @@ def upgrade():
 def downgrade():
     op.execute("DROP STEP 5")
 
-"""
-        % (e, d),
+""",
     )
 
     script.generate_revision(
@@ -446,10 +483,10 @@ def downgrade():
     write_script(
         script,
         f,
-        """\
+        f"""\
 "Rev F"
-revision = '%s'
-down_revision = '%s'
+revision = '{f}'
+down_revision = '{b}'
 
 from alembic import op
 
@@ -461,8 +498,7 @@ def upgrade():
 def downgrade():
     op.execute("DROP STEP 6")
 
-"""
-        % (f, b),
+""",
     )
 
     return d, e, f
@@ -471,25 +507,25 @@ def downgrade():
 def _multidb_testing_config(engines):
     """alembic.ini fixture to work exactly with the 'multidb' template"""
 
-    dir_ = os.path.join(_get_staging_directory(), "scripts")
+    dir_ = _join_path(_get_staging_directory(), "scripts")
 
     sqlalchemy_future = "future" in config.db.__class__.__module__
 
     databases = ", ".join(engines.keys())
     engines = "\n\n".join(
-        "[%s]\n" "sqlalchemy.url = %s" % (key, value.url)
+        f"[{key}]\nsqlalchemy.url = {value.url}"
         for key, value in engines.items()
     )
 
     return _write_config_file(
-        """
+        f"""
 [alembic]
-script_location = %s
+script_location = {dir_}
 sourceless = false
-sqlalchemy.future = %s
-databases = %s
+sqlalchemy.future = {"true" if sqlalchemy_future else "false"}
+databases = {databases}
 
-%s
+{engines}
 [loggers]
 keys = root
 
@@ -497,7 +533,7 @@ keys = root
 keys = console
 
 [logger_root]
-level = WARN
+level = WARNING
 handlers = console
 qualname =
 
@@ -514,5 +550,8 @@ keys = generic
 format = %%(levelname)-5.5s [%%(name)s] %%(message)s
 datefmt = %%H:%%M:%%S
     """
-        % (dir_, "true" if sqlalchemy_future else "false", databases, engines)
     )
+
+
+def _join_path(base: str, *more: str):
+    return str(Path(base).joinpath(*more).as_posix())

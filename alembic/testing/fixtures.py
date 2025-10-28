@@ -3,11 +3,17 @@ from __future__ import annotations
 import configparser
 from contextlib import contextmanager
 import io
+import os
 import re
+import shutil
 from typing import Any
 from typing import Dict
+from typing import Generator
+from typing import Literal
+from typing import overload
 
 from sqlalchemy import Column
+from sqlalchemy import create_mock_engine
 from sqlalchemy import inspect
 from sqlalchemy import MetaData
 from sqlalchemy import String
@@ -17,19 +23,18 @@ from sqlalchemy import text
 from sqlalchemy.testing import config
 from sqlalchemy.testing import mock
 from sqlalchemy.testing.assertions import eq_
+from sqlalchemy.testing.fixtures import FutureEngineMixin
 from sqlalchemy.testing.fixtures import TablesTest as SQLAlchemyTablesTest
 from sqlalchemy.testing.fixtures import TestBase as SQLAlchemyTestBase
 
 import alembic
 from .assertions import _get_dialect
+from .env import _get_staging_directory
 from ..environment import EnvironmentContext
 from ..migration import MigrationContext
 from ..operations import Operations
 from ..util import sqla_compat
-from ..util.sqla_compat import create_mock_engine
-from ..util.sqla_compat import sqla_14
 from ..util.sqla_compat import sqla_2
-
 
 testing_config = configparser.ConfigParser()
 testing_config.read(["test.cfg"])
@@ -37,6 +42,31 @@ testing_config.read(["test.cfg"])
 
 class TestBase(SQLAlchemyTestBase):
     is_sqlalchemy_future = sqla_2
+
+    @testing.fixture()
+    def clear_staging_dir(self):
+        yield
+        location = _get_staging_directory()
+        for filename in os.listdir(location):
+            file_path = os.path.join(location, filename)
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+
+    @contextmanager
+    def pushd(self, dirname) -> Generator[None, None, None]:
+        current_dir = os.getcwd()
+        try:
+            os.chdir(dirname)
+            yield
+        finally:
+            os.chdir(current_dir)
+
+    @testing.fixture()
+    def pop_alembic_config_env(self):
+        yield
+        os.environ.pop("ALEMBIC_CONFIG", None)
 
     @testing.fixture()
     def ops_context(self, migration_context):
@@ -65,14 +95,6 @@ class TablesTest(TestBase, SQLAlchemyTablesTest):
     pass
 
 
-if sqla_14:
-    from sqlalchemy.testing.fixtures import FutureEngineMixin
-else:
-
-    class FutureEngineMixin:  # type:ignore[no-redef]
-        __requires__ = ("sqlalchemy_14",)
-
-
 FutureEngineMixin.is_sqlalchemy_future = True
 
 
@@ -89,8 +111,24 @@ def capture_db(dialect="postgresql://"):
 _engs: Dict[Any, Any] = {}
 
 
+@overload
 @contextmanager
-def capture_context_buffer(**kw):
+def capture_context_buffer(
+    bytes_io: Literal[True], **kw: Any
+) -> Generator[io.BytesIO, None, None]: ...
+
+
+@overload
+@contextmanager
+def capture_context_buffer(
+    **kw: Any,
+) -> Generator[io.StringIO, None, None]: ...
+
+
+@contextmanager
+def capture_context_buffer(
+    **kw: Any,
+) -> Generator[io.StringIO | io.BytesIO, None, None]:
     if kw.pop("bytes_io", False):
         buf = io.BytesIO()
     else:
@@ -108,7 +146,9 @@ def capture_context_buffer(**kw):
 
 
 @contextmanager
-def capture_engine_context_buffer(**kw):
+def capture_engine_context_buffer(
+    **kw: Any,
+) -> Generator[io.StringIO, None, None]:
     from .env import _sqlite_file_db
     from sqlalchemy import event
 
@@ -190,12 +230,8 @@ def op_fixture(
         opts["as_sql"] = as_sql
     if literal_binds:
         opts["literal_binds"] = literal_binds
-    if not sqla_14 and dialect == "mariadb":
-        ctx_dialect = _get_dialect("mysql")
-        ctx_dialect.server_version_info = (10, 4, 0, "MariaDB")
 
-    else:
-        ctx_dialect = _get_dialect(dialect)
+    ctx_dialect = _get_dialect(dialect)
     if native_boolean is not None:
         ctx_dialect.supports_native_boolean = native_boolean
         # this is new as of SQLAlchemy 1.2.7 and is used by SQL Server,

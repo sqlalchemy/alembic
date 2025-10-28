@@ -21,7 +21,12 @@ from typing import TYPE_CHECKING
 from typing import Union
 
 from sqlalchemy import cast
+from sqlalchemy import Column
+from sqlalchemy import MetaData
+from sqlalchemy import PrimaryKeyConstraint
 from sqlalchemy import schema
+from sqlalchemy import String
+from sqlalchemy import Table
 from sqlalchemy import text
 
 from . import _autogen
@@ -41,13 +46,10 @@ if TYPE_CHECKING:
     from sqlalchemy.engine.reflection import Inspector
     from sqlalchemy.sql import ClauseElement
     from sqlalchemy.sql import Executable
-    from sqlalchemy.sql.elements import ColumnElement
     from sqlalchemy.sql.elements import quoted_name
-    from sqlalchemy.sql.schema import Column
     from sqlalchemy.sql.schema import Constraint
     from sqlalchemy.sql.schema import ForeignKeyConstraint
     from sqlalchemy.sql.schema import Index
-    from sqlalchemy.sql.schema import Table
     from sqlalchemy.sql.schema import UniqueConstraint
     from sqlalchemy.sql.selectable import TableClause
     from sqlalchemy.sql.type_api import TypeEngine
@@ -136,6 +138,40 @@ class DefaultImpl(metaclass=ImplMeta):
         self.output_buffer.write(text + "\n\n")
         self.output_buffer.flush()
 
+    def version_table_impl(
+        self,
+        *,
+        version_table: str,
+        version_table_schema: Optional[str],
+        version_table_pk: bool,
+        **kw: Any,
+    ) -> Table:
+        """Generate a :class:`.Table` object which will be used as the
+        structure for the Alembic version table.
+
+        Third party dialects may override this hook to provide an alternate
+        structure for this :class:`.Table`; requirements are only that it
+        be named based on the ``version_table`` parameter and contains
+        at least a single string-holding column named ``version_num``.
+
+        .. versionadded:: 1.14
+
+        """
+        vt = Table(
+            version_table,
+            MetaData(),
+            Column("version_num", String(32), nullable=False),
+            schema=version_table_schema,
+        )
+        if version_table_pk:
+            vt.append_constraint(
+                PrimaryKeyConstraint(
+                    "version_num", name=f"{version_table}_pkc"
+                )
+            )
+
+        return vt
+
     def requires_recreate_in_batch(
         self, batch_op: BatchOperationsImpl
     ) -> bool:
@@ -220,8 +256,11 @@ class DefaultImpl(metaclass=ImplMeta):
         self,
         table_name: str,
         column_name: str,
+        *,
         nullable: Optional[bool] = None,
-        server_default: Union[_ServerDefault, Literal[False]] = False,
+        server_default: Optional[
+            Union[_ServerDefault, Literal[False]]
+        ] = False,
         name: Optional[str] = None,
         type_: Optional[TypeEngine] = None,
         schema: Optional[str] = None,
@@ -332,25 +371,40 @@ class DefaultImpl(metaclass=ImplMeta):
         self,
         table_name: str,
         column: Column[Any],
+        *,
         schema: Optional[Union[str, quoted_name]] = None,
+        if_not_exists: Optional[bool] = None,
     ) -> None:
-        self._exec(base.AddColumn(table_name, column, schema=schema))
+        self._exec(
+            base.AddColumn(
+                table_name,
+                column,
+                schema=schema,
+                if_not_exists=if_not_exists,
+            )
+        )
 
     def drop_column(
         self,
         table_name: str,
         column: Column[Any],
+        *,
         schema: Optional[str] = None,
+        if_exists: Optional[bool] = None,
         **kw,
     ) -> None:
-        self._exec(base.DropColumn(table_name, column, schema=schema))
+        self._exec(
+            base.DropColumn(
+                table_name, column, schema=schema, if_exists=if_exists
+            )
+        )
 
     def add_constraint(self, const: Any) -> None:
         if const._create_rule is None or const._create_rule(self):
             self._exec(schema.AddConstraint(const))
 
-    def drop_constraint(self, const: Constraint) -> None:
-        self._exec(schema.DropConstraint(const))
+    def drop_constraint(self, const: Constraint, **kw: Any) -> None:
+        self._exec(schema.DropConstraint(const, **kw))
 
     def rename_table(
         self,
@@ -403,7 +457,7 @@ class DefaultImpl(metaclass=ImplMeta):
     def drop_table_comment(self, table: Table) -> None:
         self._exec(schema.DropTableComment(table))
 
-    def create_column_comment(self, column: ColumnElement[Any]) -> None:
+    def create_column_comment(self, column: Column[Any]) -> None:
         self._exec(schema.SetColumnComment(column))
 
     def drop_index(self, index: Index, **kw: Any) -> None:
@@ -422,7 +476,9 @@ class DefaultImpl(metaclass=ImplMeta):
         if self.as_sql:
             for row in rows:
                 self._exec(
-                    sqla_compat._insert_inline(table).values(
+                    table.insert()
+                    .inline()
+                    .values(
                         **{
                             k: (
                                 sqla_compat._literal_bindparam(
@@ -440,14 +496,10 @@ class DefaultImpl(metaclass=ImplMeta):
         else:
             if rows:
                 if multiinsert:
-                    self._exec(
-                        sqla_compat._insert_inline(table), multiparams=rows
-                    )
+                    self._exec(table.insert().inline(), multiparams=rows)
                 else:
                     for row in rows:
-                        self._exec(
-                            sqla_compat._insert_inline(table).values(**row)
-                        )
+                        self._exec(table.insert().inline().values(**row))
 
     def _tokenize_column_type(self, column: Column) -> Params:
         definition: str
@@ -656,7 +708,7 @@ class DefaultImpl(metaclass=ImplMeta):
         diff, ignored = _compare_identity_options(
             metadata_identity,
             inspector_identity,
-            sqla_compat.Identity(),
+            schema.Identity(),
             skip={"always"},
         )
 
@@ -837,12 +889,13 @@ def _compare_identity_options(
         set(meta_d).union(insp_d),
     )
     if sqla_compat.identity_has_dialect_kwargs:
+        assert hasattr(default_io, "dialect_kwargs")
         # use only the dialect kwargs in inspector_io since metadata_io
         # can have options for many backends
         check_dicts(
             getattr(metadata_io, "dialect_kwargs", {}),
             getattr(inspector_io, "dialect_kwargs", {}),
-            default_io.dialect_kwargs,  # type: ignore[union-attr]
+            default_io.dialect_kwargs,
             getattr(inspector_io, "dialect_kwargs", {}),
         )
 

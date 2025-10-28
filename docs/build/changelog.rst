@@ -4,8 +4,485 @@ Changelog
 ==========
 
 .. changelog::
-    :version: 1.13.3
+    :version: 1.17.1
     :include_notes_from: unreleased
+
+.. changelog::
+    :version: 1.17.0
+    :released: October 11, 2025
+
+    .. change::
+        :tags: change, tests
+
+        The top-level test runner has been changed to use ``nox``, adding a
+        ``noxfile.py`` as well as some included modules.   The ``tox.ini`` file
+        remains in place so that ``tox`` runs will continue to function in the near
+        term, however it will be eventually removed and improvements and
+        maintenance going forward will be only towards ``noxfile.py``.
+
+    .. change::
+        :tags: change, general
+
+        The minimum Python version is now 3.10, as Python 3.9 is EOL.
+
+.. changelog::
+    :version: 1.16.5
+    :released: August 27, 2025
+
+    .. change::
+        :tags: bug, mysql
+        :tickets: 1492
+
+        Fixed Python-side autogenerate rendering of index expressions in MySQL
+        dialect by aligning it with SQLAlchemy's MySQL index expression rules. Pull
+        request courtesy david-fed.
+
+    .. change::
+        :tags: bug, config
+        :tickets: 1709
+
+        Fixed issue where new pyproject.toml config would fail to parse the integer
+        value used for the ``truncate_slug_length`` parameter.  Pull request
+        courtesy Luís Henrique Allebrandt Schunemann.
+
+.. changelog::
+    :version: 1.16.4
+    :released: July 10, 2025
+
+    .. change::
+        :tags: bug, config
+        :tickets: 1694
+
+        Fixed issue in new ``pyproject.toml`` support where boolean values, such as
+        those used for the ``recursive_version_locations`` and ``sourceless``
+        configuration parameters, would not be accepted.
+
+
+.. changelog::
+    :version: 1.16.3
+    :released: July 8, 2025
+
+    .. change::
+        :tags: bug, autogenerate
+        :tickets: 1633
+
+        Fixed the rendering of ``server_default=FetchedValue()`` to ensure it is
+        preceded by the ``sa.`` prefix in the migration script. Pull request
+        courtesy david-fed.
+
+    .. change::
+        :tags: usecase, commands
+        :tickets: 1683
+
+        Added new ``pyproject_async`` template, combining the new ``pyproject``
+        template with the ``async`` template.  Pull request courtesy Alc-Alc.
+
+    .. change::
+        :tags: usecase, autogenerate
+        :tickets: 1686
+
+        Add "module" post-write hook. This hook type is almost identical to the
+        console_scripts hook, except it's running ``python -m black`` instead of
+        using black's ``console_script``. It is mainly useful for tools without
+        console scripts (e.g. ruff), but has semantics closer to the
+        console_scripts hook in that it finds the ruff module available to the
+        running interpreter instead of finding an executable by path. Pull request
+        courtesy Frazer McLean.
+
+    .. change::
+        :tags: bug, autogenerate
+        :tickets: 1692
+
+        Fixed autogenerate rendering bug which failed to render foreign key
+        constraints local to a :class:`.CreateTableOp` object if it did not refer
+        to a ``MetaData`` collection via a private constructor argument that would
+        not ordinarily be passed in user-defined rewriter recipes, including ones
+        in the Alembic cookbook section of the docs.
+
+
+.. changelog::
+    :version: 1.16.2
+    :released: June 16, 2025
+
+    .. change::
+        :tags: bug, autogenerate
+        :tickets: 1671
+
+        Fixed issue where dialect-specific keyword arguments in ``dialect_kwargs``
+        were not rendered when rendering the :meth:`.Operations.create_foreign_key`
+        operation.   This prevented dialect-specific keywords from being rendered
+        using custom :class:`.Rewriter` recipes that modify
+        :class:`.ops.CreateForeignKeyOp`, similar to other issues such as
+        :ticket:`1635`.  Pull request courtesy Justin Malin.
+
+    .. change::
+        :tags: bug, command
+        :tickets: 1679
+
+        Fixed rendering of ``pyproject.toml`` to include two newlines when
+        appending content to an existing file.  Pull request courtesy Jonathan
+        Vanasco.
+
+
+.. changelog::
+    :version: 1.16.1
+    :released: May 21, 2025
+
+    .. change::
+        :tags: bug, command
+        :tickets: 1660
+
+        Fixed regression caused by the ``pathlib`` refactoring that removed the use
+        of :meth:`.Config.get_template_directory` as the canonical source of
+        templates; the method is still present however it no longer would be
+        consulted for a custom config subclass, as was the case with flask-migrate.
+
+    .. change::
+        :tags: bug, command
+        :tickets: 1659
+
+        Fixed regression caused by the ``pathlib`` refactoring where the "missing
+        template" error message failed to render the name of the template that
+        could not be found.
+
+.. changelog::
+    :version: 1.16.0
+    :released: May 21, 2025
+
+    .. change::
+        :tags: feature, environment
+        :tickets: 1082
+
+        Added optional :pep:`621` support to Alembic, allowing all source code
+        related configuration (e.g. local file paths, post write hook
+        configurations, etc) to be configured in the project's ``pyproject.toml``
+        file.   A new init template ``pyproject`` is added which illustrates a
+        basic :pep:`621` setup.
+
+        Besides being better integrated with a Python project's existing source
+        code configuration, the TOML format allows for more flexible structures,
+        allowing configuration items like ``version_locations`` and
+        ``prepend_sys_path`` to be configured as lists of path strings without the
+        need for path separator characters used by ``ConfigParser`` format.   The
+        feature continues to support the ``%(here)s`` token which can substitute
+        the absolute parent directory of the ``pyproject.toml`` file when
+        consumed.
+
+        The :pep:`621` feature supports configuration values that are relevant to
+        source code organization and generation only; it does not accommodate
+        configuration of database connectivity or logging, which remain under the
+        category of "deployment" configuration and continue to be part of
+        ``alembic.ini``, or whatever configurational method is established by the
+        ``env.py`` file.   Using the combination of ``pyproject.toml`` for source
+        code configuration along with a custom database/logging configuration
+        method established in ``env.py`` will allow the ``alembic.ini`` file to be
+        omitted altogether.
+
+
+        .. seealso::
+
+            :ref:`using_pep_621`
+
+    .. change::
+        :tags: usecase, environment
+        :tickets: 1330
+
+        Added new option to the ConfigParser (e.g. ``alembic.ini``) configuration
+        ``path_separator``, which supersedes the existing ``version_path_separator``
+        option.  ``path_separator`` specifies the path separator character that
+        will be recognized for both the ``version_locations`` option as well
+        as the ``prepend_sys_path`` option, defaulting to ``os`` which indicates
+        that the value of ``os.pathsep`` should be used.
+
+        The new attribute applies necessary os-dependent path splitting to the
+        ``prepend_sys_path`` option so that windows paths which contain drive
+        letters with colons are not inadvertently split, whereas previously
+        os-dependent path splitting were only available for the ``version_locations`` option.
+
+        Existing installations that don't indicate ``path_separator``
+        will continue to use the older behavior, where ``version_path_separator``
+        may be configured for ``version_locations``, and ``prepend_sys_path``
+        continues to be split on spaces/commas/colons.  A deprecation warning
+        is emitted for these fallback scenarios.
+
+        When using the new ``pyproject.toml`` configuration detailed at
+        :ref:`using_pep_621`, the whole issue of "path separators" is sidestepped
+        and parameters like ``path_separator`` are unnecessary, as the TOML based
+        configuration configures version locations and sys path elements as
+        lists.
+
+        Pull request courtesy Mike Werezak.
+
+    .. change::
+        :tags: feature, commands
+        :tickets: 1610
+
+        Added new :meth:`.CommandLine.register_command` method to
+        :class:`.CommandLine`, intended to facilitate adding custom commands to
+        Alembic's command line tool with minimal code required; previously this
+        logic was embedded internally and was not publicly accessible.  A new
+        recipe demonstrating this use is added.   Pull request courtesy Mikhail
+        Bulash.
+
+        .. seealso::
+
+            :ref:`custom_commandline`
+
+    .. change::
+        :tags: usecase, operations
+        :tickets: 1626
+
+        Added :paramref:`.Operations.add_column.if_not_exists` and
+        :paramref:`.Operations.drop_column.if_exists` to render ``IF [NOT] EXISTS``
+        for ``ADD COLUMN`` and ``DROP COLUMN`` operations, a feature available on
+        some database backends such as PostgreSQL, MariaDB, as well as third party
+        backends.  The parameters also support autogenerate rendering allowing them
+        to be added to autogenerate scripts via a custom :class:`.Rewriter`.  Pull
+        request courtesy of Louis-Amaury Chaib (@lachaib).
+
+    .. change::
+        :tags: bug, general
+        :tickets: 1637
+
+        The ``pyproject.toml`` file used by the Alembic project itself for its
+        Python package configuration has been amended to use the updated :pep:`639`
+        configuration for license, which eliminates loud deprecation warnings when
+        building the package.   Note this necessarily bumps setuptools build
+        requirement to 77.0.3.
+
+    .. change::
+        :tags: bug, environment
+        :tickets: 1643
+
+        Fixed issue where use of deprecated ``utcnow()`` function would generate
+        warnings.  Has been replaced with ``now(UTC)``.  Pull request courtesy
+        Jens Tröger.
+
+    .. change::
+        :tags: usecase, operations
+        :tickets: 1650
+
+        Added :paramref:`.Operations.drop_constraint.if_exists` parameter to
+        :meth:`.Operations.drop_constraint` which will render ``DROP CONSTRAINT IF
+        EXISTS``. The parameter also supports autogenerate rendering allowing it to
+        be added to autogenerate scripts via a custom :class:`.Rewriter`.  Pull
+        request courtesy Aaron Griffin.
+
+    .. change::
+        :tags: bug, autogenerate
+        :tickets: 1656
+
+        The :meth:`.Operations.execute` operation when rendered in autogenerate
+        (which would necessarily be only when using a custom writer that embeds
+        :class:`.ExecuteSQLOp`) now correctly takes into account the value
+        configured in :paramref:`configure.alembic_module_prefix` when rendering
+        the operation with its prefixing namespace; previously this was hardcoded
+        to ``op.``. Pull request courtesy Avery Fischer.
+
+    .. change::
+        :tags: bug, autogenerate
+        :tickets: 264
+
+        The autogenerate process will now apply the :meth:`.Operations.f` modifier
+        to the names of all constraints and indexes that are reflected from the
+        target database when generating migrations, which has the effect that these
+        names will not have any subsequent naming conventions applied to them when
+        the migration operations proceed.  As reflected objects already include the
+        exact name that's present in the database, these names should not be
+        modified.   The fix repairs the issue when using custom naming conventions
+        which feature the ``%(constraint_name)s`` token would cause names to be
+        double-processed, leading to errors in migration runs.
+
+
+
+    .. change::
+        :tags: refactored, environment
+
+        The command, config and script modules now rely on ``pathlib.Path`` for
+        internal path manipulations, instead of ``os.path()`` operations.   This
+        has some impact on both public and private (i.e. underscored) API functions:
+
+        * Public API functions that accept parameters indicating file and directory
+          paths as strings will continue to do so, but now will also accept
+          ``os.PathLike`` objects as well.
+        * Public API functions and accessors that return directory paths as strings
+          such as :attr:`.ScriptDirectory.dir`, :attr:`.Config.config_file_name`
+          will continue to do so.
+        * Private API functions and accessors, i.e. all those that are prefixed
+          with an underscore, that previously returned directory paths as
+          strings may now return a Path object instead.
+
+.. changelog::
+    :version: 1.15.2
+    :released: March 28, 2025
+
+    .. change::
+        :tags: bug, autogenerate
+        :tickets: 1635
+
+        Fixed issue where the "modified_name" of :class:`.AlterColumnOp` would not
+        be considered when rendering op directives for autogenerate. While
+        autogenerate cannot detect changes in column name, this would nonetheless
+        impact approaches that made use of this attribute in rewriter recipes. Pull
+        request courtesy lenvk.
+
+.. changelog::
+    :version: 1.15.1
+    :released: March 4, 2025
+
+    .. change::
+        :tags: bug, installation
+        :tickets: 1616
+
+        Fixed an issue in the new :pep:`621` ``pyproject.toml`` layout that
+        prevented Alembic's template files from being included in the ``.whl`` file
+        in the distribution.
+
+.. changelog::
+    :version: 1.15.0
+    :released: March 4, 2025  (yanked due to issue #1616)
+
+    .. change::
+        :tags: bug, environment
+        :tickets: 1567
+
+        Added a basic docstring to the migration template files so that the
+        upgrade/downgrade methods pass the D103 linter check which requires a
+        docstring for public functions.  Pull request courtesy Peter Cock.
+
+    .. change::
+        :tags: usecase, autogenerate
+        :tickets: 1603
+
+        Index autogenerate will now render labels for expressions
+        that use them. This is useful when applying operator classes
+        in PostgreSQL that can be keyed on the label name.
+
+    .. change::
+        :tags: bug, autogenerate
+        :tickets: 1613
+
+        Fixed autogenerate rendering bug where the ``deferrable`` element of
+        ``UniqueConstraint``, a bool, were being stringified rather than repr'ed
+        when generating Python code.
+
+    .. change::
+        :tags: changed, general
+
+        Support for Python 3.8 is dropped as of Alembic 1.15.0; this version is
+        now EOL so Python 3.9 or higher is required for Alembic 1.15.
+
+    .. change::
+        :tags: changed, general
+
+        Support for SQLAlchemy 1.3, which was EOL as of 2021, is now dropped from
+        Alembic as of version 1.15.0.   SQLAlchemy version 1.4 or greater is
+        required for use with Alembic 1.15.0.
+
+    .. change::
+        :tags: usecase, autogenerate
+        :tickets: 1597
+
+        Add revision context to AutogenerateDiffsDetected so that command can be
+        wrapped and diffs may be output in a different format. Pull request
+        courtesy Louis-Amaury Chaib (@lachaib).
+
+    .. change::
+        :tags: changed, general
+
+        Installation has been converted to use :pep:`621`, e.g. ``pyproject.toml``.
+
+.. changelog::
+    :version: 1.14.1
+    :released: January 19, 2025
+
+    .. change::
+        :tags: bug, environment
+        :tickets: 1556
+
+        Added `tzdata` to `tz` extras, which is required on some platforms such as
+        Windows.  Pull request courtesy Danipulok.
+
+    .. change::
+        :tags: usecase, sqlite
+        :tickets: 1576
+
+        Modified SQLite's dialect to render "ALTER TABLE <t> RENAME COLUMN" when
+        :meth:`.Operations.alter_column` is used with a straight rename, supporting
+        SQLite's recently added column rename feature.
+
+    .. change::
+        :tags: bug, autogenerate
+        :tickets: 1585
+
+        Fixed bug where autogen render of a "variant" type would fail to catch the
+        variants if the leading type were a dialect-specific type, rather than a
+        generic type.
+
+
+.. changelog::
+    :version: 1.14.0
+    :released: November 4, 2024
+
+    .. change::
+        :tags: usecase, runtime
+        :tickets: 1560
+
+        Added a new hook to the :class:`.DefaultImpl`
+        :meth:`.DefaultImpl.version_table_impl`.  This allows third party dialects
+        to define the exact structure of the alembic_version table, to include use
+        cases where the table requires special directives and/or additional columns
+        so that it may function correctly on a particular backend.  This is not
+        intended as a user-expansion hook, only a dialect implementation hook to
+        produce a working alembic_version table. Pull request courtesy Maciek
+        Bryński.
+
+.. changelog::
+    :version: 1.13.3
+    :released: September 23, 2024
+
+    .. change::
+        :tags: usecase, autogenerate
+
+        Render ``if_exists`` and ``if_not_exists`` parameters in
+        :class:`.CreateTableOp`, :class:`.CreateIndexOp`, :class:`.DropTableOp` and
+        :class:`.DropIndexOp` in an autogenerate context.  While Alembic does not
+        set these parameters during an autogenerate run, they can be enabled using
+        a custom :class:`.Rewriter` in the ``env.py`` file, where they will now be
+        part of the rendered Python code in revision files.  Pull request courtesy
+        of Louis-Amaury Chaib (@lachaib).
+
+    .. change::
+        :tags: usecase, environment
+        :tickets: 1509
+
+        Enhance ``version_locations`` parsing to handle paths containing newlines.
+
+    .. change::
+        :tags: usecase, operations
+        :tickets: 1520
+
+        Added support for :paramref:`.Operations.create_table.if_not_exists` and
+        :paramref:`.Operations.drop_table.if_exists`, adding similar functionality
+        to render IF [NOT] EXISTS for table operations in a similar way as with
+        indexes. Pull request courtesy Aaron Griffin.
+
+
+    .. change::
+        :tags: change, general
+
+        The pin for ``setuptools<69.3`` in ``pyproject.toml`` has been removed.
+        This pin was to prevent a sudden change to :pep:`625` in setuptools from
+        taking place which changes the file name of SQLAlchemy's source
+        distribution on pypi to be an all lower case name, and the change was
+        extended to all SQLAlchemy projects to prevent any further surprises.
+        However, the presence of this pin is now holding back environments that
+        otherwise want to use a newer setuptools, so we've decided to move forward
+        with this change, with the assumption that build environments will have
+        largely accommodated the setuptools change by now.
+
+
+
 
 .. changelog::
     :version: 1.13.2

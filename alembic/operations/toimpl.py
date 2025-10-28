@@ -8,7 +8,7 @@ from sqlalchemy import schema as sa_schema
 from . import ops
 from .base import Operations
 from ..util.sqla_compat import _copy
-from ..util.sqla_compat import sqla_14
+from ..util.sqla_compat import sqla_2
 
 if TYPE_CHECKING:
     from sqlalchemy.sql.schema import Table
@@ -81,9 +81,6 @@ def alter_column(
 def drop_table(operations: "Operations", operation: "ops.DropTableOp") -> None:
     kw = {}
     if operation.if_exists is not None:
-        if not sqla_14:
-            raise NotImplementedError("SQLAlchemy 1.4+ required")
-
         kw["if_exists"] = operation.if_exists
     operations.impl.drop_table(
         operation.to_table(operations.migration_context), **kw
@@ -96,7 +93,11 @@ def drop_column(
 ) -> None:
     column = operation.to_column(operations.migration_context)
     operations.impl.drop_column(
-        operation.table_name, column, schema=operation.schema, **operation.kw
+        operation.table_name,
+        column,
+        schema=operation.schema,
+        if_exists=operation.if_exists,
+        **operation.kw,
     )
 
 
@@ -107,9 +108,6 @@ def create_index(
     idx = operation.to_index(operations.migration_context)
     kw = {}
     if operation.if_not_exists is not None:
-        if not sqla_14:
-            raise NotImplementedError("SQLAlchemy 1.4+ required")
-
         kw["if_not_exists"] = operation.if_not_exists
     operations.impl.create_index(idx, **kw)
 
@@ -118,9 +116,6 @@ def create_index(
 def drop_index(operations: "Operations", operation: "ops.DropIndexOp") -> None:
     kw = {}
     if operation.if_exists is not None:
-        if not sqla_14:
-            raise NotImplementedError("SQLAlchemy 1.4+ required")
-
         kw["if_exists"] = operation.if_exists
 
     operations.impl.drop_index(
@@ -135,9 +130,6 @@ def create_table(
 ) -> "Table":
     kw = {}
     if operation.if_not_exists is not None:
-        if not sqla_14:
-            raise NotImplementedError("SQLAlchemy 1.4+ required")
-
         kw["if_not_exists"] = operation.if_not_exists
     table = operation.to_table(operations.migration_context)
     operations.impl.create_table(table, **kw)
@@ -180,7 +172,13 @@ def add_column(operations: "Operations", operation: "ops.AddColumnOp") -> None:
         column = _copy(column)
 
     t = operations.schema_obj.table(table_name, column, schema=schema)
-    operations.impl.add_column(table_name, column, schema=schema, **kw)
+    operations.impl.add_column(
+        table_name,
+        column,
+        schema=schema,
+        if_not_exists=operation.if_not_exists,
+        **kw,
+    )
 
     for constraint in t.constraints:
         if not isinstance(constraint, sa_schema.PrimaryKeyConstraint):
@@ -210,13 +208,19 @@ def create_constraint(
 def drop_constraint(
     operations: "Operations", operation: "ops.DropConstraintOp"
 ) -> None:
+    kw = {}
+    if operation.if_exists is not None:
+        if not sqla_2:
+            raise NotImplementedError("SQLAlchemy 2.0 required")
+        kw["if_exists"] = operation.if_exists
     operations.impl.drop_constraint(
         operations.schema_obj.generic_constraint(
             operation.constraint_name,
             operation.table_name,
             operation.constraint_type,
             schema=operation.schema,
-        )
+        ),
+        **kw,
     )
 
 

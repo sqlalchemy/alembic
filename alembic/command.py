@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import pathlib
 from typing import List
 from typing import Optional
 from typing import TYPE_CHECKING
@@ -12,6 +13,7 @@ from . import autogenerate as autogen
 from . import util
 from .runtime.environment import EnvironmentContext
 from .script import ScriptDirectory
+from .util import compat
 
 if TYPE_CHECKING:
     from alembic.config import Config
@@ -28,12 +30,10 @@ def list_templates(config: Config) -> None:
     """
 
     config.print_stdout("Available templates:\n")
-    for tempname in os.listdir(config.get_template_directory()):
-        with open(
-            os.path.join(config.get_template_directory(), tempname, "README")
-        ) as readme:
+    for tempname in config._get_template_path().iterdir():
+        with (tempname / "README").open() as readme:
             synopsis = next(readme).rstrip()
-        config.print_stdout("%s - %s", tempname, synopsis)
+        config.print_stdout("%s - %s", tempname.name, synopsis)
 
     config.print_stdout("\nTemplates are used via the 'init' command, e.g.:")
     config.print_stdout("\n  alembic init --template generic ./scripts")
@@ -59,65 +59,136 @@ def init(
 
     """
 
-    if os.access(directory, os.F_OK) and os.listdir(directory):
+    directory_path = pathlib.Path(directory)
+    if directory_path.exists() and list(directory_path.iterdir()):
         raise util.CommandError(
-            "Directory %s already exists and is not empty" % directory
+            "Directory %s already exists and is not empty" % directory_path
         )
 
-    template_dir = os.path.join(config.get_template_directory(), template)
-    if not os.access(template_dir, os.F_OK):
-        raise util.CommandError("No such template %r" % template)
+    template_path = config._get_template_path() / template
 
-    if not os.access(directory, os.F_OK):
+    if not template_path.exists():
+        raise util.CommandError(f"No such template {template_path}")
+
+    # left as os.access() to suit unit test mocking
+    if not os.access(directory_path, os.F_OK):
         with util.status(
-            f"Creating directory {os.path.abspath(directory)!r}",
+            f"Creating directory {directory_path.absolute()}",
             **config.messaging_opts,
         ):
-            os.makedirs(directory)
+            os.makedirs(directory_path)
 
-    versions = os.path.join(directory, "versions")
+    versions = directory_path / "versions"
     with util.status(
-        f"Creating directory {os.path.abspath(versions)!r}",
+        f"Creating directory {versions.absolute()}",
         **config.messaging_opts,
     ):
         os.makedirs(versions)
 
-    script = ScriptDirectory(directory)
+    if not directory_path.is_absolute():
+        # for non-absolute path, state config file in .ini / pyproject
+        # as relative to the %(here)s token, which is where the config
+        # file itself would be
 
-    config_file: str | None = None
-    for file_ in os.listdir(template_dir):
-        file_path = os.path.join(template_dir, file_)
+        if config._config_file_path is not None:
+            rel_dir = compat.path_relative_to(
+                directory_path.absolute(),
+                config._config_file_path.absolute().parent,
+                walk_up=True,
+            )
+            ini_script_location_directory = ("%(here)s" / rel_dir).as_posix()
+        if config._toml_file_path is not None:
+            rel_dir = compat.path_relative_to(
+                directory_path.absolute(),
+                config._toml_file_path.absolute().parent,
+                walk_up=True,
+            )
+            toml_script_location_directory = ("%(here)s" / rel_dir).as_posix()
+
+    else:
+        ini_script_location_directory = directory_path.as_posix()
+        toml_script_location_directory = directory_path.as_posix()
+
+    script = ScriptDirectory(directory_path)
+
+    has_toml = False
+
+    config_file: pathlib.Path | None = None
+
+    for file_path in template_path.iterdir():
+        file_ = file_path.name
         if file_ == "alembic.ini.mako":
             assert config.config_file_name is not None
-            config_file = os.path.abspath(config.config_file_name)
-            if os.access(config_file, os.F_OK):
+            config_file = pathlib.Path(config.config_file_name).absolute()
+            if config_file.exists():
                 util.msg(
-                    f"File {config_file!r} already exists, skipping",
+                    f"File {config_file} already exists, skipping",
                     **config.messaging_opts,
                 )
             else:
                 script._generate_template(
-                    file_path, config_file, script_location=directory
+                    file_path,
+                    config_file,
+                    script_location=ini_script_location_directory,
                 )
-        elif os.path.isfile(file_path):
-            output_file = os.path.join(directory, file_)
+        elif file_ == "pyproject.toml.mako":
+            has_toml = True
+            assert config._toml_file_path is not None
+            toml_path = config._toml_file_path.absolute()
+
+            if toml_path.exists():
+                # left as open() to suit unit test mocking
+                with open(toml_path, "rb") as f:
+                    toml_data = compat.tomllib.load(f)
+                    if "tool" in toml_data and "alembic" in toml_data["tool"]:
+
+                        util.msg(
+                            f"File {toml_path} already exists "
+                            "and already has a [tool.alembic] section, "
+                            "skipping",
+                        )
+                        continue
+                script._append_template(
+                    file_path,
+                    toml_path,
+                    script_location=toml_script_location_directory,
+                )
+            else:
+                script._generate_template(
+                    file_path,
+                    toml_path,
+                    script_location=toml_script_location_directory,
+                )
+
+        elif file_path.is_file():
+            output_file = directory_path / file_
             script._copy_file(file_path, output_file)
 
     if package:
         for path in [
-            os.path.join(os.path.abspath(directory), "__init__.py"),
-            os.path.join(os.path.abspath(versions), "__init__.py"),
+            directory_path.absolute() / "__init__.py",
+            versions.absolute() / "__init__.py",
         ]:
-            with util.status(f"Adding {path!r}", **config.messaging_opts):
+            with util.status(f"Adding {path!s}", **config.messaging_opts):
+                # left as open() to suit unit test mocking
                 with open(path, "w"):
                     pass
 
     assert config_file is not None
-    util.msg(
-        "Please edit configuration/connection/logging "
-        f"settings in {config_file!r} before proceeding.",
-        **config.messaging_opts,
-    )
+
+    if has_toml:
+        util.msg(
+            f"Please edit configuration settings in {toml_path} and "
+            "configuration/connection/logging "
+            f"settings in {config_file} before proceeding.",
+            **config.messaging_opts,
+        )
+    else:
+        util.msg(
+            "Please edit configuration/connection/logging "
+            f"settings in {config_file} before proceeding.",
+            **config.messaging_opts,
+        )
 
 
 def revision(
@@ -128,7 +199,7 @@ def revision(
     head: str = "head",
     splice: bool = False,
     branch_label: Optional[_RevIdType] = None,
-    version_path: Optional[str] = None,
+    version_path: Union[str, os.PathLike[str], None] = None,
     rev_id: Optional[str] = None,
     depends_on: Optional[str] = None,
     process_revision_directives: Optional[ProcessRevisionDirectiveFn] = None,
@@ -198,7 +269,9 @@ def revision(
         process_revision_directives=process_revision_directives,
     )
 
-    environment = util.asbool(config.get_main_option("revision_environment"))
+    environment = util.asbool(
+        config.get_alembic_option("revision_environment")
+    )
 
     if autogenerate:
         environment = True
@@ -298,7 +371,9 @@ def check(config: "Config") -> None:
 
     if diffs:
         raise util.AutogenerateDiffsDetected(
-            f"New upgrade operations detected: {diffs}"
+            f"New upgrade operations detected: {diffs}",
+            revision_context=revision_context,
+            diffs=diffs,
         )
     else:
         config.print_stdout("No new upgrade operations detected.")
@@ -336,7 +411,9 @@ def merge(
         # e.g. multiple databases
     }
 
-    environment = util.asbool(config.get_main_option("revision_environment"))
+    environment = util.asbool(
+        config.get_alembic_option("revision_environment")
+    )
 
     if environment:
 
@@ -509,7 +586,7 @@ def history(
         base = head = None
 
     environment = (
-        util.asbool(config.get_main_option("revision_environment"))
+        util.asbool(config.get_alembic_option("revision_environment"))
         or indicate_current
     )
 

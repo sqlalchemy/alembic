@@ -41,11 +41,15 @@ method.
 
 .. module:: alembic.operations
 
-.. autoclass:: AbstractOperations
-    :members:
+.. class:: AbstractOperations
+
+    Base class for :class:`.Operations` and :class:`.BatchOperations`.
+
+    See :class:`.Operations` for full list of members
 
 .. autoclass:: Operations
     :members:
+    :inherited-members:
 
 .. autoclass:: BatchOperations
     :members:

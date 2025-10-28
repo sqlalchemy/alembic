@@ -11,6 +11,7 @@ from sqlalchemy import DATETIME
 from sqlalchemy import DateTime
 from sqlalchemy import DefaultClause
 from sqlalchemy import Enum
+from sqlalchemy import FetchedValue
 from sqlalchemy import ForeignKey
 from sqlalchemy import ForeignKeyConstraint
 from sqlalchemy import func
@@ -26,6 +27,7 @@ from sqlalchemy import types
 from sqlalchemy import Unicode
 from sqlalchemy import UniqueConstraint
 from sqlalchemy import VARCHAR
+from sqlalchemy.dialects.mysql import LONGTEXT
 from sqlalchemy.engine.default import DefaultDialect
 from sqlalchemy.sql import and_
 from sqlalchemy.sql import column
@@ -93,6 +95,46 @@ class AutogenRenderTest(TestBase):
             "['active', 'code'], unique=False)",
         )
 
+    def test_render_add_index_fn(self):
+        t = self.table(Column("other", String(100)))
+        idx = Index("test_fn_idx", t.c.code + t.c.other)
+        op_obj = ops.CreateIndexOp.from_index(idx)
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.create_index('test_fn_idx', 'test', "
+            "[sa.literal_column('code || other')], unique=False)",
+        )
+
+    def test_render_add_index_label(self):
+        t = self.table(Column("other", String(100)))
+        idx = Index(
+            "test_fn_idx",
+            (t.c.code + t.c.other).label("foo"),
+            t.c.id.label("bar"),
+        )
+        op_obj = ops.CreateIndexOp.from_index(idx)
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.create_index('test_fn_idx', 'test', ["
+            "sa.literal_column('code || other').label('foo'), "
+            "sa.literal_column('id').label('bar')"
+            "], unique=False)",
+        )
+
+    def test_render_add_index_if_not_exists(self):
+        """
+        autogenerate.render._add_index
+        """
+        t = self.table()
+        idx = Index("test_active_code_idx", t.c.active, t.c.code)
+        op_obj = ops.CreateIndexOp.from_index(idx)
+        op_obj.if_not_exists = True
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.create_index('test_active_code_idx', 'test', "
+            "['active', 'code'], unique=False, if_not_exists=True)",
+        )
+
     @testing.emits_warning("Can't validate argument ")
     def test_render_add_index_custom_kwarg(self):
         t = self.table()
@@ -155,7 +197,7 @@ class AutogenRenderTest(TestBase):
         eq_ignore_whitespace(
             autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.create_index('test_active_code_idx', 'test', "
-            "['active', sa.text('lower(code)')], unique=False)",
+            "['active', sa.literal_column('lower(code)')], unique=False)",
         )
         op_obj_rev = op_obj.reverse()
         eq_ignore_whitespace(
@@ -171,7 +213,7 @@ class AutogenRenderTest(TestBase):
         eq_ignore_whitespace(
             autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.create_index('test_lower_code_idx', 'test', "
-            "[sa.text('lower(code)')], unique=False)",
+            "[sa.literal_column('lower(code)')], unique=False)",
         )
         op_obj_rev = op_obj.reverse()
         eq_ignore_whitespace(
@@ -187,7 +229,7 @@ class AutogenRenderTest(TestBase):
         eq_ignore_whitespace(
             autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.create_index('test_lower_code_idx', 'test', "
-            "[sa.text('CAST(code AS VARCHAR)')], unique=False)",
+            "[sa.literal_column('CAST(code AS VARCHAR)')], unique=False)",
         )
 
     def test_render_add_index_desc(self):
@@ -197,7 +239,7 @@ class AutogenRenderTest(TestBase):
         eq_ignore_whitespace(
             autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.create_index('test_desc_code_idx', 'test', "
-            "[sa.text('code DESC')], unique=False)",
+            "[sa.literal_column('code DESC')], unique=False)",
         )
 
     def test_drop_index(self):
@@ -210,6 +252,20 @@ class AutogenRenderTest(TestBase):
         eq_ignore_whitespace(
             autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.drop_index('test_active_code_idx', table_name='test')",
+        )
+
+    def test_drop_index_if_exists(self):
+        """
+        autogenerate.render._drop_index
+        """
+        t = self.table()
+        idx = Index("test_active_code_idx", t.c.active, t.c.code)
+        op_obj = ops.DropIndexOp.from_index(idx)
+        op_obj.if_exists = True
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.drop_index('test_active_code_idx', table_name='test', "
+            "if_exists=True)",
         )
 
     def test_drop_index_text(self):
@@ -227,7 +283,7 @@ class AutogenRenderTest(TestBase):
         eq_ignore_whitespace(
             autogenerate.render_op_text(self.autogen_context, op_obj_rev),
             "op.create_index('test_active_code_idx', 'test', "
-            "['active', sa.text('lower(code)')], unique=False)",
+            "['active', sa.literal_column('lower(code)')], unique=False)",
         )
 
     def test_drop_index_func(self):
@@ -245,7 +301,7 @@ class AutogenRenderTest(TestBase):
         eq_ignore_whitespace(
             autogenerate.render_op_text(self.autogen_context, op_obj_rev),
             "op.create_index('test_lower_code_idx', 'test', "
-            "[sa.text('lower(code)')], unique=False)",
+            "[sa.literal_column('lower(code)')], unique=False)",
         )
 
     @testing.emits_warning("Can't validate argument ")
@@ -257,6 +313,24 @@ class AutogenRenderTest(TestBase):
             autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.drop_index(op.f('ix_test_active'), table_name='test', "
             "somedialect_foobar='option')",
+        )
+
+    def test_add_fk_constraint__dialect_kwargs(self):
+        t1 = self.table()
+        t2 = self.table()
+        item = ForeignKeyConstraint(
+            [t1.c.id], [t2.c.id], name="fk", postgresql_not_valid=True
+        )
+        fk_obj = ops.CreateForeignKeyOp.from_constraint(item)
+
+        eq_ignore_whitespace(
+            re.sub(
+                r"u'",
+                "'",
+                autogenerate.render_op_text(self.autogen_context, fk_obj),
+            ),
+            "op.create_foreign_key('fk', 'test', 'test', ['id'], ['id'], "
+            "postgresql_not_valid=True)",
         )
 
     def test_drop_index_batch(self):
@@ -394,6 +468,20 @@ class AutogenRenderTest(TestBase):
             autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.drop_constraint('uq_test_code', 'test', "
             "schema=foo.camel_schema, type_='unique')",
+        )
+
+    def test_render_drop_unique_constraint_if_exists(self):
+        """
+        autogenerate.render._drop_constraint
+        """
+        t = self.table()
+        uq = UniqueConstraint(t.c.code, name="uq_test_code")
+        op_obj = ops.DropConstraintOp.from_constraint(uq)
+        op_obj.if_exists = True
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.drop_constraint('uq_test_code', 'test', "
+            "type_='unique', if_exists=True)",
         )
 
     def test_add_fk_constraint(self):
@@ -989,6 +1077,19 @@ class AutogenRenderTest(TestBase):
             "mysql_engine='InnoDB',sqlite_autoincrement=True)",
         )
 
+    def test_render_if_not_exists(self):
+        t = self.table()
+        op_obj = ops.CreateTableOp.from_table(t)
+        op_obj.if_not_exists = True
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.create_table('test',"
+            "sa.Column('id', sa.Integer(), nullable=False),"
+            "sa.Column('active', sa.Boolean(), nullable=True),"
+            "sa.Column('code', sa.String(length=255), nullable=True),"
+            "sa.PrimaryKeyConstraint('id'),if_not_exists=True)",
+        )
+
     def test_render_drop_table(self):
         op_obj = ops.DropTableOp.from_table(Table("sometable", MetaData()))
         eq_ignore_whitespace(
@@ -1003,6 +1104,15 @@ class AutogenRenderTest(TestBase):
         eq_ignore_whitespace(
             autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.drop_table('sometable', schema='foo')",
+        )
+
+    def test_render_drop_table_if_exists(self):
+        t = self.table()
+        op_obj = ops.DropTableOp.from_table(t)
+        op_obj.if_exists = True
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.drop_table('test', if_exists=True)",
         )
 
     def test_render_table_no_implicit_check(self):
@@ -1091,6 +1201,19 @@ class AutogenRenderTest(TestBase):
             "server_default='5', nullable=True, somedialect_foobar='option'))",
         )
 
+    def test_render_add_column_if_not_exists(self):
+        op_obj = ops.AddColumnOp(
+            "foo",
+            Column("x", Integer, server_default="5", nullable=True),
+            if_not_exists=True,
+        )
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.add_column('foo', sa.Column('x', sa.Integer(), "
+            "server_default='5', nullable=True), "
+            "if_not_exists=True)",
+        )
+
     def test_render_add_column_system(self):
         # this would never actually happen since "system" columns
         # can't be added in any case.   However it will render as
@@ -1128,6 +1251,16 @@ class AutogenRenderTest(TestBase):
         eq_ignore_whitespace(
             autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.drop_column('bar', 'x', schema='foo')",
+        )
+
+    def test_render_drop_column_if_exists(self):
+        op_obj = ops.DropColumnOp.from_column_and_tablename(
+            None, "foo", Column("x", Integer, server_default="5")
+        )
+        op_obj.if_exists = True
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.drop_column('foo', 'x', if_exists=True)",
         )
 
     def test_render_quoted_server_default(self):
@@ -1248,6 +1381,18 @@ class AutogenRenderTest(TestBase):
         eq_(
             self.autogen_context.imports,
             {"from mypackage import MySpecialType"},
+        )
+
+    def test_render_modify_name(self):
+        op_obj = ops.AlterColumnOp(
+            "sometable",
+            "somecolumn",
+            modify_name="newcolumnname",
+        )
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.alter_column('sometable', 'somecolumn', "
+            "new_column_name='newcolumnname')",
         )
 
     def test_render_modify_type(self):
@@ -1617,28 +1762,39 @@ class AutogenRenderTest(TestBase):
             "existing_server_default='5')",
         )
 
+    def _check_enum_inherit_schema(self, enum):
+        if (
+            not sqla_compat._inherit_schema_deprecated()
+            and enum.inherit_schema
+        ):
+            return enum, ", inherit_schema=True"
+        else:
+            return enum, ""
+
     def test_render_enum(self):
-        eq_ignore_whitespace(
-            autogenerate.render._repr_type(
-                Enum("one", "two", "three", name="myenum"),
-                self.autogen_context,
-            ),
-            "sa.Enum('one', 'two', 'three', name='myenum')",
+        enum, extra = self._check_enum_inherit_schema(
+            Enum("one", "two", "three", name="myenum")
         )
         eq_ignore_whitespace(
-            autogenerate.render._repr_type(
-                Enum("one", "two", "three"), self.autogen_context
-            ),
-            "sa.Enum('one', 'two', 'three')",
+            autogenerate.render._repr_type(enum, self.autogen_context),
+            f"sa.Enum('one', 'two', 'three', name='myenum'{extra})",
+        )
+
+        enum, extra = self._check_enum_inherit_schema(
+            Enum("one", "two", "three")
+        )
+        eq_ignore_whitespace(
+            autogenerate.render._repr_type(enum, self.autogen_context),
+            f"sa.Enum('one', 'two', 'three'{extra})",
         )
 
     def test_render_non_native_enum(self):
+        enum, extra = self._check_enum_inherit_schema(
+            Enum("one", "two", "three", native_enum=False)
+        )
         eq_ignore_whitespace(
-            autogenerate.render._repr_type(
-                Enum("one", "two", "three", native_enum=False),
-                self.autogen_context,
-            ),
-            "sa.Enum('one', 'two', 'three', native_enum=False)",
+            autogenerate.render._repr_type(enum, self.autogen_context),
+            f"sa.Enum('one', 'two', 'three'{extra}, native_enum=False)",
         )
 
     def test_repr_plain_sqla_type(self):
@@ -1687,6 +1843,31 @@ class AutogenRenderTest(TestBase):
             "# ### commands auto generated by Alembic - please adjust! ###\n"
             "    op.create_table('sometable',\n"
             f"    sa.Column('x', {prefix}MyType(), nullable=True)\n"
+            "    )\n"
+            "    # ### end Alembic commands ###",
+        )
+
+    def test_render_foreign_key_no_context(self):
+        """test #1692"""
+
+        uo = ops.UpgradeOps(
+            ops=[
+                ops.CreateTableOp(
+                    "sometable",
+                    [
+                        Column("x", Integer),
+                        Column("q", Integer, ForeignKey("othertable.id")),
+                    ],
+                )
+            ]
+        )
+        eq_(
+            autogenerate.render_python_code(uo),
+            "# ### commands auto generated by Alembic - please adjust! ###\n"
+            "    op.create_table('sometable',\n"
+            "    sa.Column('x', sa.Integer(), nullable=True),\n"
+            "    sa.Column('q', sa.Integer(), nullable=True),\n"
+            "    sa.ForeignKeyConstraint(['q'], ['othertable.id'], )\n"
             "    )\n"
             "    # ### end Alembic commands ###",
         )
@@ -1792,12 +1973,23 @@ class AutogenRenderTest(TestBase):
             .with_variant(CHAR(15), "oracle")
         )
 
-        # the new Black formatting will help a lot with this
         eq_ignore_whitespace(
             autogenerate.render._repr_type(type_, self.autogen_context),
             "sa.String(length=5)."
             "with_variant(sa.VARCHAR(length=10), 'mysql')."
             "with_variant(sa.CHAR(length=15), 'oracle')",
+        )
+
+    def test_render_reverse_variant(self):
+        """test #1585"""
+
+        self.autogen_context.opts["user_module_prefix"] = None
+
+        type_ = LONGTEXT().with_variant(String(10), "oracle")
+
+        eq_ignore_whitespace(
+            autogenerate.render._repr_type(type_, self.autogen_context),
+            "mysql.LONGTEXT()." "with_variant(sa.String(length=10), 'oracle')",
         )
 
     def test_repr_user_type_user_prefix_None(self):
@@ -1895,6 +2087,15 @@ class AutogenRenderTest(TestBase):
             "server_default='0', nullable=True)",
         )
 
+    def test_render_server_default_fetched_value(self):
+        c = Column("value", Integer, server_default=FetchedValue())
+        result = autogenerate.render._render_column(c, self.autogen_context)
+        eq_(
+            result,
+            "sa.Column('value', sa.Integer(), "
+            "server_default=sa.FetchedValue(), nullable=True)",
+        )
+
     def test_render_modify_reflected_int_server_default(self):
         op_obj = ops.AlterColumnOp(
             "sometable",
@@ -1925,6 +2126,24 @@ class AutogenRenderTest(TestBase):
             autogenerate.render_op_text,
             self.autogen_context,
             op_obj,
+        )
+
+    @testing.combinations(
+        ("test.",),
+        (None,),
+        argnames="alembic_module_prefix",
+    )
+    def test_render_executesql_alembic_module_prefix(
+        self,
+        alembic_module_prefix,
+    ):
+        self.autogen_context.opts.update(
+            alembic_module_prefix=alembic_module_prefix
+        )
+        op_obj = ops.ExecuteSQLOp("drop table foo")
+        eq_(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            f"{alembic_module_prefix or ''}execute('drop table foo')",
         )
 
     def test_render_alter_column_modify_comment(self):
@@ -2155,7 +2374,6 @@ class AutogenRenderTest(TestBase):
             ")",
         )
 
-    @config.requirements.computed_columns_api
     def test_render_add_column_computed(self):
         c = sa.Computed("5")
         op_obj = ops.AddColumnOp("foo", Column("x", Integer, c))
@@ -2165,7 +2383,6 @@ class AutogenRenderTest(TestBase):
             "sa.Computed('5', ), nullable=True))",
         )
 
-    @config.requirements.computed_columns_api
     @testing.combinations((True,), (False,))
     def test_render_add_column_computed_persisted(self, persisted):
         op_obj = ops.AddColumnOp(
@@ -2177,7 +2394,6 @@ class AutogenRenderTest(TestBase):
             "sa.Computed('5', persisted=%s), nullable=True))" % persisted,
         )
 
-    @config.requirements.computed_columns_api
     def test_render_alter_column_computed_modify_default(self):
         op_obj = ops.AlterColumnOp(
             "sometable", "somecolumn", modify_server_default=sa.Computed("7")
@@ -2188,7 +2404,6 @@ class AutogenRenderTest(TestBase):
             "server_default=sa.Computed('7', ))",
         )
 
-    @config.requirements.computed_columns_api
     def test_render_alter_column_computed_existing_default(self):
         op_obj = ops.AlterColumnOp(
             "sometable",
@@ -2201,7 +2416,6 @@ class AutogenRenderTest(TestBase):
             "existing_server_default=sa.Computed('42', ))",
         )
 
-    @config.requirements.computed_columns_api
     @testing.combinations((True,), (False,))
     def test_render_alter_column_computed_modify_default_persisted(
         self, persisted
@@ -2217,7 +2431,6 @@ class AutogenRenderTest(TestBase):
             "=sa.Computed('7', persisted=%s))" % persisted,
         )
 
-    @config.requirements.computed_columns_api
     @testing.combinations((True,), (False,))
     def test_render_alter_column_computed_existing_default_persisted(
         self, persisted
@@ -2270,7 +2483,6 @@ class AutogenRenderTest(TestBase):
         ),
     )
 
-    @config.requirements.identity_columns_api
     @identity_comb
     def test_render_add_column_identity(self, kw, text):
         col = Column("x", Integer, sa.Identity(**kw))
@@ -2281,7 +2493,6 @@ class AutogenRenderTest(TestBase):
             "%s, nullable=%r))" % (text, col.nullable),
         )
 
-    @config.requirements.identity_columns_api
     @identity_comb
     def test_render_alter_column_add_identity(self, kw, text):
         op_obj = ops.AlterColumnOp(
@@ -2297,7 +2508,6 @@ class AutogenRenderTest(TestBase):
             "server_default=%s)" % text,
         )
 
-    @config.requirements.identity_columns_api
     def test_render_alter_column_drop_identity(self):
         op_obj = ops.AlterColumnOp(
             "foo",
@@ -2350,11 +2560,11 @@ class RenderNamingConventionTest(TestBase):
         t = Table("t", self.metadata, Column("c", Integer))
         eq_ignore_whitespace(
             autogenerate.render._render_unique_constraint(
-                UniqueConstraint(t.c.c, deferrable="XYZ"),
+                UniqueConstraint(t.c.c, deferrable=True),
                 self.autogen_context,
                 None,
             ),
-            "sa.UniqueConstraint('c', deferrable='XYZ', "
+            "sa.UniqueConstraint('c', deferrable=True, "
             "name=op.f('uq_ct_t_c'))",
         )
 

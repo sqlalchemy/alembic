@@ -30,58 +30,54 @@ for a project**; there are many such approaches. The documentation below is
 provided only for those users who otherwise have no specific project setup
 chosen.
 
-To build a virtual environment for a specific project, first we assume that
-`Python virtualenv <https://pypi.org/project/virtualenv/>`_ is installed
-systemwide.  Then::
+To build a virtual environment for a specific project, a virtual environment
+can be created using the
+`Python venv library <https://docs.python.org/3/library/venv.html>`_::
 
     $ cd /path/to/your/project
-    $ virtualenv .venv
+    $ python -m venv .venv
 
 There is now a Python interpreter that you can access in
 ``/path/to/your/project/.venv/bin/python``, as well as the `pip
 <http://pypi.python.org/pypi/pip>`_ installer tool in
 ``/path/to/your/project/.venv/bin/pip``.
 
+Next,the ``activate`` command installed by venv can be used so that
+all binaries local to this new Python environment are in the local path::
+
+    $ source /path/to/your/project/.venv/bin/activate
+
 We now install Alembic as follows::
 
-    $ /path/to/your/project/.venv/bin/pip install alembic
+    $ pip install alembic
 
 The install will add the ``alembic`` command to the virtual environment.  All
 operations with Alembic in terms of this specific virtual environment will then
 proceed through the usage of this command, as in::
 
-    $ /path/to/your/project/.venv/bin/alembic init alembic
+    $ alembic init alembic
 
-The next step is **optional**.   If our project itself has a ``setup.py``
-file, we can also install it in the local virtual environment in
-`editable mode <https://pip.pypa.io/en/stable/reference/pip_install/#editable-installs>`_::
+Finally, assuming your project is itself installable, meaning it has a
+``pyproject.toml`` file, and/or ``setup.py`` script, the local project can
+be made a part of the same local environment by installing it with ``pip``,
+optionally using "editable" mode::
 
-    $ /path/to/your/project/.venv/bin/pip install -e .
+    $ pip install -e .
 
-If we don't "install" the project locally, that's fine as well; the default
-``alembic.ini`` file includes a directive ``prepend_sys_path = .`` so that the
-local path is also in ``sys.path``. This allows us to run the ``alembic``
-command line tool from this directory without our project being "installed" in
-that environment.
 
-As a final step, the `virtualenv activate <https://virtualenv.pypa.io/en/latest/userguide/#activate-script>`_
-tool can be used so that the ``alembic`` command is available without any
-path information, within the context of the current shell::
-
-    $ source /path/to/your/project/.venv/bin/activate
 
 Dependencies
 ------------
 
 Alembic's install process will ensure that SQLAlchemy_
 is installed, in addition to other dependencies.  Alembic will work with
-SQLAlchemy as of version **1.3.0**.
+SQLAlchemy as of version **1.4.0**.
 
-.. versionchanged:: 1.5.0 Support for SQLAlchemy older than 1.3.0 was dropped.
+.. versionchanged:: 1.15.0 Support for SQLAlchemy older than 1.4.0 was dropped.
 
-Alembic supports Python versions **3.8 and above**
+Alembic supports Python versions **3.9 and above**
 
-.. versionchanged::  1.13  Alembic now supports Python 3.8 and newer.
+.. versionchanged::  1.15  Alembic now supports Python 3.9 and newer.
 
 .. _versioning_scheme:
 

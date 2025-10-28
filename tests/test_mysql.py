@@ -1,16 +1,22 @@
 from sqlalchemy import Boolean
 from sqlalchemy import Column
+from sqlalchemy import Computed
 from sqlalchemy import DATETIME
 from sqlalchemy import exc
 from sqlalchemy import Float
 from sqlalchemy import func
+from sqlalchemy import Identity
+from sqlalchemy import Index
 from sqlalchemy import inspect
 from sqlalchemy import Integer
 from sqlalchemy import MetaData
+from sqlalchemy import String
 from sqlalchemy import Table
 from sqlalchemy import text
 from sqlalchemy import TIMESTAMP
+from sqlalchemy.dialects.mysql import VARCHAR
 
+from alembic import autogenerate
 from alembic import op
 from alembic import util
 from alembic.autogenerate import api
@@ -20,12 +26,12 @@ from alembic.operations import ops
 from alembic.testing import assert_raises_message
 from alembic.testing import combinations
 from alembic.testing import config
+from alembic.testing import eq_ignore_whitespace
 from alembic.testing.env import clear_staging_env
 from alembic.testing.env import staging_env
 from alembic.testing.fixtures import AlterColRoundTripFixture
 from alembic.testing.fixtures import op_fixture
 from alembic.testing.fixtures import TestBase
-from alembic.util import sqla_compat
 
 
 class MySQLOpTest(TestBase):
@@ -62,6 +68,16 @@ class MySQLOpTest(TestBase):
         context.assert_(
             "ALTER TABLE t ADD COLUMN q INTEGER COMMENT 'This is a comment'"
         )
+
+    def test_add_column_if_not_exists(self):
+        context = op_fixture("mysql")
+        op.add_column("t", Column("c", Integer), if_not_exists=True)
+        context.assert_("ALTER TABLE t ADD COLUMN IF NOT EXISTS c INTEGER")
+
+    def test_drop_column_if_exists(self):
+        context = op_fixture("mysql")
+        op.drop_column("t", "c", if_exists=True)
+        context.assert_("ALTER TABLE t DROP COLUMN IF EXISTS c")
 
     def test_rename_column(self):
         context = op_fixture("mysql")
@@ -229,6 +245,22 @@ class MySQLOpTest(TestBase):
         op.invoke(operation)
         context.assert_("ALTER TABLE t MODIFY c FLOAT NULL DEFAULT 0")
 
+    def test_alter_column_change_collation(self):
+        context = op_fixture("mysql")
+        op.alter_column(
+            "t1",
+            "c1",
+            nullable=False,
+            existing_type=String(50),
+            type_=VARCHAR(
+                50, charset="utf8mb4", collation="utf8mb4/utf8mb4_unicode_ci"
+            ),
+        )
+        context.assert_(
+            "ALTER TABLE t1 MODIFY c1 VARCHAR(50) "
+            "CHARACTER SET utf8mb4 COLLATE utf8mb4/utf8mb4_unicode_ci NOT NULL"
+        )
+
     def test_col_not_nullable(self):
         context = op_fixture("mysql")
         op.alter_column("t1", "c1", nullable=False, existing_type=Integer)
@@ -382,12 +414,11 @@ class MySQLOpTest(TestBase):
         op.drop_table_comment("t2", existing_comment="t2 table", schema="foo")
         context.assert_("ALTER TABLE foo.t2 COMMENT ''")
 
-    @config.requirements.computed_columns_api
     def test_add_column_computed(self):
         context = op_fixture("mysql")
         op.add_column(
             "t1",
-            Column("some_column", Integer, sqla_compat.Computed("foo * 5")),
+            Column("some_column", Integer, Computed("foo * 5")),
         )
         context.assert_(
             "ALTER TABLE t1 ADD COLUMN some_column "
@@ -469,14 +500,13 @@ class MySQLOpTest(TestBase):
         )
 
     @combinations(
-        (lambda: sqla_compat.Computed("foo * 5"), lambda: None),
-        (lambda: None, lambda: sqla_compat.Computed("foo * 5")),
+        (lambda: Computed("foo * 5"), lambda: None),
+        (lambda: None, lambda: Computed("foo * 5")),
         (
-            lambda: sqla_compat.Computed("foo * 42"),
-            lambda: sqla_compat.Computed("foo * 5"),
+            lambda: Computed("foo * 42"),
+            lambda: Computed("foo * 5"),
         ),
     )
-    @config.requirements.computed_columns_api
     def test_alter_column_computed_not_supported(self, sd, esd):
         op_fixture("mysql")
         assert_raises_message(
@@ -492,14 +522,10 @@ class MySQLOpTest(TestBase):
         )
 
     @combinations(
-        (lambda: sqla_compat.Identity(), lambda: None),
-        (lambda: None, lambda: sqla_compat.Identity()),
-        (
-            lambda: sqla_compat.Identity(),
-            lambda: sqla_compat.Identity(),
-        ),
+        (lambda: Identity(), lambda: None),
+        (lambda: None, lambda: Identity()),
+        (lambda: Identity(), lambda: Identity()),
     )
-    @config.requirements.identity_columns_api
     def test_alter_column_identity_not_supported(self, sd, esd):
         op_fixture()
         assert_raises_message(
@@ -633,7 +659,7 @@ class MySQLDefaultCompareTest(TestBase):
         insp = inspect(self.bind)
         cols = insp.get_columns(t1.name)
         refl = Table(t1.name, MetaData())
-        sqla_compat._reflect_table(insp, refl)
+        insp.reflect_table(refl, include_columns=None)
         ctx = self.autogen_context["context"]
         return ctx.impl.compare_server_default(
             refl.c[cols[0]["name"]], col, rendered, cols[0]["default"]
@@ -669,3 +695,79 @@ class MySQLDefaultCompareTest(TestBase):
 
     def test_compare_boolean_diff(self):
         self._compare_default_roundtrip(Boolean(), "1", "0")
+
+
+class MySQLAutogenRenderTest(TestBase):
+    def setUp(self):
+        ctx_opts = {
+            "sqlalchemy_module_prefix": "sa.",
+            "alembic_module_prefix": "op.",
+            "target_metadata": MetaData(),
+        }
+        context = MigrationContext.configure(
+            dialect_name="mysql", opts=ctx_opts
+        )
+
+        self.autogen_context = api.AutogenContext(context)
+
+    def test_render_add_index_expr_binary(self):
+        m = MetaData()
+        t = Table(
+            "t",
+            m,
+            Column("x", Integer, primary_key=True),
+            Column("y", Integer),
+        )
+        idx = Index("foo_idx", t.c.x > 5)
+
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(
+                self.autogen_context, ops.CreateIndexOp.from_index(idx)
+            ),
+            "op.create_index('foo_idx', 't', "
+            "[sa.literal_column('(x > 5)')], unique=False)",
+        )
+
+    def test_render_add_index_expr_unary(self):
+        m = MetaData()
+        t = Table(
+            "t",
+            m,
+            Column("x", Integer, primary_key=True),
+            Column("y", Integer),
+        )
+        idx1 = Index("foo_idx", -t.c.x)
+        idx2 = Index("foo_idx", t.c.x.desc())
+
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(
+                self.autogen_context, ops.CreateIndexOp.from_index(idx1)
+            ),
+            "op.create_index('foo_idx', 't', "
+            "[sa.literal_column('(-x)')], unique=False)",
+        )
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(
+                self.autogen_context, ops.CreateIndexOp.from_index(idx2)
+            ),
+            "op.create_index('foo_idx', 't', "
+            "[sa.literal_column('x DESC')], unique=False)",
+        )
+
+    def test_render_add_index_expr_func(self):
+        m = MetaData()
+        t = Table(
+            "t",
+            m,
+            Column("x", Integer, primary_key=True),
+            Column("y", Integer, nullable=True),
+        )
+        idx = Index("foo_idx", t.c.x, func.coalesce(t.c.y, 0))
+
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(
+                self.autogen_context, ops.CreateIndexOp.from_index(idx)
+            ),
+            "op.create_index('foo_idx', 't', "
+            "['x', sa.literal_column('(coalesce(y, 0))')], unique=False)",
+        )

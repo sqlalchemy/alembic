@@ -3,15 +3,16 @@
 from __future__ import annotations
 
 from configparser import ConfigParser
+from importlib import metadata
+from importlib.metadata import EntryPoint
 import io
 import os
+from pathlib import Path
 import sys
 import typing
 from typing import Any
-from typing import List
-from typing import Optional
+from typing import Iterator
 from typing import Sequence
-from typing import Union
 
 if True:
     # zimports hack for too-long names
@@ -24,9 +25,10 @@ if True:
 
 is_posix = os.name == "posix"
 
+py314 = sys.version_info >= (3, 14)
+py313 = sys.version_info >= (3, 13)
+py312 = sys.version_info >= (3, 12)
 py311 = sys.version_info >= (3, 11)
-py310 = sys.version_info >= (3, 10)
-py39 = sys.version_info >= (3, 9)
 
 
 # produce a wrapper that allows encoded text to stream
@@ -37,30 +39,72 @@ class EncodedIO(io.TextIOWrapper):
         pass
 
 
-if py39:
-    from importlib import resources as _resources
-
-    importlib_resources = _resources
-    from importlib import metadata as _metadata
-
-    importlib_metadata = _metadata
-    from importlib.metadata import EntryPoint as EntryPoint
+if py311:
+    import tomllib as tomllib
 else:
-    import importlib_resources  # type:ignore # noqa
-    import importlib_metadata  # type:ignore # noqa
-    from importlib_metadata import EntryPoint  # type:ignore # noqa
+    import tomli as tomllib  # type: ignore  # noqa
+
+
+if py312:
+
+    def path_walk(
+        path: Path, *, top_down: bool = True
+    ) -> Iterator[tuple[Path, list[str], list[str]]]:
+        return Path.walk(path)
+
+    def path_relative_to(
+        path: Path, other: Path, *, walk_up: bool = False
+    ) -> Path:
+        return path.relative_to(other, walk_up=walk_up)
+
+else:
+
+    def path_walk(
+        path: Path, *, top_down: bool = True
+    ) -> Iterator[tuple[Path, list[str], list[str]]]:
+        for root, dirs, files in os.walk(path, topdown=top_down):
+            yield Path(root), dirs, files
+
+    def path_relative_to(
+        path: Path, other: Path, *, walk_up: bool = False
+    ) -> Path:
+        """
+        Calculate the relative path of 'path' with respect to 'other',
+        optionally allowing 'path' to be outside the subtree of 'other'.
+
+        OK I used AI for this, sorry
+
+        """
+        try:
+            return path.relative_to(other)
+        except ValueError:
+            if walk_up:
+                other_ancestors = list(other.parents) + [other]
+                for ancestor in other_ancestors:
+                    try:
+                        return path.relative_to(ancestor)
+                    except ValueError:
+                        continue
+                raise ValueError(
+                    f"{path} is not in the same subtree as {other}"
+                )
+            else:
+                raise
 
 
 def importlib_metadata_get(group: str) -> Sequence[EntryPoint]:
-    ep = importlib_metadata.entry_points()
-    if hasattr(ep, "select"):
-        return ep.select(group=group)
-    else:
-        return ep.get(group, ())  # type: ignore
+    """provide a facade for metadata.entry_points().
+
+    This is no longer a "compat" function as of Python 3.10, however
+    the function is widely referenced in the test suite and elsewhere so is
+    still in this module for compatibility reasons.
+
+    """
+    return metadata.entry_points().select(group=group)
 
 
 def formatannotation_fwdref(
-    annotation: Any, base_module: Optional[Any] = None
+    annotation: Any, base_module: Any | None = None
 ) -> str:
     """vendored from python 3.7"""
     # copied over _formatannotation from sqlalchemy 2.0
@@ -81,9 +125,6 @@ def formatannotation_fwdref(
 
 def read_config_parser(
     file_config: ConfigParser,
-    file_argument: Sequence[Union[str, os.PathLike[str]]],
-) -> List[str]:
-    if py310:
-        return file_config.read(file_argument, encoding="locale")
-    else:
-        return file_config.read(file_argument)
+    file_argument: list[str | os.PathLike[str]],
+) -> list[str]:
+    return file_config.read(file_argument, encoding="locale")

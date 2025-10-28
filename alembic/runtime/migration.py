@@ -11,7 +11,6 @@ from typing import Any
 from typing import Callable
 from typing import cast
 from typing import Collection
-from typing import ContextManager
 from typing import Dict
 from typing import Iterable
 from typing import Iterator
@@ -24,13 +23,11 @@ from typing import Union
 
 from sqlalchemy import Column
 from sqlalchemy import literal_column
-from sqlalchemy import MetaData
-from sqlalchemy import PrimaryKeyConstraint
-from sqlalchemy import String
-from sqlalchemy import Table
+from sqlalchemy import select
 from sqlalchemy.engine import Engine
 from sqlalchemy.engine import url as sqla_url
 from sqlalchemy.engine.strategies import MockEngineStrategy
+from typing_extensions import ContextManager
 
 from .. import ddl
 from .. import util
@@ -178,7 +175,11 @@ class MigrationContext:
                 opts["output_encoding"],
             )
         else:
-            self.output_buffer = opts.get("output_buffer", sys.stdout)
+            self.output_buffer = opts.get(
+                "output_buffer", sys.stdout
+            )  # type:ignore[assignment]  # noqa: E501
+
+        self.transactional_ddl = transactional_ddl
 
         self._user_compare_type = opts.get("compare_type", True)
         self._user_compare_server_default = opts.get(
@@ -190,18 +191,6 @@ class MigrationContext:
         self.version_table_schema = version_table_schema = opts.get(
             "version_table_schema", None
         )
-        self._version = Table(
-            version_table,
-            MetaData(),
-            Column("version_num", String(32), nullable=False),
-            schema=version_table_schema,
-        )
-        if opts.get("version_table_pk", True):
-            self._version.append_constraint(
-                PrimaryKeyConstraint(
-                    "version_num", name="%s_pkc" % version_table
-                )
-            )
 
         self._start_from_rev: Optional[str] = opts.get("starting_rev")
         self.impl = ddl.DefaultImpl.get_by_dialect(dialect)(
@@ -212,6 +201,13 @@ class MigrationContext:
             self.output_buffer,
             opts,
         )
+
+        self._version = self.impl.version_table_impl(
+            version_table=version_table,
+            version_table_schema=version_table_schema,
+            version_table_pk=opts.get("version_table_pk", True),
+        )
+
         log.info("Context impl %s.", self.impl.__class__.__name__)
         if self.as_sql:
             log.info("Generating static SQL")
@@ -376,7 +372,7 @@ class MigrationContext:
 
     def begin_transaction(
         self, _per_migration: bool = False
-    ) -> Union[_ProxyTransaction, ContextManager[None]]:
+    ) -> Union[_ProxyTransaction, ContextManager[None, Optional[bool]]]:
         """Begin a logical transaction for migration operations.
 
         This method is used within an ``env.py`` script to demarcate where
@@ -540,7 +536,10 @@ class MigrationContext:
                 return ()
         assert self.connection is not None
         return tuple(
-            row[0] for row in self.connection.execute(self._version.select())
+            row[0]
+            for row in self.connection.execute(
+                select(self._version.c.version_num)
+            )
         )
 
     def _ensure_version_table(self, purge: bool = False) -> None:

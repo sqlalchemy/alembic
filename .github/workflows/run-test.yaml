@@ -26,23 +26,23 @@ jobs:
       # run this job using this matrix, excluding some combinations below.
       matrix:
         os:
-          - "ubuntu-latest"
+          - "ubuntu-22.04"
           - "windows-latest"
           - "macos-latest"
         python-version:
-          - "3.8"
-          - "3.9"
           - "3.10"
           - "3.11"
           - "3.12"
+          - "3.13"
         sqlalchemy:
-          - sqla13
           - sqla14
+          - sqla20
           - sqlamain
         exclude:
-          # sqla13 does not seem to support 3.12
-          - sqlalchemy: sqla13
-            python-version: "3.12"
+          # sqla14 does not support 3.13+
+          - sqlalchemy: sqla14
+            python-version: "3.13"
+
 
       fail-fast: false
 
@@ -60,11 +60,11 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install --upgrade tox setuptools
+          pip install --upgrade nox setuptools
           pip list
 
       - name: Run tests
-        run: tox -e py-${{ matrix.sqlalchemy }}
+        run: nox -t py-${{ matrix.sqlalchemy }}
 
   run-pep484:
     name: pep484-${{ matrix.python-version }}-${{ matrix.os }}
@@ -74,9 +74,8 @@ jobs:
         os:
           - "ubuntu-latest"
         python-version:
-          - "3.10"
-          - "3.11"
           - "3.12"
+          - "3.13"
 
       fail-fast: false
 
@@ -93,8 +92,8 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install --upgrade tox setuptools
+          pip install --upgrade nox setuptools
           pip list
 
-      - name: Run tox pep484
-        run: tox -e pep484
+      - name: Run nox pep484
+        run: nox -s pep484

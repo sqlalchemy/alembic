@@ -1,10 +1,12 @@
 Auto Generating Migrations
 ===========================
 
-Alembic can view the status of the database and compare against the table metadata
-in the application, generating the "obvious" migrations based on a comparison.  This
-is achieved using the ``--autogenerate`` option to the ``alembic revision`` command,
-which places so-called *candidate* migrations into our new migrations file.  We
+Alembic can view the status of the database (pointed to by ``sqlalchemy.url`` in
+your ``alembic.ini`` file using the *current* schema) and compare against the
+table metadata in the application (your ORM which defines the *proposed* schema),
+generating the "obvious" migrations based on a comparison.  This is achieved
+using the ``--autogenerate`` option to the ``alembic revision`` command, which
+places so-called *candidate* migrations into our new migrations file.  We
 review and modify these by hand as needed, then proceed normally.
 
 To use autogenerate, we first need to modify our ``env.py`` so that it gets access
@@ -690,32 +692,50 @@ regardless of whether or not the autogenerate feature was used.
 Basic Post Processor Configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``alembic.ini`` samples now include commented-out configuration
+The template samples for ``alembic.ini`` as well as ``pyproject.toml`` for
+applicable templates now include commented-out configuration
 illustrating how to configure code-formatting tools, or other tools like linters
-to run against the newly generated file path.    Example::
+to run against the newly generated file path.  Example from an alembic.ini file::
 
-  [post_write_hooks]
+    [post_write_hooks]
 
-  # format using "black"
-  hooks=black
+    # format using "black"
+    hooks=black
 
-  black.type = console_scripts
-  black.entrypoint = black
-  black.options = -l 79
+    black.type = console_scripts
+    black.entrypoint = black
+    black.options = -l 79 REVISION_SCRIPT_FILENAME
+
+The same example configured in a pyproject.toml file would look like::
+
+    [[tool.alembic.post_write_hooks]]
+
+    # format using "black"
+    name = "black"
+    type = "console_scripts"
+    entrypoint = "black"
+    options = "-l 79 REVISION_SCRIPT_FILENAME"
 
 Above, we configure ``hooks`` to be a single post write hook labeled
 ``"black"``.   Note that this label is arbitrary.   We then define the
 configuration for the ``"black"`` post write hook, which includes:
 
 * ``type`` - this is the type of hook we are running.  Alembic includes
-  two hook runners: ``"console_scripts"``, which is specifically a
-  Python function that uses ``subprocess.run()`` to invoke a separate
-  Python script against the revision file; and ``"exec"``, which uses
-  ``subprocess.run()`` to execute an arbitrary binary.  For a custom-written
-  hook function, this configuration variable would refer to the name under
-  which the custom hook was registered; see the next section for an example.
+  three hook runners:
+
+  * ``"console_scripts"``, which is specifically a Python function that uses
+    ``subprocess.run()`` to invoke a separate Python script against the revision file;
+  * ``"exec"``, which uses ``subprocess.run()`` to execute an arbitrary binary; and
+  * ``"module"``, which uses ``subprocess.run()`` to invoke a Python module directly.
+
+  For a custom-written hook function, this configuration variable would
+  refer to the name under which the custom hook was registered; see the
+  next section for an example.
 
 .. versionadded:: 1.12 added new ``exec`` runner
+
+.. versionadded:: 1.16.3 added new ``module`` runner
+
 
 The following configuration option is specific to the ``"console_scripts"``
 hook runner:
@@ -728,8 +748,8 @@ hook runner:
 The following configuration option is specific to the ``"exec"`` hook runner:
 
 * ``executable`` - the name of the executable to invoke.  Can be either a
-bare executable name which will be searched in ``$PATH``, or a full pathname
-to avoid potential issues with path interception.
+  bare executable name which will be searched in ``$PATH``, or a full pathname
+  to avoid potential issues with path interception.
 
 The following options are supported by both ``"console_scripts"`` and ``"exec"``:
 
@@ -766,21 +786,37 @@ tool's output as well::
 Hooks may also be specified as a list of names, which correspond to hook
 runners that will run sequentially.  As an example, we can also run the
 `zimports <https://pypi.org/project/zimports/>`_ import rewriting tool (written
-by Alembic's author) subsequent to running the ``black`` tool, using a
-configuration as follows::
+by Alembic's author) subsequent to running the ``black`` tool.   The
+alembic.ini configuration would be as follows::
 
-  [post_write_hooks]
+    [post_write_hooks]
 
-  # format using "black", then "zimports"
-  hooks=black, zimports
+    # format using "black", then "zimports"
+    hooks=black, zimports
 
-  black.type = console_scripts
-  black.entrypoint = black
-  black.options = -l 79 REVISION_SCRIPT_FILENAME
+    black.type = console_scripts
+    black.entrypoint = black
+    black.options = -l 79 REVISION_SCRIPT_FILENAME
 
-  zimports.type = console_scripts
-  zimports.entrypoint = zimports
-  zimports.options = --style google REVISION_SCRIPT_FILENAME
+    zimports.type = console_scripts
+    zimports.entrypoint = zimports
+    zimports.options = --style google REVISION_SCRIPT_FILENAME
+
+The equivalent pyproject.toml configuration would be::
+
+    # format using "black", then "zimports"
+
+    [[tool.alembic.post_write_hooks]]
+    name = "black"
+    type="console_scripts"
+    entrypoint = "black"
+    options = "-l 79 REVISION_SCRIPT_FILENAME"
+
+    [[tool.alembic.post_write_hooks]]
+    name = "zimports"
+    type="console_scripts"
+    entrypoint = "zimports"
+    options = "--style google REVISION_SCRIPT_FILENAME"
 
 When using the above configuration, a newly generated revision file will
 be processed first by the "black" tool, then by the "zimports" tool.

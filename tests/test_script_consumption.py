@@ -20,7 +20,6 @@ from alembic.script import Script
 from alembic.script import ScriptDirectory
 from alembic.testing import assert_raises_message
 from alembic.testing import assertions
-from alembic.testing import config
 from alembic.testing import eq_
 from alembic.testing import expect_raises_message
 from alembic.testing import mock
@@ -68,16 +67,13 @@ class PatchEnvironment:
 
     @staticmethod
     def _branched_connection_env():
-        if config.requirements.sqlalchemy_14.enabled:
-            connect_warning = (
-                'r"The Connection.connect\\(\\) method is considered legacy"'
-            )
-            close_warning = (
-                'r"The .close\\(\\) method on a '
-                "so-called 'branched' connection\""
-            )
-        else:
-            connect_warning = close_warning = ""
+        connect_warning = (
+            'r"The Connection.connect\\(\\) method is considered legacy"'
+        )
+        close_warning = (
+            'r"The .close\\(\\) method on a '
+            "so-called 'branched' connection\""
+        )
 
         env_file_fixture(
             textwrap.dedent(
@@ -548,21 +544,18 @@ def downgrade():
         with self._patch_environment(
             transactional_ddl=False, transaction_per_migration=False
         ):
-            if config.requirements.sqlalchemy_14.enabled:
-                if self.is_sqlalchemy_future:
-                    with testing.expect_raises_message(
-                        sa.exc.InvalidRequestError,
-                        r".*already",
-                    ):
-                        command.upgrade(self.cfg, c)
-                else:
-                    with testing.expect_sqlalchemy_deprecated_20(
-                        r"Calling .begin\(\) when a transaction "
-                        "is already begun"
-                    ):
-                        command.upgrade(self.cfg, c)
+            if self.is_sqlalchemy_future:
+                with testing.expect_raises_message(
+                    sa.exc.InvalidRequestError,
+                    r".*already",
+                ):
+                    command.upgrade(self.cfg, c)
             else:
-                command.upgrade(self.cfg, c)
+                with testing.expect_sqlalchemy_deprecated_20(
+                    r"Calling .begin\(\) when a transaction "
+                    "is already begun"
+                ):
+                    command.upgrade(self.cfg, c)
 
     def test_raise_when_rev_leaves_open_transaction_tpm(self):
         a, b, c = self._opened_transaction_fixture()
@@ -570,21 +563,18 @@ def downgrade():
         with self._patch_environment(
             transactional_ddl=False, transaction_per_migration=True
         ):
-            if config.requirements.sqlalchemy_14.enabled:
-                if self.is_sqlalchemy_future:
-                    with testing.expect_raises_message(
-                        sa.exc.InvalidRequestError,
-                        r".*already",
-                    ):
-                        command.upgrade(self.cfg, c)
-                else:
-                    with testing.expect_sqlalchemy_deprecated_20(
-                        r"Calling .begin\(\) when a transaction is "
-                        "already begun"
-                    ):
-                        command.upgrade(self.cfg, c)
+            if self.is_sqlalchemy_future:
+                with testing.expect_raises_message(
+                    sa.exc.InvalidRequestError,
+                    r".*already",
+                ):
+                    command.upgrade(self.cfg, c)
             else:
-                command.upgrade(self.cfg, c)
+                with testing.expect_sqlalchemy_deprecated_20(
+                    r"Calling .begin\(\) when a transaction is "
+                    "already begun"
+                ):
+                    command.upgrade(self.cfg, c)
 
     def test_noerr_rev_leaves_open_transaction_transactional_ddl(self):
         a, b, c = self._opened_transaction_fixture()
@@ -592,21 +582,18 @@ def downgrade():
         with self._patch_environment(
             transactional_ddl=True, transaction_per_migration=False
         ):
-            if config.requirements.sqlalchemy_14.enabled:
-                if self.is_sqlalchemy_future:
-                    with testing.expect_raises_message(
-                        sa.exc.InvalidRequestError,
-                        r".*already",
-                    ):
-                        command.upgrade(self.cfg, c)
-                else:
-                    with testing.expect_sqlalchemy_deprecated_20(
-                        r"Calling .begin\(\) when a transaction "
-                        "is already begun"
-                    ):
-                        command.upgrade(self.cfg, c)
+            if self.is_sqlalchemy_future:
+                with testing.expect_raises_message(
+                    sa.exc.InvalidRequestError,
+                    r".*already",
+                ):
+                    command.upgrade(self.cfg, c)
             else:
-                command.upgrade(self.cfg, c)
+                with testing.expect_sqlalchemy_deprecated_20(
+                    r"Calling .begin\(\) when a transaction "
+                    "is already begun"
+                ):
+                    command.upgrade(self.cfg, c)
 
     def test_noerr_transaction_opened_externally(self):
         a, b, c = self._opened_transaction_fixture()
@@ -792,9 +779,9 @@ def downgrade():
 
         assert_raises_message(
             util.CommandError,
-            "Could not determine revision id from filename foobar_%s.py. "
+            f"Could not determine revision id from filename foobar_{a}.py. "
             "Be sure the 'revision' variable is declared "
-            "inside the script." % a,
+            "inside the script.",
             Script._from_path,
             script,
             path,

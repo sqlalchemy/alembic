@@ -11,11 +11,14 @@ from typing import TYPE_CHECKING
 from typing import Union
 
 from sqlalchemy import cast
+from sqlalchemy import Computed
 from sqlalchemy import JSON
 from sqlalchemy import schema
 from sqlalchemy import sql
 
 from .base import alter_table
+from .base import ColumnName
+from .base import format_column_name
 from .base import format_table_name
 from .base import RenameTable
 from .impl import DefaultImpl
@@ -62,7 +65,7 @@ class SQLiteImpl(DefaultImpl):
                 ) and isinstance(col.server_default.arg, sql.ClauseElement):
                     return True
                 elif (
-                    isinstance(col.server_default, util.sqla_compat.Computed)
+                    isinstance(col.server_default, Computed)
                     and col.server_default.persisted
                 ):
                     return True
@@ -88,7 +91,7 @@ class SQLiteImpl(DefaultImpl):
                 "SQLite migrations using a copy-and-move strategy."
             )
 
-    def drop_constraint(self, const: Constraint):
+    def drop_constraint(self, const: Constraint, **kw: Any):
         if const._create_rule is None:
             raise NotImplementedError(
                 "No support for ALTER of constraints in SQLite dialect. "
@@ -204,6 +207,15 @@ def visit_rename_table(
     return "%s RENAME TO %s" % (
         alter_table(compiler, element.table_name, element.schema),
         format_table_name(compiler, element.new_table_name, None),
+    )
+
+
+@compiles(ColumnName, "sqlite")
+def visit_column_name(element: ColumnName, compiler: DDLCompiler, **kw) -> str:
+    return "%s RENAME COLUMN %s TO %s" % (
+        alter_table(compiler, element.table_name, element.schema),
+        format_column_name(compiler, element.column_name),
+        format_column_name(compiler, element.newname),
     )
 
 

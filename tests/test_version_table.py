@@ -1,10 +1,15 @@
 from sqlalchemy import Column
 from sqlalchemy import inspect
+from sqlalchemy import Integer
 from sqlalchemy import MetaData
+from sqlalchemy import PrimaryKeyConstraint
 from sqlalchemy import String
 from sqlalchemy import Table
+from sqlalchemy.dialects import registry
+from sqlalchemy.engine import default
 
 from alembic import migration
+from alembic.ddl import impl
 from alembic.testing import assert_raises
 from alembic.testing import assert_raises_message
 from alembic.testing import config
@@ -18,6 +23,7 @@ version_table = Table(
     MetaData(),
     Column("version_num", String(32), nullable=False),
 )
+alembic_version_table = Table("alembic_version", MetaData())
 
 
 def _up(from_, to_, branch_presence_changed=False):
@@ -41,6 +47,7 @@ class TestMigrationContext(TestBase):
         self.transaction.rollback()
         with self.connection.begin():
             version_table.drop(self.connection, checkfirst=True)
+            alembic_version_table.drop(self.connection, checkfirst=True)
         self.connection.close()
 
     def make_one(self, **kwargs):
@@ -373,3 +380,44 @@ class UpdateRevTest(TestBase):
                 self.connection.dialect, "supports_sane_rowcount", False
             ):
                 self.updater.update_to_step(_down("a", None, True))
+
+
+registry.register("custom_version", __name__, "CustomVersionDialect")
+
+
+class CustomVersionDialect(default.DefaultDialect):
+    name = "custom_version"
+
+
+class CustomVersionTableImpl(impl.DefaultImpl):
+    __dialect__ = "custom_version"
+
+    def version_table_impl(
+        self,
+        *,
+        version_table,
+        version_table_schema,
+        version_table_pk,
+        **kw,
+    ):
+        vt = Table(
+            version_table,
+            MetaData(),
+            Column("id", Integer, autoincrement=True),
+            Column("version_num", String(32), nullable=False),
+            schema=version_table_schema,
+        )
+        if version_table_pk:
+            vt.append_constraint(
+                PrimaryKeyConstraint("id", name=f"{version_table}_pkc")
+            )
+        return vt
+
+
+class CustomVersionTableTest(TestMigrationContext):
+
+    def test_custom_version_table(self):
+        context = migration.MigrationContext.configure(
+            dialect_name="custom_version",
+        )
+        eq_(len(context._version.columns), 2)

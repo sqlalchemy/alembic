@@ -83,10 +83,11 @@ class MSSQLImpl(DefaultImpl):
         if self.as_sql and self.batch_separator:
             self.static_output(self.batch_separator)
 
-    def alter_column(  # type:ignore[override]
+    def alter_column(
         self,
         table_name: str,
         column_name: str,
+        *,
         nullable: Optional[bool] = None,
         server_default: Optional[
             Union[_ServerDefault, Literal[False]]
@@ -95,7 +96,9 @@ class MSSQLImpl(DefaultImpl):
         type_: Optional[TypeEngine] = None,
         schema: Optional[str] = None,
         existing_type: Optional[TypeEngine] = None,
-        existing_server_default: Optional[_ServerDefault] = None,
+        existing_server_default: Union[
+            _ServerDefault, Literal[False], None
+        ] = None,
         existing_nullable: Optional[bool] = None,
         **kw: Any,
     ) -> None:
@@ -202,6 +205,7 @@ class MSSQLImpl(DefaultImpl):
         self,
         table_name: str,
         column: Column[Any],
+        *,
         schema: Optional[str] = None,
         **kw,
     ) -> None:

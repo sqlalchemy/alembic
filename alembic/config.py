@@ -5,6 +5,8 @@ from argparse import Namespace
 from configparser import ConfigParser
 import inspect
 import os
+from pathlib import Path
+import re
 import sys
 from typing import Any
 from typing import cast
@@ -12,6 +14,7 @@ from typing import Dict
 from typing import Mapping
 from typing import Optional
 from typing import overload
+from typing import Protocol
 from typing import Sequence
 from typing import TextIO
 from typing import Union
@@ -22,6 +25,7 @@ from . import __version__
 from . import command
 from . import util
 from .util import compat
+from .util.pyfiles import _preserving_path_as_str
 
 
 class Config:
@@ -71,7 +75,20 @@ class Config:
             alembic_cfg.attributes['connection'] = connection
             command.upgrade(alembic_cfg, "head")
 
-    :param file\_: name of the .ini file to open.
+    :param file\_: name of the .ini file to open if an ``alembic.ini`` is
+     to be used.    This should refer to the ``alembic.ini`` file, either as
+     a filename or a full path to the file.  This filename if passed must refer
+     to an **ini file in ConfigParser format** only.
+
+    :param toml\_file: name of the pyproject.toml file to open if a
+     ``pyproject.toml`` file is to be used.  This should refer to the
+     ``pyproject.toml`` file, either as a filename or a full path to the file.
+     This file must be in toml format. Both :paramref:`.Config.file\_` and
+     :paramref:`.Config.toml\_file` may be passed simultaneously, or
+     exclusively.
+
+     .. versionadded:: 1.16.0
+
     :param ini_section: name of the main Alembic section within the
      .ini file
     :param output_buffer: optional file-like input buffer which
@@ -81,12 +98,13 @@ class Config:
      Defaults to ``sys.stdout``.
 
     :param config_args: A dictionary of keys and values that will be used
-     for substitution in the alembic config file.  The dictionary as given
-     is **copied** to a new one, stored locally as the attribute
-     ``.config_args``. When the :attr:`.Config.file_config` attribute is
-     first invoked, the replacement variable ``here`` will be added to this
-     dictionary before the dictionary is passed to ``ConfigParser()``
-     to parse the .ini file.
+     for substitution in the alembic config file, as well as the pyproject.toml
+     file, depending on which / both are used.  The dictionary as given is
+     **copied** to two new, independent dictionaries, stored locally under the
+     attributes ``.config_args`` and ``.toml_args``.   Both of these
+     dictionaries will also be populated with the replacement variable
+     ``%(here)s``, which refers to the location of the .ini and/or .toml file
+     as appropriate.
 
     :param attributes: optional dictionary of arbitrary Python keys/values,
      which will be populated into the :attr:`.Config.attributes` dictionary.
@@ -100,6 +118,7 @@ class Config:
     def __init__(
         self,
         file_: Union[str, os.PathLike[str], None] = None,
+        toml_file: Union[str, os.PathLike[str], None] = None,
         ini_section: str = "alembic",
         output_buffer: Optional[TextIO] = None,
         stdout: TextIO = sys.stdout,
@@ -108,12 +127,18 @@ class Config:
         attributes: Optional[Dict[str, Any]] = None,
     ) -> None:
         """Construct a new :class:`.Config`"""
-        self.config_file_name = file_
+        self.config_file_name = (
+            _preserving_path_as_str(file_) if file_ else None
+        )
+        self.toml_file_name = (
+            _preserving_path_as_str(toml_file) if toml_file else None
+        )
         self.config_ini_section = ini_section
         self.output_buffer = output_buffer
         self.stdout = stdout
         self.cmd_opts = cmd_opts
         self.config_args = dict(config_args)
+        self.toml_args = dict(config_args)
         if attributes:
             self.attributes.update(attributes)
 
@@ -129,8 +154,27 @@ class Config:
 
     """
 
-    config_file_name: Union[str, os.PathLike[str], None] = None
+    config_file_name: Optional[str] = None
     """Filesystem path to the .ini file in use."""
+
+    toml_file_name: Optional[str] = None
+    """Filesystem path to the pyproject.toml file in use.
+
+    .. versionadded:: 1.16.0
+
+    """
+
+    @property
+    def _config_file_path(self) -> Optional[Path]:
+        if self.config_file_name is None:
+            return None
+        return Path(self.config_file_name)
+
+    @property
+    def _toml_file_path(self) -> Optional[Path]:
+        if self.toml_file_name is None:
+            return None
+        return Path(self.toml_file_name)
 
     config_ini_section: str = None  # type:ignore[assignment]
     """Name of the config file section to read basic configuration
@@ -187,24 +231,44 @@ class Config:
     def file_config(self) -> ConfigParser:
         """Return the underlying ``ConfigParser`` object.
 
-        Direct access to the .ini file is available here,
+        Dir*-ect access to the .ini file is available here,
         though the :meth:`.Config.get_section` and
         :meth:`.Config.get_main_option`
         methods provide a possibly simpler interface.
 
         """
 
-        if self.config_file_name:
-            here = os.path.abspath(os.path.dirname(self.config_file_name))
+        if self._config_file_path:
+            here = self._config_file_path.absolute().parent
         else:
-            here = ""
-        self.config_args["here"] = here
+            here = Path()
+        self.config_args["here"] = here.as_posix()
         file_config = ConfigParser(self.config_args)
-        if self.config_file_name:
-            compat.read_config_parser(file_config, [self.config_file_name])
+        if self._config_file_path:
+            compat.read_config_parser(file_config, [self._config_file_path])
         else:
             file_config.add_section(self.config_ini_section)
         return file_config
+
+    @util.memoized_property
+    def toml_alembic_config(self) -> Mapping[str, Any]:
+        """Return a dictionary of the [tool.alembic] section from
+        pyproject.toml"""
+
+        if self._toml_file_path and self._toml_file_path.exists():
+
+            here = self._toml_file_path.absolute().parent
+            self.toml_args["here"] = here.as_posix()
+
+            with open(self._toml_file_path, "rb") as f:
+                toml_data = compat.tomllib.load(f)
+                data = toml_data.get("tool", {}).get("alembic", {})
+                if not isinstance(data, dict):
+                    raise util.CommandError("Incorrect TOML format")
+                return data
+
+        else:
+            return {}
 
     def get_template_directory(self) -> str:
         """Return the directory where Alembic setup templates are found.
@@ -215,8 +279,19 @@ class Config:
         """
         import alembic
 
-        package_dir = os.path.abspath(os.path.dirname(alembic.__file__))
-        return os.path.join(package_dir, "templates")
+        package_dir = Path(alembic.__file__).absolute().parent
+        return str(package_dir / "templates")
+
+    def _get_template_path(self) -> Path:
+        """Return the directory where Alembic setup templates are found.
+
+        This method is used by the alembic ``init`` and ``list_templates``
+        commands.
+
+        .. versionadded:: 1.16.0
+
+        """
+        return Path(self.get_template_directory())
 
     @overload
     def get_section(
@@ -278,6 +353,12 @@ class Config:
         The value here will override whatever was in the .ini
         file.
 
+        Does **NOT** consume from the pyproject.toml file.
+
+        .. seealso::
+
+            :meth:`.Config.get_alembic_option` - includes pyproject support
+
         :param section: name of the section
 
         :param name: name of the value
@@ -326,8 +407,105 @@ class Config:
         section, unless the ``-n/--name`` flag were used to
         indicate a different section.
 
+        Does **NOT** consume from the pyproject.toml file.
+
+        .. seealso::
+
+            :meth:`.Config.get_alembic_option` - includes pyproject support
+
         """
         return self.get_section_option(self.config_ini_section, name, default)
+
+    @overload
+    def get_alembic_option(self, name: str, default: str) -> str: ...
+
+    @overload
+    def get_alembic_option(
+        self, name: str, default: Optional[str] = None
+    ) -> Optional[str]: ...
+
+    def get_alembic_option(
+        self, name: str, default: Optional[str] = None
+    ) -> Union[
+        None, str, list[str], dict[str, str], list[dict[str, str]], int
+    ]:
+        """Return an option from the "[alembic]" or "[tool.alembic]" section
+        of the configparser-parsed .ini file (e.g. ``alembic.ini``) or
+        toml-parsed ``pyproject.toml`` file.
+
+        The value returned is expected to be None, string, list of strings,
+        or dictionary of strings.   Within each type of string value, the
+        ``%(here)s`` token is substituted out with the absolute path of the
+        ``pyproject.toml`` file, as are other tokens which are extracted from
+        the :paramref:`.Config.config_args` dictionary.
+
+        Searches always prioritize the configparser namespace first, before
+        searching in the toml namespace.
+
+        If Alembic was run using the ``-n/--name`` flag to indicate an
+        alternate main section name, this is taken into account **only** for
+        the configparser-parsed .ini file.  The section name in toml is always
+        ``[tool.alembic]``.
+
+
+        .. versionadded:: 1.16.0
+
+        """
+
+        if self.file_config.has_option(self.config_ini_section, name):
+            return self.file_config.get(self.config_ini_section, name)
+        else:
+            return self._get_toml_config_value(name, default=default)
+
+    def get_alembic_boolean_option(self, name: str) -> bool:
+        if self.file_config.has_option(self.config_ini_section, name):
+            return (
+                self.file_config.get(self.config_ini_section, name) == "true"
+            )
+        else:
+            value = self.toml_alembic_config.get(name, False)
+            if not isinstance(value, bool):
+                raise util.CommandError(
+                    f"boolean value expected for TOML parameter {name!r}"
+                )
+            return value
+
+    def _get_toml_config_value(
+        self, name: str, default: Optional[Any] = None
+    ) -> Union[
+        None, str, list[str], dict[str, str], list[dict[str, str]], int
+    ]:
+        USE_DEFAULT = object()
+        value: Union[None, str, list[str], dict[str, str], int] = (
+            self.toml_alembic_config.get(name, USE_DEFAULT)
+        )
+        if value is USE_DEFAULT:
+            return default
+        if value is not None:
+            if isinstance(value, str):
+                value = value % (self.toml_args)
+            elif isinstance(value, list):
+                if value and isinstance(value[0], dict):
+                    value = [
+                        {k: v % (self.toml_args) for k, v in dv.items()}
+                        for dv in value
+                    ]
+                else:
+                    value = cast(
+                        "list[str]", [v % (self.toml_args) for v in value]
+                    )
+            elif isinstance(value, dict):
+                value = cast(
+                    "dict[str, str]",
+                    {k: v % (self.toml_args) for k, v in value.items()},
+                )
+            elif isinstance(value, int):
+                return value
+            else:
+                raise util.CommandError(
+                    f"unsupported TOML value type for key: {name!r}"
+                )
+        return value
 
     @util.memoized_property
     def messaging_opts(self) -> MessagingOptions:
@@ -339,181 +517,313 @@ class Config:
             ),
         )
 
+    def _get_file_separator_char(self, *names: str) -> Optional[str]:
+        for name in names:
+            separator = self.get_main_option(name)
+            if separator is not None:
+                break
+        else:
+            return None
+
+        split_on_path = {
+            "space": " ",
+            "newline": "\n",
+            "os": os.pathsep,
+            ":": ":",
+            ";": ";",
+        }
+
+        try:
+            sep = split_on_path[separator]
+        except KeyError as ke:
+            raise ValueError(
+                "'%s' is not a valid value for %s; "
+                "expected 'space', 'newline', 'os', ':', ';'"
+                % (separator, name)
+            ) from ke
+        else:
+            if name == "version_path_separator":
+                util.warn_deprecated(
+                    "The version_path_separator configuration parameter "
+                    "is deprecated; please use path_separator"
+                )
+            return sep
+
+    def get_version_locations_list(self) -> Optional[list[str]]:
+
+        version_locations_str = self.file_config.get(
+            self.config_ini_section, "version_locations", fallback=None
+        )
+
+        if version_locations_str:
+            split_char = self._get_file_separator_char(
+                "path_separator", "version_path_separator"
+            )
+
+            if split_char is None:
+
+                # legacy behaviour for backwards compatibility
+                util.warn_deprecated(
+                    "No path_separator found in configuration; "
+                    "falling back to legacy splitting on spaces/commas "
+                    "for version_locations.  Consider adding "
+                    "path_separator=os to Alembic config."
+                )
+
+                _split_on_space_comma = re.compile(r", *|(?: +)")
+                return _split_on_space_comma.split(version_locations_str)
+            else:
+                return [
+                    x.strip()
+                    for x in version_locations_str.split(split_char)
+                    if x
+                ]
+        else:
+            return cast(
+                "list[str]",
+                self._get_toml_config_value("version_locations", None),
+            )
+
+    def get_prepend_sys_paths_list(self) -> Optional[list[str]]:
+        prepend_sys_path_str = self.file_config.get(
+            self.config_ini_section, "prepend_sys_path", fallback=None
+        )
+
+        if prepend_sys_path_str:
+            split_char = self._get_file_separator_char("path_separator")
+
+            if split_char is None:
+
+                # legacy behaviour for backwards compatibility
+                util.warn_deprecated(
+                    "No path_separator found in configuration; "
+                    "falling back to legacy splitting on spaces, commas, "
+                    "and colons for prepend_sys_path.  Consider adding "
+                    "path_separator=os to Alembic config."
+                )
+
+                _split_on_space_comma_colon = re.compile(r", *|(?: +)|\:")
+                return _split_on_space_comma_colon.split(prepend_sys_path_str)
+            else:
+                return [
+                    x.strip()
+                    for x in prepend_sys_path_str.split(split_char)
+                    if x
+                ]
+        else:
+            return cast(
+                "list[str]",
+                self._get_toml_config_value("prepend_sys_path", None),
+            )
+
+    def get_hooks_list(self) -> list[PostWriteHookConfig]:
+
+        hooks: list[PostWriteHookConfig] = []
+
+        if not self.file_config.has_section("post_write_hooks"):
+            toml_hook_config = cast(
+                "list[dict[str, str]]",
+                self._get_toml_config_value("post_write_hooks", []),
+            )
+            for cfg in toml_hook_config:
+                opts = dict(cfg)
+                opts["_hook_name"] = opts.pop("name")
+                hooks.append(opts)
+
+        else:
+            _split_on_space_comma = re.compile(r", *|(?: +)")
+            ini_hook_config = self.get_section("post_write_hooks", {})
+            names = _split_on_space_comma.split(
+                ini_hook_config.get("hooks", "")
+            )
+
+            for name in names:
+                if not name:
+                    continue
+                opts = {
+                    key[len(name) + 1 :]: ini_hook_config[key]
+                    for key in ini_hook_config
+                    if key.startswith(name + ".")
+                }
+
+                opts["_hook_name"] = name
+                hooks.append(opts)
+
+        return hooks
+
+
+PostWriteHookConfig = Mapping[str, str]
+
 
 class MessagingOptions(TypedDict, total=False):
     quiet: bool
 
 
+class CommandFunction(Protocol):
+    """A function that may be registered in the CLI as an alembic command.
+    It must be a named function and it must accept a :class:`.Config` object
+    as the first argument.
+
+    .. versionadded:: 1.15.3
+
+    """
+
+    __name__: str
+
+    def __call__(self, config: Config, *args: Any, **kwargs: Any) -> Any: ...
+
+
 class CommandLine:
+    """Provides the command line interface to Alembic."""
+
     def __init__(self, prog: Optional[str] = None) -> None:
         self._generate_args(prog)
 
+    _KWARGS_OPTS = {
+        "template": (
+            "-t",
+            "--template",
+            dict(
+                default="generic",
+                type=str,
+                help="Setup template for use with 'init'",
+            ),
+        ),
+        "message": (
+            "-m",
+            "--message",
+            dict(type=str, help="Message string to use with 'revision'"),
+        ),
+        "sql": (
+            "--sql",
+            dict(
+                action="store_true",
+                help="Don't emit SQL to database - dump to "
+                "standard output/file instead. See docs on "
+                "offline mode.",
+            ),
+        ),
+        "tag": (
+            "--tag",
+            dict(
+                type=str,
+                help="Arbitrary 'tag' name - can be used by "
+                "custom env.py scripts.",
+            ),
+        ),
+        "head": (
+            "--head",
+            dict(
+                type=str,
+                help="Specify head revision or <branchname>@head "
+                "to base new revision on.",
+            ),
+        ),
+        "splice": (
+            "--splice",
+            dict(
+                action="store_true",
+                help="Allow a non-head revision as the 'head' to splice onto",
+            ),
+        ),
+        "depends_on": (
+            "--depends-on",
+            dict(
+                action="append",
+                help="Specify one or more revision identifiers "
+                "which this revision should depend on.",
+            ),
+        ),
+        "rev_id": (
+            "--rev-id",
+            dict(
+                type=str,
+                help="Specify a hardcoded revision id instead of "
+                "generating one",
+            ),
+        ),
+        "version_path": (
+            "--version-path",
+            dict(
+                type=str,
+                help="Specify specific path from config for version file",
+            ),
+        ),
+        "branch_label": (
+            "--branch-label",
+            dict(
+                type=str,
+                help="Specify a branch label to apply to the new revision",
+            ),
+        ),
+        "verbose": (
+            "-v",
+            "--verbose",
+            dict(action="store_true", help="Use more verbose output"),
+        ),
+        "resolve_dependencies": (
+            "--resolve-dependencies",
+            dict(
+                action="store_true",
+                help="Treat dependency versions as down revisions",
+            ),
+        ),
+        "autogenerate": (
+            "--autogenerate",
+            dict(
+                action="store_true",
+                help="Populate revision script with candidate "
+                "migration operations, based on comparison "
+                "of database to model.",
+            ),
+        ),
+        "rev_range": (
+            "-r",
+            "--rev-range",
+            dict(
+                action="store",
+                help="Specify a revision range; format is [start]:[end]",
+            ),
+        ),
+        "indicate_current": (
+            "-i",
+            "--indicate-current",
+            dict(
+                action="store_true",
+                help="Indicate the current revision",
+            ),
+        ),
+        "purge": (
+            "--purge",
+            dict(
+                action="store_true",
+                help="Unconditionally erase the version table before stamping",
+            ),
+        ),
+        "package": (
+            "--package",
+            dict(
+                action="store_true",
+                help="Write empty __init__.py files to the "
+                "environment and version locations",
+            ),
+        ),
+    }
+    _POSITIONAL_OPTS = {
+        "directory": dict(help="location of scripts directory"),
+        "revision": dict(
+            help="revision identifier",
+        ),
+        "revisions": dict(
+            nargs="+",
+            help="one or more revisions, or 'heads' for all heads",
+        ),
+    }
+    _POSITIONAL_TRANSLATIONS: dict[Any, dict[str, str]] = {
+        command.stamp: {"revision": "revisions"}
+    }
+
     def _generate_args(self, prog: Optional[str]) -> None:
-        def add_options(
-            fn: Any, parser: Any, positional: Any, kwargs: Any
-        ) -> None:
-            kwargs_opts = {
-                "template": (
-                    "-t",
-                    "--template",
-                    dict(
-                        default="generic",
-                        type=str,
-                        help="Setup template for use with 'init'",
-                    ),
-                ),
-                "message": (
-                    "-m",
-                    "--message",
-                    dict(
-                        type=str, help="Message string to use with 'revision'"
-                    ),
-                ),
-                "sql": (
-                    "--sql",
-                    dict(
-                        action="store_true",
-                        help="Don't emit SQL to database - dump to "
-                        "standard output/file instead. See docs on "
-                        "offline mode.",
-                    ),
-                ),
-                "tag": (
-                    "--tag",
-                    dict(
-                        type=str,
-                        help="Arbitrary 'tag' name - can be used by "
-                        "custom env.py scripts.",
-                    ),
-                ),
-                "head": (
-                    "--head",
-                    dict(
-                        type=str,
-                        help="Specify head revision or <branchname>@head "
-                        "to base new revision on.",
-                    ),
-                ),
-                "splice": (
-                    "--splice",
-                    dict(
-                        action="store_true",
-                        help="Allow a non-head revision as the "
-                        "'head' to splice onto",
-                    ),
-                ),
-                "depends_on": (
-                    "--depends-on",
-                    dict(
-                        action="append",
-                        help="Specify one or more revision identifiers "
-                        "which this revision should depend on.",
-                    ),
-                ),
-                "rev_id": (
-                    "--rev-id",
-                    dict(
-                        type=str,
-                        help="Specify a hardcoded revision id instead of "
-                        "generating one",
-                    ),
-                ),
-                "version_path": (
-                    "--version-path",
-                    dict(
-                        type=str,
-                        help="Specify specific path from config for "
-                        "version file",
-                    ),
-                ),
-                "branch_label": (
-                    "--branch-label",
-                    dict(
-                        type=str,
-                        help="Specify a branch label to apply to the "
-                        "new revision",
-                    ),
-                ),
-                "verbose": (
-                    "-v",
-                    "--verbose",
-                    dict(action="store_true", help="Use more verbose output"),
-                ),
-                "resolve_dependencies": (
-                    "--resolve-dependencies",
-                    dict(
-                        action="store_true",
-                        help="Treat dependency versions as down revisions",
-                    ),
-                ),
-                "autogenerate": (
-                    "--autogenerate",
-                    dict(
-                        action="store_true",
-                        help="Populate revision script with candidate "
-                        "migration operations, based on comparison "
-                        "of database to model.",
-                    ),
-                ),
-                "rev_range": (
-                    "-r",
-                    "--rev-range",
-                    dict(
-                        action="store",
-                        help="Specify a revision range; "
-                        "format is [start]:[end]",
-                    ),
-                ),
-                "indicate_current": (
-                    "-i",
-                    "--indicate-current",
-                    dict(
-                        action="store_true",
-                        help="Indicate the current revision",
-                    ),
-                ),
-                "purge": (
-                    "--purge",
-                    dict(
-                        action="store_true",
-                        help="Unconditionally erase the version table "
-                        "before stamping",
-                    ),
-                ),
-                "package": (
-                    "--package",
-                    dict(
-                        action="store_true",
-                        help="Write empty __init__.py files to the "
-                        "environment and version locations",
-                    ),
-                ),
-            }
-            positional_help = {
-                "directory": "location of scripts directory",
-                "revision": "revision identifier",
-                "revisions": "one or more revisions, or 'heads' for all heads",
-            }
-            for arg in kwargs:
-                if arg in kwargs_opts:
-                    args = kwargs_opts[arg]
-                    args, kw = args[0:-1], args[-1]
-                    parser.add_argument(*args, **kw)
-
-            for arg in positional:
-                if (
-                    arg == "revisions"
-                    or fn in positional_translations
-                    and positional_translations[fn][arg] == "revisions"
-                ):
-                    subparser.add_argument(
-                        "revisions",
-                        nargs="+",
-                        help=positional_help.get("revisions"),
-                    )
-                else:
-                    subparser.add_argument(arg, help=positional_help.get(arg))
-
         parser = ArgumentParser(prog=prog)
 
         parser.add_argument(
@@ -522,17 +832,19 @@ class CommandLine:
         parser.add_argument(
             "-c",
             "--config",
-            type=str,
-            default=os.environ.get("ALEMBIC_CONFIG", "alembic.ini"),
+            action="append",
             help="Alternate config file; defaults to value of "
-            'ALEMBIC_CONFIG environment variable, or "alembic.ini"',
+            'ALEMBIC_CONFIG environment variable, or "alembic.ini". '
+            "May also refer to pyproject.toml file.  May be specified twice "
+            "to reference both files separately",
         )
         parser.add_argument(
             "-n",
             "--name",
             type=str,
             default="alembic",
-            help="Name of section in .ini file to " "use for Alembic config",
+            help="Name of section in .ini file to use for Alembic config "
+            "(only applies to configparser config, not toml)",
         )
         parser.add_argument(
             "-x",
@@ -552,49 +864,80 @@ class CommandLine:
             action="store_true",
             help="Do not log to std output.",
         )
-        subparsers = parser.add_subparsers()
 
-        positional_translations: Dict[Any, Any] = {
-            command.stamp: {"revision": "revisions"}
-        }
-
-        for fn in [getattr(command, n) for n in dir(command)]:
+        self.subparsers = parser.add_subparsers()
+        alembic_commands = (
+            cast(CommandFunction, fn)
+            for fn in (getattr(command, name) for name in dir(command))
             if (
                 inspect.isfunction(fn)
                 and fn.__name__[0] != "_"
                 and fn.__module__ == "alembic.command"
-            ):
-                spec = compat.inspect_getfullargspec(fn)
-                if spec[3] is not None:
-                    positional = spec[0][1 : -len(spec[3])]
-                    kwarg = spec[0][-len(spec[3]) :]
-                else:
-                    positional = spec[0][1:]
-                    kwarg = []
+            )
+        )
 
-                if fn in positional_translations:
-                    positional = [
-                        positional_translations[fn].get(name, name)
-                        for name in positional
-                    ]
+        for fn in alembic_commands:
+            self.register_command(fn)
 
-                # parse first line(s) of helptext without a line break
-                help_ = fn.__doc__
-                if help_:
-                    help_text = []
-                    for line in help_.split("\n"):
-                        if not line.strip():
-                            break
-                        else:
-                            help_text.append(line.strip())
-                else:
-                    help_text = []
-                subparser = subparsers.add_parser(
-                    fn.__name__, help=" ".join(help_text)
-                )
-                add_options(fn, subparser, positional, kwarg)
-                subparser.set_defaults(cmd=(fn, positional, kwarg))
         self.parser = parser
+
+    def register_command(self, fn: CommandFunction) -> None:
+        """Registers a function as a CLI subcommand. The subcommand name
+        matches the function name, the arguments are extracted from the
+        signature and the help text is read from the docstring.
+
+        .. versionadded:: 1.15.3
+
+        .. seealso::
+
+            :ref:`custom_commandline`
+        """
+
+        positional, kwarg, help_text = self._inspect_function(fn)
+
+        subparser = self.subparsers.add_parser(fn.__name__, help=help_text)
+        subparser.set_defaults(cmd=(fn, positional, kwarg))
+
+        for arg in kwarg:
+            if arg in self._KWARGS_OPTS:
+                kwarg_opt = self._KWARGS_OPTS[arg]
+                args, opts = kwarg_opt[0:-1], kwarg_opt[-1]
+                subparser.add_argument(*args, **opts)  # type:ignore
+
+        for arg in positional:
+            opts = self._POSITIONAL_OPTS.get(arg, {})
+            subparser.add_argument(arg, **opts)  # type:ignore
+
+    def _inspect_function(self, fn: CommandFunction) -> tuple[Any, Any, str]:
+        spec = compat.inspect_getfullargspec(fn)
+        if spec[3] is not None:
+            positional = spec[0][1 : -len(spec[3])]
+            kwarg = spec[0][-len(spec[3]) :]
+        else:
+            positional = spec[0][1:]
+            kwarg = []
+
+        if fn in self._POSITIONAL_TRANSLATIONS:
+            positional = [
+                self._POSITIONAL_TRANSLATIONS[fn].get(name, name)
+                for name in positional
+            ]
+
+        # parse first line(s) of helptext without a line break
+        help_ = fn.__doc__
+        if help_:
+            help_lines = []
+            for line in help_.split("\n"):
+                if not line.strip():
+                    break
+                else:
+                    help_lines.append(line.strip())
+        else:
+            help_lines = []
+
+        help_text = " ".join(help_lines)
+
+        return positional, kwarg, help_text
 
     def run_cmd(self, config: Config, options: Namespace) -> None:
         fn, positional, kwarg = options.cmd
@@ -611,15 +954,58 @@ class CommandLine:
             else:
                 util.err(str(e), **config.messaging_opts)
 
+    def _inis_from_config(self, options: Namespace) -> tuple[str, str]:
+        names = options.config
+
+        alembic_config_env = os.environ.get("ALEMBIC_CONFIG")
+        if (
+            alembic_config_env
+            and os.path.basename(alembic_config_env) == "pyproject.toml"
+        ):
+            default_pyproject_toml = alembic_config_env
+            default_alembic_config = "alembic.ini"
+        elif alembic_config_env:
+            default_pyproject_toml = "pyproject.toml"
+            default_alembic_config = alembic_config_env
+        else:
+            default_alembic_config = "alembic.ini"
+            default_pyproject_toml = "pyproject.toml"
+
+        if not names:
+            return default_pyproject_toml, default_alembic_config
+
+        toml = ini = None
+
+        for name in names:
+            if os.path.basename(name) == "pyproject.toml":
+                if toml is not None:
+                    raise util.CommandError(
+                        "pyproject.toml indicated more than once"
+                    )
+                toml = name
+            else:
+                if ini is not None:
+                    raise util.CommandError(
+                        "only one ini file may be indicated"
+                    )
+                ini = name
+
+        return toml if toml else default_pyproject_toml, (
+            ini if ini else default_alembic_config
+        )
+
     def main(self, argv: Optional[Sequence[str]] = None) -> None:
+        """Executes the command line with the provided arguments."""
         options = self.parser.parse_args(argv)
         if not hasattr(options, "cmd"):
             # see http://bugs.python.org/issue9253, argparse
             # behavior changed incompatibly in py3.3
             self.parser.error("too few arguments")
         else:
+            toml, ini = self._inis_from_config(options)
             cfg = Config(
-                file_=options.config,
+                file_=ini,
+                toml_file=toml,
                 ini_section=options.name,
                 cmd_opts=options,
             )

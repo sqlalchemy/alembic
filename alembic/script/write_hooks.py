@@ -3,20 +3,21 @@
 
 from __future__ import annotations
 
+import importlib.util
+import os
 import shlex
 import subprocess
 import sys
 from typing import Any
 from typing import Callable
-from typing import Dict
-from typing import List
-from typing import Mapping
-from typing import Optional
-from typing import Union
+from typing import TYPE_CHECKING
 
 from .. import util
 from ..util import compat
+from ..util.pyfiles import _preserving_path_as_str
 
+if TYPE_CHECKING:
+    from ..config import PostWriteHookConfig
 
 REVISION_SCRIPT_TOKEN = "REVISION_SCRIPT_FILENAME"
 
@@ -43,16 +44,19 @@ def register(name: str) -> Callable:
 
 
 def _invoke(
-    name: str, revision: str, options: Mapping[str, Union[str, int]]
+    name: str,
+    revision_path: str | os.PathLike[str],
+    options: PostWriteHookConfig,
 ) -> Any:
     """Invokes the formatter registered for the given name.
 
     :param name: The name of a formatter in the registry
-    :param revision: A :class:`.MigrationRevision` instance
+    :param revision: string path to the revision file
     :param options: A dict containing kwargs passed to the
         specified formatter.
     :raises: :class:`alembic.util.CommandError`
     """
+    revision_path = _preserving_path_as_str(revision_path)
     try:
         hook = _registry[name]
     except KeyError as ke:
@@ -60,39 +64,31 @@ def _invoke(
             f"No formatter with name '{name}' registered"
         ) from ke
     else:
-        return hook(revision, options)
+        return hook(revision_path, options)
 
 
-def _run_hooks(path: str, hook_config: Mapping[str, str]) -> None:
+def _run_hooks(
+    path: str | os.PathLike[str], hooks: list[PostWriteHookConfig]
+) -> None:
     """Invoke hooks for a generated revision."""
 
-    from .base import _split_on_space_comma
-
-    names = _split_on_space_comma.split(hook_config.get("hooks", ""))
-
-    for name in names:
-        if not name:
-            continue
-        opts = {
-            key[len(name) + 1 :]: hook_config[key]
-            for key in hook_config
-            if key.startswith(name + ".")
-        }
-        opts["_hook_name"] = name
+    for hook in hooks:
+        name = hook["_hook_name"]
         try:
-            type_ = opts["type"]
+            type_ = hook["type"]
         except KeyError as ke:
             raise util.CommandError(
-                f"Key {name}.type is required for post write hook {name!r}"
+                f"Key '{name}.type' (or 'type' in toml) is required "
+                f"for post write hook {name!r}"
             ) from ke
         else:
             with util.status(
                 f"Running post write hook {name!r}", newline=True
             ):
-                _invoke(type_, path, opts)
+                _invoke(type_, path, hook)
 
 
-def _parse_cmdline_options(cmdline_options_str: str, path: str) -> List[str]:
+def _parse_cmdline_options(cmdline_options_str: str, path: str) -> list[str]:
     """Parse options from a string into a list.
 
     Also substitutes the revision script token with the actual filename of
@@ -113,17 +109,35 @@ def _parse_cmdline_options(cmdline_options_str: str, path: str) -> List[str]:
     return cmdline_options_list
 
 
+def _get_required_option(options: dict, name: str) -> str:
+    try:
+        return options[name]
+    except KeyError as ke:
+        raise util.CommandError(
+            f"Key {options['_hook_name']}.{name} is required for post "
+            f"write hook {options['_hook_name']!r}"
+        ) from ke
+
+
+def _run_hook(
+    path: str, options: dict, ignore_output: bool, command: list[str]
+) -> None:
+    cwd: str | None = options.get("cwd", None)
+    cmdline_options_str = options.get("options", "")
+    cmdline_options_list = _parse_cmdline_options(cmdline_options_str, path)
+
+    kw: dict[str, Any] = {}
+    if ignore_output:
+        kw["stdout"] = kw["stderr"] = subprocess.DEVNULL
+
+    subprocess.run([*command, *cmdline_options_list], cwd=cwd, **kw)
+
+
 @register("console_scripts")
 def console_scripts(
     path: str, options: dict, ignore_output: bool = False
 ) -> None:
-    try:
-        entrypoint_name = options["entrypoint"]
-    except KeyError as ke:
-        raise util.CommandError(
-            f"Key {options['_hook_name']}.entrypoint is required for post "
-            f"write hook {options['_hook_name']!r}"
-        ) from ke
+    entrypoint_name = _get_required_option(options, "entrypoint")
     for entry in compat.importlib_metadata_get("console_scripts"):
         if entry.name == entrypoint_name:
             impl: Any = entry
@@ -132,48 +146,27 @@ def console_scripts(
         raise util.CommandError(
             f"Could not find entrypoint console_scripts.{entrypoint_name}"
         )
-    cwd: Optional[str] = options.get("cwd", None)
-    cmdline_options_str = options.get("options", "")
-    cmdline_options_list = _parse_cmdline_options(cmdline_options_str, path)
 
-    kw: Dict[str, Any] = {}
-    if ignore_output:
-        kw["stdout"] = kw["stderr"] = subprocess.DEVNULL
-
-    subprocess.run(
-        [
-            sys.executable,
-            "-c",
-            f"import {impl.module}; {impl.module}.{impl.attr}()",
-        ]
-        + cmdline_options_list,
-        cwd=cwd,
-        **kw,
-    )
+    command = [
+        sys.executable,
+        "-c",
+        f"import {impl.module}; {impl.module}.{impl.attr}()",
+    ]
+    _run_hook(path, options, ignore_output, command)
 
 
 @register("exec")
 def exec_(path: str, options: dict, ignore_output: bool = False) -> None:
-    try:
-        executable = options["executable"]
-    except KeyError as ke:
-        raise util.CommandError(
-            f"Key {options['_hook_name']}.executable is required for post "
-            f"write hook {options['_hook_name']!r}"
-        ) from ke
-    cwd: Optional[str] = options.get("cwd", None)
-    cmdline_options_str = options.get("options", "")
-    cmdline_options_list = _parse_cmdline_options(cmdline_options_str, path)
+    executable = _get_required_option(options, "executable")
+    _run_hook(path, options, ignore_output, command=[executable])
 
-    kw: Dict[str, Any] = {}
-    if ignore_output:
-        kw["stdout"] = kw["stderr"] = subprocess.DEVNULL
 
-    subprocess.run(
-        [
-            executable,
-            *cmdline_options_list,
-        ],
-        cwd=cwd,
-        **kw,
-    )
+@register("module")
+def module(path: str, options: dict, ignore_output: bool = False) -> None:
+    module_name = _get_required_option(options, "module")
+
+    if importlib.util.find_spec(module_name) is None:
+        raise util.CommandError(f"Could not find module {module_name}")
+
+    command = [sys.executable, "-m", module_name]
+    _run_hook(path, options, ignore_output, command)

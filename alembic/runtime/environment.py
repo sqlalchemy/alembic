@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Any
 from typing import Callable
 from typing import Collection
-from typing import ContextManager
 from typing import Dict
 from typing import List
 from typing import Mapping
@@ -18,6 +17,7 @@ from typing import Union
 
 from sqlalchemy.sql.schema import Column
 from sqlalchemy.sql.schema import FetchedValue
+from typing_extensions import ContextManager
 from typing_extensions import Literal
 
 from .migration import _ProxyTransaction
@@ -338,7 +338,7 @@ class EnvironmentContext(util.ModuleClsProxy):
             line.
 
         """
-        return self.context_opts.get("tag", None)  # type: ignore[no-any-return]  # noqa: E501
+        return self.context_opts.get("tag", None)
 
     @overload
     def get_x_argument(self, as_dictionary: Literal[False]) -> List[str]: ...
@@ -976,7 +976,7 @@ class EnvironmentContext(util.ModuleClsProxy):
 
     def begin_transaction(
         self,
-    ) -> Union[_ProxyTransaction, ContextManager[None]]:
+    ) -> Union[_ProxyTransaction, ContextManager[None, Optional[bool]]]:
         """Return a context manager that will
         enclose an operation within a "transaction",
         as defined by the environment's offline

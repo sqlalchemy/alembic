@@ -159,17 +159,28 @@ class CWDTest(TestBase):
     @testing.combinations(
         (
             ".",
+            None,
             ["."],
         ),
-        ("/tmp/foo:/tmp/bar", ["/tmp/foo", "/tmp/bar"]),
-        ("/tmp/foo /tmp/bar", ["/tmp/foo", "/tmp/bar"]),
-        ("/tmp/foo,/tmp/bar", ["/tmp/foo", "/tmp/bar"]),
-        (". /tmp/foo", [".", "/tmp/foo"]),
+        ("/tmp/foo:/tmp/bar", None, ["/tmp/foo", "/tmp/bar"]),
+        ("/tmp/foo:/tmp/bar", ":", ["/tmp/foo", "/tmp/bar"]),
+        ("/tmp/foo /tmp/bar", None, ["/tmp/foo", "/tmp/bar"]),
+        ("/tmp/foo,/tmp/bar", None, ["/tmp/foo", "/tmp/bar"]),
+        (". /tmp/foo", None, [".", "/tmp/foo"]),
+        (". /tmp/foo", "space", [".", "/tmp/foo"]),
     )
-    def test_sys_path_prepend(self, config_value, expected):
+    def test_sys_path_prepend(self, config_value, path_separator, expected):
+        if path_separator is not None:
+            self.cfg.set_main_option("path_separator", path_separator)
         self.cfg.set_main_option("prepend_sys_path", config_value)
 
-        script = ScriptDirectory.from_config(self.cfg)
+        if path_separator is None:
+            with testing.expect_deprecated(
+                "No path_separator found in configuration;"
+            ):
+                script = ScriptDirectory.from_config(self.cfg)
+        else:
+            script = ScriptDirectory.from_config(self.cfg)
         env = EnvironmentContext(self.cfg, script)
 
         target = os.path.abspath(_get_staging_directory())

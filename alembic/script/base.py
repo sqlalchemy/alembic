@@ -3,6 +3,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 import datetime
 import os
+from pathlib import Path
 import re
 import shutil
 import sys
@@ -11,7 +12,6 @@ from typing import Any
 from typing import cast
 from typing import Iterator
 from typing import List
-from typing import Mapping
 from typing import Optional
 from typing import Sequence
 from typing import Set
@@ -25,6 +25,7 @@ from .. import util
 from ..runtime import migration
 from ..util import compat
 from ..util import not_none
+from ..util.pyfiles import _preserving_path_as_str
 
 if TYPE_CHECKING:
     from .revision import _GetRevArg
@@ -32,16 +33,13 @@ if TYPE_CHECKING:
     from .revision import Revision
     from ..config import Config
     from ..config import MessagingOptions
+    from ..config import PostWriteHookConfig
     from ..runtime.migration import RevisionStep
     from ..runtime.migration import StampStep
 
 try:
-    if compat.py39:
-        from zoneinfo import ZoneInfo
-        from zoneinfo import ZoneInfoNotFoundError
-    else:
-        from backports.zoneinfo import ZoneInfo  # type: ignore[import-not-found,no-redef] # noqa: E501
-        from backports.zoneinfo import ZoneInfoNotFoundError  # type: ignore[no-redef] # noqa: E501
+    from zoneinfo import ZoneInfo
+    from zoneinfo import ZoneInfoNotFoundError
 except ImportError:
     ZoneInfo = None  # type: ignore[assignment, misc]
 
@@ -50,9 +48,6 @@ _only_source_rev_file = re.compile(r"(?!\.\#|__init__)(.*\.py)$")
 _legacy_rev = re.compile(r"([a-f0-9]+)\.py$")
 _slug_re = re.compile(r"\w+")
 _default_file_template = "%(rev)s_%(slug)s"
-_split_on_space_comma = re.compile(r", *|(?: +)")
-
-_split_on_space_comma_colon = re.compile(r", *|(?: +)|\:")
 
 
 class ScriptDirectory:
@@ -77,40 +72,55 @@ class ScriptDirectory:
 
     def __init__(
         self,
-        dir: str,  # noqa
+        dir: Union[str, os.PathLike[str]],  # noqa: A002
         file_template: str = _default_file_template,
         truncate_slug_length: Optional[int] = 40,
-        version_locations: Optional[List[str]] = None,
+        version_locations: Optional[
+            Sequence[Union[str, os.PathLike[str]]]
+        ] = None,
         sourceless: bool = False,
         output_encoding: str = "utf-8",
         timezone: Optional[str] = None,
-        hook_config: Optional[Mapping[str, str]] = None,
+        hooks: list[PostWriteHookConfig] = [],
         recursive_version_locations: bool = False,
         messaging_opts: MessagingOptions = cast(
             "MessagingOptions", util.EMPTY_DICT
         ),
     ) -> None:
-        self.dir = dir
+        self.dir = _preserving_path_as_str(dir)
+        self.version_locations = [
+            _preserving_path_as_str(p) for p in version_locations or ()
+        ]
         self.file_template = file_template
-        self.version_locations = version_locations
         self.truncate_slug_length = truncate_slug_length or 40
         self.sourceless = sourceless
         self.output_encoding = output_encoding
         self.revision_map = revision.RevisionMap(self._load_revisions)
         self.timezone = timezone
-        self.hook_config = hook_config
+        self.hooks = hooks
         self.recursive_version_locations = recursive_version_locations
         self.messaging_opts = messaging_opts
 
         if not os.access(dir, os.F_OK):
             raise util.CommandError(
-                "Path doesn't exist: %r.  Please use "
+                f"Path doesn't exist: {dir}.  Please use "
                 "the 'init' command to create a new "
-                "scripts folder." % os.path.abspath(dir)
+                "scripts folder."
             )
 
     @property
     def versions(self) -> str:
+        """return a single version location based on the sole path passed
+        within version_locations.
+
+        If multiple version locations are configured, an error is raised.
+
+
+        """
+        return str(self._singular_version_location)
+
+    @util.memoized_property
+    def _singular_version_location(self) -> Path:
         loc = self._version_locations
         if len(loc) > 1:
             raise util.CommandError("Multiple version_locations present")
@@ -118,40 +128,31 @@ class ScriptDirectory:
             return loc[0]
 
     @util.memoized_property
-    def _version_locations(self) -> Sequence[str]:
+    def _version_locations(self) -> Sequence[Path]:
         if self.version_locations:
             return [
-                os.path.abspath(util.coerce_resource_to_filename(location))
+                util.coerce_resource_to_filename(location).absolute()
                 for location in self.version_locations
             ]
         else:
-            return (os.path.abspath(os.path.join(self.dir, "versions")),)
+            return [Path(self.dir, "versions").absolute()]
 
     def _load_revisions(self) -> Iterator[Script]:
-        if self.version_locations:
-            paths = [
-                vers
-                for vers in self._version_locations
-                if os.path.exists(vers)
-            ]
-        else:
-            paths = [self.versions]
+        paths = [vers for vers in self._version_locations if vers.exists()]
 
         dupes = set()
         for vers in paths:
             for file_path in Script._list_py_dir(self, vers):
-                real_path = os.path.realpath(file_path)
+                real_path = file_path.resolve()
                 if real_path in dupes:
                     util.warn(
-                        "File %s loaded twice! ignoring. Please ensure "
-                        "version_locations is unique." % real_path
+                        f"File {real_path} loaded twice! ignoring. "
+                        "Please ensure version_locations is unique."
                     )
                     continue
                 dupes.add(real_path)
 
-                filename = os.path.basename(real_path)
-                dir_name = os.path.dirname(real_path)
-                script = Script._from_filename(self, dir_name, filename)
+                script = Script._from_path(self, real_path)
                 if script is None:
                     continue
                 yield script
@@ -165,78 +166,36 @@ class ScriptDirectory:
         present.
 
         """
-        script_location = config.get_main_option("script_location")
+        script_location = config.get_alembic_option("script_location")
         if script_location is None:
             raise util.CommandError(
-                "No 'script_location' key " "found in configuration."
+                "No 'script_location' key found in configuration."
             )
         truncate_slug_length: Optional[int]
-        tsl = config.get_main_option("truncate_slug_length")
+        tsl = config.get_alembic_option("truncate_slug_length")
         if tsl is not None:
             truncate_slug_length = int(tsl)
         else:
             truncate_slug_length = None
 
-        version_locations_str = config.get_main_option("version_locations")
-        version_locations: Optional[List[str]]
-        if version_locations_str:
-            version_path_separator = config.get_main_option(
-                "version_path_separator"
-            )
-
-            split_on_path = {
-                None: None,
-                "space": " ",
-                "newline": "\n",
-                "os": os.pathsep,
-                ":": ":",
-                ";": ";",
-            }
-
-            try:
-                split_char: Optional[str] = split_on_path[
-                    version_path_separator
-                ]
-            except KeyError as ke:
-                raise ValueError(
-                    "'%s' is not a valid value for "
-                    "version_path_separator; "
-                    "expected 'space', 'newline', 'os', ':', ';'"
-                    % version_path_separator
-                ) from ke
-            else:
-                if split_char is None:
-                    # legacy behaviour for backwards compatibility
-                    version_locations = _split_on_space_comma.split(
-                        version_locations_str
-                    )
-                else:
-                    version_locations = [
-                        x.strip()
-                        for x in version_locations_str.split(split_char)
-                        if x
-                    ]
-        else:
-            version_locations = None
-
-        prepend_sys_path = config.get_main_option("prepend_sys_path")
+        prepend_sys_path = config.get_prepend_sys_paths_list()
         if prepend_sys_path:
-            sys.path[:0] = list(
-                _split_on_space_comma_colon.split(prepend_sys_path)
-            )
+            sys.path[:0] = prepend_sys_path
 
-        rvl = config.get_main_option("recursive_version_locations") == "true"
+        rvl = config.get_alembic_boolean_option("recursive_version_locations")
         return ScriptDirectory(
             util.coerce_resource_to_filename(script_location),
-            file_template=config.get_main_option(
+            file_template=config.get_alembic_option(
                 "file_template", _default_file_template
             ),
             truncate_slug_length=truncate_slug_length,
-            sourceless=config.get_main_option("sourceless") == "true",
-            output_encoding=config.get_main_option("output_encoding", "utf-8"),
-            version_locations=version_locations,
-            timezone=config.get_main_option("timezone"),
-            hook_config=config.get_section("post_write_hooks", {}),
+            sourceless=config.get_alembic_boolean_option("sourceless"),
+            output_encoding=config.get_alembic_option(
+                "output_encoding", "utf-8"
+            ),
+            version_locations=config.get_version_locations_list(),
+            timezone=config.get_alembic_option("timezone"),
+            hooks=config.get_hooks_list(),
             recursive_version_locations=rvl,
             messaging_opts=config.messaging_opts,
         )
@@ -587,23 +546,36 @@ class ScriptDirectory:
 
     @property
     def env_py_location(self) -> str:
-        return os.path.abspath(os.path.join(self.dir, "env.py"))
+        return str(Path(self.dir, "env.py"))
 
-    def _generate_template(self, src: str, dest: str, **kw: Any) -> None:
+    def _append_template(self, src: Path, dest: Path, **kw: Any) -> None:
         with util.status(
-            f"Generating {os.path.abspath(dest)}", **self.messaging_opts
+            f"Appending to existing {dest.absolute()}",
+            **self.messaging_opts,
+        ):
+            util.template_to_file(
+                src,
+                dest,
+                self.output_encoding,
+                append_with_newlines=True,
+                **kw,
+            )
+
+    def _generate_template(self, src: Path, dest: Path, **kw: Any) -> None:
+        with util.status(
+            f"Generating {dest.absolute()}", **self.messaging_opts
         ):
             util.template_to_file(src, dest, self.output_encoding, **kw)
 
-    def _copy_file(self, src: str, dest: str) -> None:
+    def _copy_file(self, src: Path, dest: Path) -> None:
         with util.status(
-            f"Generating {os.path.abspath(dest)}", **self.messaging_opts
+            f"Generating {dest.absolute()}", **self.messaging_opts
         ):
             shutil.copy(src, dest)
 
-    def _ensure_directory(self, path: str) -> None:
-        path = os.path.abspath(path)
-        if not os.path.exists(path):
+    def _ensure_directory(self, path: Path) -> None:
+        path = path.absolute()
+        if not path.exists():
             with util.status(
                 f"Creating directory {path}", **self.messaging_opts
             ):
@@ -628,11 +600,10 @@ class ScriptDirectory:
                     raise util.CommandError(
                         "Can't locate timezone: %s" % self.timezone
                     ) from None
-            create_date = (
-                datetime.datetime.utcnow()
-                .replace(tzinfo=datetime.timezone.utc)
-                .astimezone(tzinfo)
-            )
+
+            create_date = datetime.datetime.now(
+                tz=datetime.timezone.utc
+            ).astimezone(tzinfo)
         else:
             create_date = datetime.datetime.now()
         return create_date
@@ -644,7 +615,8 @@ class ScriptDirectory:
         head: Optional[_RevIdType] = None,
         splice: Optional[bool] = False,
         branch_labels: Optional[_RevIdType] = None,
-        version_path: Optional[str] = None,
+        version_path: Union[str, os.PathLike[str], None] = None,
+        file_template: Optional[str] = None,
         depends_on: Optional[_RevIdType] = None,
         **kw: Any,
     ) -> Optional[Script]:
@@ -697,7 +669,7 @@ class ScriptDirectory:
                 for head_ in heads:
                     if head_ is not None:
                         assert isinstance(head_, Script)
-                        version_path = os.path.dirname(head_.path)
+                        version_path = head_._script_path.parent
                         break
                 else:
                     raise util.CommandError(
@@ -705,16 +677,19 @@ class ScriptDirectory:
                         "please specify --version-path"
                     )
             else:
-                version_path = self.versions
+                version_path = self._singular_version_location
+        else:
+            version_path = Path(version_path)
 
-        norm_path = os.path.normpath(os.path.abspath(version_path))
+        assert isinstance(version_path, Path)
+        norm_path = version_path.absolute()
         for vers_path in self._version_locations:
-            if os.path.normpath(vers_path) == norm_path:
+            if vers_path.absolute() == norm_path:
                 break
         else:
             raise util.CommandError(
-                "Path %s is not represented in current "
-                "version locations" % version_path
+                f"Path {version_path} is not represented in current "
+                "version locations"
             )
 
         if self.version_locations:
@@ -749,7 +724,7 @@ class ScriptDirectory:
             resolved_depends_on = None
 
         self._generate_template(
-            os.path.join(self.dir, "script.py.mako"),
+            Path(self.dir, "script.py.mako"),
             path,
             up_revision=str(revid),
             down_revision=revision.tuple_rev_as_scalar(
@@ -763,7 +738,7 @@ class ScriptDirectory:
             **kw,
         )
 
-        post_write_hooks = self.hook_config
+        post_write_hooks = self.hooks
         if post_write_hooks:
             write_hooks._run_hooks(path, post_write_hooks)
 
@@ -786,11 +761,11 @@ class ScriptDirectory:
 
     def _rev_path(
         self,
-        path: str,
+        path: Union[str, os.PathLike[str]],
         rev_id: str,
         message: Optional[str],
         create_date: datetime.datetime,
-    ) -> str:
+    ) -> Path:
         epoch = int(create_date.timestamp())
         slug = "_".join(_slug_re.findall(message or "")).lower()
         if len(slug) > self.truncate_slug_length:
@@ -809,7 +784,7 @@ class ScriptDirectory:
                 "second": create_date.second,
             }
         )
-        return os.path.join(path, filename)
+        return Path(path) / filename
 
 
 class Script(revision.Revision):
@@ -820,9 +795,14 @@ class Script(revision.Revision):
 
     """
 
-    def __init__(self, module: ModuleType, rev_id: str, path: str):
+    def __init__(
+        self,
+        module: ModuleType,
+        rev_id: str,
+        path: Union[str, os.PathLike[str]],
+    ):
         self.module = module
-        self.path = path
+        self.path = _preserving_path_as_str(path)
         super().__init__(
             rev_id,
             module.down_revision,
@@ -839,6 +819,10 @@ class Script(revision.Revision):
 
     path: str
     """Filesystem path of the script."""
+
+    @property
+    def _script_path(self) -> Path:
+        return Path(self.path)
 
     _db_current_indicator: Optional[bool] = None
     """Utility variable which when set will cause string output to indicate
@@ -860,7 +844,7 @@ class Script(revision.Revision):
                 doc = doc.decode(  # type: ignore[attr-defined]
                     self.module._alembic_source_encoding
                 )
-            return doc.strip()  # type: ignore[union-attr]
+            return doc.strip()
         else:
             return ""
 
@@ -972,36 +956,33 @@ class Script(revision.Revision):
             return util.format_as_comma(self._versioned_down_revisions)
 
     @classmethod
-    def _from_path(
-        cls, scriptdir: ScriptDirectory, path: str
-    ) -> Optional[Script]:
-        dir_, filename = os.path.split(path)
-        return cls._from_filename(scriptdir, dir_, filename)
-
-    @classmethod
-    def _list_py_dir(cls, scriptdir: ScriptDirectory, path: str) -> List[str]:
+    def _list_py_dir(
+        cls, scriptdir: ScriptDirectory, path: Path
+    ) -> List[Path]:
         paths = []
-        for root, dirs, files in os.walk(path, topdown=True):
-            if root.endswith("__pycache__"):
+        for root, dirs, files in compat.path_walk(path, top_down=True):
+            if root.name.endswith("__pycache__"):
                 # a special case - we may include these files
                 # if a `sourceless` option is specified
                 continue
 
             for filename in sorted(files):
-                paths.append(os.path.join(root, filename))
+                paths.append(root / filename)
 
             if scriptdir.sourceless:
                 # look for __pycache__
-                py_cache_path = os.path.join(root, "__pycache__")
-                if os.path.exists(py_cache_path):
+                py_cache_path = root / "__pycache__"
+                if py_cache_path.exists():
                     # add all files from __pycache__ whose filename is not
                     # already in the names we got from the version directory.
                     # add as relative paths including __pycache__ token
-                    names = {filename.split(".")[0] for filename in files}
+                    names = {
+                        Path(filename).name.split(".")[0] for filename in files
+                    }
                     paths.extend(
-                        os.path.join(py_cache_path, pyc)
-                        for pyc in os.listdir(py_cache_path)
-                        if pyc.split(".")[0] not in names
+                        py_cache_path / pyc
+                        for pyc in py_cache_path.iterdir()
+                        if pyc.name.split(".")[0] not in names
                     )
 
             if not scriptdir.recursive_version_locations:
@@ -1016,9 +997,13 @@ class Script(revision.Revision):
         return paths
 
     @classmethod
-    def _from_filename(
-        cls, scriptdir: ScriptDirectory, dir_: str, filename: str
+    def _from_path(
+        cls, scriptdir: ScriptDirectory, path: Union[str, os.PathLike[str]]
     ) -> Optional[Script]:
+
+        path = Path(path)
+        dir_, filename = path.parent, path.name
+
         if scriptdir.sourceless:
             py_match = _sourceless_rev_file.match(filename)
         else:
@@ -1036,8 +1021,8 @@ class Script(revision.Revision):
             is_c = is_o = False
 
         if is_o or is_c:
-            py_exists = os.path.exists(os.path.join(dir_, py_filename))
-            pyc_exists = os.path.exists(os.path.join(dir_, py_filename + "c"))
+            py_exists = (dir_ / py_filename).exists()
+            pyc_exists = (dir_ / (py_filename + "c")).exists()
 
             # prefer .py over .pyc because we'd like to get the
             # source encoding; prefer .pyc over .pyo because we'd like to
@@ -1053,14 +1038,14 @@ class Script(revision.Revision):
             m = _legacy_rev.match(filename)
             if not m:
                 raise util.CommandError(
-                    "Could not determine revision id from filename %s. "
+                    "Could not determine revision id from "
+                    f"filename {filename}. "
                     "Be sure the 'revision' variable is "
                     "declared inside the script (please see 'Upgrading "
                     "from Alembic 0.1 to 0.2' in the documentation)."
-                    % filename
                 )
             else:
                 revision = m.group(1)
         else:
             revision = module.revision
-        return Script(module, revision, os.path.join(dir_, filename))
+        return Script(module, revision, dir_ / filename)

@@ -24,6 +24,7 @@ from sqlalchemy import schema as sa_schema
 from sqlalchemy import text
 from sqlalchemy import types as sqltypes
 from sqlalchemy.sql import expression
+from sqlalchemy.sql.elements import conv
 from sqlalchemy.sql.schema import ForeignKeyConstraint
 from sqlalchemy.sql.schema import Index
 from sqlalchemy.sql.schema import UniqueConstraint
@@ -216,7 +217,7 @@ def _compare_tables(
                 (inspector),
                 # fmt: on
             )
-            sqla_compat._reflect_table(inspector, t)
+            _InspectorConv(inspector).reflect_table(t, include_columns=None)
         if autogen_context.run_object_filters(t, tname, "table", True, None):
             modify_table_ops = ops.ModifyTableOps(tname, [], schema=s)
 
@@ -246,7 +247,8 @@ def _compare_tables(
                 _compat_autogen_column_reflect(inspector),
                 # fmt: on
             )
-            sqla_compat._reflect_table(inspector, t)
+            _InspectorConv(inspector).reflect_table(t, include_columns=None)
+
         conn_column_info[(s, tname)] = t
 
     for s, tname in sorted(existing_tables, key=lambda x: (x[0] or "", x[1])):
@@ -438,6 +440,55 @@ def _compare_columns(
 _C = TypeVar("_C", bound=Union[UniqueConstraint, ForeignKeyConstraint, Index])
 
 
+class _InspectorConv:
+    __slots__ = ("inspector",)
+
+    def __init__(self, inspector):
+        self.inspector = inspector
+
+    def _apply_reflectinfo_conv(self, consts):
+        if not consts:
+            return consts
+        for const in consts:
+            if const["name"] is not None and not isinstance(
+                const["name"], conv
+            ):
+                const["name"] = conv(const["name"])
+        return consts
+
+    def _apply_constraint_conv(self, consts):
+        if not consts:
+            return consts
+        for const in consts:
+            if const.name is not None and not isinstance(const.name, conv):
+                const.name = conv(const.name)
+        return consts
+
+    def get_indexes(self, *args, **kw):
+        return self._apply_reflectinfo_conv(
+            self.inspector.get_indexes(*args, **kw)
+        )
+
+    def get_unique_constraints(self, *args, **kw):
+        return self._apply_reflectinfo_conv(
+            self.inspector.get_unique_constraints(*args, **kw)
+        )
+
+    def get_foreign_keys(self, *args, **kw):
+        return self._apply_reflectinfo_conv(
+            self.inspector.get_foreign_keys(*args, **kw)
+        )
+
+    def reflect_table(self, table, *, include_columns):
+        self.inspector.reflect_table(table, include_columns=include_columns)
+
+        # I had a cool version of this using _ReflectInfo, however that doesn't
+        # work in 1.4 and it's not public API in 2.x.  Then this is just a two
+        # liner.  So there's no competition...
+        self._apply_constraint_conv(table.constraints)
+        self._apply_constraint_conv(table.indexes)
+
+
 @comparators.dispatch_for("table")
 def _compare_indexes_and_uniques(
     autogen_context: AutogenContext,
@@ -473,9 +524,10 @@ def _compare_indexes_and_uniques(
     if conn_table is not None:
         # 1b. ... and from connection, if the table exists
         try:
-            conn_uniques = inspector.get_unique_constraints(  # type:ignore[assignment] # noqa
+            conn_uniques = _InspectorConv(inspector).get_unique_constraints(
                 tname, schema=schema
             )
+
             supports_unique_constraints = True
         except NotImplementedError:
             pass
@@ -498,7 +550,7 @@ def _compare_indexes_and_uniques(
                 if uq.get("duplicates_index"):
                     unique_constraints_duplicate_unique_indexes = True
         try:
-            conn_indexes = inspector.get_indexes(  # type:ignore[assignment]
+            conn_indexes = _InspectorConv(inspector).get_indexes(
                 tname, schema=schema
             )
         except NotImplementedError:
@@ -631,7 +683,7 @@ def _compare_indexes_and_uniques(
             ):
                 modify_ops.ops.append(ops.CreateIndexOp.from_index(obj.const))
                 log.info(
-                    "Detected added index '%r' on '%s'",
+                    "Detected added index %r on '%s'",
                     obj.name,
                     obj.column_names,
                 )
@@ -1067,27 +1119,15 @@ def _compare_server_default(
         return False
 
     if sqla_compat._server_default_is_computed(metadata_default):
-        # return False in case of a computed column as the server
-        # default. Note that DDL for adding or removing "GENERATED AS" from
-        # an existing column is not currently known for any backend.
-        # Once SQLAlchemy can reflect "GENERATED" as the "computed" element,
-        # we would also want to ignore and/or warn for changes vs. the
-        # metadata (or support backend specific DDL if applicable).
-        if not sqla_compat.has_computed_reflection:
-            return False
-
-        else:
-            return (
-                _compare_computed_default(  # type:ignore[func-returns-value]
-                    autogen_context,
-                    alter_column_op,
-                    schema,
-                    tname,
-                    cname,
-                    conn_col,
-                    metadata_col,
-                )
-            )
+        return _compare_computed_default(  # type:ignore[func-returns-value]
+            autogen_context,
+            alter_column_op,
+            schema,
+            tname,
+            cname,
+            conn_col,
+            metadata_col,
+        )
     if sqla_compat._server_default_is_computed(conn_col_default):
         _warn_computed_not_supported(tname, cname)
         return False
@@ -1190,7 +1230,9 @@ def _compare_foreign_keys(
 
     conn_fks_list = [
         fk
-        for fk in inspector.get_foreign_keys(tname, schema=schema)
+        for fk in _InspectorConv(inspector).get_foreign_keys(
+            tname, schema=schema
+        )
         if autogen_context.run_name_filters(
             fk["name"],
             "foreign_key_constraint",
@@ -1199,8 +1241,7 @@ def _compare_foreign_keys(
     ]
 
     conn_fks = {
-        _make_foreign_key(const, conn_table)  # type: ignore[arg-type]
-        for const in conn_fks_list
+        _make_foreign_key(const, conn_table) for const in conn_fks_list
     }
 
     impl = autogen_context.migration_context.impl
@@ -1241,7 +1282,7 @@ def _compare_foreign_keys(
             obj.const, obj.name, "foreign_key_constraint", False, compare_to
         ):
             modify_table_ops.ops.append(
-                ops.CreateForeignKeyOp.from_constraint(const.const)  # type: ignore[has-type]  # noqa: E501
+                ops.CreateForeignKeyOp.from_constraint(const.const)
             )
 
             log.info(

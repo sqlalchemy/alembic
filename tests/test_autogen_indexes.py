@@ -1232,7 +1232,6 @@ class AutogenerateIndexTest(AutogenFixtureTest, TestBase):
         eq_(diffs, [])
 
     @config.requirements.covering_indexes
-    @config.requirements.sqlalchemy_14
     def test_nothing_changed_covering_index(self):
         m1 = MetaData()
         m2 = MetaData()

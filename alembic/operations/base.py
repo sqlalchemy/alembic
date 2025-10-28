@@ -43,7 +43,6 @@ if TYPE_CHECKING:
     from sqlalchemy.sql.expression import ColumnElement
     from sqlalchemy.sql.expression import TableClause
     from sqlalchemy.sql.expression import TextClause
-    from sqlalchemy.sql.functions import Function
     from sqlalchemy.sql.schema import Column
     from sqlalchemy.sql.schema import Computed
     from sqlalchemy.sql.schema import Identity
@@ -465,7 +464,7 @@ class AbstractOperations(util.ModuleClsProxy):
         names will be converted along conventions.  If the ``target_metadata``
         contains the naming convention
         ``{"ck": "ck_bool_%(table_name)s_%(constraint_name)s"}``, then the
-        output of the following:
+        output of the following::
 
             op.add_column("t", "x", Boolean(name="x"))
 
@@ -619,6 +618,7 @@ class Operations(AbstractOperations):
             column: Column[Any],
             *,
             schema: Optional[str] = None,
+            if_not_exists: Optional[bool] = None,
         ) -> None:
             """Issue an "add column" instruction using the current
             migration context.
@@ -695,6 +695,10 @@ class Operations(AbstractOperations):
              quoting of the schema outside of the default behavior, use
              the SQLAlchemy construct
              :class:`~sqlalchemy.sql.elements.quoted_name`.
+            :param if_not_exists: If True, adds IF NOT EXISTS operator
+             when creating the new column for compatible dialects
+
+             .. versionadded:: 1.16.0
 
             """  # noqa: E501
             ...
@@ -706,14 +710,16 @@ class Operations(AbstractOperations):
             *,
             nullable: Optional[bool] = None,
             comment: Union[str, Literal[False], None] = False,
-            server_default: Any = False,
+            server_default: Union[
+                str, bool, Identity, Computed, TextClause, None
+            ] = False,
             new_column_name: Optional[str] = None,
             type_: Union[TypeEngine[Any], Type[TypeEngine[Any]], None] = None,
             existing_type: Union[
                 TypeEngine[Any], Type[TypeEngine[Any]], None
             ] = None,
             existing_server_default: Union[
-                str, bool, Identity, Computed, None
+                str, bool, Identity, Computed, TextClause, None
             ] = False,
             existing_nullable: Optional[bool] = None,
             existing_comment: Optional[str] = None,
@@ -1074,7 +1080,7 @@ class Operations(AbstractOperations):
             self,
             index_name: Optional[str],
             table_name: str,
-            columns: Sequence[Union[str, TextClause, Function[Any]]],
+            columns: Sequence[Union[str, TextClause, ColumnElement[Any]]],
             *,
             schema: Optional[str] = None,
             unique: bool = False,
@@ -1360,6 +1366,11 @@ class Operations(AbstractOperations):
              quoting of the schema outside of the default behavior, use
              the SQLAlchemy construct
              :class:`~sqlalchemy.sql.elements.quoted_name`.
+            :param if_exists: If True, adds IF EXISTS operator when
+             dropping the new column for compatible dialects
+
+             .. versionadded:: 1.16.0
+
             :param mssql_drop_check: Optional boolean.  When ``True``, on
              Microsoft SQL Server only, first
              drop the CHECK constraint on the column using a
@@ -1381,7 +1392,6 @@ class Operations(AbstractOperations):
              then exec's a separate DROP CONSTRAINT for that default.  Only
              works if the column has exactly one FK constraint which refers to
              it, at the moment.
-
             """  # noqa: E501
             ...
 
@@ -1392,6 +1402,7 @@ class Operations(AbstractOperations):
             type_: Optional[str] = None,
             *,
             schema: Optional[str] = None,
+            if_exists: Optional[bool] = None,
         ) -> None:
             r"""Drop a constraint of the given name, typically via DROP CONSTRAINT.
 
@@ -1403,6 +1414,10 @@ class Operations(AbstractOperations):
              quoting of the schema outside of the default behavior, use
              the SQLAlchemy construct
              :class:`~sqlalchemy.sql.elements.quoted_name`.
+            :param if_exists: If True, adds IF EXISTS operator when
+             dropping the constraint
+
+             .. versionadded:: 1.16.0
 
             """  # noqa: E501
             ...
@@ -1645,6 +1660,7 @@ class BatchOperations(AbstractOperations):
             *,
             insert_before: Optional[str] = None,
             insert_after: Optional[str] = None,
+            if_not_exists: Optional[bool] = None,
         ) -> None:
             """Issue an "add column" instruction using the current
             batch migration context.

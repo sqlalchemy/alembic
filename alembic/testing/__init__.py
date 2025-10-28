@@ -9,12 +9,15 @@ from sqlalchemy.testing import uses_deprecated
 from sqlalchemy.testing.config import combinations
 from sqlalchemy.testing.config import fixture
 from sqlalchemy.testing.config import requirements as requires
+from sqlalchemy.testing.config import Variation
+from sqlalchemy.testing.config import variation
 
 from .assertions import assert_raises
 from .assertions import assert_raises_message
 from .assertions import emits_python_deprecation_warning
 from .assertions import eq_
 from .assertions import eq_ignore_whitespace
+from .assertions import expect_deprecated
 from .assertions import expect_raises
 from .assertions import expect_raises_message
 from .assertions import expect_sqlalchemy_deprecated

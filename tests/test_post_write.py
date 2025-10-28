@@ -1,7 +1,9 @@
-import os
+import importlib.util
+from pathlib import Path
 import sys
 
 from alembic import command
+from alembic import testing
 from alembic import util
 from alembic.script import write_hooks
 from alembic.testing import assert_raises_message
@@ -10,6 +12,7 @@ from alembic.testing import eq_
 from alembic.testing import mock
 from alembic.testing import TestBase
 from alembic.testing.env import _get_staging_directory
+from alembic.testing.env import _no_sql_pyproject_config
 from alembic.testing.env import _no_sql_testing_config
 from alembic.testing.env import clear_staging_env
 from alembic.testing.env import staging_env
@@ -40,24 +43,40 @@ class RunHookTest(TestBase):
     def tearDown(self):
         clear_staging_env()
 
-    def test_generic(self):
+    @testing.variation("config", ["ini", "toml"])
+    def test_generic(self, config):
         hook1 = mock.Mock()
         hook2 = mock.Mock()
 
         write_hooks.register("hook1")(hook1)
         write_hooks.register("hook2")(hook2)
 
-        self.cfg = _no_sql_testing_config(
-            directives=(
-                "\n[post_write_hooks]\n"
-                "hooks=hook1,hook2\n"
-                "hook1.type=hook1\n"
-                "hook1.arg1=foo\n"
-                "hook2.type=hook2\n"
-                "hook2.arg1=bar\n"
+        if config.ini:
+            self.cfg = _no_sql_testing_config(
+                directives=(
+                    "\n[post_write_hooks]\n"
+                    "hooks=hook1,hook2\n"
+                    "hook1.type=hook1\n"
+                    "hook1.arg1=foo\n"
+                    "hook2.type=hook2\n"
+                    "hook2.arg1=bar\n"
+                )
             )
-        )
+        else:
+            self.cfg = _no_sql_pyproject_config(
+                directives="""
 
+                [[tool.alembic.post_write_hooks]]
+                name="hook1"
+                type="hook1"
+                arg1="foo"
+
+                [[tool.alembic.post_write_hooks]]
+                name="hook2"
+                type="hook2"
+                arg1="bar"
+                """
+            )
         rev = command.revision(self.cfg, message="x")
 
         eq_(
@@ -83,11 +102,18 @@ class RunHookTest(TestBase):
         self.cfg = _no_sql_testing_config(
             directives=("\n[post_write_hooks]\n")
         )
-
         command.revision(self.cfg, message="x")
 
-    def test_no_section(self):
-        self.cfg = _no_sql_testing_config(directives="")
+    @testing.variation("config", ["ini", "toml"])
+    def test_no_section(self, config):
+        if config.ini:
+            self.cfg = _no_sql_testing_config(directives="")
+        else:
+            self.cfg = _no_sql_pyproject_config(
+                directives="""
+
+                """
+            )
 
         command.revision(self.cfg, message="x")
 
@@ -98,16 +124,28 @@ class RunHookTest(TestBase):
 
         command.revision(self.cfg, message="x")
 
-    def test_no_type(self):
-        self.cfg = _no_sql_testing_config(
-            directives=(
-                "\n[post_write_hooks]\n" "hooks=foo\n" "foo.bar=somebar\n"
+    @testing.variation("config", ["ini", "toml"])
+    def test_no_type(self, config):
+        if config.ini:
+            self.cfg = _no_sql_testing_config(
+                directives=(
+                    "\n[post_write_hooks]\n" "hooks=foo\n" "foo.bar=somebar\n"
+                )
             )
-        )
+        else:
+            self.cfg = _no_sql_pyproject_config(
+                directives="""
+
+                [[tool.alembic.post_write_hooks]]
+                name="foo"
+                bar="somebar"
+                """
+            )
 
         assert_raises_message(
             util.CommandError,
-            "Key foo.type is required for post write hook 'foo'",
+            r"Key 'foo.type' \(or 'type' in toml\) is required "
+            "for post write hook 'foo'",
             command.revision,
             self.cfg,
             message="x",
@@ -130,9 +168,16 @@ class RunHookTest(TestBase):
         )
 
     def _run_black_with_config(
-        self, input_config, expected_additional_arguments_fn, cwd=None
+        self,
+        input_config,
+        expected_additional_arguments_fn,
+        cwd=None,
+        use_toml=False,
     ):
-        self.cfg = _no_sql_testing_config(directives=input_config)
+        if use_toml:
+            self.cfg = _no_sql_pyproject_config(directives=input_config)
+        else:
+            self.cfg = _no_sql_testing_config(directives=input_config)
 
         retVal = [
             compat.EntryPoint(
@@ -148,12 +193,15 @@ class RunHookTest(TestBase):
         ]
 
         importlib_metadata_get = mock.Mock(return_value=retVal)
-        with mock.patch(
-            "alembic.util.compat.importlib_metadata_get",
-            importlib_metadata_get,
-        ), mock.patch(
-            "alembic.script.write_hooks.subprocess"
-        ) as mock_subprocess:
+        with (
+            mock.patch(
+                "alembic.util.compat.importlib_metadata_get",
+                importlib_metadata_get,
+            ),
+            mock.patch(
+                "alembic.script.write_hooks.subprocess"
+            ) as mock_subprocess,
+        ):
             rev = command.revision(self.cfg, message="x")
 
         eq_(importlib_metadata_get.mock_calls, [mock.call("console_scripts")])
@@ -172,25 +220,39 @@ class RunHookTest(TestBase):
             ],
         )
 
-    def test_console_scripts(self):
-        input_config = """
+    @testing.variation("config", ["ini", "toml"])
+    def test_console_scripts(self, config):
+        if config.ini:
+            input_config = """
 [post_write_hooks]
 hooks = black
 black.type = console_scripts
 black.entrypoint = black
 black.options = -l 79
-        """
+            """
+        else:
+            input_config = """
+    [[tool.alembic.post_write_hooks]]
+    name = "black"
+    type = "console_scripts"
+    entrypoint = "black"
+    options = "-l 79"
+    """
 
         def expected_additional_arguments_fn(rev_path):
             return [rev_path, "-l", "79"]
 
         self._run_black_with_config(
-            input_config, expected_additional_arguments_fn
+            input_config,
+            expected_additional_arguments_fn,
+            use_toml=config.toml,
         )
 
-    @combinations(True, False)
-    def test_filename_interpolation(self, posix):
-        input_config = """
+    @combinations(True, False, argnames="posix")
+    @testing.variation("config", ["ini", "toml"])
+    def test_filename_interpolation(self, posix, config):
+        if config.ini:
+            input_config = """
 [post_write_hooks]
 hooks = black
 black.type = console_scripts
@@ -198,6 +260,14 @@ black.entrypoint = black
 black.options = arg1 REVISION_SCRIPT_FILENAME 'multi-word arg' \
     --flag1='REVISION_SCRIPT_FILENAME'
         """
+        else:
+            input_config = """
+[[tool.alembic.post_write_hooks]]
+name = "black"
+type = "console_scripts"
+entrypoint = "black"
+options = "arg1 REVISION_SCRIPT_FILENAME 'multi-word arg' --flag1='REVISION_SCRIPT_FILENAME'"
+"""  # noqa: E501
 
         def expected_additional_arguments_fn(rev_path):
             if compat.is_posix:
@@ -217,7 +287,9 @@ black.options = arg1 REVISION_SCRIPT_FILENAME 'multi-word arg' \
 
         with mock.patch("alembic.util.compat.is_posix", posix):
             self._run_black_with_config(
-                input_config, expected_additional_arguments_fn
+                input_config,
+                expected_additional_arguments_fn,
+                use_toml=config.toml,
             )
 
     def test_path_in_config(self):
@@ -234,7 +306,9 @@ black.options = arg1 REVISION_SCRIPT_FILENAME --config %(here)s/pyproject.toml
                 "arg1",
                 rev_path,
                 "--config",
-                os.path.abspath(_get_staging_directory()) + "/pyproject.toml",
+                Path(_get_staging_directory(), "pyproject.toml")
+                .absolute()
+                .as_posix(),
             ]
 
         self._run_black_with_config(
@@ -304,11 +378,11 @@ black.cwd = /path/to/cwd
 hooks = ruff
 ruff.type = exec
 ruff.executable = ruff
-ruff.options = --fix
+ruff.options = check --fix
         """
 
         def expected_additional_arguments_fn(rev_path):
-            return [rev_path, "--fix"]
+            return [rev_path, "check", "--fix"]
 
         self._run_ruff_with_config(
             input_config, expected_additional_arguments_fn
@@ -320,17 +394,18 @@ ruff.options = --fix
 hooks = ruff
 ruff.type = exec
 ruff.executable = %(here)s/.venv/bin/ruff
-ruff.options = --fix
+ruff.options = check --fix
         """
 
         def expected_additional_arguments_fn(rev_path):
-            return [rev_path, "--fix"]
+            return [rev_path, "check", "--fix"]
 
         self._run_ruff_with_config(
             input_config,
             expected_additional_arguments_fn,
-            executable=os.path.abspath(_get_staging_directory())
-            + "/.venv/bin/ruff",
+            executable=Path(_get_staging_directory(), ".venv/bin/ruff")
+            .absolute()
+            .as_posix(),
         )
 
     @combinations(True, False)
@@ -379,7 +454,9 @@ ruff.options = arg1 REVISION_SCRIPT_FILENAME --config %(here)s/pyproject.toml
                 "arg1",
                 rev_path,
                 "--config",
-                os.path.abspath(_get_staging_directory()) + "/pyproject.toml",
+                Path(_get_staging_directory(), "pyproject.toml")
+                .absolute()
+                .as_posix(),
             ]
 
         self._run_ruff_with_config(
@@ -399,5 +476,195 @@ ruff.cwd = /path/to/cwd
             return [rev_path]
 
         self._run_ruff_with_config(
+            input_config, expected_additional_arguments_fn, cwd="/path/to/cwd"
+        )
+
+    def test_module_config_missing(self):
+        self.cfg = _no_sql_testing_config(
+            directives=(
+                """
+[post_write_hooks]
+hooks = ruff
+ruff.type = module
+                """
+            )
+        )
+        assert_raises_message(
+            util.CommandError,
+            "Key ruff.module is required for post write hook 'ruff'",
+            command.revision,
+            self.cfg,
+            message="x",
+        )
+
+    def test_module_not_found(self):
+        self.cfg = _no_sql_testing_config(
+            directives=(
+                """
+[post_write_hooks]
+hooks = ruff
+ruff.type = module
+ruff.module = ruff_not_found
+                """
+            )
+        )
+        assert_raises_message(
+            util.CommandError,
+            "Could not find module ruff_not_found",
+            command.revision,
+            self.cfg,
+            message="x",
+        )
+
+    def _run_black_module_with_config(
+        self,
+        input_config,
+        expected_additional_arguments_fn,
+        cwd=None,
+        use_toml=False,
+    ):
+        if use_toml:
+            self.cfg = _no_sql_pyproject_config(directives=input_config)
+        else:
+            self.cfg = _no_sql_testing_config(directives=input_config)
+
+        black_module_spec = importlib.util.find_spec("black")
+
+        importlib_util_find_spec = mock.Mock(return_value=black_module_spec)
+        with (
+            mock.patch(
+                "importlib.util.find_spec",
+                importlib_util_find_spec,
+            ),
+            mock.patch(
+                "alembic.script.write_hooks.subprocess"
+            ) as mock_subprocess,
+        ):
+            rev = command.revision(self.cfg, message="x")
+
+        eq_(importlib_util_find_spec.mock_calls, [mock.call("black")])
+        eq_(
+            mock_subprocess.mock_calls,
+            [
+                mock.call.run(
+                    [
+                        sys.executable,
+                        "-m",
+                        "black",
+                    ]
+                    + expected_additional_arguments_fn(rev.path),
+                    cwd=cwd,
+                )
+            ],
+        )
+
+    @testing.variation("config", ["ini", "toml"])
+    def test_module(self, config):
+        if config.ini:
+            input_config = """
+[post_write_hooks]
+hooks = black
+black.type = module
+black.module = black
+black.options = -l 79
+            """
+        else:
+            input_config = """
+    [[tool.alembic.post_write_hooks]]
+    name = "black"
+    type = "module"
+    module = "black"
+    options = "-l 79"
+    """
+
+        def expected_additional_arguments_fn(rev_path):
+            return [rev_path, "-l", "79"]
+
+        self._run_black_module_with_config(
+            input_config,
+            expected_additional_arguments_fn,
+            use_toml=config.toml,
+        )
+
+    @combinations(True, False, argnames="posix")
+    @testing.variation("config", ["ini", "toml"])
+    def test_module_filename_interpolation(self, posix, config):
+        if config.ini:
+            input_config = """
+[post_write_hooks]
+hooks = black
+black.type = module
+black.module = black
+black.options = arg1 REVISION_SCRIPT_FILENAME 'multi-word arg' \
+    --flag1='REVISION_SCRIPT_FILENAME'
+        """
+        else:
+            input_config = """
+[[tool.alembic.post_write_hooks]]
+name = "black"
+type = "module"
+module = "black"
+options = "arg1 REVISION_SCRIPT_FILENAME 'multi-word arg' --flag1='REVISION_SCRIPT_FILENAME'"
+"""  # noqa: E501
+
+        def expected_additional_arguments_fn(rev_path):
+            if compat.is_posix:
+                return [
+                    "arg1",
+                    rev_path,
+                    "multi-word arg",
+                    "--flag1=" + rev_path,
+                ]
+            else:
+                return [
+                    "arg1",
+                    rev_path,
+                    "'multi-word arg'",
+                    "--flag1='%s'" % rev_path,
+                ]
+
+        with mock.patch("alembic.util.compat.is_posix", posix):
+            self._run_black_module_with_config(
+                input_config,
+                expected_additional_arguments_fn,
+                use_toml=config.toml,
+            )
+
+    def test_module_path_in_config(self):
+        input_config = """
+[post_write_hooks]
+hooks = black
+black.type = module
+black.module = black
+black.options = arg1 REVISION_SCRIPT_FILENAME --config %(here)s/pyproject.toml
+        """
+
+        def expected_additional_arguments_fn(rev_path):
+            return [
+                "arg1",
+                rev_path,
+                "--config",
+                Path(_get_staging_directory(), "pyproject.toml")
+                .absolute()
+                .as_posix(),
+            ]
+
+        self._run_black_module_with_config(
+            input_config, expected_additional_arguments_fn
+        )
+
+    def test_module_black_with_cwd(self):
+        input_config = """
+[post_write_hooks]
+hooks = black
+black.type = module
+black.module = black
+black.cwd = /path/to/cwd
+        """
+
+        def expected_additional_arguments_fn(rev_path):
+            return [rev_path]
+
+        self._run_black_module_with_config(
             input_config, expected_additional_arguments_fn, cwd="/path/to/cwd"
         )

@@ -1,7 +1,6 @@
 from sqlalchemy.testing.requirements import Requirements
 
 from alembic import util
-from alembic.util import sqla_compat
 from ..testing import exclusions
 
 
@@ -75,13 +74,6 @@ class SuiteRequirements(Requirements):
         return exclusions.closed()
 
     @property
-    def sqlalchemy_14(self):
-        return exclusions.skip_if(
-            lambda config: not util.sqla_14,
-            "SQLAlchemy 1.4 or greater required",
-        )
-
-    @property
     def sqlalchemy_1x(self):
         return exclusions.skip_if(
             lambda config: util.sqla_2,
@@ -105,7 +97,7 @@ class SuiteRequirements(Requirements):
             else:
                 return True
 
-        return self.sqlalchemy_14 + exclusions.only_if(go)
+        return exclusions.only_if(go)
 
     @property
     def comments(self):
@@ -122,24 +114,13 @@ class SuiteRequirements(Requirements):
         return exclusions.closed()
 
     @property
-    def computed_columns_api(self):
-        return exclusions.only_if(
-            exclusions.BooleanPredicate(sqla_compat.has_computed)
-        )
+    def computed_columns_warn_no_persisted(self):
+        def go(config):
+            return hasattr(
+                config.db.dialect, "supports_virtual_generated_columns"
+            )
 
-    @property
-    def computed_reflects_normally(self):
-        return exclusions.only_if(
-            exclusions.BooleanPredicate(sqla_compat.has_computed_reflection)
-        )
-
-    @property
-    def computed_reflects_as_server_default(self):
-        return exclusions.closed()
-
-    @property
-    def computed_doesnt_reflect_as_server_default(self):
-        return exclusions.closed()
+        return exclusions.only_if("postgresql<18") + exclusions.only_if(go)
 
     @property
     def autoincrement_on_composite_pk(self):
@@ -202,9 +183,3 @@ class SuiteRequirements(Requirements):
     @property
     def identity_columns_alter(self):
         return exclusions.closed()
-
-    @property
-    def identity_columns_api(self):
-        return exclusions.only_if(
-            exclusions.BooleanPredicate(sqla_compat.has_identity)
-        )
