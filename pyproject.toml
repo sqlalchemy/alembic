@@ -86,6 +86,12 @@ mypy = [
     "pytest>8,<8.4",  # alembic/testing imports pytest
 ]
 
+[tool.coverage.paths]
+#source=["."]
+
+[tool.coverage.run]
+relative_files = true
+
 [tool.setuptools]
 include-package-data = true
 zip-safe = false
