@@ -347,7 +347,6 @@ class PostgresqlOpTest(TestBase):
         op.drop_table_comment("t2", existing_comment="t2 table", schema="foo")
         context.assert_("COMMENT ON TABLE foo.t2 IS NULL")
 
-    @config.requirements.computed_columns
     def test_add_column_computed(self):
         context = op_fixture("postgresql")
         op.add_column(
@@ -369,7 +368,6 @@ class PostgresqlOpTest(TestBase):
             lambda: Computed("foo * 5"),
         ),
     )
-    @config.requirements.computed_columns
     def test_alter_column_computed_not_supported(self, sd, esd):
         op_fixture("postgresql")
         assert_raises_message(
@@ -384,7 +382,6 @@ class PostgresqlOpTest(TestBase):
             existing_server_default=esd(),
         )
 
-    @config.requirements.identity_columns
     @combinations(
         ({}, None),
         (dict(always=True), None),
@@ -406,7 +403,6 @@ class PostgresqlOpTest(TestBase):
             "INTEGER GENERATED %s AS IDENTITY%s" % (qualification, options)
         )
 
-    @config.requirements.identity_columns
     @combinations(
         ({}, None),
         (dict(always=True), None),
@@ -430,7 +426,6 @@ class PostgresqlOpTest(TestBase):
             "GENERATED %s AS IDENTITY%s" % (qualification, options)
         )
 
-    @config.requirements.identity_columns
     def test_remove_identity_from_column(self):
         context = op_fixture("postgresql")
         op.alter_column(
@@ -443,7 +438,6 @@ class PostgresqlOpTest(TestBase):
             "ALTER TABLE t1 ALTER COLUMN some_column DROP IDENTITY"
         )
 
-    @config.requirements.identity_columns
     @combinations(
         ({}, dict(always=True), "SET GENERATED ALWAYS"),
         (

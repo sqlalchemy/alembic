@@ -67,7 +67,6 @@ class SQLiteTest(TestBase):
             "sometable",
         )
 
-    @config.requirements.comments
     def test_create_table_with_comment_ignored(self):
         context = op_fixture("sqlite")
         op.create_table(
@@ -81,7 +80,6 @@ class SQLiteTest(TestBase):
             "c2 INTEGER, PRIMARY KEY (c1))"
         )
 
-    @config.requirements.comments
     def test_add_column_with_comment_ignored(self):
         context = op_fixture("sqlite")
         op.add_column("t1", Column("c1", Integer, comment="c1 comment"))

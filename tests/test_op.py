@@ -676,7 +676,6 @@ class OpTest(TestBase):
             "REFERENCES t2 (bat, hoho) INITIALLY deferred"
         )
 
-    @config.requirements.foreign_key_match
     def test_add_foreign_key_match(self):
         context = op_fixture()
         op.create_foreign_key(
@@ -1217,7 +1216,6 @@ class OpTest(TestBase):
         op.drop_index("ik_test", table_name="t1")
         context.assert_("DROP INDEX ik_test ON t1")
 
-    @config.requirements.comments
     def test_create_table_comment_op(self):
         context = op_fixture()
 
@@ -1225,7 +1223,6 @@ class OpTest(TestBase):
 
         context.assert_("COMMENT ON TABLE some_table IS 'table comment'")
 
-    @config.requirements.comments
     def test_drop_table_comment_op(self):
         context = op_fixture()
 

@@ -11,7 +11,6 @@ from alembic import command
 from alembic import op
 from alembic.testing import assert_raises_message
 from alembic.testing import combinations
-from alembic.testing import config
 from alembic.testing import eq_
 from alembic.testing import is_true
 from alembic.testing.env import _no_sql_testing_config
@@ -68,7 +67,6 @@ class OpTest(TestBase):
         )
         context.assert_("ALTER TABLE t1 ADD c1 INTEGER DEFAULT '12' NOT NULL")
 
-    @config.requirements.comments
     def test_add_column_with_comment(self):
         context = op_fixture("oracle")
         op.add_column(
@@ -79,7 +77,6 @@ class OpTest(TestBase):
             "COMMENT ON COLUMN t1.c1 IS 'c1 comment'",
         )
 
-    @config.requirements.computed_columns
     def test_add_column_computed(self):
         context = op_fixture("oracle")
         op.add_column(
@@ -99,7 +96,6 @@ class OpTest(TestBase):
             lambda: Computed("foo * 5"),
         ),
     )
-    @config.requirements.computed_columns
     def test_alter_column_computed_not_supported(self, sd, esd):
         op_fixture("oracle")
         assert_raises_message(
@@ -242,7 +238,6 @@ class OpTest(TestBase):
             "ALTER TABLE t RENAME COLUMN c TO c2",
         )
 
-    @config.requirements.comments
     def test_create_table_with_column_comments(self):
         context = op_fixture("oracle")
         op.create_table(

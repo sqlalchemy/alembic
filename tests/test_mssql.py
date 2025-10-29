@@ -23,7 +23,6 @@ from alembic import op
 from alembic import util
 from alembic.testing import assert_raises_message
 from alembic.testing import combinations
-from alembic.testing import config
 from alembic.testing import eq_
 from alembic.testing import expect_warnings
 from alembic.testing import fixture
@@ -470,7 +469,6 @@ class OpTest(TestBase):
             lambda: Computed("foo * 5"),
         ),
     )
-    @config.requirements.computed_columns
     def test_alter_column_computed_not_supported(self, sd, esd):
         op_fixture("mssql")
         assert_raises_message(
@@ -485,7 +483,6 @@ class OpTest(TestBase):
             existing_server_default=esd(),
         )
 
-    @config.requirements.identity_columns
     @combinations(
         ({},),
         (dict(always=True),),
@@ -518,7 +515,6 @@ class OpTest(TestBase):
             lambda: Identity(),
         ),
     )
-    @config.requirements.identity_columns
     def test_alter_column_identity_add_not_supported(self, sd, esd):
         op_fixture("mssql")
         assert_raises_message(
