@@ -15,7 +15,7 @@ nox.needs_version = ">=2025.10.16"
 if True:
     sys.path.insert(0, ".")
     from tools.toxnox import tox_parameters
-    from tools.toxnox import extract_opts
+    from tools.toxnox import apply_pytest_opts
     from tools.toxnox import OUR_PYTHON
 
 
@@ -173,12 +173,14 @@ def _tests(
     if backendonly:
         cmd.append("--backend-only")
 
-    posargs, opts = extract_opts(session.posargs, "generate-junit")
-
-    if opts.generate_junit:
-        # produce individual junit files that are per-database
-        junitfile = f"junit-{database}.xml"
-        cmd.extend(["--junitxml", junitfile])
+    posargs = apply_pytest_opts(
+        session,
+        "alembic",
+        [
+            database,
+        ],
+        coverage=coverage,
+    )
 
     cmd.extend(posargs)
 
@@ -243,9 +245,13 @@ def test_pyoptimize(session: nox.Session) -> None:
     cmd.extend(os.environ.get("TOX_WORKERS", "-n4").split())
     cmd.append("tests/test_script_consumption.py")
 
-    posargs, opts = extract_opts(session.posargs, "generate-junit")
-    if opts.generate_junit:
-        cmd.extend(["--junitxml", "junit-pyoptimize.xml"])
+    posargs = apply_pytest_opts(
+        session,
+        "alembic",
+        [
+            "pyoptimize",
+        ],
+    )
 
     cmd.extend(posargs)
 
