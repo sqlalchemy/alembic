@@ -1480,9 +1480,23 @@ at :func:`.autogenerate.compare_metadata`::
 
 
 
+.. _cookbook_check_heads:
 
 Test current database revision is at head(s)
 ============================================
+
+.. versionchanged:: 1.17.1  This recipe is now part of the ``alembic current``
+   command using the :paramref:`.command.current.check_heads` parameter,
+   available from the command line as ``--check-heads``:
+
+   .. sourcecode::
+
+       alembic current --check-heads
+
+       INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+       INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+       ERROR [alembic.util.messaging] Database is not on all head revisions
+       FAILED: Database is not on all head revisions
 
 A recipe to determine if a database schema is up to date in terms of applying
 Alembic migrations.   May be useful for test or installation suites to

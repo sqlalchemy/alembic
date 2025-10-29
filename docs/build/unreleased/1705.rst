@@ -1,0 +1,11 @@
+.. change::
+   :tags: usecase, commands
+   :tickets: 1705
+
+   Added :paramref:`.command.current.check_heads` parameter to
+   :func:`.command.current` command, available from the command line via the
+   ``--check-heads`` option to ``alembic current``.  This tests if all head
+   revisions are applied to the database and raises :class:`.DatabaseNotAtHead`
+   (or from the command line, exits with a non-zero exit code) if this is not
+   the case.  The parameter operates equvialently to the cookbook recipe
+   :ref:`cookbook_check_heads`. Pull request courtesy Stefan Scherfke.

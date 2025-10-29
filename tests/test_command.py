@@ -311,6 +311,8 @@ class CurrentTest(_BufMixin, TestBase):
         eq_(lines, set(revs))
 
     def test_doesnt_create_alembic_version(self):
+        with self.bind.begin() as conn:
+            conn.exec_driver_sql("drop table if exists alembic_version")
         command.current(self.cfg)
         engine = self.bind
         with engine.connect() as conn:
@@ -344,6 +346,40 @@ class CurrentTest(_BufMixin, TestBase):
         command.upgrade(self.cfg, (self.b3.revision))
         with self._assert_lines(["a2", "b3"]):
             command.current(self.cfg)
+
+    def test_check_heads_success(self):
+        """
+        "--check-heads" succeeds if all head revisions are applied.
+        """
+        command.stamp(self.cfg, ())
+        command.stamp(self.cfg, (self.a3.revision, self.b3.revision))
+        with self._assert_lines(["a3", "b3"]):
+            command.current(self.cfg, check_heads=True)
+
+    @testing.combinations(
+        ["a2"],
+        ["a3"],
+        ["b3"],
+        ["a2", "b3"],
+        ["a3", "b2"],
+        argnames="revs",
+    )
+    def test_check_heads_fail(self, revs):
+        """
+        "--check-heads" succeeds if all head revisions are applied.
+        """
+        command.stamp(self.cfg, ())
+        command.stamp(
+            self.cfg, tuple(getattr(self, rev).revision for rev in revs)
+        )
+        assert_raises_message(
+            util.DatabaseNotAtHead,
+            "Database is not on all head revisions",
+            command.current,
+            self.cfg,
+            check_heads=True,
+        )
+        command.stamp(self.cfg, ())
 
 
 class RevisionTest(TestBase):
@@ -1562,7 +1598,7 @@ someconfig = 'bar'"""
         yield config.Config(
             self.cfg.config_file_name, toml_file=root / "pyproject.toml"
         )
-        shutil.rmtree(root)
+        os.unlink(root / "pyproject.toml")
 
     @testing.variation("cmd", ["list_templates", "init"])
     def test_init_custom_template_location(self, cmd, custom_template_fixture):

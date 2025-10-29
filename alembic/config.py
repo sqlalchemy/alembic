@@ -808,6 +808,17 @@ class CommandLine:
                 "environment and version locations",
             ),
         ),
+        "check_heads": (
+            "-c",
+            "--check-heads",
+            dict(
+                action="store_true",
+                help=(
+                    "Check if all head revisions are applied to the database. "
+                    "Exit with an error code if this is not the case."
+                ),
+            ),
+        ),
     }
     _POSITIONAL_OPTS = {
         "directory": dict(help="location of scripts directory"),
