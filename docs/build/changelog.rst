@@ -5,7 +5,29 @@ Changelog
 
 .. changelog::
     :version: 1.17.1
-    :include_notes_from: unreleased
+    :released: October 28, 2025
+
+    .. change::
+        :tags: bug, commands
+        :tickets: 1540
+
+        Disallow ':' character in custom revision identifiers. Previously, using a
+        colon in a revision ID (e.g., 'REV:1') would create the revision, however
+        revisions with colons in them are not correctly interpreted by other
+        commands, as it overlaps with the revision range syntax.   Pull request
+        courtesy Kim Wooseok with original implementation by Hrushikesh Patil.
+
+    .. change::
+       :tags: usecase, commands
+       :tickets: 1705
+
+       Added :paramref:`.command.current.check_heads` parameter to
+       :func:`.command.current` command, available from the command line via the
+       ``--check-heads`` option to ``alembic current``.  This tests if all head
+       revisions are applied to the database and raises :class:`.DatabaseNotAtHead`
+       (or from the command line, exits with a non-zero exit code) if this is not
+       the case.  The parameter operates equvialently to the cookbook recipe
+       :ref:`cookbook_check_heads`. Pull request courtesy Stefan Scherfke.
 
 .. changelog::
     :version: 1.17.0
