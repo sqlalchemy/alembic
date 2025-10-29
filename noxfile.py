@@ -177,6 +177,7 @@ def _tests(
         session,
         "alembic",
         [
+            sqlalchemy,
             database,
         ],
         coverage=coverage,
