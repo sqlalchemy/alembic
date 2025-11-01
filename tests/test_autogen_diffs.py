@@ -1910,3 +1910,98 @@ class MultipleMetaDataTest(AutogenFixtureTest, TestBase):
             [m1a, m1b],
             [m2a, m2b],
         )
+
+
+class AutogenFKTest(AutogenFixtureTest, TestBase):
+    """Test foreign key constraint handling in autogenerate."""
+
+    __backend__ = True
+    __requires__ = ("foreign_key_constraint_reflection",)
+
+    @testing.variation("case", ["uppercase", "lowercase"])
+    @testing.variation("use_naming_convention", [True, False])
+    @config.requirements.foreign_key_name_reflection
+    def test_drop_fk_with_mixed_case_name(self, case, use_naming_convention):
+        """Test #1743"""
+        if case.uppercase:
+            fk_pattern = (
+                "FK_%(table_name)s_%(column_0_name)s_%(referred_table_name)s"
+            )
+            expected_name = "FK_child_parent_id_parent"
+        else:
+            fk_pattern = (
+                "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s"
+            )
+            expected_name = "fk_child_parent_id_parent"
+
+        if use_naming_convention:
+            m1 = MetaData(naming_convention={"fk": fk_pattern})
+        else:
+            m1 = MetaData()
+
+        Table(
+            "parent",
+            m1,
+            Column("id", Integer, primary_key=True),
+            Column("name", String(50)),
+        )
+
+        c = Table(
+            "child",
+            m1,
+            Column("id", Integer, primary_key=True),
+            Column("name", String(50)),
+            Column("parent_id", Integer),
+            (
+                ForeignKeyConstraint(["parent_id"], ["parent.id"])
+                if use_naming_convention
+                else ForeignKeyConstraint(
+                    ["parent_id"], ["parent.id"], name=expected_name
+                )
+            ),
+        )
+
+        eq_(
+            [
+                fk
+                for fk in c.constraints
+                if isinstance(fk, ForeignKeyConstraint)
+            ][0].name,
+            expected_name,
+        )
+
+        if use_naming_convention:
+            m2 = MetaData(naming_convention={"fk": fk_pattern})
+        else:
+            m2 = MetaData()
+
+        Table(
+            "parent",
+            m2,
+            Column("id", Integer, primary_key=True),
+            Column("name", String(50)),
+        )
+
+        Table(
+            "child",
+            m2,
+            Column("id", Integer, primary_key=True),
+            Column("name", String(50)),
+            Column("parent_id", Integer),
+        )
+
+        diffs = self._fixture(m1, m2)
+
+        # Should detect the FK removal
+        eq_(len(diffs), 1, f"Expected 1 diff, got {len(diffs)}: {diffs}")
+
+        # Verify it's a remove_fk operation with the correct name
+        self._assert_fk_diff(
+            diffs[0],
+            "remove_fk",
+            "child",
+            ["parent_id"],
+            "parent",
+            ["id"],
+            name=expected_name,
+        )

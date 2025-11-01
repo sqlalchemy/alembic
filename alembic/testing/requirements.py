@@ -164,6 +164,10 @@ class SuiteRequirements(Requirements):
 
     @property
     def fk_names(self):
+        return self.foreign_key_name_reflection
+
+    @property
+    def foreign_key_name_reflection(self):
         return exclusions.open()
 
     @property

@@ -61,13 +61,14 @@ class DefaultRequirements(SuiteRequirements):
         return exclusions.only_on(["sqlite"])
 
     @property
-    def fk_names(self):
+    def foreign_key_name_reflection(self):
         """backend can reflect foreign key names"""
 
         # issue here was fixed in SQLAlchemy #12954 for sqlite, 2.0
         # release
-        return exclusions.fails_if(
-            lambda config: not sqla_compat.sqla_2 and config.against("sqlite")
+        return exclusions.skip_if(
+            lambda config: not sqla_compat.sqla_2
+            and exclusions.against(config, "sqlite")
         )
 
     @property

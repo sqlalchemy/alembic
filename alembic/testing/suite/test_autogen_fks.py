@@ -199,7 +199,7 @@ class AutogenerateForeignKeysTest(AutogenFixtureTest, TestBase):
 
         eq_(diffs, [])
 
-    @config.requirements.fk_names
+    @config.requirements.foreign_key_name_reflection
     def test_casing_convention_changed_so_put_drops_first(self):
         m1 = MetaData()
         m2 = MetaData()
