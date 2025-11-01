@@ -62,8 +62,13 @@ class DefaultRequirements(SuiteRequirements):
 
     @property
     def fk_names(self):
-        """foreign key constraints always have names in the DB"""
-        return exclusions.fails_on("sqlite")
+        """backend can reflect foreign key names"""
+
+        # issue here was fixed in SQLAlchemy #12954 for sqlite, 2.0
+        # release
+        return exclusions.fails_if(
+            lambda config: not sqla_compat.sqla_2 and config.against("sqlite")
+        )
 
     @property
     def reflects_fk_options(self):
