@@ -67,7 +67,7 @@ class DefaultRequirements(SuiteRequirements):
         # issue here was fixed in SQLAlchemy #12954 for sqlite, 2.0
         # release
         return exclusions.skip_if(
-            lambda config: not sqla_compat.sqla_2
+            lambda config: not sqla_compat.sqla_2_0_25
             and exclusions.against(config, "sqlite")
         )
 

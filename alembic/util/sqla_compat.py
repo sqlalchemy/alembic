@@ -70,6 +70,7 @@ _vers = tuple(
 sqla_14_18 = _vers >= (1, 4, 18)
 sqla_14_26 = _vers >= (1, 4, 26)
 sqla_2 = _vers >= (2,)
+sqla_2_0_25 = _vers >= (2, 25)
 sqla_2_1 = _vers >= (2, 1)
 sqlalchemy_version = __version__
 
