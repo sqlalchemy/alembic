@@ -140,6 +140,27 @@ class MSSQLImpl(DefaultImpl):
             kw["server_default"] = server_default
             kw["existing_server_default"] = existing_server_default
 
+        # drop existing default constraints before changing type
+        # or default, see issue #1744
+        if (
+            server_default is not False
+            and used_default is False
+            and (
+                existing_server_default is not False or server_default is None
+            )
+        ):
+            self._exec(
+                _ExecDropConstraint(
+                    table_name,
+                    column_name,
+                    "sys.default_constraints",
+                    schema,
+                )
+            )
+
+        # TODO: see why these two alter_columns can't be called
+        # at once.   joining them works but some of the mssql tests
+        # seem to expect something different
         super().alter_column(
             table_name,
             column_name,
@@ -152,15 +173,6 @@ class MSSQLImpl(DefaultImpl):
         )
 
         if server_default is not False and used_default is False:
-            if existing_server_default is not False or server_default is None:
-                self._exec(
-                    _ExecDropConstraint(
-                        table_name,
-                        column_name,
-                        "sys.default_constraints",
-                        schema,
-                    )
-                )
             if server_default is not None:
                 super().alter_column(
                     table_name,

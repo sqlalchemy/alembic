@@ -8,8 +8,11 @@ from typing import Dict
 from sqlalchemy import CheckConstraint
 from sqlalchemy import Column
 from sqlalchemy import Computed
+from sqlalchemy import DATE
+from sqlalchemy import DATETIME
 from sqlalchemy import exc
 from sqlalchemy import ForeignKey
+from sqlalchemy import func
 from sqlalchemy import Identity
 from sqlalchemy import inspect
 from sqlalchemy import Integer
@@ -20,6 +23,7 @@ from sqlalchemy import text
 
 from alembic import command
 from alembic import op
+from alembic import testing
 from alembic import util
 from alembic.testing import assert_raises_message
 from alembic.testing import combinations
@@ -576,3 +580,28 @@ class RoundTripTest(TestBase):
 
     # don't know if a default constraint can be explicitly named, but
     # the path is the same as the check constraint, so it should be good
+
+    @testing.variation("op", ["drop", "alter"])
+    def test_issue_1744(self, ops_context, connection, metadata, op):
+        access = Table(
+            "access",
+            metadata,
+            Column("id", Integer, primary_key=True),
+            Column("created_at", DATE, server_default=func.getdate()),
+        )
+        access.create(connection)
+
+        if op.alter:
+            ops_context.alter_column(
+                "access",
+                "created_at",
+                existing_type=DATETIME(),
+                type_=DATETIME(timezone=True),
+                server_default=func.getdate(),
+                existing_nullable=False,
+                existing_server_default=text("(getdate())"),
+            )
+        elif op.drop:
+            ops_context.drop_column(
+                "access", "created_at", mssql_drop_default=True
+            )

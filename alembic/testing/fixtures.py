@@ -26,6 +26,7 @@ from sqlalchemy.testing.assertions import eq_
 from sqlalchemy.testing.fixtures import FutureEngineMixin
 from sqlalchemy.testing.fixtures import TablesTest as SQLAlchemyTablesTest
 from sqlalchemy.testing.fixtures import TestBase as SQLAlchemyTestBase
+from sqlalchemy.testing.util import drop_all_tables_from_metadata
 
 import alembic
 from .assertions import _get_dialect
@@ -87,8 +88,40 @@ class TestBase(SQLAlchemyTestBase):
 
     @testing.fixture
     def connection(self):
+        global _connection_fixture_connection
+
         with config.db.connect() as conn:
+            _connection_fixture_connection = conn
             yield conn
+
+            _connection_fixture_connection = None
+
+    @config.fixture()
+    def metadata(self, request):
+        """Provide bound MetaData for a single test, dropping afterwards."""
+
+        from sqlalchemy.sql import schema
+
+        metadata = schema.MetaData()
+        request.instance.metadata = metadata
+        yield metadata
+        del request.instance.metadata
+
+        if (
+            _connection_fixture_connection
+            and _connection_fixture_connection.in_transaction()
+        ):
+            trans = _connection_fixture_connection.get_transaction()
+            trans.rollback()
+            with _connection_fixture_connection.begin():
+                drop_all_tables_from_metadata(
+                    metadata, _connection_fixture_connection
+                )
+        else:
+            drop_all_tables_from_metadata(metadata, config.db)
+
+
+_connection_fixture_connection = None
 
 
 class TablesTest(TestBase, SQLAlchemyTablesTest):
