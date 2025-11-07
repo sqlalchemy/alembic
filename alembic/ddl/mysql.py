@@ -11,6 +11,7 @@ from typing import Union
 
 from sqlalchemy import schema
 from sqlalchemy import types as sqltypes
+from sqlalchemy.dialects.mysql import ENUM as MySQL_ENUM
 from sqlalchemy.sql import elements
 from sqlalchemy.sql import functions
 from sqlalchemy.sql import operators
@@ -349,6 +350,56 @@ class MySQLImpl(DefaultImpl):
                 and cnfk.onupdate is None
             ):
                 cnfk.onupdate = "RESTRICT"
+
+    def compare_type(
+        self,
+        inspector_column: schema.Column[Any],
+        metadata_column: schema.Column,
+    ) -> bool:
+        """Override compare_type to properly detect MySQL native ENUM changes.
+
+        This addresses the issue where autogenerate fails to detect when new
+        values are added to or removed from MySQL native ENUM columns.
+        """
+        # Check if both columns are MySQL native ENUMs
+        metadata_type = metadata_column.type
+        inspector_type = inspector_column.type
+
+        if isinstance(
+            metadata_type, (sqltypes.Enum, MySQL_ENUM)
+        ) and isinstance(inspector_type, (sqltypes.Enum, MySQL_ENUM)):
+            # For native ENUMs, compare the actual enum values
+            metadata_enums = None
+            inspector_enums = None
+
+            # Extract enum values from metadata column
+            if isinstance(metadata_type, sqltypes.Enum):
+                if hasattr(metadata_type, "enums"):
+                    metadata_enums = metadata_type.enums
+            elif isinstance(metadata_type, MySQL_ENUM):
+                if hasattr(metadata_type, "enums"):
+                    metadata_enums = metadata_type.enums
+
+            # Extract enum values from inspector column
+            if isinstance(inspector_type, sqltypes.Enum):
+                if hasattr(inspector_type, "enums"):
+                    inspector_enums = inspector_type.enums
+            elif isinstance(inspector_type, MySQL_ENUM):
+                if hasattr(inspector_type, "enums"):
+                    inspector_enums = inspector_type.enums
+
+            # Compare enum values if both are available
+            if metadata_enums is not None and inspector_enums is not None:
+                # Convert to tuples to preserve order
+                # (important for MySQL ENUMs)
+                metadata_values = tuple(metadata_enums)
+                inspector_values = tuple(inspector_enums)
+
+                if metadata_values != inspector_values:
+                    return True
+
+        # Fall back to default comparison for non-ENUM types
+        return super().compare_type(inspector_column, metadata_column)
 
 
 class MariaDBImpl(MySQLImpl):
