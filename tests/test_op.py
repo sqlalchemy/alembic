@@ -1385,6 +1385,98 @@ class CustomOpTest(TestBase):
         op.create_sequence("foob")
         context.assert_("CREATE SEQUENCE foob")
 
+    def test_replace_op(self):
+        from alembic.operations.toimpl import drop_table as drop_table_default
+        from alembic.operations.toimpl import (
+            create_table as create_table_default,
+        )
+
+        log_table = Table(
+            "log_table",
+            MetaData(),
+            Column("action", String),
+            Column("table_name", String),
+        )
+        context = op_fixture()
+
+        @Operations.implementation_for(ops.CreateTableOp, replace=True)
+        def create_table_proxy_log(operations, operation):
+            create_table_default(operations, operation)
+            operations.execute(
+                log_table.insert().values(["create", operation.table_name])
+            )
+
+        op.create_table("some_table", Column("colname", Integer))
+
+        @Operations.implementation_for(ops.CreateTableOp, replace=True)
+        def create_table_proxy_invert(operations, operation):
+            drop_table_default(
+                operations, ops.DropTableOp(operation.table_name)
+            )
+            operations.execute(
+                log_table.insert().values(["delete", operation.table_name])
+            )
+
+        op.create_table("some_table")
+
+        context.assert_(
+            "CREATE TABLE some_table (colname INTEGER)",
+            "INSERT INTO log_table (action, table_name) "
+            "VALUES (:action, :table_name)",
+            "DROP TABLE some_table",
+            "INSERT INTO log_table (action, table_name) "
+            "VALUES (:action, :table_name)",
+        )
+
+        # restore default implementation
+        Operations.implementation_for(ops.CreateTableOp, replace=True)(
+            create_table_default
+        )
+
+    def test_replace_error(self):
+        def do_implementation():
+            @Operations.implementation_for(ops.CreateTableOp)
+            def create_table(operations, operation):
+                pass
+
+        assert_raises_message(
+            ValueError,
+            "Can not set dispatch function for object "
+            "<class 'alembic.operations.ops.CreateTableOp'>: "
+            "key already exists. To replace existing function, use "
+            "replace=True.",
+            do_implementation,
+        )
+
+    def test_replace_custom_op(self):
+        context = op_fixture()
+
+        @Operations.register_operation("create_user")
+        class CreateUserOp(MigrateOperation):
+            def __init__(self, user_name):
+                self.user_name = user_name
+
+            @classmethod
+            def create_user(cls, operations, user_name):
+                op = CreateUserOp(user_name)
+                return operations.invoke(op)
+
+        @Operations.implementation_for(CreateUserOp, replace=True)
+        def create_user(operations, operation):
+            operations.execute("CREATE USER %s" % operation.user_name)
+
+        op.create_user("bob")
+
+        @Operations.implementation_for(CreateUserOp, replace=True)
+        def create_user_alternative(operations, operation):
+            operations.execute(
+                "CREATE ROLE %s WITH LOGIN" % operation.user_name
+            )
+
+        op.create_user("bob")
+
+        context.assert_("CREATE USER bob", "CREATE ROLE bob WITH LOGIN")
+
 
 class ObjectFromToTest(TestBase):
     """Test operation round trips for to_obj() / from_obj().

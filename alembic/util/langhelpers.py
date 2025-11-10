@@ -270,13 +270,18 @@ class Dispatcher:
         self.uselist = uselist
 
     def dispatch_for(
-        self, target: Any, qualifier: str = "default"
+        self, target: Any, qualifier: str = "default", replace: bool = False
     ) -> Callable[[_C], _C]:
         def decorate(fn: _C) -> _C:
             if self.uselist:
                 self._registry.setdefault((target, qualifier), []).append(fn)
             else:
-                assert (target, qualifier) not in self._registry
+                if (target, qualifier) in self._registry and not replace:
+                    raise ValueError(
+                        "Can not set dispatch function for object %s: "
+                        "key already exists. To replace existing function, "
+                        "use replace=True." % target
+                    )
                 self._registry[(target, qualifier)] = fn
             return fn
 

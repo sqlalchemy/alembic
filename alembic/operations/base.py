@@ -202,8 +202,13 @@ class AbstractOperations(util.ModuleClsProxy):
         return register
 
     @classmethod
-    def implementation_for(cls, op_cls: Any) -> Callable[[_C], _C]:
+    def implementation_for(
+        cls, op_cls: Any, replace: bool = False
+    ) -> Callable[[_C], _C]:
         """Register an implementation for a given :class:`.MigrateOperation`.
+
+        :param replace: optional flag that allows to replace an already
+            registered implementation. Default: False.
 
         This is part of the operation extensibility API.
 
@@ -214,7 +219,7 @@ class AbstractOperations(util.ModuleClsProxy):
         """
 
         def decorate(fn: _C) -> _C:
-            cls._to_impl.dispatch_for(op_cls)(fn)
+            cls._to_impl.dispatch_for(op_cls, replace=replace)(fn)
             return fn
 
         return decorate
