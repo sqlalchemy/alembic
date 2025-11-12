@@ -208,7 +208,9 @@ class AbstractOperations(util.ModuleClsProxy):
         """Register an implementation for a given :class:`.MigrateOperation`.
 
         :param replace: optional flag that allows to replace an already
-            registered implementation. Default: False.
+         registered implementation. Default: False.
+
+         .. versionadded:: 1.17.2
 
         This is part of the operation extensibility API.
 

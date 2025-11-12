@@ -28,6 +28,8 @@ from alembic.operations import MigrateOperation
 from alembic.operations import Operations
 from alembic.operations import ops
 from alembic.operations import schemaobj
+from alembic.operations.toimpl import create_table as _create_table
+from alembic.operations.toimpl import drop_table as _drop_table
 from alembic.testing import assert_raises_message
 from alembic.testing import combinations
 from alembic.testing import config
@@ -1362,6 +1364,7 @@ class SQLModeOpTest(TestBase):
 
 class CustomOpTest(TestBase):
     def test_custom_op(self):
+
         @Operations.register_operation("create_sequence")
         class CreateSequenceOp(MigrateOperation):
             """Create a SEQUENCE."""
@@ -1385,11 +1388,9 @@ class CustomOpTest(TestBase):
         op.create_sequence("foob")
         context.assert_("CREATE SEQUENCE foob")
 
-    def test_replace_op(self):
-        from alembic.operations.toimpl import drop_table as drop_table_default
-        from alembic.operations.toimpl import (
-            create_table as create_table_default,
-        )
+    def test_replace_op(self, restore_operations):
+        restore_operations(Operations)
+        context = op_fixture()
 
         log_table = Table(
             "log_table",
@@ -1397,11 +1398,10 @@ class CustomOpTest(TestBase):
             Column("action", String),
             Column("table_name", String),
         )
-        context = op_fixture()
 
         @Operations.implementation_for(ops.CreateTableOp, replace=True)
         def create_table_proxy_log(operations, operation):
-            create_table_default(operations, operation)
+            _create_table(operations, operation)
             operations.execute(
                 log_table.insert().values(["create", operation.table_name])
             )
@@ -1410,9 +1410,7 @@ class CustomOpTest(TestBase):
 
         @Operations.implementation_for(ops.CreateTableOp, replace=True)
         def create_table_proxy_invert(operations, operation):
-            drop_table_default(
-                operations, ops.DropTableOp(operation.table_name)
-            )
+            _drop_table(operations, ops.DropTableOp(operation.table_name))
             operations.execute(
                 log_table.insert().values(["delete", operation.table_name])
             )
@@ -1428,27 +1426,21 @@ class CustomOpTest(TestBase):
             "VALUES (:action, :table_name)",
         )
 
-        # restore default implementation
-        Operations.implementation_for(ops.CreateTableOp, replace=True)(
-            create_table_default
-        )
-
     def test_replace_error(self):
-        def do_implementation():
-            @Operations.implementation_for(ops.CreateTableOp)
-            def create_table(operations, operation):
-                pass
-
-        assert_raises_message(
+        with expect_raises_message(
             ValueError,
             "Can not set dispatch function for object "
             "<class 'alembic.operations.ops.CreateTableOp'>: "
             "key already exists. To replace existing function, use "
             "replace=True.",
-            do_implementation,
-        )
+        ):
 
-    def test_replace_custom_op(self):
+            @Operations.implementation_for(ops.CreateTableOp)
+            def create_table(operations, operation):
+                pass
+
+    def test_replace_custom_op(self, restore_operations):
+        restore_operations(Operations)
         context = op_fixture()
 
         @Operations.register_operation("create_user")

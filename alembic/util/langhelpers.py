@@ -278,9 +278,9 @@ class Dispatcher:
             else:
                 if (target, qualifier) in self._registry and not replace:
                     raise ValueError(
-                        "Can not set dispatch function for object %s: "
-                        "key already exists. To replace existing function, "
-                        "use replace=True." % target
+                        "Can not set dispatch function for object "
+                        f"{target!r}: key already exists. To replace "
+                        "existing function, use replace=True."
                     )
                 self._registry[(target, qualifier)] = fn
             return fn
