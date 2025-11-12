@@ -202,19 +202,32 @@ class AbstractOperations(util.ModuleClsProxy):
         return register
 
     @classmethod
-    def implementation_for(cls, op_cls: Any) -> Callable[[_C], _C]:
+    def implementation_for(
+        cls, op_cls: Any, replace: bool = False
+    ) -> Callable[[_C], _C]:
         """Register an implementation for a given :class:`.MigrateOperation`.
+
+        :param replace: when True, allows replacement of an already
+         registered implementation for the given operation class. This
+         enables customization of built-in operations such as
+         :class:`.CreateTableOp` by providing an alternate implementation
+         that can augment, modify, or conditionally invoke the default
+         behavior.
+
+         .. versionadded:: 1.17.2
 
         This is part of the operation extensibility API.
 
         .. seealso::
 
-            :ref:`operation_plugins` - example of use
+            :ref:`operation_plugins`
+
+            :ref:`operations_extending_builtin`
 
         """
 
         def decorate(fn: _C) -> _C:
-            cls._to_impl.dispatch_for(op_cls)(fn)
+            cls._to_impl.dispatch_for(op_cls, replace=replace)(fn)
             return fn
 
         return decorate

@@ -96,6 +96,23 @@ class TestBase(SQLAlchemyTestBase):
 
             _connection_fixture_connection = None
 
+    @testing.fixture
+    def restore_operations(self):
+        """Restore runners for modified operations"""
+
+        saved_impls = None
+        op_cls = None
+
+        def _save_attrs(_op_cls):
+            nonlocal saved_impls, op_cls
+            saved_impls = _op_cls._to_impl._registry.copy()
+            op_cls = _op_cls
+
+        yield _save_attrs
+
+        if op_cls is not None and saved_impls is not None:
+            op_cls._to_impl._registry = saved_impls
+
     @config.fixture()
     def metadata(self, request):
         """Provide bound MetaData for a single test, dropping afterwards."""

@@ -163,3 +163,79 @@ The built-in operation objects are listed below.
 
 .. automodule:: alembic.operations.ops
     :members:
+
+.. _operations_extending_builtin:
+
+Extending Existing Operations
+==============================
+
+.. versionadded:: 1.17.2
+
+The :paramref:`.Operations.implementation_for.replace` parameter allows
+replacement of existing operation implementations, including built-in
+operations such as :class:`.CreateTableOp`. This enables customization of
+migration execution for purposes such as logging operations, running
+integrity checks, conditionally canceling operations, or adapting
+operations with dialect-specific options.
+
+The example below illustrates replacing the implementation of
+:class:`.CreateTableOp` to log each table creation to a separate metadata
+table::
+
+    from alembic import op
+    from alembic.operations import Operations
+    from alembic.operations.ops import CreateTableOp
+    from alembic.operations.toimpl import create_table as _create_table
+    from sqlalchemy import MetaData, Table, Column, String
+
+    # Define a metadata table to track table operations
+    log_table = Table(
+        "table_metadata_log",
+        MetaData(),
+        Column("operation", String),
+        Column("table_name", String),
+    )
+
+    @Operations.implementation_for(CreateTableOp, replace=True)
+    def create_table_with_logging(operations, operation):
+        # First, run the original CREATE TABLE implementation
+        _create_table(operations, operation)
+
+        # Then, log the operation to the metadata table
+        operations.execute(
+            log_table.insert().values(
+                operation="create",
+                table_name=operation.table_name
+            )
+        )
+
+The above code can be placed in the ``env.py`` file to ensure it is loaded
+before migrations run. Once registered, all ``op.create_table()`` calls
+within migration scripts will use the augmented implementation.
+
+The original implementation is imported from :mod:`alembic.operations.toimpl`
+and invoked within the replacement implementation. The ``replace`` parameter
+also enables conditional execution or complete replacement of operation
+behavior. The example below demonstrates skipping a :class:`.CreateTableOp`
+based on custom logic::
+
+    from alembic.operations import Operations
+    from alembic.operations.ops import CreateTableOp
+    from alembic.operations.toimpl import create_table as _create_table
+
+    @Operations.implementation_for(CreateTableOp, replace=True)
+    def create_table_conditional(operations, operation):
+        # Check if the table should be created based on custom logic
+        if should_create_table(operation.table_name):
+            _create_table(operations, operation)
+        else:
+            # Skip creation and optionally log
+            operations.execute(
+                "-- Skipped creation of table %s" % operation.table_name
+            )
+
+    def should_create_table(table_name):
+        # Custom logic to determine if table should be created
+        # For example, check a configuration or metadata table
+        return table_name not in get_ignored_tables()
+

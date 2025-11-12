@@ -1,0 +1,13 @@
+.. change::
+    :tags: feature, operations
+    :tickets: 1750
+
+    Added :paramref:`.Operations.implementation_for.replace` parameter to
+    :meth:`.Operations.implementation_for`, allowing replacement of existing
+    operation implementations.  This allows for existing operations such as
+    :class:`.CreateTableOp` to be extended directly.  Pull request courtesy
+    justanothercatgirl.
+
+    .. seealso::
+
+        :ref:`operations_extending_builtin`
