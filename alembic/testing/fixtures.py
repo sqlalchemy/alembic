@@ -100,7 +100,7 @@ class TestBase(SQLAlchemyTestBase):
     def restore_operations(self):
         """Restore runners for modified operations"""
 
-        saved_impls = {}
+        saved_impls = None
         op_cls = None
 
         def _save_attrs(_op_cls):
@@ -110,7 +110,8 @@ class TestBase(SQLAlchemyTestBase):
 
         yield _save_attrs
 
-        op_cls._to_impl._registry = saved_impls
+        if op_cls is not None and saved_impls is not None:
+            op_cls._to_impl._registry = saved_impls
 
     @config.fixture()
     def metadata(self, request):
