@@ -5,7 +5,30 @@ Changelog
 
 .. changelog::
     :version: 1.17.2
-    :include_notes_from: unreleased
+    :released: November 14, 2025
+
+    .. change::
+        :tags: bug, mssql
+        :tickets: 1744
+
+        Fixed issue in SQL Server dialect where the DROP that's automatically
+        emitted for existing default constraints during an ALTER COLUMN needs to
+        take place before not just the modification of the column's default, but
+        also before the column's type is changed.
+
+    .. change::
+        :tags: feature, operations
+        :tickets: 1750
+
+        Added :paramref:`.Operations.implementation_for.replace` parameter to
+        :meth:`.Operations.implementation_for`, allowing replacement of existing
+        operation implementations.  This allows for existing operations such as
+        :class:`.CreateTableOp` to be extended directly.  Pull request courtesy
+        justanothercatgirl.
+
+        .. seealso::
+
+            :ref:`operations_extending_builtin`
 
 .. changelog::
     :version: 1.17.1

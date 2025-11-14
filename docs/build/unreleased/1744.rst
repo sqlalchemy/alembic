@@ -1,8 +1,0 @@
-.. change::
-    :tags: bug, mssql
-    :tickets: 1744
-
-    Fixed issue in SQL Server dialect where the DROP that's automatically
-    emitted for existing default constraints during an ALTER COLUMN needs to
-    take place before not just the modification of the column's default, but
-    also before the column's type is changed.
