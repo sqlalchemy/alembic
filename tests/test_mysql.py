@@ -2,6 +2,7 @@ from sqlalchemy import Boolean
 from sqlalchemy import Column
 from sqlalchemy import Computed
 from sqlalchemy import DATETIME
+from sqlalchemy import Enum
 from sqlalchemy import exc
 from sqlalchemy import Float
 from sqlalchemy import func
@@ -14,6 +15,7 @@ from sqlalchemy import String
 from sqlalchemy import Table
 from sqlalchemy import text
 from sqlalchemy import TIMESTAMP
+from sqlalchemy.dialects.mysql import ENUM as MySQL_ENUM
 from sqlalchemy.dialects.mysql import VARCHAR
 
 from alembic import autogenerate
