@@ -52,7 +52,7 @@ alembic = "alembic.config:main"
 
 [dependency-groups]
 tests = [
-    "pytest>8,<8.4",
+    "pytest>8,<10",
     "pytest-xdist",
     "black==25.1.0",  # for test_post_write.py
     "tzdata",
@@ -83,7 +83,7 @@ lint = [
 mypy = [
     "mypy>=1.16.0",
     "nox",  # because we check noxfile.py
-    "pytest>8,<8.4",  # alembic/testing imports pytest
+    "pytest>8,<10",  # alembic/testing imports pytest
 ]
 
 [tool.coverage.paths]

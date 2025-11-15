@@ -16,7 +16,6 @@ if True:
     sys.path.insert(0, ".")
     from tools.toxnox import tox_parameters
     from tools.toxnox import apply_pytest_opts
-    from tools.toxnox import OUR_PYTHON
 
 
 SQLA_REPO = os.environ.get(
@@ -65,7 +64,6 @@ def filter_sqla(
 )
 def tests(
     session: nox.Session,
-    python: str,
     sqlalchemy: str,
     database: str,
     backendonly: str,
@@ -76,7 +74,6 @@ def tests(
         session,
         sqlalchemy,
         database,
-        python=python,
         backendonly=backendonly == "backendonly",
     )
 
@@ -94,7 +91,6 @@ def _tests(
     sqlalchemy: str,
     database: str,
     *,
-    python: str = OUR_PYTHON,
     coverage: bool = False,
     backendonly: bool = False,
 ) -> None:
@@ -136,21 +132,24 @@ def _tests(
 
     cmd.extend(os.environ.get("TOX_WORKERS", "-n4").split())
 
+    # for all sqlalchemy-custom options, use equals sign so that we avoid
+    # https://github.com/pytest-dev/pytest/issues/13913
+
     match database:
         case "sqlite":
-            cmd.extend(os.environ.get("TOX_SQLITE", "--db sqlite").split())
+            cmd.extend(os.environ.get("TOX_SQLITE", "--db=sqlite").split())
         case "postgresql":
             session.install(
                 *nox.project.dependency_groups(pyproject, "tests_postgresql")
             )
             cmd.extend(
-                os.environ.get("TOX_POSTGRESQL", "--db postgresql").split()
+                os.environ.get("TOX_POSTGRESQL", "--db=postgresql").split()
             )
         case "mysql":
             session.install(
                 *nox.project.dependency_groups(pyproject, "tests_mysql")
             )
-            cmd.extend(os.environ.get("TOX_MYSQL", "--db mysql").split())
+            cmd.extend(os.environ.get("TOX_MYSQL", "--db=mysql").split())
         case "oracle":
             # we'd like to use oracledb but SQLAlchemy 1.4 does not have
             # oracledb support...
@@ -161,14 +160,14 @@ def _tests(
                 session.env["ORACLE_HOME"] = os.environ.get("ORACLE_HOME")
             if "NLS_LANG" in os.environ:
                 session.env["NLS_LANG"] = os.environ.get("NLS_LANG")
-            cmd.extend(os.environ.get("TOX_ORACLE", "--db oracle").split())
-            cmd.extend("--write-idents db_idents.txt".split())
+            cmd.extend(os.environ.get("TOX_ORACLE", "--db=oracle").split())
+            cmd.append("--write-idents=db_idents.txt")
         case "mssql":
             session.install(
                 *nox.project.dependency_groups(pyproject, "tests_mssql")
             )
-            cmd.extend(os.environ.get("TOX_MSSQL", "--db mssql").split())
-            cmd.extend("--write-idents db_idents.txt".split())
+            cmd.extend(os.environ.get("TOX_MSSQL", "--db=mssql").split())
+            cmd.append("--write-idents=db_idents.txt")
 
     if backendonly:
         cmd.append("--backend-only")
