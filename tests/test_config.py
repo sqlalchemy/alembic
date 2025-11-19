@@ -1,3 +1,5 @@
+import io
+import logging
 import os
 import pathlib
 import sys
@@ -45,6 +47,65 @@ migrations = %(base_path)s/db/migrations
 
 
 class ConfigTest(TestBase):
+    def test_config_logging_with_file(self):
+        buf = io.StringIO()
+        handler = logging.StreamHandler(buf)
+        handler.setLevel(logging.INFO)
+
+        logger = logging.getLogger("alembic.config")
+        old_level = logger.level
+        logger.addHandler(handler)
+        logger.setLevel(logging.INFO)
+
+        try:
+            cfg = _write_config_file(
+                """
+[alembic]
+script_location = %(base_path)s/db/migrations
+"""
+            )
+            test_cfg = config.Config(
+                cfg.config_file_name,
+                config_args=dict(base_path="/tmp")
+            )
+            test_cfg.cmd_opts = mock.Mock(verbose=True)
+
+            _ = test_cfg.file_config
+
+            output = buf.getvalue()
+            assert "Loading config from file" in output
+            assert cfg.config_file_name in output
+
+        finally:
+            logger.removeHandler(handler)
+            logger.setLevel(old_level)
+
+    def tearDown(self):
+        clear_staging_env()
+
+    def test_config_logging_without_file(self):
+        buf = io.StringIO()
+        handler = logging.StreamHandler(buf)
+        handler.setLevel(logging.INFO)
+
+        logger = logging.getLogger("alembic.config")
+        old_level = logger.level
+        logger.addHandler(handler)
+        logger.setLevel(logging.INFO)
+
+        try:
+            test_cfg = config.Config()
+            test_cfg.cmd_opts = mock.Mock(verbose=True)
+
+            _ = test_cfg.file_config
+
+            output = buf.getvalue()
+            assert "No config file provided" in output
+            assert test_cfg.config_file_name is None and test_cfg._config_file_path is None
+        finally:
+            logger.removeHandler(handler)
+            logger.setLevel(old_level)
+
     def test_config_no_file_main_option(self):
         cfg = config.Config()
         cfg.set_main_option("url", "postgresql://foo/bar")
