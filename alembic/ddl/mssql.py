@@ -20,6 +20,7 @@ from sqlalchemy.sql.elements import ClauseElement
 from .base import AddColumn
 from .base import alter_column
 from .base import alter_table
+from .base import ColumnComment
 from .base import ColumnDefault
 from .base import ColumnName
 from .base import ColumnNullable
@@ -433,3 +434,89 @@ def visit_rename_table(
         format_table_name(compiler, element.table_name, element.schema),
         format_table_name(compiler, element.new_table_name, None),
     )
+
+
+def _add_column_comment(
+    compiler: MSDDLCompiler,
+    schema: Optional[str],
+    tname: str,
+    cname: str,
+    comment: str,
+) -> str:
+    schema_name = schema if schema else compiler.dialect.default_schema_name
+    assert schema_name
+    return (
+        "exec sp_addextendedproperty 'MS_Description', {}, "
+        "'schema', {}, 'table', {}, 'column', {}".format(
+            compiler.sql_compiler.render_literal_value(
+                comment, sqltypes.NVARCHAR()
+            ),
+            compiler.preparer.quote_schema(schema_name),
+            compiler.preparer.quote(tname),
+            compiler.preparer.quote(cname),
+        )
+    )
+
+
+def _update_column_comment(
+    compiler: MSDDLCompiler,
+    schema: Optional[str],
+    tname: str,
+    cname: str,
+    comment: str,
+) -> str:
+    schema_name = schema if schema else compiler.dialect.default_schema_name
+    assert schema_name
+    return (
+        "exec sp_updateextendedproperty 'MS_Description', {}, "
+        "'schema', {}, 'table', {}, 'column', {}".format(
+            compiler.sql_compiler.render_literal_value(
+                comment, sqltypes.NVARCHAR()
+            ),
+            compiler.preparer.quote_schema(schema_name),
+            compiler.preparer.quote(tname),
+            compiler.preparer.quote(cname),
+        )
+    )
+
+
+def _drop_column_comment(
+    compiler: MSDDLCompiler, schema: Optional[str], tname: str, cname: str
+) -> str:
+    schema_name = schema if schema else compiler.dialect.default_schema_name
+    assert schema_name
+    return (
+        "exec sp_dropextendedproperty 'MS_Description', "
+        "'schema', {}, 'table', {}, 'column', {}".format(
+            compiler.preparer.quote_schema(schema_name),
+            compiler.preparer.quote(tname),
+            compiler.preparer.quote(cname),
+        )
+    )
+
+
+@compiles(ColumnComment, "mssql")
+def visit_column_comment(
+    element: ColumnComment, compiler: MSDDLCompiler, **kw: Any
+) -> str:
+    if element.comment is not None:
+        if element.existing_comment is not None:
+            return _update_column_comment(
+                compiler,
+                element.schema,
+                element.table_name,
+                element.column_name,
+                element.comment,
+            )
+        else:
+            return _add_column_comment(
+                compiler,
+                element.schema,
+                element.table_name,
+                element.column_name,
+                element.comment,
+            )
+    else:
+        return _drop_column_comment(
+            compiler, element.schema, element.table_name, element.column_name
+        )

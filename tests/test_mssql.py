@@ -533,6 +533,71 @@ class OpTest(TestBase):
             existing_server_default=esd(),
         )
 
+    def test_alter_column_add_comment(self):
+        context = op_fixture("mssql")
+        op.alter_column(
+            "t1",
+            "c1",
+            existing_type=String(50),
+            comment="c1 comment",
+        )
+        context.assert_contains(
+            "exec sp_addextendedproperty 'MS_Description', "
+            "N'c1 comment', 'schema', dbo, 'table', t1, 'column', c1"
+        )
+
+    def test_alter_column_update_comment(self):
+        context = op_fixture("mssql")
+        op.alter_column(
+            "t1",
+            "c1",
+            existing_type=String(50),
+            comment="updated comment",
+            existing_comment="old comment",
+        )
+        context.assert_contains(
+            "exec sp_updateextendedproperty 'MS_Description', "
+            "N'updated comment', 'schema', dbo, 'table', t1, 'column', c1"
+        )
+
+    def test_alter_column_add_comment_schema(self):
+        context = op_fixture("mssql")
+        op.alter_column(
+            "t1",
+            "c1",
+            existing_type=String(50),
+            comment="c1 comment",
+            schema="xyz",
+        )
+        context.assert_contains("'schema', xyz, 'table', t1, 'column', c1")
+
+    def test_alter_column_add_comment_quoting(self):
+        context = op_fixture("mssql")
+        op.alter_column(
+            "user",
+            "theme",
+            existing_type=String(20),
+            comment="Column comment with 'quotes'",
+            existing_nullable=True,
+            schema="dbo",
+        )
+        context.assert_contains("N'Column comment with ''quotes'''")
+        context.assert_contains("'table', [user], 'column', theme")
+
+    def test_alter_column_drop_comment(self):
+        context = op_fixture("mssql")
+        op.alter_column(
+            "t1",
+            "c1",
+            existing_type=String(50),
+            comment=None,
+            existing_comment="existing comment",
+        )
+        context.assert_contains(
+            "exec sp_dropextendedproperty 'MS_Description', "
+            "'schema', dbo, 'table', t1, 'column', c1"
+        )
+
 
 class RoundTripTest(TestBase):
     __backend__ = True
@@ -605,3 +670,61 @@ class RoundTripTest(TestBase):
             ops_context.drop_column(
                 "access", "created_at", mssql_drop_default=True
             )
+
+    @testing.variation("op", ["add", "update", "drop"])
+    def test_column_comment(
+        self, ops_context, connection, metadata, op: testing.Variation
+    ):
+        """test #1755"""
+        t = Table(
+            "t",
+            metadata,
+            Column("id", Integer, primary_key=True),
+            Column("data", String(50)),
+        )
+        t.create(connection)
+
+        if op.update or op.drop:
+            ops_context.alter_column(
+                "t",
+                "data",
+                existing_type=String(50),
+                comment="initial comment",
+            )
+
+        if op.add:
+            ops_context.alter_column(
+                "t", "data", existing_type=String(50), comment="data comment"
+            )
+            expected = "data comment"
+        elif op.update:
+            ops_context.alter_column(
+                "t",
+                "data",
+                existing_type=String(50),
+                comment="updated comment",
+                existing_comment="initial comment",
+            )
+            expected = "updated comment"
+        elif op.drop:
+            ops_context.alter_column(
+                "t",
+                "data",
+                existing_type=String(50),
+                comment=None,
+                existing_comment="initial comment",
+            )
+            expected = None
+        else:
+            op.fail()
+
+        # Verify expected result
+        result = connection.execute(
+            text(
+                "SELECT value FROM sys.extended_properties "
+                "WHERE major_id = OBJECT_ID('t') "
+                "AND minor_id = COLUMNPROPERTY(major_id, 'data', 'ColumnId') "
+                "AND name = 'MS_Description'"
+            )
+        ).scalar()
+        eq_(result, expected)

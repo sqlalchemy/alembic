@@ -132,6 +132,7 @@ def _get_dialect(name):
             d.implicit_returning = True
         elif name == "mssql":
             d.legacy_schema_aliasing = False
+            d.default_schema_name = "dbo"
         return d
 
 

@@ -1,0 +1,9 @@
+.. change::
+    :tags: bug, mssql
+    :tickets: 1755
+
+    Implemented DDL for column comment add/update/delete when using the
+    :paramref:`.Operations.alter_column.comment` parameter with
+    :meth:`.Operations.alter_column` on Microsoft SQL Server.  Previously,
+    these functions were not implemented for SQL Server and would raise
+    ``UnsupportedCompilationError``.
