@@ -1,4 +1,5 @@
 import importlib.machinery
+import logging
 import os
 from pathlib import Path
 import shutil
@@ -22,7 +23,29 @@ def _get_staging_directory():
         return "scratch"
 
 
+_restore_log = None
+
+
+def _replace_logger():
+    global _restore_log
+    if _restore_log is None:
+        _restore_log = (logging.root, logging.Logger.manager)
+        logging.root = logging.RootLogger(logging.WARNING)
+        logging.Logger.root = logging.root
+        logging.Logger.manager = logging.Manager(logging.root)
+
+
+def _restore_logger():
+    global _restore_log
+
+    if _restore_log is not None:
+        logging.root, logging.Logger.manager = _restore_log
+        logging.Logger.root = logging.root
+        _restore_log = None
+
+
 def staging_env(create=True, template="generic", sourceless=False):
+    _replace_logger()
     cfg = _testing_config()
     if create:
         path = _join_path(_get_staging_directory(), "scripts")
@@ -61,6 +84,7 @@ def clear_staging_env():
 
     engines.testing_reaper.close_all()
     shutil.rmtree(_get_staging_directory(), True)
+    _restore_logger()
 
 
 def script_file_fixture(txt):

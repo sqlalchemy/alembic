@@ -1,0 +1,6 @@
+.. change::
+    :tags: feature, operations
+    :tickets: 1737
+
+    When alembic is run in "verbose" mode, alembic now logs a message to
+    indicate from which file is used to load the configuration.
