@@ -29,6 +29,7 @@ if TYPE_CHECKING:
     from sqlalchemy.sql.expression import TableClause
     from sqlalchemy.sql.schema import Column
     from sqlalchemy.sql.schema import Computed
+    from sqlalchemy.sql.schema import FetchedValue
     from sqlalchemy.sql.schema import Identity
     from sqlalchemy.sql.schema import SchemaItem
     from sqlalchemy.sql.schema import Table
@@ -154,14 +155,12 @@ def alter_column(
     *,
     nullable: Optional[bool] = None,
     comment: Union[str, Literal[False], None] = False,
-    server_default: Union[
-        str, bool, Identity, Computed, TextClause, None
-    ] = False,
+    server_default: Union["FetchedValue", str, "TextClause", "ColumnElement[Any]", None, Literal[False]] = False,
     new_column_name: Optional[str] = None,
     type_: Union[TypeEngine[Any], Type[TypeEngine[Any]], None] = None,
     existing_type: Union[TypeEngine[Any], Type[TypeEngine[Any]], None] = None,
     existing_server_default: Union[
-        str, bool, Identity, Computed, TextClause, None
+        "FetchedValue", str, "TextClause", "ColumnElement[Any]", None, Literal[False]
     ] = False,
     existing_nullable: Optional[bool] = None,
     existing_comment: Optional[str] = None,
