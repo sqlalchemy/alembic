@@ -385,6 +385,7 @@ def merge(
     message: Optional[str] = None,
     branch_label: Optional[_RevIdType] = None,
     rev_id: Optional[str] = None,
+    splice: bool = False,
 ) -> Optional[Script]:
     """Merge two revisions together.  Creates a new migration file.
 
@@ -435,6 +436,7 @@ def merge(
         refresh=True,
         head=revisions,
         branch_labels=branch_label,
+        splice=splice,
         **template_args,  # type:ignore[arg-type]
     )
 
