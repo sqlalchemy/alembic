@@ -737,7 +737,7 @@ class CommandLine:
             "--splice",
             dict(
                 action="store_true",
-                help="Allow a non-head revision as the 'head' to splice onto",
+                help="Allow using a non-head revision as a base by disabling head-only validation",
             ),
         ),
         "depends_on": (
