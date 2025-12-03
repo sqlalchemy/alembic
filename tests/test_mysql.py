@@ -20,6 +20,7 @@ from sqlalchemy.dialects.mysql import VARCHAR
 
 from alembic import autogenerate
 from alembic import op
+from alembic import testing
 from alembic import util
 from alembic.autogenerate import api
 from alembic.autogenerate.compare.constraints import _compare_nullable
@@ -795,16 +796,32 @@ class MySQLEnumCompareTest(TestBase):
     __only_on__ = "mysql", "mariadb"
     __backend__ = True
 
-    @combinations.fixture()
+    @testing.fixture()
     def connection(self):
         with config.db.begin() as conn:
             yield conn
 
-    @combinations(
-        (Enum("A", "B", "C", native_enum=True), Enum("A", "B", "C", native_enum=True), False),
-        (Enum("A", "B", "C", native_enum=True), Enum("A", "B", "C", "D", native_enum=True), True),
-        (Enum("A", "B", "C", "D", native_enum=True), Enum("A", "B", "C", native_enum=True), True),
-        (Enum("A", "B", "C", native_enum=True), Enum("C", "B", "A", native_enum=True), True),
+    @testing.combinations(
+        (
+            Enum("A", "B", "C", native_enum=True),
+            Enum("A", "B", "C", native_enum=True),
+            False,
+        ),
+        (
+            Enum("A", "B", "C", native_enum=True),
+            Enum("A", "B", "C", "D", native_enum=True),
+            True,
+        ),
+        (
+            Enum("A", "B", "C", "D", native_enum=True),
+            Enum("A", "B", "C", native_enum=True),
+            True,
+        ),
+        (
+            Enum("A", "B", "C", native_enum=True),
+            Enum("C", "B", "A", native_enum=True),
+            True,
+        ),
         (MySQL_ENUM("A", "B", "C"), MySQL_ENUM("A", "B", "C"), False),
         (MySQL_ENUM("A", "B", "C"), MySQL_ENUM("A", "B", "C", "D"), True),
         id_="ssa",
@@ -815,9 +832,7 @@ class MySQLEnumCompareTest(TestBase):
     ):
         from alembic.ddl.mysql import MySQLImpl
 
-        impl = MySQLImpl(
-            "mysql", connection, (), {}, None, None, None, lambda: None
-        )
+        impl = MySQLImpl(connection.dialect, connection, False, None, None, {})
 
         is_(
             impl.compare_type(
