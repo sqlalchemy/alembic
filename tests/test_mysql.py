@@ -25,6 +25,7 @@ from alembic.autogenerate import api
 from alembic.autogenerate import compare
 from alembic.migration import MigrationContext
 from alembic.operations import ops
+from alembic import testing
 from alembic.testing import assert_raises_message
 from alembic.testing import combinations
 from alembic.testing import config
@@ -782,16 +783,32 @@ class MySQLEnumCompareTest(TestBase):
     __only_on__ = "mysql", "mariadb"
     __backend__ = True
 
-    @combinations.fixture()
+    @testing.fixture()
     def connection(self):
         with config.db.begin() as conn:
             yield conn
 
-    @combinations(
-        (Enum("A", "B", "C", native_enum=True), Enum("A", "B", "C", native_enum=True), False),
-        (Enum("A", "B", "C", native_enum=True), Enum("A", "B", "C", "D", native_enum=True), True),
-        (Enum("A", "B", "C", "D", native_enum=True), Enum("A", "B", "C", native_enum=True), True),
-        (Enum("A", "B", "C", native_enum=True), Enum("C", "B", "A", native_enum=True), True),
+    @testing.combinations(
+        (
+            Enum("A", "B", "C", native_enum=True),
+            Enum("A", "B", "C", native_enum=True),
+            False,
+        ),
+        (
+            Enum("A", "B", "C", native_enum=True),
+            Enum("A", "B", "C", "D", native_enum=True),
+            True,
+        ),
+        (
+            Enum("A", "B", "C", "D", native_enum=True),
+            Enum("A", "B", "C", native_enum=True),
+            True,
+        ),
+        (
+            Enum("A", "B", "C", native_enum=True),
+            Enum("C", "B", "A", native_enum=True),
+            True,
+        ),
         (MySQL_ENUM("A", "B", "C"), MySQL_ENUM("A", "B", "C"), False),
         (MySQL_ENUM("A", "B", "C"), MySQL_ENUM("A", "B", "C", "D"), True),
         id_="ssa",
