@@ -445,7 +445,9 @@ def _add_check_constraint(
     if not autogen_context._has_batch:
         args.append(repr(_ident(op.table_name)))
 
-    if hasattr(op.condition, "text"):
+    if isinstance(op.condition, str):
+        condition_text = op.condition
+    elif hasattr(op.condition, "text"):
         condition_text = op.condition.text
     else:
         from sqlalchemy.dialects import postgresql

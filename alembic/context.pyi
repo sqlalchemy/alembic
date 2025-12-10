@@ -113,6 +113,7 @@ def configure(
                     "index",
                     "unique_constraint",
                     "foreign_key_constraint",
+                    "check_constraint",
                 ],
                 MutableMapping[
                     Literal[
@@ -138,6 +139,7 @@ def configure(
                     "index",
                     "unique_constraint",
                     "foreign_key_constraint",
+                    "check_constraint",
                 ],
                 bool,
                 Optional[SchemaItem],
@@ -392,6 +394,20 @@ def configure(
 
         :paramref:`.EnvironmentContext.configure.compare_type`
 
+    :param compare_check_constraints: Indicates check constraint comparison
+     behavior during an autogenerate operation.  Defaults to ``False``
+     which disables check constraint comparison.  Set to ``True`` to
+     turn on check constraint comparison, which will detect added,
+     removed, and modified named check constraints.
+
+    This feature requires that check constraints have explicit names.
+    Unnamed check constraints will not be detected.
+
+    Check constraint comparison may produce false positives if the
+    database normalizes the SQL text differently from how it was
+    originally defined. This is an opt-in feature due to potential
+    compatibility issues across different database backends.
+
     :param include_name: A callable function which is given
      the chance to return ``True`` or ``False`` for any database reflected
      object based on its name, including database schema names when
@@ -405,7 +421,8 @@ def configure(
        database connection.
      * ``type``: a string describing the type of object; currently
        ``"schema"``, ``"table"``, ``"column"``, ``"index"``,
-       ``"unique_constraint"``, or ``"foreign_key_constraint"``
+       ``"unique_constraint"``, ``"foreign_key_constraint"``, or
+       ``"check_constraint"``
      * ``parent_names``: a dictionary of "parent" object names, that are
        relative to the name being given.  Keys in this dictionary may
        include:  ``"schema_name"``, ``"table_name"`` or
@@ -444,14 +461,15 @@ def configure(
      * ``object``: a :class:`~sqlalchemy.schema.SchemaItem` object such
        as a :class:`~sqlalchemy.schema.Table`,
        :class:`~sqlalchemy.schema.Column`,
-       :class:`~sqlalchemy.schema.Index`
+       :class:`~sqlalchemy.schema.Index`,
        :class:`~sqlalchemy.schema.UniqueConstraint`,
-       or :class:`~sqlalchemy.schema.ForeignKeyConstraint` object
+       :class:`~sqlalchemy.schema.ForeignKeyConstraint`, or
+       :class:`~sqlalchemy.schema.CheckConstraint` object
      * ``name``: the name of the object. This is typically available
        via ``object.name``.
      * ``type``: a string describing the type of object; currently
        ``"table"``, ``"column"``, ``"index"``, ``"unique_constraint"``,
-       or ``"foreign_key_constraint"``
+       ``"foreign_key_constraint"``, or ``"check_constraint"``
      * ``reflected``: ``True`` if the given object was produced based on
        table reflection, ``False`` if it's from a local :class:`.MetaData`
        object.
@@ -514,20 +532,6 @@ def configure(
         :paramref:`.EnvironmentContext.configure.include_name`
 
         :paramref:`.EnvironmentContext.configure.include_object`
-
-    :param compare_check_constraints: Indicates check constraint comparison
-     behavior during an autogenerate operation.  Defaults to ``False``
-     which disables check constraint comparison.  Set to ``True`` to
-     turn on check constraint comparison, which will detect added,
-     removed, and modified named check constraints.
-
-    This feature requires that check constraints have explicit names.
-    Unnamed check constraints will not be detected.
-
-    Check constraint comparison may produce false positives if the
-    database normalizes the SQL text differently from how it was
-    originally defined. This is an opt-in feature due to potential
-    compatibility issues across different database backends.
 
     :param render_item: Callable that can be used to override how
      any schema item, i.e. column, constraint, type,

@@ -1466,9 +1466,15 @@ def _compare_check_constraints(
     }
 
     metadata_cks_by_name = {
-        c.name: c for c in metadata_cks_sig if c.name is not None
+        c.name: c
+        for c in metadata_cks_sig
+        if sqla_compat.constraint_name_string(c.name)
     }
-    conn_cks_by_name = {c.name: c for c in conn_cks_sig if c.name is not None}
+    conn_cks_by_name = {
+        c.name: c
+        for c in conn_cks_sig
+        if sqla_compat.constraint_name_string(c.name)
+    }
 
     def _add_ck(obj, compare_to):
         if autogen_context.run_object_filters(
