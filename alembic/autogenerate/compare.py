@@ -1466,12 +1466,12 @@ def _compare_check_constraints(
     }
 
     metadata_cks_by_name = {
-        c.name: c
+        str(c.name): c
         for c in metadata_cks_sig
         if sqla_compat.constraint_name_string(c.name)
     }
     conn_cks_by_name = {
-        c.name: c
+        str(c.name): c
         for c in conn_cks_sig
         if sqla_compat.constraint_name_string(c.name)
     }
@@ -1507,8 +1507,8 @@ def _compare_check_constraints(
     ):
         const = conn_cks_by_name[removed_name]
         compare_to = (
-            metadata_cks_by_name[const.name].const
-            if const.name in metadata_cks_by_name
+            metadata_cks_by_name[removed_name].const
+            if removed_name in metadata_cks_by_name
             else None
         )
         _remove_ck(const, compare_to)
@@ -1518,8 +1518,8 @@ def _compare_check_constraints(
     ):
         const = metadata_cks_by_name[added_name]
         compare_to = (
-            conn_cks_by_name[const.name].const
-            if const.name in conn_cks_by_name
+            conn_cks_by_name[added_name].const
+            if added_name in conn_cks_by_name
             else None
         )
         _add_ck(const, compare_to)
