@@ -1465,10 +1465,12 @@ def _compare_check_constraints(
         for ck in conn_check_constraints
     }
 
-    metadata_cks_by_name = {
+    metadata_cks_by_name: Dict[str, Any] = {
         c.name: c for c in metadata_cks_sig if c.name is not None
     }
-    conn_cks_by_name = {c.name: c for c in conn_cks_sig if c.name is not None}
+    conn_cks_by_name: Dict[str, Any] = {
+        c.name: c for c in conn_cks_sig if c.name is not None
+    }
 
     def _add_ck(obj, compare_to):
         if autogen_context.run_object_filters(
