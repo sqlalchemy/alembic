@@ -438,8 +438,39 @@ def _add_pk_constraint(constraint, autogen_context):
 
 
 @renderers.dispatch_for(ops.CreateCheckConstraintOp)
-def _add_check_constraint(constraint, autogen_context):
-    raise NotImplementedError()
+def _add_check_constraint(
+    autogen_context: AutogenContext, op: ops.CreateCheckConstraintOp
+) -> str:
+    args = [repr(_render_gen_name(autogen_context, op.constraint_name))]
+    if not autogen_context._has_batch:
+        args.append(repr(_ident(op.table_name)))
+
+    if hasattr(op.condition, "text"):
+        condition_text = op.condition.text
+    else:
+        from sqlalchemy.dialects import postgresql
+
+        condition_text = op.condition.compile(
+            dialect=postgresql.dialect(),
+            compile_kwargs={"literal_binds": True},
+        ).string
+    args.append(repr(condition_text))
+
+    if op.schema and not autogen_context._has_batch:
+        args.append("schema=%r" % op.schema)
+
+    constraint = op.to_constraint()
+    dialect_kwargs = _render_dialect_kwargs_items(
+        autogen_context, constraint.dialect_kwargs
+    )
+
+    return "%(prefix)screate_check_constraint(%(args)s%(dialect_kwargs)s)" % {
+        "prefix": _alembic_autogenerate_prefix(autogen_context),
+        "args": ", ".join(args),
+        "dialect_kwargs": (
+            ", " + ", ".join(dialect_kwargs) if dialect_kwargs else ""
+        ),
+    }
 
 
 @renderers.dispatch_for(ops.DropConstraintOp)

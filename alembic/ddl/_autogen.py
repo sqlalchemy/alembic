@@ -16,6 +16,9 @@ from typing import TYPE_CHECKING
 from typing import TypeVar
 from typing import Union
 
+import re
+
+from sqlalchemy.sql.schema import CheckConstraint
 from sqlalchemy.sql.schema import Constraint
 from sqlalchemy.sql.schema import ForeignKeyConstraint
 from sqlalchemy.sql.schema import Index
@@ -86,6 +89,7 @@ class _constraint_sig(Generic[_C]):
     _is_index: ClassVar[bool] = False
     _is_fk: ClassVar[bool] = False
     _is_uq: ClassVar[bool] = False
+    _is_ck: ClassVar[bool] = False
 
     _is_metadata: bool
 
@@ -327,3 +331,67 @@ def is_uq_sig(sig: _constraint_sig) -> TypeGuard[_uq_constraint_sig]:
 
 def is_fk_sig(sig: _constraint_sig) -> TypeGuard[_fk_constraint_sig]:
     return sig._is_fk
+
+
+class _ck_constraint_sig(_constraint_sig[CheckConstraint]):
+    _is_ck: ClassVar[bool] = True
+    _VALID_NAME_PATTERN = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
+
+    @classmethod
+    def _register(cls) -> None:
+        _clsreg["check_constraint"] = cls
+        _clsreg["table_or_column_check_constraint"] = cls
+        _clsreg["column_check_constraint"] = cls
+
+    def __init__(
+        self,
+        is_metadata: bool,
+        impl: DefaultImpl,
+        const: CheckConstraint,
+    ) -> None:
+        self.impl = impl
+        self.const = const
+        self.name = sqla_compat.constraint_name_or_none(const.name)
+        self._is_metadata = is_metadata
+        self._sig = (self._normalize_sqltext(str(const.sqltext)),)
+
+        if is_metadata and self.name is not None:
+            if not self._VALID_NAME_PATTERN.match(self.name):
+                table_name = (
+                    const.table.name
+                    if const.table is not None
+                    else "<unknown>"
+                )
+                raise ValueError(
+                    f"Check constraint name {self.name!r} on table "
+                    f"{table_name!r} contains invalid characters. "
+                    f"Constraint names must contain only alphanumeric "
+                    f"characters and underscores, and must start with "
+                    f"a letter or underscore."
+                )
+
+    @staticmethod
+    def _normalize_sqltext(sqltext: str) -> str:
+        normalized = re.sub(r"\s+", " ", sqltext.strip().lower())
+        normalized = re.sub(r"\(\s+", "(", normalized)
+        normalized = re.sub(r"\s+\)", ")", normalized)
+        return normalized
+
+    @property
+    def sqltext(self) -> str:
+        return str(self.const.sqltext)
+
+    def _compare_to_reflected(
+        self, other: _constraint_sig[CheckConstraint]
+    ) -> ComparisonResult:
+        assert self._is_metadata
+        assert is_ck_sig(other)
+        return self.impl.compare_check_constraint(self.const, other.const)
+
+    @util.memoized_property
+    def unnamed_no_options(self) -> Tuple[Any, ...]:
+        return self._sig
+
+
+def is_ck_sig(sig: _constraint_sig) -> TypeGuard[_ck_constraint_sig]:
+    return sig._is_ck

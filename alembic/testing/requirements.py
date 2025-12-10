@@ -59,6 +59,10 @@ class SuiteRequirements(Requirements):
         return exclusions.open()
 
     @property
+    def check_constraint_reflection(self):
+        return exclusions.open()
+
+    @property
     def check_constraints_w_enforcement(self):
         """Target database must support check constraints
         and also enforce them."""

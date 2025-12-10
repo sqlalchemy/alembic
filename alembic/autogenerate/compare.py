@@ -364,6 +364,18 @@ def _make_foreign_key(
     return const
 
 
+def _make_check_constraint(
+    params: Dict[str, Any], conn_table: Table
+) -> sa_schema.CheckConstraint:
+    const = sa_schema.CheckConstraint(
+        text(params["sqltext"]),
+        name=params["name"],
+        _autoattach=False,
+    )
+    const._set_parent_with_dispatch(conn_table)
+    return const
+
+
 @contextlib.contextmanager
 def _compare_columns(
     schema: Optional[str],
@@ -477,6 +489,11 @@ class _InspectorConv:
     def get_foreign_keys(self, *args, **kw):
         return self._apply_reflectinfo_conv(
             self.inspector.get_foreign_keys(*args, **kw)
+        )
+
+    def get_check_constraints(self, *args, **kw):
+        return self._apply_reflectinfo_conv(
+            self.inspector.get_check_constraints(*args, **kw)
         )
 
     def reflect_table(self, table, *, include_columns):
@@ -1368,3 +1385,146 @@ def _compare_table_comment(
                 schema=schema,
             )
         )
+
+
+@comparators.dispatch_for("table")
+def _compare_check_constraints(
+    autogen_context: AutogenContext,
+    modify_table_ops: ModifyTableOps,
+    schema: Optional[str],
+    tname: Union[quoted_name, str],
+    conn_table: Optional[Table],
+    metadata_table: Optional[Table],
+) -> None:
+    if not autogen_context.opts.get("compare_check_constraints", False):
+        return
+
+    if conn_table is None or metadata_table is None:
+        return
+
+    inspector = autogen_context.inspector
+
+    metadata_check_constraints = {
+        ck
+        for ck in metadata_table.constraints
+        if isinstance(ck, sa_schema.CheckConstraint)
+        and not getattr(ck, "_type_bound", False)
+    }
+
+    for ck in metadata_check_constraints:
+        if ck.name is None:
+            raise ValueError(
+                f"Unnamed check constraint on table {tname!r} cannot be "
+                f"compared. When compare_check_constraints is enabled, all "
+                f"check constraints must have explicit names. "
+                f"Constraint SQL: {ck.sqltext}"
+            )
+
+    try:
+        conn_cks_list = _InspectorConv(inspector).get_check_constraints(
+            tname, schema=schema
+        )
+    except NotImplementedError:
+        return
+
+    def _is_type_bound_constraint(ck_dict: Dict[str, Any]) -> bool:
+        name = ck_dict.get("name")
+        sqltext = ck_dict.get("sqltext", "")
+        if not name:
+            return False
+        if "::text = ANY ((ARRAY[" in sqltext:
+            return True
+        if "::text = ANY (ARRAY[" in sqltext:
+            return True
+        return False
+
+    conn_cks_list = [
+        ck
+        for ck in conn_cks_list
+        if autogen_context.run_name_filters(
+            ck["name"],
+            "check_constraint",
+            {"table_name": tname, "schema_name": schema},
+        )
+        and not _is_type_bound_constraint(ck)
+    ]
+
+    conn_check_constraints = {
+        _make_check_constraint(ck_def, conn_table) for ck_def in conn_cks_list
+    }
+
+    impl = autogen_context.migration_context.impl
+
+    metadata_cks_sig = {
+        impl._create_metadata_constraint_sig(ck)
+        for ck in metadata_check_constraints
+    }
+
+    conn_cks_sig = {
+        impl._create_reflected_constraint_sig(ck)
+        for ck in conn_check_constraints
+    }
+
+    metadata_cks_by_name = {
+        c.name: c for c in metadata_cks_sig if c.name is not None
+    }
+    conn_cks_by_name = {c.name: c for c in conn_cks_sig if c.name is not None}
+
+    def _add_ck(obj, compare_to):
+        if autogen_context.run_object_filters(
+            obj.const, obj.name, "check_constraint", False, compare_to
+        ):
+            modify_table_ops.ops.append(
+                ops.CreateCheckConstraintOp.from_constraint(obj.const)
+            )
+            log.info(
+                "Detected added check constraint %r on table %r",
+                obj.name,
+                tname,
+            )
+
+    def _remove_ck(obj, compare_to):
+        if autogen_context.run_object_filters(
+            obj.const, obj.name, "check_constraint", True, compare_to
+        ):
+            modify_table_ops.ops.append(
+                ops.DropConstraintOp.from_constraint(obj.const)
+            )
+            log.info(
+                "Detected removed check constraint %r on table %r",
+                obj.name,
+                tname,
+            )
+
+    for removed_name in sorted(
+        set(conn_cks_by_name).difference(metadata_cks_by_name)
+    ):
+        const = conn_cks_by_name[removed_name]
+        compare_to = (
+            metadata_cks_by_name[const.name].const
+            if const.name in metadata_cks_by_name
+            else None
+        )
+        _remove_ck(const, compare_to)
+
+    for added_name in sorted(
+        set(metadata_cks_by_name).difference(conn_cks_by_name)
+    ):
+        const = metadata_cks_by_name[added_name]
+        compare_to = (
+            conn_cks_by_name[const.name].const
+            if const.name in conn_cks_by_name
+            else None
+        )
+        _add_ck(const, compare_to)
+
+    for existing_name in sorted(
+        set(metadata_cks_by_name).intersection(conn_cks_by_name)
+    ):
+        metadata_ck = metadata_cks_by_name[existing_name]
+        conn_ck = conn_cks_by_name[existing_name]
+
+        comparison = metadata_ck.compare_to_reflected(conn_ck)
+        if comparison.is_different:
+            _remove_ck(conn_ck, metadata_ck.const)
+            _add_ck(metadata_ck, conn_ck.const)

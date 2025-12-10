@@ -183,6 +183,7 @@ def configure(
             Optional[bool],
         ],
     ] = False,
+    compare_check_constraints: bool = False,
     render_item: Optional[
         Callable[[str, Any, AutogenContext], Union[str, Literal[False]]]
     ] = None,
@@ -513,6 +514,20 @@ def configure(
         :paramref:`.EnvironmentContext.configure.include_name`
 
         :paramref:`.EnvironmentContext.configure.include_object`
+
+    :param compare_check_constraints: Indicates check constraint comparison
+     behavior during an autogenerate operation.  Defaults to ``False``
+     which disables check constraint comparison.  Set to ``True`` to
+     turn on check constraint comparison, which will detect added,
+     removed, and modified named check constraints.
+
+    This feature requires that check constraints have explicit names.
+    Unnamed check constraints will not be detected.
+
+    Check constraint comparison may produce false positives if the
+    database normalizes the SQL text differently from how it was
+    originally defined. This is an opt-in feature due to potential
+    compatibility issues across different database backends.
 
     :param render_item: Callable that can be used to override how
      any schema item, i.e. column, constraint, type,
