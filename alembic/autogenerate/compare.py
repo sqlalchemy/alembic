@@ -1465,7 +1465,7 @@ def _compare_check_constraints(
         for ck in conn_check_constraints
     }
 
-    metadata_cks_by_name = {
+    metadata_cks_by_name: Dict[str, Any] = {
         str(c.name): c
         for c in metadata_cks_sig
         if sqla_compat.constraint_name_string(c.name)
