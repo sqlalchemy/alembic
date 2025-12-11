@@ -15,7 +15,6 @@ from sqlalchemy.sql import column
 from alembic import autogenerate
 from alembic import op
 from alembic.autogenerate import api
-from alembic.autogenerate.compare import _compare_server_default
 from alembic.migration import MigrationContext
 from alembic.operations import ops
 from alembic.testing import assert_raises_message
@@ -28,6 +27,11 @@ from alembic.testing.env import staging_env
 from alembic.testing.fixtures import op_fixture
 from alembic.testing.fixtures import TestBase
 from alembic.testing.suite._autogen_fixtures import AutogenFixtureTest
+
+if True:
+    from alembic.autogenerate.compare.server_defaults import (
+        _dialect_impl_compare_server_default as _compare_server_default,
+    )
 
 
 class SQLiteTest(TestBase):

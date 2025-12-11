@@ -21,7 +21,6 @@ from typing import Tuple
 from typing import TYPE_CHECKING
 from typing import Union
 
-from sqlalchemy import Column
 from sqlalchemy import literal_column
 from sqlalchemy import select
 from sqlalchemy.engine import Engine
@@ -705,54 +704,6 @@ class MigrationContext:
             return self.environment_context.config
         else:
             return None
-
-    def _compare_type(
-        self, inspector_column: Column[Any], metadata_column: Column
-    ) -> bool:
-        if self._user_compare_type is False:
-            return False
-
-        if callable(self._user_compare_type):
-            user_value = self._user_compare_type(
-                self,
-                inspector_column,
-                metadata_column,
-                inspector_column.type,
-                metadata_column.type,
-            )
-            if user_value is not None:
-                return user_value
-
-        return self.impl.compare_type(inspector_column, metadata_column)
-
-    def _compare_server_default(
-        self,
-        inspector_column: Column[Any],
-        metadata_column: Column[Any],
-        rendered_metadata_default: Optional[str],
-        rendered_column_default: Optional[str],
-    ) -> bool:
-        if self._user_compare_server_default is False:
-            return False
-
-        if callable(self._user_compare_server_default):
-            user_value = self._user_compare_server_default(
-                self,
-                inspector_column,
-                metadata_column,
-                rendered_column_default,
-                metadata_column.server_default,
-                rendered_metadata_default,
-            )
-            if user_value is not None:
-                return user_value
-
-        return self.impl.compare_server_default(
-            inspector_column,
-            metadata_column,
-            rendered_metadata_default,
-            rendered_column_default,
-        )
 
 
 class HeadMaintainer:

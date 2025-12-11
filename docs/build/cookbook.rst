@@ -450,11 +450,20 @@ that run straight into :meth:`.Operations.execute`::
     def drop_sp(operations, operation):
         operations.execute("DROP FUNCTION %s" % operation.target.name)
 
+Publish the Extensions
+----------------------
+
 All of the above code can be present anywhere within an application's
 source tree; the only requirement is that when the ``env.py`` script is
 invoked, it includes imports that ultimately call upon these classes
 as well as the :meth:`.Operations.register_operation` and
 :meth:`.Operations.implementation_for` sequences.
+
+Alternatively, custom operations and autogenerate support can be organized
+into reusable plugins using Alembic's plugin system. This allows extensions
+to be packaged and distributed independently, and automatically discovered
+via Python entry points. See :ref:`alembic.plugins.toplevel` for information
+on writing and publishing plugins.
 
 Create Initial Migrations
 -------------------------

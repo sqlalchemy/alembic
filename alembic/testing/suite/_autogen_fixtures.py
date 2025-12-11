@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 from typing import Dict
+from typing import Literal
+from typing import overload
 from typing import Set
 
 from sqlalchemy import CHAR
@@ -381,17 +383,46 @@ class AutogenTest(_ComparesFKs):
 
 
 class AutogenFixtureTest(_ComparesFKs):
+
+    @overload
     def _fixture(
         self,
-        m1,
-        m2,
+        m1: MetaData,
+        m2: MetaData,
+        include_schemas=...,
+        opts=...,
+        object_filters=...,
+        name_filters=...,
+        *,
+        return_ops: Literal[True],
+        max_identifier_length=...,
+    ) -> ops.UpgradeOps: ...
+
+    @overload
+    def _fixture(
+        self,
+        m1: MetaData,
+        m2: MetaData,
+        include_schemas=...,
+        opts=...,
+        object_filters=...,
+        name_filters=...,
+        *,
+        return_ops: Literal[False] = ...,
+        max_identifier_length=...,
+    ) -> list[Any]: ...
+
+    def _fixture(
+        self,
+        m1: MetaData,
+        m2: MetaData,
         include_schemas=False,
         opts=None,
         object_filters=_default_object_filters,
         name_filters=_default_name_filters,
-        return_ops=False,
+        return_ops: bool = False,
         max_identifier_length=None,
-    ):
+    ) -> ops.UpgradeOps | list[Any]:
         if max_identifier_length:
             dialect = self.bind.dialect
             existing_length = dialect.max_identifier_length

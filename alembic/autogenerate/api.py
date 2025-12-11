@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import logging
 from typing import Any
 from typing import Dict
 from typing import Iterator
@@ -17,10 +18,8 @@ from . import compare
 from . import render
 from .. import util
 from ..operations import ops
+from ..runtime.plugins import Plugin
 from ..util import sqla_compat
-
-"""Provide the 'autogenerate' feature which can produce migration operations
-automatically."""
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import Connection
@@ -42,6 +41,10 @@ if TYPE_CHECKING:
     from ..script.base import Script
     from ..script.base import ScriptDirectory
     from ..script.revision import _GetRevArg
+    from ..util import PriorityDispatcher
+
+
+log = logging.getLogger(__name__)
 
 
 def compare_metadata(context: MigrationContext, metadata: MetaData) -> Any:
@@ -304,7 +307,7 @@ class AutogenContext:
 
     """
 
-    dialect: Optional[Dialect] = None
+    dialect: Dialect
     """The :class:`~sqlalchemy.engine.Dialect` object currently in use.
 
     This is normally obtained from the
@@ -326,8 +329,10 @@ class AutogenContext:
 
     """
 
-    migration_context: MigrationContext = None  # type: ignore[assignment]
+    migration_context: MigrationContext
     """The :class:`.MigrationContext` established by the ``env.py`` script."""
+
+    comparators: PriorityDispatcher
 
     def __init__(
         self,
@@ -344,6 +349,19 @@ class AutogenContext:
             raise util.CommandError(
                 "autogenerate can't use as_sql=True as it prevents querying "
                 "the database for schema information"
+            )
+
+        # branch off from the "global" comparators.  This collection
+        # is empty in Alembic except that it is populated by third party
+        # extensions that don't use the plugin system.  so we will build
+        # off of whatever is in there.
+        if autogenerate:
+            self.comparators = compare.comparators.branch()
+            Plugin.populate_autogenerate_priority_dispatch(
+                self.comparators,
+                include_plugins=migration_context.opts.get(
+                    "autogenerate_plugins", ["alembic.autogenerate.*"]
+                ),
             )
 
         if opts is None:
@@ -380,9 +398,8 @@ class AutogenContext:
         self._name_filters = name_filters
 
         self.migration_context = migration_context
-        if self.migration_context is not None:
-            self.connection = self.migration_context.bind
-            self.dialect = self.migration_context.dialect
+        self.connection = self.migration_context.bind
+        self.dialect = self.migration_context.dialect
 
         self.imports = set()
         self.opts: Dict[str, Any] = opts
