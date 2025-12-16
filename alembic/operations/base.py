@@ -248,7 +248,7 @@ class AbstractOperations(util.ModuleClsProxy):
         table_name: str,
         schema: Optional[str] = None,
         recreate: Literal["auto", "always", "never"] = "auto",
-        partial_reordering: Optional[Tuple[Any, ...]] = None,
+        partial_reordering: Optional[list[tuple[str, ...]]] = None,
         copy_from: Optional[Table] = None,
         table_args: Tuple[Any, ...] = (),
         table_kwargs: Mapping[str, Any] = util.immutabledict(),
