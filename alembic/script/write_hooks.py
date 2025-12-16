@@ -135,7 +135,10 @@ def _run_hook(
 
 @register("console_scripts")
 def console_scripts(
-    path: str, options: dict, ignore_output: bool = False
+    path: str,
+    options: dict,
+    ignore_output: bool = False,
+    verify_version: tuple[int, ...] | None = None,
 ) -> None:
     entrypoint_name = _get_required_option(options, "entrypoint")
     for entry in compat.importlib_metadata_get("console_scripts"):
@@ -147,11 +150,17 @@ def console_scripts(
             f"Could not find entrypoint console_scripts.{entrypoint_name}"
         )
 
-    command = [
-        sys.executable,
-        "-c",
-        f"import {impl.module}; {impl.module}.{impl.attr}()",
-    ]
+    if verify_version:
+        pyscript = (
+            f"import {impl.module}; "
+            f"assert tuple(int(x) for x in {impl.module}.__version__.split('.')) >= {verify_version}, "  # noqa: E501
+            f"'need exactly version {verify_version} of {impl.name}'; "
+            f"{impl.module}.{impl.attr}()"
+        )
+    else:
+        pyscript = f"import {impl.module}; {impl.module}.{impl.attr}()"
+
+    command = [sys.executable, "-c", pyscript]
     _run_hook(path, options, ignore_output, command)
 
 

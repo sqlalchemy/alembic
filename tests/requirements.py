@@ -376,7 +376,7 @@ class DefaultRequirements(SuiteRequirements):
             requirements, "black and zimports are required for this test"
         )
         version_low = exclusions.only_if(
-            lambda _: compat.py311, "python 3.11 is required"
+            lambda _: compat.py312, "python 3.12 is required"
         )
 
         version_high = exclusions.only_if(

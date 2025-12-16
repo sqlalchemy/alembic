@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from dataclasses import field
 from pathlib import Path
 import re
+import shutil
 import sys
 from tempfile import NamedTemporaryFile
 import textwrap
@@ -27,6 +28,10 @@ if True:  # avoid flake/zimports messing with the order
     from alembic.util.compat import inspect_getfullargspec
     from alembic.operations import ops
     import sqlalchemy as sa
+
+BLACK_VERSION = (25, 9, 0)
+PYTHON_VERSIONS = (3, 12), (3, 14)
+
 
 TRIM_MODULE = [
     "alembic.autogenerate.api.",
@@ -55,9 +60,13 @@ ADDITIONAL_ENV = {
 def generate_pyi_for_proxy(
     file_info: FileInfo, destination_path: Path, ignore_output: bool
 ):
-    if sys.version_info < (3, 11):
+    lower_python, upper_python = PYTHON_VERSIONS
+    if sys.version_info < lower_python or sys.version_info >= upper_python:
         raise RuntimeError(
-            "This script must be run with Python 3.11 or higher"
+            f"Script supports at least python "
+            f"{".".join(str(x) for x in lower_python)} "
+            f"but less than {".".join(str(x) for x in upper_python)} "
+            "right now."
         )
 
     progname = Path(sys.argv[0]).as_posix()
@@ -132,6 +141,7 @@ def generate_pyi_for_proxy(
         str(destination_path),
         {"entrypoint": "black", "options": "-l79 --target-version py39"},
         ignore_output=ignore_output,
+        verify_version=BLACK_VERSION,
     )
 
 
@@ -176,6 +186,8 @@ def _generate_stub_for_meth(
     def _formatannotation(annotation, base_module=None):
         if getattr(annotation, "__module__", None) == "typing":
             retval = repr(annotation).replace("typing.", "")
+        elif getattr(annotation, "__module__", None) == "types":
+            retval = repr(annotation).replace("types.", "")
         elif isinstance(annotation, type):
             retval = annotation.__qualname__
         elif isinstance(annotation, typing.TypeVar):
@@ -187,6 +199,8 @@ def _generate_stub_for_meth(
             retval = str(annotation)
         else:
             retval = annotation
+
+        assert isinstance(retval, str)
 
         retval = re.sub(r"TypeEngine\b", "TypeEngine[Any]", retval)
 
@@ -249,9 +263,14 @@ def _generate_stub_for_meth(
 
 def run_file(finfo: FileInfo, stdout: bool):
     if not stdout:
-        generate_pyi_for_proxy(
-            finfo, destination_path=finfo.path, ignore_output=False
-        )
+        with NamedTemporaryFile(delete=False, suffix=finfo.path.suffix) as f:
+            f.close()
+            f_path = Path(f.name)
+            generate_pyi_for_proxy(
+                finfo, destination_path=f_path, ignore_output=False
+            )
+            shutil.move(f_path, finfo.path)
+
     else:
         with NamedTemporaryFile(delete=False, suffix=finfo.path.suffix) as f:
             f.close()
