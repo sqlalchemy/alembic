@@ -74,7 +74,7 @@ class SQLiteImpl(DefaultImpl):
         else:
             return False
 
-    def add_constraint(self, const: Constraint):
+    def add_constraint(self, const: Constraint, **kw: Any):
         # attempt to distinguish between an
         # auto-gen constraint and an explicit one
         if const._create_rule is None:
