@@ -72,7 +72,7 @@ class BulkInsertTest(TestBase):
         )
 
     def test_bulk_insert_wrong_cols(self):
-        context = op_fixture("postgresql")
+        context = op_fixture("postgresql+psycopg2")
         t1 = table(
             "ins_table",
             column("id", Integer),
@@ -92,14 +92,14 @@ class BulkInsertTest(TestBase):
         context.assert_()
 
     def test_bulk_insert_pg(self):
-        context = self._test_bulk_insert("postgresql", False)
+        context = self._test_bulk_insert("postgresql+psycopg2", False)
         context.assert_(
             "INSERT INTO ins_table (id, v1, v2) "
             "VALUES (%(id)s, %(v1)s, %(v2)s)"
         )
 
     def test_bulk_insert_pg_single(self):
-        context = self._test_bulk_insert_single("postgresql", False)
+        context = self._test_bulk_insert_single("postgresql+psycopg2", False)
         context.assert_(
             "INSERT INTO ins_table (id, v1, v2) "
             "VALUES (%(id)s, %(v1)s, %(v2)s)"

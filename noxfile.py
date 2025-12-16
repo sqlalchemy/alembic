@@ -104,6 +104,7 @@ def _tests(
 
     # for sqlalchemy == "default", the alembic install will install
     # current released SQLAlchemy version as a dependency
+    shutil.rmtree("build/", ignore_errors=True)
     if coverage:
         session.install("-e", ".")
     else:
@@ -201,6 +202,7 @@ def _tests(
 def mypy_check(session: nox.Session) -> None:
     """Run mypy type checking."""
 
+    shutil.rmtree("build/", ignore_errors=True)
     session.install(*nox.project.dependency_groups(pyproject, "mypy"))
 
     session.install("-e", ".")
