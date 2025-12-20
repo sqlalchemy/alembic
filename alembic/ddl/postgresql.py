@@ -319,7 +319,7 @@ class PostgresqlImpl(DefaultImpl):
         self, item: Union[Index, UniqueConstraint]
     ) -> Tuple[Any, ...]:
         # only the positive case is returned by sqlalchemy reflection so
-        # None and False are threated the same
+        # None and False are treated the same
         if item.dialect_kwargs.get("postgresql_nulls_not_distinct"):
             return ("nulls_not_distinct",)
         return ()

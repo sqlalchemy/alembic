@@ -664,7 +664,7 @@ def downgrade():
 
     def test_programmatic_command_option(self):
         def process_revision_directives(context, rev, generate_revisions):
-            generate_revisions[0].message = "test programatic"
+            generate_revisions[0].message = "test programmatic"
             generate_revisions[0].upgrade_ops = ops.UpgradeOps(
                 ops=[
                     ops.CreateTableOp(
