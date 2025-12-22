@@ -5,7 +5,7 @@ API Details
 ===========
 
 Alembic's internal API has many public integration points that can be used
-to extend Alembic's functionality as well as to re-use its functionality
+to extend Alembic's functionality as well as to reuse its functionality
 in new ways.   As the project has grown, more APIs are created and exposed
 for this purpose.
 

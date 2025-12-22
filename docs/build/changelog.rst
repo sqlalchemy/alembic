@@ -874,7 +874,7 @@ Changelog
         :tickets: 1261
 
         Fixed format string logged when running a post write hook
-        Pull request curtesy of Mathieu Défosse.
+        Pull request courtesy of Mathieu Défosse.
 
     .. change::
         :tags: feature, operations
@@ -5762,7 +5762,7 @@ Changelog
 
       The command line runner has been organized
       into a reusable CommandLine object, so that other
-      front-ends can re-use the argument parsing built
+      front-ends can reuse the argument parsing built
       in.
 
     .. change::
