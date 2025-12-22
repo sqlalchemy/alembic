@@ -43,6 +43,10 @@ if TYPE_CHECKING:
     from sqlalchemy.engine import Connection
     from sqlalchemy.engine import Dialect
     from sqlalchemy.engine.cursor import CursorResult
+    from sqlalchemy.engine.interfaces import ReflectedForeignKeyConstraint
+    from sqlalchemy.engine.interfaces import ReflectedIndex
+    from sqlalchemy.engine.interfaces import ReflectedPrimaryKeyConstraint
+    from sqlalchemy.engine.interfaces import ReflectedUniqueConstraint
     from sqlalchemy.engine.reflection import Inspector
     from sqlalchemy.sql import ClauseElement
     from sqlalchemy.sql import Executable
@@ -59,6 +63,12 @@ if TYPE_CHECKING:
     from ..operations.batch import ApplyBatchImpl
     from ..operations.batch import BatchOperationsImpl
 
+    _ReflectedConstraint = (
+        ReflectedForeignKeyConstraint
+        | ReflectedPrimaryKeyConstraint
+        | ReflectedIndex
+        | ReflectedUniqueConstraint
+    )
 log = logging.getLogger(__name__)
 
 
@@ -843,9 +853,9 @@ class DefaultImpl(metaclass=ImplMeta):
                 metadata_indexes.discard(idx)
 
     def adjust_reflected_dialect_options(
-        self, reflected_object: Dict[str, Any], kind: str
+        self, reflected_object: _ReflectedConstraint, kind: str
     ) -> Dict[str, Any]:
-        return reflected_object.get("dialect_options", {})
+        return reflected_object.get("dialect_options", {})  # type: ignore[return-value]   # noqa: E501
 
 
 class Params(NamedTuple):

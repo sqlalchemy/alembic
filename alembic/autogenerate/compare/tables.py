@@ -48,19 +48,25 @@ def _autogen_for_tables(
     version_table = autogen_context.migration_context.version_table
 
     for schema_name in schemas:
-        tables = set(inspector.get_table_names(schema=schema_name))
+        tables = available = set(inspector.get_table_names(schema=schema_name))
         if schema_name == version_table_schema:
             tables = tables.difference(
                 [autogen_context.migration_context.version_table]
             )
 
-        conn_table_names.update(
-            (schema_name, tname)
+        tablenames = [
+            tname
             for tname in tables
             if autogen_context.run_name_filters(
                 tname, "table", {"schema_name": schema_name}
             )
-        )
+        ]
+
+        conn_table_names.update((schema_name, tname) for tname in tablenames)
+
+        inspector = autogen_context.inspector
+        insp = _InspectorConv(inspector)
+        insp.pre_cache_tables(schema_name, tablenames, available)
 
     metadata_table_names = OrderedSet(
         [(table.schema, table.name) for table in autogen_context.sorted_tables]
@@ -139,6 +145,9 @@ def _compare_tables(
     removal_metadata = sa_schema.MetaData()
     for s, tname in conn_table_names.difference(metadata_table_names):
         name = sa_schema._get_table_key(tname, s)
+
+        # a name might be present already if a previous reflection pulled
+        # this table in via foreign key constraint
         exists = name in removal_metadata.tables
         t = sa_schema.Table(tname, removal_metadata, schema=s)
 
@@ -152,7 +161,7 @@ def _compare_tables(
                 (inspector),
                 # fmt: on
             )
-            _InspectorConv(inspector).reflect_table(t, include_columns=None)
+            _InspectorConv(inspector).reflect_table(t)
         if autogen_context.run_object_filters(t, tname, "table", True, None):
             modify_table_ops = ops.ModifyTableOps(tname, [], schema=s)
 
@@ -172,6 +181,9 @@ def _compare_tables(
     for s, tname in existing_tables:
         name = sa_schema._get_table_key(tname, s)
         exists = name in existing_metadata.tables
+
+        # a name might be present already if a previous reflection pulled
+        # this table in via foreign key constraint
         t = sa_schema.Table(tname, existing_metadata, schema=s)
         if not exists:
             event.listen(
@@ -182,7 +194,7 @@ def _compare_tables(
                 _compat_autogen_column_reflect(inspector),
                 # fmt: on
             )
-            _InspectorConv(inspector).reflect_table(t, include_columns=None)
+            _InspectorConv(inspector).reflect_table(t)
 
         conn_column_info[(s, tname)] = t
 
@@ -296,6 +308,7 @@ def _compare_columns(
 
 
 def setup(plugin: Plugin) -> None:
+
     plugin.add_autogenerate_comparator(
         _autogen_for_tables,
         "schema",

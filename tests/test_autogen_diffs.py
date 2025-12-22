@@ -2068,3 +2068,154 @@ class AutogenFKTest(AutogenFixtureTest, TestBase):
             ["id"],
             name=expected_name,
         )
+
+
+class AutogenInspectorCacheTest(AutogenFixtureTest, TestBase):
+    """test for the new inspector caching added for #1771."""
+
+    __only_on__ = ("sqlite", "postgresql", "oracle")
+    __requires__ = ("sqlalchemy_2",)
+
+    @testing.fixture
+    def instrument_inspector_conv(self, connection):
+        from sqlalchemy import event
+
+        shared_mock = mock.MagicMock()
+
+        def track_before_cursor_execute(
+            conn, cursor, statement, parameters, context, executemany
+        ):
+            shared_mock.sql_call(statement)
+
+        event.listen(
+            connection,
+            "before_cursor_execute",
+            track_before_cursor_execute,
+        )
+
+        yield shared_mock
+
+        event.remove(
+            connection,
+            "before_cursor_execute",
+            track_before_cursor_execute,
+        )
+
+    @testing.fixture
+    def models(self, metadata, connection):
+        m1 = metadata
+        m2 = MetaData()
+        from sqlalchemy import Identity
+
+        Table(
+            "parent",
+            m1,
+            Column("id", Integer, Identity(), primary_key=True),
+            Column("name", String(50)),
+            Column("x", String(50)),
+            Column("y", String(50)),
+        )
+
+        Table(
+            "child",
+            m1,
+            Column("id", Integer, Identity(), primary_key=True),
+            Column("name", String(50)),
+            Column("parent_id", Integer),
+            (ForeignKeyConstraint(["parent_id"], ["parent.id"])),
+        )
+
+        Table(
+            "t1",
+            m1,
+            Column("id", Integer, Identity(), primary_key=True),
+            Column("name", String(50)),
+        )
+
+        Table(
+            "t2",
+            m1,
+            Column("id", Integer, Identity(), primary_key=True),
+            Column("name", String(50)),
+        )
+
+        Table(
+            "t3",
+            m1,
+            Column("id", Integer, Identity(), primary_key=True),
+            Column("name", String(50)),
+        )
+
+        m1.create_all(connection)
+
+        ctx_opts = {
+            "compare_type": True,
+            "compare_server_default": True,
+            "target_metadata": m2,
+            "upgrade_token": "upgrades",
+            "downgrade_token": "downgrades",
+            "alembic_module_prefix": "op.",
+            "sqlalchemy_module_prefix": "sa.",
+        }
+        context = MigrationContext.configure(
+            connection=connection, opts=ctx_opts
+        )
+
+        autogen_context = api.AutogenContext(context, m2)
+        uo = ops.UpgradeOps(ops=[])
+
+        yield autogen_context, uo
+
+    @testing.fixture(params=[True, False])
+    def disable_pre_cache(self, request):
+        from alembic.autogenerate.compare.util import _SQLA2InspectorConv
+
+        patcher = mock.patch.object(_SQLA2InspectorConv, "pre_cache_tables")
+
+        param = request.param
+
+        if param:
+            patcher.start()
+
+        yield param
+
+        if param:
+            patcher.stop()
+
+    class Approx:
+        def __init__(self, value):
+            self.value = value
+
+        def __eq__(self, other):
+            return abs(other - self.value) < 5
+
+        def __repr__(self):
+            return f"Approximately({self.value})"
+
+    expected = {
+        # not any savings for SQLite which does query-per-table no matter what.
+        # but we can at least see that pre-caching does all the SQL up front
+        "sqlite": {
+            "pre_cache": Approx(60),
+            "no_pre_cache": Approx(95),
+        },
+        # for PG and Oracle which use multi-queries, big savings
+        "postgresql": {"pre_cache": Approx(12), "no_pre_cache": Approx(57)},
+        "oracle": {"pre_cache": Approx(12), "no_pre_cache": Approx(32)},
+    }
+
+    def test_run_compare(
+        self, connection, models, instrument_inspector_conv, disable_pre_cache
+    ):
+        autogen_context, uo = models
+
+        autogenerate._produce_net_changes(autogen_context, uo)
+
+        sql_calls = len(instrument_inspector_conv.mock_calls)
+
+        eq_(
+            sql_calls,
+            self.expected[connection.dialect.name][
+                "pre_cache" if not disable_pre_cache else "no_pre_cache"
+            ],
+        )

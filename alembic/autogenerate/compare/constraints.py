@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 from typing import cast
+from typing import Collection
 from typing import Dict
 from typing import Mapping
 from typing import Optional
@@ -28,6 +29,9 @@ from ...util import PriorityDispatchResult
 from ...util import sqla_compat
 
 if TYPE_CHECKING:
+    from sqlalchemy.engine.interfaces import ReflectedForeignKeyConstraint
+    from sqlalchemy.engine.interfaces import ReflectedIndex
+    from sqlalchemy.engine.interfaces import ReflectedUniqueConstraint
     from sqlalchemy.sql.elements import quoted_name
     from sqlalchemy.sql.elements import TextClause
     from sqlalchemy.sql.schema import Column
@@ -39,7 +43,6 @@ if TYPE_CHECKING:
     from ...operations.ops import AlterColumnOp
     from ...operations.ops import ModifyTableOps
     from ...runtime.plugins import Plugin
-
 
 _C = TypeVar("_C", bound=Union[UniqueConstraint, ForeignKeyConstraint, Index])
 
@@ -72,18 +75,24 @@ def _compare_indexes_and_uniques(
         metadata_unique_constraints = set()
         metadata_indexes = set()
 
-    conn_uniques = conn_indexes = frozenset()  # type:ignore[var-annotated]
+    conn_uniques: Collection[UniqueConstraint] = frozenset()
+    conn_indexes: Collection[Index] = frozenset()
 
     supports_unique_constraints = False
 
     unique_constraints_duplicate_unique_indexes = False
 
     if conn_table is not None:
+        conn_uniques_reflected: Collection[ReflectedUniqueConstraint] = (
+            frozenset()
+        )
+        conn_indexes_reflected: Collection[ReflectedIndex] = frozenset()
+
         # 1b. ... and from connection, if the table exists
         try:
-            conn_uniques = _InspectorConv(inspector).get_unique_constraints(
-                tname, schema=schema
-            )
+            conn_uniques_reflected = _InspectorConv(
+                inspector
+            ).get_unique_constraints(tname, schema=schema)
 
             supports_unique_constraints = True
         except NotImplementedError:
@@ -94,28 +103,28 @@ def _compare_indexes_and_uniques(
             # not being present
             pass
         else:
-            conn_uniques = [  # type:ignore[assignment]
+            conn_uniques_reflected = [
                 uq
-                for uq in conn_uniques
+                for uq in conn_uniques_reflected
                 if autogen_context.run_name_filters(
                     uq["name"],
                     "unique_constraint",
                     {"table_name": tname, "schema_name": schema},
                 )
             ]
-            for uq in conn_uniques:
+            for uq in conn_uniques_reflected:
                 if uq.get("duplicates_index"):
                     unique_constraints_duplicate_unique_indexes = True
         try:
-            conn_indexes = _InspectorConv(inspector).get_indexes(
+            conn_indexes_reflected = _InspectorConv(inspector).get_indexes(
                 tname, schema=schema
             )
         except NotImplementedError:
             pass
         else:
-            conn_indexes = [  # type:ignore[assignment]
+            conn_indexes_reflected = [
                 ix
-                for ix in conn_indexes
+                for ix in conn_indexes_reflected
                 if autogen_context.run_name_filters(
                     ix["name"],
                     "index",
@@ -127,17 +136,18 @@ def _compare_indexes_and_uniques(
         # into schema objects
         if is_drop_table:
             # for DROP TABLE uniques are inline, don't need them
-            conn_uniques = set()  # type:ignore[assignment]
+            conn_uniques = set()
         else:
-            conn_uniques = {  # type:ignore[assignment]
+            conn_uniques = {
                 _make_unique_constraint(impl, uq_def, conn_table)
-                for uq_def in conn_uniques
+                for uq_def in conn_uniques_reflected
             }
 
-        conn_indexes = {  # type:ignore[assignment]
+        conn_indexes = {
             index
             for index in (
-                _make_index(impl, ix, conn_table) for ix in conn_indexes
+                _make_index(impl, ix, conn_table)
+                for ix in conn_indexes_reflected
             )
             if index is not None
         }
@@ -507,7 +517,7 @@ _IndexColumnSortingOps: Mapping[str, Any] = util.immutabledict(
 
 
 def _make_index(
-    impl: DefaultImpl, params: Dict[str, Any], conn_table: Table
+    impl: DefaultImpl, params: ReflectedIndex, conn_table: Table
 ) -> Optional[Index]:
     exprs: list[Union[Column[Any], TextClause]] = []
     sorting = params.get("column_sorting")
@@ -539,7 +549,7 @@ def _make_index(
 
 
 def _make_unique_constraint(
-    impl: DefaultImpl, params: Dict[str, Any], conn_table: Table
+    impl: DefaultImpl, params: ReflectedUniqueConstraint, conn_table: Table
 ) -> UniqueConstraint:
     uq = sa_schema.UniqueConstraint(
         *[conn_table.c[cname] for cname in params["column_names"]],
@@ -553,7 +563,7 @@ def _make_unique_constraint(
 
 
 def _make_foreign_key(
-    params: Dict[str, Any], conn_table: Table
+    params: ReflectedForeignKeyConstraint, conn_table: Table
 ) -> ForeignKeyConstraint:
     tname = params["referred_table"]
     if params["referred_schema"]:

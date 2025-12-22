@@ -71,10 +71,10 @@ if TYPE_CHECKING:
     from sqlalchemy.sql.type_api import TypeEngine
 
     from .base import _ServerDefault
+    from .impl import _ReflectedConstraint
     from ..autogenerate.api import AutogenContext
     from ..autogenerate.render import _f_name
     from ..runtime.migration import MigrationContext
-
 
 log = logging.getLogger(__name__)
 
@@ -421,10 +421,10 @@ class PostgresqlImpl(DefaultImpl):
         return ComparisonResult.Equal()
 
     def adjust_reflected_dialect_options(
-        self, reflected_options: Dict[str, Any], kind: str
+        self, reflected_object: _ReflectedConstraint, kind: str
     ) -> Dict[str, Any]:
         options: Dict[str, Any]
-        options = reflected_options.get("dialect_options", {}).copy()
+        options = reflected_object.get("dialect_options", {}).copy()  # type: ignore[attr-defined]  # noqa: E501
         if not options.get("postgresql_include"):
             options.pop("postgresql_include", None)
         return options

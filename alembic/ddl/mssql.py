@@ -47,6 +47,7 @@ if TYPE_CHECKING:
     from sqlalchemy.sql.type_api import TypeEngine
 
     from .base import _ServerDefault
+    from .impl import _ReflectedConstraint
 
 
 class MSSQLImpl(DefaultImpl):
@@ -282,10 +283,10 @@ class MSSQLImpl(DefaultImpl):
         return diff, ignored, is_alter
 
     def adjust_reflected_dialect_options(
-        self, reflected_object: Dict[str, Any], kind: str
+        self, reflected_object: _ReflectedConstraint, kind: str
     ) -> Dict[str, Any]:
         options: Dict[str, Any]
-        options = reflected_object.get("dialect_options", {}).copy()
+        options = reflected_object.get("dialect_options", {}).copy()  # type: ignore[attr-defined]  # noqa: E501
         if not options.get("mssql_include"):
             options.pop("mssql_include", None)
         if not options.get("mssql_clustered"):
