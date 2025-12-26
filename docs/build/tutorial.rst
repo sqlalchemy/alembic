@@ -157,6 +157,8 @@ The all-in-one .ini file created by ``generic`` is illustrated below::
     # template used to generate migration file names; The default value is %%(rev)s_%%(slug)s
     # Uncomment the line below if you want the files to be prepended with date and time
     # file_template = %%(year)d_%%(month).2d_%%(day).2d_%%(hour).2d%%(minute).2d-%%(rev)s_%%(slug)s
+    # Or organize into date-based subdirectories (requires recursive_version_locations = true)
+    # file_template = %%(year)d/%%(month).2d/%%(day).2d_%%(hour).2d%%(minute).2d_%%(second).2d_%%(rev)s_%%(slug)s
 
     # sys.path path, will be prepended to sys.path if present.
     # defaults to the current working directory.
@@ -360,6 +362,20 @@ This file contains the following features:
       ``%%(minute).2d``, ``%%(second).2d`` - components of the create date,
       by default ``datetime.datetime.now()`` unless the ``timezone``
       configuration option is also used.
+
+  The ``file_template`` may also include directory separators to organize
+  migration files into subdirectories. When using directory paths in
+  ``file_template``, ``recursive_version_locations`` must be set to ``true``.
+  For example::
+
+      file_template = %%(year)d/%%(month).2d/%%(day).2d_%%(hour).2d%%(minute).2d_%%(second).2d_%%(rev)s_%%(slug)s
+      recursive_version_locations = true
+
+  This would create migration files organized by date in a structure like
+  ``versions/2024/12/26_143022_abc123_add_user_table.py``.
+
+  .. versionadded:: 1.18.0
+     Support for directory paths in ``file_template``
 
 * ``timezone`` - an optional timezone name (e.g. ``UTC``, ``EST5EDT``, etc.)
   that will be applied to the timestamp which renders inside the migration
@@ -625,6 +641,8 @@ remains available as the absolute path to the ``pyproject.toml`` file::
     # template used to generate migration file names; The default value is %%(rev)s_%%(slug)s
     # Uncomment the line below if you want the files to be prepended with date and time
     # file_template = %%(year)d_%%(month).2d_%%(day).2d_%%(hour).2d%%(minute).2d-%%(rev)s_%%(slug)s
+    # Or organize into date-based subdirectories (requires recursive_version_locations = true)
+    # file_template = %%(year)d/%%(month).2d/%%(day).2d_%%(hour).2d%%(minute).2d_%%(second).2d_%%(rev)s_%%(slug)s
 
     # additional paths to be prepended to sys.path. defaults to the current working directory.
     prepend_sys_path = [

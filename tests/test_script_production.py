@@ -331,6 +331,64 @@ class ScriptNamingTest(TestBase):
                 )
 
 
+class FileTemplateDirectoryTest(TestBase):
+    """Test file_template with directory paths."""
+
+    def setUp(self):
+        self.env = staging_env()
+
+    def tearDown(self):
+        clear_staging_env()
+
+    @testing.variation("use_recursive_version_locations", [True, False])
+    def test_file_template_with_directory_path(
+        self, use_recursive_version_locations
+    ):
+        """Test that file_template supports directory paths."""
+        script = ScriptDirectory(
+            self.env.dir,
+            file_template="%(year)d/%(month).2d/" "%(day).2d_%(rev)s_%(slug)s",
+            recursive_version_locations=bool(use_recursive_version_locations),
+        )
+
+        create_date = datetime.datetime(2024, 12, 26, 14, 30, 22)
+        with mock.patch.object(
+            script, "_generate_create_date", return_value=create_date
+        ):
+            generated_script = script.generate_revision(
+                util.rev_id(), "test message"
+            )
+
+        # Verify file was created in subdirectory structure
+        # regardless of recursive_version_locations setting
+        assert generated_script is not None
+        expected_path = (
+            Path(self.env.dir)
+            / "versions"
+            / "2024"
+            / "12"
+            / f"26_{generated_script.revision}_test_message.py"
+        )
+        eq_(Path(generated_script.path), expected_path)
+        assert expected_path.exists()
+
+        # Verify the script is loadable with recursive_version_locations,
+        # but not if it's not set
+        script2 = ScriptDirectory(
+            self.env.dir,
+            file_template="%(year)d/%(month).2d/" "%(day).2d_%(rev)s_%(slug)s",
+            recursive_version_locations=bool(use_recursive_version_locations),
+        )
+        if use_recursive_version_locations:
+            assert generated_script.revision in [
+                rev.revision for rev in script2.walk_revisions()
+            ]
+        else:
+            assert generated_script.revision not in [
+                rev.revision for rev in script2.walk_revisions()
+            ]
+
+
 class RevisionCommandTest(TestBase):
     def setUp(self):
         self.env = staging_env()

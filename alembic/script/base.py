@@ -696,6 +696,7 @@ class ScriptDirectory:
             self._ensure_directory(version_path)
 
         path = self._rev_path(version_path, revid, message, create_date)
+        self._ensure_directory(path.parent)
 
         if not splice:
             for head_ in heads:
