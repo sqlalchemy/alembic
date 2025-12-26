@@ -203,6 +203,7 @@ def configure(
             None,
         ]
     ] = None,
+    autogenerate_plugins: Optional[Sequence[str]] = None,
     **kw: Any,
 ) -> None:
     """Configure a :class:`.MigrationContext` within this
@@ -621,6 +622,25 @@ def configure(
          :ref:`autogen_rewriter`
 
          :paramref:`.command.revision.process_revision_directives`
+
+    :param autogenerate_plugins: A list of string names of "plugins" that
+     should participate in this autogenerate run.   Defaults to the list
+     ``["alembic.autogenerate.*"]``, which indicates that Alembic's default
+     autogeneration plugins will be used.
+
+     See the section :ref:`plugins_autogenerate` for complete background
+     on how to use this parameter.
+
+     .. versionadded:: 1.18.0 Added a new plugin system for autogenerate
+        compare directives.
+
+     .. seealso::
+
+        :ref:`plugins_autogenerate` - background on enabling/disabling
+        autogenerate plugins
+
+        :ref:`alembic.plugins.toplevel` - Introduction and documentation
+        to the plugin system
 
     Parameters specific to individual backends:
 

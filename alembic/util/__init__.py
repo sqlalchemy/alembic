@@ -6,11 +6,14 @@ from .langhelpers import _with_legacy_names as _with_legacy_names
 from .langhelpers import asbool as asbool
 from .langhelpers import dedupe_tuple as dedupe_tuple
 from .langhelpers import Dispatcher as Dispatcher
+from .langhelpers import DispatchPriority as DispatchPriority
 from .langhelpers import EMPTY_DICT as EMPTY_DICT
 from .langhelpers import immutabledict as immutabledict
 from .langhelpers import memoized_property as memoized_property
 from .langhelpers import ModuleClsProxy as ModuleClsProxy
 from .langhelpers import not_none as not_none
+from .langhelpers import PriorityDispatcher as PriorityDispatcher
+from .langhelpers import PriorityDispatchResult as PriorityDispatchResult
 from .langhelpers import rev_id as rev_id
 from .langhelpers import to_list as to_list
 from .langhelpers import to_tuple as to_tuple

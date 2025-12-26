@@ -20,7 +20,7 @@ from alembic import autogenerate
 from alembic import op
 from alembic import util
 from alembic.autogenerate import api
-from alembic.autogenerate import compare
+from alembic.autogenerate.compare.constraints import _compare_nullable
 from alembic.migration import MigrationContext
 from alembic.operations import ops
 from alembic.testing import assert_raises_message
@@ -32,6 +32,14 @@ from alembic.testing.env import staging_env
 from alembic.testing.fixtures import AlterColRoundTripFixture
 from alembic.testing.fixtures import op_fixture
 from alembic.testing.fixtures import TestBase
+
+if True:
+    from alembic.autogenerate.compare.server_defaults import (
+        _user_compare_server_default,
+    )
+    from alembic.autogenerate.compare.types import (
+        _dialect_impl_compare_type as _compare_type,
+    )
 
 
 class MySQLOpTest(TestBase):
@@ -229,9 +237,13 @@ class MySQLOpTest(TestBase):
 
         operation = ops.AlterColumnOp("t", "c")
         for fn in (
-            compare._compare_nullable,
-            compare._compare_type,
-            compare._compare_server_default,
+            _compare_nullable,
+            _compare_type,
+            # note that _user_compare_server_default does not actually
+            # do a server default compare here, compare_server_default
+            # is False so this just assigns the existing default to the
+            # AlterColumnOp
+            _user_compare_server_default,
         ):
             fn(
                 autogen_context,
@@ -240,8 +252,9 @@ class MySQLOpTest(TestBase):
                 "t",
                 "c",
                 Column("c", Float(), nullable=False, server_default=text("0")),
-                Column("c", Float(), nullable=True, default=0),
+                Column("c", Float(), nullable=True, server_default=text("0")),
             )
+
         op.invoke(operation)
         context.assert_("ALTER TABLE t MODIFY c FLOAT NULL DEFAULT 0")
 

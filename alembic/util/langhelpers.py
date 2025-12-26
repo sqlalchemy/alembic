@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import collections
 from collections.abc import Iterable
+import enum
 import textwrap
 from typing import Any
 from typing import Callable
@@ -17,9 +18,7 @@ from typing import Sequence
 from typing import Set
 from typing import Tuple
 from typing import Type
-from typing import TYPE_CHECKING
 from typing import TypeVar
-from typing import Union
 import uuid
 import warnings
 
@@ -264,25 +263,63 @@ def dedupe_tuple(tup: Tuple[str, ...]) -> Tuple[str, ...]:
     return tuple(unique_list(tup))
 
 
+class PriorityDispatchResult(enum.Enum):
+    """indicate an action after running a function within a
+    :class:`.PriorityDispatcher`
+
+    .. versionadded:: 1.18.0
+
+    """
+
+    CONTINUE = enum.auto()
+    """Continue running more functions.
+
+    Any return value that is not PriorityDispatchResult.STOP is equivalent
+    to this.
+
+    """
+
+    STOP = enum.auto()
+    """Stop running any additional functions within the subgroup"""
+
+
+class DispatchPriority(enum.IntEnum):
+    """Indicate which of three sub-collections a function inside a
+    :class:`.PriorityDispatcher` should be placed.
+
+    .. versionadded:: 1.18.0
+
+    """
+
+    FIRST = 50
+    """Run the funciton in the first batch of functions (highest priority)"""
+
+    MEDIUM = 25
+    """Run the function at normal priority (this is the default)"""
+
+    LAST = 10
+    """Run the function in the last batch of functions"""
+
+
 class Dispatcher:
-    def __init__(self, uselist: bool = False) -> None:
+    def __init__(self) -> None:
         self._registry: Dict[Tuple[Any, ...], Any] = {}
-        self.uselist = uselist
 
     def dispatch_for(
-        self, target: Any, qualifier: str = "default", replace: bool = False
+        self,
+        target: Any,
+        *,
+        qualifier: str = "default",
+        replace: bool = False,
     ) -> Callable[[_C], _C]:
         def decorate(fn: _C) -> _C:
-            if self.uselist:
-                self._registry.setdefault((target, qualifier), []).append(fn)
-            else:
-                if (target, qualifier) in self._registry and not replace:
-                    raise ValueError(
-                        "Can not set dispatch function for object "
-                        f"{target!r}: key already exists. To replace "
-                        "existing function, use replace=True."
-                    )
-                self._registry[(target, qualifier)] = fn
+            if (target, qualifier) in self._registry and not replace:
+                raise ValueError(
+                    "Can not set dispatch function for object "
+                    f"{target!r}: key already exists. To replace "
+                    "existing function, use replace=True."
+                )
+            self._registry[(target, qualifier)] = fn
             return fn
 
         return decorate
@@ -295,41 +332,112 @@ class Dispatcher:
         else:
             targets = type(obj).__mro__
 
+        if qualifier != "default":
+            qualifiers = [qualifier, "default"]
+        else:
+            qualifiers = ["default"]
+
         for spcls in targets:
-            if qualifier != "default" and (spcls, qualifier) in self._registry:
-                return self._fn_or_list(self._registry[(spcls, qualifier)])
-            elif (spcls, "default") in self._registry:
-                return self._fn_or_list(self._registry[(spcls, "default")])
+            for qualifier in qualifiers:
+                if (spcls, qualifier) in self._registry:
+                    return self._registry[(spcls, qualifier)]
         else:
             raise ValueError("no dispatch function for object: %s" % obj)
-
-    def _fn_or_list(
-        self, fn_or_list: Union[List[Callable[..., Any]], Callable[..., Any]]
-    ) -> Callable[..., Any]:
-        if self.uselist:
-
-            def go(*arg: Any, **kw: Any) -> None:
-                if TYPE_CHECKING:
-                    assert isinstance(fn_or_list, Sequence)
-                for fn in fn_or_list:
-                    fn(*arg, **kw)
-
-            return go
-        else:
-            return fn_or_list  # type: ignore
 
     def branch(self) -> Dispatcher:
         """Return a copy of this dispatcher that is independently
         writable."""
 
         d = Dispatcher()
-        if self.uselist:
-            d._registry.update(
-                (k, [fn for fn in self._registry[k]]) for k in self._registry
-            )
-        else:
-            d._registry.update(self._registry)
+        d._registry.update(self._registry)
         return d
+
+
+class PriorityDispatcher:
+    """registers lists of functions at multiple levels of priorty and provides
+    a target to invoke them in priority order.
+
+    .. versionadded:: 1.18.0 - PriorityDispatcher replaces the job
+       of Dispatcher(uselist=True)
+
+    """
+
+    def __init__(self) -> None:
+        self._registry: dict[tuple[Any, ...], Any] = collections.defaultdict(
+            list
+        )
+
+    def dispatch_for(
+        self,
+        target: str,
+        *,
+        priority: DispatchPriority = DispatchPriority.MEDIUM,
+        qualifier: str = "default",
+        subgroup: str | None = None,
+    ) -> Callable[[_C], _C]:
+        """return a decorator callable that registers a function at a
+        given priority, with a given qualifier, to fire off for a given
+        subgroup.
+
+        It's important this remains as a decorator to support third party
+        plugins who are populating the dispatcher using that style.
+
+        """
+
+        def decorate(fn: _C) -> _C:
+            self._registry[(target, qualifier, priority)].append(
+                (fn, subgroup)
+            )
+            return fn
+
+        return decorate
+
+    def dispatch(
+        self, target: str, *, qualifier: str = "default"
+    ) -> Callable[..., None]:
+        """Provide a callable for the given target and qualifier."""
+
+        if qualifier != "default":
+            qualifiers = [qualifier, "default"]
+        else:
+            qualifiers = ["default"]
+
+        def go(*arg: Any, **kw: Any) -> Any:
+            results_by_subgroup: dict[str, PriorityDispatchResult] = {}
+            for priority in DispatchPriority:
+                for qualifier in qualifiers:
+                    for fn, subgroup in self._registry.get(
+                        (target, qualifier, priority), ()
+                    ):
+                        if (
+                            results_by_subgroup.get(
+                                subgroup, PriorityDispatchResult.CONTINUE
+                            )
+                            is PriorityDispatchResult.STOP
+                        ):
+                            continue
+
+                        result = fn(*arg, **kw)
+                        results_by_subgroup[subgroup] = result
+
+        return go
+
+    def branch(self) -> PriorityDispatcher:
+        """Return a copy of this dispatcher that is independently
+        writable."""
+
+        d = PriorityDispatcher()
+        d.populate_with(self)
+        return d
+
+    def populate_with(self, other: PriorityDispatcher) -> None:
+        """Populate this PriorityDispatcher with the contents of another one.
+
+        Additive, does not remove existing contents.
+        """
+        for k in other._registry:
+            new_list = other._registry[k]
+            self._registry[k].extend(new_list)
 
 
 def not_none(value: Optional[_T]) -> _T:

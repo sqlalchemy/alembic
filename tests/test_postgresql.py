@@ -40,9 +40,7 @@ from alembic import op
 from alembic import testing
 from alembic import util
 from alembic.autogenerate import api
-from alembic.autogenerate.compare import _compare_server_default
-from alembic.autogenerate.compare import _compare_tables
-from alembic.autogenerate.compare import _render_server_default_for_compare
+from alembic.autogenerate.compare.tables import _compare_tables
 from alembic.migration import MigrationContext
 from alembic.operations import ops
 from alembic.script import ScriptDirectory
@@ -65,6 +63,15 @@ from alembic.testing.fixtures import op_fixture
 from alembic.testing.fixtures import TablesTest
 from alembic.testing.fixtures import TestBase
 from alembic.testing.suite._autogen_fixtures import AutogenFixtureTest
+
+
+if True:
+    from alembic.autogenerate.compare.server_defaults import (
+        _render_server_default_for_compare,
+    )  # noqa: E501
+    from alembic.autogenerate.compare.server_defaults import (
+        _dialect_impl_compare_server_default as _compare_server_default,
+    )
 
 
 class PostgresqlOpTest(TestBase):

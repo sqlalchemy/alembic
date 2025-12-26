@@ -459,20 +459,33 @@ routines to be able to locate, which can include any object such as
 custom DDL objects representing views, triggers, special constraints,
 or anything else we want to support.
 
+.. _autogenerate_global_comparison_function:
 
-Registering a Comparison Function
----------------------------------
+Registering a Comparison Function Globally
+------------------------------------------
 
 We now need to register a comparison hook, which will be used
 to compare the database to our model and produce ``CreateSequenceOp``
 and ``DropSequenceOp`` directives to be included in our migration
-script.  Note that we are assuming a
-Postgresql backend::
+script.  The example below illustrates registering a comparison function
+using the **global** dispatch::
 
     from alembic.autogenerate import comparators
+    from alembic.autogenerate.api import AutogenContext
+    from alembic.operations.ops import UpgradeOps
 
+    # new in Alembic 1.18.0 - for older versions, no return value is needed
+    from alembic.util import PriorityDispatchResult
+
+    # the global dispatch includes a decorator function.
+    # for plugin level dispatch, use Plugin.add_autogenerate_comparator()
+    # instead.
     @comparators.dispatch_for("schema")
-    def compare_sequences(autogen_context, upgrade_ops, schemas):
+    def compare_sequences(
+            autogen_context: AutogenContext,
+            upgrade_ops: UpgradeOps,
+            schemas: set[str | None]
+    ) -> PriorityDispatchResult:
         all_conn_sequences = set()
 
         for sch in schemas:
@@ -510,11 +523,20 @@ Postgresql backend::
                 DropSequenceOp(name, schema=sch)
             )
 
+        return PriorityDispatchResult.CONTINUE
+
 Above, we've built a new function ``compare_sequences()`` and registered
 it as a "schema" level comparison function with autogenerate.   The
 job that it performs is that it compares the list of sequence names
 present in each database schema with that of a list of sequence names
 that we are maintaining in our :class:`~sqlalchemy.schema.MetaData` object.
+
+The registration of our function at the scope of "schema" means our
+autogenerate comparison function is called outside of the context of any
+specific table or column.  The four available scopes are "autogenerate" (new in
+1.18.0), "schema", "table", and "column"; these scopes are described fully in
+the section :ref:`plugins_registering_autogenerate`, which details their use in
+terms of a custom plugin, however the interfaces are the same.
 
 When autogenerate completes, it will have a series of
 ``CreateSequenceOp`` and ``DropSequenceOp`` directives in the list of
@@ -523,54 +545,21 @@ directly from these using the
 ``CreateSequenceOp.reverse()`` and ``DropSequenceOp.reverse()`` methods
 that we've implemented on these objects.
 
-The registration of our function at the scope of "schema" means our
-autogenerate comparison function is called outside of the context
-of any specific table or column.  The three available scopes
-are "schema", "table", and "column", summarized as follows:
+The example above illustrates registration with the so-called **global**
+autogenerate dispatch, at ``alembic.autogenerate.comparators``. Alembic as of
+version 1.18 also includes a **plugin level** dispatch, where comparison
+functions are instead registered using
+:meth:`.Plugin.add_autogenerate_comparator`. Comparison functions registered at
+the plugin level operate in the same way as those registered globally, with the
+exception that custom autogenerate compare functions must also be enabled at
+the environment level within the
+:attr:`.EnvironmentContext.configure.autogenerate_plugins` parameter, and also
+have the ability to be omitted from an autogenerate run.
 
-* **Schema level** - these hooks are passed a :class:`.AutogenContext`,
-  an :class:`.UpgradeOps` collection, and a collection of string schema
-  names to be operated upon. If the
-  :class:`.UpgradeOps` collection contains changes after all
-  hooks are run, it is included in the migration script:
+.. seealso::
 
-  ::
-
-        @comparators.dispatch_for("schema")
-        def compare_schema_level(autogen_context, upgrade_ops, schemas):
-            pass
-
-* **Table level** - these hooks are passed a :class:`.AutogenContext`,
-  a :class:`.ModifyTableOps` collection, a schema name, table name,
-  a :class:`~sqlalchemy.schema.Table` reflected from the database if any
-  or ``None``, and a :class:`~sqlalchemy.schema.Table` present in the
-  local :class:`~sqlalchemy.schema.MetaData`.  If the
-  :class:`.ModifyTableOps` collection contains changes after all
-  hooks are run, it is included in the migration script:
-
-  ::
-
-        @comparators.dispatch_for("table")
-        def compare_table_level(autogen_context, modify_ops,
-            schemaname, tablename, conn_table, metadata_table):
-            pass
-
-* **Column level** - these hooks are passed a :class:`.AutogenContext`,
-  an :class:`.AlterColumnOp` object, a schema name, table name,
-  column name, a :class:`~sqlalchemy.schema.Column` reflected from the
-  database and a :class:`~sqlalchemy.schema.Column` present in the
-  local table.  If the :class:`.AlterColumnOp` contains changes after
-  all hooks are run, it is included in the migration script;
-  a "change" is considered to be present if any of the ``modify_`` attributes
-  are set to a non-default value, or there are any keys
-  in the ``.kw`` collection with the prefix ``"modify_"``:
-
-  ::
-
-        @comparators.dispatch_for("column")
-        def compare_column_level(autogen_context, alter_column_op,
-            schemaname, tname, cname, conn_col, metadata_col):
-            pass
+    :ref:`plugins_registering_autogenerate` - newer plugin-level means of
+    registering autogenerate compare functions.
 
 The :class:`.AutogenContext` passed to these hooks is documented below.
 
