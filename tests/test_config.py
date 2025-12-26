@@ -53,14 +53,11 @@ class ConfigTest(TestBase):
         handler.setLevel(logging.INFO)
 
         logger = logging.getLogger("alembic.config")
-        # logger.x=True
-        with (
-            mock.patch.object(logger, "handlers", []),
-            mock.patch.object(logger, "level", logging.NOTSET),
-        ):
-            logger.addHandler(handler)
-            logger.setLevel(logging.INFO)
-
+        old_level = logger.level
+        logger.addHandler(handler)
+        logger.setLevel(logging.INFO)
+        
+        try:
             cfg = _write_config_file(
                 """
 [alembic]
@@ -68,7 +65,8 @@ script_location = %(base_path)s/db/migrations
 """
             )
             test_cfg = config.Config(
-                cfg.config_file_name, config_args=dict(base_path="/tmp")
+                cfg.config_file_name,
+                config_args=dict(base_path="/tmp")
             )
             test_cfg.cmd_opts = mock.Mock(verbose=True)
 
@@ -76,7 +74,11 @@ script_location = %(base_path)s/db/migrations
 
             output = buf.getvalue()
             assert "Loading config from file" in output
-            assert cfg.config_file_name.replace("/", os.path.sep) in output
+            assert cfg.config_file_name in output
+
+        finally:
+            logger.removeHandler(handler)
+            logger.setLevel(old_level)
 
     def tearDown(self):
         clear_staging_env()
@@ -87,14 +89,11 @@ script_location = %(base_path)s/db/migrations
         handler.setLevel(logging.INFO)
 
         logger = logging.getLogger("alembic.config")
-        with (
-            mock.patch.object(logger, "handlers", []),
-            mock.patch.object(logger, "level", logging.NOTSET),
-        ):
+        old_level = logger.level
+        logger.addHandler(handler)
+        logger.setLevel(logging.INFO)
 
-            logger.addHandler(handler)
-            logger.setLevel(logging.INFO)
-
+        try:
             test_cfg = config.Config()
             test_cfg.cmd_opts = mock.Mock(verbose=True)
 
@@ -102,10 +101,10 @@ script_location = %(base_path)s/db/migrations
 
             output = buf.getvalue()
             assert "No config file provided" in output
-            assert (
-                test_cfg.config_file_name is None
-                and test_cfg._config_file_path is None
-            )
+            assert test_cfg.config_file_name is None and test_cfg._config_file_path is None
+        finally:
+            logger.removeHandler(handler)
+            logger.setLevel(old_level)
 
     def test_config_no_file_main_option(self):
         cfg = config.Config()
