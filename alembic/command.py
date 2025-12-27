@@ -561,6 +561,7 @@ def history(
     rev_range: Optional[str] = None,
     verbose: bool = False,
     indicate_current: bool = False,
+    reversed: bool = False,
 ) -> None:
     """List changeset scripts in chronological order.
 
@@ -592,7 +593,7 @@ def history(
 
     def _display_history(config, script, base, head, currents=()):
         for sc in script.walk_revisions(
-            base=base or "base", head=head or "heads"
+            base=base or "base", head=head or "heads", reversed=reversed
         ):
             if indicate_current:
                 sc._db_current_indicator = sc.revision in currents
