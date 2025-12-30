@@ -188,11 +188,11 @@ Autogenerate can't currently, but **will eventually detect**:
   the supporting SQLAlchemy dialect.
 * Sequence additions, removals - not yet implemented.
 
-Notable 3-rd party libraries that extend the built-in Alembic autogenerate functionality
+Notable 3rd-party libraries that extend the built-in Alembic autogenerate functionality
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 * `alembic-utils <https://github.com/olirice/alembic_utils>`_
-  A library that adds autogenerate support PostgreSQL functions, views, triggers, etc.
+  A library that adds autogenerate support for PostgreSQL functions, views, triggers, etc.
 * `alembic-postgresql-enum <https://pypi.org/project/alembic-postgresql-enum>`_
   A library that adds autogenerate support for creation, alteration and deletion of Enums in PostgreSQL.
 
