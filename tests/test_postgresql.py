@@ -668,13 +668,13 @@ class PostgresqlDefaultCompareTest(TestBase):
     def setup_class(cls):
         cls.bind = config.db
         staging_env()
-        cls.migration_context = MigrationContext.configure(
-            connection=cls.bind.connect(),
-            opts={"compare_type": True, "compare_server_default": True},
-        )
 
     def setUp(self):
         self.metadata = MetaData()
+        self.migration_context = MigrationContext.configure(
+            connection=self.bind.connect(),
+            opts={"compare_type": True, "compare_server_default": True},
+        )
         self.autogen_context = api.AutogenContext(self.migration_context)
 
     @classmethod
@@ -682,12 +682,18 @@ class PostgresqlDefaultCompareTest(TestBase):
         clear_staging_env()
 
     def tearDown(self):
+        self.migration_context.connection.close()
+
         with config.db.begin() as conn:
             self.metadata.drop_all(conn)
 
     def _compare_default_roundtrip(
         self, type_, orig_default, alternate=None, diff_expected=None
     ):
+        # note this only tests compare_server_default including
+        # postgresql.compare_server_default.  it does not run PG
+        # autogen_column_reflect() which is involved with omitting SERIAL
+        # columns
         diff_expected = (
             diff_expected
             if diff_expected is not None
@@ -854,6 +860,16 @@ class PostgresqlDefaultCompareTest(TestBase):
         )
         assert not self._compare_default(t1, t2, t2.c.id, "")
 
+    def test_non_pk_sequence(self):
+        """test issue #1507"""
+        sequential_id_seq = Sequence(
+            "post_sequential_id_seq", metadata=self.metadata, start=1
+        )
+        sequential_id_seq.create(self.bind)
+        self._compare_default_roundtrip(
+            Integer, sequential_id_seq.next_value()
+        )
+
 
 class PostgresqlDetectSerialTest(TestBase):
     __only_on__ = "postgresql"
@@ -943,8 +959,9 @@ class PostgresqlDetectSerialTest(TestBase):
             seq,
         )
 
-    @testing.combinations((None,), ("test_schema",))
-    def test_numeric(self, schema):
+    @testing.combinations((None,), ("test_schema",), argnames="schema")
+    @testing.variation("use_pk", [True, False])
+    def test_numeric(self, schema, use_pk):
         seq = Sequence("x_id_seq", schema=schema)
         seq_name = seq.name if schema is None else f"{schema}.{seq.name}"
         self._expect_default(
@@ -953,7 +970,7 @@ class PostgresqlDetectSerialTest(TestBase):
                 "x",
                 Numeric(8, 2),
                 server_default=seq.next_value(),
-                primary_key=True,
+                primary_key=bool(use_pk),
             ),
             schema,
             seq,

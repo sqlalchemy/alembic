@@ -113,6 +113,7 @@ class PostgresqlImpl(DefaultImpl):
         rendered_metadata_default,
         rendered_inspector_default,
     ):
+
         # don't do defaults for SERIAL columns
         if (
             metadata_column.primary_key
@@ -121,6 +122,11 @@ class PostgresqlImpl(DefaultImpl):
             return False
 
         conn_col_default = rendered_inspector_default
+
+        if conn_col_default and re.match(
+            r"nextval\('(.+?)'::regclass\)", conn_col_default
+        ):
+            conn_col_default = conn_col_default.replace("::regclass", "")
 
         defaults_equal = conn_col_default == rendered_metadata_default
         if defaults_equal:
@@ -143,6 +149,8 @@ class PostgresqlImpl(DefaultImpl):
             metadata_default = literal_column(metadata_default)
 
         # run a real compare against the server
+        # TODO: this seems quite a bad idea for a default that's a SQL
+        # function!   SQL functions are not deterministic!
         conn = self.connection
         assert conn is not None
         return not conn.scalar(
