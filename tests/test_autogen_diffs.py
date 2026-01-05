@@ -884,6 +884,63 @@ class CompareServerDefaultTest(TestBase):
 
         assert not diff
 
+    @testing.combinations(
+        (False, "different", False),
+        (True, "original", True),
+        (None, "different", True),
+        id_="naa",
+        argnames="return_value,new_default,expect_diff",
+    )
+    def test_user_compare_server_default_return_values(
+        self, return_value, new_default, expect_diff, connection, metadata
+    ):
+        """Test user compare_server_default callable return values.
+
+        This is a regression test for #1777 where the plugin refactoring
+        broke the handling of False return values from user-defined
+        compare_server_default callables.
+
+        - False: stop comparison, no diff detected
+        - True: diff detected regardless of actual difference
+        - None: continue to default comparison logic
+        """
+
+        def my_compare_server_default(
+            context,
+            inspected_col,
+            metadata_col,
+            inspected_default,
+            metadata_default,
+            rendered_metadata_default,
+        ):
+            return return_value
+
+        t1 = Table(
+            "t1",
+            metadata,
+            Column("x", VARCHAR(30), server_default=text("'original'")),
+        )
+        t1.create(connection)
+
+        new_metadata = MetaData()
+        Table(
+            "t1",
+            new_metadata,
+            Column("x", VARCHAR(30), server_default=text(f"'{new_default}'")),
+        )
+
+        mc = MigrationContext.configure(
+            connection,
+            opts={"compare_server_default": my_compare_server_default},
+        )
+
+        diff = api.compare_metadata(mc, new_metadata)
+        if expect_diff:
+            eq_(len(diff), 1)
+            eq_(diff[0][0][0], "modify_default")
+        else:
+            assert not diff
+
 
 class CompareMetadataToInspectorTest(TestBase):
     __backend__ = True

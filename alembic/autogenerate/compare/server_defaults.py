@@ -227,6 +227,11 @@ def _user_compare_server_default(
             cname,
         )
         return PriorityDispatchResult.STOP
+    elif is_diff is False:
+        # if user compare server_default returns False and not None,
+        # it means "dont do any more server_default comparison"
+        return PriorityDispatchResult.STOP
+
     return PriorityDispatchResult.CONTINUE
 
 
