@@ -1,8 +1,0 @@
-.. change::
-    :tags: bug, postgresql
-    :tickets: 1507
-
-    Fixed issue where PostgreSQL sequence defaults on non-primary key columns
-    were incorrectly detected as changed on every autogenerate run. Server
-    default comparison logic is adjusted to filter out the ``::regclass``
-    expression added by the server which interferes with the comparison.

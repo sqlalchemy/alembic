@@ -1,8 +1,0 @@
-.. change::
-    :tags: feature, autogenerate
-    :tickets: 1771
-
-    Autogenerate reflection sweeps now use the "bulk" inspector methods
-    introduced in SQLAlchemy 2.0, which for selected dialects including
-    PostgreSQL and Oracle use batched queries to reflect whole collections of
-    tables using O(1) queries rather than O(N).

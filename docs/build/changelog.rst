@@ -5,7 +5,98 @@ Changelog
 
 .. changelog::
     :version: 1.18.0
-    :include_notes_from: unreleased
+    :released: January 9, 2026
+
+    .. change::
+        :tags: bug, postgresql
+        :tickets: 1507
+
+        Fixed issue where PostgreSQL sequence defaults on non-primary key columns
+        were incorrectly detected as changed on every autogenerate run. Server
+        default comparison logic is adjusted to filter out the ``::regclass``
+        expression added by the server which interferes with the comparison.
+
+    .. change::
+        :tags: feature, operations
+        :tickets: 1737
+
+        When alembic is run in "verbose" mode, alembic now logs a message to
+        indicate from which file is used to load the configuration.
+
+    .. change::
+        :tags: bug, mssql
+        :tickets: 1755
+
+        Implemented DDL for column comment add/update/delete when using the
+        :paramref:`.Operations.alter_column.comment` parameter with
+        :meth:`.Operations.alter_column` on Microsoft SQL Server.  Previously,
+        these functions were not implemented for SQL Server and would raise
+        ``UnsupportedCompilationError``.
+
+    .. change::
+        :tags: feature, autogenerate
+        :tickets: 1771
+
+        Autogenerate reflection sweeps now use the "bulk" inspector methods
+        introduced in SQLAlchemy 2.0, which for selected dialects including
+        PostgreSQL and Oracle use batched queries to reflect whole collections of
+        tables using O(1) queries rather than O(N).
+
+    .. change::
+        :tags: usecase, environment
+        :tickets: 1774
+
+        The ``file_template`` configuration option now supports directory paths,
+        allowing migration files to be organized into subdirectories. When using
+        directory separators in ``file_template`` (e.g.,
+        ``%(year)d/%(month).2d/%(day).2d_%(rev)s_%(slug)s``), Alembic will
+        automatically create the necessary directory structure. The
+        ``recursive_version_locations`` setting must be set to ``true`` when using
+        this feature in order for the revision files to be located for subsequent
+        commands.
+
+    .. change::
+        :tags: usecase
+
+        Avoid deprecation warning in add/drop constraint added in SQLAlchemy 2.1.
+        Ensure that alembic is compatible with the changes added in
+        https://github.com/sqlalchemy/sqlalchemy/issues/13006
+        by explicitly setting ``isolate_from_table=True`` when running with
+        SQLAlchemy 2.1 or greater.
+
+    .. change::
+        :tags: feature, autogenerate
+
+        Release 1.18.0 introduces a plugin system that allows for automatic
+        loading of third-party extensions as well as configurable autogenerate
+        compare functionality on a per-environment basis.
+
+        The :class:`.Plugin` class provides a common interface for extensions that
+        register handlers among Alembic's existing extension points such as
+        :meth:`.Operations.register_operation` and
+        :meth:`.Operations.implementation_for`. A new interface for registering
+        autogenerate comparison handlers,
+        :meth:`.Plugin.add_autogenerate_comparator`, provides for autogenerate
+        compare functionality that may be custom-configured on a per-environment
+        basis using the new
+        :paramref:`.EnvironmentContext.configure.autogenerate_plugins` parameter.
+
+        The change does not impact well known Alembic add-ons such as
+        ``alembic-utils``, which continue to work as before; however, such add-ons
+        have the option to provide plugin entrypoints going forward.
+
+        As part of this change, Alembic's autogenerate compare functionality is
+        reorganized into a series of internal plugins under the
+        ``alembic.autogenerate`` namespace, which may be individually or
+        collectively identified for inclusion and/or exclusion within the
+        :meth:`.EnvironmentContext.configure` call using a new parameter
+        :paramref:`.EnvironmentContext.configure.autogenerate_plugins`. This
+        parameter is also where third party comparison plugins may also be
+        indicated.
+
+        See :ref:`alembic.plugins.toplevel` for complete documentation on
+        the new :class:`.Plugin` class as well as autogenerate-specific usage
+        instructions.
 
 .. changelog::
     :version: 1.17.2
