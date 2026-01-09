@@ -92,6 +92,7 @@ master_doc = "index"
 # General information about the project.
 project = "Alembic"
 copyright = "2010-2025, Mike Bayer"  # noqa
+author = "Mike Bayer"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
