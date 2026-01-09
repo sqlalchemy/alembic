@@ -91,7 +91,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "Alembic"
-copyright = "2010-2025, Mike Bayer"  # noqa
+copyright = "2010-2026, Mike Bayer"  # noqa
 author = "Mike Bayer"
 
 # The version info for the project you're documenting, acts as replacement for
