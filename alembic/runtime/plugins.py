@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 _all_plugins = {}
 
 
-log = logging.getLogger("__name__")
+log = logging.getLogger(__name__)
 
 
 class Plugin:
