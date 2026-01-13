@@ -412,12 +412,11 @@ class DefaultImpl(metaclass=ImplMeta):
     def add_constraint(self, const: Any, **kw: Any) -> None:
         if const._create_rule is None or const._create_rule(self):
             if sqla_compat.sqla_2_1:
+                # this should be the default already
                 kw.setdefault("isolate_from_table", True)
             self._exec(schema.AddConstraint(const, **kw))
 
     def drop_constraint(self, const: Constraint, **kw: Any) -> None:
-        if sqla_compat.sqla_2_1:
-            kw.setdefault("isolate_from_table", True)
         self._exec(schema.DropConstraint(const, **kw))
 
     def rename_table(

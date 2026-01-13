@@ -60,13 +60,18 @@ Changelog
         commands.
 
     .. change::
-        :tags: usecase
+        :tags: usecase, operations
 
         Avoid deprecation warning in add/drop constraint added in SQLAlchemy 2.1.
         Ensure that alembic is compatible with the changes added in
         https://github.com/sqlalchemy/sqlalchemy/issues/13006
         by explicitly setting ``isolate_from_table=True`` when running with
         SQLAlchemy 2.1 or greater.
+
+        .. note::
+
+           This change was revised in Alembic 1.18.1; futher developments
+           in SQLAlchemy 2.1 necessitated further adjustments.
 
     .. change::
         :tags: feature, autogenerate
