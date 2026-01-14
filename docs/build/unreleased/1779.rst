@@ -1,0 +1,6 @@
+.. change::
+    :tags: bug, autogenerate
+    :tickets: 1779
+
+    Fixed issue in new plugin system where the configured logger was not
+    correctly using the ``__name__`` token to identify the logger.
