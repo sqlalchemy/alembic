@@ -5,7 +5,22 @@ Changelog
 
 .. changelog::
     :version: 1.18.1
-    :include_notes_from: unreleased
+    :released: January 14, 2026
+
+    .. change::
+        :tags: bug, autogenerate
+        :tickets: 1779
+
+        Fixed issue in new plugin system where the configured logger was not
+        correctly using the ``__name__`` token to identify the logger.
+
+    .. change::
+        :tags: bug, operations
+
+        Revised the change regarding SQLAlchemy 2.1 and deprecation warnings
+        related to ``isolate_from_table=True``. Further developments in release 2.1
+        have revised how this parameter will be modified.
+
 
 .. changelog::
     :version: 1.18.0
