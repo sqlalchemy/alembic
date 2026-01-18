@@ -70,7 +70,7 @@ if TYPE_CHECKING:
     from sqlalchemy.sql.schema import Table
     from sqlalchemy.sql.type_api import TypeEngine
 
-    from .base import _ServerDefault
+    from .base import _ServerDefaultType
     from .impl import _ReflectedConstraint
     from ..autogenerate.api import AutogenContext
     from ..autogenerate.render import _f_name
@@ -164,14 +164,16 @@ class PostgresqlImpl(DefaultImpl):
         *,
         nullable: Optional[bool] = None,
         server_default: Optional[
-            Union[_ServerDefault, Literal[False]]
+            Union[_ServerDefaultType, Literal[False]]
         ] = False,
         name: Optional[str] = None,
         type_: Optional[TypeEngine] = None,
         schema: Optional[str] = None,
         autoincrement: Optional[bool] = None,
         existing_type: Optional[TypeEngine] = None,
-        existing_server_default: Optional[_ServerDefault] = None,
+        existing_server_default: Optional[
+            Union[_ServerDefaultType, Literal[False]]
+        ] = None,
         existing_nullable: Optional[bool] = None,
         existing_autoincrement: Optional[bool] = None,
         **kw: Any,

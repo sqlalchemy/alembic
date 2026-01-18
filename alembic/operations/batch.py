@@ -44,10 +44,10 @@ if TYPE_CHECKING:
     from sqlalchemy.engine import Dialect
     from sqlalchemy.sql.elements import ColumnClause
     from sqlalchemy.sql.elements import quoted_name
-    from sqlalchemy.sql.functions import Function
     from sqlalchemy.sql.schema import Constraint
     from sqlalchemy.sql.type_api import TypeEngine
 
+    from ..ddl.base import _ServerDefaultType
     from ..ddl.impl import DefaultImpl
 
 
@@ -485,7 +485,9 @@ class ApplyBatchImpl:
         table_name: str,
         column_name: str,
         nullable: Optional[bool] = None,
-        server_default: Optional[Union[Function[Any], str, bool]] = False,
+        server_default: Union[
+            _ServerDefaultType, None, Literal[False]
+        ] = False,
         name: Optional[str] = None,
         type_: Optional[TypeEngine] = None,
         autoincrement: Optional[Union[bool, Literal["auto"]]] = None,

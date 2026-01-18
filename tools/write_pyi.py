@@ -10,13 +10,17 @@ import shutil
 import sys
 from tempfile import NamedTemporaryFile
 import textwrap
+import types
 import typing
+
+from sqlalchemy.util import typing as sa_typing
 
 sys.path.append(str(Path(__file__).parent.parent))
 
 
 if True:  # avoid flake/zimports messing with the order
     from alembic.autogenerate.api import AutogenContext
+    from alembic.operations.base import _ServerDefaultType
     from alembic.ddl.impl import DefaultImpl
     from alembic.runtime.migration import MigrationInfo
     from alembic.operations.base import BatchOperations
@@ -176,6 +180,7 @@ def _generate_stub_for_meth(
         spec.annotations.update(annotations)
     except NameError as e:
         print(f"{cls.__name__}.{name} NameError: {e}", file=sys.stderr)
+        raise
 
     name_args = spec[0]
     assert name_args[0:1] == ["self"] or name_args[0:1] == ["cls"]
@@ -184,7 +189,25 @@ def _generate_stub_for_meth(
         name_args[0:1] = []
 
     def _formatannotation(annotation, base_module=None):
-        if getattr(annotation, "__module__", None) == "typing":
+        retval = None
+        if sa_typing.is_union(annotation):
+            for ta in type_aliases:
+
+                if set(ta.__args__).issubset(annotation.__args__):
+                    remainder = set(annotation.__args__).difference(
+                        ta.__args__
+                    )
+                    retval = (
+                        f"Union[{type_aliases[ta]}, "
+                        f"{', '.join(sorted("None" if a is types.NoneType else repr(a) for a in remainder))}]"  # noqa: E501
+                    )
+                    break
+
+        if retval is not None:
+            pass
+        elif annotation in type_aliases:
+            retval = type_aliases[annotation]
+        elif getattr(annotation, "__module__", None) == "typing":
             retval = repr(annotation).replace("typing.", "")
         elif getattr(annotation, "__module__", None) == "types":
             retval = repr(annotation).replace("types.", "")
@@ -195,6 +218,7 @@ def _generate_stub_for_meth(
         elif hasattr(annotation, "__args__") and hasattr(
             annotation, "__origin__"
         ):
+
             # generic class
             retval = str(annotation)
         else:
@@ -411,6 +435,9 @@ cls_ignore = {
     "register_operation",
     "run_async",
 }
+
+type_aliases = {_ServerDefaultType: "_ServerDefaultType"}
+
 
 cases = [
     StubFileInfo(

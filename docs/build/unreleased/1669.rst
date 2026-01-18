@@ -1,0 +1,9 @@
+.. change::
+    :tags: bug, typing
+    :tickets: 1669
+
+    Fixed typing issue where the :paramref:`.AlterColumnOp.server_default` and
+    :paramref:`.AlterColumnOp.existing_server_default` parameters failed to
+    accommodate common SQLAlchemy SQL constructs such as ``null()`` and
+    ``text()``.   Pull request courtesy Sebastian Kreft.
+

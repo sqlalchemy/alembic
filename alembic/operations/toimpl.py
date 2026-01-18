@@ -50,6 +50,11 @@ def alter_column(
             if _count_constraint(constraint):
                 operations.impl.drop_constraint(constraint)
 
+    # some weird pyright quirk here, these have Literal[False]
+    # in their types, not sure why pyright thinks they could be True
+    assert existing_server_default is not True  # type: ignore[comparison-overlap]  # noqa: E501
+    assert comment is not True  # type: ignore[comparison-overlap]
+
     operations.impl.alter_column(
         table_name,
         column_name,

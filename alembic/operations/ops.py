@@ -39,10 +39,8 @@ if TYPE_CHECKING:
     from sqlalchemy.sql.elements import TextClause
     from sqlalchemy.sql.schema import CheckConstraint
     from sqlalchemy.sql.schema import Column
-    from sqlalchemy.sql.schema import Computed
     from sqlalchemy.sql.schema import Constraint
     from sqlalchemy.sql.schema import ForeignKeyConstraint
-    from sqlalchemy.sql.schema import Identity
     from sqlalchemy.sql.schema import Index
     from sqlalchemy.sql.schema import MetaData
     from sqlalchemy.sql.schema import PrimaryKeyConstraint
@@ -53,6 +51,7 @@ if TYPE_CHECKING:
     from sqlalchemy.sql.type_api import TypeEngine
 
     from ..autogenerate.rewriter import Rewriter
+    from ..ddl.base import _ServerDefaultType
     from ..runtime.migration import MigrationContext
     from ..script.revision import _RevIdType
 
@@ -1696,7 +1695,9 @@ class AlterColumnOp(AlterTableOp):
         *,
         schema: Optional[str] = None,
         existing_type: Optional[Any] = None,
-        existing_server_default: Any = False,
+        existing_server_default: Union[
+            _ServerDefaultType, None, Literal[False]
+        ] = False,
         existing_nullable: Optional[bool] = None,
         existing_comment: Optional[str] = None,
         modify_nullable: Optional[bool] = None,
@@ -1856,7 +1857,7 @@ class AlterColumnOp(AlterTableOp):
         nullable: Optional[bool] = None,
         comment: Optional[Union[str, Literal[False]]] = False,
         server_default: Union[
-            str, bool, Identity, Computed, TextClause, None
+            _ServerDefaultType, None, Literal[False]
         ] = False,
         new_column_name: Optional[str] = None,
         type_: Optional[Union[TypeEngine[Any], Type[TypeEngine[Any]]]] = None,
@@ -1864,7 +1865,7 @@ class AlterColumnOp(AlterTableOp):
             Union[TypeEngine[Any], Type[TypeEngine[Any]]]
         ] = None,
         existing_server_default: Union[
-            str, bool, Identity, Computed, TextClause, None
+            _ServerDefaultType, None, Literal[False]
         ] = False,
         existing_nullable: Optional[bool] = None,
         existing_comment: Optional[str] = None,
@@ -1980,14 +1981,16 @@ class AlterColumnOp(AlterTableOp):
         *,
         nullable: Optional[bool] = None,
         comment: Optional[Union[str, Literal[False]]] = False,
-        server_default: Any = False,
+        server_default: Union[
+            _ServerDefaultType, None, Literal[False]
+        ] = False,
         new_column_name: Optional[str] = None,
         type_: Optional[Union[TypeEngine[Any], Type[TypeEngine[Any]]]] = None,
         existing_type: Optional[
             Union[TypeEngine[Any], Type[TypeEngine[Any]]]
         ] = None,
-        existing_server_default: Optional[
-            Union[str, bool, Identity, Computed]
+        existing_server_default: Union[
+            _ServerDefaultType, None, Literal[False]
         ] = False,
         existing_nullable: Optional[bool] = None,
         existing_comment: Optional[str] = None,

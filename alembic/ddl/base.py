@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import functools
+from typing import Any
 from typing import Optional
 from typing import TYPE_CHECKING
 from typing import Union
@@ -14,7 +15,10 @@ from sqlalchemy import types as sqltypes
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.schema import Column
 from sqlalchemy.schema import DDLElement
+from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.sql.elements import quoted_name
+from sqlalchemy.sql.elements import TextClause
+from sqlalchemy.sql.schema import FetchedValue
 
 from ..util.sqla_compat import _columns_for_constraint  # noqa
 from ..util.sqla_compat import _find_columns  # noqa
@@ -23,20 +27,16 @@ from ..util.sqla_compat import _is_type_bound  # noqa
 from ..util.sqla_compat import _table_for_constraint  # noqa
 
 if TYPE_CHECKING:
-    from typing import Any
 
     from sqlalchemy import Computed
     from sqlalchemy import Identity
     from sqlalchemy.sql.compiler import Compiled
     from sqlalchemy.sql.compiler import DDLCompiler
-    from sqlalchemy.sql.elements import TextClause
-    from sqlalchemy.sql.functions import Function
-    from sqlalchemy.sql.schema import FetchedValue
     from sqlalchemy.sql.type_api import TypeEngine
 
     from .impl import DefaultImpl
 
-_ServerDefault = Union["TextClause", "FetchedValue", "Function[Any]", str]
+_ServerDefaultType = Union[FetchedValue, str, TextClause, ColumnElement[Any]]
 
 
 class AlterTable(DDLElement):
@@ -75,7 +75,7 @@ class AlterColumn(AlterTable):
         schema: Optional[str] = None,
         existing_type: Optional[TypeEngine] = None,
         existing_nullable: Optional[bool] = None,
-        existing_server_default: Optional[_ServerDefault] = None,
+        existing_server_default: Optional[_ServerDefaultType] = None,
         existing_comment: Optional[str] = None,
     ) -> None:
         super().__init__(name, schema=schema)
@@ -119,7 +119,7 @@ class ColumnDefault(AlterColumn):
         self,
         name: str,
         column_name: str,
-        default: Optional[_ServerDefault],
+        default: Optional[_ServerDefaultType],
         **kw,
     ) -> None:
         super().__init__(name, column_name, **kw)
@@ -308,7 +308,7 @@ def format_column_name(
 
 def format_server_default(
     compiler: DDLCompiler,
-    default: Optional[_ServerDefault],
+    default: Optional[_ServerDefaultType],
 ) -> str:
     # this can be updated to use compiler.render_default_string
     # for SQLAlchemy 2.0 and above; not in 1.4
