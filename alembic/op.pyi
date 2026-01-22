@@ -83,21 +83,16 @@ def add_column(
 
     .. note::
 
-        With the exception of NOT NULL constraints or single-column FOREIGN
-        KEY constraints, other kinds of constraints such as PRIMARY KEY,
-        UNIQUE or CHECK constraints **cannot** be generated using this
-        method; for these constraints, refer to operations such as
-        :meth:`.Operations.create_primary_key` and
-        :meth:`.Operations.create_check_constraint`. In particular, the
-        following :class:`~sqlalchemy.schema.Column` parameters are
-        **ignored**:
+        Not all contraint types may be indicated with this directive.
+        PRIMARY KEY, NOT NULL, FOREIGN KEY, and CHECK are honored, UNIQUE
+        is currently not.
 
-        * :paramref:`~sqlalchemy.schema.Column.primary_key` - SQL databases
-          typically do not support an ALTER operation that can add
-          individual columns one at a time to an existing primary key
-          constraint, therefore it's less ambiguous to use the
-          :meth:`.Operations.create_primary_key` method, which assumes no
-          existing primary key constraint is present.
+        .. versionadded:: 1.18.2 Added support for PRIMARY KEY to be
+           emitted within :meth:`.Operations.add_column`.
+
+        As of 1.18.2, the following :class:`~sqlalchemy.schema.Column`
+        parameters are **ignored**:
+
         * :paramref:`~sqlalchemy.schema.Column.unique` - use the
           :meth:`.Operations.create_unique_constraint` method
         * :paramref:`~sqlalchemy.schema.Column.index` - use the
