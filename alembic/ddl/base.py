@@ -355,6 +355,9 @@ def add_column(
         compiler.get_column_specification(column, **kw),
     )
 
+    if column.primary_key:
+        text += " PRIMARY KEY"
+
     const = " ".join(
         compiler.process(constraint) for constraint in column.constraints
     )

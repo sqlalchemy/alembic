@@ -71,6 +71,18 @@ class OpTest(TestBase):
             'ALTER TABLE "some.schema".somename ADD COLUMN colname VARCHAR'
         )
 
+    def test_add_column_primary_key(self):
+        context = op_fixture("postgresql")
+        op.add_column(
+            "somename",
+            Column("colname", String, primary_key=True),
+        )
+
+        context.assert_(
+            "ALTER TABLE somename ADD COLUMN colname "
+            "VARCHAR NOT NULL PRIMARY KEY"
+        )
+
     def test_rename_table_schema_hard_quoting(self):
         context = op_fixture("postgresql")
         op.rename_table(

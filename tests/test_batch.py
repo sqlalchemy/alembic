@@ -2291,7 +2291,6 @@ class BatchRoundTripMySQLTest(BatchRoundTripTest):
     def _datetime_server_default_fixture(self):
         return func.current_timestamp()
 
-    @exclusions.fails()
     def test_drop_pk_col_readd_pk_col(self):
         super().test_drop_pk_col_readd_pk_col()
 
@@ -2348,7 +2347,6 @@ class BatchRoundTripPostgresqlTest(BatchRoundTripTest):
     def _datetime_server_default_fixture(self):
         return func.current_timestamp()
 
-    @exclusions.fails()
     def test_drop_pk_col_readd_pk_col(self):
         super().test_drop_pk_col_readd_pk_col()
 
