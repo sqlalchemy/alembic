@@ -386,6 +386,7 @@ class DefaultImpl(metaclass=ImplMeta):
         *,
         schema: Optional[Union[str, quoted_name]] = None,
         if_not_exists: Optional[bool] = None,
+        inline_references: Optional[bool] = None,
     ) -> None:
         self._exec(
             base.AddColumn(
@@ -393,6 +394,7 @@ class DefaultImpl(metaclass=ImplMeta):
                 column,
                 schema=schema,
                 if_not_exists=if_not_exists,
+                inline_references=inline_references,
             )
         )
 

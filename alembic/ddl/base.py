@@ -155,10 +155,12 @@ class AddColumn(AlterTable):
         column: Column[Any],
         schema: Optional[Union[quoted_name, str]] = None,
         if_not_exists: Optional[bool] = None,
+        inline_references: Optional[bool] = None,
     ) -> None:
         super().__init__(name, schema=schema)
         self.column = column
         self.if_not_exists = if_not_exists
+        self.inline_references = inline_references
 
 
 class DropColumn(AlterTable):
@@ -197,7 +199,11 @@ def visit_add_column(element: AddColumn, compiler: DDLCompiler, **kw) -> str:
     return "%s %s" % (
         alter_table(compiler, element.table_name, element.schema),
         add_column(
-            compiler, element.column, if_not_exists=element.if_not_exists, **kw
+            compiler,
+            element.column,
+            if_not_exists=element.if_not_exists,
+            inline_references=element.inline_references,
+            **kw,
         ),
     )
 
@@ -348,6 +354,7 @@ def add_column(
     compiler: DDLCompiler,
     column: Column[Any],
     if_not_exists: Optional[bool] = None,
+    inline_references: Optional[bool] = None,
     **kw,
 ) -> str:
     text = "ADD COLUMN %s%s" % (
@@ -357,6 +364,34 @@ def add_column(
 
     if column.primary_key:
         text += " PRIMARY KEY"
+
+    # Handle inline REFERENCES if requested
+    # Only render inline if there's exactly one foreign key AND the
+    # ForeignKeyConstraint is single-column, to avoid non-deterministic
+    # behavior with sets and to ensure proper syntax
+    if (
+        inline_references
+        and len(column.foreign_keys) == 1
+        and (fk := list(column.foreign_keys)[0])
+        and fk.constraint is not None
+        and len(fk.constraint.columns) == 1
+    ):
+        ref_col = fk.column
+        ref_table = ref_col.table
+
+        # Format with proper quoting
+        if ref_table.schema:
+            table_name = "%s.%s" % (
+                compiler.preparer.quote_schema(ref_table.schema),
+                compiler.preparer.quote(ref_table.name),
+            )
+        else:
+            table_name = compiler.preparer.quote(ref_table.name)
+
+        text += " REFERENCES %s (%s)" % (
+            table_name,
+            compiler.preparer.quote(ref_col.name),
+        )
 
     const = " ".join(
         compiler.process(constraint) for constraint in column.constraints

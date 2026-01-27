@@ -1,0 +1,10 @@
+.. change::
+    :tags: usecase, operations
+    :tickets: 1780
+
+    Added ``inline_references`` parameter to :meth:`.Operations.add_column`
+    which allows rendering of ``REFERENCES`` clauses inline within the ``ADD
+    COLUMN`` directive rather than as a separate ``ADD CONSTRAINT`` directive.
+    This syntax is supported by PostgreSQL, Oracle, MySQL 5.7+, and MariaDB
+    10.5+, and can provide performance benefits on large tables by avoiding
+    full table validation when adding a nullable foreign key column.

@@ -64,6 +64,7 @@ def add_column(
     *,
     schema: Optional[str] = None,
     if_not_exists: Optional[bool] = None,
+    inline_references: Optional[bool] = None,
 ) -> None:
     """Issue an "add column" instruction using the current
     migration context.
@@ -100,9 +101,9 @@ def add_column(
 
     The provided :class:`~sqlalchemy.schema.Column` object may include a
     :class:`~sqlalchemy.schema.ForeignKey` constraint directive,
-    referencing a remote table name. For this specific type of constraint,
-    Alembic will automatically emit a second ALTER statement in order to
-    add the single-column FOREIGN KEY constraint separately::
+    referencing a remote table name. By default, Alembic will automatically
+    emit a second ALTER statement in order to add the single-column FOREIGN
+    KEY constraint separately::
 
         from alembic import op
         from sqlalchemy import Column, INTEGER, ForeignKey
@@ -110,6 +111,20 @@ def add_column(
         op.add_column(
             "organization",
             Column("account_id", INTEGER, ForeignKey("accounts.id")),
+        )
+
+    To render the FOREIGN KEY constraint inline within the ADD COLUMN
+    directive, use the ``inline_references`` parameter. This can improve
+    performance on large tables since the constraint is marked as valid
+    immediately for nullable columns::
+
+        from alembic import op
+        from sqlalchemy import Column, INTEGER, ForeignKey
+
+        op.add_column(
+            "organization",
+            Column("account_id", INTEGER, ForeignKey("accounts.id")),
+            inline_references=True,
         )
 
     The column argument passed to :meth:`.Operations.add_column` is a
@@ -139,6 +154,14 @@ def add_column(
      when creating the new column for compatible dialects
 
      .. versionadded:: 1.16.0
+
+    :param inline_references: If True, renders FOREIGN KEY constraints
+     inline within the ADD COLUMN directive using REFERENCES syntax,
+     rather than as a separate ALTER TABLE ADD CONSTRAINT statement.
+     This is supported by PostgreSQL, Oracle, MySQL 5.7+, and
+     MariaDB 10.5+.
+
+     .. versionadded:: 1.18.2
 
     """
 

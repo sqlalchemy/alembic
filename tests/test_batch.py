@@ -935,7 +935,11 @@ class BatchAPITest(TestBase):
 
         assert (
             mock.call.add_column(
-                "tname", column, schema=None, if_not_exists=None
+                "tname",
+                column,
+                schema=None,
+                if_not_exists=None,
+                inline_references=None,
             )
             in batch.impl.operations.impl.mock_calls
         )

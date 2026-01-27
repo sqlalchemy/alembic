@@ -172,6 +172,7 @@ def add_column(operations: "Operations", operation: "ops.AddColumnOp") -> None:
     column = operation.column
     schema = operation.schema
     kw = operation.kw
+    inline_references = operation.inline_references
 
     if column.table is not None:
         column = _copy(column)
@@ -182,11 +183,22 @@ def add_column(operations: "Operations", operation: "ops.AddColumnOp") -> None:
         column,
         schema=schema,
         if_not_exists=operation.if_not_exists,
+        inline_references=inline_references,
         **kw,
     )
 
     for constraint in t.constraints:
         if not isinstance(constraint, sa_schema.PrimaryKeyConstraint):
+            # Skip ForeignKeyConstraint if it was rendered inline
+            # This only happens when inline_references=True AND there's exactly
+            # one FK AND the constraint is single-column
+            if (
+                inline_references
+                and isinstance(constraint, sa_schema.ForeignKeyConstraint)
+                and len(column.foreign_keys) == 1
+                and len(constraint.columns) == 1
+            ):
+                continue
             operations.impl.add_constraint(constraint)
     for index in t.indexes:
         operations.impl.create_index(index)
