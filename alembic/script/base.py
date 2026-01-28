@@ -617,6 +617,7 @@ class ScriptDirectory:
         branch_labels: Optional[_RevIdType] = None,
         version_path: Union[str, os.PathLike[str], None] = None,
         file_template: Optional[str] = None,
+        mako_template: Optional[Path] = None,
         depends_on: Optional[_RevIdType] = None,
         **kw: Any,
     ) -> Optional[Script]:
@@ -635,10 +636,14 @@ class ScriptDirectory:
         :param splice: if True, allow the "head" version to not be an
          actual head; otherwise, the selected head must be a head
          (e.g. endpoint) revision.
-
+        :param mako_template: optional path to a mako template
+         file to use instead of the default ``script.py.mako``.
         """
         if head is None:
             head = "head"
+
+        if mako_template is None:
+            mako_template = Path(self.dir, "script.py.mako")
 
         try:
             Script.verify_rev_id(revid)
@@ -725,7 +730,7 @@ class ScriptDirectory:
             resolved_depends_on = None
 
         self._generate_template(
-            Path(self.dir, "script.py.mako"),
+            mako_template,
             path,
             up_revision=str(revid),
             down_revision=revision.tuple_rev_as_scalar(
