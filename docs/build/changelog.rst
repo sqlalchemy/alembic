@@ -5,7 +5,39 @@ Changelog
 
 .. changelog::
     :version: 1.18.2
-    :include_notes_from: unreleased
+    :released: January 28, 2026
+
+    .. change::
+        :tags: usecase, operations
+        :tickets: 1232
+
+        The ``primary_key`` parameter on :class:`.Column` is now honored when
+        :meth:`.Operations.add_column` is used, and will emit the "PRIMARY KEY"
+        keyword inline within the ADD COLUMN directive.  This is strictly a syntax
+        enhancement; no attempt is made to reconcile the column's primary key
+        status with any existing primary key constraint or particular backend
+        limitations on adding columns to the primary key.
+
+    .. change::
+        :tags: bug, typing
+        :tickets: 1669
+
+        Fixed typing issue where the :paramref:`.AlterColumnOp.server_default` and
+        :paramref:`.AlterColumnOp.existing_server_default` parameters failed to
+        accommodate common SQLAlchemy SQL constructs such as ``null()`` and
+        ``text()``.   Pull request courtesy Sebastian Kreft.
+
+
+    .. change::
+        :tags: usecase, operations
+        :tickets: 1780
+
+        Added ``inline_references`` parameter to :meth:`.Operations.add_column`
+        which allows rendering of ``REFERENCES`` clauses inline within the ``ADD
+        COLUMN`` directive rather than as a separate ``ADD CONSTRAINT`` directive.
+        This syntax is supported by PostgreSQL, Oracle, MySQL 5.7+, and MariaDB
+        10.5+, and can provide performance benefits on large tables by avoiding
+        full table validation when adding a nullable foreign key column.
 
 .. changelog::
     :version: 1.18.1
