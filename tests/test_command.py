@@ -44,6 +44,7 @@ from alembic.testing.fixtures import capture_context_buffer
 from alembic.testing.fixtures import capture_engine_context_buffer
 from alembic.testing.fixtures import TestBase
 from alembic.util import compat
+from alembic.util import CommandError
 from alembic.util.sqla_compat import _connectable_has_table
 
 
@@ -275,6 +276,36 @@ finally:
         )
 
         assert os.path.exists(rev.path)
+
+    def test_merge_cmd_with_splice(self):
+        cfg = self.cfg
+        self.a, self.b, self.c = three_rev_fixture(cfg)
+        self.d, self.e, self.f = multi_heads_fixture(
+            cfg, self.a, self.b, self.c
+        )
+        assert_raises(
+            CommandError,
+            command.merge,
+            cfg,
+            [self.a, self.b],
+            rev_id="merge_no_splice",
+            splice=False,
+        )
+        command.merge(
+            cfg,
+            [self.a, self.b],
+            rev_id="merge_with_splice",
+            splice=True,
+        )
+        script = ScriptDirectory.from_config(cfg).get_revision("merge_with_splice")
+        assert script is not None
+        assert os.path.exists(script.path)
+
+        with open(script.path, "r", encoding="utf-8") as fp:
+            contents = fp.read()
+
+        assert self.a in contents
+        assert self.b in contents
 
 
 class CurrentTest(_BufMixin, TestBase):
