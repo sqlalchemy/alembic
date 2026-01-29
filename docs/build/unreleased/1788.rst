@@ -4,7 +4,7 @@
 
     Fixed regression caused by :ticket:`1669` which requires SQLAlchemy objects
     to support generic type subscripting; for the older SQLAlchemy 1.4 series,
-    this requires version 1.4.23.  Changed the minimum requirements in to be
-    for 1.4.23 rather than 1.4.0.
+    this requires version 1.4.23.  Changed the minimum requirements to require
+    version 1.4.23 rather than 1.4.0.
 
 
