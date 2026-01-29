@@ -580,6 +580,44 @@ def _make_foreign_key(
         initially=options.get("initially"),
         name=params["name"],
     )
+
+    referred_schema = params["referred_schema"]
+    referred_table = params["referred_table"]
+
+    remote_table_key = sqla_compat._get_table_key(
+        referred_table, referred_schema
+    )
+    if remote_table_key not in conn_table.metadata:
+        # create a placeholder table
+        sa_schema.Table(
+            referred_table,
+            conn_table.metadata,
+            schema=(
+                referred_schema
+                if referred_schema is not None
+                else sa_schema.BLANK_SCHEMA
+            ),
+            *[
+                sa_schema.Column(remote, conn_table.c[local].type)
+                for local, remote in zip(
+                    params["constrained_columns"], params["referred_columns"]
+                )
+            ],
+            info={"alembic_placeholder": True},
+        )
+    elif conn_table.metadata.tables[remote_table_key].info.get(
+        "alembic_placeholder"
+    ):
+        # table exists and is a placeholder; ensure needed columns are present
+        placeholder_table = conn_table.metadata.tables[remote_table_key]
+        for local, remote in zip(
+            params["constrained_columns"], params["referred_columns"]
+        ):
+            if remote not in placeholder_table.c:
+                placeholder_table.append_column(
+                    sa_schema.Column(remote, conn_table.c[local].type)
+                )
+
     # needed by 0.7
     conn_table.append_constraint(const)
     return const
@@ -595,6 +633,7 @@ def _compare_foreign_keys(
 ) -> PriorityDispatchResult:
     # if we're doing CREATE TABLE, all FKs are created
     # inline within the table def
+
     if conn_table is None or metadata_table is None:
         return PriorityDispatchResult.CONTINUE
 
