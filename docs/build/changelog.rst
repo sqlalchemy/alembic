@@ -12,14 +12,6 @@ Changelog
     :released: January 28, 2026
 
     .. change::
-        :tags: change, platforms
-
-        For release 1.18.2, if still using the SQLAlchemy 1.4 series, **version
-        1.4.23 at minimum is required**.  It's strongly recommended to be on
-        the latest (and final) release in the 1.4 series which is version
-        1.4.54.
-
-    .. change::
         :tags: usecase, operations
         :tickets: 1232
 
