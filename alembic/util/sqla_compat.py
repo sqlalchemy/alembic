@@ -293,6 +293,13 @@ else:
         return type_.impl, type_.mapping
 
 
+def _get_table_key(name: str, schema: Optional[str]) -> str:
+    if schema is None:
+        return name
+    else:
+        return schema + "." + name
+
+
 def _fk_spec(constraint: ForeignKeyConstraint) -> Any:
     if TYPE_CHECKING:
         assert constraint.columns is not None
