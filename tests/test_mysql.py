@@ -44,6 +44,7 @@ if True:
     from alembic.autogenerate.compare.types import (
         _dialect_impl_compare_type as _compare_type,
     )
+    from alembic.ddl.mysql import MySQLImpl
 
 
 class MySQLOpTest(TestBase):
@@ -830,8 +831,6 @@ class MySQLEnumCompareTest(TestBase):
     def test_compare_enum_types(
         self, inspected_type, metadata_type, expected, connection
     ):
-        from alembic.ddl.mysql import MySQLImpl
-
         impl = MySQLImpl(connection.dialect, connection, False, None, None, {})
 
         is_(
