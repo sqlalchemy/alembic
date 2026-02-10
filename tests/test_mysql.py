@@ -2,6 +2,7 @@ from sqlalchemy import Boolean
 from sqlalchemy import Column
 from sqlalchemy import Computed
 from sqlalchemy import DATETIME
+from sqlalchemy import Enum
 from sqlalchemy import exc
 from sqlalchemy import Float
 from sqlalchemy import func
@@ -14,10 +15,12 @@ from sqlalchemy import String
 from sqlalchemy import Table
 from sqlalchemy import text
 from sqlalchemy import TIMESTAMP
+from sqlalchemy.dialects.mysql import ENUM as MySQL_ENUM
 from sqlalchemy.dialects.mysql import VARCHAR
 
 from alembic import autogenerate
 from alembic import op
+from alembic import testing
 from alembic import util
 from alembic.autogenerate import api
 from alembic.autogenerate.compare.constraints import _compare_nullable
@@ -27,6 +30,7 @@ from alembic.testing import assert_raises_message
 from alembic.testing import combinations
 from alembic.testing import config
 from alembic.testing import eq_ignore_whitespace
+from alembic.testing import is_
 from alembic.testing.env import clear_staging_env
 from alembic.testing.env import staging_env
 from alembic.testing.fixtures import AlterColRoundTripFixture
@@ -40,6 +44,7 @@ if True:
     from alembic.autogenerate.compare.types import (
         _dialect_impl_compare_type as _compare_type,
     )
+    from alembic.ddl.mysql import MySQLImpl
 
 
 class MySQLOpTest(TestBase):
@@ -783,4 +788,54 @@ class MySQLAutogenRenderTest(TestBase):
             ),
             "op.create_index('foo_idx', 't', "
             "['x', sa.literal_column('(coalesce(y, 0))')], unique=False)",
+        )
+
+
+class MySQLEnumCompareTest(TestBase):
+    """Test MySQL native ENUM comparison in autogenerate."""
+
+    __only_on__ = "mysql", "mariadb"
+    __backend__ = True
+
+    @testing.fixture()
+    def connection(self):
+        with config.db.begin() as conn:
+            yield conn
+
+    @testing.combinations(
+        (
+            Enum("A", "B", "C", native_enum=True),
+            Enum("A", "B", "C", native_enum=True),
+            False,
+        ),
+        (
+            Enum("A", "B", "C", native_enum=True),
+            Enum("A", "B", "C", "D", native_enum=True),
+            True,
+        ),
+        (
+            Enum("A", "B", "C", "D", native_enum=True),
+            Enum("A", "B", "C", native_enum=True),
+            True,
+        ),
+        (
+            Enum("A", "B", "C", native_enum=True),
+            Enum("C", "B", "A", native_enum=True),
+            True,
+        ),
+        (MySQL_ENUM("A", "B", "C"), MySQL_ENUM("A", "B", "C"), False),
+        (MySQL_ENUM("A", "B", "C"), MySQL_ENUM("A", "B", "C", "D"), True),
+        id_="ssa",
+        argnames="inspected_type,metadata_type,expected",
+    )
+    def test_compare_enum_types(
+        self, inspected_type, metadata_type, expected, connection
+    ):
+        impl = MySQLImpl(connection.dialect, connection, False, None, None, {})
+
+        is_(
+            impl.compare_type(
+                Column("x", inspected_type), Column("x", metadata_type)
+            ),
+            expected,
         )
