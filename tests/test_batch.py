@@ -940,6 +940,7 @@ class BatchAPITest(TestBase):
                 schema=None,
                 if_not_exists=None,
                 inline_references=None,
+                inline_primary_key=None,
             )
             in batch.impl.operations.impl.mock_calls
         )
@@ -1716,11 +1717,21 @@ class BatchRoundTripTest(TestBase):
         pk_const = inspect(self.conn).get_pk_constraint("foo")
         eq_(pk_const["constrained_columns"], [])
 
-    def test_drop_pk_col_readd_pk_col(self):
+    @testing.variation(
+        "use_inline_pk",
+        [
+            True,
+            (False, exclusions.fails_on(["postgresql", "mysql", "mariadb"])),
+        ],
+    )
+    def test_drop_pk_col_readd_pk_col(self, use_inline_pk):
         # drop a column, add it back with primary_key=True, should remain
         with self.op.batch_alter_table("foo") as batch_op:
             batch_op.drop_column("id")
-            batch_op.add_column(Column("id", Integer, primary_key=True))
+            batch_op.add_column(
+                Column("id", Integer, primary_key=True),
+                inline_primary_key=bool(use_inline_pk),
+            )
 
         pk_const = inspect(self.conn).get_pk_constraint("foo")
         eq_(pk_const["constrained_columns"], ["id"])
@@ -2295,9 +2306,6 @@ class BatchRoundTripMySQLTest(BatchRoundTripTest):
     def _datetime_server_default_fixture(self):
         return func.current_timestamp()
 
-    def test_drop_pk_col_readd_pk_col(self):
-        super().test_drop_pk_col_readd_pk_col()
-
     @exclusions.fails()
     def test_drop_pk_col_readd_col_also_pk_const(self):
         super().test_drop_pk_col_readd_col_also_pk_const()
@@ -2350,9 +2358,6 @@ class BatchRoundTripPostgresqlTest(BatchRoundTripTest):
 
     def _datetime_server_default_fixture(self):
         return func.current_timestamp()
-
-    def test_drop_pk_col_readd_pk_col(self):
-        super().test_drop_pk_col_readd_pk_col()
 
     @exclusions.fails()
     def test_drop_pk_col_readd_col_also_pk_const(self):

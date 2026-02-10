@@ -24,6 +24,7 @@ from sqlalchemy.sql import text
 from sqlalchemy.sql.schema import quoted_name
 
 from alembic import op
+from alembic import testing
 from alembic.operations import MigrateOperation
 from alembic.operations import Operations
 from alembic.operations import ops
@@ -71,7 +72,33 @@ class OpTest(TestBase):
             'ALTER TABLE "some.schema".somename ADD COLUMN colname VARCHAR'
         )
 
-    def test_add_column_primary_key(self):
+    @testing.variation("use_inline", [True, False, "none"])
+    def test_add_column_primary_key(self, use_inline):
+        context = op_fixture("postgresql")
+
+        if use_inline.none:
+            op.add_column(
+                "somename",
+                Column("colname", String, primary_key=True),
+            )
+        else:
+            op.add_column(
+                "somename",
+                Column("colname", String, primary_key=True),
+                inline_primary_key=bool(use_inline),
+            )
+
+        if use_inline.use_inline:
+            context.assert_(
+                "ALTER TABLE somename ADD COLUMN colname "
+                "VARCHAR NOT NULL PRIMARY KEY"
+            )
+        else:
+            context.assert_(
+                "ALTER TABLE somename ADD COLUMN colname " "VARCHAR NOT NULL"
+            )
+
+    def test_add_column_primary_key_not_inline_by_default(self):
         context = op_fixture("postgresql")
         op.add_column(
             "somename",
@@ -79,9 +106,18 @@ class OpTest(TestBase):
         )
 
         context.assert_(
-            "ALTER TABLE somename ADD COLUMN colname "
-            "VARCHAR NOT NULL PRIMARY KEY"
+            "ALTER TABLE somename ADD COLUMN colname VARCHAR NOT NULL"
         )
+
+    def test_add_column_inline_primary_key_no_pk_flag(self):
+        context = op_fixture("postgresql")
+        op.add_column(
+            "somename",
+            Column("colname", String),
+            inline_primary_key=True,
+        )
+
+        context.assert_("ALTER TABLE somename ADD COLUMN colname VARCHAR")
 
     def test_rename_table_schema_hard_quoting(self):
         context = op_fixture("postgresql")

@@ -173,6 +173,7 @@ def add_column(operations: "Operations", operation: "ops.AddColumnOp") -> None:
     schema = operation.schema
     kw = operation.kw
     inline_references = operation.inline_references
+    inline_primary_key = operation.inline_primary_key
 
     if column.table is not None:
         column = _copy(column)
@@ -184,6 +185,7 @@ def add_column(operations: "Operations", operation: "ops.AddColumnOp") -> None:
         schema=schema,
         if_not_exists=operation.if_not_exists,
         inline_references=inline_references,
+        inline_primary_key=inline_primary_key,
         **kw,
     )
 

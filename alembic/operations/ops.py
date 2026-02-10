@@ -2054,12 +2054,14 @@ class AddColumnOp(AlterTableOp):
         schema: Optional[str] = None,
         if_not_exists: Optional[bool] = None,
         inline_references: Optional[bool] = None,
+        inline_primary_key: Optional[bool] = None,
         **kw: Any,
     ) -> None:
         super().__init__(table_name, schema=schema)
         self.column = column
         self.if_not_exists = if_not_exists
         self.inline_references = inline_references
+        self.inline_primary_key = inline_primary_key
         self.kw = kw
 
     def reverse(self) -> DropColumnOp:
@@ -2100,6 +2102,7 @@ class AddColumnOp(AlterTableOp):
         schema: Optional[str] = None,
         if_not_exists: Optional[bool] = None,
         inline_references: Optional[bool] = None,
+        inline_primary_key: Optional[bool] = None,
     ) -> None:
         """Issue an "add column" instruction using the current
         migration context.
@@ -2198,6 +2201,13 @@ class AddColumnOp(AlterTableOp):
 
          .. versionadded:: 1.18.2
 
+        :param inline_primary_key: If True, renders the PRIMARY KEY constraint
+         inline within the ADD COLUMN directive, rather than rendering it
+         separately. This is a purely syntactic option and should only be
+         used for single-column primary keys.
+
+         .. versionadded:: 1.18.4
+
         """
 
         op = cls(
@@ -2206,6 +2216,7 @@ class AddColumnOp(AlterTableOp):
             schema=schema,
             if_not_exists=if_not_exists,
             inline_references=inline_references,
+            inline_primary_key=inline_primary_key,
         )
         return operations.invoke(op)
 
@@ -2219,6 +2230,7 @@ class AddColumnOp(AlterTableOp):
         insert_after: Optional[str] = None,
         if_not_exists: Optional[bool] = None,
         inline_references: Optional[bool] = None,
+        inline_primary_key: Optional[bool] = None,
     ) -> None:
         """Issue an "add column" instruction using the current
         batch migration context.
@@ -2241,6 +2253,7 @@ class AddColumnOp(AlterTableOp):
             schema=operations.impl.schema,
             if_not_exists=if_not_exists,
             inline_references=inline_references,
+            inline_primary_key=inline_primary_key,
             **kw,
         )
         return operations.invoke(op)

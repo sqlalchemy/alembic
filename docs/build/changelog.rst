@@ -65,6 +65,13 @@ Changelog
         status with any existing primary key constraint or particular backend
         limitations on adding columns to the primary key.
 
+        .. note::
+
+            As of version 1.18.4, this behavior has been amended to be opt-in
+            via the new ``inline_primary_key`` parameter to
+            :meth:`.Operations.add_column`, rather than occurring automatically
+            when ``primary_key=True`` is set on the :class:`.Column` object.
+
     .. change::
         :tags: bug, typing
         :tickets: 1669

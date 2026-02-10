@@ -187,7 +187,11 @@ class PostgresqlOpTest(TestBase):
 
     def test_col_w_pk_is_serial(self):
         context = op_fixture("postgresql")
-        op.add_column("some_table", Column("q", Integer, primary_key=True))
+        op.add_column(
+            "some_table",
+            Column("q", Integer, primary_key=True),
+            inline_primary_key=True,
+        )
         context.assert_(
             "ALTER TABLE some_table ADD COLUMN q SERIAL NOT NULL PRIMARY KEY"
         )

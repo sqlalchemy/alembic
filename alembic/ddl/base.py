@@ -156,11 +156,13 @@ class AddColumn(AlterTable):
         schema: Optional[Union[quoted_name, str]] = None,
         if_not_exists: Optional[bool] = None,
         inline_references: Optional[bool] = None,
+        inline_primary_key: Optional[bool] = None,
     ) -> None:
         super().__init__(name, schema=schema)
         self.column = column
         self.if_not_exists = if_not_exists
         self.inline_references = inline_references
+        self.inline_primary_key = inline_primary_key
 
 
 class DropColumn(AlterTable):
@@ -203,6 +205,7 @@ def visit_add_column(element: AddColumn, compiler: DDLCompiler, **kw) -> str:
             element.column,
             if_not_exists=element.if_not_exists,
             inline_references=element.inline_references,
+            inline_primary_key=element.inline_primary_key,
             **kw,
         ),
     )
@@ -355,6 +358,7 @@ def add_column(
     column: Column[Any],
     if_not_exists: Optional[bool] = None,
     inline_references: Optional[bool] = None,
+    inline_primary_key: Optional[bool] = None,
     **kw,
 ) -> str:
     text = "ADD COLUMN %s%s" % (
@@ -362,7 +366,7 @@ def add_column(
         compiler.get_column_specification(column, **kw),
     )
 
-    if column.primary_key:
+    if inline_primary_key and column.primary_key:
         text += " PRIMARY KEY"
 
     # Handle inline REFERENCES if requested

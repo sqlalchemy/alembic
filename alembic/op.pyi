@@ -65,6 +65,7 @@ def add_column(
     schema: Optional[str] = None,
     if_not_exists: Optional[bool] = None,
     inline_references: Optional[bool] = None,
+    inline_primary_key: Optional[bool] = None,
 ) -> None:
     """Issue an "add column" instruction using the current
     migration context.
@@ -162,6 +163,13 @@ def add_column(
      MariaDB 10.5+.
 
      .. versionadded:: 1.18.2
+
+    :param inline_primary_key: If True, renders the PRIMARY KEY constraint
+     inline within the ADD COLUMN directive, rather than rendering it
+     separately. This is a purely syntactic option and should only be
+     used for single-column primary keys.
+
+     .. versionadded:: 1.18.4
 
     """
 
