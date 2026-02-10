@@ -80,16 +80,16 @@ def add_column(
     The :meth:`.Operations.add_column` method typically corresponds
     to the SQL command "ALTER TABLE... ADD COLUMN".    Within the scope
     of this command, the column's name, datatype, nullability,
-    and optional server-generated defaults may be indicated.
+    and optional server-generated defaults may be indicated.  Options
+    also exist for control of single-column primary key and foreign key
+    constraints to be generated.
 
     .. note::
 
         Not all contraint types may be indicated with this directive.
-        PRIMARY KEY, NOT NULL, FOREIGN KEY, and CHECK are honored, UNIQUE
+        NOT NULL, FOREIGN KEY, and CHECK are honored, PRIMARY KEY
+        is conditionally honored, UNIQUE
         is currently not.
-
-        .. versionadded:: 1.18.2 Added support for PRIMARY KEY to be
-           emitted within :meth:`.Operations.add_column`.
 
         As of 1.18.2, the following :class:`~sqlalchemy.schema.Column`
         parameters are **ignored**:
@@ -99,6 +99,39 @@ def add_column(
         * :paramref:`~sqlalchemy.schema.Column.index` - use the
           :meth:`.Operations.create_index` method
 
+    **PRIMARY KEY support**
+
+    The provided :class:`~sqlalchemy.schema.Column` object may include a
+    ``primary_key=True`` directive, indicating the column intends to be
+    part of a primary key constraint.  However by default, the inline
+    "PRIMARY KEY" directive is not emitted, and it's assumed that a
+    separate :meth:`.Operations.create_primary_key` directive will be used
+    to create this constraint, which may potentially include other columns
+    as well as have an explicit name.   To instead render an inline
+    "PRIMARY KEY" directive, the
+    :paramref:`.AddColumnOp.inline_primary_key` parameter may be indicated
+    at the same time as the ``primary_key`` parameter (both are needed)::
+
+        from alembic import op
+        from sqlalchemy import Column, INTEGER
+
+        op.add_column(
+            "organization",
+            Column("id", INTEGER, primary_key=True),
+            inline_primary_key=True
+        )
+
+    The ``primary_key=True`` parameter on
+    :class:`~sqlalchemy.schema.Column` also indicates behaviors such as
+    using the ``SERIAL`` datatype with the PostgreSQL database, which is
+    why two separate, independent parameters are provided to support all
+    combinations.
+
+    .. versionadded:: 1.18.4 Added
+       :paramref:`.AddColumnOp.inline_primary_key`
+       to control use of the ``PRIMARY KEY`` inline directive.
+
+    **FOREIGN KEY support**
 
     The provided :class:`~sqlalchemy.schema.Column` object may include a
     :class:`~sqlalchemy.schema.ForeignKey` constraint directive,
@@ -128,6 +161,8 @@ def add_column(
             inline_references=True,
         )
 
+    **Indicating server side defaults**
+
     The column argument passed to :meth:`.Operations.add_column` is a
     :class:`~sqlalchemy.schema.Column` construct, used in the same way it's
     used in SQLAlchemy. In particular, values or functions to be indicated
@@ -151,23 +186,25 @@ def add_column(
      quoting of the schema outside of the default behavior, use
      the SQLAlchemy construct
      :class:`~sqlalchemy.sql.elements.quoted_name`.
-    :param if_not_exists: If True, adds IF NOT EXISTS operator
+    :param if_not_exists: If True, adds ``IF NOT EXISTS`` operator
      when creating the new column for compatible dialects
 
      .. versionadded:: 1.16.0
 
-    :param inline_references: If True, renders FOREIGN KEY constraints
-     inline within the ADD COLUMN directive using REFERENCES syntax,
-     rather than as a separate ALTER TABLE ADD CONSTRAINT statement.
-     This is supported by PostgreSQL, Oracle, MySQL 5.7+, and
+    :param inline_references: If True, renders ``FOREIGN KEY`` constraints
+     inline within the ``ADD COLUMN`` directive using ``REFERENCES``
+     syntax, rather than as a separate ``ALTER TABLE ADD CONSTRAINT``
+     statement. This is supported by PostgreSQL, Oracle, MySQL 5.7+, and
      MariaDB 10.5+.
 
      .. versionadded:: 1.18.2
 
-    :param inline_primary_key: If True, renders the PRIMARY KEY constraint
-     inline within the ADD COLUMN directive, rather than rendering it
-     separately. This is a purely syntactic option and should only be
-     used for single-column primary keys.
+    :param inline_primary_key: If True, renders the ``PRIMARY KEY`` phrase
+     inline within the ``ADD COLUMN`` directive.  When not present or
+     False, ``PRIMARY KEY`` is not emitted; it is assumed that the
+     migration script will include an additional
+     :meth:`.Operations.create_primary_key` directive to create a full
+     primary key constraint.
 
      .. versionadded:: 1.18.4
 
