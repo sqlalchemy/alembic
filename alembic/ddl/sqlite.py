@@ -46,9 +46,7 @@ class SQLiteImpl(DefaultImpl):
     see: http://bugs.python.org/issue10740
     """
 
-    def requires_recreate_in_batch(
-        self, batch_op: BatchOperationsImpl
-    ) -> bool:
+    def requires_recreate_in_batch(self, batch_op: BatchOperationsImpl) -> bool:
         """Return True if the given :class:`.BatchOperationsImpl`
         would need the table to be recreated and copied in order to
         proceed.
@@ -60,9 +58,9 @@ class SQLiteImpl(DefaultImpl):
         for op in batch_op.batch:
             if op[0] == "add_column":
                 col = op[1][1]
-                if isinstance(
-                    col.server_default, schema.DefaultClause
-                ) and isinstance(col.server_default.arg, sql.ClauseElement):
+                if isinstance(col.server_default, schema.DefaultClause) and isinstance(
+                    col.server_default.arg, sql.ClauseElement
+                ):
                     return True
                 elif (
                     isinstance(col.server_default, Computed)
@@ -160,6 +158,17 @@ class SQLiteImpl(DefaultImpl):
         ):
             column_info["default"] = "(%s)" % (column_info["default"],)
 
+    def autogen_table_reflect(self, inspector, table):
+        sql_text = sql.text(
+            "SELECT sql FROM sqlite_master WHERE name=:name AND type='table'"
+        )
+        res = inspector.bind.execute(sql_text, {"name": table.name}).scalar()
+        if res:
+            if re.search(r"\bSTRICT\b\s*;?\s*$", res, re.I):
+                table.kwargs["sqlite_strict"] = True
+            if re.search(r"\bWITHOUT ROWID\b", res, re.I):
+                table.kwargs["sqlite_with_rowid"] = False
+
     def render_ddl_sql_expr(
         self, expr: ClauseElement, is_server_default: bool = False, **kw
     ) -> str:
@@ -169,9 +178,8 @@ class SQLiteImpl(DefaultImpl):
             expr, is_server_default=is_server_default, **kw
         )
 
-        if (
-            is_server_default
-            and self._guess_if_default_is_unparenthesized_sql_expr(str_expr)
+        if is_server_default and self._guess_if_default_is_unparenthesized_sql_expr(
+            str_expr
         ):
             str_expr = "(%s)" % (str_expr,)
         return str_expr
@@ -186,9 +194,7 @@ class SQLiteImpl(DefaultImpl):
             existing.type._type_affinity is not new_type._type_affinity
             and not isinstance(new_type, JSON)
         ):
-            existing_transfer["expr"] = cast(
-                existing_transfer["expr"], new_type
-            )
+            existing_transfer["expr"] = cast(existing_transfer["expr"], new_type)
 
     def correct_for_autogen_constraints(
         self,
@@ -201,9 +207,7 @@ class SQLiteImpl(DefaultImpl):
 
 
 @compiles(RenameTable, "sqlite")
-def visit_rename_table(
-    element: RenameTable, compiler: DDLCompiler, **kw
-) -> str:
+def visit_rename_table(element: RenameTable, compiler: DDLCompiler, **kw) -> str:
     return "%s RENAME TO %s" % (
         alter_table(compiler, element.table_name, element.schema),
         format_table_name(compiler, element.new_table_name, None),
