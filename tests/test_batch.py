@@ -72,7 +72,9 @@ class BatchApplyTest(TestBase):
             Column("x", String(10)),
             Column("y", Integer),
         )
-        return ApplyBatchImpl(self.impl, t, table_args, table_kwargs, False, **kw)
+        return ApplyBatchImpl(
+            self.impl, t, table_args, table_kwargs, False, **kw
+        )
 
     def _uq_fixture(self, table_args=(), table_kwargs={}):
         m = MetaData()
@@ -133,7 +135,9 @@ class BatchApplyTest(TestBase):
         )
         return ApplyBatchImpl(self.impl, t, (), {}, False)
 
-    def _literal_ck_fixture(self, copy_from=None, table_args=(), table_kwargs={}):
+    def _literal_ck_fixture(
+        self, copy_from=None, table_args=(), table_kwargs={}
+    ):
         m = MetaData()
         if copy_from is not None:
             t = copy_from
@@ -275,7 +279,9 @@ class BatchApplyTest(TestBase):
         pk_cols = [col for col in impl.new_table.c if col.primary_key]
         eq_(list(impl.new_table.primary_key), pk_cols)
 
-        create_stmt = str(CreateTable(impl.new_table).compile(dialect=context.dialect))
+        create_stmt = str(
+            CreateTable(impl.new_table).compile(dialect=context.dialect)
+        )
         create_stmt = re.sub(r"[\n\t]", "", create_stmt)
 
         idx_stmt = ""
@@ -308,7 +314,11 @@ class BatchApplyTest(TestBase):
         args["temp_name"] = impl.new_table.name
 
         args["colnames"] = ", ".join(
-            [impl.new_table.c[name].name for name in colnames if name in impl.table.c]
+            [
+                impl.new_table.c[name].name
+                for name in colnames
+                if name in impl.table.c
+            ]
         )
 
         args["tname_colnames"] = ", ".join(
@@ -336,7 +346,8 @@ class BatchApplyTest(TestBase):
                 "INSERT INTO %(schema)s%(temp_name)s (%(colnames)s) "
                 "SELECT %(tname_colnames)s FROM %(schema)stname" % args,
                 "DROP TABLE %(schema)stname" % args,
-                "ALTER TABLE %(schema)s%(temp_name)s RENAME TO %(schema)stname" % args,
+                "ALTER TABLE %(schema)s%(temp_name)s RENAME TO %(schema)stname"
+                % args,
             ]
         )
         if idx_stmt:
@@ -462,7 +473,13 @@ class BatchApplyTest(TestBase):
             colnames=["id", "email"],
         )
         eq_(
-            len([c for c in new_table.constraints if isinstance(c, CheckConstraint)]),
+            len(
+                [
+                    c
+                    for c in new_table.constraints
+                    if isinstance(c, CheckConstraint)
+                ]
+            ),
             1,
         )
 
@@ -486,7 +503,13 @@ class BatchApplyTest(TestBase):
             colnames=["id", "email"],
         )
         eq_(
-            len([c for c in new_table.constraints if isinstance(c, CheckConstraint)]),
+            len(
+                [
+                    c
+                    for c in new_table.constraints
+                    if isinstance(c, CheckConstraint)
+                ]
+            ),
             1,
         )
         eq_(new_table.c.email.name, "emol")
@@ -501,7 +524,13 @@ class BatchApplyTest(TestBase):
             colnames=["id", "email"],
         )
         eq_(
-            len([c for c in new_table.constraints if isinstance(c, CheckConstraint)]),
+            len(
+                [
+                    c
+                    for c in new_table.constraints
+                    if isinstance(c, CheckConstraint)
+                ]
+            ),
             1,
         )
 
@@ -573,7 +602,9 @@ class BatchApplyTest(TestBase):
         # operations.add_column produces a table
         impl.add_column("tname", Column("g", Integer), insert_after="id")
         impl.add_column("tname", Column("q", Integer))
-        new_table = self._assert_impl(impl, colnames=["id", "g", "x", "y", "q"])
+        new_table = self._assert_impl(
+            impl, colnames=["id", "g", "x", "y", "q"]
+        )
         eq_(new_table.c.g.name, "g")
 
     def test_add_col_no_order_plus_insert_after(self):
@@ -583,21 +614,27 @@ class BatchApplyTest(TestBase):
         t = self.op.schema_obj.table("tname", col)  # noqa
         impl.add_column("tname", Column("q", Integer))
         impl.add_column("tname", Column("g", Integer), insert_after="id")
-        new_table = self._assert_impl(impl, colnames=["id", "g", "x", "y", "q"])
+        new_table = self._assert_impl(
+            impl, colnames=["id", "g", "x", "y", "q"]
+        )
         eq_(new_table.c.g.name, "g")
 
     def test_add_col_insert_after_another_insert(self):
         impl = self._simple_fixture()
         impl.add_column("tname", Column("g", Integer), insert_after="id")
         impl.add_column("tname", Column("q", Integer), insert_after="g")
-        new_table = self._assert_impl(impl, colnames=["id", "g", "q", "x", "y"])
+        new_table = self._assert_impl(
+            impl, colnames=["id", "g", "q", "x", "y"]
+        )
         eq_(new_table.c.g.name, "g")
 
     def test_add_col_insert_before_another_insert(self):
         impl = self._simple_fixture()
         impl.add_column("tname", Column("g", Integer), insert_after="id")
         impl.add_column("tname", Column("q", Integer), insert_before="g")
-        new_table = self._assert_impl(impl, colnames=["id", "q", "g", "x", "y"])
+        new_table = self._assert_impl(
+            impl, colnames=["id", "q", "g", "x", "y"]
+        )
         eq_(new_table.c.g.name, "g")
 
     def test_add_server_default(self):
@@ -617,7 +654,9 @@ class BatchApplyTest(TestBase):
     def test_rename_col_pk(self):
         impl = self._simple_fixture()
         impl.alter_column("tname", "id", name="foobar")
-        new_table = self._assert_impl(impl, ddl_contains="PRIMARY KEY (foobar)")
+        new_table = self._assert_impl(
+            impl, ddl_contains="PRIMARY KEY (foobar)"
+        )
         eq_(new_table.c.id.name, "foobar")
         eq_(list(new_table.primary_key), [new_table.c.id])
 
@@ -630,7 +669,9 @@ class BatchApplyTest(TestBase):
             ddl_contains='FOREIGN KEY(foobar) REFERENCES "user" (id)',
         )
         eq_(new_table.c.user_id.name, "foobar")
-        eq_(list(new_table.c.user_id.foreign_keys)[0]._get_colspec(), "user.id")
+        eq_(
+            list(new_table.c.user_id.foreign_keys)[0]._get_colspec(), "user.id"
+        )
 
     def test_regen_multi_fk(self):
         impl = self._multi_fk_fixture()
@@ -673,7 +714,9 @@ class BatchApplyTest(TestBase):
         user = Table("user", meta, cid)
 
         fk = [
-            c for c in impl.unnamed_constraints if isinstance(c, ForeignKeyConstraint)
+            c
+            for c in impl.unnamed_constraints
+            if isinstance(c, ForeignKeyConstraint)
         ]
         impl._setup_referent(meta, fk[0])
         is_(user.c.id, cid)
@@ -732,9 +775,13 @@ class BatchApplyTest(TestBase):
         new_table = self._assert_impl(
             impl,
             colnames=["id", "x", "y", "user_id"],
-            ddl_contains='CONSTRAINT fk1 FOREIGN KEY(user_id) REFERENCES "user" (id)',
+            ddl_contains=(
+                "CONSTRAINT fk1 FOREIGN KEY(user_id) " 'REFERENCES "user" (id)'
+            ),
         )
-        eq_(list(new_table.c.user_id.foreign_keys)[0]._get_colspec(), "user.id")
+        eq_(
+            list(new_table.c.user_id.foreign_keys)[0]._get_colspec(), "user.id"
+        )
 
     def test_drop_fk(self):
         impl = self._named_fk_fixture()
@@ -933,12 +980,18 @@ class BatchAPITest(TestBase):
                     self.mock_schema.Column(),
                     schema=None,
                 ),
-                mock.call().append_constraint(self.mock_schema.ForeignKeyConstraint()),
+                mock.call().append_constraint(
+                    self.mock_schema.ForeignKeyConstraint()
+                ),
             ],
         )
         eq_(
             batch.impl.operations.impl.mock_calls,
-            [mock.call.add_constraint(self.mock_schema.ForeignKeyConstraint())],
+            [
+                mock.call.add_constraint(
+                    self.mock_schema.ForeignKeyConstraint()
+                )
+            ],
         )
 
     def test_create_fk_schema(self):
@@ -975,12 +1028,18 @@ class BatchAPITest(TestBase):
                     self.mock_schema.Column(),
                     schema="foo",
                 ),
-                mock.call().append_constraint(self.mock_schema.ForeignKeyConstraint()),
+                mock.call().append_constraint(
+                    self.mock_schema.ForeignKeyConstraint()
+                ),
             ],
         )
         eq_(
             batch.impl.operations.impl.mock_calls,
-            [mock.call.add_constraint(self.mock_schema.ForeignKeyConstraint())],
+            [
+                mock.call.add_constraint(
+                    self.mock_schema.ForeignKeyConstraint()
+                )
+            ],
         )
 
     def test_create_uq(self):
@@ -1028,7 +1087,11 @@ class BatchAPITest(TestBase):
         )
         eq_(
             batch.impl.operations.impl.mock_calls,
-            [mock.call.add_constraint(self.mock_schema.PrimaryKeyConstraint())],
+            [
+                mock.call.add_constraint(
+                    self.mock_schema.PrimaryKeyConstraint()
+                )
+            ],
         )
 
     def test_create_check(self):
@@ -1075,7 +1138,9 @@ class CopyFromTest(TestBase):
         context = self._fixture()
         self.table.append_column(Column("toj", Text))
         self.table.append_column(Column("fromj", JSON))
-        with self.op.batch_alter_table("foo", copy_from=self.table) as batch_op:
+        with self.op.batch_alter_table(
+            "foo", copy_from=self.table
+        ) as batch_op:
             batch_op.alter_column("data", type_=Integer)
             batch_op.alter_column("toj", type_=JSON)
             batch_op.alter_column("fromj", type_=Text)
@@ -1096,7 +1161,9 @@ class CopyFromTest(TestBase):
             Column("y", Boolean(create_constraint=True, name="ck1"))
         )
 
-        with self.op.batch_alter_table("foo", copy_from=self.table) as batch_op:
+        with self.op.batch_alter_table(
+            "foo", copy_from=self.table
+        ) as batch_op:
             batch_op.alter_column(
                 "y",
                 type_=Integer,
@@ -1114,9 +1181,13 @@ class CopyFromTest(TestBase):
     def test_change_name_from_existing_variant_type(self):
         """test #982"""
         context = self._fixture()
-        self.table.append_column(Column("y", Text().with_variant(Text(10000), "mysql")))
+        self.table.append_column(
+            Column("y", Text().with_variant(Text(10000), "mysql"))
+        )
 
-        with self.op.batch_alter_table("foo", copy_from=self.table) as batch_op:
+        with self.op.batch_alter_table(
+            "foo", copy_from=self.table
+        ) as batch_op:
             batch_op.alter_column(
                 column_name="y",
                 new_column_name="q",
@@ -1135,7 +1206,9 @@ class CopyFromTest(TestBase):
         context = self._fixture()
         self.table.append_column(Column("y", Integer))
 
-        with self.op.batch_alter_table("foo", copy_from=self.table) as batch_op:
+        with self.op.batch_alter_table(
+            "foo", copy_from=self.table
+        ) as batch_op:
             batch_op.alter_column(
                 "y",
                 existing_type=Integer,
@@ -1188,7 +1261,9 @@ class CopyFromTest(TestBase):
 
     def test_create_drop_index_wo_always(self):
         context = self._fixture()
-        with self.op.batch_alter_table("foo", copy_from=self.table) as batch_op:
+        with self.op.batch_alter_table(
+            "foo", copy_from=self.table
+        ) as batch_op:
             batch_op.create_index("ix_data", ["data"], unique=True)
 
         context.assert_("CREATE UNIQUE INDEX ix_data ON foo (data)")
@@ -1196,14 +1271,18 @@ class CopyFromTest(TestBase):
         context.clear_assertions()
 
         Index("ix_data", self.table.c.data, unique=True)
-        with self.op.batch_alter_table("foo", copy_from=self.table) as batch_op:
+        with self.op.batch_alter_table(
+            "foo", copy_from=self.table
+        ) as batch_op:
             batch_op.drop_index("ix_data")
 
         context.assert_("DROP INDEX ix_data")
 
     def test_create_drop_index_w_other_ops(self):
         context = self._fixture()
-        with self.op.batch_alter_table("foo", copy_from=self.table) as batch_op:
+        with self.op.batch_alter_table(
+            "foo", copy_from=self.table
+        ) as batch_op:
             batch_op.alter_column("data", type_=Integer)
             batch_op.create_index("ix_data", ["data"], unique=True)
 
@@ -1220,7 +1299,9 @@ class CopyFromTest(TestBase):
         context.clear_assertions()
 
         Index("ix_data", self.table.c.data, unique=True)
-        with self.op.batch_alter_table("foo", copy_from=self.table) as batch_op:
+        with self.op.batch_alter_table(
+            "foo", copy_from=self.table
+        ) as batch_op:
             batch_op.drop_index("ix_data")
             batch_op.alter_column("data", type_=String)
 
@@ -1571,8 +1652,12 @@ class BatchRoundTripTest(TestBase):
         )
         with self.conn.begin():
             bar.create(self.conn)
-            self.conn.execute(bar.insert(), {"id": 1, "data": "x", "bar_id": None})
-            self.conn.execute(bar.insert(), {"id": 2, "data": "y", "bar_id": 1})
+            self.conn.execute(
+                bar.insert(), {"id": 1, "data": "x", "bar_id": None}
+            )
+            self.conn.execute(
+                bar.insert(), {"id": 2, "data": "y", "bar_id": 1}
+            )
 
         with self.op.batch_alter_table("bar", recreate=recreate) as batch_op:
             batch_op.alter_column(
@@ -1679,7 +1764,9 @@ class BatchRoundTripTest(TestBase):
             batch_op.create_check_constraint("newck", text("x > 0"))
 
         ck_consts = inspect(self.conn).get_check_constraints("foo")
-        ck_consts[0]["sqltext"] = re.sub(r"[\'\"`\(\)]", "", ck_consts[0]["sqltext"])
+        ck_consts[0]["sqltext"] = re.sub(
+            r"[\'\"`\(\)]", "", ck_consts[0]["sqltext"]
+        )
         for ck in ck_consts:
             ck.pop("comment", None)
         eq_(ck_consts, [{"sqltext": "x > 0", "name": "newck"}])
@@ -1689,7 +1776,9 @@ class BatchRoundTripTest(TestBase):
     def test_drop_ck_constraint(self, recreate):
         self._ck_constraint_fixture()
 
-        with self.op.batch_alter_table("ck_table", recreate=recreate) as batch_op:
+        with self.op.batch_alter_table(
+            "ck_table", recreate=recreate
+        ) as batch_op:
             batch_op.drop_constraint("ck", type_="check")
 
         ck_consts = inspect(self.conn).get_check_constraints("ck_table")
@@ -1699,7 +1788,9 @@ class BatchRoundTripTest(TestBase):
     def test_drop_ck_constraint_legacy_type(self):
         self._ck_constraint_fixture()
 
-        with self.op.batch_alter_table("ck_table", recreate="always") as batch_op:
+        with self.op.batch_alter_table(
+            "ck_table", recreate="always"
+        ) as batch_op:
             # matches the docs that were written for this originally
             batch_op.drop_constraint("ck", "check")
 
@@ -1845,7 +1936,9 @@ class BatchRoundTripTest(TestBase):
     @config.requirements.comments
     def test_alter_column_comment(self):
         with self.op.batch_alter_table("foo") as batch_op:
-            batch_op.alter_column("x", existing_type=Integer(), comment="some comment")
+            batch_op.alter_column(
+                "x", existing_type=Integer(), comment="some comment"
+            )
 
         self._assert_column_comment("foo", "x", "some comment")
 
@@ -1908,7 +2001,9 @@ class BatchRoundTripTest(TestBase):
                 "flag", new_column_name="bflag", existing_type=Boolean
             )
 
-        self._assert_data([{"id": 1, "bflag": True}, {"id": 2, "bflag": False}], "bar")
+        self._assert_data(
+            [{"id": 1, "bflag": True}, {"id": 2, "bflag": False}], "bar"
+        )
 
     #    @config.requirements.check_constraint_reflection
     def test_rename_column_boolean_named_ck(self):
@@ -1931,7 +2026,9 @@ class BatchRoundTripTest(TestBase):
                 existing_type=Boolean(create_constraint=True, name="ck1"),
             )
 
-        self._assert_data([{"id": 1, "bflag": True}, {"id": 2, "bflag": False}], "bar")
+        self._assert_data(
+            [{"id": 1, "bflag": True}, {"id": 2, "bflag": False}], "bar"
+        )
 
     @config.requirements.non_native_boolean
     def test_rename_column_non_native_boolean_no_ck(self):
@@ -2001,7 +2098,9 @@ class BatchRoundTripTest(TestBase):
     def test_add_column_auto(self):
         # note this uses ALTER
         with self.op.batch_alter_table("foo") as batch_op:
-            batch_op.add_column(Column("data2", String(50), server_default="hi"))
+            batch_op.add_column(
+                Column("data2", String(50), server_default="hi")
+            )
 
         self._assert_data(
             [
@@ -2049,7 +2148,9 @@ class BatchRoundTripTest(TestBase):
         """test #883"""
         with self.op.batch_alter_table("foo") as batch_op:
             batch_op.add_column(
-                Column("data2", Integer, Computed("1 + 1", persisted=persisted))
+                Column(
+                    "data2", Integer, Computed("1 + 1", persisted=persisted)
+                )
             )
 
         self._assert_data(
@@ -2143,7 +2244,9 @@ class BatchRoundTripTest(TestBase):
 
     def test_add_column_recreate(self):
         with self.op.batch_alter_table("foo", recreate="always") as batch_op:
-            batch_op.add_column(Column("data2", String(50), server_default="hi"))
+            batch_op.add_column(
+                Column("data2", String(50), server_default="hi")
+            )
 
         self._assert_data(
             [
@@ -2209,7 +2312,9 @@ class BatchRoundTripTest(TestBase):
         with self.op.batch_alter_table("t", recreate="always") as batch_op:
             batch_op.drop_column("data")
 
-        sql = self.conn.scalar(text("SELECT sql FROM sqlite_master WHERE name='t'"))
+        sql = self.conn.scalar(
+            text("SELECT sql FROM sqlite_master WHERE name='t'")
+        )
         assert "STRICT" in sql
 
     def test_sqlite_batch_without_rowid(self):
@@ -2226,7 +2331,9 @@ class BatchRoundTripTest(TestBase):
         with self.op.batch_alter_table("t2", recreate="always") as batch_op:
             batch_op.add_column(Column("new_col", Integer))
 
-        sql = self.conn.scalar(text("SELECT sql FROM sqlite_master WHERE name='t2'"))
+        sql = self.conn.scalar(
+            text("SELECT sql FROM sqlite_master WHERE name='t2'")
+        )
         assert "WITHOUT ROWID" in sql
 
 
@@ -2323,7 +2430,9 @@ class BatchRoundTripPostgresqlTest(BatchRoundTripTest):
         with self.op.batch_alter_table(
             "has_native_bool",
             recreate="always",
-            reflect_kwargs={"listeners": [("column_reflect", listen_for_reflect)]},
+            reflect_kwargs={
+                "listeners": [("column_reflect", listen_for_reflect)]
+            },
         ) as batch_op:
             batch_op.add_column(Column("data", Integer))
 
@@ -2358,7 +2467,9 @@ class OfflineTest(TestBase):
             self.a = a = util.rev_id()
 
             script = ScriptDirectory.from_config(cfg)
-            script.generate_revision(a, "revision a", refresh=True, head="base")
+            script.generate_revision(
+                a, "revision a", refresh=True, head="base"
+            )
             write_script(
                 script,
                 a,
@@ -2411,7 +2522,9 @@ class OfflineTest(TestBase):
             self.a = a = util.rev_id()
 
             script = ScriptDirectory.from_config(cfg)
-            script.generate_revision(a, "revision a", refresh=True, head="base")
+            script.generate_revision(
+                a, "revision a", refresh=True, head="base"
+            )
             write_script(
                 script,
                 a,
@@ -2457,7 +2570,9 @@ class OfflineTest(TestBase):
 
         with capture_context_buffer() as buf:
             command.downgrade(self.cfg, f"{self.a}:base", sql=True)
-        assert re.search(r"ALTER TABLE some_table DROP COLUMN foo", buf.getvalue())
+        assert re.search(
+            r"ALTER TABLE some_table DROP COLUMN foo", buf.getvalue()
+        )
 
     def test_upgrade_batch_fails_gracefully(self, batch_fixture):
         batch_fixture("sqlite")
@@ -2487,7 +2602,9 @@ class OfflineTest(TestBase):
         with capture_context_buffer() as buf:
             command.upgrade(self.cfg, self.a, sql=True)
 
-        assert re.search(r"CREATE TABLE _alembic_tmp_some_table", buf.getvalue())
+        assert re.search(
+            r"CREATE TABLE _alembic_tmp_some_table", buf.getvalue()
+        )
 
     def test_downgrade_batch_no_reflection(self, no_reflect_batch_fixture):
         no_reflect_batch_fixture()
@@ -2495,4 +2612,6 @@ class OfflineTest(TestBase):
         with capture_context_buffer() as buf:
             command.downgrade(self.cfg, f"{self.a}:base", sql=True)
 
-        assert re.search(r"CREATE TABLE _alembic_tmp_some_table", buf.getvalue())
+        assert re.search(
+            r"CREATE TABLE _alembic_tmp_some_table", buf.getvalue()
+        )

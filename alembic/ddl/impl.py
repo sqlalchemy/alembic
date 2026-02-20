@@ -175,12 +175,16 @@ class DefaultImpl(metaclass=ImplMeta):
         )
         if version_table_pk:
             vt.append_constraint(
-                PrimaryKeyConstraint("version_num", name=f"{version_table}_pkc")
+                PrimaryKeyConstraint(
+                    "version_num", name=f"{version_table}_pkc"
+                )
             )
 
         return vt
 
-    def requires_recreate_in_batch(self, batch_op: BatchOperationsImpl) -> bool:
+    def requires_recreate_in_batch(
+        self, batch_op: BatchOperationsImpl
+    ) -> bool:
         """Return True if the given :class:`.BatchOperationsImpl`
         would need the table to be recreated and copied in order to
         proceed.
@@ -191,7 +195,9 @@ class DefaultImpl(metaclass=ImplMeta):
         """
         return False
 
-    def prep_table_for_batch(self, batch_impl: ApplyBatchImpl, table: Table) -> None:
+    def prep_table_for_batch(
+        self, batch_impl: ApplyBatchImpl, table: Table
+    ) -> None:
         """perform any operations needed on a table before a new
         one is created to replace it in batch mode.
 
@@ -218,7 +224,9 @@ class DefaultImpl(metaclass=ImplMeta):
                 raise TypeError("SQL parameters not allowed with as_sql")
 
             compile_kw: dict[str, Any]
-            if self.literal_binds and not isinstance(construct, schema.DDLElement):
+            if self.literal_binds and not isinstance(
+                construct, schema.DDLElement
+            ):
                 compile_kw = dict(compile_kwargs={"literal_binds": True})
             else:
                 compile_kw = {}
@@ -227,7 +235,8 @@ class DefaultImpl(metaclass=ImplMeta):
                 assert isinstance(construct, ClauseElement)
             compiled = construct.compile(dialect=self.dialect, **compile_kw)
             self.static_output(
-                str(compiled).replace("\t", "    ").strip() + self.command_terminator
+                str(compiled).replace("\t", "    ").strip()
+                + self.command_terminator
             )
             return None
         else:
@@ -237,7 +246,9 @@ class DefaultImpl(metaclass=ImplMeta):
                 conn = conn.execution_options(**execution_options)
 
             if params and multiparams is not None:
-                raise TypeError("Can't send params and multiparams at the same time")
+                raise TypeError(
+                    "Can't send params and multiparams at the same time"
+                )
 
             if multiparams:
                 return conn.execute(construct, multiparams)
@@ -257,7 +268,9 @@ class DefaultImpl(metaclass=ImplMeta):
         column_name: str,
         *,
         nullable: Optional[bool] = None,
-        server_default: Optional[Union[_ServerDefaultType, Literal[False]]] = False,
+        server_default: Optional[
+            Union[_ServerDefaultType, Literal[False]]
+        ] = False,
         name: Optional[str] = None,
         type_: Optional[TypeEngine] = None,
         schema: Optional[str] = None,
@@ -274,7 +287,8 @@ class DefaultImpl(metaclass=ImplMeta):
     ) -> None:
         if autoincrement is not None or existing_autoincrement is not None:
             util.warn(
-                "autoincrement and existing_autoincrement only make sense for MySQL",
+                "autoincrement and existing_autoincrement "
+                "only make sense for MySQL",
                 stacklevel=3,
             )
         if nullable is not None:
@@ -396,7 +410,9 @@ class DefaultImpl(metaclass=ImplMeta):
         **kw,
     ) -> None:
         self._exec(
-            base.DropColumn(table_name, column, schema=schema, if_exists=if_exists)
+            base.DropColumn(
+                table_name, column, schema=schema, if_exists=if_exists
+            )
         )
 
     def add_constraint(self, const: Any, **kw: Any) -> None:
@@ -415,7 +431,9 @@ class DefaultImpl(metaclass=ImplMeta):
         new_table_name: Union[str, quoted_name],
         schema: Optional[Union[str, quoted_name]] = None,
     ) -> None:
-        self._exec(base.RenameTable(old_table_name, new_table_name, schema=schema))
+        self._exec(
+            base.RenameTable(old_table_name, new_table_name, schema=schema)
+        )
 
     def create_table(self, table: Table, **kw: Any) -> None:
         table.dispatch.before_create(
@@ -485,7 +503,9 @@ class DefaultImpl(metaclass=ImplMeta):
                                 sqla_compat._literal_bindparam(
                                     k, v, type_=table.c[k].type
                                 )
-                                if not isinstance(v, sqla_compat._literal_bindparam)
+                                if not isinstance(
+                                    v, sqla_compat._literal_bindparam
+                                )
                                 else v
                             )
                             for k, v in row.items()
@@ -550,7 +570,9 @@ class DefaultImpl(metaclass=ImplMeta):
         inspector_all_terms = " ".join(
             [inspector_params.token0] + inspector_params.tokens
         )
-        metadata_all_terms = " ".join([metadata_params.token0] + metadata_params.tokens)
+        metadata_all_terms = " ".join(
+            [metadata_params.token0] + metadata_params.tokens
+        )
 
         for batch in synonyms:
             if {inspector_all_terms, metadata_all_terms}.issubset(batch) or {
@@ -560,7 +582,9 @@ class DefaultImpl(metaclass=ImplMeta):
                 return True
         return False
 
-    def _column_args_match(self, inspected_params: Params, meta_params: Params) -> bool:
+    def _column_args_match(
+        self, inspected_params: Params, meta_params: Params
+    ) -> bool:
         """We want to compare column parameters. However, we only want
         to compare parameters that are set. If they both have `collation`,
         we want to make sure they are the same. However, if only one
@@ -627,7 +651,9 @@ class DefaultImpl(metaclass=ImplMeta):
 
     def cast_for_batch_migrate(self, existing, existing_transfer, new_type):
         if existing.type._type_affinity is not new_type._type_affinity:
-            existing_transfer["expr"] = cast(existing_transfer["expr"], new_type)
+            existing_transfer["expr"] = cast(
+                existing_transfer["expr"], new_type
+            )
 
     def render_ddl_sql_expr(
         self, expr: ClauseElement, is_server_default: bool = False, **kw: Any
@@ -639,7 +665,9 @@ class DefaultImpl(metaclass=ImplMeta):
 
         compile_kw = {"literal_binds": True, "include_table": False}
 
-        return str(expr.compile(dialect=self.dialect, compile_kwargs=compile_kw))
+        return str(
+            expr.compile(dialect=self.dialect, compile_kwargs=compile_kw)
+        )
 
     def _compat_autogen_column_reflect(self, inspector: Inspector) -> Callable:
         return self.autogen_column_reflect
@@ -760,7 +788,9 @@ class DefaultImpl(metaclass=ImplMeta):
         This method returns a ``ComparisonResult``.
         """
         msg: List[str] = []
-        unique_msg = self._compare_index_unique(metadata_index, reflected_index)
+        unique_msg = self._compare_index_unique(
+            metadata_index, reflected_index
+        )
         if unique_msg:
             msg.append(unique_msg)
         m_sig = self._create_metadata_constraint_sig(metadata_index)
@@ -781,7 +811,9 @@ class DefaultImpl(metaclass=ImplMeta):
                 )
 
         if m_sig.column_names != r_sig.column_names:
-            msg.append(f"expression {r_sig.column_names} to {m_sig.column_names}")
+            msg.append(
+                f"expression {r_sig.column_names} to {m_sig.column_names}"
+            )
 
         if msg:
             return ComparisonResult.Different(msg)
@@ -800,13 +832,19 @@ class DefaultImpl(metaclass=ImplMeta):
 
         This method returns a ``ComparisonResult``.
         """
-        metadata_tup = self._create_metadata_constraint_sig(metadata_constraint)
-        reflected_tup = self._create_reflected_constraint_sig(reflected_constraint)
+        metadata_tup = self._create_metadata_constraint_sig(
+            metadata_constraint
+        )
+        reflected_tup = self._create_reflected_constraint_sig(
+            reflected_constraint
+        )
 
         meta_sig = metadata_tup.unnamed
         conn_sig = reflected_tup.unnamed
         if conn_sig != meta_sig:
-            return ComparisonResult.Different(f"expression {conn_sig} to {meta_sig}")
+            return ComparisonResult.Different(
+                f"expression {conn_sig} to {meta_sig}"
+            )
         else:
             return ComparisonResult.Equal()
 

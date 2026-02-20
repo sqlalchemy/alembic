@@ -46,7 +46,9 @@ class SQLiteImpl(DefaultImpl):
     see: http://bugs.python.org/issue10740
     """
 
-    def requires_recreate_in_batch(self, batch_op: BatchOperationsImpl) -> bool:
+    def requires_recreate_in_batch(
+        self, batch_op: BatchOperationsImpl
+    ) -> bool:
         """Return True if the given :class:`.BatchOperationsImpl`
         would need the table to be recreated and copied in order to
         proceed.
@@ -58,9 +60,9 @@ class SQLiteImpl(DefaultImpl):
         for op in batch_op.batch:
             if op[0] == "add_column":
                 col = op[1][1]
-                if isinstance(col.server_default, schema.DefaultClause) and isinstance(
-                    col.server_default.arg, sql.ClauseElement
-                ):
+                if isinstance(
+                    col.server_default, schema.DefaultClause
+                ) and isinstance(col.server_default.arg, sql.ClauseElement):
                     return True
                 elif (
                     isinstance(col.server_default, Computed)
@@ -178,8 +180,9 @@ class SQLiteImpl(DefaultImpl):
             expr, is_server_default=is_server_default, **kw
         )
 
-        if is_server_default and self._guess_if_default_is_unparenthesized_sql_expr(
-            str_expr
+        if (
+            is_server_default
+            and self._guess_if_default_is_unparenthesized_sql_expr(str_expr)
         ):
             str_expr = "(%s)" % (str_expr,)
         return str_expr
@@ -194,7 +197,9 @@ class SQLiteImpl(DefaultImpl):
             existing.type._type_affinity is not new_type._type_affinity
             and not isinstance(new_type, JSON)
         ):
-            existing_transfer["expr"] = cast(existing_transfer["expr"], new_type)
+            existing_transfer["expr"] = cast(
+                existing_transfer["expr"], new_type
+            )
 
     def correct_for_autogen_constraints(
         self,
@@ -207,7 +212,9 @@ class SQLiteImpl(DefaultImpl):
 
 
 @compiles(RenameTable, "sqlite")
-def visit_rename_table(element: RenameTable, compiler: DDLCompiler, **kw) -> str:
+def visit_rename_table(
+    element: RenameTable, compiler: DDLCompiler, **kw
+) -> str:
     return "%s RENAME TO %s" % (
         alter_table(compiler, element.table_name, element.schema),
         format_table_name(compiler, element.new_table_name, None),
