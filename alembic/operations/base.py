@@ -390,6 +390,9 @@ class AbstractOperations(util.ModuleClsProxy):
             :ref:`batch_migrations`
 
         """
+        if naming_convention is None:
+            naming_convention = self.schema_obj.metadata().naming_convention
+
         impl = batch.BatchOperationsImpl(
             self,
             table_name,

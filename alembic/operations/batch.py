@@ -322,7 +322,7 @@ class ApplyBatchImpl:
     def _transfer_elements_to_new_table(self) -> None:
         assert self.new_table is None, "Can only create new table once"
 
-        m = MetaData()
+        m = MetaData(naming_convention=self.table.metadata.naming_convention)
         schema = self.table.schema
 
         if self.partial_reordering or self.add_col_ordering:
@@ -537,6 +537,11 @@ class ApplyBatchImpl:
 
             existing.type = type_
 
+            if isinstance(existing.type, SchemaEventTarget):
+                existing.type._create_events = (  # type:ignore[attr-defined]
+                    existing.type.create_constraint  # type:ignore[attr-defined] # noqa
+                ) = False
+
             # we *dont* however set events for the new type, because
             # alter_column is invoked from
             # Operations.implementation_for(alter_column) which already
@@ -618,7 +623,12 @@ class ApplyBatchImpl:
         )
         # we copy the column because operations.add_column()
         # gives us a Column that is part of a Table already.
-        self.columns[column.name] = _copy(column, schema=self.table.schema)
+        new_column = _copy(column, schema=self.table.schema)
+        if isinstance(new_column.type, SchemaEventTarget):
+            new_column.type._create_events = (  # type:ignore[attr-defined]
+                new_column.type.create_constraint  # type:ignore[attr-defined] # noqa
+            ) = False
+        self.columns[new_column.name] = new_column
         self.column_transfers[column.name] = {}
 
     def drop_column(
