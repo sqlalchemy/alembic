@@ -276,6 +276,36 @@ finally:
 
         assert os.path.exists(rev.path)
 
+    def test_merge_cmd_splice(self):
+        """merge with --splice allows non-head revisions to be merged."""
+        cfg = self.cfg
+        self.a, self.b, self.c = three_rev_fixture(cfg)
+        self.d, self.e, self.f = multi_heads_fixture(
+            cfg, self.a, self.b, self.c
+        )
+        # e and f are heads, but b is not a head.
+        # merging b and c (at least one is not a head) should fail
+        # without splice.
+        assert_raises_message(
+            util.CommandError,
+            "please specify --splice",
+            command.merge,
+            self.cfg,
+            [self.b, self.d],
+            rev_id="should_fail",
+        )
+        # with splice=True, it should succeed
+        command.merge(
+            self.cfg,
+            [self.b, self.d],
+            rev_id="splice_merge",
+            splice=True,
+        )
+        rev = ScriptDirectory.from_config(self.cfg).get_revision(
+            "splice_merge"
+        )
+        assert os.path.exists(rev.path)
+
 
 class CurrentTest(_BufMixin, TestBase):
     @classmethod
