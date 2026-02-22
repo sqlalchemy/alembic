@@ -698,7 +698,7 @@ def _uq_constraint(
 
 
 def _user_autogenerate_prefix(autogen_context, target):
-    prefix = autogen_context.opts["user_module_prefix"]
+    prefix = autogen_context.opts.get("user_module_prefix", None)
     if prefix is None:
         return "%s." % target.__module__
     else:
@@ -856,6 +856,20 @@ def _render_fetched_value(autogen_context: AutogenContext) -> str:
     return "%(prefix)sFetchedValue()" % {
         "prefix": _sqlalchemy_autogenerate_prefix(autogen_context),
     }
+def _type_repr(type_: sqltypes.TypeEngine) -> str:
+    res = repr(type_)
+    if isinstance(type_, sqltypes.TypeDecorator) and isinstance(
+        type_.impl, sqltypes.SchemaType
+    ):
+        for attr in ("name", "schema"):
+            val = getattr(type_.impl, attr, None)
+            if val is not None and f"{attr}=" not in res:
+                if res.endswith("()"):
+                    res = res[:-1] + "%s=%r)" % (attr, val)
+                else:
+                    res = res[:-1] + ", %s=%r)" % (attr, val)
+    return res
+
 
 
 def _repr_type(
@@ -888,7 +902,7 @@ def _repr_type(
         if impl_rt:
             return impl_rt
         else:
-            return "%s.%r" % (dname, type_)
+            return "%s.%s" % (dname, _type_repr(type_))
     elif impl_rt:
         return impl_rt
     elif mod.startswith("sqlalchemy."):
@@ -897,10 +911,10 @@ def _repr_type(
             return fn(type_, autogen_context)
         else:
             prefix = _sqlalchemy_autogenerate_prefix(autogen_context)
-            return "%s%r" % (prefix, type_)
+            return "%s%s" % (prefix, _type_repr(type_))
     else:
         prefix = _user_autogenerate_prefix(autogen_context, type_)
-        return "%s%r" % (prefix, type_)
+        return "%s%s" % (prefix, _type_repr(type_))
 
 
 def _render_ARRAY_type(type_: ARRAY, autogen_context: AutogenContext) -> str:

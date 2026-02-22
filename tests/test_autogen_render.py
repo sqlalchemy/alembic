@@ -1797,6 +1797,38 @@ class AutogenRenderTest(TestBase):
             f"sa.Enum('one', 'two', 'three'{extra}, native_enum=False)",
         )
 
+    def test_render_enum_subclass(self):
+        class Enum1(Enum):
+            pass
+
+        enum = Enum1("one", "two", name="enum1")
+        eq_ignore_whitespace(
+            autogenerate.render._repr_type(enum, self.autogen_context),
+            f"{self.__class__.__module__}.Enum1('one', 'two', name='enum1')",
+        )
+
+    def test_render_typedecorator_enum(self):
+        class Enum2(types.TypeDecorator):
+            impl = Enum
+            cache_ok = True
+
+        enum = Enum2("one", "two", name="enum2")
+        eq_ignore_whitespace(
+            autogenerate.render._repr_type(enum, self.autogen_context),
+            f"{self.__class__.__module__}.Enum2('one', 'two', name='enum2')",
+        )
+
+    def test_render_typedecorator_boolean(self):
+        class MyBool(types.TypeDecorator):
+            impl = Boolean
+            cache_ok = True
+
+        type_ = MyBool(name="bool_ck")
+        eq_ignore_whitespace(
+            autogenerate.render._repr_type(type_, self.autogen_context),
+            f"{self.__class__.__module__}.MyBool(name='bool_ck')",
+        )
+
     def test_repr_plain_sqla_type(self):
         type_ = Integer()
         eq_ignore_whitespace(
