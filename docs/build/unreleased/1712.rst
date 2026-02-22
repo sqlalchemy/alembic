@@ -1,0 +1,11 @@
+.. change::
+    :tags: usecase, commands
+    :tickets: 1712
+
+    Added ``--splice`` support to the :func:`.merge` command. Previously, the
+    merge command would suggest using ``--splice`` when attempting to merge
+    non-head revisions, but the flag was not actually accepted by the command.
+    The ``splice`` parameter is now available in both the command-line
+    interface and the :func:`.command.merge` function, matching the existing
+    support in :func:`.command.revision`.  Pull request courtesy Kadir Can
+    Ozden.
