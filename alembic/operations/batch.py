@@ -29,6 +29,7 @@ from ..util import exc
 from ..util.sqla_compat import _columns_for_constraint
 from ..util.sqla_compat import _copy
 from ..util.sqla_compat import _copy_expression
+from ..util.sqla_compat import _disable_schema_events
 from ..util.sqla_compat import _ensure_scope_for_ddl
 from ..util.sqla_compat import _fk_is_self_referential
 from ..util.sqla_compat import _idx_table_bound_expressions
@@ -526,10 +527,7 @@ class ApplyBatchImpl:
             # we also ignore the drop_constraint that will come here from
             # Operations.implementation_for(alter_column)
 
-            if isinstance(existing.type, SchemaEventTarget):
-                existing.type._create_events = (  # type:ignore[attr-defined]
-                    existing.type.create_constraint  # type:ignore[attr-defined] # noqa
-                ) = False
+            _disable_schema_events(existing.type)
 
             self.impl.cast_for_batch_migrate(
                 existing, existing_transfer, type_
@@ -537,10 +535,7 @@ class ApplyBatchImpl:
 
             existing.type = type_
 
-            if isinstance(existing.type, SchemaEventTarget):
-                existing.type._create_events = (  # type:ignore[attr-defined]
-                    existing.type.create_constraint  # type:ignore[attr-defined] # noqa
-                ) = False
+            _disable_schema_events(existing.type)
 
             # we *dont* however set events for the new type, because
             # alter_column is invoked from
@@ -624,10 +619,7 @@ class ApplyBatchImpl:
         # we copy the column because operations.add_column()
         # gives us a Column that is part of a Table already.
         new_column = _copy(column, schema=self.table.schema)
-        if isinstance(new_column.type, SchemaEventTarget):
-            new_column.type._create_events = (  # type:ignore[attr-defined]
-                new_column.type.create_constraint  # type:ignore[attr-defined] # noqa
-            ) = False
+        _disable_schema_events(new_column.type)
         self.columns[new_column.name] = new_column
         self.column_transfers[column.name] = {}
 
