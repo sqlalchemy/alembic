@@ -38,6 +38,7 @@ if TYPE_CHECKING:
     from typing import Literal
 
     from sqlalchemy import Table
+    from sqlalchemy import Constraint
     from sqlalchemy.engine import Connection
     from sqlalchemy.sql import Executable
     from sqlalchemy.sql.expression import ColumnElement
@@ -252,7 +253,7 @@ class AbstractOperations(util.ModuleClsProxy):
         table_kwargs: Mapping[str, Any] = util.immutabledict(),
         reflect_args: Tuple[Any, ...] = (),
         reflect_kwargs: Mapping[str, Any] = util.immutabledict(),
-        naming_convention: Optional[Dict[str, str]] = None,
+        naming_convention: Optional[Mapping[Any, Any]] = None,
     ) -> Iterator[BatchOperations]:
         """Invoke a series of per-table migrations in batch.
 
