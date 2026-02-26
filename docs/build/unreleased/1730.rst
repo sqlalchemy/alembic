@@ -1,0 +1,10 @@
+.. change::
+    :tags: feature, postgresql
+    :tickets: 1730
+
+    Added a new ``EnvironmentContext.configure()`` option,
+    ``postgresql_add_enum_value_if_not_exists``, which can also be set from
+    ``alembic.ini`` / ``[tool.alembic]``.  When enabled, PostgreSQL
+    ``ALTER TYPE ... ADD VALUE`` statements rendered by autogenerate as
+    ``op.execute(...)`` are emitted as
+    ``ALTER TYPE ... ADD VALUE IF NOT EXISTS``.

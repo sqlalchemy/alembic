@@ -2118,6 +2118,38 @@ class AutogenRenderTest(TestBase):
             "op.execute('drop table foo')",
         )
 
+    def test_render_executesql_postgresql_add_enum_if_not_exists(self):
+        context = MigrationContext.configure(
+            dialect_name="postgresql",
+            opts={
+                "alembic_module_prefix": "op.",
+                "postgresql_add_enum_value_if_not_exists": True,
+            },
+        )
+        autogen_context = api.AutogenContext(context)
+        op_obj = ops.ExecuteSQLOp("ALTER TYPE mood ADD VALUE 'soso'")
+        eq_(
+            autogenerate.render_op_text(autogen_context, op_obj),
+            "op.execute(\"ALTER TYPE mood ADD VALUE IF NOT EXISTS 'soso'\")",
+        )
+
+    def test_render_executesql_postgresql_add_enum_if_not_exists_present(self):
+        context = MigrationContext.configure(
+            dialect_name="postgresql",
+            opts={
+                "alembic_module_prefix": "op.",
+                "postgresql_add_enum_value_if_not_exists": True,
+            },
+        )
+        autogen_context = api.AutogenContext(context)
+        op_obj = ops.ExecuteSQLOp(
+            "ALTER TYPE mood ADD VALUE IF NOT EXISTS 'soso'"
+        )
+        eq_(
+            autogenerate.render_op_text(autogen_context, op_obj),
+            "op.execute(\"ALTER TYPE mood ADD VALUE IF NOT EXISTS 'soso'\")",
+        )
+
     def test_render_executesql_sqlexpr_notimplemented(self):
         sql = table("x", column("q")).insert()
         op_obj = ops.ExecuteSQLOp(sql)

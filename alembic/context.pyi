@@ -204,6 +204,7 @@ def configure(
         ]
     ] = None,
     autogenerate_plugins: Optional[Sequence[str]] = None,
+    postgresql_add_enum_value_if_not_exists: Optional[bool] = None,
     **kw: Any,
 ) -> None:
     """Configure a :class:`.MigrationContext` within this

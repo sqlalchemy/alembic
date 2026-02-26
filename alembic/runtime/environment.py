@@ -442,6 +442,7 @@ class EnvironmentContext(util.ModuleClsProxy):
         user_module_prefix: Optional[str] = None,
         on_version_apply: Optional[OnVersionApplyFn] = None,
         autogenerate_plugins: Sequence[str] | None = None,
+        postgresql_add_enum_value_if_not_exists: Optional[bool] = None,
         **kw: Any,
     ) -> None:
         """Configure a :class:`.MigrationContext` within this
@@ -893,6 +894,12 @@ class EnvironmentContext(util.ModuleClsProxy):
          be placed between each statement when generating offline
          Oracle migrations.  Defaults to ``/``.  Oracle doesn't add a
          semicolon between statements like most other backends.
+        :param postgresql_add_enum_value_if_not_exists: when ``True``,
+         PostgreSQL ``ALTER TYPE ... ADD VALUE`` statements rendered during
+         autogenerate as :meth:`.Operations.execute` calls are emitted with
+         ``ADD VALUE IF NOT EXISTS``. If omitted, this value is loaded from
+         the ``alembic.ini``/``pyproject.toml`` option of the same name if
+         present.
 
         """
         opts = self.context_opts
@@ -932,6 +939,28 @@ class EnvironmentContext(util.ModuleClsProxy):
         if compare_server_default is not None:
             opts["compare_server_default"] = compare_server_default
         opts["script"] = self.script
+
+        if postgresql_add_enum_value_if_not_exists is None:
+            config_value = self.config.get_alembic_option(
+                "postgresql_add_enum_value_if_not_exists"
+            )
+            if config_value is not None:
+                if isinstance(config_value, bool):
+                    postgresql_add_enum_value_if_not_exists = config_value
+                elif isinstance(config_value, str):
+                    postgresql_add_enum_value_if_not_exists = util.asbool(
+                        config_value
+                    )
+                else:
+                    raise util.CommandError(
+                        "Option 'postgresql_add_enum_value_if_not_exists' "
+                        "must be a boolean"
+                    )
+
+        if postgresql_add_enum_value_if_not_exists is not None:
+            opts["postgresql_add_enum_value_if_not_exists"] = (
+                postgresql_add_enum_value_if_not_exists
+            )
 
         opts.update(kw)
 

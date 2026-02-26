@@ -185,6 +185,11 @@ class PostgresqlOpTest(TestBase):
         op.drop_column("t", "c", if_exists=True)
         context.assert_("ALTER TABLE t DROP COLUMN IF EXISTS c")
 
+    def test_execute_alter_type_add_value(self):
+        context = op_fixture("postgresql")
+        op.execute("ALTER TYPE mood ADD VALUE 'soso'")
+        context.assert_("ALTER TYPE mood ADD VALUE 'soso'")
+
     def test_col_w_pk_is_serial(self):
         context = op_fixture("postgresql")
         op.add_column(

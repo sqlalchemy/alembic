@@ -72,6 +72,35 @@ class EnvironmentTest(TestBase):
         ctx = MigrationContext(ctx.dialect, None, {})
         is_(ctx.config, None)
 
+    def test_postgresql_add_enum_value_if_not_exists_from_config(self):
+        env = self._fixture()
+        self.cfg.set_main_option(
+            "postgresql_add_enum_value_if_not_exists", "true"
+        )
+
+        env.configure(dialect_name="postgresql")
+
+        eq_(
+            env.get_context().opts["postgresql_add_enum_value_if_not_exists"],
+            True,
+        )
+
+    def test_postgresql_add_enum_value_if_not_exists_kw_overrides_config(self):
+        env = self._fixture()
+        self.cfg.set_main_option(
+            "postgresql_add_enum_value_if_not_exists", "false"
+        )
+
+        env.configure(
+            dialect_name="postgresql",
+            postgresql_add_enum_value_if_not_exists=True,
+        )
+
+        eq_(
+            env.get_context().opts["postgresql_add_enum_value_if_not_exists"],
+            True,
+        )
+
     def test_sql_mode_parameters(self):
         env = self._fixture()
 

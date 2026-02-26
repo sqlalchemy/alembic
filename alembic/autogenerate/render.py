@@ -23,6 +23,7 @@ from sqlalchemy.sql.elements import conv
 from sqlalchemy.sql.elements import Label
 from sqlalchemy.sql.elements import quoted_name
 
+from ._postgresql import add_if_not_exists_to_enum_value
 from .. import util
 from ..operations import ops
 from ..util import sqla_compat
@@ -1163,9 +1164,17 @@ def _execute_sql(autogen_context: AutogenContext, op: ops.ExecuteSQLOp) -> str:
             "Autogenerate rendering of SQL Expression language constructs "
             "not supported here; please use a plain SQL string"
         )
+
+    sqltext = op.sqltext
+    if (
+        autogen_context.opts.get("postgresql_add_enum_value_if_not_exists")
+        and autogen_context.dialect.name == "postgresql"
+    ):
+        sqltext = add_if_not_exists_to_enum_value(sqltext)
+
     return "{prefix}execute({sqltext!r})".format(
         prefix=_alembic_autogenerate_prefix(autogen_context),
-        sqltext=op.sqltext,
+        sqltext=sqltext,
     )
 
 
