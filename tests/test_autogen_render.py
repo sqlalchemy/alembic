@@ -49,6 +49,7 @@ from alembic.testing import config
 from alembic.testing import eq_
 from alembic.testing import eq_ignore_whitespace
 from alembic.testing import mock
+from alembic.testing import is_not_
 from alembic.testing import TestBase
 from alembic.testing.fixtures import op_fixture
 from alembic.util import sqla_compat
@@ -1795,6 +1796,17 @@ class AutogenRenderTest(TestBase):
         eq_ignore_whitespace(
             autogenerate.render._repr_type(enum, self.autogen_context),
             f"sa.Enum('one', 'two', 'three'{extra}, native_enum=False)",
+        )
+
+    def test_render_enum_in_table(self):
+        e = Enum("one", "two", "three")
+        _ = Table("t", MetaData(), Column("x", e))
+        if sqla_compat.sqla_2_1:
+            is_not_(e.metadata, None)
+        enum, extra = self._check_enum_inherit_schema(e)
+        eq_ignore_whitespace(
+            autogenerate.render._repr_type(enum, self.autogen_context),
+            f"sa.Enum('one', 'two', 'three'{extra})",
         )
 
     def test_repr_plain_sqla_type(self):
