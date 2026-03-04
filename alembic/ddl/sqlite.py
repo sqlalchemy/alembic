@@ -160,6 +160,17 @@ class SQLiteImpl(DefaultImpl):
         ):
             column_info["default"] = "(%s)" % (column_info["default"],)
 
+    def autogen_table_reflect(self, inspector, table):
+        sql_text = sql.text(
+            "SELECT sql FROM sqlite_master WHERE name=:name AND type='table'"
+        )
+        res = inspector.bind.execute(sql_text, {"name": table.name}).scalar()
+        if res:
+            if re.search(r"\bSTRICT\b\s*;?\s*$", res, re.I):
+                table.kwargs["sqlite_strict"] = True
+            if re.search(r"\bWITHOUT ROWID\b", res, re.I):
+                table.kwargs["sqlite_with_rowid"] = False
+
     def render_ddl_sql_expr(
         self, expr: ClauseElement, is_server_default: bool = False, **kw
     ) -> str:

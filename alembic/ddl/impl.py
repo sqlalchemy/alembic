@@ -688,6 +688,14 @@ class DefaultImpl(metaclass=ImplMeta):
 
         """
 
+    def autogen_table_reflect(self, inspector, table):
+        """A hook that is called when a Table is reflected from the
+        database during the autogenerate process.
+
+        Dialects can elect to modify the information gathered here.
+
+        """
+
     def start_migrations(self) -> None:
         """A hook called when :meth:`.EnvironmentContext.run_migrations`
         is called.
