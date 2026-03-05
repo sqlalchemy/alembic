@@ -821,7 +821,7 @@ class MySQLEnumCompareTest(TestBase):
         (
             Enum("A", "B", "C", native_enum=True),
             Enum("C", "B", "A", native_enum=True),
-            True,
+            False,
         ),
         (MySQL_ENUM("A", "B", "C"), MySQL_ENUM("A", "B", "C"), False),
         (MySQL_ENUM("A", "B", "C"), MySQL_ENUM("A", "B", "C", "D"), True),

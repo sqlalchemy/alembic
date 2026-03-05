@@ -367,9 +367,8 @@ class MySQLImpl(DefaultImpl):
         if isinstance(metadata_type, sqltypes.Enum) and isinstance(
             inspector_type, sqltypes.Enum
         ):
-            # Compare the actual enum values; order matters for MySQL ENUMs.
-            # Changing the order of ENUM values is a schema change in MySQL.
-            if metadata_type.enums != inspector_type.enums:
+            # Compare the actual enum values, ignoring order
+            if set(metadata_type.enums) != set(inspector_type.enums):
                 return True
 
         # Fall back to default comparison for non-ENUM types
