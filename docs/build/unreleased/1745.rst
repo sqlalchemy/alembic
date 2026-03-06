@@ -1,0 +1,9 @@
+.. change::
+    :tags: bug, mysql
+    :tickets: 779, 1745
+
+    Implemented type comparison for :class:`.ENUM` datatypes on MySQL, which
+    checks that the individual enum values are equivalent.  If additional
+    entries are on either side, this generates a diff.  Changes of order do not
+    generate a diff.  Pull request courtesy Furkan Köykıran.
+

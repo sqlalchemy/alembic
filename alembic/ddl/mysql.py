@@ -350,6 +350,41 @@ class MySQLImpl(DefaultImpl):
             ):
                 cnfk.onupdate = "RESTRICT"
 
+    def compare_type(
+        self,
+        inspector_column: schema.Column[Any],
+        metadata_column: schema.Column,
+    ) -> bool:
+        """Override compare_type to properly detect MySQL native ENUM changes.
+
+        This addresses the issue where autogenerate fails to detect when new
+        values are added to or removed from MySQL native ENUM columns.
+        """
+        metadata_type = metadata_column.type
+        inspector_type = inspector_column.type
+
+        # Check if both columns are MySQL native ENUMs
+        if isinstance(metadata_type, sqltypes.Enum) and isinstance(
+            inspector_type, sqltypes.Enum
+        ):
+            metadata_set = set(metadata_type.enums)
+            inspector_set = set(inspector_type.enums)
+            # Compare the actual enum values, ignoring order
+            if metadata_set != inspector_set:
+                return True
+            else:
+                # for MySQL ENUM, there is no other aspect to be compared,
+                # avoid falling into the default compare_type which will
+                # return a false positive for change in order of the enum
+                # elements
+                return False
+
+        # Fall back to default comparison for non-ENUM types
+        # note that this comparison does not work for ENUM values as above
+        # because it considers different lengths of argument lists to be
+        # an "ignore" signal.
+        return super().compare_type(inspector_column, metadata_column)
+
 
 class MariaDBImpl(MySQLImpl):
     __dialect__ = "mariadb"
