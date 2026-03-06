@@ -48,8 +48,8 @@ from alembic.testing import assertions
 from alembic.testing import config
 from alembic.testing import eq_
 from alembic.testing import eq_ignore_whitespace
-from alembic.testing import mock
 from alembic.testing import is_not_
+from alembic.testing import mock
 from alembic.testing import TestBase
 from alembic.testing.fixtures import op_fixture
 from alembic.util import sqla_compat
