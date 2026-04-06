@@ -306,8 +306,28 @@ def _drop_table(autogen_context: AutogenContext, op: ops.DropTableOp) -> str:
 def _render_dialect_kwargs_items(
     autogen_context: AutogenContext, dialect_kwargs: _DialectArgView
 ) -> list[str]:
+    def _render_kwarg_value(val: Any) -> str:
+        if isinstance(val, (list, tuple)):
+            rendered = [
+                (
+                    repr(_ident(getattr(item, "name", None)))
+                    if isinstance(item, sa_schema.Column)
+                    else _render_potential_expr(item, autogen_context)
+                )
+                for item in val
+            ]
+            if isinstance(val, tuple):
+                return "(%s%s)" % (
+                    ", ".join(rendered),
+                    "," if len(rendered) == 1 else "",
+                )
+            else:
+                return "[%s]" % ", ".join(rendered)
+        else:
+            return _render_potential_expr(val, autogen_context)
+
     return [
-        f"{key}={_render_potential_expr(val, autogen_context)}"
+        f"{key}={_render_kwarg_value(val)}"
         for key, val in dialect_kwargs.items()
     ]
 

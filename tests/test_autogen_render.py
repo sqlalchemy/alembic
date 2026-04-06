@@ -147,6 +147,25 @@ class AutogenRenderTest(TestBase):
             "['active', 'code'], unique=False, somedialect_foobar='option')",
         )
 
+    @testing.emits_warning("Can't validate argument ")
+    def test_render_add_index_dialect_kwarg_with_columns(self):
+        """test that Column objects in dialect kwargs like
+        postgresql_include are rendered as column name strings,
+        not as raw Column repr.
+        """
+        t = self.table()
+        idx = Index(
+            "test_active_code_idx",
+            t.c.active,
+            somedialect_include=[t.c.code],
+        )
+        op_obj = ops.CreateIndexOp.from_index(idx)
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.create_index('test_active_code_idx', 'test', "
+            "['active'], unique=False, somedialect_include=['code'])",
+        )
+
     def test_render_add_index_batch(self):
         """
         autogenerate.render._add_index
@@ -314,6 +333,25 @@ class AutogenRenderTest(TestBase):
             autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.drop_index(op.f('ix_test_active'), table_name='test', "
             "somedialect_foobar='option')",
+        )
+
+    @testing.emits_warning("Can't validate argument ")
+    def test_render_drop_index_dialect_kwarg_with_columns(self):
+        """test that Column objects in dialect kwargs like
+        postgresql_include are rendered as column name strings
+        in drop_index, not as raw Column repr.
+        """
+        t = self.table()
+        idx = Index(
+            "test_active_code_idx",
+            t.c.active,
+            somedialect_include=(t.c.code,),
+        )
+        op_obj = ops.DropIndexOp.from_index(idx)
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.drop_index('test_active_code_idx', table_name='test', "
+            "somedialect_include=('code',))",
         )
 
     def test_add_fk_constraint__dialect_kwargs(self):
