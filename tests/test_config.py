@@ -46,6 +46,41 @@ migrations = %(base_path)s/db/migrations
         clear_staging_env()
 
 
+class ResolveDottedNameTest(TestBase):
+    def test_colon_format(self):
+        result = util.resolve_dotted_name("collections:OrderedDict")
+        from collections import OrderedDict
+
+        assert result is OrderedDict
+
+    def test_dot_format(self):
+        result = util.resolve_dotted_name("collections.OrderedDict")
+        from collections import OrderedDict
+
+        assert result is OrderedDict
+
+    def test_invalid_no_separator(self):
+        with expect_raises_message(
+            util.CommandError,
+            r"Could not resolve dotted name",
+        ):
+            util.resolve_dotted_name("justaplainname")
+
+    def test_bad_module(self):
+        with expect_raises_message(
+            util.CommandError,
+            r"Could not import module",
+        ):
+            util.resolve_dotted_name("nonexistent.module:Foo")
+
+    def test_bad_attr(self):
+        with expect_raises_message(
+            util.CommandError,
+            r"has no attribute",
+        ):
+            util.resolve_dotted_name("collections:NoSuchThing")
+
+
 class ConfigTest(TestBase):
     def test_config_logging_with_file(self):
         buf = io.StringIO()
@@ -750,6 +785,83 @@ class TemplateOutputEncodingTest(TestBase):
         self.cfg.set_main_option("output_encoding", "latin-1")
         script = ScriptDirectory.from_config(self.cfg)
         eq_(script.output_encoding, "latin-1")
+
+
+class RevisionMapClassTest(TestBase):
+    def setUp(self):
+        self.env = staging_env()
+        self.cfg = _no_sql_testing_config()
+
+    def tearDown(self):
+        clear_staging_env()
+
+    def test_default_revision_map_class(self):
+        from alembic.script.revision import RevisionMap
+
+        script = ScriptDirectory.from_config(self.cfg)
+        assert type(script.revision_map) is RevisionMap
+
+    def test_custom_class_via_constructor(self):
+        from alembic.script.revision import RevisionMap
+
+        class CustomRevisionMap(RevisionMap):
+            pass
+
+        script = ScriptDirectory(
+            self.cfg.get_main_option("script_location"),
+            revision_map_class=CustomRevisionMap,
+        )
+        assert type(script.revision_map) is CustomRevisionMap
+
+    def test_custom_class_from_config(self):
+        self.cfg.set_main_option(
+            "revision_map_class",
+            "alembic.script.revision:RevisionMap",
+        )
+        script = ScriptDirectory.from_config(self.cfg)
+        from alembic.script.revision import RevisionMap
+
+        assert type(script.revision_map) is RevisionMap
+
+    def test_invalid_not_a_subclass(self):
+        self.cfg.set_main_option(
+            "revision_map_class",
+            "collections:OrderedDict",
+        )
+        with expect_raises_message(
+            util.CommandError,
+            r"revision_map_class.*must be a subclass of "
+            r"alembic.script.revision.RevisionMap",
+        ):
+            ScriptDirectory.from_config(self.cfg)
+
+    def test_invalid_unresolvable_module(self):
+        self.cfg.set_main_option(
+            "revision_map_class",
+            "nonexistent.module:FakeClass",
+        )
+        with expect_raises_message(
+            util.CommandError,
+            r"Could not import module 'nonexistent.module'",
+        ):
+            ScriptDirectory.from_config(self.cfg)
+
+    def test_invalid_unresolvable_attr(self):
+        self.cfg.set_main_option(
+            "revision_map_class",
+            "alembic.script.revision:NoSuchClass",
+        )
+        with expect_raises_message(
+            util.CommandError,
+            r"has no attribute 'NoSuchClass'",
+        ):
+            ScriptDirectory.from_config(self.cfg)
+
+    def test_revision_map_exported_from_script_package(self):
+        from alembic.script import RevisionMap
+        from alembic.script.revision import RevisionMap as DirectRevisionMap
+
+        assert RevisionMap is DirectRevisionMap
 
 
 class CommandLineTest(TestBase):
