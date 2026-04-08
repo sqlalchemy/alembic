@@ -618,7 +618,22 @@ def _render_potential_expr(
     is_server_default: bool = False,
     is_index: bool = False,
 ) -> str:
-    if isinstance(value, sql.ClauseElement):
+
+    if isinstance(value, (list, tuple)):
+        rendered = [
+            _render_potential_expr(item, autogen_context) for item in value
+        ]
+        if isinstance(value, tuple):
+            return "(%s%s)" % (
+                ", ".join(rendered),
+                "," if len(rendered) == 1 else "",
+            )
+        else:
+            return "[%s]" % ", ".join(rendered)
+
+    elif isinstance(value, sa_schema.Column):
+        return repr(_ident(getattr(value, "name", None)))
+    elif isinstance(value, sql.ClauseElement):
         sql_text = autogen_context.migration_context.impl.render_ddl_sql_expr(
             value, is_server_default=is_server_default, is_index=is_index
         )
