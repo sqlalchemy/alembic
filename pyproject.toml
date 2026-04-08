@@ -151,7 +151,6 @@ strict = true
 [[tool.mypy.overrides]]
 module = [
     'mako.*',
-    'sqlalchemy.testing.*'
 ]
 ignore_missing_imports = true
 

@@ -1055,7 +1055,7 @@ class RevisionMap:
         children: Sequence[Optional[_RevisionOrBase]]
         for _ in range(abs(steps)):
             if steps > 0:
-                assert initial != "base"  # type: ignore[comparison-overlap]
+                assert initial != "base"
                 # Walk up
                 walk_up = [
                     is_revision(rev)
@@ -1069,7 +1069,7 @@ class RevisionMap:
                     children = walk_up
             else:
                 # Walk down
-                if initial == "base":  # type: ignore[comparison-overlap]
+                if initial == "base":
                     children = ()
                 else:
                     children = self.get_revisions(
