@@ -292,7 +292,7 @@ class DispatchPriority(enum.IntEnum):
     """
 
     FIRST = 50
-    """Run the funciton in the first batch of functions (highest priority)"""
+    """Run the function in the first batch of functions (highest priority)"""
 
     MEDIUM = 25
     """Run the function at normal priority (this is the default)"""
@@ -354,7 +354,7 @@ class Dispatcher:
 
 
 class PriorityDispatcher:
-    """registers lists of functions at multiple levels of priorty and provides
+    """registers lists of functions at multiple levels of priority and provides
     a target to invoke them in priority order.
 
     .. versionadded:: 1.18.0 - PriorityDispatcher replaces the job

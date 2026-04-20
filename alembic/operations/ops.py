@@ -2123,7 +2123,7 @@ class AddColumnOp(AlterTableOp):
 
         .. note::
 
-            Not all contraint types may be indicated with this directive.
+            Not all constraint types may be indicated with this directive.
             NOT NULL, FOREIGN KEY, and CHECK are honored, PRIMARY KEY
             is conditionally honored, UNIQUE
             is currently not.
