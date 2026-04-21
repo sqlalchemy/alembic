@@ -413,6 +413,40 @@ class BatchApplyTest(TestBase):
             1,
         )
 
+    def test_add_column_boolean_convention(self):
+        m = MetaData(
+            naming_convention={"ck": "ck_%(table_name)s_%(constraint_name)s"}
+        )
+        t = Table(
+            "tname",
+            m,
+            Column("id", Integer, primary_key=True),
+        )
+        impl = ApplyBatchImpl(self.impl, t, (), {}, False)
+        impl.add_column(
+            "tname",
+            Column("flag", Boolean(create_constraint=True, name="ck1")),
+        )
+        ck = CheckConstraint("flag IN (0, 1)", name="ck1")
+        t.append_constraint(ck)
+        impl.add_constraint(ck)
+        new_table = self._assert_impl(
+            impl,
+            ddl_contains="CONSTRAINT ck_tname_ck1 CHECK (flag IN (0, 1))",
+            colnames=["id", "flag"],
+            dialect="sqlite",
+        )
+        eq_(
+            len(
+                [
+                    const
+                    for const in new_table.constraints
+                    if isinstance(const, CheckConstraint)
+                ]
+            ),
+            1,
+        )
+
     def test_change_type_schematype_to_non(self):
         impl = self._boolean_fixture()
         impl.alter_column("tname", "flag", type_=Integer)
