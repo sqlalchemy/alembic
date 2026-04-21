@@ -793,6 +793,7 @@ class RevisionMap:
         inclusive: bool = False,
         assert_relative_length: bool = True,
         select_for_downgrade: bool = False,
+        reversed: bool = False,
     ) -> Iterator[Revision]:
         """Iterate through script revisions, starting at the given
         upper revision identifier and ending at the lower.
@@ -819,7 +820,12 @@ class RevisionMap:
             assert_relative_length=assert_relative_length,
         )
 
-        for node in self._topological_sort(revisions, heads):
+        topological_sort = (
+            self._topological_sort(revisions, heads)[::-1]
+            if reversed
+            else self._topological_sort(revisions, heads)
+        )
+        for node in topological_sort:
             yield not_none(self.get_revision(node))
 
     def _get_descendant_nodes(
