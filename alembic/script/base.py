@@ -359,7 +359,7 @@ class ScriptDirectory:
         ):
             return self.revision_map.get_current_head()
 
-    def get_heads(self) -> List[str]:
+    def get_heads(self, consider_depends_on: bool = False) -> List[str]:
         """Return all "versioned head" revisions as strings.
 
         This is normally a list of length one,
@@ -368,8 +368,19 @@ class ScriptDirectory:
         can be used normally when a script directory
         has only one head.
 
-        :return: a tuple of string revision numbers.
+        :param consider_depends_on: if True, head revisions that are
+         also a dependency of another revision via
+         :paramref:`.Operations.create_revision.depends_on` will not
+         be included in the returned list, matching the effective heads
+         that would be present in the ``alembic_version`` table after
+         running all upgrades.
+
+         .. versionadded:: 1.18.5
+
+        :return: a list of string revision numbers.
         """
+        if consider_depends_on:
+            return list(self.revision_map._real_heads)
         return list(self.revision_map.heads)
 
     def get_base(self) -> Optional[str]:

@@ -1218,3 +1218,173 @@ class RecursiveScriptDirectoryTest(TestBase):
             ("r1", "dir_1", "model1"),
             ("r2", "dir_1/nested", "model1"),
         )
+
+
+class ScriptDirectoryMethodsTest(TestBase):
+    """Unit tests for ScriptDirectory public API methods."""
+
+    @testing.fixture
+    def linear_fixture(self):
+        """a -> b -> c"""
+        staging_env()
+        cfg = _sqlite_testing_config()
+        self.a, self.b, self.c = three_rev_fixture(cfg)
+        yield ScriptDirectory.from_config(cfg)
+        clear_staging_env()
+
+    @testing.fixture
+    def multi_heads_fixture(self):
+        """a -> b -> c
+        -> d -> e
+        -> f
+        """
+        staging_env()
+        cfg = _sqlite_testing_config()
+        self.a, self.b, self.c = three_rev_fixture(cfg)
+        self.d, self.e, self.f = multi_heads_fixture(
+            cfg, self.a, self.b, self.c
+        )
+        yield ScriptDirectory.from_config(cfg)
+        clear_staging_env()
+
+    @testing.fixture
+    def depends_on_fixture(self):
+        """Three independent branches, one with depends_on::
+
+            q1                a1              t1
+            |                 |               |
+            q2                a2              t2
+            |                 |               |
+            q3                a3              t3  <- head
+            |                 |               ^
+            q4 (depends_on t3)+               |
+            |                 |
+            q5                a4 <- head
+            ^ head
+
+        get_heads() returns {q5, a4, t3}
+        get_heads(consider_depends_on=True) returns {q5, a4}
+        """
+        env = staging_env()
+        cfg = _sqlite_testing_config()
+
+        self.q1 = env.generate_revision(
+            util.rev_id(), "q1", head="base", branch_labels=["q"]
+        )
+        self.q2 = env.generate_revision(util.rev_id(), "q2")
+        self.q3 = env.generate_revision(util.rev_id(), "q3")
+
+        self.a1 = env.generate_revision(
+            util.rev_id(), "a1", head="base", branch_labels=["a"]
+        )
+        self.a2 = env.generate_revision(
+            util.rev_id(), "a2", head=self.a1.revision
+        )
+        self.a3 = env.generate_revision(
+            util.rev_id(), "a3", head=self.a2.revision
+        )
+
+        self.t1 = env.generate_revision(
+            util.rev_id(), "t1", head="base", branch_labels=["t"]
+        )
+        self.t2 = env.generate_revision(
+            util.rev_id(), "t2", head=self.t1.revision
+        )
+        self.t3 = env.generate_revision(
+            util.rev_id(), "t3", head=self.t2.revision
+        )
+
+        self.q4 = env.generate_revision(
+            util.rev_id(),
+            "q4",
+            head=self.q3.revision,
+            depends_on=self.t3.revision,
+        )
+        self.q5 = env.generate_revision(
+            util.rev_id(), "q5", head=self.q4.revision
+        )
+
+        self.a4 = env.generate_revision(
+            util.rev_id(), "a4", head=self.a3.revision
+        )
+        yield ScriptDirectory.from_config(cfg)
+        clear_staging_env()
+
+    def test_get_heads(self, linear_fixture):
+        eq_(linear_fixture.get_heads(), [self.c])
+
+    def test_get_current_head(self, linear_fixture):
+        eq_(linear_fixture.get_current_head(), self.c)
+
+    def test_get_bases(self, linear_fixture):
+        eq_(linear_fixture.get_bases(), [self.a])
+
+    def test_get_base(self, linear_fixture):
+        eq_(linear_fixture.get_base(), self.a)
+
+    def test_get_revision(self, linear_fixture):
+        rev = linear_fixture.get_revision(self.b)
+        eq_(rev.revision, self.b)
+        eq_(rev.down_revision, self.a)
+
+    def test_get_revisions(self, linear_fixture):
+        revs = linear_fixture.get_revisions((self.a, self.c))
+        eq_(set(r.revision for r in revs), {self.a, self.c})
+
+    def test_walk_revisions(self, linear_fixture):
+        revs = list(linear_fixture.walk_revisions())
+        eq_([r.revision for r in revs], [self.c, self.b, self.a])
+
+    def test_walk_revisions_base_to_head(self, linear_fixture):
+        revs = list(linear_fixture.walk_revisions(base=self.a, head=self.c))
+        eq_([r.revision for r in revs], [self.c, self.b, self.a])
+
+    def test_as_revision_number_head(self, linear_fixture):
+        eq_(linear_fixture.as_revision_number("head"), self.c)
+
+    def test_as_revision_number_base(self, linear_fixture):
+        eq_(linear_fixture.as_revision_number("base"), None)
+
+    def test_get_heads_multiple(self, multi_heads_fixture):
+        eq_(set(multi_heads_fixture.get_heads()), {self.c, self.e, self.f})
+
+    def test_get_heads_multiple_consider_depends_on(self, multi_heads_fixture):
+        eq_(
+            set(multi_heads_fixture.get_heads(consider_depends_on=True)),
+            {self.c, self.e, self.f},
+        )
+
+    def test_get_current_head_multiple_raises(self, multi_heads_fixture):
+        assert_raises_message(
+            util.CommandError,
+            "multiple heads",
+            multi_heads_fixture.get_current_head,
+        )
+
+    def test_get_bases_multiple_heads(self, multi_heads_fixture):
+        eq_(multi_heads_fixture.get_bases(), [self.a])
+
+    def test_walk_revisions_multiple_heads(self, multi_heads_fixture):
+        revs = list(multi_heads_fixture.walk_revisions())
+        eq_(
+            set(r.revision for r in revs),
+            {self.a, self.b, self.c, self.d, self.e, self.f},
+        )
+
+    def test_get_heads_depends_on_default(self, depends_on_fixture):
+        eq_(
+            set(depends_on_fixture.get_heads()),
+            {self.q5.revision, self.a4.revision, self.t3.revision},
+        )
+
+    def test_get_heads_depends_on_true(self, depends_on_fixture):
+        eq_(
+            set(depends_on_fixture.get_heads(consider_depends_on=True)),
+            {self.q5.revision, self.a4.revision},
+        )
+
+    def test_get_heads_depends_on_false(self, depends_on_fixture):
+        eq_(
+            depends_on_fixture.get_heads(consider_depends_on=False),
+            depends_on_fixture.get_heads(),
+        )

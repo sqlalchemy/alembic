@@ -1,0 +1,10 @@
+.. change::
+    :tags: usecase, environment
+    :tickets: 1806
+
+    Added :paramref:`.ScriptDirectory.get_heads.consider_depends_on`
+    parameter to :meth:`.ScriptDirectory.get_heads`. When set to ``True``,
+    head revisions that are also a dependency of another revision via
+    ``depends_on`` are excluded from the result, matching the effective
+    heads that would be present in the ``alembic_version`` table after
+    running all upgrades.
