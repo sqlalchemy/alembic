@@ -1,0 +1,10 @@
+.. change::
+    :tags: bug, autogenerate
+    :tickets: 1258
+
+    Fixed rendering of dialect keyword arguments containing
+    :class:`~sqlalchemy.schema.Column` objects within sequences, such as
+    ``postgresql_include``.  These were previously rendered using ``repr()``,
+    producing invalid Python in the generated migration scripts.  Column
+    objects within list or tuple values are now correctly rendered as their
+    string column names.  Pull request courtesy Ajay Singh.
