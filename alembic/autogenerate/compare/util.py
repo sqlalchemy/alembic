@@ -15,6 +15,7 @@ from ...util import sqla_compat
 if TYPE_CHECKING:
     from sqlalchemy import Table
     from sqlalchemy.engine import Inspector
+    from sqlalchemy.engine.interfaces import ReflectedCheckConstraint
     from sqlalchemy.engine.interfaces import ReflectedForeignKeyConstraint
     from sqlalchemy.engine.interfaces import ReflectedIndex
     from sqlalchemy.engine.interfaces import ReflectedUniqueConstraint
@@ -78,6 +79,11 @@ class _InspectorConv:
     ) -> list[ReflectedForeignKeyConstraint]:
         raise NotImplementedError()
 
+    def get_check_constraints(
+        self, tname: str, schema: str | None
+    ) -> list[ReflectedCheckConstraint]:
+        raise NotImplementedError()
+
     def reflect_table(self, table: Table) -> None:
         raise NotImplementedError()
 
@@ -121,6 +127,13 @@ class _LegacyInspectorConv(_InspectorConv):
     ) -> list[ReflectedForeignKeyConstraint]:
         return self._apply_reflectinfo_conv(
             self.inspector.get_foreign_keys(tname, schema=schema)
+        )
+
+    def get_check_constraints(
+        self, tname: str, schema: str | None
+    ) -> list[ReflectedCheckConstraint]:
+        return self._apply_reflectinfo_conv(
+            self.inspector.get_check_constraints(tname, schema=schema)
         )
 
     def reflect_table(self, table: Table) -> None:
@@ -250,6 +263,18 @@ class _SQLA2InspectorConv(_InspectorConv):
             "alembic_foreign_keys",
             self.inspector.get_foreign_keys,
             apply_constraint_conv=True,
+        )
+
+    def get_check_constraints(
+        self, tname: str, schema: str | None
+    ) -> list[ReflectedCheckConstraint]:
+        return self._return_from_cache(
+            tname,
+            schema,
+            "alembic_check_constraints",
+            self.inspector.get_check_constraints,
+            apply_constraint_conv=True,
+            optional=False,
         )
 
     def _apply_reflectinfo_conv(self, consts):
