@@ -15,6 +15,7 @@ from ...util import PriorityDispatchResult
 from ...util import sqla_compat
 
 if TYPE_CHECKING:
+    from sqlalchemy.engine.interfaces import ReflectedCheckConstraint
     from sqlalchemy.sql.elements import quoted_name
     from sqlalchemy.sql.schema import CheckConstraint
     from sqlalchemy.sql.schema import Table
@@ -30,7 +31,7 @@ log = logging.getLogger(__name__)
 
 def _make_check_constraint(
     impl: DefaultImpl,
-    params: dict,
+    params: ReflectedCheckConstraint,
     conn_table: Table,
 ) -> CheckConstraint:
     const = sa_schema.CheckConstraint(
@@ -96,8 +97,16 @@ def _compare_check_constraints(
         impl._create_reflected_constraint_sig(ck) for ck in conn_ck_objs
     }
 
-    metadata_ck_by_name = {c.name: c for c in metadata_ck_sig if c.name}
-    conn_ck_by_name = {c.name: c for c in conn_ck_sig if c.name}
+    metadata_ck_by_name = {
+        c.name: c
+        for c in metadata_ck_sig
+        if sqla_compat.constraint_name_string(c.name)
+    }
+    conn_ck_by_name = {
+        c.name: c
+        for c in conn_ck_sig
+        if sqla_compat.constraint_name_string(c.name)
+    }
 
     for removed_name in sorted(
         set(conn_ck_by_name).difference(metadata_ck_by_name)
