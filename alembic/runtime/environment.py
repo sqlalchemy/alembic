@@ -58,6 +58,7 @@ NameFilterType = Literal[
     "index",
     "unique_constraint",
     "foreign_key_constraint",
+    "check_constraint",
 ]
 NameFilterParentNames = MutableMapping[
     Literal["schema_name", "table_name", "schema_qualified_table_name"],

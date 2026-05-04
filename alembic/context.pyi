@@ -113,6 +113,7 @@ def configure(
                     "index",
                     "unique_constraint",
                     "foreign_key_constraint",
+                    "check_constraint",
                 ],
                 MutableMapping[
                     Literal[
@@ -138,6 +139,7 @@ def configure(
                     "index",
                     "unique_constraint",
                     "foreign_key_constraint",
+                    "check_constraint",
                 ],
                 bool,
                 Optional[SchemaItem],

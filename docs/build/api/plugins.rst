@@ -138,6 +138,11 @@ invoked are:
   depends on the ``tables`` plugin in order to iterate through columns.
 * ``alembic.autogenerate.comments`` - Table and column comment changes.  This
   plugin depends on the ``tables`` plugin in order to iterate through columns.
+* ``alembic.autogenerate.checkconstraint_byname`` - Named CHECK constraint
+  creation and dropping. This plugin depends on the ``tables`` plugin in
+  order to iterate through columns.  See
+  :ref:`autogenerate_check_constraints` for background, including how to
+  disable this plugin specifically.
 
 While these names can be specified individually, they are subject to change
 as Alembic evolves. Using the wildcard pattern is recommended.

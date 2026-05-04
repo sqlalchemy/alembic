@@ -125,6 +125,9 @@ Autogenerate **will detect**:
 * Change of nullable status on columns.
 * Basic changes in indexes and explicitly-named unique constraints
 * Basic changes in foreign key constraints
+* Named CHECK constraint additions and removals.  See
+  :ref:`autogenerate_check_constraints` below for important caveats regarding
+  this feature, as well as how to disable it.
 
 Autogenerate can **optionally detect**:
 
@@ -183,10 +186,47 @@ Autogenerate **can not detect**:
 Autogenerate can't currently, but **will eventually detect**:
 
 * Some free-standing constraint additions and removals may not be supported,
-  including PRIMARY KEY, EXCLUDE, CHECK; these are not necessarily implemented
+  including PRIMARY KEY, EXCLUDE; these are not necessarily implemented
   within the autogenerate detection system and also may not be supported by
   the supporting SQLAlchemy dialect.
 * Sequence additions, removals - not yet implemented.
+
+.. _autogenerate_check_constraints:
+
+Detecting CHECK Constraints
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. versionadded:: 1.19.0
+
+Autogenerate detects the addition and removal of **named** CHECK
+constraints.  As with other constraint types, unnamed CHECK constraints are
+not detected; see :doc:`naming` for background on assigning names via a
+naming convention.
+
+This detection is **name-based only**: a metadata-side CHECK constraint and a
+reflected CHECK constraint that share the same name are always presumed to
+be equivalent, regardless of any difference in their expression text.
+Reliably comparing CHECK constraint SQL expressions between what's in the
+:class:`~sqlalchemy.schema.MetaData` and what a database dialect reports
+back from reflection is not generally feasible, since dialects are free to
+normalize, reformat, or otherwise transform the original DDL text.
+
+This detection is implemented as a built-in
+:ref:`plugin <alembic.plugins.toplevel>` named
+``alembic.autogenerate.checkconstraint_byname``, which is part of the
+``alembic.autogenerate.*`` wildcard and therefore active by default.  If
+this behavior is not desired, for example if the name-only comparison is
+producing unwanted false negatives on constraint changes, it can be turned
+off by excluding it from the
+:paramref:`.EnvironmentContext.configure.autogenerate_plugins` list::
+
+    context.configure(
+        # ...
+        autogenerate_plugins=[
+            "alembic.autogenerate.*",
+            "~alembic.autogenerate.checkconstraint_byname",
+        ]
+    )
 
 Notable 3rd-party libraries that extend the built-in Alembic autogenerate functionality
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

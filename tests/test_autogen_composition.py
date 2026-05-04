@@ -448,6 +448,8 @@ class AutogenerateNamingConvTest(NamingConvModel, AutogenTest, TestBase):
     op.drop_table('x5')
     op.drop_index(op.f('db_x1_index_q'), table_name='x1')
     op.create_index(op.f('ix_x1_q'), 'x1', ['q'], unique=False)
+    op.drop_constraint(op.f('db_x2_check_q'), 'x2', type_='check')
+    op.create_check_constraint(op.f('ck_x2_token_x2check1'), 'x2', 'q > 5')
     op.drop_constraint(op.f('db_x3_unique_q'), 'x3', type_='unique')
     op.create_unique_constraint(op.f('uq_x3_token_x3r'), 'x3', ['r'])
     op.create_unique_constraint(op.f('userdef_x3_unique_s'), 'x3', ['s'])
@@ -464,6 +466,8 @@ class AutogenerateNamingConvTest(NamingConvModel, AutogenTest, TestBase):
     op.create_unique_constraint(op.f('db_x3_unique_q'), 'x3', ['q'])
     op.drop_index(op.f('ix_x1_q'), table_name='x1')
     op.create_index(op.f('db_x1_index_q'), 'x1', ['q'], unique=False)
+    op.drop_constraint(op.f('ck_x2_token_x2check1'), 'x2', type_='check')
+    op.create_check_constraint(op.f('db_x2_check_q'), 'x2', 'q > 5')
     op.create_table('x5',
     sa.Column('q', sa.INTEGER(), nullable=False),
     sa.Column('p', sa.INTEGER(), nullable=True),
@@ -520,6 +524,10 @@ class AutogenerateNamingConvWBatchTest(NamingConvModel, AutogenTest, TestBase):
         batch_op.drop_index(batch_op.f('db_x1_index_q'))
         batch_op.create_index(batch_op.f('ix_x1_q'), ['q'], unique=False)
 
+    with op.batch_alter_table('x2', schema=None) as batch_op:
+        batch_op.drop_constraint(batch_op.f('db_x2_check_q'), type_='check')
+        batch_op.create_check_constraint(batch_op.f('ck_x2_token_x2check1'), 'q > 5')
+
     with op.batch_alter_table('x3', schema=None) as batch_op:
         batch_op.drop_constraint(batch_op.f('db_x3_unique_q'), type_='unique')
         batch_op.create_unique_constraint(batch_op.f('uq_x3_token_x3r'), ['r'])
@@ -541,6 +549,10 @@ class AutogenerateNamingConvWBatchTest(NamingConvModel, AutogenTest, TestBase):
         batch_op.drop_constraint(batch_op.f('userdef_x3_unique_s'), type_='unique')
         batch_op.drop_constraint(batch_op.f('uq_x3_token_x3r'), type_='unique')
         batch_op.create_unique_constraint(batch_op.f('db_x3_unique_q'), ['q'])
+
+    with op.batch_alter_table('x2', schema=None) as batch_op:
+        batch_op.drop_constraint(batch_op.f('ck_x2_token_x2check1'), type_='check')
+        batch_op.create_check_constraint(batch_op.f('db_x2_check_q'), 'q > 5')
 
     with op.batch_alter_table('x1', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_x1_q'))
