@@ -1514,6 +1514,61 @@ class AutogenRenderTest(TestBase):
             "autoincrement=True)",
         )
 
+    def test_render_modify_type_varchar_to_uuid_postgresql_using(self):
+        """autogenerate injects postgresql_using when changing VARCHAR to UUID
+        on a PostgreSQL dialect (issue #963)."""
+        ctx_opts = {
+            "sqlalchemy_module_prefix": "sa.",
+            "alembic_module_prefix": "op.",
+            "target_metadata": MetaData(),
+        }
+        from sqlalchemy.dialects.postgresql import UUID
+
+        context = MigrationContext.configure(
+            dialect_name="postgresql", opts=ctx_opts
+        )
+        pg_autogen_context = api.AutogenContext(context)
+        op_obj = ops.AlterColumnOp(
+            "subscription",
+            "remote_uuid",
+            modify_type=UUID(as_uuid=True),
+            existing_type=VARCHAR(255),
+            existing_nullable=False,
+        )
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(pg_autogen_context, op_obj),
+            "op.alter_column('subscription', 'remote_uuid', "
+            "existing_type=sa.VARCHAR(length=255), "
+            "type_=sa.UUID(), "
+            "postgresql_using='remote_uuid::uuid', "
+            "existing_nullable=False)",
+        )
+
+    def test_render_modify_type_uuid_postgresql_using_not_duplicated(self):
+        """postgresql_using already in op.kw is not overwritten."""
+        ctx_opts = {
+            "sqlalchemy_module_prefix": "sa.",
+            "alembic_module_prefix": "op.",
+            "target_metadata": MetaData(),
+        }
+        from sqlalchemy.dialects.postgresql import UUID
+
+        context = MigrationContext.configure(
+            dialect_name="postgresql", opts=ctx_opts
+        )
+        pg_autogen_context = api.AutogenContext(context)
+        op_obj = ops.AlterColumnOp(
+            "subscription",
+            "remote_uuid",
+            modify_type=UUID(as_uuid=True),
+            existing_type=VARCHAR(255),
+            existing_nullable=False,
+            postgresql_using="remote_uuid::text::uuid",
+        )
+        result = autogenerate.render_op_text(pg_autogen_context, op_obj)
+        assert "postgresql_using='remote_uuid::text::uuid'" in result
+        assert result.count("postgresql_using") == 1
+
     def test_render_fk_constraint_kwarg(self):
         m = MetaData()
         t1 = Table("t", m, Column("c", Integer))

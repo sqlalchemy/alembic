@@ -564,6 +564,15 @@ def _alter_column(
         text += ",\n%snew_column_name=%r" % (indent, newname)
     if type_ is not None:
         text += ",\n%stype_=%s" % (indent, _repr_type(type_, autogen_context))
+        if (
+            autogen_context.dialect.name == "postgresql"
+            and isinstance(type_, sqltypes.Uuid)
+            and "postgresql_using" not in op.kw
+        ):
+            text += ",\n%spostgresql_using=%r" % (
+                indent,
+                "%s::uuid" % cname,
+            )
     if nullable is not None:
         text += ",\n%snullable=%r" % (indent, nullable)
     if comment is not False:
@@ -581,6 +590,9 @@ def _alter_column(
         text += ",\n%sexisting_server_default=%s" % (indent, rendered)
     if schema and not autogen_context._has_batch:
         text += ",\n%sschema=%r" % (indent, schema)
+    for k in sorted(op.kw):
+        if k != "autoincrement":
+            text += ",\n%s%s=%r" % (indent, k, op.kw[k])
     text += ")"
     return text
 
