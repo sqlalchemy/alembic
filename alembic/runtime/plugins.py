@@ -15,7 +15,7 @@ from ..util import PriorityDispatcher
 if TYPE_CHECKING:
     from ..util import PriorityDispatchResult
 
-_all_plugins = {}
+_all_plugins: dict[str, Plugin] = {}
 
 
 log = logging.getLogger(__name__)
