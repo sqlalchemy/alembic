@@ -28,6 +28,7 @@ from sqlalchemy import Unicode
 from sqlalchemy import UniqueConstraint
 from sqlalchemy import VARCHAR
 from sqlalchemy.dialects.mysql import LONGTEXT
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.engine.default import DefaultDialect
 from sqlalchemy.sql import and_
 from sqlalchemy.sql import column
@@ -1522,8 +1523,6 @@ class AutogenRenderTest(TestBase):
             "alembic_module_prefix": "op.",
             "target_metadata": MetaData(),
         }
-        from sqlalchemy.dialects.postgresql import UUID
-
         context = MigrationContext.configure(
             dialect_name="postgresql", opts=ctx_opts
         )
@@ -1531,7 +1530,7 @@ class AutogenRenderTest(TestBase):
         op_obj = ops.AlterColumnOp(
             "subscription",
             "remote_uuid",
-            modify_type=UUID(as_uuid=True),
+            modify_type=PG_UUID(as_uuid=True),
             existing_type=VARCHAR(255),
             existing_nullable=False,
         )
@@ -1551,8 +1550,6 @@ class AutogenRenderTest(TestBase):
             "alembic_module_prefix": "op.",
             "target_metadata": MetaData(),
         }
-        from sqlalchemy.dialects.postgresql import UUID
-
         context = MigrationContext.configure(
             dialect_name="postgresql", opts=ctx_opts
         )
@@ -1560,7 +1557,7 @@ class AutogenRenderTest(TestBase):
         op_obj = ops.AlterColumnOp(
             "subscription",
             "remote_uuid",
-            modify_type=UUID(as_uuid=True),
+            modify_type=PG_UUID(as_uuid=True),
             existing_type=VARCHAR(255),
             existing_nullable=False,
             postgresql_using="remote_uuid::text::uuid",
