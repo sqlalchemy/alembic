@@ -756,6 +756,14 @@ class CommandLine:
                 "generating one",
             ),
         ),
+        "reversed": (
+            "-R",
+            "--reversed",
+            dict(
+                action="store_true",
+                help="Show the history in the reversed order",
+            ),
+        ),
         "version_path": (
             "--version-path",
             dict(
