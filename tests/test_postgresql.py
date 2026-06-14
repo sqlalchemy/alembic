@@ -135,6 +135,25 @@ class PostgresqlOpTest(TestBase):
         op.create_index("i", "t", ["c1", "c2"], unique=False)
         context.assert_("CREATE INDEX i ON t (c1, c2)")
 
+    def test_create_unique_constraint_postgresql_include(self):
+        context = op_fixture("postgresql")
+        op.create_unique_constraint(
+            "uq_t", "t", ["c1", "c2"], postgresql_include=["inc"]
+        )
+        context.assert_(
+            "ALTER TABLE t ADD CONSTRAINT uq_t UNIQUE (c1, c2) INCLUDE (inc)"
+        )
+
+    def test_create_primary_key_postgresql_include(self):
+        context = op_fixture("postgresql")
+        op.create_primary_key(
+            "pk_t", "t", ["c1", "c2"], postgresql_include=["inc"]
+        )
+        context.assert_(
+            "ALTER TABLE t ADD CONSTRAINT pk_t PRIMARY KEY (c1, c2) "
+            "INCLUDE (inc)"
+        )
+
     def test_create_index_if_not_exists(self):
         context = op_fixture("postgresql")
         op.create_index("i", "t", ["c1", "c2"], if_not_exists=True)

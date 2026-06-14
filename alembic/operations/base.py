@@ -1217,8 +1217,9 @@ class Operations(AbstractOperations):
             columns: List[str],
             *,
             schema: Optional[str] = None,
+            **kw: Any,
         ) -> None:
-            """Issue a "create primary key" instruction using the current
+            r"""Issue a "create primary key" instruction using the current
             migration context.
 
             e.g.::
@@ -1250,6 +1251,11 @@ class Operations(AbstractOperations):
              quoting of the schema outside of the default behavior, use
              the SQLAlchemy construct
              :class:`~sqlalchemy.sql.elements.quoted_name`.
+            :param \**kw: Additional keyword arguments are dialect specific, and
+             passed in the form ``<dialectname>_<argname>``.  See the documentation
+             regarding an individual dialect at :ref:`dialect_toplevel` for
+             detail on documented arguments.  An example of a dialect-specific
+             option is the PostgreSQL ``postgresql_include`` argument.
 
             """  # noqa: E501
             ...
@@ -1380,7 +1386,7 @@ class Operations(AbstractOperations):
             schema: Optional[str] = None,
             **kw: Any,
         ) -> Any:
-            """Issue a "create unique constraint" instruction using the
+            r"""Issue a "create unique constraint" instruction using the
             current migration context.
 
             e.g.::
@@ -1415,6 +1421,11 @@ class Operations(AbstractOperations):
              quoting of the schema outside of the default behavior, use
              the SQLAlchemy construct
              :class:`~sqlalchemy.sql.elements.quoted_name`.
+            :param \**kw: Additional keyword arguments are dialect specific, and
+             passed in the form ``<dialectname>_<argname>``.  See the documentation
+             regarding an individual dialect at :ref:`dialect_toplevel` for
+             detail on documented arguments.  An example of a dialect-specific
+             option is the PostgreSQL ``postgresql_include`` argument.
 
             """  # noqa: E501
             ...
