@@ -396,6 +396,9 @@ def add_column(
             table_name,
             compiler.preparer.quote(ref_col.name),
         )
+        text += compiler.define_constraint_match(fk.constraint)
+        text += compiler.define_constraint_cascades(fk.constraint)
+        text += compiler.define_constraint_deferrability(fk.constraint)
 
     const = " ".join(
         compiler.process(constraint) for constraint in column.constraints

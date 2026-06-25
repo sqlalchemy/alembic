@@ -388,6 +388,37 @@ class OpTest(TestBase):
             f"ALTER TABLE t1 ADD COLUMN c1 INTEGER NOT NULL {expected_ref}"
         )
 
+    @combinations(
+        ({"ondelete": "SET NULL"}, "ON DELETE SET NULL"),
+        ({"onupdate": "CASCADE"}, "ON UPDATE CASCADE"),
+        (
+            {"ondelete": "SET NULL", "onupdate": "CASCADE"},
+            "ON DELETE SET NULL ON UPDATE CASCADE",
+        ),
+        (
+            {"deferrable": True, "initially": "DEFERRED"},
+            "DEFERRABLE INITIALLY DEFERRED",
+        ),
+        ({"deferrable": False}, "NOT DEFERRABLE"),
+        ({"match": "FULL"}, "MATCH FULL"),
+        argnames="fk_kwargs,expected_suffix",
+    )
+    def test_add_column_fk_inline_references_referential_actions(
+        self, fk_kwargs, expected_suffix
+    ):
+        context = op_fixture()
+        op.add_column(
+            "t1",
+            Column(
+                "c1", Integer, ForeignKey("c2.id", **fk_kwargs), nullable=True
+            ),
+            inline_references=True,
+        )
+        context.assert_(
+            f"ALTER TABLE t1 ADD COLUMN c1 INTEGER "
+            f"REFERENCES c2 (id) {expected_suffix}"
+        )
+
     def test_add_column_multiple_fk_inline_references(self):
         """Test that inline_references is ignored when a column has multiple
         ForeignKey objects to avoid non-deterministic behavior."""

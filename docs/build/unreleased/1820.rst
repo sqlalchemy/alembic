@@ -1,0 +1,9 @@
+.. change::
+    :tags: bug, operations
+    :tickets: 1820
+
+    Fixed bug where the ``inline_references`` parameter of
+    :meth:`.Operations.add_column` did not include foreign key referential
+    actions such as ``ON DELETE``, ``ON UPDATE``, ``DEFERRABLE``,
+    ``INITIALLY``, and ``MATCH`` when rendering the inline ``REFERENCES``
+    clause.
