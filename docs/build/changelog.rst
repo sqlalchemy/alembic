@@ -5,7 +5,61 @@ Changelog
 
 .. changelog::
     :version: 1.18.5
-    :include_notes_from: unreleased
+    :released: June 25, 2026
+
+    .. change::
+        :tags: bug, autogenerate
+        :tickets: 1258
+
+        Fixed rendering of dialect keyword arguments containing
+        :class:`~sqlalchemy.schema.Column` objects within sequences, such as
+        ``postgresql_include``.  These were previously rendered using ``repr()``,
+        producing invalid Python in the generated migration scripts.  Column
+        objects within list or tuple values are now correctly rendered as their
+        string column names.  Pull request courtesy Ajay Singh.
+
+    .. change::
+        :tags: usecase, commands
+        :tickets: 1712
+
+        Added ``--splice`` support to the :func:`.merge` command. Previously, the
+        merge command would suggest using ``--splice`` when attempting to merge
+        non-head revisions, but the flag was not actually accepted by the command.
+        The ``splice`` parameter is now available in both the command-line
+        interface and the :func:`.command.merge` function, matching the existing
+        support in :func:`.command.revision`.  Pull request courtesy Kadir Can
+        Ozden.
+
+    .. change::
+        :tags: bug, mysql
+        :tickets: 779, 1745
+
+        Implemented type comparison for :class:`.ENUM` datatypes on MySQL, which
+        checks that the individual enum values are equivalent.  If additional
+        entries are on either side, this generates a diff.  Changes of order do not
+        generate a diff.  Pull request courtesy Furkan Köykıran.
+
+
+    .. change::
+        :tags: usecase, environment
+        :tickets: 1806
+
+        Added :paramref:`.ScriptDirectory.get_heads.consider_depends_on`
+        parameter to :meth:`.ScriptDirectory.get_heads`. When set to ``True``,
+        head revisions that are also a dependency of another revision via
+        ``depends_on`` are excluded from the result, matching the effective
+        heads that would be present in the ``alembic_version`` table after
+        running all upgrades.
+
+    .. change::
+        :tags: bug, operations
+        :tickets: 1820
+
+        Fixed bug where the ``inline_references`` parameter of
+        :meth:`.Operations.add_column` did not include foreign key referential
+        actions such as ``ON DELETE``, ``ON UPDATE``, ``DEFERRABLE``,
+        ``INITIALLY``, and ``MATCH`` when rendering the inline ``REFERENCES``
+        clause.
 
 .. changelog::
     :version: 1.18.4
