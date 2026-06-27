@@ -1,0 +1,10 @@
+.. change::
+    :tags: bug, commands
+    :tickets: 1822
+
+    Fixed inconsistency where running ``stamp`` or ``downgrade`` to ``base`` in
+    offline (``--sql``) mode would emit a ``DROP TABLE alembic_version``
+    statement, while the same operations in online mode never drop the version
+    table.  Offline mode no longer emits this ``DROP``, matching online
+    behavior.  The version table continues to be created when it does not exist;
+    only the spurious offline-only drop has been removed.

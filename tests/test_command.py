@@ -988,10 +988,19 @@ class UpgradeDowngradeStampTest(TestBase):
             command.downgrade(self.cfg, "%s:base" % self.c, sql=True)
         assert "CREATE TABLE alembic_version" not in buf.getvalue()
         assert "INSERT INTO alembic_version" not in buf.getvalue()
-        assert "DROP TABLE alembic_version" in buf.getvalue()
+        # offline mode no longer drops the version table, matching online
+        # mode which never drops it.  See #1822.
+        assert "DROP TABLE alembic_version" not in buf.getvalue()
         assert "DROP STEP 3" in buf.getvalue()
         assert "DROP STEP 2" in buf.getvalue()
         assert "DROP STEP 1" in buf.getvalue()
+
+    def test_sql_stamp_to_base_no_drop(self):
+        # stamping to "base" in offline mode must not emit a DROP of the
+        # version table; online mode never drops it.  See #1822.
+        with capture_context_buffer() as buf:
+            command.stamp(self.cfg, "base", sql=True)
+        assert "DROP TABLE alembic_version" not in buf.getvalue()
 
     def test_version_to_middle(self):
         with capture_context_buffer() as buf:
