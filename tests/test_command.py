@@ -988,7 +988,7 @@ class UpgradeDowngradeStampTest(TestBase):
             command.downgrade(self.cfg, "%s:base" % self.c, sql=True)
         assert "CREATE TABLE alembic_version" not in buf.getvalue()
         assert "INSERT INTO alembic_version" not in buf.getvalue()
-        assert "DROP TABLE alembic_version" in buf.getvalue()
+        assert "DROP TABLE alembic_version" not in buf.getvalue()
         assert "DROP STEP 3" in buf.getvalue()
         assert "DROP STEP 2" in buf.getvalue()
         assert "DROP STEP 1" in buf.getvalue()
@@ -1046,6 +1046,11 @@ class UpgradeDowngradeStampTest(TestBase):
             "INSERT INTO alembic_version (version_num) VALUES ('%s')" % self.c
             in buf.getvalue()
         )
+
+    def test_sql_stamp_base_does_not_drop_version_table(self):
+        with capture_context_buffer() as buf:
+            command.stamp(self.cfg, "base", sql=True)
+        assert "DROP TABLE alembic_version" not in buf.getvalue()
 
     def test_stamp_argparser_single_rev(self):
         cmd = config.CommandLine()
