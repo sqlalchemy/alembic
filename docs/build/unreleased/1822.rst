@@ -1,0 +1,8 @@
+.. change::
+    :tags: bug, commands
+    :tickets: 1822
+
+    Fixed SQL output for commands such as ``stamp base --sql`` and
+    ``downgrade ...:base --sql`` to no longer emit ``DROP TABLE`` for the
+    Alembic version table.  This now matches online mode, where Alembic
+    updates the version rows but does not drop the version table.

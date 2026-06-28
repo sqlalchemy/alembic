@@ -639,10 +639,6 @@ class MigrationContext:
                         run_args=kw,
                     )
 
-        if self.as_sql and not head_maintainer.heads:
-            assert self.connection is not None
-            self._version.drop(self.connection)
-
     def _in_connection_transaction(self) -> bool:
         try:
             meth = self.connection.in_transaction  # type:ignore[union-attr]
