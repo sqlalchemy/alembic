@@ -346,8 +346,8 @@ class BatchApplyTest(TestBase):
                 "INSERT INTO %(schema)s%(temp_name)s (%(colnames)s) "
                 "SELECT %(tname_colnames)s FROM %(schema)stname" % args,
                 "DROP TABLE %(schema)stname" % args,
-                "ALTER TABLE %(schema)s%(temp_name)s "
-                "RENAME TO %(schema)stname" % args,
+                "ALTER TABLE %(schema)s%(temp_name)s RENAME TO %(schema)stname"
+                % args,
             ]
         )
         if idx_stmt:
@@ -775,8 +775,9 @@ class BatchApplyTest(TestBase):
         new_table = self._assert_impl(
             impl,
             colnames=["id", "x", "y", "user_id"],
-            ddl_contains="CONSTRAINT fk1 FOREIGN KEY(user_id) "
-            'REFERENCES "user" (id)',
+            ddl_contains=(
+                "CONSTRAINT fk1 FOREIGN KEY(user_id) " 'REFERENCES "user" (id)'
+            ),
         )
         eq_(
             list(new_table.c.user_id.foreign_keys)[0]._get_colspec(), "user.id"
@@ -1589,8 +1590,7 @@ class BatchRoundTripTest(TestBase):
 
     @exclusions.only_on("sqlite")
     @exclusions.fails(
-        "intentionally asserting that this "
-        "doesn't work w/ pragma foreign keys"
+        "intentionally asserting that this doesn't work w/ pragma foreign keys"
     )
     def test_fk_points_to_me_sqlite_refinteg(self):
         with self._sqlite_referential_integrity():
@@ -1635,8 +1635,7 @@ class BatchRoundTripTest(TestBase):
 
     @exclusions.only_on("sqlite")
     @exclusions.fails(
-        "intentionally asserting that this "
-        "doesn't work w/ pragma foreign keys"
+        "intentionally asserting that this doesn't work w/ pragma foreign keys"
     )
     def test_selfref_fk_sqlite_refinteg(self):
         with self._sqlite_referential_integrity():
@@ -2297,6 +2296,45 @@ class BatchRoundTripTest(TestBase):
 
         insp = inspect(self.conn)
         eq_(insp.get_indexes("foo"), [])
+
+    def test_sqlite_batch_strict(self):
+        """test that STRICT is persisted in batch mode.  See #1758"""
+        t = Table(
+            "t",
+            self.metadata,
+            Column("id", Integer, primary_key=True),
+            Column("data", Integer),
+            sqlite_strict=True,
+        )
+        with self.conn.begin():
+            t.create(self.conn)
+
+        with self.op.batch_alter_table("t", recreate="always") as batch_op:
+            batch_op.drop_column("data")
+
+        sql = self.conn.scalar(
+            text("SELECT sql FROM sqlite_master WHERE name='t'")
+        )
+        assert "STRICT" in sql
+
+    def test_sqlite_batch_without_rowid(self):
+        """test that WITHOUT ROWID is persisted in batch mode.  See #1758"""
+        t2 = Table(
+            "t2",
+            self.metadata,
+            Column("id", Integer, primary_key=True),
+            sqlite_with_rowid=False,
+        )
+        with self.conn.begin():
+            t2.create(self.conn)
+
+        with self.op.batch_alter_table("t2", recreate="always") as batch_op:
+            batch_op.add_column(Column("new_col", Integer))
+
+        sql = self.conn.scalar(
+            text("SELECT sql FROM sqlite_master WHERE name='t2'")
+        )
+        assert "WITHOUT ROWID" in sql
 
 
 class BatchRoundTripMySQLTest(BatchRoundTripTest):
