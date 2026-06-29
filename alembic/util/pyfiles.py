@@ -21,6 +21,41 @@ from mako.template import Template
 from .exc import CommandError
 
 
+def resolve_dotted_name(dotted_name: str) -> Any:
+    """Resolve a dotted name string to a Python object.
+
+    Accepts either ``"package.module:AttributeName"`` format (preferred,
+    following setuptools entry point conventions) or
+    ``"package.module.AttributeName"`` format.
+
+    """
+    if ":" in dotted_name:
+        module_part, _, attr_part = dotted_name.partition(":")
+    elif "." in dotted_name:
+        module_part, _, attr_part = dotted_name.rpartition(".")
+    else:
+        raise CommandError(
+            f"Could not resolve dotted name '{dotted_name}'; expected "
+            "format 'package.module:ClassName' or 'package.module.ClassName'"
+        )
+
+    try:
+        module = importlib.import_module(module_part)
+    except ImportError as ie:
+        raise CommandError(
+            f"Could not import module '{module_part}' "
+            f"from dotted name '{dotted_name}'"
+        ) from ie
+
+    try:
+        return getattr(module, attr_part)
+    except AttributeError as ae:
+        raise CommandError(
+            f"Module '{module_part}' has no attribute '{attr_part}' "
+            f"(from dotted name '{dotted_name}')"
+        ) from ae
+
+
 def template_to_file(
     template_file: Union[str, os.PathLike[str]],
     dest: Union[str, os.PathLike[str]],
