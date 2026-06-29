@@ -116,6 +116,17 @@ part of the SQLAlchemy_ project.
 User issues, discussion of potential bugs and features are most easily
 discussed using `GitHub Discussions <https://github.com/sqlalchemy/alembic/discussions/>`_.
 
+.. _third_party_tools:
+
+Third-party Tools
+=================
+
+The following projects extend or complement Alembic:
+
+* `pytest-mrt <https://github.com/croc100/pytest-mrt>`_
+  A pytest plugin and CLI for verifying that Alembic (and Django) migrations
+  are safely reversible — detects rollback failures before they reach production.
+
 .. _bugs:
 
 Bugs
