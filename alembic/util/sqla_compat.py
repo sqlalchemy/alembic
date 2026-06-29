@@ -508,3 +508,10 @@ def _inherit_schema_deprecated() -> bool:
     # at some point in 2.1 inherit_schema was replaced with a property
     # so that's preset at the class level, while before it wasn't.
     return sqla_2_1 and hasattr(sqltypes.Enum, "inherit_schema")
+
+
+def _disable_schema_events(type_: Any) -> None:
+    if hasattr(type_, "_create_events"):
+        type_._create_events = False
+    if hasattr(type_, "create_constraint"):
+        type_.create_constraint = False

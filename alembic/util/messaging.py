@@ -24,7 +24,7 @@ try:
     import termios
     import struct
 
-    ioctl = fcntl.ioctl(0, termios.TIOCGWINSZ, struct.pack("HHHH", 0, 0, 0, 0))
+    ioctl = fcntl.ioctl(0, termios.TIOCGWINSZ, struct.pack("HHHH", 0, 0, 0, 0))  # type: ignore[attr-defined]
     _h, TERMWIDTH, _hp, _wp = struct.unpack("HHHH", ioctl)
     if TERMWIDTH <= 0:  # can occur if running in emacs pseudo-tty
         TERMWIDTH = None
