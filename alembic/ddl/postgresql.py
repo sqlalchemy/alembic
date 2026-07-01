@@ -91,12 +91,36 @@ class PostgresqlImpl(DefaultImpl):
         # should normally not return the default value.  being
         # defensive in any case
         postgresql_include = index.kwargs.get("postgresql_include", None) or ()
-        for col in postgresql_include:
-            if col not in index.table.c:  # type: ignore[union-attr]
-                index.table.append_column(  # type: ignore[union-attr]
-                    Column(col, sqltypes.NullType)
-                )
+        self._ensure_include_columns(index.table, postgresql_include)
         self._exec(CreateIndex(index, **kw))
+
+    def add_constraint(self, const: Any, **kw: Any) -> None:
+        # the PostgreSQL ``postgresql_include`` option, supported on
+        # PrimaryKeyConstraint / UniqueConstraint since SQLAlchemy 2.0.41,
+        # references columns by name that may not be present on the
+        # synthetic table alembic builds for an ALTER.  ensure they exist
+        # so that the INCLUDE clause can be rendered (#1723), mirroring the
+        # handling done in ``create_index``.
+        postgresql_include = (
+            const.dialect_kwargs.get("postgresql_include", None) or ()
+        )
+        self._ensure_include_columns(
+            getattr(const, "table", None), postgresql_include
+        )
+        super().add_constraint(const, **kw)
+
+    @staticmethod
+    def _ensure_include_columns(
+        table: Optional[Table], include_columns: Sequence[str]
+    ) -> None:
+        # append any ``postgresql_include`` columns referenced by name that
+        # are not already present on the synthetic table, so DDL compilation
+        # can resolve them when rendering the INCLUDE clause.
+        if table is None:
+            return
+        for col in include_columns:
+            if isinstance(col, str) and col not in table.c:
+                table.append_column(Column(col, sqltypes.NullType))
 
     def prep_table_for_batch(self, batch_impl, table):
         for constraint in table.constraints:
