@@ -209,6 +209,16 @@ finally:
             buf, [self.c, self.b, self.a], currents=(self.b,), env_token=True
         )
 
+    def test_history_full_reversed(self):
+        self.cfg.stdout = buf = self._buf_fixture()
+        command.history(self.cfg, verbose=True, reversed=True)
+        self._eq_cmd_output(buf, [self.a, self.b, self.c])
+
+    def test_history_num_range_reversed(self):
+        self.cfg.stdout = buf = self._buf_fixture()
+        command.history(self.cfg, "%s:%s" % (self.a, self.b), verbose=True, reversed=True)
+        self._eq_cmd_output(buf, [self.a, self.b])
+
 
 class RevisionEnvironmentTest(_BufMixin, TestBase):
     def setUp(self):

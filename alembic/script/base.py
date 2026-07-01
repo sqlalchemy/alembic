@@ -247,7 +247,7 @@ class ScriptDirectory:
             raise util.CommandError(err.args[0]) from err
 
     def walk_revisions(
-        self, base: str = "base", head: str = "heads"
+        self, base: str = "base", head: str = "heads", reversed: bool = False
     ) -> Iterator[Script]:
         """Iterate through all revisions.
 
@@ -261,7 +261,11 @@ class ScriptDirectory:
         """
         with self._catch_revision_errors(start=base, end=head):
             for rev in self.revision_map.iterate_revisions(
-                head, base, inclusive=True, assert_relative_length=False
+                head,
+                base,
+                inclusive=True,
+                assert_relative_length=False,
+                reversed=reversed,
             ):
                 yield cast(Script, rev)
 
