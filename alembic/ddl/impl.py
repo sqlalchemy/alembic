@@ -43,6 +43,7 @@ if TYPE_CHECKING:
     from sqlalchemy.engine import Connection
     from sqlalchemy.engine import Dialect
     from sqlalchemy.engine.cursor import CursorResult
+    from sqlalchemy.engine.interfaces import ReflectedCheckConstraint
     from sqlalchemy.engine.interfaces import ReflectedForeignKeyConstraint
     from sqlalchemy.engine.interfaces import ReflectedIndex
     from sqlalchemy.engine.interfaces import ReflectedPrimaryKeyConstraint
@@ -51,6 +52,7 @@ if TYPE_CHECKING:
     from sqlalchemy.sql import ClauseElement
     from sqlalchemy.sql import Executable
     from sqlalchemy.sql.elements import quoted_name
+    from sqlalchemy.sql.schema import CheckConstraint
     from sqlalchemy.sql.schema import Constraint
     from sqlalchemy.sql.schema import ForeignKeyConstraint
     from sqlalchemy.sql.schema import Index
@@ -64,7 +66,8 @@ if TYPE_CHECKING:
     from ..operations.batch import BatchOperationsImpl
 
     _ReflectedConstraint = (
-        ReflectedForeignKeyConstraint
+        ReflectedCheckConstraint
+        | ReflectedForeignKeyConstraint
         | ReflectedPrimaryKeyConstraint
         | ReflectedIndex
         | ReflectedUniqueConstraint
@@ -839,6 +842,13 @@ class DefaultImpl(metaclass=ImplMeta):
             )
         else:
             return ComparisonResult.Equal()
+
+    def compare_check_constraint(
+        self,
+        metadata_constraint: CheckConstraint,
+        reflected_constraint: CheckConstraint,
+    ) -> ComparisonResult:
+        return ComparisonResult.Equal()
 
     def _skip_functional_indexes(self, metadata_indexes, conn_indexes):
         conn_indexes_by_name = {c.name: c for c in conn_indexes}

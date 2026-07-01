@@ -438,8 +438,24 @@ def _add_pk_constraint(constraint, autogen_context):
 
 
 @renderers.dispatch_for(ops.CreateCheckConstraintOp)
-def _add_check_constraint(constraint, autogen_context):
-    raise NotImplementedError()
+def _add_check_constraint(
+    autogen_context: AutogenContext, op: ops.CreateCheckConstraintOp
+) -> str:
+    constraint = op.to_constraint()
+    args = [repr(_render_gen_name(autogen_context, op.constraint_name))]
+    if not autogen_context._has_batch:
+        args.append(repr(_ident(op.table_name)))
+    args.append(
+        _render_potential_expr(
+            constraint.sqltext, autogen_context, wrap_in_element=False
+        )
+    )
+    if not autogen_context._has_batch and op.schema:
+        args.append("schema=%r" % _ident(op.schema))
+    return "%(prefix)screate_check_constraint(%(args)s)" % {
+        "prefix": _alembic_autogenerate_prefix(autogen_context),
+        "args": ", ".join(args),
+    }
 
 
 @renderers.dispatch_for(ops.DropConstraintOp)
