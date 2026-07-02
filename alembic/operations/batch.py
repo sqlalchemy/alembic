@@ -146,6 +146,12 @@ class BatchOperationsImpl:
                         *self.reflect_args,
                         **self.reflect_kwargs,
                     )
+                    from sqlalchemy import inspect as sqla_inspect
+
+                    self.operations.impl.autogen_table_reflect(
+                        sqla_inspect(self.operations.get_bind()),
+                        existing_table,
+                    )
                     reflected = True
 
                 batch_impl = ApplyBatchImpl(
@@ -642,7 +648,8 @@ class ApplyBatchImpl:
             and kw["existing_type"].name  # type:ignore[attr-defined]
         ):
             self.named_constraints.pop(
-                kw["existing_type"].name, None  # type:ignore[attr-defined]
+                kw["existing_type"].name,
+                None,  # type:ignore[attr-defined]
             )
 
     def create_column_comment(self, column):
