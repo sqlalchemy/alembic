@@ -55,7 +55,10 @@ def _normalize_computed_default(sqltext: str) -> str:
 
     """
 
-    return re.sub(r"[ \(\)'\"`\[\]\t\r\n]", "", sqltext).lower()
+    normalized_sqltext = re.sub(r"[ \(\)'\"`\[\]\t\r\n]", "", sqltext).lower()
+    # strip postgresql type cast specifiers, e.g. ``::regconfig``, ``::text``,
+    # which can appear inconsistently and cause false-positive warnings.
+    return re.sub(r"::\w+", "", normalized_sqltext)
 
 
 def _compare_computed_default(
