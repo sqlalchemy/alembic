@@ -21,6 +21,7 @@ from ...util import sqla_compat
 if TYPE_CHECKING:
     from sqlalchemy.sql.elements import quoted_name
     from sqlalchemy.sql.schema import Column
+    from sqlalchemy.engine import Dialect
 
     from ...autogenerate.api import AutogenContext
     from ...operations.ops import AlterColumnOp
@@ -48,7 +49,7 @@ def _render_server_default_for_compare(
         return None
 
 
-def _normalize_computed_default(sqltext: str) -> str:
+def _normalize_computed_default(sqltext: str, dialect: Dialect) -> str:
     """we want to warn if a computed sql expression has changed.  however
     we don't want false positives and the warning is not that critical.
     so filter out most forms of variability from the SQL text.
@@ -56,9 +57,12 @@ def _normalize_computed_default(sqltext: str) -> str:
     """
 
     normalized_sqltext = re.sub(r"[ \(\)'\"`\[\]\t\r\n]", "", sqltext).lower()
-    # strip postgresql type cast specifiers, e.g. ``::regconfig``, ``::text``,
-    # which can appear inconsistently and cause false-positive warnings.
-    return re.sub(r"::\w+", "", normalized_sqltext)
+    if dialect.name == "postgresql":
+        # strip postgresql type cast specifiers, e.g. ``::regconfig``,
+        # ``::text``, which can appear inconsistently on the reflected side
+        # only and cause false-positive warnings.
+        normalized_sqltext = re.sub(r"::\w+", "", normalized_sqltext)
+    return normalized_sqltext
 
 
 def _compare_computed_default(
@@ -97,7 +101,7 @@ def _compare_computed_default(
     # get a minimal comparison just to emit a warning.
 
     rendered_metadata_default = _normalize_computed_default(
-        rendered_metadata_default
+        rendered_metadata_default, autogen_context.dialect
     )
 
     if isinstance(conn_col.server_default, sa_schema.Computed):
@@ -108,7 +112,7 @@ def _compare_computed_default(
             )
         )
         rendered_conn_default = _normalize_computed_default(
-            rendered_conn_default
+            rendered_conn_default, autogen_context.dialect
         )
     else:
         rendered_conn_default = ""

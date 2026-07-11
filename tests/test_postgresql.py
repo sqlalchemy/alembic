@@ -21,6 +21,7 @@ from sqlalchemy import Table
 from sqlalchemy import text
 from sqlalchemy import types
 from sqlalchemy import UniqueConstraint
+from sqlalchemy.dialects import postgresql
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.dialects.postgresql import BYTEA
 from sqlalchemy.dialects.postgresql import ExcludeConstraint
@@ -402,13 +403,15 @@ class PostgresqlOpTest(TestBase):
         # type cast specifiers such as ``::regconfig`` only appear on the
         # reflected (connection) side and would otherwise cause a
         # false-positive "cannot be modified" warning.  issue #1462
+        dialect = postgresql.dialect()
         eq_(
             _normalize_computed_default(
-                "setweight(to_tsvector('english', title), 'a')"
+                "setweight(to_tsvector('english', title), 'a')", dialect
             ),
             _normalize_computed_default(
                 "setweight(to_tsvector('english'::regconfig, "
-                "title::text), 'a'::\"char\")"
+                "title::text), 'a'::\"char\")",
+                dialect,
             ),
         )
 
