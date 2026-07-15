@@ -1590,3 +1590,27 @@ class NormPathTest(TestBase):
                 Path(sd, "model3").absolute(),
             ],
         )
+
+    def test_version_locations_path_objects(self):
+        """Path objects in version_locations are normalized and matched."""
+        sd = Path(_get_staging_directory())
+        model1 = sd / "model1"
+        model2 = sd / "model2"
+        model1.mkdir()
+        model2.mkdir()
+
+        script = ScriptDirectory(
+            self.env.dir,
+            version_locations=[model1, model2],
+        )
+
+        eq_(
+            script._version_locations,
+            [model1.absolute(), model2.absolute()],
+        )
+
+        rev = script.generate_revision(
+            "12345", "test", version_path=model2
+        )
+        assert rev is not None
+        eq_(Path(rev.path).absolute().parent, model2.absolute())

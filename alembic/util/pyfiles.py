@@ -51,7 +51,9 @@ def template_to_file(
             f.write(output)
 
 
-def coerce_resource_to_filename(fname_or_resource: str) -> pathlib.Path:
+def coerce_resource_to_filename(
+    fname_or_resource: Union[str, os.PathLike[str]]
+) -> pathlib.Path:
     """Interpret a filename as either a filesystem location or as a package
     resource.
 
@@ -60,21 +62,24 @@ def coerce_resource_to_filename(fname_or_resource: str) -> pathlib.Path:
 
     """
     # TODO: there seem to be zero tests for the package resource codepath
-    if not os.path.isabs(fname_or_resource) and ":" in fname_or_resource:
-        tokens = fname_or_resource.split(":")
+    if isinstance(fname_or_resource, str):
+        if not os.path.isabs(fname_or_resource) and ":" in fname_or_resource:
+            tokens = fname_or_resource.split(":")
 
-        # from https://importlib-resources.readthedocs.io/en/latest/migration.html#pkg-resources-resource-filename  # noqa E501
+            # from https://importlib-resources.readthedocs.io/en/latest/migration.html#pkg-resources-resource-filename  # noqa E501
 
-        file_manager = ExitStack()
-        atexit.register(file_manager.close)
+            file_manager = ExitStack()
+            atexit.register(file_manager.close)
 
-        ref = resources.files(tokens[0])
-        for tok in tokens[1:]:
-            ref = ref / tok
-        fname_or_resource = file_manager.enter_context(  # type: ignore[assignment]  # noqa: E501
-            resources.as_file(ref)
-        )
-    return pathlib.Path(fname_or_resource)
+            ref = resources.files(tokens[0])
+            for tok in tokens[1:]:
+                ref = ref / tok
+            fname_or_resource = file_manager.enter_context(
+                resources.as_file(ref)
+            )
+        return pathlib.Path(fname_or_resource)
+    else:
+        return pathlib.Path(fname_or_resource)
 
 
 def pyc_file_from_path(
