@@ -58,7 +58,7 @@ def status(
     msg(status_msg + " ...", newline, flush=True, quiet=quiet)
     try:
         yield
-    except:
+    except Exception:
         if not quiet:
             write_outstream(sys.stdout, "  FAILED\n")
         raise
