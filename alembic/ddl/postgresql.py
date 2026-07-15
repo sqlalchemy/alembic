@@ -63,6 +63,7 @@ if TYPE_CHECKING:
     from sqlalchemy.dialects.postgresql.hstore import HSTORE
     from sqlalchemy.dialects.postgresql.json import JSON
     from sqlalchemy.dialects.postgresql.json import JSONB
+    from sqlalchemy.dialects.postgresql.named_types import DOMAIN
     from sqlalchemy.sql.elements import ClauseElement
     from sqlalchemy.sql.elements import ColumnElement
     from sqlalchemy.sql.elements import quoted_name
@@ -514,6 +515,38 @@ class PostgresqlImpl(DefaultImpl):
                 type_, autogen_context, "astext_type", r"(.+?\(.*astext_type=)"
             ),
         )
+
+    def _render_DOMAIN_type(
+        self, type_: DOMAIN, autogen_context: AutogenContext
+    ) -> str:
+        prefix = _postgresql_autogenerate_prefix(autogen_context)
+        args = [
+            repr(render._ident(type_.name)),
+            render._repr_type(type_.data_type, autogen_context),
+        ]
+        if type_.collation is not None:
+            args.append("collation=%r" % type_.collation)
+        if type_.default is not None:
+            args.append(
+                "default=%s"
+                % render._render_potential_expr(
+                    type_.default, autogen_context, wrap_in_element=True
+                )
+            )
+        if type_.constraint_name is not None:
+            args.append("constraint_name=%r" % type_.constraint_name)
+        if type_.not_null:
+            args.append("not_null=True")
+        if type_.check is not None:
+            args.append(
+                "check=%s"
+                % render._render_potential_expr(
+                    type_.check, autogen_context, wrap_in_element=False
+                )
+            )
+        if type_.create_type is not True:
+            args.append("create_type=False")
+        return "%sDOMAIN(%s)" % (prefix, ", ".join(args))
 
 
 class PostgresqlColumnType(AlterColumn):
