@@ -52,7 +52,6 @@ from ..operations.base import Operations
 from ..util import sqla_compat
 from ..util.sqla_compat import compiles
 
-
 if TYPE_CHECKING:
     from typing import Literal
 
@@ -637,7 +636,7 @@ class CreateExcludeConstraintOp(ops.AddConstraintOp):
         self.kw = kw
 
     @classmethod
-    def from_constraint(  # type:ignore[override]
+    def from_constraint(  # type: ignore[override]
         cls, constraint: ExcludeConstraint
     ) -> CreateExcludeConstraintOp:
         constraint_table = sqla_compat._table_for_constraint(constraint)
@@ -803,7 +802,7 @@ def _exclude_constraint(
             "(%s, %r)"
             % (
                 _render_potential_column(
-                    sqltext,  # type:ignore[arg-type]
+                    sqltext,  # type: ignore[arg-type]
                     autogen_context,
                 ),
                 opstring,

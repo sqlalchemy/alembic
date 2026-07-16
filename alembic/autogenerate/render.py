@@ -754,7 +754,7 @@ def _render_column(
     opts: List[Tuple[str, Any]] = []
 
     if column.server_default:
-        rendered = _render_server_default(  # type:ignore[assignment]
+        rendered = _render_server_default(  # type: ignore[assignment]
             column.server_default, autogen_context
         )
         if rendered:

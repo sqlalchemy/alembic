@@ -64,7 +64,6 @@ from alembic.testing.fixtures import TablesTest
 from alembic.testing.fixtures import TestBase
 from alembic.testing.suite._autogen_fixtures import AutogenFixtureTest
 
-
 if True:
     from alembic.autogenerate.compare.server_defaults import (
         _render_server_default_for_compare,
@@ -559,8 +558,7 @@ def upgrade():
 
 def downgrade():
     op.drop_table("sometable")
-"""
-            % self.rid,
+""" % self.rid,
         )
 
     def _distinct_enum_script(self):
@@ -588,8 +586,7 @@ def downgrade():
     op.drop_table("sometable")
     ENUM(name="pgenum").drop(op.get_bind(), checkfirst=False)
 
-"""
-            % self.rid,
+""" % self.rid,
         )
 
     def test_offline_inline_enum_create(self):
@@ -638,16 +635,12 @@ class PostgresqlInlineLiteralTest(TablesTest):
 
     @classmethod
     def insert_data(cls, connection):
-        connection.execute(
-            text(
-                """
+        connection.execute(text("""
                 insert into tab (col) values
                     ('old data 1'),
                     ('old data 2.1'),
                     ('old data 3')
-            """
-            )
-        )
+            """))
 
     def test_inline_percent(self, connection, ops_context):
         # TODO: here's the issue, you need to escape this.

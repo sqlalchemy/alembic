@@ -63,8 +63,7 @@ class RunHookTest(TestBase):
                 )
             )
         else:
-            self.cfg = _no_sql_pyproject_config(
-                directives="""
+            self.cfg = _no_sql_pyproject_config(directives="""
 
                 [[tool.alembic.post_write_hooks]]
                 name="hook1"
@@ -75,8 +74,7 @@ class RunHookTest(TestBase):
                 name="hook2"
                 type="hook2"
                 arg1="bar"
-                """
-            )
+                """)
         rev = command.revision(self.cfg, message="x")
 
         eq_(
@@ -109,11 +107,9 @@ class RunHookTest(TestBase):
         if config.ini:
             self.cfg = _no_sql_testing_config(directives="")
         else:
-            self.cfg = _no_sql_pyproject_config(
-                directives="""
+            self.cfg = _no_sql_pyproject_config(directives="""
 
-                """
-            )
+                """)
 
         command.revision(self.cfg, message="x")
 
@@ -133,14 +129,12 @@ class RunHookTest(TestBase):
                 )
             )
         else:
-            self.cfg = _no_sql_pyproject_config(
-                directives="""
+            self.cfg = _no_sql_pyproject_config(directives="""
 
                 [[tool.alembic.post_write_hooks]]
                 name="foo"
                 bar="somebar"
-                """
-            )
+                """)
 
         assert_raises_message(
             util.CommandError,
@@ -480,15 +474,11 @@ ruff.cwd = /path/to/cwd
         )
 
     def test_module_config_missing(self):
-        self.cfg = _no_sql_testing_config(
-            directives=(
-                """
+        self.cfg = _no_sql_testing_config(directives=("""
 [post_write_hooks]
 hooks = ruff
 ruff.type = module
-                """
-            )
-        )
+                """))
         assert_raises_message(
             util.CommandError,
             "Key ruff.module is required for post write hook 'ruff'",
@@ -498,16 +488,12 @@ ruff.type = module
         )
 
     def test_module_not_found(self):
-        self.cfg = _no_sql_testing_config(
-            directives=(
-                """
+        self.cfg = _no_sql_testing_config(directives=("""
 [post_write_hooks]
 hooks = ruff
 ruff.type = module
 ruff.module = ruff_not_found
-                """
-            )
-        )
+                """))
         assert_raises_message(
             util.CommandError,
             "Could not find module ruff_not_found",

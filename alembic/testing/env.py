@@ -96,14 +96,11 @@ def script_file_fixture(txt):
 
 def env_file_fixture(txt):
     dir_ = _join_path(_get_staging_directory(), "scripts")
-    txt = (
-        """
+    txt = """
 from alembic import context
 
 config = context.config
-"""
-        + txt
-    )
+""" + txt
 
     path = _join_path(dir_, "env.py")
     pyc_path = util.pyc_file_from_path(path)
@@ -128,8 +125,7 @@ def _sqlite_testing_config(sourceless=False, future=False):
 
     sqlalchemy_future = future or ("future" in config.db.__class__.__module__)
 
-    return _write_config_file(
-        f"""
+    return _write_config_file(f"""
 [alembic]
 script_location = {dir_}
 sqlalchemy.url = {url}
@@ -164,8 +160,7 @@ keys = generic
 [formatter_generic]
 format = %%(levelname)-5.5s [%%(name)s] %%(message)s
 datefmt = %%H:%%M:%%S
-    """
-    )
+    """)
 
 
 def _multi_dir_testing_config(sourceless=False, extra_version_location=""):
@@ -174,8 +169,7 @@ def _multi_dir_testing_config(sourceless=False, extra_version_location=""):
 
     url = "sqlite:///%s/foo.db" % dir_
 
-    return _write_config_file(
-        f"""
+    return _write_config_file(f"""
 [alembic]
 script_location = {dir_}
 sqlalchemy.url = {url}
@@ -208,8 +202,7 @@ keys = generic
 [formatter_generic]
 format = %%(levelname)-5.5s [%%(name)s] %%(message)s
 datefmt = %%H:%%M:%%S
-    """
-    )
+    """)
 
 
 def _no_sql_pyproject_config(dialect="postgresql", directives=""):
@@ -260,8 +253,7 @@ def _no_sql_testing_config(dialect="postgresql", directives=""):
     """use a postgresql url with no host so that
     connections guaranteed to fail"""
     dir_ = _join_path(_get_staging_directory(), "scripts")
-    return _write_config_file(
-        f"""
+    return _write_config_file(f"""
 [alembic]
 script_location ={dir_}
 sqlalchemy.url = {dialect}://
@@ -291,8 +283,7 @@ keys = generic
 format = %%(levelname)-5.5s [%%(name)s] %%(message)s
 datefmt = %%H:%%M:%%S
 
-"""
-    )
+""")
 
 
 def _write_toml_config(tomltext, initext):
@@ -541,8 +532,7 @@ def _multidb_testing_config(engines):
         for key, value in engines.items()
     )
 
-    return _write_config_file(
-        f"""
+    return _write_config_file(f"""
 [alembic]
 script_location = {dir_}
 sourceless = false
@@ -573,8 +563,7 @@ keys = generic
 [formatter_generic]
 format = %%(levelname)-5.5s [%%(name)s] %%(message)s
 datefmt = %%H:%%M:%%S
-    """
-    )
+    """)
 
 
 def _join_path(base: str, *more: str):

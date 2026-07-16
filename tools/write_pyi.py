@@ -272,15 +272,13 @@ def _generate_stub_for_meth(
 
     suffix = "..." if file_info.AddEllipsis and docs else ""
 
-    func_text = textwrap.dedent(
-        f"""
+    func_text = textwrap.dedent(f"""
     {overload}
     {contextmanager}
     def {name}{argspec}: {"..." if not docs else ""}
         {docs}
         {suffix}
-    """
-    )
+    """)
 
     return func_text
 

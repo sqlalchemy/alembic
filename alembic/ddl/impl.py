@@ -328,7 +328,7 @@ class DefaultImpl(metaclass=ImplMeta):
                 cls_(
                     table_name,
                     column_name,
-                    server_default,  # type:ignore[arg-type]
+                    server_default,  # type: ignore[arg-type]
                     schema=schema,
                     existing_type=existing_type,
                     existing_server_default=existing_server_default,

@@ -28,7 +28,6 @@ from . import util
 from .util import compat
 from .util.pyfiles import _preserving_path_as_str
 
-
 log = logging.getLogger(__name__)
 
 
@@ -180,7 +179,7 @@ class Config:
             return None
         return Path(self.toml_file_name)
 
-    config_ini_section: str = None  # type:ignore[assignment]
+    config_ini_section: str = None  # type: ignore[assignment]
     """Name of the config file section to read basic configuration
     from.  Defaults to ``alembic``, that is the ``[alembic]`` section
     of the .ini file.  This value is modified using the ``-n/--name``
@@ -927,11 +926,11 @@ class CommandLine:
             if arg in self._KWARGS_OPTS:
                 kwarg_opt = self._KWARGS_OPTS[arg]
                 args, opts = kwarg_opt[0:-1], kwarg_opt[-1]
-                subparser.add_argument(*args, **opts)  # type:ignore
+                subparser.add_argument(*args, **opts)  # type: ignore
 
         for arg in positional:
             opts = self._POSITIONAL_OPTS.get(arg, {})
-            subparser.add_argument(arg, **opts)  # type:ignore
+            subparser.add_argument(arg, **opts)  # type: ignore
 
     def _inspect_function(self, fn: CommandFunction) -> tuple[Any, Any, str]:
         spec = compat.inspect_getfullargspec(fn)

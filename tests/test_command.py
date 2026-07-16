@@ -74,8 +74,7 @@ class HistoryTest(_BufMixin, TestBase):
 
     @classmethod
     def _setup_env_file(self):
-        env_file_fixture(
-            r"""
+        env_file_fixture(r"""
 
 from sqlalchemy import MetaData, engine_from_config
 target_metadata = MetaData()
@@ -97,8 +96,7 @@ try:
 finally:
     connection.close()
     engine.dispose()
-"""
-        )
+""")
 
     def _eq_cmd_output(self, buf, expected, env_token=False, currents=()):
         script = ScriptDirectory.from_config(self.cfg)
@@ -222,8 +220,7 @@ class RevisionEnvironmentTest(_BufMixin, TestBase):
 
     @classmethod
     def _setup_env_file(self):
-        env_file_fixture(
-            r"""
+        env_file_fixture(r"""
 
 from sqlalchemy import MetaData, engine_from_config
 target_metadata = MetaData()
@@ -245,8 +242,7 @@ try:
 finally:
     connection.close()
     engine.dispose()
-"""
-        )
+""")
 
     def _assert_env_token(self, buf, expected):
         if expected:
@@ -423,8 +419,7 @@ class RevisionTest(TestBase):
         clear_staging_env()
 
     def _env_fixture(self, version_table_pk=True):
-        env_file_fixture(
-            """
+        env_file_fixture("""
 
 from sqlalchemy import MetaData, engine_from_config
 target_metadata = MetaData()
@@ -447,9 +442,7 @@ finally:
     connection.close()
     engine.dispose()
 
-"""
-            % (version_table_pk,)
-        )
+""" % (version_table_pk,))
 
     def test_create_rev_plain_db_not_up_to_date(self):
         self._env_fixture()
@@ -684,8 +677,7 @@ class CheckTest(TestBase):
         clear_staging_env()
 
     def _env_fixture(self, version_table_pk=True):
-        env_file_fixture(
-            f"""
+        env_file_fixture(f"""
 
 from sqlalchemy import MetaData, engine_from_config
 target_metadata = MetaData()
@@ -710,8 +702,7 @@ finally:
     connection.close()
     engine.dispose()
 
-"""
-        )
+""")
 
     def test_check_no_changes(self):
         self._env_fixture()
@@ -749,8 +740,7 @@ class CheckTestMultiDB(CheckTest):
         )
 
     def _env_fixture(self):
-        env_file_fixture(
-            """
+        env_file_fixture("""
 
 import re
 from sqlalchemy import MetaData, engine_from_config
@@ -776,8 +766,7 @@ for db_name in re.split(r",\\s*", db_names):
         engine.dispose()
 
 
-"""
-        )
+""")
 
 
 class _StampTest:
@@ -1092,8 +1081,7 @@ class LiveStampTest(TestBase):
             """
 revision = '%s'
 down_revision = None
-"""
-            % a,
+""" % a,
         )
         script.generate_revision(b, None, refresh=True)
         write_script(
@@ -1102,8 +1090,7 @@ down_revision = None
             """
 revision = '%s'
 down_revision = '%s'
-"""
-            % (b, a),
+""" % (b, a),
         )
 
     def tearDown(self):
@@ -1623,10 +1610,8 @@ class CommandLineTest(TestBase):
         root = pathlib.Path(_get_staging_directory())
 
         with (root / "pyproject.toml").open("w") as file_:
-            file_.write(
-                """[tool.sometool]
-someconfig = 'bar'"""
-            )
+            file_.write("""[tool.sometool]
+someconfig = 'bar'""")
         yield config.Config(
             self.cfg.config_file_name, toml_file=root / "pyproject.toml"
         )
@@ -1663,10 +1648,8 @@ someconfig = 'bar'"""
         with open(cfg.toml_file_name, "r") as f:
             file_content = f.read()
 
-        assert file_content.startswith(
-            """[tool.sometool]
-someconfig = 'bar'\n\n[tool.alembic]"""
-        )
+        assert file_content.startswith("""[tool.sometool]
+someconfig = 'bar'\n\n[tool.alembic]""")
         toml = compat.tomllib.loads(file_content)
         eq_(
             toml,

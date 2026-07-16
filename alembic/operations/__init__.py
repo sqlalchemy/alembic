@@ -5,7 +5,6 @@ from .base import Operations
 from .ops import MigrateOperation
 from .ops import MigrationScript
 
-
 __all__ = [
     "AbstractOperations",
     "Operations",

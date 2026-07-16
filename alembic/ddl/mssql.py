@@ -199,7 +199,7 @@ class MSSQLImpl(DefaultImpl):
                 index.table.append_column(Column(col, sqltypes.NullType))
         self._exec(CreateIndex(index, **kw))
 
-    def bulk_insert(  # type:ignore[override]
+    def bulk_insert(  # type: ignore[override]
         self, table: Union[TableClause, Table], rows: List[dict], **kw: Any
     ) -> None:
         if self.as_sql:

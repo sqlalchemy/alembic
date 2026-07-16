@@ -170,13 +170,13 @@ class MigrationContext:
         if "output_encoding" in opts:
             self.output_buffer = EncodedIO(
                 opts.get("output_buffer")
-                or sys.stdout,  # type:ignore[arg-type]
+                or sys.stdout,  # type: ignore[arg-type]
                 opts["output_encoding"],
             )
         else:
             self.output_buffer = opts.get(
                 "output_buffer", sys.stdout
-            )  # type:ignore[assignment]  # noqa: E501
+            )  # type: ignore[assignment]  # noqa: E501
 
         self.transactional_ddl = transactional_ddl
 
@@ -645,7 +645,7 @@ class MigrationContext:
 
     def _in_connection_transaction(self) -> bool:
         try:
-            meth = self.connection.in_transaction  # type:ignore[union-attr]
+            meth = self.connection.in_transaction  # type: ignore[union-attr]
         except AttributeError:
             return False
         else:
@@ -1036,7 +1036,7 @@ class RevisionStep(MigrationStep):
             return (self.revision.revision,)
 
     @property
-    def from_revisions_no_deps(  # type:ignore[override]
+    def from_revisions_no_deps(  # type: ignore[override]
         self,
     ) -> Tuple[str, ...]:
         if self.is_upgrade:
@@ -1052,7 +1052,7 @@ class RevisionStep(MigrationStep):
             return self.revision._normalized_down_revisions
 
     @property
-    def to_revisions_no_deps(  # type:ignore[override]
+    def to_revisions_no_deps(  # type: ignore[override]
         self,
     ) -> Tuple[str, ...]:
         if self.is_upgrade:
@@ -1264,13 +1264,13 @@ class StampStep(MigrationStep):
         return self.to_
 
     @property
-    def from_revisions_no_deps(  # type:ignore[override]
+    def from_revisions_no_deps(  # type: ignore[override]
         self,
     ) -> Tuple[str, ...]:
         return self.from_
 
     @property
-    def to_revisions_no_deps(  # type:ignore[override]
+    def to_revisions_no_deps(  # type: ignore[override]
         self,
     ) -> Tuple[str, ...]:
         return self.to_

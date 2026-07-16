@@ -16,7 +16,6 @@ import sys
 
 from sqlalchemy.testing import provision
 
-
 logging.basicConfig()
 logging.getLogger(provision.__name__).setLevel(logging.INFO)
 

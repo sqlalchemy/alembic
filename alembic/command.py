@@ -442,7 +442,7 @@ def merge(
         head=revisions,
         branch_labels=branch_label,
         splice=splice,
-        **template_args,  # type:ignore[arg-type]
+        **template_args,  # type: ignore[arg-type]
     )
 
 

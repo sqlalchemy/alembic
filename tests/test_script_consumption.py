@@ -187,8 +187,7 @@ class ApplyVersionsFunctionalTest(PatchEnvironment, TestBase):
     def downgrade():
         op.execute("DROP TABLE foo")
 
-    """
-            % a,
+    """ % a,
             sourceless=self.sourceless,
         )
 
@@ -210,8 +209,7 @@ class ApplyVersionsFunctionalTest(PatchEnvironment, TestBase):
     def downgrade():
         op.execute("DROP TABLE bar")
 
-    """
-            % (b, a),
+    """ % (b, a),
             sourceless=self.sourceless,
         )
 
@@ -233,8 +231,7 @@ class ApplyVersionsFunctionalTest(PatchEnvironment, TestBase):
     def downgrade():
         op.execute("DROP TABLE bat")
 
-    """
-            % (c, b),
+    """ % (c, b),
             sourceless=self.sourceless,
         )
 
@@ -325,9 +322,7 @@ class CallbackEnvironmentTest(ApplyVersionsFunctionalTest):
 
     @staticmethod
     def _env_file_fixture():
-        env_file_fixture(
-            textwrap.dedent(
-                """\
+        env_file_fixture(textwrap.dedent("""\
             import alembic
             from alembic import context
             from sqlalchemy import engine_from_config, pool
@@ -364,9 +359,7 @@ class CallbackEnvironmentTest(ApplyVersionsFunctionalTest):
                 run_migrations_offline()
             else:
                 run_migrations_online()
-            """
-            )
-        )
+            """))
 
     def test_steps(self):
         import alembic
@@ -483,8 +476,7 @@ def upgrade():
 def downgrade():
     pass
 
-"""
-            % (a,),
+""" % (a,),
         )
         script.generate_revision(b, "revision b", refresh=True)
         write_script(
@@ -508,8 +500,7 @@ def upgrade():
 def downgrade():
     pass
 
-"""
-            % (b, a),
+""" % (b, a),
         )
         script.generate_revision(c, "revision c", refresh=True)
         write_script(
@@ -530,8 +521,7 @@ def upgrade():
 def downgrade():
     pass
 
-"""
-            % (c, b),
+""" % (c, b),
         )
         return a, b, c
 
@@ -598,8 +588,7 @@ def downgrade():
     def test_noerr_transaction_opened_externally(self):
         a, b, c = self._opened_transaction_fixture()
 
-        env_file_fixture(
-            """
+        env_file_fixture("""
 from sqlalchemy import engine_from_config, pool
 
 def run_migrations_online():
@@ -621,8 +610,7 @@ def run_migrations_online():
 
 run_migrations_online()
 
-"""
-        )
+""")
 
         command.stamp(self.cfg, c)
 
@@ -650,8 +638,7 @@ class EncodingTest(TestBase):
         write_script(
             script,
             self.a,
-            (
-                """# coding: utf-8
+            ("""# coding: utf-8
 from __future__ import unicode_literals
 revision = '%s'
 down_revision = None
@@ -664,9 +651,7 @@ def upgrade():
 def downgrade():
     op.execute("drôle de petite voix m’a réveillé")
 
-"""
-                % self.a
-            ),
+""" % self.a),
             encoding="utf-8",
         )
 
@@ -711,8 +696,7 @@ class VersionNameTemplateTest(TestBase):
     def downgrade():
         op.execute("DROP TABLE foo")
 
-    """
-            % a,
+    """ % a,
         )
 
         script = ScriptDirectory.from_config(self.cfg)
@@ -757,8 +741,7 @@ class VersionNameTemplateTest(TestBase):
 
         path = script.get_revision(a).path
         with open(path, "w") as fp:
-            fp.write(
-                """
+            fp.write("""
 down_revision = None
 
 from alembic import op
@@ -771,8 +754,7 @@ def upgrade():
 def downgrade():
     op.execute("DROP TABLE foo")
 
-"""
-            )
+""")
         pyc_path = util.pyc_file_from_path(path)
         if pyc_path is not None and os.access(pyc_path, os.F_OK):
             os.unlink(pyc_path)
@@ -886,8 +868,7 @@ class SourcelessNeedsFlagTest(TestBase):
     def downgrade():
         op.execute("DROP TABLE foo")
 
-    """
-            % a,
+    """ % a,
             sourceless=True,
         )
 

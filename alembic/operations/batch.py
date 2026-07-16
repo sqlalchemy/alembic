@@ -511,10 +511,10 @@ class ApplyBatchImpl:
                 # pop named constraints for Boolean/Enum for rename
                 if (
                     isinstance(resolved_existing_type, SchemaEventTarget)
-                    and resolved_existing_type.name  # type:ignore[attr-defined]  # noqa E501
+                    and resolved_existing_type.name  # type: ignore[attr-defined]  # noqa E501
                 ):
                     self.named_constraints.pop(
-                        resolved_existing_type.name,  # type:ignore[attr-defined]  # noqa E501
+                        resolved_existing_type.name,  # type: ignore[attr-defined]  # noqa E501
                         None,
                     )
 
@@ -527,8 +527,8 @@ class ApplyBatchImpl:
             # Operations.implementation_for(alter_column)
 
             if isinstance(existing.type, SchemaEventTarget):
-                existing.type._create_events = (  # type:ignore[attr-defined]
-                    existing.type.create_constraint  # type:ignore[attr-defined] # noqa
+                existing.type._create_events = (  # type: ignore[attr-defined]
+                    existing.type.create_constraint  # type: ignore[attr-defined] # noqa
                 ) = False
 
             self.impl.cast_for_batch_migrate(
@@ -639,10 +639,10 @@ class ApplyBatchImpl:
         if (
             "existing_type" in kw
             and isinstance(kw["existing_type"], SchemaEventTarget)
-            and kw["existing_type"].name  # type:ignore[attr-defined]
+            and kw["existing_type"].name  # type: ignore[attr-defined]
         ):
             self.named_constraints.pop(
-                kw["existing_type"].name, None  # type:ignore[attr-defined]
+                kw["existing_type"].name, None  # type: ignore[attr-defined]
             )
 
     def create_column_comment(self, column):

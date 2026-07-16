@@ -2467,8 +2467,7 @@ class OfflineTest(TestBase):
             batch_op.drop_column('foo')
             batch_op.add_column(Column('bar', String))
 
-    """  # noqa: E501
-                % a,
+    """ % a,  # noqa: E501
             )
 
         yield go
@@ -2510,8 +2509,7 @@ class OfflineTest(TestBase):
             batch_op.drop_column('foo')
             batch_op.add_column(Column('bar', String))
 
-    """
-                % a,
+    """ % a,
             )
 
         yield go

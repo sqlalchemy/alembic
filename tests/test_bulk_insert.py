@@ -238,17 +238,13 @@ class RoundTripTest(TestBase):
     def setUp(self):
         self.conn = config.db.connect()
         with self.conn.begin():
-            self.conn.execute(
-                text(
-                    """
+            self.conn.execute(text("""
                 create table foo(
                     id integer primary key,
                     data varchar(50),
                     x integer
                 )
-            """
-                )
-            )
+            """))
         context = MigrationContext.configure(self.conn)
         self.op = op.Operations(context)
         self.t1 = table("foo", column("id"), column("data"), column("x"))

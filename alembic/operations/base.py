@@ -487,7 +487,7 @@ class AbstractOperations(util.ModuleClsProxy):
         a particular constraint name is already converted.
 
         """
-        return conv(name)
+        return conv(name)  # type: ignore[no-any-return]
 
     def inline_literal(
         self, value: Union[str, int], type_: Optional[TypeEngine[Any]] = None
