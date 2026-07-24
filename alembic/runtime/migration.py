@@ -639,9 +639,11 @@ class MigrationContext:
                         run_args=kw,
                     )
 
-        if self.as_sql and not head_maintainer.heads:
-            assert self.connection is not None
-            self._version.drop(self.connection)
+        # NOTE: offline ("--sql") mode intentionally does not emit a DROP
+        # of the version table when ending at base.  Online mode never drops
+        # the version table (e.g. ``downgrade base`` only deletes its row),
+        # so dropping it in offline mode only was an inconsistency present
+        # since the version table was first introduced.  See #1822.
 
     def _in_connection_transaction(self) -> bool:
         try:
