@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Collection
+from collections.abc import Mapping
 import logging
 from typing import Any
 from typing import cast
-from typing import Collection
-from typing import Dict
-from typing import Mapping
-from typing import Optional
 from typing import TYPE_CHECKING
 from typing import TypeVar
 from typing import Union
@@ -53,10 +51,10 @@ log = logging.getLogger(__name__)
 def _compare_indexes_and_uniques(
     autogen_context: AutogenContext,
     modify_ops: ModifyTableOps,
-    schema: Optional[str],
-    tname: Union[quoted_name, str],
-    conn_table: Optional[Table],
-    metadata_table: Optional[Table],
+    schema: str | None,
+    tname: quoted_name | str,
+    conn_table: Table | None,
+    metadata_table: Table | None,
 ) -> PriorityDispatchResult:
     inspector = autogen_context.inspector
     is_create_table = conn_table is None
@@ -203,11 +201,11 @@ def _compare_indexes_and_uniques(
         if c.is_named
     }
 
-    conn_uniques_by_name: Dict[
+    conn_uniques_by_name: dict[
         sqla_compat._ConstraintName,
         _constraint_sig[sa_schema.UniqueConstraint],
     ]
-    conn_indexes_by_name: Dict[
+    conn_indexes_by_name: dict[
         sqla_compat._ConstraintName, _constraint_sig[sa_schema.Index]
     ]
 
@@ -518,12 +516,12 @@ _IndexColumnSortingOps: Mapping[str, Any] = util.immutabledict(
 
 def _make_index(
     impl: DefaultImpl, params: ReflectedIndex, conn_table: Table
-) -> Optional[Index]:
-    exprs: list[Union[Column[Any], TextClause]] = []
+) -> Index | None:
+    exprs: list[Column[Any] | TextClause] = []
     sorting = params.get("column_sorting")
 
     for num, col_name in enumerate(params["column_names"]):
-        item: Union[Column[Any], TextClause]
+        item: Column[Any] | TextClause
         if col_name is None:
             assert "expressions" in params
             name = params["expressions"][num]
@@ -626,8 +624,8 @@ def _make_foreign_key(
 def _compare_foreign_keys(
     autogen_context: AutogenContext,
     modify_table_ops: ModifyTableOps,
-    schema: Optional[str],
-    tname: Union[quoted_name, str],
+    schema: str | None,
+    tname: quoted_name | str,
     conn_table: Table,
     metadata_table: Table,
 ) -> PriorityDispatchResult:
@@ -753,9 +751,9 @@ def _compare_foreign_keys(
 def _compare_nullable(
     autogen_context: AutogenContext,
     alter_column_op: AlterColumnOp,
-    schema: Optional[str],
-    tname: Union[quoted_name, str],
-    cname: Union[quoted_name, str],
+    schema: str | None,
+    tname: quoted_name | str,
+    cname: quoted_name | str,
     conn_col: Column[Any],
     metadata_col: Column[Any],
 ) -> PriorityDispatchResult:

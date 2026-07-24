@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from typing import Any
-from typing import Dict
 
 from sqlalchemy import CheckConstraint
 from sqlalchemy import Column
@@ -117,7 +116,7 @@ class OpTest(TestBase):
     ):
         context = op_fixture("mssql")
 
-        args: Dict[str, Any] = dict(type_=Integer)
+        args: dict[str, Any] = dict(type_=Integer)
 
         if change_nullability:
             expected_nullability = not existing_nullability

@@ -4,10 +4,7 @@ from __future__ import annotations
 
 import os
 import pathlib
-from typing import List
-from typing import Optional
 from typing import TYPE_CHECKING
-from typing import Union
 
 from . import autogenerate as autogen
 from . import util
@@ -193,17 +190,17 @@ def init(
 
 def revision(
     config: Config,
-    message: Optional[str] = None,
+    message: str | None = None,
     autogenerate: bool = False,
     sql: bool = False,
     head: str = "head",
     splice: bool = False,
-    branch_label: Optional[_RevIdType] = None,
-    version_path: Union[str, os.PathLike[str], None] = None,
-    rev_id: Optional[str] = None,
-    depends_on: Optional[str] = None,
-    process_revision_directives: Optional[ProcessRevisionDirectiveFn] = None,
-) -> Union[Optional[Script], List[Optional[Script]]]:
+    branch_label: _RevIdType | None = None,
+    version_path: str | os.PathLike[str] | None = None,
+    rev_id: str | None = None,
+    depends_on: str | None = None,
+    process_revision_directives: ProcessRevisionDirectiveFn | None = None,
+) -> Script | None | list[Script | None]:
     """Create a new revision file.
 
     :param config: a :class:`.Config` object.
@@ -320,7 +317,7 @@ def revision(
         return scripts
 
 
-def check(config: "Config") -> None:
+def check(config: Config) -> None:
     """Check if revision command with autogenerate has pending upgrade ops.
 
     :param config: a :class:`.Config` object.
@@ -382,11 +379,11 @@ def check(config: "Config") -> None:
 def merge(
     config: Config,
     revisions: _RevIdType,
-    message: Optional[str] = None,
-    branch_label: Optional[_RevIdType] = None,
-    rev_id: Optional[str] = None,
+    message: str | None = None,
+    branch_label: _RevIdType | None = None,
+    rev_id: str | None = None,
     splice: bool = False,
-) -> Optional[Script]:
+) -> Script | None:
     """Merge two revisions together.  Creates a new migration file.
 
     :param config: a :class:`.Config` instance
@@ -450,7 +447,7 @@ def upgrade(
     config: Config,
     revision: str,
     sql: bool = False,
-    tag: Optional[str] = None,
+    tag: str | None = None,
 ) -> None:
     """Upgrade to a later version.
 
@@ -494,7 +491,7 @@ def downgrade(
     config: Config,
     revision: str,
     sql: bool = False,
-    tag: Optional[str] = None,
+    tag: str | None = None,
 ) -> None:
     """Revert to a previous version.
 
@@ -565,7 +562,7 @@ def show(config: Config, rev: str) -> None:
 
 def history(
     config: Config,
-    rev_range: Optional[str] = None,
+    rev_range: str | None = None,
     verbose: bool = False,
     indicate_current: bool = False,
 ) -> None:
@@ -580,8 +577,8 @@ def history(
     :param indicate_current: indicate current revision.
 
     """
-    base: Optional[str]
-    head: Optional[str]
+    base: str | None
+    head: str | None
     script = ScriptDirectory.from_config(config)
     if rev_range is not None:
         if ":" not in rev_range:
@@ -733,7 +730,7 @@ def stamp(
     config: Config,
     revision: _RevIdType,
     sql: bool = False,
-    tag: Optional[str] = None,
+    tag: str | None = None,
     purge: bool = False,
 ) -> None:
     """'stamp' the revision table with the given revision; don't

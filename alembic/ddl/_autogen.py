@@ -3,16 +3,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Any
 from typing import ClassVar
-from typing import Dict
 from typing import Generic
 from typing import NamedTuple
-from typing import Optional
-from typing import Sequence
-from typing import Tuple
-from typing import Type
 from typing import TYPE_CHECKING
+from typing import TypeGuard
 from typing import TypeVar
 from typing import Union
 
@@ -21,7 +18,6 @@ from sqlalchemy.sql.schema import Constraint
 from sqlalchemy.sql.schema import ForeignKeyConstraint
 from sqlalchemy.sql.schema import Index
 from sqlalchemy.sql.schema import UniqueConstraint
-from typing_extensions import TypeGuard
 
 from .. import util
 from ..util import sqla_compat
@@ -36,7 +32,7 @@ CompareConstraintType = Union[Constraint, Index]
 
 _C = TypeVar("_C", bound=CompareConstraintType)
 
-_clsreg: Dict[str, Type[_constraint_sig]] = {}
+_clsreg: dict[str, type[_constraint_sig]] = {}
 
 
 class ComparisonResult(NamedTuple):
@@ -61,12 +57,12 @@ class ComparisonResult(NamedTuple):
         return cls("equal", "The two constraints are equal")
 
     @classmethod
-    def Different(cls, reason: Union[str, Sequence[str]]) -> ComparisonResult:
+    def Different(cls, reason: str | Sequence[str]) -> ComparisonResult:
         """the constraints are different for the provided reason(s)."""
         return cls("different", ", ".join(util.to_list(reason)))
 
     @classmethod
-    def Skip(cls, reason: Union[str, Sequence[str]]) -> ComparisonResult:
+    def Skip(cls, reason: str | Sequence[str]) -> ComparisonResult:
         """the constraint cannot be compared for the provided reason(s).
 
         The message is logged, but the constraints will be otherwise
@@ -79,8 +75,8 @@ class ComparisonResult(NamedTuple):
 class _constraint_sig(Generic[_C]):
     const: _C
 
-    _sig: Tuple[Any, ...]
-    name: Optional[sqla_compat._ConstraintNameDefined]
+    _sig: tuple[Any, ...]
+    name: sqla_compat._ConstraintNameDefined | None
 
     impl: DefaultImpl
 
@@ -128,7 +124,7 @@ class _constraint_sig(Generic[_C]):
         sig = _clsreg[constraint.__visit_name__](is_metadata, impl, constraint)
         return sig
 
-    def md_name_to_sql_name(self, context: AutogenContext) -> Optional[str]:
+    def md_name_to_sql_name(self, context: AutogenContext) -> str | None:
         return sqla_compat._get_constraint_final_name(
             self.const, context.dialect
         )
@@ -138,15 +134,15 @@ class _constraint_sig(Generic[_C]):
         return sqla_compat._constraint_is_named(self.const, self.impl.dialect)
 
     @util.memoized_property
-    def unnamed(self) -> Tuple[Any, ...]:
+    def unnamed(self) -> tuple[Any, ...]:
         return self._sig
 
     @util.memoized_property
-    def unnamed_no_options(self) -> Tuple[Any, ...]:
+    def unnamed_no_options(self) -> tuple[Any, ...]:
         raise NotImplementedError()
 
     @util.memoized_property
-    def _full_sig(self) -> Tuple[Any, ...]:
+    def _full_sig(self) -> tuple[Any, ...]:
         return (self.name,) + self.unnamed
 
     def __eq__(self, other) -> bool:
@@ -181,7 +177,7 @@ class _uq_constraint_sig(_constraint_sig[UniqueConstraint]):
         self._is_metadata = is_metadata
 
     @property
-    def column_names(self) -> Tuple[str, ...]:
+    def column_names(self) -> tuple[str, ...]:
         return tuple([col.name for col in self.const.columns])
 
     def _compare_to_reflected(
@@ -230,11 +226,11 @@ class _ix_constraint_sig(_constraint_sig[Index]):
         return sqla_compat.is_expression_index(self.const)
 
     @util.memoized_property
-    def column_names(self) -> Tuple[str, ...]:
+    def column_names(self) -> tuple[str, ...]:
         return tuple([col.name for col in self.const.columns])
 
     @util.memoized_property
-    def column_names_optional(self) -> Tuple[Optional[str], ...]:
+    def column_names_optional(self) -> tuple[str | None, ...]:
         return tuple(
             [getattr(col, "name", None) for col in self.const.expressions]
         )
@@ -281,7 +277,7 @@ class _fk_constraint_sig(_constraint_sig[ForeignKeyConstraint]):
             initially,
         ) = sqla_compat._fk_spec(const)
 
-        self._sig: Tuple[Any, ...] = (
+        self._sig: tuple[Any, ...] = (
             self.source_schema,
             self.source_table,
             tuple(self.source_columns),

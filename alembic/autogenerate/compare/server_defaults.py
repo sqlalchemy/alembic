@@ -1,14 +1,12 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 import logging
 import re
 from types import NoneType
 from typing import Any
 from typing import cast
-from typing import Optional
-from typing import Sequence
 from typing import TYPE_CHECKING
-from typing import Union
 
 from sqlalchemy import schema as sa_schema
 from sqlalchemy.sql.schema import DefaultClause
@@ -30,8 +28,8 @@ log = logging.getLogger(__name__)
 
 
 def _render_server_default_for_compare(
-    metadata_default: Optional[Any], autogen_context: AutogenContext
-) -> Optional[str]:
+    metadata_default: Any, autogen_context: AutogenContext
+) -> str | None:
     if isinstance(metadata_default, sa_schema.DefaultClause):
         if isinstance(metadata_default.arg, str):
             metadata_default = metadata_default.arg
@@ -61,7 +59,7 @@ def _normalize_computed_default(sqltext: str) -> str:
 def _compare_computed_default(
     autogen_context: AutogenContext,
     alter_column_op: AlterColumnOp,
-    schema: Optional[str],
+    schema: str | None,
     tname: str,
     cname: str,
     conn_col: Column[Any],
@@ -123,9 +121,9 @@ def _warn_computed_not_supported(tname: str, cname: str) -> None:
 def _compare_identity_default(
     autogen_context: AutogenContext,
     alter_column_op: AlterColumnOp,
-    schema: Optional[str],
-    tname: Union[quoted_name, str],
-    cname: Union[quoted_name, str],
+    schema: str | None,
+    tname: quoted_name | str,
+    cname: quoted_name | str,
     conn_col: Column[Any],
     metadata_col: Column[Any],
     skip: Sequence[str] = (
@@ -180,9 +178,9 @@ def _compare_identity_default(
 def _user_compare_server_default(
     autogen_context: AutogenContext,
     alter_column_op: AlterColumnOp,
-    schema: Optional[str],
-    tname: Union[quoted_name, str],
-    cname: Union[quoted_name, str],
+    schema: str | None,
+    tname: quoted_name | str,
+    cname: quoted_name | str,
     conn_col: Column[Any],
     metadata_col: Column[Any],
 ) -> PriorityDispatchResult:
@@ -238,9 +236,9 @@ def _user_compare_server_default(
 def _dialect_impl_compare_server_default(
     autogen_context: AutogenContext,
     alter_column_op: AlterColumnOp,
-    schema: Optional[str],
-    tname: Union[quoted_name, str],
-    cname: Union[quoted_name, str],
+    schema: str | None,
+    tname: quoted_name | str,
+    cname: quoted_name | str,
     conn_col: Column[Any],
     metadata_col: Column[Any],
 ) -> PriorityDispatchResult:
@@ -296,8 +294,8 @@ def _dialect_impl_compare_server_default(
 def _setup_autoincrement(
     autogen_context: AutogenContext,
     alter_column_op: AlterColumnOp,
-    schema: Optional[str],
-    tname: Union[quoted_name, str],
+    schema: str | None,
+    tname: quoted_name | str,
     cname: quoted_name,
     conn_col: Column[Any],
     metadata_col: Column[Any],

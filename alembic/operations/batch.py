@@ -4,12 +4,7 @@
 from __future__ import annotations
 
 from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
 from typing import TYPE_CHECKING
-from typing import Union
 
 from sqlalchemy import CheckConstraint
 from sqlalchemy import Column
@@ -215,7 +210,7 @@ class ApplyBatchImpl:
         impl: DefaultImpl,
         table: Table,
         table_args: tuple,
-        table_kwargs: Dict[str, Any],
+        table_kwargs: dict[str, Any],
         reflected: bool,
         partial_reordering: tuple = (),
     ) -> None:
@@ -224,11 +219,11 @@ class ApplyBatchImpl:
         self.table_args = table_args
         self.table_kwargs = table_kwargs
         self.temp_table_name = self._calc_temp_name(table.name)
-        self.new_table: Optional[Table] = None
+        self.new_table: Table | None = None
 
         self.partial_reordering = partial_reordering  # tuple of tuples
-        self.add_col_ordering: Tuple[
-            Tuple[str, str], ...
+        self.add_col_ordering: tuple[
+            tuple[str, str], ...
         ] = ()  # tuple of tuples
 
         self.column_transfers = OrderedDict(
@@ -240,12 +235,12 @@ class ApplyBatchImpl:
         self._grab_table_elements()
 
     @classmethod
-    def _calc_temp_name(cls, tablename: Union[quoted_name, str]) -> str:
+    def _calc_temp_name(cls, tablename: quoted_name | str) -> str:
         return ("_alembic_tmp_%s" % tablename)[0:50]
 
     def _grab_table_elements(self) -> None:
         schema = self.table.schema
-        self.columns: Dict[str, Column[Any]] = OrderedDict()
+        self.columns: dict[str, Column[Any]] = OrderedDict()
         for c in self.table.c:
             c_copy = _copy(c, schema=schema)
             c_copy.unique = c_copy.index = False
@@ -254,11 +249,11 @@ class ApplyBatchImpl:
             if isinstance(c.type, SchemaEventTarget):
                 assert c_copy.type is not c.type
             self.columns[c.name] = c_copy
-        self.named_constraints: Dict[str, Constraint] = {}
+        self.named_constraints: dict[str, Constraint] = {}
         self.unnamed_constraints = []
         self.col_named_constraints = {}
-        self.indexes: Dict[str, Index] = {}
-        self.new_indexes: Dict[str, Index] = {}
+        self.indexes: dict[str, Index] = {}
+        self.new_indexes: dict[str, Index] = {}
 
         for const in self.table.constraints:
             if _is_type_bound(const):
@@ -369,9 +364,9 @@ class ApplyBatchImpl:
                 self._setup_referent(m, const)
             new_table.append_constraint(const_copy)
 
-    def _gather_indexes_from_both_tables(self) -> List[Index]:
+    def _gather_indexes_from_both_tables(self) -> list[Index]:
         assert self.new_table is not None
-        idx: List[Index] = []
+        idx: list[Index] = []
 
         for idx_existing in self.indexes.values():
             # this is a lift-and-move from Table.to_metadata
@@ -484,18 +479,16 @@ class ApplyBatchImpl:
         self,
         table_name: str,
         column_name: str,
-        nullable: Optional[bool] = None,
-        server_default: Union[
-            _ServerDefaultType, None, Literal[False]
-        ] = False,
-        name: Optional[str] = None,
-        type_: Optional[TypeEngine] = None,
-        autoincrement: Optional[Union[bool, Literal["auto"]]] = None,
-        comment: Union[str, Literal[False]] = False,
+        nullable: bool | None = None,
+        server_default: _ServerDefaultType | None | Literal[False] = False,
+        name: str | None = None,
+        type_: TypeEngine | None = None,
+        autoincrement: bool | Literal["auto"] | None = None,
+        comment: str | Literal[False] = False,
         **kw,
     ) -> None:
         existing = self.columns[column_name]
-        existing_transfer: Dict[str, Any] = self.column_transfers[column_name]
+        existing_transfer: dict[str, Any] = self.column_transfers[column_name]
         if name is not None and name != column_name:
             # note that we don't change '.key' - we keep referring
             # to the renamed column by its old key in _create().  neat!
@@ -560,8 +553,8 @@ class ApplyBatchImpl:
     def _setup_dependencies_for_add_column(
         self,
         colname: str,
-        insert_before: Optional[str],
-        insert_after: Optional[str],
+        insert_before: str | None,
+        insert_after: str | None,
     ) -> None:
         index_cols = self.existing_ordering
         col_indexes = {name: i for i, name in enumerate(index_cols)}
@@ -609,8 +602,8 @@ class ApplyBatchImpl:
         self,
         table_name: str,
         column: Column[Any],
-        insert_before: Optional[str] = None,
-        insert_after: Optional[str] = None,
+        insert_before: str | None = None,
+        insert_after: str | None = None,
         **kw,
     ) -> None:
         self._setup_dependencies_for_add_column(
@@ -624,7 +617,7 @@ class ApplyBatchImpl:
     def drop_column(
         self,
         table_name: str,
-        column: Union[ColumnClause[Any], Column[Any]],
+        column: ColumnClause[Any] | Column[Any],
         **kw,
     ) -> None:
         if column.name in self.table.primary_key.columns:

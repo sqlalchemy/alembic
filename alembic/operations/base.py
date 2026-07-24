@@ -2,32 +2,28 @@
 
 from __future__ import annotations
 
+from collections.abc import Awaitable
+from collections.abc import Iterator
+from collections.abc import Mapping
+from collections.abc import Sequence  # noqa
 from contextlib import contextmanager
 import re
 import textwrap
 from typing import Any
-from typing import Awaitable
 from typing import Callable
-from typing import Dict
-from typing import Iterator
 from typing import List  # noqa
-from typing import Mapping
 from typing import NoReturn
-from typing import Optional
 from typing import overload
-from typing import Sequence  # noqa
-from typing import Tuple
 from typing import Type  # noqa
 from typing import TYPE_CHECKING
 from typing import TypeVar
-from typing import Union
 
 from sqlalchemy.sql.elements import conv
 
 from . import batch
 from . import schemaobj
 from .. import util
-from ..ddl.base import _ServerDefaultType
+from ..ddl.base import _ServerDefaultArgument
 from ..util import sqla_compat
 from ..util.compat import formatannotation_fwdref
 from ..util.compat import inspect_formatargspec
@@ -78,13 +74,13 @@ class AbstractOperations(util.ModuleClsProxy):
 
     """
 
-    impl: Union[DefaultImpl, BatchOperationsImpl]
+    impl: DefaultImpl | BatchOperationsImpl
     _to_impl = util.Dispatcher()
 
     def __init__(
         self,
         migration_context: MigrationContext,
-        impl: Optional[BatchOperationsImpl] = None,
+        impl: BatchOperationsImpl | None = None,
     ) -> None:
         """Construct a new :class:`.Operations`
 
@@ -102,8 +98,8 @@ class AbstractOperations(util.ModuleClsProxy):
 
     @classmethod
     def register_operation(
-        cls, name: str, sourcename: Optional[str] = None
-    ) -> Callable[[Type[_T]], Type[_T]]:
+        cls, name: str, sourcename: str | None = None
+    ) -> Callable[[type[_T]], type[_T]]:
         """Register a new operation for this class.
 
         This method is normally used to add new operations
@@ -120,7 +116,7 @@ class AbstractOperations(util.ModuleClsProxy):
 
         """
 
-        def register(op_cls: Type[_T]) -> Type[_T]:
+        def register(op_cls: type[_T]) -> type[_T]:
             if sourcename is None:
                 fn = getattr(op_cls, name)
                 source_name = fn.__name__
@@ -140,7 +136,7 @@ class AbstractOperations(util.ModuleClsProxy):
             )
             num_defaults = len(spec[3]) if spec[3] else 0
 
-            defaulted_vals: Tuple[Any, ...]
+            defaulted_vals: tuple[Any, ...]
 
             if num_defaults:
                 defaulted_vals = tuple(name_args[0 - num_defaults :])
@@ -184,7 +180,7 @@ class AbstractOperations(util.ModuleClsProxy):
 
             globals_ = dict(globals())
             globals_.update({"op_cls": op_cls})
-            lcl: Dict[str, Any] = {}
+            lcl: dict[str, Any] = {}
 
             exec(func_text, globals_, lcl)
             setattr(cls, name, lcl[name])
@@ -244,15 +240,15 @@ class AbstractOperations(util.ModuleClsProxy):
     def batch_alter_table(
         self,
         table_name: str,
-        schema: Optional[str] = None,
+        schema: str | None = None,
         recreate: Literal["auto", "always", "never"] = "auto",
         partial_reordering: list[tuple[str, ...]] | None = None,
-        copy_from: Optional[Table] = None,
-        table_args: Tuple[Any, ...] = (),
+        copy_from: Table | None = None,
+        table_args: tuple[Any, ...] = (),
         table_kwargs: Mapping[str, Any] = util.immutabledict(),
-        reflect_args: Tuple[Any, ...] = (),
+        reflect_args: tuple[Any, ...] = (),
         reflect_kwargs: Mapping[str, Any] = util.immutabledict(),
-        naming_convention: Optional[Dict[str, str]] = None,
+        naming_convention: dict[str, str] | None = None,
     ) -> Iterator[BatchOperations]:
         """Invoke a series of per-table migrations in batch.
 
@@ -421,21 +417,21 @@ class AbstractOperations(util.ModuleClsProxy):
     @overload
     def invoke(
         self,
-        operation: Union[
-            AddConstraintOp,
-            DropConstraintOp,
-            CreateIndexOp,
-            DropIndexOp,
-            AddColumnOp,
-            AlterColumnOp,
-            AlterTableOp,
-            CreateTableCommentOp,
-            DropTableCommentOp,
-            DropColumnOp,
-            BulkInsertOp,
-            DropTableOp,
-            ExecuteSQLOp,
-        ],
+        operation: (
+            AddConstraintOp
+            | DropConstraintOp
+            | CreateIndexOp
+            | DropIndexOp
+            | AddColumnOp
+            | AlterColumnOp
+            | AlterTableOp
+            | CreateTableCommentOp
+            | DropTableCommentOp
+            | DropColumnOp
+            | BulkInsertOp
+            | DropTableOp
+            | ExecuteSQLOp
+        ),
     ) -> None: ...
 
     @overload
@@ -490,7 +486,7 @@ class AbstractOperations(util.ModuleClsProxy):
         return conv(name)  # type: ignore[no-any-return]
 
     def inline_literal(
-        self, value: Union[str, int], type_: Optional[TypeEngine[Any]] = None
+        self, value: str | int, type_: TypeEngine[Any] | None = None
     ) -> _literal_bindparam:
         r"""Produce an 'inline literal' expression, suitable for
         using in an INSERT, UPDATE, or DELETE statement.
@@ -628,10 +624,10 @@ class Operations(AbstractOperations):
             table_name: str,
             column: Column[Any],
             *,
-            schema: Optional[str] = None,
-            if_not_exists: Optional[bool] = None,
-            inline_references: Optional[bool] = None,
-            inline_primary_key: Optional[bool] = None,
+            schema: str | None = None,
+            if_not_exists: bool | None = None,
+            inline_references: bool | None = None,
+            inline_primary_key: bool | None = None,
         ) -> None:
             """Issue an "add column" instruction using the current
             migration context.
@@ -782,22 +778,18 @@ class Operations(AbstractOperations):
             table_name: str,
             column_name: str,
             *,
-            nullable: Optional[bool] = None,
-            comment: Union[str, Literal[False], None] = False,
-            server_default: Union[
-                _ServerDefaultType, None, Literal[False]
-            ] = False,
-            new_column_name: Optional[str] = None,
-            type_: Union[TypeEngine[Any], Type[TypeEngine[Any]], None] = None,
-            existing_type: Union[
-                TypeEngine[Any], Type[TypeEngine[Any]], None
-            ] = None,
-            existing_server_default: Union[
-                _ServerDefaultType, None, Literal[False]
-            ] = False,
-            existing_nullable: Optional[bool] = None,
-            existing_comment: Optional[str] = None,
-            schema: Optional[str] = None,
+            nullable: bool | None = None,
+            comment: str | Literal[False] | None = False,
+            server_default: _ServerDefaultArgument = False,
+            new_column_name: str | None = None,
+            type_: TypeEngine[Any] | type[TypeEngine[Any]] | None = None,
+            existing_type: (
+                None | TypeEngine[Any] | type[TypeEngine[Any]]
+            ) = None,
+            existing_server_default: _ServerDefaultArgument = False,
+            existing_nullable: bool | None = None,
+            existing_comment: str | None = None,
+            schema: str | None = None,
             **kw: Any,
         ) -> None:
             r"""Issue an "alter column" instruction using the
@@ -886,8 +878,8 @@ class Operations(AbstractOperations):
 
         def bulk_insert(
             self,
-            table: Union[Table, TableClause],
-            rows: List[Dict[str, Any]],
+            table: Table | TableClause,
+            rows: list[dict[str, Any]],
             *,
             multiinsert: bool = True,
         ) -> None:
@@ -990,11 +982,11 @@ class Operations(AbstractOperations):
 
         def create_check_constraint(
             self,
-            constraint_name: Optional[str],
+            constraint_name: str | None,
             table_name: str,
-            condition: Union[str, ColumnElement[bool], TextClause],
+            condition: str | ColumnElement[bool] | TextClause,
             *,
-            schema: Optional[str] = None,
+            schema: str | None = None,
             **kw: Any,
         ) -> None:
             """Issue a "create check constraint" instruction using the
@@ -1045,7 +1037,7 @@ class Operations(AbstractOperations):
             table_name: str,
             *elements: Any,
             **kw: Any,
-        ) -> Optional[Table]:
+        ) -> Table | None:
             """Issue an alter to create an EXCLUDE constraint using the
             current migration context.
 
@@ -1084,19 +1076,19 @@ class Operations(AbstractOperations):
 
         def create_foreign_key(
             self,
-            constraint_name: Optional[str],
+            constraint_name: str | None,
             source_table: str,
             referent_table: str,
-            local_cols: List[str],
-            remote_cols: List[str],
+            local_cols: list[str],
+            remote_cols: list[str],
             *,
-            onupdate: Optional[str] = None,
-            ondelete: Optional[str] = None,
-            deferrable: Optional[bool] = None,
-            initially: Optional[str] = None,
-            match: Optional[str] = None,
-            source_schema: Optional[str] = None,
-            referent_schema: Optional[str] = None,
+            onupdate: str | None = None,
+            ondelete: str | None = None,
+            deferrable: bool | None = None,
+            initially: str | None = None,
+            match: str | None = None,
+            source_schema: str | None = None,
+            referent_schema: str | None = None,
             **dialect_kw: Any,
         ) -> None:
             """Issue a "create foreign key" instruction using the
@@ -1152,13 +1144,13 @@ class Operations(AbstractOperations):
 
         def create_index(
             self,
-            index_name: Optional[str],
+            index_name: str | None,
             table_name: str,
-            columns: Sequence[Union[str, TextClause, ColumnElement[Any]]],
+            columns: Sequence[str | TextClause | ColumnElement[Any]],
             *,
-            schema: Optional[str] = None,
+            schema: str | None = None,
             unique: bool = False,
-            if_not_exists: Optional[bool] = None,
+            if_not_exists: bool | None = None,
             **kw: Any,
         ) -> None:
             r"""Issue a "create index" instruction using the current
@@ -1212,11 +1204,11 @@ class Operations(AbstractOperations):
 
         def create_primary_key(
             self,
-            constraint_name: Optional[str],
+            constraint_name: str | None,
             table_name: str,
-            columns: List[str],
+            columns: list[str],
             *,
-            schema: Optional[str] = None,
+            schema: str | None = None,
         ) -> None:
             """Issue a "create primary key" instruction using the current
             migration context.
@@ -1258,7 +1250,7 @@ class Operations(AbstractOperations):
             self,
             table_name: str,
             *columns: SchemaItem,
-            if_not_exists: Optional[bool] = None,
+            if_not_exists: bool | None = None,
             **kw: Any,
         ) -> Table:
             r"""Issue a "create table" instruction using the current migration
@@ -1347,10 +1339,10 @@ class Operations(AbstractOperations):
         def create_table_comment(
             self,
             table_name: str,
-            comment: Optional[str],
+            comment: str | None,
             *,
-            existing_comment: Optional[str] = None,
-            schema: Optional[str] = None,
+            existing_comment: str | None = None,
+            schema: str | None = None,
         ) -> None:
             """Emit a COMMENT ON operation to set the comment for a table.
 
@@ -1373,11 +1365,11 @@ class Operations(AbstractOperations):
 
         def create_unique_constraint(
             self,
-            constraint_name: Optional[str],
+            constraint_name: str | None,
             table_name: str,
             columns: Sequence[str],
             *,
-            schema: Optional[str] = None,
+            schema: str | None = None,
             **kw: Any,
         ) -> Any:
             """Issue a "create unique constraint" instruction using the
@@ -1424,7 +1416,7 @@ class Operations(AbstractOperations):
             table_name: str,
             column_name: str,
             *,
-            schema: Optional[str] = None,
+            schema: str | None = None,
             **kw: Any,
         ) -> None:
             """Issue a "drop column" instruction using the current
@@ -1473,10 +1465,10 @@ class Operations(AbstractOperations):
             self,
             constraint_name: str,
             table_name: str,
-            type_: Optional[str] = None,
+            type_: str | None = None,
             *,
-            schema: Optional[str] = None,
-            if_exists: Optional[bool] = None,
+            schema: str | None = None,
+            if_exists: bool | None = None,
         ) -> None:
             r"""Drop a constraint of the given name, typically via DROP CONSTRAINT.
 
@@ -1499,10 +1491,10 @@ class Operations(AbstractOperations):
         def drop_index(
             self,
             index_name: str,
-            table_name: Optional[str] = None,
+            table_name: str | None = None,
             *,
-            schema: Optional[str] = None,
-            if_exists: Optional[bool] = None,
+            schema: str | None = None,
+            if_exists: bool | None = None,
             **kw: Any,
         ) -> None:
             r"""Issue a "drop index" instruction using the current
@@ -1538,8 +1530,8 @@ class Operations(AbstractOperations):
             self,
             table_name: str,
             *,
-            schema: Optional[str] = None,
-            if_exists: Optional[bool] = None,
+            schema: str | None = None,
+            if_exists: bool | None = None,
             **kw: Any,
         ) -> None:
             r"""Issue a "drop table" instruction using the current
@@ -1569,8 +1561,8 @@ class Operations(AbstractOperations):
             self,
             table_name: str,
             *,
-            existing_comment: Optional[str] = None,
-            schema: Optional[str] = None,
+            existing_comment: str | None = None,
+            schema: str | None = None,
         ) -> None:
             """Issue a "drop table comment" operation to
             remove an existing comment set on a table.
@@ -1590,9 +1582,9 @@ class Operations(AbstractOperations):
 
         def execute(
             self,
-            sqltext: Union[Executable, str],
+            sqltext: Executable | str,
             *,
-            execution_options: Optional[dict[str, Any]] = None,
+            execution_options: dict[str, Any] | None = None,
         ) -> None:
             r"""Execute the given SQL using the current migration context.
 
@@ -1681,7 +1673,7 @@ class Operations(AbstractOperations):
             old_table_name: str,
             new_table_name: str,
             *,
-            schema: Optional[str] = None,
+            schema: str | None = None,
         ) -> None:
             """Emit an ALTER TABLE to rename a table.
 
@@ -1732,11 +1724,11 @@ class BatchOperations(AbstractOperations):
             self,
             column: Column[Any],
             *,
-            insert_before: Optional[str] = None,
-            insert_after: Optional[str] = None,
-            if_not_exists: Optional[bool] = None,
-            inline_references: Optional[bool] = None,
-            inline_primary_key: Optional[bool] = None,
+            insert_before: str | None = None,
+            insert_after: str | None = None,
+            if_not_exists: bool | None = None,
+            inline_references: bool | None = None,
+            inline_primary_key: bool | None = None,
         ) -> None:
             """Issue an "add column" instruction using the current
             batch migration context.
@@ -1752,23 +1744,19 @@ class BatchOperations(AbstractOperations):
             self,
             column_name: str,
             *,
-            nullable: Optional[bool] = None,
-            comment: Union[str, Literal[False], None] = False,
-            server_default: Union[
-                _ServerDefaultType, None, Literal[False]
-            ] = False,
-            new_column_name: Optional[str] = None,
-            type_: Union[TypeEngine[Any], Type[TypeEngine[Any]], None] = None,
-            existing_type: Union[
-                TypeEngine[Any], Type[TypeEngine[Any]], None
-            ] = None,
-            existing_server_default: Union[
-                _ServerDefaultType, None, Literal[False]
-            ] = False,
-            existing_nullable: Optional[bool] = None,
-            existing_comment: Optional[str] = None,
-            insert_before: Optional[str] = None,
-            insert_after: Optional[str] = None,
+            nullable: bool | None = None,
+            comment: str | Literal[False] | None = False,
+            server_default: _ServerDefaultArgument = False,
+            new_column_name: str | None = None,
+            type_: TypeEngine[Any] | type[TypeEngine[Any]] | None = None,
+            existing_type: (
+                None | TypeEngine[Any] | type[TypeEngine[Any]]
+            ) = None,
+            existing_server_default: _ServerDefaultArgument = False,
+            existing_nullable: bool | None = None,
+            existing_comment: str | None = None,
+            insert_before: str | None = None,
+            insert_after: str | None = None,
             **kw: Any,
         ) -> None:
             """Issue an "alter column" instruction using the current
@@ -1798,7 +1786,7 @@ class BatchOperations(AbstractOperations):
         def create_check_constraint(
             self,
             constraint_name: str,
-            condition: Union[str, ColumnElement[bool], TextClause],
+            condition: str | ColumnElement[bool] | TextClause,
             **kw: Any,
         ) -> None:
             """Issue a "create check constraint" instruction using the
@@ -1816,7 +1804,7 @@ class BatchOperations(AbstractOperations):
 
         def create_exclude_constraint(
             self, constraint_name: str, *elements: Any, **kw: Any
-        ) -> Optional[Table]:
+        ) -> Table | None:
             """Issue a "create exclude constraint" instruction using the
             current batch migration context.
 
@@ -1832,17 +1820,17 @@ class BatchOperations(AbstractOperations):
 
         def create_foreign_key(
             self,
-            constraint_name: Optional[str],
+            constraint_name: str | None,
             referent_table: str,
-            local_cols: List[str],
-            remote_cols: List[str],
+            local_cols: list[str],
+            remote_cols: list[str],
             *,
-            referent_schema: Optional[str] = None,
-            onupdate: Optional[str] = None,
-            ondelete: Optional[str] = None,
-            deferrable: Optional[bool] = None,
-            initially: Optional[str] = None,
-            match: Optional[str] = None,
+            referent_schema: str | None = None,
+            onupdate: str | None = None,
+            ondelete: str | None = None,
+            deferrable: bool | None = None,
+            initially: str | None = None,
+            match: str | None = None,
             **dialect_kw: Any,
         ) -> None:
             """Issue a "create foreign key" instruction using the
@@ -1869,7 +1857,7 @@ class BatchOperations(AbstractOperations):
             ...
 
         def create_index(
-            self, index_name: str, columns: List[str], **kw: Any
+            self, index_name: str, columns: list[str], **kw: Any
         ) -> None:
             """Issue a "create index" instruction using the
             current batch migration context.
@@ -1882,7 +1870,7 @@ class BatchOperations(AbstractOperations):
             ...
 
         def create_primary_key(
-            self, constraint_name: Optional[str], columns: List[str]
+            self, constraint_name: str | None, columns: list[str]
         ) -> None:
             """Issue a "create primary key" instruction using the
             current batch migration context.
@@ -1898,10 +1886,7 @@ class BatchOperations(AbstractOperations):
             ...
 
         def create_table_comment(
-            self,
-            comment: Optional[str],
-            *,
-            existing_comment: Optional[str] = None,
+            self, comment: str | None, *, existing_comment: str | None = None
         ) -> None:
             """Emit a COMMENT ON operation to set the comment for a table
             using the current batch migration context.
@@ -1944,7 +1929,7 @@ class BatchOperations(AbstractOperations):
             ...
 
         def drop_constraint(
-            self, constraint_name: str, type_: Optional[str] = None
+            self, constraint_name: str, type_: str | None = None
         ) -> None:
             """Issue a "drop constraint" instruction using the
             current batch migration context.
@@ -1971,7 +1956,7 @@ class BatchOperations(AbstractOperations):
             ...
 
         def drop_table_comment(
-            self, *, existing_comment: Optional[str] = None
+            self, *, existing_comment: str | None = None
         ) -> None:
             """Issue a "drop table comment" operation to
             remove an existing comment set on a table using the current
@@ -1985,9 +1970,9 @@ class BatchOperations(AbstractOperations):
 
         def execute(
             self,
-            sqltext: Union[Executable, str],
+            sqltext: Executable | str,
             *,
-            execution_options: Optional[dict[str, Any]] = None,
+            execution_options: dict[str, Any] | None = None,
         ) -> None:
             """Execute the given SQL using the current migration context.
 

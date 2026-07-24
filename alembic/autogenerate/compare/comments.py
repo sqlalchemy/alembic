@@ -2,9 +2,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any
-from typing import Optional
 from typing import TYPE_CHECKING
-from typing import Union
 
 from ...operations import ops
 from ...util import PriorityDispatchResult
@@ -26,8 +24,8 @@ log = logging.getLogger(__name__)
 def _compare_column_comment(
     autogen_context: AutogenContext,
     alter_column_op: AlterColumnOp,
-    schema: Optional[str],
-    tname: Union[quoted_name, str],
+    schema: str | None,
+    tname: quoted_name | str,
     cname: quoted_name,
     conn_col: Column[Any],
     metadata_col: Column[Any],
@@ -55,10 +53,10 @@ def _compare_column_comment(
 def _compare_table_comment(
     autogen_context: AutogenContext,
     modify_table_ops: ModifyTableOps,
-    schema: Optional[str],
-    tname: Union[quoted_name, str],
-    conn_table: Optional[Table],
-    metadata_table: Optional[Table],
+    schema: str | None,
+    tname: quoted_name | str,
+    conn_table: Table | None,
+    metadata_table: Table | None,
 ) -> PriorityDispatchResult:
     assert autogen_context.dialect is not None
     if not autogen_context.dialect.supports_comments:

@@ -11,13 +11,13 @@ would fall back to defaults.
 from __future__ import annotations
 
 import collections
+from collections.abc import Generator
+from collections.abc import Sequence
 import os
 import re
 import sys
 from typing import Any
 from typing import Callable
-from typing import Generator
-from typing import Sequence
 
 import nox
 
@@ -94,7 +94,7 @@ def tox_parameters(
         prevtokens: list[str],
         prevtags: list[str],
         token_lists: Sequence[Sequence[str]],
-    ) -> Generator[tuple[list[str], list[str], str], None, None]:
+    ) -> Generator[tuple[list[str], list[str], str]]:
 
         if not token_lists:
             return

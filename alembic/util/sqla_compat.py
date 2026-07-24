@@ -3,18 +3,15 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
+from collections.abc import Iterator
 import contextlib
 import re
 from typing import Any
 from typing import Callable
-from typing import Dict
-from typing import Iterable
-from typing import Iterator
-from typing import Optional
 from typing import Protocol
-from typing import Set
-from typing import Type
 from typing import TYPE_CHECKING
+from typing import TypeGuard
 from typing import TypeVar
 from typing import Union
 
@@ -33,7 +30,6 @@ from sqlalchemy.sql.elements import TextClause
 from sqlalchemy.sql.elements import UnaryExpression
 from sqlalchemy.sql.naming import _NONE_NAME as _NONE_NAME  # type: ignore[attr-defined] # noqa: E501
 from sqlalchemy.sql.visitors import traverse
-from typing_extensions import TypeGuard
 
 if TYPE_CHECKING:
     from sqlalchemy import ClauseElement
@@ -56,7 +52,7 @@ class _CompilerProtocol(Protocol):
     def __call__(self, element: Any, compiler: Any, **kw: Any) -> str: ...
 
 
-def _safe_int(value: str) -> Union[int, str]:
+def _safe_int(value: str) -> int | str:
     try:
         return int(value)
     except:
@@ -77,7 +73,7 @@ sqlalchemy_version = __version__
 if TYPE_CHECKING:
 
     def compiles(
-        element: Type[ClauseElement], *dialects: str
+        element: type[ClauseElement], *dialects: str
     ) -> Callable[[_CompilerProtocol], _CompilerProtocol]: ...
 
 else:
@@ -88,9 +84,9 @@ identity_has_dialect_kwargs = issubclass(schema.Identity, DialectKWArgs)
 
 
 def _get_identity_options_dict(
-    identity: Union[Identity, schema.Sequence, None],
+    identity: Identity | schema.Sequence | None,
     dialect_kwargs: bool = False,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     if identity is None:
         return {}
     elif identity_has_dialect_kwargs:
@@ -148,7 +144,7 @@ def constraint_name_string(name: _ConstraintName) -> TypeGuard[str]:
     return isinstance(name, str)
 
 
-def constraint_name_or_none(name: _ConstraintName) -> Optional[str]:
+def constraint_name_or_none(name: _ConstraintName) -> str | None:
     return name if constraint_name_string(name) else None
 
 
@@ -157,7 +153,7 @@ AUTOINCREMENT_DEFAULT = "auto"
 
 @contextlib.contextmanager
 def _ensure_scope_for_ddl(
-    connection: Optional[Connection],
+    connection: Connection | None,
 ) -> Iterator[None]:
     try:
         in_transaction = connection.in_transaction  # type: ignore[union-attr]
@@ -204,7 +200,7 @@ def _safe_rollback_connection_transaction(
         transaction.rollback()
 
 
-def _get_connection_in_transaction(connection: Optional[Connection]) -> bool:
+def _get_connection_in_transaction(connection: Connection | None) -> bool:
     try:
         in_transaction = connection.in_transaction  # type: ignore
     except AttributeError:
@@ -226,7 +222,7 @@ def _copy(schema_item: _CE, **kw) -> _CE:
 
 
 def _connectable_has_table(
-    connectable: Connection, tablename: str, schemaname: Union[str, None]
+    connectable: Connection, tablename: str, schemaname: str | None
 ) -> bool:
     return connectable.dialect.has_table(connectable, tablename, schemaname)
 
@@ -293,7 +289,7 @@ else:
         return type_.impl, type_.mapping
 
 
-def _get_table_key(name: str, schema: Optional[str]) -> str:
+def _get_table_key(name: str, schema: str | None) -> str:
     if schema is None:
         return name
     else:
@@ -352,13 +348,13 @@ def _is_type_bound(constraint: Constraint) -> bool:
 def _find_columns(clause):
     """locate Column objects within the given expression."""
 
-    cols: Set[ColumnElement[Any]] = set()
+    cols: set[ColumnElement[Any]] = set()
     traverse(clause, {}, {"column": cols.add})
     return cols
 
 
 def _remove_column_from_collection(
-    collection: ColumnCollection, column: Union[Column[Any], ColumnClause[Any]]
+    collection: ColumnCollection, column: Column[Any] | ColumnClause[Any]
 ) -> None:
     """remove a column from a ColumnCollection."""
 
@@ -376,8 +372,8 @@ def _remove_column_from_collection(
 
 
 def _textual_index_column(
-    table: Table, text_: Union[str, TextClause, ColumnElement[Any]]
-) -> Union[ColumnElement[Any], Column[Any]]:
+    table: Table, text_: str | TextClause | ColumnElement[Any]
+) -> ColumnElement[Any] | Column[Any]:
     """a workaround for the Index construct's severe lack of flexibility"""
     if isinstance(text_, str):
         c = Column(text_, sqltypes.NULLTYPE)
@@ -462,8 +458,8 @@ def _render_literal_bindparam(
 
 
 def _get_constraint_final_name(
-    constraint: Union[Index, Constraint], dialect: Optional[Dialect]
-) -> Optional[str]:
+    constraint: Index | Constraint, dialect: Dialect | None
+) -> str | None:
     if constraint.name is None:
         return None
     assert dialect is not None
@@ -478,7 +474,7 @@ def _get_constraint_final_name(
 
 
 def _constraint_is_named(
-    constraint: Union[Constraint, Index], dialect: Optional[Dialect]
+    constraint: Constraint | Index, dialect: Dialect | None
 ) -> bool:
     if constraint.name is None:
         return False

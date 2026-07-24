@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional
-from typing import Set
 from typing import TYPE_CHECKING
 
 from sqlalchemy import inspect
@@ -32,7 +30,7 @@ def _produce_net_changes(
     inspector: Inspector = inspect(connection)
 
     default_schema = connection.dialect.default_schema_name
-    schemas: Set[Optional[str]]
+    schemas: set[str | None]
     if include_schemas:
         schemas = set(inspector.get_schema_names())
         # replace default schema name with None

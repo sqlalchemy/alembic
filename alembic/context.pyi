@@ -5,19 +5,14 @@ from __future__ import annotations
 from typing import Any
 from typing import Callable
 from typing import Collection
-from typing import Dict
 from typing import Iterable
-from typing import List
 from typing import Literal
 from typing import Mapping
 from typing import MutableMapping
-from typing import Optional
 from typing import overload
 from typing import Sequence
 from typing import TextIO
-from typing import Tuple
 from typing import TYPE_CHECKING
-from typing import Union
 
 from typing_extensions import ContextManager
 
@@ -42,7 +37,7 @@ if TYPE_CHECKING:
 ### end imports ###
 
 def begin_transaction() -> (
-    Union[_ProxyTransaction, ContextManager[None, Optional[bool]]]
+    _ProxyTransaction | ContextManager[None, bool | None]
 ):
     """Return a context manager that will
     enclose an operation within a "transaction",
@@ -90,22 +85,22 @@ def begin_transaction() -> (
 config: Config
 
 def configure(
-    connection: Optional[Connection] = None,
-    url: Union[str, URL, None] = None,
-    dialect_name: Optional[str] = None,
-    dialect_opts: Optional[Dict[str, Any]] = None,
-    transactional_ddl: Optional[bool] = None,
+    connection: Connection | None = None,
+    url: str | URL | None = None,
+    dialect_name: str | None = None,
+    dialect_opts: dict[str, Any] | None = None,
+    transactional_ddl: bool | None = None,
     transaction_per_migration: bool = False,
-    output_buffer: Optional[TextIO] = None,
-    starting_rev: Optional[str] = None,
-    tag: Optional[str] = None,
-    template_args: Optional[Dict[str, Any]] = None,
+    output_buffer: TextIO | None = None,
+    starting_rev: str | None = None,
+    tag: str | None = None,
+    template_args: dict[str, Any] | None = None,
     render_as_batch: bool = False,
-    target_metadata: Union[MetaData, Sequence[MetaData], None] = None,
-    include_name: Optional[
+    target_metadata: MetaData | Sequence[MetaData] | None = None,
+    include_name: (
         Callable[
             [
-                Optional[str],
+                str | None,
                 Literal[
                     "schema",
                     "table",
@@ -121,17 +116,18 @@ def configure(
                         "table_name",
                         "schema_qualified_table_name",
                     ],
-                    Optional[str],
+                    str | None,
                 ],
             ],
             bool,
         ]
-    ] = None,
-    include_object: Optional[
+        | None
+    ) = None,
+    include_object: (
         Callable[
             [
                 SchemaItem,
-                Optional[str],
+                str | None,
                 Literal[
                     "schema",
                     "table",
@@ -142,25 +138,27 @@ def configure(
                     "check_constraint",
                 ],
                 bool,
-                Optional[SchemaItem],
+                SchemaItem | None,
             ],
             bool,
         ]
-    ] = None,
+        | None
+    ) = None,
     include_schemas: bool = False,
-    process_revision_directives: Optional[
-        Callable[
+    process_revision_directives: (
+        None
+        | Callable[
             [
                 MigrationContext,
-                Union[str, Iterable[Optional[str]], Iterable[str]],
-                List[MigrationScript],
+                str | Iterable[str | None] | Iterable[str],
+                list[MigrationScript],
             ],
             None,
         ]
-    ] = None,
-    compare_type: Union[
-        bool,
-        Callable[
+    ) = None,
+    compare_type: (
+        bool
+        | Callable[
             [
                 MigrationContext,
                 Column[Any],
@@ -168,33 +166,33 @@ def configure(
                 TypeEngine[Any],
                 TypeEngine[Any],
             ],
-            Optional[bool],
-        ],
-    ] = True,
-    compare_server_default: Union[
-        bool,
-        Callable[
+            bool | None,
+        ]
+    ) = True,
+    compare_server_default: (
+        bool
+        | Callable[
             [
                 MigrationContext,
                 Column[Any],
                 Column[Any],
-                Optional[str],
-                Optional[FetchedValue],
-                Optional[str],
+                str | None,
+                FetchedValue | None,
+                str | None,
             ],
-            Optional[bool],
-        ],
-    ] = False,
-    render_item: Optional[
-        Callable[[str, Any, AutogenContext], Union[str, Literal[False]]]
-    ] = None,
+            bool | None,
+        ]
+    ) = False,
+    render_item: (
+        Callable[[str, Any, AutogenContext], str | Literal[False]] | None
+    ) = None,
     literal_binds: bool = False,
     upgrade_token: str = "upgrades",
     downgrade_token: str = "downgrades",
     alembic_module_prefix: str = "op.",
     sqlalchemy_module_prefix: str = "sa.",
-    user_module_prefix: Optional[str] = None,
-    on_version_apply: Optional[
+    user_module_prefix: str | None = None,
+    on_version_apply: (
         Callable[
             [
                 MigrationContext,
@@ -204,8 +202,9 @@ def configure(
             ],
             None,
         ]
-    ] = None,
-    autogenerate_plugins: Optional[Sequence[str]] = None,
+        | None
+    ) = None,
+    autogenerate_plugins: Sequence[str] | None = None,
     **kw: Any,
 ) -> None:
     """Configure a :class:`.MigrationContext` within this
@@ -661,8 +660,7 @@ def configure(
     """
 
 def execute(
-    sql: Union[Executable, str],
-    execution_options: Optional[Dict[str, Any]] = None,
+    sql: Executable | str, execution_options: dict[str, Any] | None = None
 ) -> None:
     """Execute the given SQL using the current change context.
 
@@ -696,7 +694,7 @@ def get_context() -> MigrationContext:
 
     """
 
-def get_head_revision() -> Union[str, Tuple[str, ...], None]:
+def get_head_revision() -> str | tuple[str, ...] | None:
     """Return the hex identifier of the 'head' script revision.
 
     If the script directory has multiple heads, this
@@ -710,7 +708,7 @@ def get_head_revision() -> Union[str, Tuple[str, ...], None]:
 
     """
 
-def get_head_revisions() -> Union[str, Tuple[str, ...], None]:
+def get_head_revisions() -> str | tuple[str, ...] | None:
     """Return the hex identifier of the 'heads' script revision(s).
 
     This returns a tuple containing the version number of all
@@ -721,7 +719,7 @@ def get_head_revisions() -> Union[str, Tuple[str, ...], None]:
 
     """
 
-def get_revision_argument() -> Union[str, Tuple[str, ...], None]:
+def get_revision_argument() -> str | tuple[str, ...] | None:
     """Get the 'destination' revision argument.
 
     This is typically the argument passed to the
@@ -736,7 +734,7 @@ def get_revision_argument() -> Union[str, Tuple[str, ...], None]:
 
     """
 
-def get_starting_revision_argument() -> Union[str, Tuple[str, ...], None]:
+def get_starting_revision_argument() -> str | tuple[str, ...] | None:
     """Return the 'starting revision' argument,
     if the revision was passed using ``start:end``.
 
@@ -749,7 +747,7 @@ def get_starting_revision_argument() -> Union[str, Tuple[str, ...], None]:
 
     """
 
-def get_tag_argument() -> Optional[str]:
+def get_tag_argument() -> str | None:
     """Return the value passed for the ``--tag`` argument, if any.
 
     The ``--tag`` argument is not used directly by Alembic,
@@ -769,13 +767,11 @@ def get_tag_argument() -> Optional[str]:
     """
 
 @overload
-def get_x_argument(as_dictionary: Literal[False]) -> List[str]: ...
+def get_x_argument(as_dictionary: Literal[False]) -> list[str]: ...
 @overload
-def get_x_argument(as_dictionary: Literal[True]) -> Dict[str, str]: ...
+def get_x_argument(as_dictionary: Literal[True]) -> dict[str, str]: ...
 @overload
-def get_x_argument(
-    as_dictionary: bool = ...,
-) -> Union[List[str], Dict[str, str]]:
+def get_x_argument(as_dictionary: bool = ...) -> list[str] | dict[str, str]:
     """Return the value(s) passed for the ``-x`` argument, if any.
 
     The ``-x`` argument is an open ended flag that allows any user-defined

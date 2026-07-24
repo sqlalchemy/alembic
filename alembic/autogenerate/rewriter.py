@@ -1,13 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
 from typing import Any
 from typing import Callable
-from typing import Iterator
-from typing import List
-from typing import Tuple
-from typing import Type
 from typing import TYPE_CHECKING
-from typing import Union
 
 from .. import util
 from ..operations import ops
@@ -26,7 +22,7 @@ if TYPE_CHECKING:
     from ..script.revision import _GetRevArg
 
 ProcessRevisionDirectiveFn = Callable[
-    ["MigrationContext", "_GetRevArg", List["MigrationScript"]], None
+    ["MigrationContext", "_GetRevArg", list["MigrationScript"]], None
 ]
 
 
@@ -58,17 +54,14 @@ class Rewriter:
 
     _traverse = util.Dispatcher()
 
-    _chained: Tuple[Union[ProcessRevisionDirectiveFn, Rewriter], ...] = ()
+    _chained: tuple[ProcessRevisionDirectiveFn | Rewriter, ...] = ()
 
     def __init__(self) -> None:
         self.dispatch = util.Dispatcher()
 
     def chain(
         self,
-        other: Union[
-            ProcessRevisionDirectiveFn,
-            Rewriter,
-        ],
+        other: ProcessRevisionDirectiveFn | Rewriter,
     ) -> Rewriter:
         """Produce a "chain" of this :class:`.Rewriter` to another.
 
@@ -106,13 +99,13 @@ class Rewriter:
 
     def rewrites(
         self,
-        operator: Union[
-            Type[AddColumnOp],
-            Type[MigrateOperation],
-            Type[AlterColumnOp],
-            Type[CreateTableOp],
-            Type[ModifyTableOps],
-        ],
+        operator: (
+            type[AddColumnOp]
+            | type[MigrateOperation]
+            | type[AlterColumnOp]
+            | type[CreateTableOp]
+            | type[ModifyTableOps]
+        ),
     ) -> Callable[..., Any]:
         """Register a function as rewriter for a given type.
 
@@ -155,7 +148,7 @@ class Rewriter:
         self,
         context: MigrationContext,
         revision: _GetRevArg,
-        directives: List[MigrationScript],
+        directives: list[MigrationScript],
     ) -> None:
         self.process_revision_directives(context, revision, directives)
         for process_revision_directives in self._chained:
@@ -168,7 +161,7 @@ class Rewriter:
         revision: _GetRevArg,
         directive: MigrationScript,
     ) -> None:
-        upgrade_ops_list: List[UpgradeOps] = []
+        upgrade_ops_list: list[UpgradeOps] = []
         for upgrade_ops in directive.upgrade_ops_list:
             ret = self._traverse_for(context, revision, upgrade_ops)
             if len(ret) != 1:
@@ -179,7 +172,7 @@ class Rewriter:
 
         directive.upgrade_ops = upgrade_ops_list
 
-        downgrade_ops_list: List[DowngradeOps] = []
+        downgrade_ops_list: list[DowngradeOps] = []
         for downgrade_ops in directive.downgrade_ops_list:
             ret = self._traverse_for(context, revision, downgrade_ops)
             if len(ret) != 1:
@@ -235,6 +228,6 @@ class Rewriter:
         self,
         context: MigrationContext,
         revision: _GetRevArg,
-        directives: List[MigrationScript],
+        directives: list[MigrationScript],
     ) -> None:
         self._traverse_list(context, revision, directives)

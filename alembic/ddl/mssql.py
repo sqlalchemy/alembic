@@ -5,11 +5,7 @@ from __future__ import annotations
 
 import re
 from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
 from typing import TYPE_CHECKING
-from typing import Union
 
 from sqlalchemy import types as sqltypes
 from sqlalchemy.schema import Column
@@ -36,8 +32,6 @@ from ..util import sqla_compat
 from ..util.sqla_compat import compiles
 
 if TYPE_CHECKING:
-    from typing import Literal
-
     from sqlalchemy.dialects.mssql.base import MSDDLCompiler
     from sqlalchemy.dialects.mssql.base import MSSQLCompiler
     from sqlalchemy.engine.cursor import CursorResult
@@ -46,7 +40,7 @@ if TYPE_CHECKING:
     from sqlalchemy.sql.selectable import TableClause
     from sqlalchemy.sql.type_api import TypeEngine
 
-    from .base import _ServerDefaultType
+    from .base import _ServerDefaultArgument
     from .impl import _ReflectedConstraint
 
 
@@ -71,7 +65,7 @@ class MSSQLImpl(DefaultImpl):
             "mssql_batch_separator", self.batch_separator
         )
 
-    def _exec(self, construct: Any, *args, **kw) -> Optional[CursorResult]:
+    def _exec(self, construct: Any, *args, **kw) -> CursorResult | None:
         result = super()._exec(construct, *args, **kw)
         if self.as_sql and self.batch_separator:
             self.static_output(self.batch_separator)
@@ -90,18 +84,14 @@ class MSSQLImpl(DefaultImpl):
         table_name: str,
         column_name: str,
         *,
-        nullable: Optional[bool] = None,
-        server_default: Optional[
-            Union[_ServerDefaultType, Literal[False]]
-        ] = False,
-        name: Optional[str] = None,
-        type_: Optional[TypeEngine] = None,
-        schema: Optional[str] = None,
-        existing_type: Optional[TypeEngine] = None,
-        existing_server_default: Union[
-            _ServerDefaultType, Literal[False], None
-        ] = None,
-        existing_nullable: Optional[bool] = None,
+        nullable: bool | None = None,
+        server_default: _ServerDefaultArgument = False,
+        name: str | None = None,
+        type_: TypeEngine | None = None,
+        schema: str | None = None,
+        existing_type: TypeEngine | None = None,
+        existing_server_default: _ServerDefaultArgument = None,
+        existing_nullable: bool | None = None,
         **kw: Any,
     ) -> None:
         if nullable is not None:
@@ -200,7 +190,7 @@ class MSSQLImpl(DefaultImpl):
         self._exec(CreateIndex(index, **kw))
 
     def bulk_insert(  # type: ignore[override]
-        self, table: Union[TableClause, Table], rows: List[dict], **kw: Any
+        self, table: TableClause | Table, rows: list[dict], **kw: Any
     ) -> None:
         if self.as_sql:
             self._exec(
@@ -220,7 +210,7 @@ class MSSQLImpl(DefaultImpl):
         table_name: str,
         column: Column[Any],
         *,
-        schema: Optional[str] = None,
+        schema: str | None = None,
         **kw,
     ) -> None:
         drop_default = kw.pop("mssql_drop_default", False)
@@ -284,8 +274,8 @@ class MSSQLImpl(DefaultImpl):
 
     def adjust_reflected_dialect_options(
         self, reflected_object: _ReflectedConstraint, kind: str
-    ) -> Dict[str, Any]:
-        options: Dict[str, Any]
+    ) -> dict[str, Any]:
+        options: dict[str, Any]
         options = reflected_object.get("dialect_options", {}).copy()  # type: ignore[attr-defined]  # noqa: E501
         if not options.get("mssql_include"):
             options.pop("mssql_include", None)
@@ -300,9 +290,9 @@ class _ExecDropConstraint(Executable, ClauseElement):
     def __init__(
         self,
         tname: str,
-        colname: Union[Column[Any], str],
+        colname: Column[Any] | str,
         type_: str,
-        schema: Optional[str],
+        schema: str | None,
     ) -> None:
         self.tname = tname
         self.colname = colname
@@ -314,7 +304,7 @@ class _ExecDropFKConstraint(Executable, ClauseElement):
     inherit_cache = False
 
     def __init__(
-        self, tname: str, colname: Column[Any], schema: Optional[str]
+        self, tname: str, colname: Column[Any], schema: str | None
     ) -> None:
         self.tname = tname
         self.colname = colname
@@ -439,7 +429,7 @@ def visit_rename_table(
 
 def _add_column_comment(
     compiler: MSDDLCompiler,
-    schema: Optional[str],
+    schema: str | None,
     tname: str,
     cname: str,
     comment: str,
@@ -461,7 +451,7 @@ def _add_column_comment(
 
 def _update_column_comment(
     compiler: MSDDLCompiler,
-    schema: Optional[str],
+    schema: str | None,
     tname: str,
     cname: str,
     comment: str,
@@ -482,7 +472,7 @@ def _update_column_comment(
 
 
 def _drop_column_comment(
-    compiler: MSDDLCompiler, schema: Optional[str], tname: str, cname: str
+    compiler: MSDDLCompiler, schema: str | None, tname: str, cname: str
 ) -> str:
     schema_name = schema if schema else compiler.dialect.default_schema_name
     assert schema_name

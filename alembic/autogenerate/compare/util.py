@@ -2,9 +2,9 @@
 # mypy: no-warn-return-any, allow-any-generics
 from __future__ import annotations
 
+from collections.abc import Collection
 from typing import Any
 from typing import cast
-from typing import Collection
 from typing import TYPE_CHECKING
 
 from sqlalchemy.sql.elements import conv

@@ -3,9 +3,9 @@ from __future__ import annotations
 from importlib import metadata
 import logging
 import re
+from re import Pattern
 from types import ModuleType
 from typing import Callable
-from typing import Pattern
 from typing import TYPE_CHECKING
 
 from .. import util

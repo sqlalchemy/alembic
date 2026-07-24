@@ -3,14 +3,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Sequence
-from typing import Tuple
 from typing import TYPE_CHECKING
-from typing import Union
 
 from sqlalchemy import schema as sa_schema
 from sqlalchemy.sql.schema import Column
@@ -39,16 +34,16 @@ if TYPE_CHECKING:
 
 class SchemaObjects:
     def __init__(
-        self, migration_context: Optional[MigrationContext] = None
+        self, migration_context: MigrationContext | None = None
     ) -> None:
         self.migration_context = migration_context
 
     def primary_key_constraint(
         self,
-        name: Optional[sqla_compat._ConstraintNameDefined],
+        name: sqla_compat._ConstraintNameDefined | None,
         table_name: str,
         cols: Sequence[str],
-        schema: Optional[str] = None,
+        schema: str | None = None,
         **dialect_kw,
     ) -> PrimaryKeyConstraint:
         m = self.metadata()
@@ -63,18 +58,18 @@ class SchemaObjects:
 
     def foreign_key_constraint(
         self,
-        name: Optional[sqla_compat._ConstraintNameDefined],
+        name: sqla_compat._ConstraintNameDefined | None,
         source: str,
         referent: str,
-        local_cols: List[str],
-        remote_cols: List[str],
-        onupdate: Optional[str] = None,
-        ondelete: Optional[str] = None,
-        deferrable: Optional[bool] = None,
-        source_schema: Optional[str] = None,
-        referent_schema: Optional[str] = None,
-        initially: Optional[str] = None,
-        match: Optional[str] = None,
+        local_cols: list[str],
+        remote_cols: list[str],
+        onupdate: str | None = None,
+        ondelete: str | None = None,
+        deferrable: bool | None = None,
+        source_schema: str | None = None,
+        referent_schema: str | None = None,
+        initially: str | None = None,
+        match: str | None = None,
         **dialect_kw,
     ) -> ForeignKeyConstraint:
         m = self.metadata()
@@ -123,10 +118,10 @@ class SchemaObjects:
 
     def unique_constraint(
         self,
-        name: Optional[sqla_compat._ConstraintNameDefined],
+        name: sqla_compat._ConstraintNameDefined | None,
         source: str,
         local_cols: Sequence[str],
-        schema: Optional[str] = None,
+        schema: str | None = None,
         **kw,
     ) -> UniqueConstraint:
         t = sa_schema.Table(
@@ -144,12 +139,12 @@ class SchemaObjects:
 
     def check_constraint(
         self,
-        name: Optional[sqla_compat._ConstraintNameDefined],
+        name: sqla_compat._ConstraintNameDefined | None,
         source: str,
-        condition: Union[str, TextClause, ColumnElement[Any]],
-        schema: Optional[str] = None,
+        condition: str | TextClause | ColumnElement[Any],
+        schema: str | None = None,
         **kw,
-    ) -> Union[CheckConstraint]:
+    ) -> CheckConstraint:
         t = sa_schema.Table(
             source,
             self.metadata(),
@@ -162,14 +157,14 @@ class SchemaObjects:
 
     def generic_constraint(
         self,
-        name: Optional[sqla_compat._ConstraintNameDefined],
+        name: sqla_compat._ConstraintNameDefined | None,
         table_name: str,
-        type_: Optional[str],
-        schema: Optional[str] = None,
+        type_: str | None,
+        schema: str | None = None,
         **kw,
     ) -> Any:
         t = self.table(table_name, schema=schema)
-        types: Dict[Optional[str], Any] = {
+        types: dict[str | None, Any] = {
             "foreignkey": lambda name: sa_schema.ForeignKeyConstraint(
                 [], [], name=name
             ),
@@ -245,10 +240,10 @@ class SchemaObjects:
 
     def index(
         self,
-        name: Optional[str],
-        tablename: Optional[str],
-        columns: Sequence[Union[str, TextClause, ColumnElement[Any]]],
-        schema: Optional[str] = None,
+        name: str | None,
+        tablename: str | None,
+        columns: Sequence[str | TextClause | ColumnElement[Any]],
+        schema: str | None = None,
         **kw,
     ) -> Index:
         t = sa_schema.Table(
@@ -264,10 +259,10 @@ class SchemaObjects:
         )
         return idx
 
-    def _parse_table_key(self, table_key: str) -> Tuple[Optional[str], str]:
+    def _parse_table_key(self, table_key: str) -> tuple[str | None, str]:
         if "." in table_key:
             tokens = table_key.split(".")
-            sname: Optional[str] = ".".join(tokens[0:-1])
+            sname: str | None = ".".join(tokens[0:-1])
             tname = tokens[-1]
         else:
             tname = table_key

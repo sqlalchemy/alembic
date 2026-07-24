@@ -1,24 +1,21 @@
 from __future__ import annotations
 
+from collections.abc import Collection
+from collections.abc import Mapping
+from collections.abc import MutableMapping
+from collections.abc import Sequence
 from typing import Any
 from typing import Callable
-from typing import Collection
-from typing import Dict
-from typing import List
-from typing import Mapping
-from typing import MutableMapping
+from typing import Literal
 from typing import Optional
 from typing import overload
-from typing import Sequence
 from typing import TextIO
-from typing import Tuple
 from typing import TYPE_CHECKING
 from typing import Union
 
 from sqlalchemy.sql.schema import Column
 from sqlalchemy.sql.schema import FetchedValue
 from typing_extensions import ContextManager
-from typing_extensions import Literal
 
 from .migration import _ProxyTransaction
 from .migration import MigrationContext
@@ -41,10 +38,10 @@ if TYPE_CHECKING:
     from ..operations.ops import MigrationScript
     from ..script.base import ScriptDirectory
 
-_RevNumber = Optional[Union[str, Tuple[str, ...]]]
+_RevNumber = Optional[Union[str, tuple[str, ...]]]
 
 ProcessRevisionDirectiveFn = Callable[
-    [MigrationContext, _GetRevArg, List["MigrationScript"]], None
+    [MigrationContext, _GetRevArg, list["MigrationScript"]], None
 ]
 
 RenderItemFn = Callable[
@@ -172,7 +169,7 @@ class EnvironmentContext(util.ModuleClsProxy):
 
     """
 
-    _migration_context: Optional[MigrationContext] = None
+    _migration_context: MigrationContext | None = None
 
     config: Config = None  # type: ignore[assignment]
     """An instance of :class:`.Config` representing the
@@ -321,7 +318,7 @@ class EnvironmentContext(util.ModuleClsProxy):
             self.context_opts["destination_rev"]
         )
 
-    def get_tag_argument(self) -> Optional[str]:
+    def get_tag_argument(self) -> str | None:
         """Return the value passed for the ``--tag`` argument, if any.
 
         The ``--tag`` argument is not used directly by Alembic,
@@ -342,21 +339,21 @@ class EnvironmentContext(util.ModuleClsProxy):
         return self.context_opts.get("tag", None)
 
     @overload
-    def get_x_argument(self, as_dictionary: Literal[False]) -> List[str]: ...
+    def get_x_argument(self, as_dictionary: Literal[False]) -> list[str]: ...
 
     @overload
     def get_x_argument(
         self, as_dictionary: Literal[True]
-    ) -> Dict[str, str]: ...
+    ) -> dict[str, str]: ...
 
     @overload
     def get_x_argument(
         self, as_dictionary: bool = ...
-    ) -> Union[List[str], Dict[str, str]]: ...
+    ) -> list[str] | dict[str, str]: ...
 
     def get_x_argument(
         self, as_dictionary: bool = False
-    ) -> Union[List[str], Dict[str, str]]:
+    ) -> list[str] | dict[str, str]:
         """Return the value(s) passed for the ``-x`` argument, if any.
 
         The ``-x`` argument is an open ended flag that allows any user-defined
@@ -414,34 +411,34 @@ class EnvironmentContext(util.ModuleClsProxy):
 
     def configure(
         self,
-        connection: Optional[Connection] = None,
-        url: Optional[Union[str, URL]] = None,
-        dialect_name: Optional[str] = None,
-        dialect_opts: Optional[Dict[str, Any]] = None,
-        transactional_ddl: Optional[bool] = None,
+        connection: Connection | None = None,
+        url: str | URL | None = None,
+        dialect_name: str | None = None,
+        dialect_opts: dict[str, Any] | None = None,
+        transactional_ddl: bool | None = None,
         transaction_per_migration: bool = False,
-        output_buffer: Optional[TextIO] = None,
-        starting_rev: Optional[str] = None,
-        tag: Optional[str] = None,
-        template_args: Optional[Dict[str, Any]] = None,
+        output_buffer: TextIO | None = None,
+        starting_rev: str | None = None,
+        tag: str | None = None,
+        template_args: dict[str, Any] | None = None,
         render_as_batch: bool = False,
-        target_metadata: Union[MetaData, Sequence[MetaData], None] = None,
-        include_name: Optional[IncludeNameFn] = None,
-        include_object: Optional[IncludeObjectFn] = None,
+        target_metadata: MetaData | Sequence[MetaData] | None = None,
+        include_name: IncludeNameFn | None = None,
+        include_object: IncludeObjectFn | None = None,
         include_schemas: bool = False,
-        process_revision_directives: Optional[
+        process_revision_directives: None | (
             ProcessRevisionDirectiveFn
-        ] = None,
-        compare_type: Union[bool, CompareType] = True,
-        compare_server_default: Union[bool, CompareServerDefault] = False,
-        render_item: Optional[RenderItemFn] = None,
+        ) = None,
+        compare_type: bool | CompareType = True,
+        compare_server_default: bool | CompareServerDefault = False,
+        render_item: RenderItemFn | None = None,
         literal_binds: bool = False,
         upgrade_token: str = "upgrades",
         downgrade_token: str = "downgrades",
         alembic_module_prefix: str = "op.",
         sqlalchemy_module_prefix: str = "sa.",
-        user_module_prefix: Optional[str] = None,
-        on_version_apply: Optional[OnVersionApplyFn] = None,
+        user_module_prefix: str | None = None,
+        on_version_apply: OnVersionApplyFn | None = None,
         autogenerate_plugins: Sequence[str] | None = None,
         **kw: Any,
     ) -> None:
@@ -971,8 +968,8 @@ class EnvironmentContext(util.ModuleClsProxy):
 
     def execute(
         self,
-        sql: Union[Executable, str],
-        execution_options: Optional[Dict[str, Any]] = None,
+        sql: Executable | str,
+        execution_options: dict[str, Any] | None = None,
     ) -> None:
         """Execute the given SQL using the current change context.
 
@@ -1000,7 +997,7 @@ class EnvironmentContext(util.ModuleClsProxy):
 
     def begin_transaction(
         self,
-    ) -> Union[_ProxyTransaction, ContextManager[None, Optional[bool]]]:
+    ) -> _ProxyTransaction | ContextManager[None, bool | None]:
         """Return a context manager that will
         enclose an operation within a "transaction",
         as defined by the environment's offline

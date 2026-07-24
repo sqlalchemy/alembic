@@ -3,22 +3,15 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
+from collections.abc import Mapping
+from collections.abc import Sequence
 import logging
 import re
 from typing import Any
 from typing import Callable
-from typing import Dict
-from typing import Iterable
-from typing import List
-from typing import Mapping
 from typing import NamedTuple
-from typing import Optional
-from typing import Sequence
-from typing import Set
-from typing import Tuple
-from typing import Type
 from typing import TYPE_CHECKING
-from typing import Union
 
 from sqlalchemy import cast
 from sqlalchemy import Column
@@ -60,7 +53,7 @@ if TYPE_CHECKING:
     from sqlalchemy.sql.selectable import TableClause
     from sqlalchemy.sql.type_api import TypeEngine
 
-    from .base import _ServerDefaultType
+    from .base import _ServerDefaultArgument
     from ..autogenerate.api import AutogenContext
     from ..operations.batch import ApplyBatchImpl
     from ..operations.batch import BatchOperationsImpl
@@ -79,8 +72,8 @@ class ImplMeta(type):
     def __init__(
         cls,
         classname: str,
-        bases: Tuple[Type[DefaultImpl]],
-        dict_: Dict[str, Any],
+        bases: tuple[type[DefaultImpl]],
+        dict_: dict[str, Any],
     ):
         newtype = type.__init__(cls, classname, bases, dict_)
         if "__dialect__" in dict_:
@@ -88,7 +81,7 @@ class ImplMeta(type):
         return newtype
 
 
-_impls: Dict[str, Type[DefaultImpl]] = {}
+_impls: dict[str, type[DefaultImpl]] = {}
 
 
 class DefaultImpl(metaclass=ImplMeta):
@@ -108,22 +101,22 @@ class DefaultImpl(metaclass=ImplMeta):
 
     transactional_ddl = False
     command_terminator = ";"
-    type_synonyms: Tuple[Set[str], ...] = ({"NUMERIC", "DECIMAL"},)
+    type_synonyms: tuple[set[str], ...] = ({"NUMERIC", "DECIMAL"},)
     type_arg_extract: Sequence[str] = ()
     # These attributes are deprecated in SQLAlchemy via #10247. They need to
     # be ignored to support older version that did not use dialect kwargs.
     # They only apply to Oracle and are replaced by oracle_order,
     # oracle_on_null
-    identity_attrs_ignore: Tuple[str, ...] = ("order", "on_null")
+    identity_attrs_ignore: tuple[str, ...] = ("order", "on_null")
 
     def __init__(
         self,
         dialect: Dialect,
-        connection: Optional[Connection],
+        connection: Connection | None,
         as_sql: bool,
-        transactional_ddl: Optional[bool],
-        output_buffer: Optional[TextIO],
-        context_opts: Dict[str, Any],
+        transactional_ddl: bool | None,
+        output_buffer: TextIO | None,
+        context_opts: dict[str, Any],
     ) -> None:
         self.dialect = dialect
         self.connection = connection
@@ -143,7 +136,7 @@ class DefaultImpl(metaclass=ImplMeta):
                 )
 
     @classmethod
-    def get_by_dialect(cls, dialect: Dialect) -> Type[DefaultImpl]:
+    def get_by_dialect(cls, dialect: Dialect) -> type[DefaultImpl]:
         return _impls[dialect.name]
 
     def static_output(self, text: str) -> None:
@@ -155,7 +148,7 @@ class DefaultImpl(metaclass=ImplMeta):
         self,
         *,
         version_table: str,
-        version_table_schema: Optional[str],
+        version_table_schema: str | None,
         version_table_pk: bool,
         **kw: Any,
     ) -> Table:
@@ -210,16 +203,16 @@ class DefaultImpl(metaclass=ImplMeta):
         """
 
     @property
-    def bind(self) -> Optional[Connection]:
+    def bind(self) -> Connection | None:
         return self.connection
 
     def _exec(
         self,
-        construct: Union[Executable, str],
-        execution_options: Optional[Mapping[str, Any]] = None,
-        multiparams: Optional[Sequence[Mapping[str, Any]]] = None,
+        construct: Executable | str,
+        execution_options: Mapping[str, Any] | None = None,
+        multiparams: Sequence[Mapping[str, Any]] | None = None,
         params: Mapping[str, Any] = util.immutabledict(),
-    ) -> Optional[CursorResult]:
+    ) -> CursorResult | None:
         if isinstance(construct, str):
             construct = text(construct)
         if self.as_sql:
@@ -260,8 +253,8 @@ class DefaultImpl(metaclass=ImplMeta):
 
     def execute(
         self,
-        sql: Union[Executable, str],
-        execution_options: Optional[dict[str, Any]] = None,
+        sql: Executable | str,
+        execution_options: dict[str, Any] | None = None,
     ) -> None:
         self._exec(sql, execution_options)
 
@@ -270,22 +263,18 @@ class DefaultImpl(metaclass=ImplMeta):
         table_name: str,
         column_name: str,
         *,
-        nullable: Optional[bool] = None,
-        server_default: Optional[
-            Union[_ServerDefaultType, Literal[False]]
-        ] = False,
-        name: Optional[str] = None,
-        type_: Optional[TypeEngine] = None,
-        schema: Optional[str] = None,
-        autoincrement: Optional[bool] = None,
-        comment: Optional[Union[str, Literal[False]]] = False,
-        existing_comment: Optional[str] = None,
-        existing_type: Optional[TypeEngine] = None,
-        existing_server_default: Optional[
-            Union[_ServerDefaultType, Literal[False]]
-        ] = None,
-        existing_nullable: Optional[bool] = None,
-        existing_autoincrement: Optional[bool] = None,
+        nullable: bool | None = None,
+        server_default: _ServerDefaultArgument = False,
+        name: str | None = None,
+        type_: TypeEngine | None = None,
+        schema: str | None = None,
+        autoincrement: bool | None = None,
+        comment: str | Literal[False] | None = False,
+        existing_comment: str | None = None,
+        existing_type: TypeEngine | None = None,
+        existing_server_default: _ServerDefaultArgument = None,
+        existing_nullable: bool | None = None,
+        existing_autoincrement: bool | None = None,
         **kw: Any,
     ) -> None:
         if autoincrement is not None or existing_autoincrement is not None:
@@ -309,12 +298,12 @@ class DefaultImpl(metaclass=ImplMeta):
             )
         if server_default is not False:
             kw = {}
-            cls_: Type[
-                Union[
-                    base.ComputedColumnDefault,
-                    base.IdentityColumnDefault,
-                    base.ColumnDefault,
-                ]
+            cls_: type[
+                (
+                    base.ComputedColumnDefault
+                    | base.IdentityColumnDefault
+                    | base.ColumnDefault
+                )
             ]
             if sqla_compat._server_default_is_computed(
                 server_default, existing_server_default
@@ -387,10 +376,10 @@ class DefaultImpl(metaclass=ImplMeta):
         table_name: str,
         column: Column[Any],
         *,
-        schema: Optional[Union[str, quoted_name]] = None,
-        if_not_exists: Optional[bool] = None,
-        inline_references: Optional[bool] = None,
-        inline_primary_key: Optional[bool] = None,
+        schema: str | quoted_name | None = None,
+        if_not_exists: bool | None = None,
+        inline_references: bool | None = None,
+        inline_primary_key: bool | None = None,
     ) -> None:
         self._exec(
             base.AddColumn(
@@ -408,8 +397,8 @@ class DefaultImpl(metaclass=ImplMeta):
         table_name: str,
         column: Column[Any],
         *,
-        schema: Optional[str] = None,
-        if_exists: Optional[bool] = None,
+        schema: str | None = None,
+        if_exists: bool | None = None,
         **kw,
     ) -> None:
         self._exec(
@@ -431,8 +420,8 @@ class DefaultImpl(metaclass=ImplMeta):
     def rename_table(
         self,
         old_table_name: str,
-        new_table_name: Union[str, quoted_name],
-        schema: Optional[Union[str, quoted_name]] = None,
+        new_table_name: str | quoted_name,
+        schema: str | quoted_name | None = None,
     ) -> None:
         self._exec(
             base.RenameTable(old_table_name, new_table_name, schema=schema)
@@ -487,8 +476,8 @@ class DefaultImpl(metaclass=ImplMeta):
 
     def bulk_insert(
         self,
-        table: Union[TableClause, Table],
-        rows: List[dict],
+        table: TableClause | Table,
+        rows: list[dict],
         multiinsert: bool = True,
     ) -> None:
         if not isinstance(rows, list):
@@ -539,9 +528,9 @@ class DefaultImpl(metaclass=ImplMeta):
         # varchar character set utf8
         #
 
-        tokens: List[str] = re.findall(r"[\w\-_]+|\(.+?\)", definition)
+        tokens: list[str] = re.findall(r"[\w\-_]+|\(.+?\)", definition)
 
-        term_tokens: List[str] = []
+        term_tokens: list[str] = []
         paren_term = None
 
         for token in tokens:
@@ -645,10 +634,10 @@ class DefaultImpl(metaclass=ImplMeta):
 
     def correct_for_autogen_constraints(
         self,
-        conn_uniques: Set[UniqueConstraint],
-        conn_indexes: Set[Index],
-        metadata_unique_constraints: Set[UniqueConstraint],
-        metadata_indexes: Set[Index],
+        conn_uniques: set[UniqueConstraint],
+        conn_indexes: set[Index],
+        metadata_unique_constraints: set[UniqueConstraint],
+        metadata_indexes: set[Index],
     ) -> None:
         pass
 
@@ -677,8 +666,8 @@ class DefaultImpl(metaclass=ImplMeta):
 
     def correct_for_autogen_foreignkeys(
         self,
-        conn_fks: Set[ForeignKeyConstraint],
-        metadata_fks: Set[ForeignKeyConstraint],
+        conn_fks: set[ForeignKeyConstraint],
+        metadata_fks: set[ForeignKeyConstraint],
     ) -> None:
         pass
 
@@ -721,7 +710,7 @@ class DefaultImpl(metaclass=ImplMeta):
 
     def render_type(
         self, type_obj: TypeEngine, autogen_context: AutogenContext
-    ) -> Union[str, Literal[False]]:
+    ) -> str | Literal[False]:
         return False
 
     def _compare_identity_default(self, metadata_identity, inspector_identity):
@@ -754,7 +743,7 @@ class DefaultImpl(metaclass=ImplMeta):
 
     def _compare_index_unique(
         self, metadata_index: Index, reflected_index: Index
-    ) -> Optional[str]:
+    ) -> str | None:
         conn_unique = bool(reflected_index.unique)
         meta_unique = bool(metadata_index.unique)
         if conn_unique != meta_unique:
@@ -782,7 +771,7 @@ class DefaultImpl(metaclass=ImplMeta):
 
         This method returns a ``ComparisonResult``.
         """
-        msg: List[str] = []
+        msg: list[str] = []
         unique_msg = self._compare_index_unique(
             metadata_index, reflected_index
         )
@@ -869,22 +858,22 @@ class DefaultImpl(metaclass=ImplMeta):
 
     def adjust_reflected_dialect_options(
         self, reflected_object: _ReflectedConstraint, kind: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         return reflected_object.get("dialect_options", {})  # type: ignore[return-value]   # noqa: E501
 
 
 class Params(NamedTuple):
     token0: str
-    tokens: List[str]
-    args: List[str]
-    kwargs: Dict[str, str]
+    tokens: list[str]
+    args: list[str]
+    kwargs: dict[str, str]
 
 
 def _compare_identity_options(
-    metadata_io: Union[schema.Identity, schema.Sequence, None],
-    inspector_io: Union[schema.Identity, schema.Sequence, None],
-    default_io: Union[schema.Identity, schema.Sequence],
-    skip: Set[str],
+    metadata_io: schema.Identity | schema.Sequence | None,
+    inspector_io: schema.Identity | schema.Sequence | None,
+    default_io: schema.Identity | schema.Sequence,
+    skip: set[str],
 ):
     # this can be used for identity or sequence compare.
     # default_io is an instance of IdentityOption with all attributes to the

@@ -1654,7 +1654,7 @@ someconfig = 'bar'""")
         cfg = existing_pyproject_fixture
         path = pathlib.Path(_get_staging_directory(), "myproject")
         command.init(cfg, directory=path.as_posix(), template="pyproject")
-        with open(cfg.toml_file_name, "r") as f:
+        with open(cfg.toml_file_name) as f:
             file_content = f.read()
 
         assert file_content.startswith("""[tool.sometool]

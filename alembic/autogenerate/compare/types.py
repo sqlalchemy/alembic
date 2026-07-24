@@ -2,9 +2,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any
-from typing import Optional
 from typing import TYPE_CHECKING
-from typing import Union
 
 from sqlalchemy import types as sqltypes
 
@@ -25,8 +23,8 @@ log = logging.getLogger(__name__)
 
 def _compare_type_setup(
     alter_column_op: AlterColumnOp,
-    tname: Union[quoted_name, str],
-    cname: Union[quoted_name, str],
+    tname: quoted_name | str,
+    cname: quoted_name | str,
     conn_col: Column[Any],
     metadata_col: Column[Any],
 ) -> bool:
@@ -55,9 +53,9 @@ def _compare_type_setup(
 def _user_compare_type(
     autogen_context: AutogenContext,
     alter_column_op: AlterColumnOp,
-    schema: Optional[str],
-    tname: Union[quoted_name, str],
-    cname: Union[quoted_name, str],
+    schema: str | None,
+    tname: quoted_name | str,
+    cname: quoted_name | str,
     conn_col: Column[Any],
     metadata_col: Column[Any],
 ) -> PriorityDispatchResult:
@@ -103,9 +101,9 @@ def _user_compare_type(
 def _dialect_impl_compare_type(
     autogen_context: AutogenContext,
     alter_column_op: AlterColumnOp,
-    schema: Optional[str],
-    tname: Union[quoted_name, str],
-    cname: Union[quoted_name, str],
+    schema: str | None,
+    tname: quoted_name | str,
+    cname: quoted_name | str,
     conn_col: Column[Any],
     metadata_col: Column[Any],
 ) -> PriorityDispatchResult:

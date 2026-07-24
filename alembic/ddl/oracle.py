@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import re
 from typing import Any
-from typing import Optional
 from typing import TYPE_CHECKING
 
 from sqlalchemy.sql import sqltypes
@@ -50,7 +49,7 @@ class OracleImpl(DefaultImpl):
             "oracle_batch_separator", self.batch_separator
         )
 
-    def _exec(self, construct: Any, *args, **kw) -> Optional[CursorResult]:
+    def _exec(self, construct: Any, *args, **kw) -> CursorResult | None:
         result = super()._exec(construct, *args, **kw)
         if self.as_sql and self.batch_separator:
             self.static_output(self.batch_separator)

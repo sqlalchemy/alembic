@@ -7,7 +7,6 @@
 from __future__ import annotations
 
 import types
-from typing import Union
 
 from sqlalchemy.util import inspect_getfullargspec
 
@@ -105,7 +104,7 @@ def metadata_fixture(ddl="function"):
     return decorate
 
 
-def _safe_int(value: str) -> Union[int, str]:
+def _safe_int(value: str) -> int | str:
     try:
         return int(value)
     except:

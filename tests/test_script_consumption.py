@@ -5,8 +5,6 @@ import os
 import re
 import shutil
 import textwrap
-from typing import Dict
-from typing import List
 
 import sqlalchemy as sa
 from sqlalchemy import pool
@@ -883,11 +881,11 @@ class SourcelessNeedsFlagTest(TestBase):
 class RecursiveScriptDirectoryTest(TestBase):
     """test recursive version directory consumption for #760"""
 
-    rev: List[str]
+    rev: list[str]
     org_script_dir: ScriptDirectory
     cfg: Config
-    _script_by_name: Dict[str, Script]
-    _name_by_revision: Dict[str, str]
+    _script_by_name: dict[str, Script]
+    _name_by_revision: dict[str, str]
 
     def _setup_revision_files(
         self, listing, destination=".", version_path="scripts/versions"
@@ -1310,7 +1308,7 @@ class ScriptDirectoryMethodsTest(TestBase):
 
     def test_get_revisions(self, linear_fixture):
         revs = linear_fixture.get_revisions((self.a, self.c))
-        eq_(set(r.revision for r in revs), {self.a, self.c})
+        eq_({r.revision for r in revs}, {self.a, self.c})
 
     def test_walk_revisions(self, linear_fixture):
         revs = list(linear_fixture.walk_revisions())
@@ -1348,7 +1346,7 @@ class ScriptDirectoryMethodsTest(TestBase):
     def test_walk_revisions_multiple_heads(self, multi_heads_fixture):
         revs = list(multi_heads_fixture.walk_revisions())
         eq_(
-            set(r.revision for r in revs),
+            {r.revision for r in revs},
             {self.a, self.b, self.c, self.d, self.e, self.f},
         )
 

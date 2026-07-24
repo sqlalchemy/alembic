@@ -5,9 +5,7 @@ from __future__ import annotations
 
 import re
 from typing import Any
-from typing import Optional
 from typing import TYPE_CHECKING
-from typing import Union
 
 from sqlalchemy import schema
 from sqlalchemy import types as sqltypes
@@ -38,6 +36,7 @@ if TYPE_CHECKING:
     from sqlalchemy.sql.schema import Constraint
     from sqlalchemy.sql.type_api import TypeEngine
 
+    from .base import _ServerDefaultArgument
     from .base import _ServerDefaultType
 
 
@@ -81,22 +80,18 @@ class MySQLImpl(DefaultImpl):
         table_name: str,
         column_name: str,
         *,
-        nullable: Optional[bool] = None,
-        server_default: Optional[
-            Union[_ServerDefaultType, Literal[False]]
-        ] = False,
-        name: Optional[str] = None,
-        type_: Optional[TypeEngine] = None,
-        schema: Optional[str] = None,
-        existing_type: Optional[TypeEngine] = None,
-        existing_server_default: Optional[
-            Union[_ServerDefaultType, Literal[False]]
-        ] = None,
-        existing_nullable: Optional[bool] = None,
-        autoincrement: Optional[bool] = None,
-        existing_autoincrement: Optional[bool] = None,
-        comment: Optional[Union[str, Literal[False]]] = False,
-        existing_comment: Optional[str] = None,
+        nullable: bool | None = None,
+        server_default: _ServerDefaultArgument = False,
+        name: str | None = None,
+        type_: TypeEngine | None = None,
+        schema: str | None = None,
+        existing_type: TypeEngine | None = None,
+        existing_server_default: _ServerDefaultArgument = None,
+        existing_nullable: bool | None = None,
+        autoincrement: bool | None = None,
+        existing_autoincrement: bool | None = None,
+        comment: str | Literal[False] | None = False,
+        existing_comment: str | None = None,
         **kw: Any,
     ) -> None:
         if sqla_compat._server_default_is_identity(
@@ -208,8 +203,8 @@ class MySQLImpl(DefaultImpl):
 
     def _is_mysql_allowed_functional_default(
         self,
-        type_: Optional[TypeEngine],
-        server_default: Optional[Union[_ServerDefaultType, Literal[False]]],
+        type_: TypeEngine | None,
+        server_default: _ServerDefaultArgument,
     ) -> bool:
         return (
             type_ is not None
@@ -395,8 +390,8 @@ class MySQLAlterDefault(AlterColumn):
         self,
         name: str,
         column_name: str,
-        default: Optional[_ServerDefaultType],
-        schema: Optional[str] = None,
+        default: _ServerDefaultType | None,
+        schema: str | None = None,
     ) -> None:
         super(AlterColumn, self).__init__(name, schema=schema)
         self.column_name = column_name
@@ -408,13 +403,13 @@ class MySQLChangeColumn(AlterColumn):
         self,
         name: str,
         column_name: str,
-        schema: Optional[str] = None,
-        newname: Optional[str] = None,
-        type_: Optional[TypeEngine] = None,
-        nullable: Optional[bool] = None,
-        default: Optional[Union[_ServerDefaultType, Literal[False]]] = False,
-        autoincrement: Optional[bool] = None,
-        comment: Optional[Union[str, Literal[False]]] = False,
+        schema: str | None = None,
+        newname: str | None = None,
+        type_: TypeEngine | None = None,
+        nullable: bool | None = None,
+        default: _ServerDefaultArgument = False,
+        autoincrement: bool | None = None,
+        comment: str | Literal[False] | None = False,
     ) -> None:
         super(AlterColumn, self).__init__(name, schema=schema)
         self.column_name = column_name
@@ -500,11 +495,11 @@ def _mysql_change_column(
 
 def _mysql_colspec(
     compiler: MySQLDDLCompiler,
-    nullable: Optional[bool],
-    server_default: Optional[Union[_ServerDefaultType, Literal[False]]],
+    nullable: bool | None,
+    server_default: _ServerDefaultArgument,
     type_: TypeEngine,
-    autoincrement: Optional[bool],
-    comment: Optional[Union[str, Literal[False]]],
+    autoincrement: bool | None,
+    comment: str | Literal[False] | None,
 ) -> str:
     spec = "%s %s" % (
         compiler.dialect.type_compiler.process(type_),

@@ -20,7 +20,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 if True:  # avoid flake/zimports messing with the order
     from alembic.autogenerate.api import AutogenContext
-    from alembic.operations.base import _ServerDefaultType
+    from alembic.operations.base import _ServerDefaultArgument
     from alembic.ddl.impl import DefaultImpl
     from alembic.runtime.migration import MigrationInfo
     from alembic.operations.base import BatchOperations
@@ -34,7 +34,7 @@ if True:  # avoid flake/zimports messing with the order
     import sqlalchemy as sa
 
 BLACK_VERSION = (25, 9, 0)
-PYTHON_VERSIONS = (3, 12), (3, 14)
+PYTHON_VERSIONS = (3, 14), (3, 15)
 
 
 TRIM_MODULE = [
@@ -42,6 +42,7 @@ TRIM_MODULE = [
     "alembic.operations.base.",
     "alembic.operations.ops.",
     "alembic.runtime.migration.",
+    "collections.abc.",
     "sqlalchemy.engine.base.",
     "sqlalchemy.engine.url.",
     "sqlalchemy.sql.base.",
@@ -197,9 +198,12 @@ def _generate_stub_for_meth(
                     remainder = set(annotation.__args__).difference(
                         ta.__args__
                     )
-                    retval = (
-                        f"Union[{type_aliases[ta]}, "
-                        f"{', '.join(sorted("None" if a is types.NoneType else repr(a) for a in remainder))}]"  # noqa: E501
+                    retval = " | ".join(
+                        [type_aliases[ta]]
+                        + sorted(
+                            "None" if a is types.NoneType else repr(a)
+                            for a in remainder
+                        )
                     )
                     break
 
@@ -257,14 +261,13 @@ def _generate_stub_for_meth(
     if has_docs:
         noqua = " # noqa: E501" if file_info.docs_noqa_E501 else ""
 
-        if sys.version_info >= (3, 13):
-            # python 3.13 seems to remove the leading spaces from docs,
-            # but the following needs them, so re-add it
-            # https://docs.python.org/3/whatsnew/3.13.html#other-language-changes
-            indent = "        "
-            fn_doc = textwrap.indent(fn_doc, indent)[len(indent) :]
-            if fn_doc[-1] == "\n":
-                fn_doc += indent
+        # python 3.13+ removes the leading spaces from docs, but the
+        # following needs them, so re-add it
+        # https://docs.python.org/3/whatsnew/3.13.html#other-language-changes
+        indent = "        "
+        fn_doc = textwrap.indent(fn_doc, indent)[len(indent) :]
+        if fn_doc[-1] == "\n":
+            fn_doc += indent
 
         docs = f'{string_prefix}"""{fn_doc}"""{noqua}'
     else:
@@ -434,7 +437,7 @@ cls_ignore = {
     "run_async",
 }
 
-type_aliases = {_ServerDefaultType: "_ServerDefaultType"}
+type_aliases = {_ServerDefaultArgument: "_ServerDefaultArgument"}
 
 
 cases = [

@@ -1,16 +1,11 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
+from collections.abc import Sequence
 import contextlib
 import logging
 from typing import Any
-from typing import Dict
-from typing import Iterator
-from typing import List
-from typing import Optional
-from typing import Sequence
-from typing import Set
 from typing import TYPE_CHECKING
-from typing import Union
 
 from sqlalchemy import inspect
 
@@ -205,14 +200,14 @@ def produce_migrations(
 
 
 def render_python_code(
-    up_or_down_op: Union[UpgradeOps, DowngradeOps],
+    up_or_down_op: UpgradeOps | DowngradeOps,
     sqlalchemy_module_prefix: str = "sa.",
     alembic_module_prefix: str = "op.",
     render_as_batch: bool = False,
     imports: Sequence[str] = (),
-    render_item: Optional[RenderItemFn] = None,
-    migration_context: Optional[MigrationContext] = None,
-    user_module_prefix: Optional[str] = None,
+    render_item: RenderItemFn | None = None,
+    migration_context: MigrationContext | None = None,
+    user_module_prefix: str | None = None,
 ) -> str:
     """Render Python code given an :class:`.UpgradeOps` or
     :class:`.DowngradeOps` object.
@@ -256,7 +251,7 @@ def render_python_code(
 
 
 def _render_migration_diffs(
-    context: MigrationContext, template_args: Dict[Any, Any]
+    context: MigrationContext, template_args: dict[Any, Any]
 ) -> None:
     """legacy, used by test_autogen_composition at the moment"""
 
@@ -280,7 +275,7 @@ class AutogenContext:
     """Maintains configuration and state that's specific to an
     autogenerate operation."""
 
-    metadata: Union[MetaData, Sequence[MetaData], None] = None
+    metadata: MetaData | Sequence[MetaData] | None = None
     """The :class:`~sqlalchemy.schema.MetaData` object
     representing the destination.
 
@@ -298,7 +293,7 @@ class AutogenContext:
 
     """
 
-    connection: Optional[Connection] = None
+    connection: Connection | None = None
     """The :class:`~sqlalchemy.engine.base.Connection` object currently
     connected to the database backend being compared.
 
@@ -315,7 +310,7 @@ class AutogenContext:
 
     """
 
-    imports: Set[str] = None  # type: ignore[assignment]
+    imports: set[str] = None  # type: ignore[assignment]
     """A ``set()`` which contains string Python import directives.
 
     The directives are to be rendered into the ``${imports}`` section
@@ -337,8 +332,8 @@ class AutogenContext:
     def __init__(
         self,
         migration_context: MigrationContext,
-        metadata: Union[MetaData, Sequence[MetaData], None] = None,
-        opts: Optional[Dict[str, Any]] = None,
+        metadata: MetaData | Sequence[MetaData] | None = None,
+        opts: dict[str, Any] | None = None,
         autogenerate: bool = True,
     ) -> None:
         if (
@@ -402,7 +397,7 @@ class AutogenContext:
         self.dialect = self.migration_context.dialect
 
         self.imports = set()
-        self.opts: Dict[str, Any] = opts
+        self.opts: dict[str, Any] = opts
         self._has_batch: bool = False
 
     @util.memoized_property
@@ -422,7 +417,7 @@ class AutogenContext:
 
     def run_name_filters(
         self,
-        name: Optional[str],
+        name: str | None,
         type_: NameFilterType,
         parent_names: NameFilterParentNames,
     ) -> bool:
@@ -463,7 +458,7 @@ class AutogenContext:
         name: sqla_compat._ConstraintName,
         type_: NameFilterType,
         reflected: bool,
-        compare_to: Optional[SchemaItem],
+        compare_to: SchemaItem | None,
     ) -> bool:
         """Run the context's object filters and return True if the targets
         should be part of the autogenerate operation.
@@ -484,7 +479,7 @@ class AutogenContext:
     run_filters = run_object_filters
 
     @util.memoized_property
-    def sorted_tables(self) -> List[Table]:
+    def sorted_tables(self) -> list[Table]:
         """Return an aggregate of the :attr:`.MetaData.sorted_tables`
         collection(s).
 
@@ -500,7 +495,7 @@ class AutogenContext:
         return result
 
     @util.memoized_property
-    def table_key_to_table(self) -> Dict[str, Table]:
+    def table_key_to_table(self) -> dict[str, Table]:
         """Return an aggregate  of the :attr:`.MetaData.tables` dictionaries.
 
         The :attr:`.MetaData.tables` collection is a dictionary of table key
@@ -511,7 +506,7 @@ class AutogenContext:
         objects contain the same table key, an exception is raised.
 
         """
-        result: Dict[str, Table] = {}
+        result: dict[str, Table] = {}
         for m in util.to_list(self.metadata):
             intersect = set(result).intersection(set(m.tables))
             if intersect:
@@ -529,17 +524,17 @@ class RevisionContext:
     """Maintains configuration and state that's specific to a revision
     file generation operation."""
 
-    generated_revisions: List[MigrationScript]
-    process_revision_directives: Optional[ProcessRevisionDirectiveFn]
+    generated_revisions: list[MigrationScript]
+    process_revision_directives: ProcessRevisionDirectiveFn | None
 
     def __init__(
         self,
         config: Config,
         script_directory: ScriptDirectory,
-        command_args: Dict[str, Any],
-        process_revision_directives: Optional[
+        command_args: dict[str, Any],
+        process_revision_directives: None | (
             ProcessRevisionDirectiveFn
-        ] = None,
+        ) = None,
     ) -> None:
         self.config = config
         self.script_directory = script_directory
@@ -551,10 +546,8 @@ class RevisionContext:
         }
         self.generated_revisions = [self._default_revision()]
 
-    def _to_script(
-        self, migration_script: MigrationScript
-    ) -> Optional[Script]:
-        template_args: Dict[str, Any] = self.template_args.copy()
+    def _to_script(self, migration_script: MigrationScript) -> Script | None:
+        template_args: dict[str, Any] = self.template_args.copy()
 
         if getattr(migration_script, "_needs_render", False):
             autogen_context = self._last_autogen_context
@@ -648,7 +641,7 @@ class RevisionContext:
             migration_script._needs_render = True
 
     def _default_revision(self) -> MigrationScript:
-        command_args: Dict[str, Any] = self.command_args
+        command_args: dict[str, Any] = self.command_args
         op = ops.MigrationScript(
             rev_id=command_args["rev_id"] or util.rev_id(),
             message=command_args["message"],
@@ -662,6 +655,6 @@ class RevisionContext:
         )
         return op
 
-    def generate_scripts(self) -> Iterator[Optional[Script]]:
+    def generate_scripts(self) -> Iterator[Script | None]:
         for generated_revision in self.generated_revisions:
             yield self._to_script(generated_revision)
