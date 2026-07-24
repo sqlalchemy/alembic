@@ -977,7 +977,9 @@ class UpgradeDowngradeStampTest(TestBase):
             command.downgrade(self.cfg, "%s:base" % self.c, sql=True)
         assert "CREATE TABLE alembic_version" not in buf.getvalue()
         assert "INSERT INTO alembic_version" not in buf.getvalue()
-        assert "DROP TABLE alembic_version" in buf.getvalue()
+        # the alembic_version table is never dropped, either in --sql
+        # mode or in normal operation; see #1822
+        assert "DROP TABLE alembic_version" not in buf.getvalue()
         assert "DROP STEP 3" in buf.getvalue()
         assert "DROP STEP 2" in buf.getvalue()
         assert "DROP STEP 1" in buf.getvalue()
@@ -1018,6 +1020,14 @@ class UpgradeDowngradeStampTest(TestBase):
             "SET version_num='%s' "
             "WHERE alembic_version.version_num = '%s';" % (self.c, self.a)
         ) in buf.getvalue()
+
+    def test_sql_stamp_to_base_no_drop(self):
+        # stamping down to "base" should never emit a DROP TABLE for
+        # alembic_version, matching the non-sql behavior which also
+        # never drops the version table; see #1822
+        with capture_context_buffer() as buf:
+            command.stamp(self.cfg, "%s:base" % self.c, sql=True)
+        assert "DROP TABLE alembic_version" not in buf.getvalue()
 
     def test_sql_stamp_from_partial_rev(self):
         with capture_context_buffer() as buf:

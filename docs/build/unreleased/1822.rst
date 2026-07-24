@@ -1,0 +1,10 @@
+.. change::
+    :tags: bug, commands
+    :tickets: 1822
+
+    Fixed bug where the ``stamp`` command in ``--sql`` mode would emit a
+    spurious ``DROP TABLE`` for the ``alembic_version`` table when stamping
+    down to ``base``. This DDL was never emitted for the equivalent
+    non-``--sql`` operation, which does not drop the version table; the
+    ``--sql`` output now matches that behavior. This also applies to the
+    equivalent case for ``upgrade``/``downgrade --sql``.
