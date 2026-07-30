@@ -21,6 +21,7 @@ from sqlalchemy import select
 from sqlalchemy import String
 from sqlalchemy import Table
 from sqlalchemy import Text
+from sqlalchemy import TypeDecorator
 from sqlalchemy import UniqueConstraint
 from sqlalchemy.dialects import sqlite as sqlite_dialect
 from sqlalchemy.schema import CreateIndex
@@ -1150,6 +1151,33 @@ class CopyFromTest(TestBase):
             "SELECT foo.id, "
             "CAST(foo.data AS INTEGER) AS data, foo.x, foo.toj, "
             "CAST(foo.fromj AS TEXT) AS fromj FROM foo",
+            "DROP TABLE foo",
+            "ALTER TABLE _alembic_tmp_foo RENAME TO foo",
+        )
+
+    def test_change_type_json_typedecorator(self):
+        """a TypeDecorator that augments JSON must not be CAST either.
+
+        CASTing to JSON in SQLite yields 0, so emitting the CAST here
+        would destroy the column's data.
+
+        """
+
+        class CustomJson(TypeDecorator):
+            impl = JSON
+            cache_ok = True
+
+        context = self._fixture()
+        self.table.append_column(Column("toj", Text))
+        with self.op.batch_alter_table(
+            "foo", copy_from=self.table
+        ) as batch_op:
+            batch_op.alter_column("toj", type_=CustomJson)
+        context.assert_(
+            "CREATE TABLE _alembic_tmp_foo (id INTEGER NOT NULL, "
+            "data VARCHAR(50), x INTEGER, toj JSON, PRIMARY KEY (id))",
+            "INSERT INTO _alembic_tmp_foo (id, data, x, toj) "
+            "SELECT foo.id, foo.data, foo.x, foo.toj FROM foo",
             "DROP TABLE foo",
             "ALTER TABLE _alembic_tmp_foo RENAME TO foo",
         )

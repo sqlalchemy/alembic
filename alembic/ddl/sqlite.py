@@ -182,9 +182,12 @@ class SQLiteImpl(DefaultImpl):
         existing_transfer: Dict[str, Union[TypeEngine, Cast]],
         new_type: TypeEngine,
     ) -> None:
+        # the JSON check uses the type affinity rather than isinstance() so
+        # that a TypeDecorator which augments JSON is also detected; CASTing
+        # to JSON in SQLite yields 0 and would destroy the data
         if (
             existing.type._type_affinity is not new_type._type_affinity
-            and not isinstance(new_type, JSON)
+            and new_type._type_affinity is not JSON
         ):
             existing_transfer["expr"] = cast(
                 existing_transfer["expr"], new_type
