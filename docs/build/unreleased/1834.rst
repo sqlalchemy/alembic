@@ -1,0 +1,13 @@
+.. change::
+    :tags: bug, batch
+    :tickets: 1834
+
+    Fixed bug in batch mode where a ``naming_convention`` passed to
+    ``batch_alter_table()`` was not applied to constraints that came back
+    from reflection, only to newly added ones. Since a reflected
+    constraint always has an explicit name (whatever is stored in the
+    database), a naming convention -- which only fills in names for
+    *unnamed* constraints -- silently had no effect on it. This was most
+    visible after ``rename_table()``: a recreated table's constraints
+    would carry over names embedding the *old* table name instead of
+    being renamed to match the convention against the new one.

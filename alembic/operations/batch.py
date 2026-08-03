@@ -21,6 +21,7 @@ from sqlalchemy import schema as sql_schema
 from sqlalchemy import select
 from sqlalchemy import Table
 from sqlalchemy import types as sqltypes
+from sqlalchemy import UniqueConstraint
 from sqlalchemy.sql.schema import SchemaEventTarget
 from sqlalchemy.util import OrderedDict
 from sqlalchemy.util import topological
@@ -155,6 +156,7 @@ class BatchOperationsImpl:
                     self.table_kwargs,
                     reflected,
                     partial_reordering=self.partial_reordering,
+                    naming_convention=self.naming_convention,
                 )
                 for opname, arg, kw in self.batch:
                     fn = getattr(batch_impl, opname)
@@ -209,6 +211,43 @@ class BatchOperationsImpl:
         self.batch.append(("create_column_comment", (column,), {}))
 
 
+# Maps a constraint class to the key it uses in a SQLAlchemy
+# ``naming_convention`` dict (mirrors ``sqlalchemy.sql.naming._prefix_dict``,
+# which is private API and not something alembic imports directly).
+_NAMING_CONVENTION_PREFIXES = {
+    PrimaryKeyConstraint: "pk",
+    ForeignKeyConstraint: "fk",
+    UniqueConstraint: "uq",
+    CheckConstraint: "ck",
+}
+
+
+def _reflected_name_should_regenerate(
+    const: Constraint, naming_convention: Dict[str, str]
+) -> bool:
+    """True if a reflected (already-named) constraint's name should be
+    reset so SQLAlchemy's naming-convention machinery regenerates it
+    against the recreated table, instead of carrying over the name that
+    came back from reflection.
+
+    A reflected constraint always has an explicit ``.name`` -- it's
+    whatever is actually stored in the database -- so a
+    ``naming_convention`` passed to ``batch_alter_table()`` would
+    otherwise never take effect for it: naming conventions only fill in
+    names for *unnamed* constraints. Since the caller explicitly passed
+    a convention for this batch, we treat that as opt-in to have it
+    govern reflected constraints too, but only for constraint types the
+    convention actually has an entry for -- resetting the name of a
+    constraint type the convention says nothing about would just leave
+    it unnamed instead of regenerating it, which is worse than the
+    stale-name bug this is fixing.
+    """
+    for cls, key in _NAMING_CONVENTION_PREFIXES.items():
+        if isinstance(const, cls):
+            return key in naming_convention
+    return False
+
+
 class ApplyBatchImpl:
     def __init__(
         self,
@@ -218,6 +257,7 @@ class ApplyBatchImpl:
         table_kwargs: Dict[str, Any],
         reflected: bool,
         partial_reordering: tuple = (),
+        naming_convention: Optional[Dict[str, str]] = None,
     ) -> None:
         self.impl = impl
         self.table = table  # this is a Table object
@@ -237,6 +277,7 @@ class ApplyBatchImpl:
         self.existing_ordering = list(self.column_transfers)
 
         self.reflected = reflected
+        self.naming_convention = naming_convention
         self._grab_table_elements()
 
     @classmethod
@@ -273,7 +314,30 @@ class ApplyBatchImpl:
                 # we have no way to determine _is_type_bound() for these.
                 pass
             elif constraint_name_string(const.name):
-                self.named_constraints[const.name] = const
+                orig_name = const.name
+                if (
+                    self.reflected
+                    and self.naming_convention
+                    and _reflected_name_should_regenerate(
+                        const, self.naming_convention
+                    )
+                ):
+                    # Regenerate the name now, against self.table (which
+                    # already carries the correct *final* table name and
+                    # the naming convention) rather than deferring to
+                    # whenever this constraint gets copied onto the
+                    # temp-named recreated table -- deferring it would
+                    # bake the temporary "_alembic_tmp_<name>" table name
+                    # into the generated constraint name instead of the
+                    # real one, trading one wrong name for another.
+                    # Re-attaching re-fires SQLAlchemy's naming-convention
+                    # event, which marks the resulting name as resolved
+                    # (a `conv` instance) so it's carried over as-is when
+                    # copied onto the recreated table later, instead of
+                    # being regenerated a second time.
+                    const.name = None
+                    self.table.append_constraint(const)
+                self.named_constraints[orig_name] = const
             else:
                 self.unnamed_constraints.append(const)
 
@@ -322,7 +386,10 @@ class ApplyBatchImpl:
     def _transfer_elements_to_new_table(self) -> None:
         assert self.new_table is None, "Can only create new table once"
 
-        m = MetaData()
+        if self.naming_convention:
+            m = MetaData(naming_convention=self.naming_convention)
+        else:
+            m = MetaData()
         schema = self.table.schema
 
         if self.partial_reordering or self.add_col_ordering:
