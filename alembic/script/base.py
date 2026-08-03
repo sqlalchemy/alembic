@@ -16,6 +16,7 @@ from typing import Optional
 from typing import Sequence
 from typing import Set
 from typing import Tuple
+from typing import Type
 from typing import TYPE_CHECKING
 from typing import Union
 
@@ -86,6 +87,9 @@ class ScriptDirectory:
         messaging_opts: MessagingOptions = cast(
             "MessagingOptions", util.EMPTY_DICT
         ),
+        revision_map_class: Optional[
+            Type[revision.RevisionMap]
+        ] = None,
     ) -> None:
         self.dir = _preserving_path_as_str(dir)
         self.version_locations = [
@@ -95,7 +99,12 @@ class ScriptDirectory:
         self.truncate_slug_length = truncate_slug_length or 40
         self.sourceless = sourceless
         self.output_encoding = output_encoding
-        self.revision_map = revision.RevisionMap(self._load_revisions)
+        revision_map_cls = (
+            revision_map_class
+            if revision_map_class is not None
+            else revision.RevisionMap
+        )
+        self.revision_map = revision_map_cls(self._load_revisions)
         self.timezone = timezone
         self.hooks = hooks
         self.recursive_version_locations = recursive_version_locations
@@ -183,6 +192,21 @@ class ScriptDirectory:
             sys.path[:0] = prepend_sys_path
 
         rvl = config.get_alembic_boolean_option("recursive_version_locations")
+
+        revision_map_class: Optional[Type[revision.RevisionMap]] = None
+        rmc = config.get_alembic_option("revision_map_class")
+        if rmc is not None:
+            resolved = util.resolve_dotted_name(rmc)
+            if not (
+                isinstance(resolved, type)
+                and issubclass(resolved, revision.RevisionMap)
+            ):
+                raise util.CommandError(
+                    f"revision_map_class {rmc!r} must be a subclass of "
+                    "alembic.script.revision.RevisionMap"
+                )
+            revision_map_class = resolved
+
         return ScriptDirectory(
             util.coerce_resource_to_filename(script_location),
             file_template=config.get_alembic_option(
@@ -198,6 +222,7 @@ class ScriptDirectory:
             hooks=config.get_hooks_list(),
             recursive_version_locations=rvl,
             messaging_opts=config.messaging_opts,
+            revision_map_class=revision_map_class,
         )
 
     @contextmanager

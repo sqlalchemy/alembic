@@ -53,6 +53,11 @@ prepend_sys_path = [
 # new in Alembic version 1.10
 # recursive_version_locations = false
 
+# specify a custom RevisionMap subclass for custom revision ordering logic.
+# the value is a dotted Python path in "module:ClassName" format.
+# the class must be a subclass of alembic.script.revision.RevisionMap.
+# revision_map_class = "mypackage.custom:CustomRevisionMap"
+
 # the output encoding used when revision files
 # are written from script.py.mako
 # output_encoding = "utf-8"
