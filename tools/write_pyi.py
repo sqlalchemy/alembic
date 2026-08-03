@@ -34,7 +34,7 @@ if True:  # avoid flake/zimports messing with the order
     import sqlalchemy as sa
 
 BLACK_VERSION = (25, 9, 0)
-PYTHON_VERSIONS = (3, 14), (3, 15)
+PYTHON_VERSIONS = (3, 14), (3, 16)
 
 
 TRIM_MODULE = [

@@ -27,9 +27,9 @@ PYTHON_VERSIONS = [
     "3.11",
     "3.12",
     "3.13",
-    "3.13t",
     "3.14",
     "3.14t",
+    "3.15",
 ]
 DATABASES = ["sqlite", "postgresql", "mysql", "oracle", "mssql"]
 SQLALCHEMY_VERSIONS = ["default", "sqla14", "sqla20", "sqlamain"]
