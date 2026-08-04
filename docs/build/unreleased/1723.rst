@@ -1,0 +1,12 @@
+.. change::
+    :tags: usecase, postgresql
+    :tickets: 1723
+
+    Added support for the PostgreSQL ``postgresql_include`` option, added in
+    SQLAlchemy 2.0.41, to the :meth:`.Operations.create_primary_key` and
+    :meth:`.Operations.create_unique_constraint` operations.  The
+    ``postgresql_include`` columns referenced by name are now added to the
+    table that Alembic constructs for the ``ALTER`` statement so that the
+    ``INCLUDE`` clause renders correctly, mirroring the existing handling for
+    :meth:`.Operations.create_index`.  The :meth:`.Operations.create_primary_key`
+    method additionally now accepts dialect-specific keyword arguments.
