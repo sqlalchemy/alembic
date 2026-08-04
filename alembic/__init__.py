@@ -2,4 +2,4 @@ from . import context
 from . import op
 from .runtime import plugins
 
-__version__ = "1.19.0"
+__version__ = "1.19.1"
