@@ -5,7 +5,49 @@ Changelog
 
 .. changelog::
     :version: 1.19.0
-    :include_notes_from: unreleased
+    :released: August 4, 2026
+
+    .. change::
+        :tags: bug, commands
+        :tickets: 1822
+
+        Fixed inconsistency where running ``stamp`` or ``downgrade`` to ``base`` in
+        offline (``--sql``) mode would emit a ``DROP TABLE alembic_version``
+        statement, while the same operations in online mode never drop the version
+        table.  Offline mode no longer emits this ``DROP``, matching online
+        behavior.  The version table continues to be created when it does not exist;
+        only the spurious offline-only drop has been removed.  Pull request
+        courtesy imurodl.
+
+    .. change::
+        :tags: feature, autogenerate
+        :tickets: 508
+
+        Autogenerate now detects the addition and removal of named CHECK
+        constraints, as part of the default autogenerate behavior. Detection is
+        name-based only; a constraint whose name is unchanged is presumed
+        equivalent regardless of its expression text, as reliably normalizing
+        SQL expressions across backends for comparison purposes is not generally
+        feasible. This behavior is implemented as a plugin named
+        ``alembic.autogenerate.checkconstraint_byname``, and may be disabled if not
+        desired by excluding it from the
+        :paramref:`.EnvironmentContext.configure.autogenerate_plugins` list.
+        Pull request courtesy Francois van Kempen.
+
+        .. seealso::
+
+            :ref:`autogenerate_check_constraints`
+
+    .. change::
+        :tags: changed, installation
+
+        Environmental updates:
+
+        * Trove classifiers now include Python 3.15 which is now part of CI
+          integration
+        * Python 3.14 is also added to trove classifiers which had been previously
+          omitted
+        * Implemented :pep:`604` style unions in type annotations
 
 .. changelog::
     :version: 1.18.5
