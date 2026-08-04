@@ -25,8 +25,8 @@ jobs:
         os:
           - "ubuntu-22.04"
         python-version:
-          - "3.13"
           - "3.14"
+          - "3.15"
         sqlalchemy:
           - sqla14
           - sqla20
@@ -35,6 +35,9 @@ jobs:
           # sqla14 does not support 3.14+
           - sqlalchemy: sqla14
             python-version: "3.14"
+          # sqla14 does not support 3.14+
+          - sqlalchemy: sqla14
+            python-version: "3.15"
       # abort all jobs as soon as one fails
       fail-fast: true
 
@@ -66,9 +69,9 @@ jobs:
         os:
           - "ubuntu-latest"
         python-version:
-          - "3.12"
           - "3.13"
           - "3.14"
+          - "3.15"
 
       fail-fast: false
 
