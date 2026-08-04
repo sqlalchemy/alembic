@@ -51,6 +51,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           architecture: ${{ matrix.architecture }}
+          allow-prereleases: true
 
       - name: Install dependencies
         run: |
@@ -84,6 +85,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           architecture: ${{ matrix.architecture }}
+          allow-prereleases: true
 
       - name: Install dependencies
         run: |
