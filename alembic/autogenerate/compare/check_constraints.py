@@ -57,12 +57,9 @@ def _compare_check_constraints(
     inspector = autogen_context.inspector
     impl = autogen_context.migration_context.impl
 
-    metadata_ck_constraints = {
-        ck
-        for ck in metadata_table.constraints
-        if isinstance(ck, sa_schema.CheckConstraint)
-        and not sqla_compat._is_type_bound(ck)
-    }
+    metadata_ck_constraints = sqla_compat.all_table_check_constraints(
+        metadata_table
+    )
 
     try:
         conn_ck_list = _InspectorConv(inspector).get_check_constraints(

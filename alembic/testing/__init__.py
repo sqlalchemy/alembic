@@ -8,7 +8,6 @@ from sqlalchemy.testing import skip_if
 from sqlalchemy.testing import uses_deprecated
 from sqlalchemy.testing.config import combinations
 from sqlalchemy.testing.config import fixture
-from sqlalchemy.testing.config import requirements as requires
 from sqlalchemy.testing.config import Variation
 from sqlalchemy.testing.config import variation
 

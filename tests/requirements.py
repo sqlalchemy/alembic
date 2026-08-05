@@ -259,6 +259,16 @@ class DefaultRequirements(SuiteRequirements):
             self._mysql_and_check_constraints_exist,
         )
 
+    @property
+    def inline_check_constraint_reflection(self):
+        return exclusions.only_on(
+            [
+                "postgresql",
+                "sqlite",
+                "oracle",
+            ]
+        )
+
     def mysql_check_col_name_change(self, config):
         # MySQL has check constraints that enforce an reflect, however
         # they prevent a column's name from being changed due to a bug in

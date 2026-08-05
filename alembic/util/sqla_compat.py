@@ -6,6 +6,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from collections.abc import Iterator
 import contextlib
+from itertools import chain
 import re
 from typing import Any
 from typing import Callable
@@ -22,6 +23,7 @@ from sqlalchemy import types as sqltypes
 from sqlalchemy.schema import CheckConstraint
 from sqlalchemy.schema import Column
 from sqlalchemy.schema import ForeignKeyConstraint
+from sqlalchemy.schema import Table
 from sqlalchemy.sql import visitors
 from sqlalchemy.sql.base import DialectKWArgs
 from sqlalchemy.sql.elements import BindParameter
@@ -35,7 +37,6 @@ if TYPE_CHECKING:
     from sqlalchemy import ClauseElement
     from sqlalchemy import Identity
     from sqlalchemy import Index
-    from sqlalchemy import Table
     from sqlalchemy.engine import Connection
     from sqlalchemy.engine import Dialect
     from sqlalchemy.engine import Transaction
@@ -251,6 +252,14 @@ def _table_for_constraint(constraint: Constraint) -> Table:
         table = constraint.parent
         assert table is not None
         return table  # type: ignore[return-value]
+    elif isinstance(constraint, CheckConstraint):
+        parent = constraint.parent
+        if not isinstance(parent, Table):
+            table = parent.table
+            assert table is not None
+            return table
+        else:
+            return parent
     else:
         return constraint.table
 
@@ -504,3 +513,16 @@ def _inherit_schema_deprecated() -> bool:
     # at some point in 2.1 inherit_schema was replaced with a property
     # so that's preset at the class level, while before it wasn't.
     return sqla_2_1 and hasattr(sqltypes.Enum, "inherit_schema")
+
+
+def all_table_check_constraints(table: Table) -> set[CheckConstraint]:
+    """Returns all check constraint that are not type-bound,
+    including those on columns."""
+    candidates = chain(
+        table.constraints, *(c.constraints for c in table.columns)
+    )
+    return {
+        ck
+        for ck in candidates
+        if isinstance(ck, CheckConstraint) and not _is_type_bound(ck)
+    }

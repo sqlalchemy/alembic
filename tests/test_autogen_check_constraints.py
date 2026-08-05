@@ -14,6 +14,7 @@ from alembic.operations import ops
 from alembic.testing import config
 from alembic.testing import eq_
 from alembic.testing import eq_ignore_whitespace
+from alembic.testing import fixture
 from alembic.testing import TestBase
 from alembic.testing import util
 from alembic.testing.env import clear_staging_env
@@ -28,11 +29,28 @@ _ck_plugin_disabled_opts = {
 }
 
 
+@fixture(params=["table", "column"])
+def col_and_check(request):
+    if (
+        request.param == "column"
+        and not config.requirements.inline_check_constraint_reflection.enabled
+    ):
+        config.skip_test("does not support column bound check constraints")
+
+    def make(name, type_, check):
+        if request.param == "table":
+            return [Column(name, type_), check]
+        else:
+            return [Column(name, type_, check)]
+
+    return make
+
+
 class AutogenCheckConstraintTest(AutogenFixtureTest, TestBase):
     __backend__ = True
     __requires__ = ("check_constraint_reflection",)
 
-    def test_add_check_constraint(self):
+    def test_add_check_constraint(self, col_and_check):
         m1 = MetaData()
         m2 = MetaData()
 
@@ -45,8 +63,9 @@ class AutogenCheckConstraintTest(AutogenFixtureTest, TestBase):
         Table(
             "t",
             m2,
-            Column("x", Integer),
-            CheckConstraint("x > 0", name="ck_t_x_positive"),
+            *col_and_check(
+                "x", Integer, CheckConstraint("x > 0", name="ck_t_x_positive")
+            ),
         )
 
         diffs = self._fixture(m1, m2)
@@ -55,7 +74,7 @@ class AutogenCheckConstraintTest(AutogenFixtureTest, TestBase):
         eq_(diffs[0][0], "add_constraint")
         eq_(diffs[0][1].name, "ck_t_x_positive")
 
-    def test_can_be_disabled_via_exclusion(self):
+    def test_can_be_disabled_via_exclusion(self, col_and_check):
         m1 = MetaData()
         m2 = MetaData()
 
@@ -68,8 +87,9 @@ class AutogenCheckConstraintTest(AutogenFixtureTest, TestBase):
         Table(
             "t",
             m2,
-            Column("x", Integer),
-            CheckConstraint("x > 0", name="ck_t_x_positive"),
+            *col_and_check(
+                "x", Integer, CheckConstraint("x > 0", name="ck_t_x_positive")
+            ),
         )
 
         diffs = self._fixture(m1, m2, opts=_ck_plugin_disabled_opts)
@@ -82,15 +102,16 @@ class AutogenCheckConstraintTest(AutogenFixtureTest, TestBase):
         ]
         eq_(check_diffs, [])
 
-    def test_remove_check_constraint(self):
+    def test_remove_check_constraint(self, col_and_check):
         m1 = MetaData()
         m2 = MetaData()
 
         Table(
             "t",
             m1,
-            Column("x", Integer),
-            CheckConstraint("x > 0", name="ck_t_x_positive"),
+            *col_and_check(
+                "x", Integer, CheckConstraint("x > 0", name="ck_t_x_positive")
+            ),
         )
 
         Table(
@@ -105,44 +126,50 @@ class AutogenCheckConstraintTest(AutogenFixtureTest, TestBase):
         eq_(diffs[0][0], "remove_constraint")
         eq_(diffs[0][1].name, "ck_t_x_positive")
 
-    def test_same_name_different_expression_no_change(self):
+    def test_same_name_different_expression_no_change(self, col_and_check):
         m1 = MetaData()
         m2 = MetaData()
 
         Table(
             "t",
             m1,
-            Column("x", Integer),
-            CheckConstraint("x > 0", name="ck_t_x_positive"),
+            *col_and_check(
+                "x", Integer, CheckConstraint("x > 0", name="ck_t_x_positive")
+            ),
         )
 
         Table(
             "t",
             m2,
-            Column("x", Integer),
-            CheckConstraint("x > 5", name="ck_t_x_positive"),
+            *col_and_check(
+                "x", Integer, CheckConstraint("x > 5", name="ck_t_x_positive")
+            ),
         )
 
         diffs = self._fixture(m1, m2)
 
         eq_(diffs, [])
 
-    def test_compare_check_constraint_is_different(self, monkeypatch):
+    def test_compare_check_constraint_is_different(
+        self, col_and_check, monkeypatch
+    ):
         m1 = MetaData()
         m2 = MetaData()
 
         Table(
             "t",
             m1,
-            Column("x", Integer),
-            CheckConstraint("x > 0", name="ck_t_x_positive"),
+            *col_and_check(
+                "x", Integer, CheckConstraint("x > 0", name="ck_t_x_positive")
+            ),
         )
 
         Table(
             "t",
             m2,
-            Column("x", Integer),
-            CheckConstraint("x > 5", name="ck_t_x_positive"),
+            *col_and_check(
+                "x", Integer, CheckConstraint("x > 5", name="ck_t_x_positive")
+            ),
         )
 
         monkeypatch.setattr(
@@ -161,22 +188,26 @@ class AutogenCheckConstraintTest(AutogenFixtureTest, TestBase):
             {"add_constraint", "remove_constraint"},
         )
 
-    def test_compare_check_constraint_is_skip(self, monkeypatch):
+    def test_compare_check_constraint_is_skip(
+        self, col_and_check, monkeypatch
+    ):
         m1 = MetaData()
         m2 = MetaData()
 
         Table(
             "t",
             m1,
-            Column("x", Integer),
-            CheckConstraint("x > 0", name="ck_t_x_positive"),
+            *col_and_check(
+                "x", Integer, CheckConstraint("x > 0", name="ck_t_x_positive")
+            ),
         )
 
         Table(
             "t",
             m2,
-            Column("x", Integer),
-            CheckConstraint("x > 5", name="ck_t_x_positive"),
+            *col_and_check(
+                "x", Integer, CheckConstraint("x > 5", name="ck_t_x_positive")
+            ),
         )
 
         monkeypatch.setattr(
@@ -191,29 +222,31 @@ class AutogenCheckConstraintTest(AutogenFixtureTest, TestBase):
 
         eq_(diffs, [])
 
-    def test_no_change_check_constraint(self):
+    def test_no_change_check_constraint(self, col_and_check):
         m1 = MetaData()
         m2 = MetaData()
 
         Table(
             "t",
             m1,
-            Column("x", Integer),
-            CheckConstraint("x > 0", name="ck_t_x_positive"),
+            *col_and_check(
+                "x", Integer, CheckConstraint("x > 0", name="ck_t_x_positive")
+            ),
         )
 
         Table(
             "t",
             m2,
-            Column("x", Integer),
-            CheckConstraint("x > 0", name="ck_t_x_positive"),
+            *col_and_check(
+                "x", Integer, CheckConstraint("x > 0", name="ck_t_x_positive")
+            ),
         )
 
         diffs = self._fixture(m1, m2)
 
         eq_(diffs, [])
 
-    def test_unnamed_check_constraint_in_metadata_ignored(self):
+    def test_unnamed_check_constraint_in_metadata_ignored(self, col_and_check):
         m1 = MetaData()
         m2 = MetaData()
 
@@ -226,8 +259,7 @@ class AutogenCheckConstraintTest(AutogenFixtureTest, TestBase):
         Table(
             "t",
             m2,
-            Column("x", Integer),
-            CheckConstraint("x > 0"),
+            *col_and_check("x", Integer, CheckConstraint("x > 0")),
         )
 
         diffs = self._fixture(m1, m2)
@@ -261,7 +293,7 @@ class AutogenCheckConstraintTest(AutogenFixtureTest, TestBase):
         ]
         eq_(check_diffs, [])
 
-    def test_multiple_check_constraints(self):
+    def test_multiple_check_constraints(self, col_and_check):
         m1 = MetaData()
         m2 = MetaData()
 
@@ -277,9 +309,10 @@ class AutogenCheckConstraintTest(AutogenFixtureTest, TestBase):
             "t",
             m2,
             Column("x", Integer),
-            Column("y", Integer),
             CheckConstraint("x > 0", name="ck_x"),
-            CheckConstraint("y > 0", name="ck_y"),
+            *col_and_check(
+                "y", Integer, CheckConstraint("y > 0", name="ck_y")
+            ),
         )
 
         diffs = self._fixture(m1, m2)
@@ -288,7 +321,7 @@ class AutogenCheckConstraintTest(AutogenFixtureTest, TestBase):
         eq_(diffs[0][0], "add_constraint")
         eq_(diffs[0][1].name, "ck_y")
 
-    def test_remove_one_of_multiple(self):
+    def test_remove_one_of_multiple(self, col_and_check):
         m1 = MetaData()
         m2 = MetaData()
 
@@ -296,9 +329,10 @@ class AutogenCheckConstraintTest(AutogenFixtureTest, TestBase):
             "t",
             m1,
             Column("x", Integer),
-            Column("y", Integer),
             CheckConstraint("x > 0", name="ck_x"),
-            CheckConstraint("y > 0", name="ck_y"),
+            *col_and_check(
+                "y", Integer, CheckConstraint("y > 0", name="ck_y")
+            ),
         )
 
         Table(
@@ -392,7 +426,7 @@ class AutogenCheckConstraintSchemaTest(AutogenFixtureTest, TestBase):
     __backend__ = True
     __requires__ = ("check_constraint_reflection",)
 
-    def test_add_check_constraint_schema(self):
+    def test_add_check_constraint_schema(self, col_and_check):
         m1 = MetaData()
         m2 = MetaData()
 
@@ -406,8 +440,9 @@ class AutogenCheckConstraintSchemaTest(AutogenFixtureTest, TestBase):
         Table(
             "t",
             m2,
-            Column("x", Integer),
-            CheckConstraint("x > 0", name="ck_t_x_positive"),
+            *col_and_check(
+                "x", Integer, CheckConstraint("x > 0", name="ck_t_x_positive")
+            ),
             schema=config.test_schema,
         )
 
@@ -418,15 +453,16 @@ class AutogenCheckConstraintSchemaTest(AutogenFixtureTest, TestBase):
         eq_(diffs[0][1].name, "ck_t_x_positive")
         eq_(diffs[0][1].table.schema, config.test_schema)
 
-    def test_remove_check_constraint_schema(self):
+    def test_remove_check_constraint_schema(self, col_and_check):
         m1 = MetaData()
         m2 = MetaData()
 
         Table(
             "t",
             m1,
-            Column("x", Integer),
-            CheckConstraint("x > 0", name="ck_t_x_positive"),
+            *col_and_check(
+                "x", Integer, CheckConstraint("x > 0", name="ck_t_x_positive")
+            ),
             schema=config.test_schema,
         )
 
@@ -449,15 +485,18 @@ class AutogenCheckConstraintFilterTest(AutogenFixtureTest, TestBase):
     __backend__ = True
     __requires__ = ("check_constraint_reflection",)
 
-    def test_include_name_excludes_reflected_check_constraint(self):
+    def test_include_name_excludes_reflected_check_constraint(
+        self, col_and_check
+    ):
         m1 = MetaData()
         m2 = MetaData()
 
         Table(
             "t",
             m1,
-            Column("x", Integer),
-            CheckConstraint("x > 0", name="ck_t_x_positive"),
+            *col_and_check(
+                "x", Integer, CheckConstraint("x > 0", name="ck_t_x_positive")
+            ),
         )
 
         Table(
@@ -485,7 +524,7 @@ class AutogenCheckConstraintFilterTest(AutogenFixtureTest, TestBase):
         ]
         eq_(check_diffs, [])
 
-    def test_include_object_excludes_add(self):
+    def test_include_object_excludes_add(self, col_and_check):
         m1 = MetaData()
         m2 = MetaData()
 
@@ -498,8 +537,9 @@ class AutogenCheckConstraintFilterTest(AutogenFixtureTest, TestBase):
         Table(
             "t",
             m2,
-            Column("x", Integer),
-            CheckConstraint("x > 0", name="ck_t_x_positive"),
+            *col_and_check(
+                "x", Integer, CheckConstraint("x > 0", name="ck_t_x_positive")
+            ),
         )
 
         def include_object(obj, name, type_, reflected, compare_to):
@@ -521,15 +561,16 @@ class AutogenCheckConstraintFilterTest(AutogenFixtureTest, TestBase):
         ]
         eq_(check_diffs, [])
 
-    def test_include_object_excludes_remove(self):
+    def test_include_object_excludes_remove(self, col_and_check):
         m1 = MetaData()
         m2 = MetaData()
 
         Table(
             "t",
             m1,
-            Column("x", Integer),
-            CheckConstraint("x > 0", name="ck_t_x_positive"),
+            *col_and_check(
+                "x", Integer, CheckConstraint("x > 0", name="ck_t_x_positive")
+            ),
         )
 
         Table(
@@ -557,7 +598,7 @@ class AutogenCheckConstraintFilterTest(AutogenFixtureTest, TestBase):
         ]
         eq_(check_diffs, [])
 
-    def test_include_object_receives_correct_args_for_add(self):
+    def test_include_object_receives_correct_args_for_add(self, col_and_check):
         m1 = MetaData()
         m2 = MetaData()
 
@@ -570,8 +611,9 @@ class AutogenCheckConstraintFilterTest(AutogenFixtureTest, TestBase):
         Table(
             "t",
             m2,
-            Column("x", Integer),
-            CheckConstraint("x > 0", name="ck_t_x_positive"),
+            *col_and_check(
+                "x", Integer, CheckConstraint("x > 0", name="ck_t_x_positive")
+            ),
         )
 
         calls = []
@@ -593,15 +635,18 @@ class AutogenCheckConstraintFilterTest(AutogenFixtureTest, TestBase):
         eq_(calls[0][2], False)
         eq_(calls[0][3], None)
 
-    def test_include_object_receives_correct_args_for_remove(self):
+    def test_include_object_receives_correct_args_for_remove(
+        self, col_and_check
+    ):
         m1 = MetaData()
         m2 = MetaData()
 
         Table(
             "t",
             m1,
-            Column("x", Integer),
-            CheckConstraint("x > 0", name="ck_t_x_positive"),
+            *col_and_check(
+                "x", Integer, CheckConstraint("x > 0", name="ck_t_x_positive")
+            ),
         )
 
         Table(
@@ -643,7 +688,7 @@ class AutogenCheckConstraintNoReflectionTest(AutogenFixtureTest, TestBase):
         eng.dialect.get_check_constraints = unimpl
         eng.dialect.get_multi_check_constraints = unimpl
 
-    def test_no_reflection_graceful_skip_add(self):
+    def test_no_reflection_graceful_skip_add(self, col_and_check):
         m1 = MetaData()
         m2 = MetaData()
 
@@ -656,8 +701,9 @@ class AutogenCheckConstraintNoReflectionTest(AutogenFixtureTest, TestBase):
         Table(
             "t",
             m2,
-            Column("x", Integer),
-            CheckConstraint("x > 0", name="ck_t_x_positive"),
+            *col_and_check(
+                "x", Integer, CheckConstraint("x > 0", name="ck_t_x_positive")
+            ),
         )
 
         diffs = self._fixture(m1, m2)
@@ -670,15 +716,16 @@ class AutogenCheckConstraintNoReflectionTest(AutogenFixtureTest, TestBase):
         ]
         eq_(check_diffs, [])
 
-    def test_no_reflection_graceful_skip_remove(self):
+    def test_no_reflection_graceful_skip_remove(self, col_and_check):
         m1 = MetaData()
         m2 = MetaData()
 
         Table(
             "t",
             m1,
-            Column("x", Integer),
-            CheckConstraint("x > 0", name="ck_t_x_positive"),
+            *col_and_check(
+                "x", Integer, CheckConstraint("x > 0", name="ck_t_x_positive")
+            ),
         )
 
         Table(
@@ -768,7 +815,7 @@ class AutogenCheckConstraintNamingConvTest(AutogenFixtureTest, TestBase):
     __backend__ = True
     __requires__ = ("check_constraint_reflection",)
 
-    def test_add_named_via_convention(self):
+    def test_add_named_via_convention(self, col_and_check):
         m1 = MetaData()
         m2 = MetaData(
             naming_convention={"ck": "ck_%(table_name)s_%(constraint_name)s"}
@@ -779,8 +826,9 @@ class AutogenCheckConstraintNamingConvTest(AutogenFixtureTest, TestBase):
         Table(
             "t",
             m2,
-            Column("x", Integer),
-            CheckConstraint("x > 0", name="x_positive"),
+            *col_and_check(
+                "x", Integer, CheckConstraint("x > 0", name="x_positive")
+            ),
         )
 
         diffs = self._fixture(m1, m2)
@@ -789,7 +837,7 @@ class AutogenCheckConstraintNamingConvTest(AutogenFixtureTest, TestBase):
         eq_(diffs[0][0], "add_constraint")
         eq_(diffs[0][1].name, "ck_t_x_positive")
 
-    def test_remove_named_via_convention(self):
+    def test_remove_named_via_convention(self, col_and_check):
         m1 = MetaData()
         m2 = MetaData(
             naming_convention={"ck": "ck_%(table_name)s_%(constraint_name)s"}
@@ -798,8 +846,9 @@ class AutogenCheckConstraintNamingConvTest(AutogenFixtureTest, TestBase):
         Table(
             "t",
             m1,
-            Column("x", Integer),
-            CheckConstraint("x > 0", name="ck_t_x_positive"),
+            *col_and_check(
+                "x", Integer, CheckConstraint("x > 0", name="ck_t_x_positive")
+            ),
         )
 
         Table("t", m2, Column("x", Integer))
@@ -810,7 +859,7 @@ class AutogenCheckConstraintNamingConvTest(AutogenFixtureTest, TestBase):
         eq_(diffs[0][0], "remove_constraint")
         eq_(diffs[0][1].name, "ck_t_x_positive")
 
-    def test_no_change_named_via_convention(self):
+    def test_no_change_named_via_convention(self, col_and_check):
         m1 = MetaData()
         m2 = MetaData(
             naming_convention={"ck": "ck_%(table_name)s_%(constraint_name)s"}
@@ -819,15 +868,17 @@ class AutogenCheckConstraintNamingConvTest(AutogenFixtureTest, TestBase):
         Table(
             "t",
             m1,
-            Column("x", Integer),
-            CheckConstraint("x > 0", name="ck_t_x_positive"),
+            *col_and_check(
+                "x", Integer, CheckConstraint("x > 0", name="ck_t_x_positive")
+            ),
         )
 
         Table(
             "t",
             m2,
-            Column("x", Integer),
-            CheckConstraint("x > 0", name="x_positive"),
+            *col_and_check(
+                "x", Integer, CheckConstraint("x > 0", name="x_positive")
+            ),
         )
 
         diffs = self._fixture(m1, m2)

@@ -63,6 +63,7 @@ def _compare_indexes_and_uniques(
 
     # 1a. get raw indexes and unique constraints from metadata ...
     if metadata_table is not None:
+        # unique constraints can't be set on columns, are all table bound.
         metadata_unique_constraints = {
             uq
             for uq in metadata_table.constraints
@@ -636,6 +637,8 @@ def _compare_foreign_keys(
         return PriorityDispatchResult.CONTINUE
 
     inspector = autogen_context.inspector
+    # fk constraints can be set on columns, but they appear also on
+    # the table constraint list
     metadata_fks = {
         fk
         for fk in metadata_table.constraints
