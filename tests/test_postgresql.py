@@ -1354,6 +1354,45 @@ class PostgresqlAutogenRenderTest(TestBase):
             "postgresql.JSONB(astext_type=sa.Text())",
         )
 
+    @config.requirements.sqlalchemy_2
+    def test_domain_type(self):
+        """test #1360"""
+        from sqlalchemy.dialects.postgresql import CITEXT
+        from sqlalchemy.dialects.postgresql import DOMAIN
+
+        eq_ignore_whitespace(
+            autogenerate.render._repr_type(
+                DOMAIN("email", CITEXT(), check=r"value ~ '^my_.*$'"),
+                self.autogen_context,
+            ),
+            "postgresql.DOMAIN('email', postgresql.CITEXT(), "
+            "check=\"value ~ '^my_.*$'\")",
+        )
+
+    @config.requirements.sqlalchemy_2
+    def test_domain_type_full(self):
+        """test #1360"""
+        from sqlalchemy.dialects.postgresql import DOMAIN
+
+        eq_ignore_whitespace(
+            autogenerate.render._repr_type(
+                DOMAIN(
+                    "mydom",
+                    String(),
+                    collation="C",
+                    default="x",
+                    constraint_name="ck",
+                    not_null=True,
+                    check="value > 0",
+                    create_type=False,
+                ),
+                self.autogen_context,
+            ),
+            "postgresql.DOMAIN('mydom', sa.String(), collation='C', "
+            "default='x', constraint_name='ck', not_null=True, "
+            "check='value > 0', create_type=False)",
+        )
+
     def test_jsonb_expression_in_index(self):
         """test #1322"""
 
