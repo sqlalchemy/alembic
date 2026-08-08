@@ -1,7 +1,0 @@
-.. change::
-    :tags: bug, autogenerate
-    :tickets: 1842
-
-    Fixed bug in the check constraint detection implemented in :ticket:`508`
-    that failed to take into account column bound check constraints,
-    leading to wrong autogenerate detections.

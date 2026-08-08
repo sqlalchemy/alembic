@@ -5,7 +5,15 @@ Changelog
 
 .. changelog::
     :version: 1.19.1
-    :include_notes_from: unreleased
+    :released: August 8, 2026
+
+    .. change::
+        :tags: bug, autogenerate
+        :tickets: 1842
+
+        Fixed bug in the check constraint detection implemented in :ticket:`508`
+        that failed to take into account column bound check constraints,
+        leading to wrong autogenerate detections.
 
 .. changelog::
     :version: 1.19.0
