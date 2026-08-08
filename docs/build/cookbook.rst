@@ -1686,6 +1686,98 @@ Writes are performed on both places, while the background script move all the re
 This technique is very challenging and time demanding, since it requires custom application logic to
 handle the intermediate states.
 
+.. _cookbook_non_nullable_column:
+
+Adding a Non-Nullable Column to an Existing Table
+=================================================
+
+Adding a column with ``nullable=False`` to a table that already contains rows
+is rejected by the database, as the existing rows would have no value for the
+new column and there is no default available to supply one::
+
+    # fails if "account" already has rows
+    op.add_column("account", sa.Column("status", sa.String(50), nullable=False))
+
+The usual way around this is to split the change into three steps inside the
+same migration: add the column as nullable, populate it for the rows that are
+already there, then apply the ``NOT NULL`` constraint::
+
+    from alembic import op
+    import sqlalchemy as sa
+
+
+    def upgrade():
+        # 1. add the column without the constraint
+        op.add_column("account", sa.Column("status", sa.String(50), nullable=True))
+
+        # 2. give the existing rows a value
+        account = sa.table("account", sa.column("status", sa.String))
+        op.execute(account.update().values(status="active"))
+
+        # 3. no NULL values remain, so the constraint can be applied
+        op.alter_column(
+            "account", "status", existing_type=sa.String(50), nullable=False
+        )
+
+
+    def downgrade():
+        op.drop_column("account", "status")
+
+The backfill in step 2 uses the lightweight
+:func:`~sqlalchemy.sql.expression.table` and
+:func:`~sqlalchemy.sql.expression.column` constructs instead of the
+application's model, so that the migration keeps working unchanged as the model
+evolves; a plain SQL string passed to :meth:`.Operations.execute` works as well.
+As the value is produced by an ``UPDATE`` statement, this approach also covers
+the case where the value depends on other columns, using a ``CASE`` expression
+or a correlated subquery.
+
+.. warning::
+
+    The ``UPDATE`` in step 2 and the ``ALTER`` in step 3 may lock the table for
+    the duration of the migration, which on a large table can take a live
+    application down. More generally, adding a non-nullable column is difficult
+    to make work against an application that keeps running while the migration
+    proceeds, since rows written by the old version of the application in
+    between steps 2 and 3 have no value for the new column. Migrating a live
+    application usually requires a deployment sequence designed for the
+    specific case, such as writing to both the old and the new column until the
+    backfill is complete.
+
+An alternative is to add the column with a ``server_default``, letting the
+database populate the existing rows, and then drop the default in a second
+step::
+
+    def upgrade():
+        op.add_column(
+            "account",
+            sa.Column(
+                "status",
+                sa.String(50),
+                nullable=False,
+                server_default="active",
+            ),
+        )
+        op.alter_column(
+            "account",
+            "status",
+            existing_type=sa.String(50),
+            existing_nullable=False,
+            server_default=None,
+        )
+
+This suits the case where one fixed value is correct for every existing row.
+Note that dropping a server default is handled differently from one backend to
+another, and that the default applies to any row inserted between the two
+steps, which may be what hides the problem described in the warning above
+rather than solving it.
+
+.. seealso::
+
+    :ref:`batch_migrations` - on backends with limited ``ALTER`` support, such
+    as SQLite, the ``nullable=False`` step may need to run inside a batch
+    operation.
+
 .. _custom_commandline:
 
 Extend ``CommandLine`` with custom commands
