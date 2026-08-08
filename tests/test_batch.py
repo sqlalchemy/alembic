@@ -1820,6 +1820,57 @@ class BatchRoundTripTest(TestBase):
             batch_op.drop_constraint("fk_bar_foo_id_foo", type_="foreignkey")
         eq_(inspect(self.conn).get_foreign_keys("bar"), [])
 
+    def test_naming_convention_applies_to_reflected_constraints(self):
+        """A naming_convention passed to batch_alter_table() should govern
+        constraints that come back from reflection too, not just newly
+        added ones -- notably, after rename_table(), a recreated table's
+        constraints should be named against the *new* table name rather
+        than carrying over the name reflection reported for the old one.
+        """
+        naming_convention = {
+            "pk": "pk_%(table_name)s",
+            "fk": (
+                "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s"
+            ),
+        }
+        md = MetaData(naming_convention=naming_convention)
+        Table("other", md, Column("name", String(50), primary_key=True))
+        Table(
+            "oldtablename",
+            md,
+            Column("col", String(50), primary_key=True),
+            ForeignKeyConstraint(["col"], ["other.name"], ondelete="CASCADE"),
+        )
+        with self.conn.begin():
+            md.create_all(self.conn)
+
+        try:
+            self.op.rename_table("oldtablename", "tablename")
+            with self.op.batch_alter_table(
+                "tablename",
+                naming_convention=naming_convention,
+                recreate="always",
+            ) as batch_op:
+                batch_op.alter_column("col", existing_type=String(50))
+
+            pk = inspect(self.conn).get_pk_constraint("tablename")
+            eq_(pk["name"], "pk_tablename")
+
+            fks = inspect(self.conn).get_foreign_keys("tablename")
+            eq_(len(fks), 1)
+            eq_(fks[0]["name"], "fk_tablename_col_other")
+        finally:
+            # see tearDown()'s comment on why a commit is needed here on
+            # SQLite before the connection can be used for further DDL.
+            _safe_commit_connection_transaction(self.conn)
+            with self.conn.begin():
+                # the table was renamed and recreated since `old`/`other`
+                # were defined, so reflect current state before dropping
+                # rather than relying on the (now stale) Table objects.
+                m = MetaData()
+                m.reflect(self.conn)
+                m.drop_all(self.conn)
+
     def test_drop_column_fk_recreate(self):
         with self.op.batch_alter_table("foo", recreate="always") as batch_op:
             batch_op.drop_column("data")
