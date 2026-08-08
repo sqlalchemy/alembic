@@ -142,8 +142,11 @@ def _render_modify_table(
         if render_as_batch:
             with autogen_context._within_batch():
                 lines.append(
-                    "with op.batch_alter_table(%r, schema=%r) as batch_op:"
-                    % (op.table_name, op.schema)
+                    "with op.batch_alter_table(%r, schema=%s) as batch_op:"
+                    % (
+                        op.table_name,
+                        _render_schema_ident(autogen_context, op.schema),
+                    )
                 )
                 for t_op in op.ops:
                     t_lines = render_op(autogen_context, t_op)
@@ -258,7 +261,9 @@ def _add_table(autogen_context: AutogenContext, op: ops.CreateTableOp) -> str:
         "args": args_str,
     }
     if op.schema:
-        text += ",\nschema=%r" % _ident(op.schema)
+        text += ",\nschema=%s" % _render_schema_ident(
+            autogen_context, op.schema
+        )
 
     comment = table.comment
     if comment:
@@ -289,7 +294,9 @@ def _drop_table(autogen_context: AutogenContext, op: ops.DropTableOp) -> str:
         "tname": _ident(op.table_name),
     }
     if op.schema:
-        text += ", schema=%r" % _ident(op.schema)
+        text += ", schema=%s" % _render_schema_ident(
+            autogen_context, op.schema
+        )
 
     if op.if_exists is not None:
         text += ", if_exists=%r" % bool(op.if_exists)
@@ -338,7 +345,10 @@ def _add_index(autogen_context: AutogenContext, op: ops.CreateIndexOp) -> str:
         ),
         "unique": index.unique or False,
         "schema": (
-            (", schema=%r" % _ident(index.table.schema))
+            (
+                ", schema=%s"
+                % _render_schema_ident(autogen_context, index.table.schema)
+            )
             if index.table.schema
             else ""
         ),
@@ -367,7 +377,11 @@ def _drop_index(autogen_context: AutogenContext, op: ops.DropIndexOp) -> str:
         "prefix": _alembic_autogenerate_prefix(autogen_context),
         "name": _render_gen_name(autogen_context, op.index_name),
         "table_name": _ident(op.table_name),
-        "schema": ((", schema=%r" % _ident(op.schema)) if op.schema else ""),
+        "schema": (
+            (", schema=%s" % _render_schema_ident(autogen_context, op.schema))
+            if op.schema
+            else ""
+        ),
         "kwargs": ", " + ", ".join(opts) if opts else "",
     }
     return text
@@ -446,7 +460,9 @@ def _add_check_constraint(
         )
     )
     if not autogen_context._has_batch and op.schema:
-        args.append("schema=%r" % _ident(op.schema))
+        args.append(
+            "schema=%s" % _render_schema_ident(autogen_context, op.schema)
+        )
     return "%(prefix)screate_check_constraint(%(args)s)" % {
         "prefix": _alembic_autogenerate_prefix(autogen_context),
         "args": ", ".join(args),
@@ -459,7 +475,9 @@ def _drop_constraint(
 ) -> str:
     prefix = _alembic_autogenerate_prefix(autogen_context)
     name = _render_gen_name(autogen_context, op.constraint_name)
-    schema = _ident(op.schema) if op.schema else None
+    schema = (
+        _render_schema_ident(autogen_context, op.schema) if op.schema else None
+    )
     type_ = _ident(op.constraint_type) if op.constraint_type else None
     if_exists = op.if_exists
     params_strs = []
@@ -467,7 +485,7 @@ def _drop_constraint(
     if not autogen_context._has_batch:
         params_strs.append(repr(_ident(op.table_name)))
         if schema is not None:
-            params_strs.append(f"schema={schema!r}")
+            params_strs.append(f"schema={schema}")
     if type_ is not None:
         params_strs.append(f"type_={type_!r}")
     if if_exists is not None:
@@ -489,7 +507,7 @@ def _add_column(autogen_context: AutogenContext, op: ops.AddColumnOp) -> str:
     else:
         template = "%(prefix)sadd_column(%(tname)r, %(column)s"
         if schema:
-            template += ", schema=%(schema)r"
+            template += ", schema=%(schema)s"
         if if_not_exists is not None:
             template += ", if_not_exists=%(if_not_exists)r"
         template += ")"
@@ -497,7 +515,7 @@ def _add_column(autogen_context: AutogenContext, op: ops.AddColumnOp) -> str:
         "prefix": _alembic_autogenerate_prefix(autogen_context),
         "tname": tname,
         "column": _render_column(column, autogen_context),
-        "schema": schema,
+        "schema": _render_schema_ident(autogen_context, schema),
         "if_not_exists": if_not_exists,
     }
     return text
@@ -517,7 +535,7 @@ def _drop_column(autogen_context: AutogenContext, op: ops.DropColumnOp) -> str:
     else:
         template = "%(prefix)sdrop_column(%(tname)r, %(cname)r"
         if schema:
-            template += ", schema=%(schema)r"
+            template += ", schema=%(schema)s"
         if if_exists is not None:
             template += ", if_exists=%(if_exists)r"
         template += ")"
@@ -526,7 +544,7 @@ def _drop_column(autogen_context: AutogenContext, op: ops.DropColumnOp) -> str:
         "prefix": _alembic_autogenerate_prefix(autogen_context),
         "tname": _ident(tname),
         "cname": _ident(column_name),
-        "schema": _ident(schema),
+        "schema": _render_schema_ident(autogen_context, schema),
         "if_exists": if_exists,
     }
     return text
@@ -591,7 +609,10 @@ def _alter_column(
         )
         text += ",\n%sexisting_server_default=%s" % (indent, rendered)
     if schema and not autogen_context._has_batch:
-        text += ",\n%sschema=%r" % (indent, schema)
+        text += ",\n%sschema=%s" % (
+            indent,
+            _render_schema_ident(autogen_context, schema),
+        )
     text += ")"
     return text
 
@@ -619,6 +640,26 @@ def _ident(name: quoted_name | str | None) -> str | None:
         return str(name)
     elif isinstance(name, str):
         return name
+
+
+def _render_schema_ident(
+    autogen_context: AutogenContext, schema: quoted_name | str | None
+) -> str | None:
+    """Render a schema name as a Python literal for use in generated
+    migration code.
+
+    Preserves an explicit ``quoted_name(..., quote=True/False)`` wrapper
+    (see issue #1526) rather than collapsing it to a plain string, since
+    a plain string loses the caller's explicit quoting preference on
+    re-render.
+
+    """
+    if schema is None:
+        return None
+    if isinstance(schema, quoted_name) and schema.quote is not None:
+        autogen_context.imports.add("from sqlalchemy import quoted_name")
+        return "quoted_name(%r, %r)" % (str(schema), schema.quote)
+    return repr(schema)
 
 
 def _render_potential_expr(
@@ -688,12 +729,15 @@ def _uq_constraint(
 
     has_batch = autogen_context._has_batch
 
+    schema_opt = None
     if constraint.deferrable:
         opts.append(("deferrable", constraint.deferrable))
     if constraint.initially:
         opts.append(("initially", constraint.initially))
     if not has_batch and alter and constraint.table.schema:
-        opts.append(("schema", _ident(constraint.table.schema)))
+        schema_opt = _render_schema_ident(
+            autogen_context, constraint.table.schema
+        )
     if not alter and constraint.name:
         opts.append(
             ("name", _render_gen_name(autogen_context, constraint.name))
@@ -708,6 +752,8 @@ def _uq_constraint(
             args += [repr(_ident(constraint.table.name))]
         args.append(repr([_ident(col.name) for col in constraint.columns]))
         args.extend(["%s=%r" % (k, v) for k, v in opts])
+        if schema_opt is not None:
+            args.append("schema=%s" % schema_opt)
         args.extend(dialect_options)
         return "%(prefix)screate_unique_constraint(%(args)s)" % {
             "prefix": _alembic_autogenerate_prefix(autogen_context),

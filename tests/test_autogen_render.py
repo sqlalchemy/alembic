@@ -20,6 +20,7 @@ from sqlalchemy import Integer
 from sqlalchemy import MetaData
 from sqlalchemy import Numeric
 from sqlalchemy import PrimaryKeyConstraint
+from sqlalchemy import quoted_name
 from sqlalchemy import String
 from sqlalchemy import Table
 from sqlalchemy import text
@@ -885,6 +886,29 @@ class AutogenRenderTest(TestBase):
             "sa.PrimaryKeyConstraint('id'),"
             "schema='foo'"
             ")",
+        )
+
+    def test_render_table_w_quoted_name_schema(self):
+        """test #1526"""
+        m = MetaData()
+        t = Table(
+            "test",
+            m,
+            Column("id", Integer, primary_key=True),
+            schema=quoted_name("database.schema", quote=False),
+        )
+        op_obj = ops.CreateTableOp.from_table(t)
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.create_table('test',"
+            "sa.Column('id', sa.Integer(), nullable=False),"
+            "sa.PrimaryKeyConstraint('id'),"
+            "schema=quoted_name('database.schema', False)"
+            ")",
+        )
+        eq_(
+            self.autogen_context.imports,
+            {"from sqlalchemy import quoted_name"},
         )
 
     def test_render_table_w_system(self):
