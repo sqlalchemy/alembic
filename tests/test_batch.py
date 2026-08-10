@@ -1223,6 +1223,34 @@ class CopyFromTest(TestBase):
             "ALTER TABLE _alembic_tmp_foo RENAME TO foo",
         )
 
+    def test_change_type_to_schematype_w_naming_convention(self):
+        """test #1844"""
+        context = self._fixture()
+        self.table.append_column(Column("y", Integer))
+
+        naming_convention = {
+            "ck": "ck_%(table_name)s_%(constraint_name)s",
+        }
+        with self.op.batch_alter_table(
+            "foo",
+            copy_from=self.table,
+            naming_convention=naming_convention,
+        ) as batch_op:
+            batch_op.alter_column(
+                "y",
+                existing_type=Integer,
+                type_=Boolean(create_constraint=True, name="ck1"),
+            )
+        context.assert_(
+            "CREATE TABLE _alembic_tmp_foo (id INTEGER NOT NULL, "
+            "data VARCHAR(50), x INTEGER, y BOOLEAN, PRIMARY KEY (id), "
+            "CONSTRAINT ck__alembic_tmp_foo_ck1 CHECK (y IN (0, 1)))",
+            "INSERT INTO _alembic_tmp_foo (id, data, x, y) SELECT foo.id, "
+            "foo.data, foo.x, CAST(foo.y AS BOOLEAN) AS y FROM foo",
+            "DROP TABLE foo",
+            "ALTER TABLE _alembic_tmp_foo RENAME TO foo",
+        )
+
     def test_create_drop_index_w_always(self):
         context = self._fixture()
         with self.op.batch_alter_table(

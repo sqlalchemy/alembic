@@ -149,6 +149,7 @@ class BatchOperationsImpl:
                     self.table_args,
                     self.table_kwargs,
                     reflected,
+                    naming_convention=self.naming_convention,
                     partial_reordering=self.partial_reordering,
                 )
                 for opname, arg, kw in self.batch:
@@ -212,12 +213,14 @@ class ApplyBatchImpl:
         table_args: tuple,
         table_kwargs: dict[str, Any],
         reflected: bool,
+        naming_convention: dict[str, str] | None = None,
         partial_reordering: tuple = (),
     ) -> None:
         self.impl = impl
         self.table = table  # this is a Table object
         self.table_args = table_args
         self.table_kwargs = table_kwargs
+        self.naming_convention = naming_convention
         self.temp_table_name = self._calc_temp_name(table.name)
         self.new_table: Table | None = None
 
@@ -317,7 +320,10 @@ class ApplyBatchImpl:
     def _transfer_elements_to_new_table(self) -> None:
         assert self.new_table is None, "Can only create new table once"
 
-        m = MetaData()
+        if self.naming_convention:
+            m = MetaData(naming_convention=self.naming_convention)
+        else:
+            m = MetaData()
         schema = self.table.schema
 
         if self.partial_reordering or self.add_col_ordering:
