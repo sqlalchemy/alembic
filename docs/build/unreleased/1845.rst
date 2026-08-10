@@ -1,0 +1,10 @@
+.. change::
+    :tags: bug, batch
+    :tickets: 1845
+
+    Fixed issue in batch mode where a ``naming_convention`` passed to
+    :meth:`.Operations.batch_alter_table` that included the
+    ``%(constraint_name)s`` token, such as a ``"ck"`` convention, would be
+    re-applied to already-named constraints reflected from the existing
+    table during a batch "recreate" operation, causing the constraint's
+    name to be prefixed a second time.

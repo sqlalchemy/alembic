@@ -143,6 +143,58 @@ class BatchOperationsImpl:
                     )
                     reflected = True
 
+                    if self.naming_convention:
+                        # reflected constraints already have a real,
+                        # persisted name.  however, a naming convention
+                        # such as {"ck": "ck_%(table_name)s_%(constraint_name)s"}  # noqa: E501
+                        # gets re-applied to that name during the above
+                        # reflection since the constraint's name is not
+                        # distinguished from a freshly-assigned one,
+                        # causing it to be prefixed a second time.
+                        # reflect again into a plain MetaData() (no
+                        # naming convention) to determine each
+                        # constraint's real, un-mangled name, and
+                        # restore it.  constraints that are genuinely
+                        # unnamed in the database are left alone so the
+                        # naming convention can still generate a name
+                        # for them.
+                        plain_table = Table(
+                            self.table_name,
+                            MetaData(),
+                            schema=self.schema,
+                            autoload_with=self.operations.get_bind(),
+                            *self.reflect_args,
+                            **self.reflect_kwargs,
+                        )
+                        plain_names = {
+                            (
+                                type(const),
+                                tuple(
+                                    col.name
+                                    for col in _columns_for_constraint(
+                                        const
+                                    )
+                                ),
+                            ): const.name
+                            for const in plain_table.constraints
+                            if not _is_type_bound(const)
+                        }
+                        for const in existing_table.constraints:
+                            if _is_type_bound(const):
+                                continue
+                            key = (
+                                type(const),
+                                tuple(
+                                    col.name
+                                    for col in _columns_for_constraint(
+                                        const
+                                    )
+                                ),
+                            )
+                            real_name = plain_names.get(key)
+                            if real_name:
+                                const.name = real_name
+
                 batch_impl = ApplyBatchImpl(
                     self.impl,
                     existing_table,

@@ -1820,6 +1820,63 @@ class BatchRoundTripTest(TestBase):
             batch_op.drop_constraint("fk_bar_foo_id_foo", type_="foreignkey")
         eq_(inspect(self.conn).get_foreign_keys("bar"), [])
 
+    @config.requirements.check_constraint_reflection
+    def test_naming_convention_ck_preserves_reflected_name(self):
+        """test #1845.
+
+        a naming convention that contains %(constraint_name)s must not
+        be re-applied to a check constraint that already has a name
+        from reflection, else the name gets prefixed a second time.
+
+        """
+        self._ck_constraint_fixture()
+
+        naming_convention = {
+            "ck": "ck_%(table_name)s_%(constraint_name)s",
+        }
+        with self.op.batch_alter_table(
+            "ck_table",
+            recreate="always",
+            naming_convention=naming_convention,
+        ) as batch_op:
+            batch_op.add_column(Column("x", Integer))
+
+        ck_consts = inspect(self.conn).get_check_constraints("ck_table")
+        for ck in ck_consts:
+            ck.pop("comment", None)
+        eq_(ck_consts, [{"sqltext": "id is not NULL", "name": "ck"}])
+
+    @config.requirements.check_constraint_reflection
+    def test_naming_convention_ck_applies_to_new_unnamed(self):
+        """test #1845 counterpart: naming convention should still
+
+        generate a name for a genuinely new, unnamed constraint added
+        during the same batch operation.
+
+        """
+        self._ck_constraint_fixture()
+
+        naming_convention = {
+            "ck": "ck_%(table_name)s_%(constraint_name)s",
+        }
+        with self.op.batch_alter_table(
+            "ck_table",
+            recreate="always",
+            naming_convention=naming_convention,
+        ) as batch_op:
+            batch_op.create_check_constraint("newck", text("id > 0"))
+
+        ck_consts = inspect(self.conn).get_check_constraints("ck_table")
+        for ck in ck_consts:
+            ck.pop("comment", None)
+        eq_(
+            sorted(ck_consts, key=lambda d: d["name"]),
+            [
+                {"sqltext": "id is not NULL", "name": "ck"},
+                {"sqltext": "id > 0", "name": "newck"},
+            ],
+        )
+
     def test_drop_column_fk_recreate(self):
         with self.op.batch_alter_table("foo", recreate="always") as batch_op:
             batch_op.drop_column("data")
