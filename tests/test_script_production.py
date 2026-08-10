@@ -1377,6 +1377,29 @@ class MultiDirRevisionCommandTest(TestBase):
         )
         assert os.access(script.path, os.F_OK)
 
+    def test_multiple_dir_no_bases_version_path_alternate_spelling(self):
+        """Spellings that name the same directory must all be accepted.
+
+        A trailing separator is tested everywhere; on Windows the drive
+        letter's case is tested too, which is what was reported.
+        """
+        configured = os.path.join(_get_staging_directory(), "model1")
+
+        spellings = [configured + os.sep]
+        drive, rest = os.path.splitdrive(os.path.abspath(configured))
+        if drive:
+            spellings.append(drive.swapcase() + rest)
+
+        for spelling in spellings:
+            script = command.revision(
+                self.cfg, message="x", head="base", version_path=spelling
+            )
+            assert os.access(script.path, os.F_OK)
+            eq_(
+                Path(script.path).parent.absolute(),
+                Path(configured).absolute(),
+            )
+
     def test_multiple_dir_chooses_base(self):
         command.revision(
             self.cfg,

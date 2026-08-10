@@ -1,0 +1,9 @@
+.. change::
+    :tags: bug, tests
+    :tickets: 1366
+
+    Added test coverage asserting that a ``--version-path`` naming an already
+    configured version location is accepted however it is spelled, covering a
+    trailing path separator and, on Windows, the case of the drive letter. The
+    matching moved to ``pathlib`` in 1.16.0, which resolved the behaviour
+    reported in :ticket:`1366`; this pins it so it cannot regress.
