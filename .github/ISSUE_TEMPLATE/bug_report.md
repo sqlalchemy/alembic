@@ -38,4 +38,9 @@ See also [Reporting Bugs](https://www.sqlalchemy.org/participate.html#bugs) on t
 **Additional context**
 <!-- Add any other context about the problem here. -->
 
+**Thinking of submitting a pull request for this?**  Please wait until a
+maintainer has added the `open for pull requests` label to this issue.  Pull
+requests that don't reference an issue carrying that label are closed
+automatically.
+
 **Have a nice day!**
