@@ -431,6 +431,7 @@ class EnvironmentContext(util.ModuleClsProxy):
         ) = None,
         compare_type: bool | CompareType = True,
         compare_server_default: bool | CompareServerDefault = False,
+        compare_computed: bool | CompareServerDefault = False,
         render_item: RenderItemFn | None = None,
         literal_binds: bool = False,
         upgrade_token: str = "upgrades",
@@ -627,6 +628,44 @@ class EnvironmentContext(util.ModuleClsProxy):
          .. seealso::
 
             :paramref:`.EnvironmentContext.configure.compare_type`
+
+        :param compare_computed: Indicates computed column expression comparison
+         behavior during
+         an autogenerate operation.  Defaults to ``False`` which disables
+         computed column expression
+         comparison.  Set to ``True`` to turn on computed column expression comparison,
+         which will emit a migration when a computed column's SQL expression changes.
+         Since most databases do not support altering a computed column expression in-place,
+         the migration will typically drop and re-add the column.
+
+         To customize computed column expression comparison behavior, a callable may
+         be specified which can filter computed column comparisons during an
+         autogenerate operation. The format of this callable is::
+
+            def my_compare_computed(context, inspected_column,
+                        metadata_column, inspected_computed, metadata_computed,
+                        rendered_metadata_computed):
+                # return True if the computed expressions are different,
+                # False if not, or None to allow the default implementation
+                # to compare these expressions
+                return None
+
+            context.configure(
+                # ...
+                compare_computed = my_compare_computed
+            )
+
+         ``inspected_column`` is a dictionary structure as returned by
+         :meth:`sqlalchemy.engine.reflection.Inspector.get_columns`, whereas
+         ``metadata_column`` is a :class:`sqlalchemy.schema.Column` from
+         the local model environment.
+
+         A return value of ``None`` indicates to allow default computed column
+         comparison to proceed.
+
+         .. seealso::
+
+            :paramref:`.EnvironmentContext.configure.compare_server_default`
 
         :param include_name: A callable function which is given
          the chance to return ``True`` or ``False`` for any database reflected
@@ -929,6 +968,8 @@ class EnvironmentContext(util.ModuleClsProxy):
         opts["compare_type"] = compare_type
         if compare_server_default is not None:
             opts["compare_server_default"] = compare_server_default
+        if compare_computed is not None:
+            opts["compare_computed"] = compare_computed
         opts["script"] = self.script
 
         opts.update(kw)

@@ -71,45 +71,111 @@ def _compare_computed_default(
     if conn_col_default is None and metadata_default is None:
         return PriorityDispatchResult.CONTINUE
 
-    if sqla_compat._server_default_is_computed(
+    is_conn_computed = sqla_compat._server_default_is_computed(
         conn_col_default
-    ) and not sqla_compat._server_default_is_computed(metadata_default):
-        _warn_computed_not_supported(tname, cname)
-        return PriorityDispatchResult.STOP
+    )
+    is_meta_computed = sqla_compat._server_default_is_computed(
+        metadata_default
+    )
 
-    if not sqla_compat._server_default_is_computed(metadata_default):
+    if not is_conn_computed and not is_meta_computed:
         return PriorityDispatchResult.CONTINUE
 
-    rendered_metadata_default = str(
-        cast(sa_schema.Computed, metadata_col.server_default).sqltext.compile(
-            dialect=autogen_context.dialect,
-            compile_kwargs={"literal_binds": True},
-        )
-    )
+    migration_context = autogen_context.migration_context
+    user_compare_computed = migration_context._user_compare_computed
 
-    # since we cannot change computed columns, we do only a crude comparison
-    # here where we try to eliminate syntactical differences in order to
-    # get a minimal comparison just to emit a warning.
+    if user_compare_computed is False:
+        if is_conn_computed and not is_meta_computed:
+            _warn_computed_not_supported(tname, cname)
+        elif is_meta_computed:
+            rendered_metadata = str(
+                cast(sa_schema.Computed, metadata_default).sqltext.compile(
+                    dialect=autogen_context.dialect,
+                    compile_kwargs={"literal_binds": True},
+                )
+            )
+            rendered_metadata = _normalize_computed_default(rendered_metadata)
 
-    rendered_metadata_default = _normalize_computed_default(
-        rendered_metadata_default
-    )
+            if is_conn_computed:
+                rendered_conn = str(
+                    cast(sa_schema.Computed, conn_col_default).sqltext.compile(
+                        dialect=autogen_context.dialect,
+                        compile_kwargs={"literal_binds": True},
+                    )
+                )
+                rendered_conn = _normalize_computed_default(rendered_conn)
+            else:
+                rendered_conn = ""
 
-    if isinstance(conn_col.server_default, sa_schema.Computed):
-        rendered_conn_default = str(
-            conn_col.server_default.sqltext.compile(
+            if rendered_metadata != rendered_conn:
+                _warn_computed_not_supported(tname, cname)
+
+        return PriorityDispatchResult.STOP
+
+    alter_column_op.existing_server_default = conn_col_default
+
+    rendered_metadata_computed = (
+        str(
+            cast(sa_schema.Computed, metadata_default).sqltext.compile(
                 dialect=autogen_context.dialect,
                 compile_kwargs={"literal_binds": True},
             )
         )
-        rendered_conn_default = _normalize_computed_default(
-            rendered_conn_default
-        )
-    else:
-        rendered_conn_default = ""
+        if is_meta_computed
+        else None
+    )
 
-    if rendered_metadata_default != rendered_conn_default:
-        _warn_computed_not_supported(tname, cname)
+    rendered_conn_computed = (
+        str(
+            cast(sa_schema.Computed, conn_col_default).sqltext.compile(
+                dialect=autogen_context.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+        if is_conn_computed
+        else None
+    )
+
+    if callable(user_compare_computed):
+        is_diff = user_compare_computed(
+            migration_context,
+            conn_col,
+            metadata_col,
+            conn_col_default if is_conn_computed else None,
+            metadata_default if is_meta_computed else None,
+            rendered_metadata_computed,
+        )
+        if is_diff:
+            alter_column_op.modify_server_default = metadata_default
+            log.info(
+                "User defined function %s detected "
+                "computed default on column '%s.%s'",
+                user_compare_computed,
+                tname,
+                cname,
+            )
+            return PriorityDispatchResult.STOP
+        elif is_diff is False:
+            return PriorityDispatchResult.STOP
+
+    norm_meta = (
+        _normalize_computed_default(rendered_metadata_computed)
+        if rendered_metadata_computed
+        else ""
+    )
+    norm_conn = (
+        _normalize_computed_default(rendered_conn_computed)
+        if rendered_conn_computed
+        else ""
+    )
+
+    if norm_meta != norm_conn:
+        alter_column_op.modify_server_default = metadata_default
+        log.info(
+            "Detected computed default change on column '%s.%s'",
+            tname,
+            cname,
+        )
 
     return PriorityDispatchResult.STOP
 
@@ -188,6 +254,11 @@ def _user_compare_server_default(
     metadata_default = metadata_col.server_default
     conn_col_default = conn_col.server_default
     if conn_col_default is None and metadata_default is None:
+        return PriorityDispatchResult.CONTINUE
+
+    if sqla_compat._server_default_is_computed(
+        conn_col_default
+    ) or sqla_compat._server_default_is_computed(metadata_default):
         return PriorityDispatchResult.CONTINUE
 
     alter_column_op.existing_server_default = conn_col_default

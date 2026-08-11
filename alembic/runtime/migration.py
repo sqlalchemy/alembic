@@ -179,6 +179,7 @@ class MigrationContext:
         self._user_compare_server_default = opts.get(
             "compare_server_default", False
         )
+        self._user_compare_computed = opts.get("compare_computed", False)
         self.version_table = version_table = opts.get(
             "version_table", "alembic_version"
         )

@@ -4,6 +4,7 @@ from sqlalchemy import Boolean
 from sqlalchemy import CHAR
 from sqlalchemy import CheckConstraint
 from sqlalchemy import Column
+from sqlalchemy import Computed
 from sqlalchemy import DATE
 from sqlalchemy import DateTime
 from sqlalchemy import DECIMAL
@@ -934,6 +935,135 @@ class CompareServerDefaultTest(TestBase):
         mc = MigrationContext.configure(
             connection,
             opts={"compare_server_default": my_compare_server_default},
+        )
+
+        diff = api.compare_metadata(mc, new_metadata)
+        if expect_diff:
+            eq_(len(diff), 1)
+            eq_(diff[0][0][0], "modify_default")
+        else:
+            assert not diff
+
+
+class CompareComputedDefaultTest(TestBase):
+    __backend__ = True
+    __requires__ = ("computed_columns",)
+
+    def test_compare_computed_disabled(self, connection, metadata):
+        t1 = Table(
+            "t1",
+            metadata,
+            Column("x", Integer),
+            Column("y", Integer, Computed("x + 1")),
+        )
+        t1.create(connection)
+
+        new_metadata = MetaData()
+        Table(
+            "t1",
+            new_metadata,
+            Column("x", Integer),
+            Column("y", Integer, Computed("x + 2")),
+        )
+
+        mc = MigrationContext.configure(
+            connection,
+            opts={"compare_computed": False},
+        )
+
+        diff = api.compare_metadata(mc, new_metadata)
+        assert not diff
+
+    def test_compare_computed_enabled_diff(self, connection, metadata):
+        t1 = Table(
+            "t1",
+            metadata,
+            Column("x", Integer),
+            Column("y", Integer, Computed("x + 1")),
+        )
+        t1.create(connection)
+
+        new_metadata = MetaData()
+        Table(
+            "t1",
+            new_metadata,
+            Column("x", Integer),
+            Column("y", Integer, Computed("x + 2")),
+        )
+
+        mc = MigrationContext.configure(
+            connection,
+            opts={"compare_computed": True},
+        )
+
+        diff = api.compare_metadata(mc, new_metadata)
+        eq_(len(diff), 1)
+        eq_(diff[0][0][0], "modify_default")
+
+    def test_compare_computed_enabled_no_diff(self, connection, metadata):
+        t1 = Table(
+            "t1",
+            metadata,
+            Column("x", Integer),
+            Column("y", Integer, Computed("x + 1")),
+        )
+        t1.create(connection)
+
+        new_metadata = MetaData()
+        Table(
+            "t1",
+            new_metadata,
+            Column("x", Integer),
+            Column("y", Integer, Computed("x + 1")),
+        )
+
+        mc = MigrationContext.configure(
+            connection,
+            opts={"compare_computed": True},
+        )
+
+        diff = api.compare_metadata(mc, new_metadata)
+        assert not diff
+
+    @testing.combinations(
+        (False, "x + 2", False),
+        (True, "x + 1", True),
+        (None, "x + 2", True),
+        id_="naa",
+        argnames="return_value,new_expr,expect_diff",
+    )
+    def test_user_compare_computed_return_values(
+        self, return_value, new_expr, expect_diff, connection, metadata
+    ):
+        def my_compare_computed(
+            context,
+            inspected_col,
+            metadata_col,
+            inspected_computed,
+            metadata_computed,
+            rendered_metadata_computed,
+        ):
+            return return_value
+
+        t1 = Table(
+            "t1",
+            metadata,
+            Column("x", Integer),
+            Column("y", Integer, Computed("x + 1")),
+        )
+        t1.create(connection)
+
+        new_metadata = MetaData()
+        Table(
+            "t1",
+            new_metadata,
+            Column("x", Integer),
+            Column("y", Integer, Computed(new_expr)),
+        )
+
+        mc = MigrationContext.configure(
+            connection,
+            opts={"compare_computed": my_compare_computed},
         )
 
         diff = api.compare_metadata(mc, new_metadata)
