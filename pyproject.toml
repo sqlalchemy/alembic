@@ -84,7 +84,7 @@ lint = [
 ]
 
 mypy = [
-    "mypy>=1.16.0",
+    "mypy>=2.3.0",
     "nox",  # because we check noxfile.py
     "pytest>8,<10",  # alembic/testing imports pytest
 ]
