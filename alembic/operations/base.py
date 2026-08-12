@@ -1857,7 +1857,10 @@ class BatchOperations(AbstractOperations):
             ...
 
         def create_index(
-            self, index_name: str, columns: list[str], **kw: Any
+            self,
+            index_name: str,
+            columns: Sequence[str | TextClause | ColumnElement[Any]],
+            **kw: Any,
         ) -> None:
             """Issue a "create index" instruction using the
             current batch migration context.
