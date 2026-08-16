@@ -1161,6 +1161,10 @@ class CopyFromTest(TestBase):
         CASTing to JSON in SQLite yields 0, so emitting the CAST here
         would destroy the column's data.
 
+        ``_type_affinity`` resolves through any number of TypeDecorator
+        layers, so a decorator whose impl is itself a decorator over JSON
+        is covered by the same check.
+
         """
 
         class CustomJson(TypeDecorator):
