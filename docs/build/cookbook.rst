@@ -1732,6 +1732,19 @@ As the value is produced by an ``UPDATE`` statement, this approach also covers
 the case where the value depends on other columns, using a ``CASE`` expression
 or a correlated subquery.
 
+Step 3 emits ``ALTER TABLE ... ALTER COLUMN``, which most versions of SQLite do
+not accept, failing with ``near "ALTER": syntax error``. On SQLite, run that
+step inside a batch operation, which rebuilds the table instead::
+
+    # 3. on SQLite
+    with op.batch_alter_table("account") as batch_op:
+        batch_op.alter_column(
+            "status", existing_type=sa.String(50), nullable=False
+        )
+
+This form also works on the other backends, so it can be used unconditionally
+if the migration has to run everywhere.
+
 .. warning::
 
     The ``UPDATE`` in step 2 and the ``ALTER`` in step 3 may lock the table for
@@ -1774,9 +1787,9 @@ rather than solving it.
 
 .. seealso::
 
-    :ref:`batch_migrations` - on backends with limited ``ALTER`` support, such
-    as SQLite, the ``nullable=False`` step may need to run inside a batch
-    operation.
+    :ref:`batch_migrations` - the batch form of step 3 used above for SQLite,
+    and the other operations that backends with limited ``ALTER`` support
+    require it for.
 
 .. _custom_commandline:
 
