@@ -20,6 +20,7 @@ from sqlalchemy.sql.schema import SchemaEventTarget
 from sqlalchemy.util import OrderedDict
 from sqlalchemy.util import topological
 
+from .. import util
 from ..util import exc
 from ..util.sqla_compat import _columns_for_constraint
 from ..util.sqla_compat import _copy
@@ -263,10 +264,17 @@ class ApplyBatchImpl:
                 and isinstance(const, CheckConstraint)
                 and not const.name
             ):
-                # TODO: we are skipping unnamed reflected CheckConstraint
-                # because
-                # we have no way to determine _is_type_bound() for these.
-                pass
+                # Unnamed reflected CHECKs cannot be distinguished from
+                # type-bound constraints, so they are not recreated. Warn
+                # rather than dropping them silently.
+                sqltext = getattr(const, "sqltext", None)
+                detail = f" ({sqltext})" if sqltext is not None else ""
+                util.warn(
+                    "Skipping unnamed CHECK constraint on reflected "
+                    "table %r during batch recreate%s. Name the "
+                    "constraint, or restate it via table_args, if it "
+                    "should be preserved." % (self.table.name, detail)
+                )
             elif constraint_name_string(const.name):
                 self.named_constraints[const.name] = const
             else:

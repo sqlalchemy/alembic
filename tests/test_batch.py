@@ -41,6 +41,7 @@ from alembic.testing import config
 from alembic.testing import eq_
 from alembic.testing import exclusions
 from alembic.testing import expect_raises_message
+from alembic.testing import expect_warnings
 from alembic.testing import is_
 from alembic.testing import mock
 from alembic.testing import TestBase
@@ -813,6 +814,31 @@ class BatchApplyTest(TestBase):
             impl,
             colnames=["id", "x", "y"],
             ddl_not_contains="CONSTRAINT uq1 UNIQUE",
+        )
+
+    def test_reflected_unnamed_ck_warns(self):
+        """test for #1846"""
+        m = MetaData()
+        t = Table(
+            "tname",
+            m,
+            Column("id", Integer, primary_key=True),
+            Column("x", Integer),
+            CheckConstraint("x > 5"),
+        )
+        with expect_warnings(
+            "Skipping unnamed CHECK constraint on reflected table 'tname'"
+        ):
+            impl = ApplyBatchImpl(self.impl, t, (), {}, True)
+        eq_(
+            len(
+                [
+                    c
+                    for c in impl.unnamed_constraints
+                    if isinstance(c, CheckConstraint)
+                ]
+            ),
+            0,
         )
 
     def test_add_ck_unnamed(self):
