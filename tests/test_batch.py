@@ -1163,7 +1163,7 @@ class CopyFromTest(TestBase):
 
         ``_type_affinity`` resolves through any number of TypeDecorator
         layers, so a decorator whose impl is itself a decorator over JSON
-        is covered by the same check.
+        is covered by the same check; both depths are asserted below.
 
         """
 
@@ -1177,6 +1177,25 @@ class CopyFromTest(TestBase):
             "foo", copy_from=self.table
         ) as batch_op:
             batch_op.alter_column("toj", type_=CustomJson)
+        context.assert_(
+            "CREATE TABLE _alembic_tmp_foo (id INTEGER NOT NULL, "
+            "data VARCHAR(50), x INTEGER, toj JSON, PRIMARY KEY (id))",
+            "INSERT INTO _alembic_tmp_foo (id, data, x, toj) "
+            "SELECT foo.id, foo.data, foo.x, foo.toj FROM foo",
+            "DROP TABLE foo",
+            "ALTER TABLE _alembic_tmp_foo RENAME TO foo",
+        )
+
+        class DoublyWrappedJson(TypeDecorator):
+            impl = CustomJson
+            cache_ok = True
+
+        context = self._fixture()
+        self.table.append_column(Column("toj", Text))
+        with self.op.batch_alter_table(
+            "foo", copy_from=self.table
+        ) as batch_op:
+            batch_op.alter_column("toj", type_=DoublyWrappedJson)
         context.assert_(
             "CREATE TABLE _alembic_tmp_foo (id INTEGER NOT NULL, "
             "data VARCHAR(50), x INTEGER, toj JSON, PRIMARY KEY (id))",
