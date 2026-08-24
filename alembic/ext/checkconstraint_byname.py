@@ -9,10 +9,10 @@ from typing import Union
 
 from sqlalchemy import schema as sa_schema
 
-from .util import _InspectorConv
-from ...operations import ops
-from ...util import PriorityDispatchResult
-from ...util import sqla_compat
+from ..autogenerate.compare.util import _InspectorConv
+from ..operations import ops
+from ..util import PriorityDispatchResult
+from ..util import sqla_compat
 
 if TYPE_CHECKING:
     from sqlalchemy.engine.interfaces import ReflectedCheckConstraint
@@ -20,10 +20,10 @@ if TYPE_CHECKING:
     from sqlalchemy.sql.schema import CheckConstraint
     from sqlalchemy.sql.schema import Table
 
-    from ...autogenerate.api import AutogenContext
-    from ...ddl.impl import DefaultImpl
-    from ...operations.ops import ModifyTableOps
-    from ...runtime.plugins import Plugin
+    from ..autogenerate.api import AutogenContext
+    from ..ddl.impl import DefaultImpl
+    from ..operations.ops import ModifyTableOps
+    from ..runtime.plugins import Plugin
 
 
 log = logging.getLogger(__name__)
@@ -41,6 +41,21 @@ def _make_check_constraint(
         **impl.adjust_reflected_dialect_options(params, "check_constraint"),
     )
     return const
+
+
+# Current behaviour is kinda unfortunate
+
+# | Meta     | Conn     | Action       | Note                          |
+# |----------|----------|--------------|-------------------------------|
+# | Named    | Named    | Compare      | ok                            |
+# | Unnamed  | Unnamed  | Ignored      | like sqlite                   |
+# | Unnamed  | Named    | See removal  | like pg                       |
+# | Named    | Unnamed  | See addition | sqlite, name set after create |
+# | Named    | Missing  | See addition | ok                            |
+# | Unnamed  | Missing  | Ignored      | not great                     |
+# | Missing  | Named    | See removal  | ok                            |
+# | Missing  | Unnamed  | Ignored      | not great                     |
+#
 
 
 def _compare_check_constraints(
