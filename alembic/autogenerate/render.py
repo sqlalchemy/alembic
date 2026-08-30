@@ -1038,17 +1038,16 @@ def _fk_colspec(
     won't fail if the remote table can't be resolved.
 
     """
-    colspec = fk._get_colspec()
-    tokens = colspec.split(".")
-    tname, colname = tokens[-2:]
+    schema, tname, colname = sqla_compat._fk_target_tokens(fk)
 
-    if metadata_schema is not None and len(tokens) == 2:
+    if metadata_schema is not None and schema is None:
         table_fullname = "%s.%s" % (metadata_schema, tname)
     else:
-        table_fullname = ".".join(tokens[0:-1])
+        table_fullname = sqla_compat._get_table_key(tname, schema)
 
     if (
-        not fk.link_to_name
+        colname is not None
+        and not fk.link_to_name
         and fk.parent is not None
         and fk.parent.table is not None
     ):
@@ -1062,7 +1061,7 @@ def _fk_colspec(
         ):
             col = namespace_metadata.tables[table_fullname].c.get(colname)
             if col is not None:
-                colname = _ident(col.name)  # type: ignore[assignment]
+                colname = _ident(col.name)
 
     colspec = "%s.%s" % (table_fullname, colname)
 

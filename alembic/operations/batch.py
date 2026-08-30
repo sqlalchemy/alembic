@@ -26,6 +26,8 @@ from ..util.sqla_compat import _copy
 from ..util.sqla_compat import _copy_expression
 from ..util.sqla_compat import _ensure_scope_for_ddl
 from ..util.sqla_compat import _fk_is_self_referential
+from ..util.sqla_compat import _fk_target_tokens
+from ..util.sqla_compat import _get_table_key
 from ..util.sqla_compat import _idx_table_bound_expressions
 from ..util.sqla_compat import _is_type_bound
 from ..util.sqla_compat import _remove_column_from_collection
@@ -400,37 +402,29 @@ class ApplyBatchImpl:
     def _setup_referent(
         self, metadata: MetaData, constraint: ForeignKeyConstraint
     ) -> None:
-        spec = constraint.elements[0]._get_colspec()
-        parts = spec.split(".")
-        tname = parts[-2]
-        if len(parts) == 3:
-            referent_schema = parts[0]
-        else:
-            referent_schema = None
+        referent_schema, tname, _ = _fk_target_tokens(constraint.elements[0])
 
         if tname != self.temp_table_name:
-            key = sql_schema._get_table_key(tname, referent_schema)
-
-            def colspec(elem: Any):
-                return elem._get_colspec()
+            key = _get_table_key(tname, referent_schema)
+            colnames = [
+                name
+                for name in (
+                    _fk_target_tokens(elem).column_name
+                    for elem in constraint.elements
+                )
+                if name is not None
+            ]
 
             if key in metadata.tables:
                 t = metadata.tables[key]
-                for elem in constraint.elements:
-                    colname = colspec(elem).split(".")[-1]
-                    if colname not in t.c:
-                        t.append_column(Column(colname, sqltypes.NULLTYPE))
+                for name in colnames:
+                    if name not in t.c:
+                        t.append_column(Column(name, sqltypes.NULLTYPE))
             else:
                 Table(
                     tname,
                     metadata,
-                    *[
-                        Column(n, sqltypes.NULLTYPE)
-                        for n in [
-                            colspec(elem).split(".")[-1]
-                            for elem in constraint.elements
-                        ]
-                    ],
+                    *[Column(name, sqltypes.NULLTYPE) for name in colnames],
                     schema=referent_schema,
                 )
 

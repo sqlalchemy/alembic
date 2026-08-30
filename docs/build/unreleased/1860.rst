@@ -1,0 +1,14 @@
+.. change::
+    :tags: usecase, autogenerate, batch
+    :tickets: 1860
+
+    The target of a :class:`~sqlalchemy.schema.ForeignKey` is now located
+    using the ``ForeignKey.target_tokens`` and
+    ``ForeignKey.target_table_key`` accessors added in SQLAlchemy 2.1, rather
+    than by splitting the dotted string form of that target on ``"."``.  As a
+    dot inside a schema, table or column name cannot be told apart from the
+    separator between those names, a foreign key whose target name contained
+    a dot was previously mis-parsed by autogenerate rendering as well as by
+    batch migrations.  The dotted string continues to be split when running
+    against SQLAlchemy 2.0, where these accessors are not present.  Thanks to
+    Gyanu Mayank for the initial pull request.

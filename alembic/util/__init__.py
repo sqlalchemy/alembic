@@ -31,3 +31,4 @@ from .pyfiles import load_python_file as load_python_file
 from .pyfiles import pyc_file_from_path as pyc_file_from_path
 from .pyfiles import template_to_file as template_to_file
 from .sqla_compat import sqla_2 as sqla_2
+from .sqla_compat import sqla_2_1 as sqla_2_1

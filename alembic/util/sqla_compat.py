@@ -10,6 +10,7 @@ from itertools import chain
 import re
 from typing import Any
 from typing import Callable
+from typing import NamedTuple
 from typing import Protocol
 from typing import TYPE_CHECKING
 from typing import TypeGuard
@@ -44,6 +45,7 @@ if TYPE_CHECKING:
     from sqlalchemy.sql.compiler import SQLCompiler
     from sqlalchemy.sql.elements import ColumnElement
     from sqlalchemy.sql.schema import Constraint
+    from sqlalchemy.sql.schema import ForeignKey
     from sqlalchemy.sql.schema import SchemaItem
 
 _CE = TypeVar("_CE", bound=Union["ColumnElement[Any]", "SchemaItem"])
@@ -338,13 +340,62 @@ def _fk_spec(constraint: ForeignKeyConstraint) -> Any:
     )
 
 
+class _ForeignKeyTarget(NamedTuple):
+    """Stand-in for SQLAlchemy 2.1's ``ForeignKeyTarget`` named tuple."""
+
+    schema: str | None
+    table_name: str
+    column_name: str | None
+
+
+def _fk_target_tokens(fk: ForeignKey) -> _ForeignKeyTarget:
+    """Return the ``(schema, table_name, column_name)`` names that identify
+    the target of a :class:`.ForeignKey`.
+
+    These names are the representation SQLAlchemy computes against; unlike
+    the dotted string form of ``ForeignKey._get_colspec()`` they remain
+    unambiguous when a name itself contains a dot.
+
+    """
+    fk_any: Any = fk
+    if sqla_2_1:
+        return _ForeignKeyTarget(*fk_any.target_tokens)
+    else:
+        return _ForeignKeyTarget(*fk_any._column_tokens)
+
+
+def _fk_target_table_key(fk: ForeignKey) -> str | None:
+    """Return the :attr:`.MetaData.tables` key under which the target of a
+    :class:`.ForeignKey` is, or would be, registered.
+
+    Returns ``None`` when the target was given as a :class:`.Column` that is
+    not associated with a :class:`.Table`, in which case no key can be named.
+
+    """
+    fk_any: Any = fk
+    if sqla_2_1:
+        return fk_any.target_table_key
+    else:
+        return fk_any._table_key()
+
+
+def _fk_target_is_named(fk: ForeignKey) -> bool:
+    """Return True if a :class:`.ForeignKey` identifies its target by name
+    rather than by a :class:`.Column` object.
+
+    """
+    fk_any: Any = fk
+    if sqla_2_1:
+        return fk_any.target_column is None
+    else:
+        return isinstance(fk_any._colspec, str)
+
+
 def _fk_is_self_referential(constraint: ForeignKeyConstraint) -> bool:
-    spec = constraint.elements[0]._get_colspec()
-    tokens = spec.split(".")
-    tokens.pop(-1)  # colname
-    tablekey = ".".join(tokens)
     assert constraint.parent is not None
-    return tablekey == constraint.parent.key
+    return (
+        _fk_target_table_key(constraint.elements[0]) == constraint.parent.key
+    )
 
 
 def _is_type_bound(constraint: Constraint) -> bool:

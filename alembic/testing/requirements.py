@@ -92,6 +92,13 @@ class SuiteRequirements(Requirements):
         )
 
     @property
+    def sqlalchemy_2_1(self):
+        return exclusions.skip_if(
+            lambda config: not util.sqla_2_1,
+            "SQLAlchemy 2.1 or greater required",
+        )
+
+    @property
     def asyncio(self):
         def go(config):
             try:

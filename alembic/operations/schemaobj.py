@@ -259,27 +259,17 @@ class SchemaObjects:
         )
         return idx
 
-    def _parse_table_key(self, table_key: str) -> tuple[str | None, str]:
-        if "." in table_key:
-            tokens = table_key.split(".")
-            sname: str | None = ".".join(tokens[0:-1])
-            tname = tokens[-1]
-        else:
-            tname = table_key
-            sname = None
-        return (sname, tname)
-
     def _ensure_table_for_fk(self, metadata: MetaData, fk: ForeignKey) -> None:
         """create a placeholder Table object for the referent of a
         ForeignKey.
 
         """
-        if isinstance(fk._colspec, str):
-            table_key, cname = fk._colspec.rsplit(".", 1)
-            sname, tname = self._parse_table_key(table_key)
+        if sqla_compat._fk_target_is_named(fk):
+            sname, tname, cname = sqla_compat._fk_target_tokens(fk)
+            table_key = sqla_compat._get_table_key(tname, sname)
             if table_key not in metadata.tables:
                 rel_t = sa_schema.Table(tname, metadata, schema=sname)
             else:
                 rel_t = metadata.tables[table_key]
-            if cname not in rel_t.c:
+            if cname is not None and cname not in rel_t.c:
                 rel_t.append_column(sa_schema.Column(cname, NULLTYPE))

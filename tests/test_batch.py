@@ -173,6 +173,17 @@ class BatchApplyTest(TestBase):
         )
         return ApplyBatchImpl(self.impl, t, table_args, table_kwargs, False)
 
+    def _dotted_name_fk_fixture(self, table_args=(), table_kwargs={}):
+        m = MetaData()
+        referent = Table("my.user", m, Column("id", Integer, primary_key=True))
+        t = Table(
+            "tname",
+            m,
+            Column("id", Integer, primary_key=True),
+            Column("user_id", Integer, ForeignKey(referent.c.id)),
+        )
+        return ApplyBatchImpl(self.impl, t, table_args, table_kwargs, False)
+
     def _multi_fk_fixture(self, table_args=(), table_kwargs={}, schema=None):
         m = MetaData()
         if schema:
@@ -704,6 +715,22 @@ class BatchApplyTest(TestBase):
             ddl_contains="FOREIGN KEY(user_id_3, user_id_version) "
             'REFERENCES foo_schema."user" (id, id_version)',
             schema="foo_schema",
+        )
+
+    @config.requirements.sqlalchemy_2_1
+    def test_regen_fk_dotted_referent_name(self):
+        """the referent's name is not mistaken for a schema-qualified name.
+
+        the dot in ``my.user`` is part of the table name, so the referent
+        placeholder is located as the table ``my.user`` in the default
+        schema rather than a table ``user`` in a schema ``my``.
+
+        """
+        impl = self._dotted_name_fk_fixture()
+        self._assert_impl(
+            impl,
+            colnames=["id", "user_id"],
+            ddl_contains='FOREIGN KEY(user_id) REFERENCES "my.user" (id)',
         )
 
     def test_do_not_add_existing_columns_columns(self):

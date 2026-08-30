@@ -1798,3 +1798,50 @@ class ObjectFromToTest(TestBase):
         assert_raises_message(
             ValueError, "constraint cannot be produced", op.to_constraint
         )
+
+
+class EnsureTableForFKTest(TestBase):
+    """test SchemaObjects._ensure_table_for_fk()."""
+
+    def _fixture(self, fk):
+        # a ForeignKey has to be associated with a Column before its
+        # target can be interrogated
+        Column("user_id", Integer, fk)
+
+        m = MetaData()
+        schemaobj.SchemaObjects()._ensure_table_for_fk(m, fk)
+        return m
+
+    def test_string_target(self):
+        m = self._fixture(ForeignKey("user.id"))
+        eq_(list(m.tables), ["user"])
+        eq_(list(m.tables["user"].c.keys()), ["id"])
+
+    def test_string_target_w_schema(self):
+        m = self._fixture(ForeignKey("myschema.user.id"))
+        eq_(list(m.tables), ["myschema.user"])
+        eq_(m.tables["myschema.user"].schema, "myschema")
+
+    def test_column_target_no_placeholder(self):
+        m = MetaData()
+        referent = Table("user", m, Column("id", Integer, primary_key=True))
+        fk = ForeignKey(referent.c.id)
+        Column("user_id", Integer, fk)
+
+        other = MetaData()
+        schemaobj.SchemaObjects()._ensure_table_for_fk(other, fk)
+        eq_(list(other.tables), [])
+
+    @config.requirements.sqlalchemy_2_1
+    def test_dotted_name_target(self):
+        """a dot within the target's name is not taken as a schema
+        separator.
+
+        """
+        from sqlalchemy.schema import ForeignKeyTarget
+
+        m = self._fixture(ForeignKey(ForeignKeyTarget(None, "my.user", "id")))
+        eq_(list(m.tables), ["my.user"])
+        eq_(m.tables["my.user"].name, "my.user")
+        eq_(m.tables["my.user"].schema, None)
+        eq_(list(m.tables["my.user"].c.keys()), ["id"])
