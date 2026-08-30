@@ -26,6 +26,7 @@ from ..util.sqla_compat import _copy
 from ..util.sqla_compat import _copy_expression
 from ..util.sqla_compat import _ensure_scope_for_ddl
 from ..util.sqla_compat import _fk_is_self_referential
+from ..util.sqla_compat import _fk_target_info
 from ..util.sqla_compat import _idx_table_bound_expressions
 from ..util.sqla_compat import _is_type_bound
 from ..util.sqla_compat import _remove_column_from_collection
@@ -400,26 +401,21 @@ class ApplyBatchImpl:
     def _setup_referent(
         self, metadata: MetaData, constraint: ForeignKeyConstraint
     ) -> None:
-        spec = constraint.elements[0]._get_colspec()
-        parts = spec.split(".")
-        tname = parts[-2]
-        if len(parts) == 3:
-            referent_schema = parts[0]
-        else:
-            referent_schema = None
+        referent_schema, tname, _, table_key = _fk_target_info(
+            constraint.elements[0]
+        )
 
         if tname != self.temp_table_name:
-            key = sql_schema._get_table_key(tname, referent_schema)
 
-            def colspec(elem: Any):
-                return elem._get_colspec()
+            def colname(elem: Any):
+                return _fk_target_info(elem)[2]
 
-            if key in metadata.tables:
-                t = metadata.tables[key]
+            if table_key in metadata.tables:
+                t = metadata.tables[table_key]
                 for elem in constraint.elements:
-                    colname = colspec(elem).split(".")[-1]
-                    if colname not in t.c:
-                        t.append_column(Column(colname, sqltypes.NULLTYPE))
+                    name = colname(elem)
+                    if name is not None and name not in t.c:
+                        t.append_column(Column(name, sqltypes.NULLTYPE))
             else:
                 Table(
                     tname,
@@ -427,8 +423,9 @@ class ApplyBatchImpl:
                     *[
                         Column(n, sqltypes.NULLTYPE)
                         for n in [
-                            colspec(elem).split(".")[-1]
+                            colname(elem)
                             for elem in constraint.elements
+                            if colname(elem) is not None
                         ]
                     ],
                     schema=referent_schema,

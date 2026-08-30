@@ -338,13 +338,33 @@ def _fk_spec(constraint: ForeignKeyConstraint) -> Any:
     )
 
 
+def _fk_target_info(fk: Any) -> tuple[str | None, str, str | None, str]:
+    """Return ``(schema, table_name, column_name, table_key)`` for a ForeignKey.
+
+    Uses SQLAlchemy 2.1's public target accessors when present so names that
+    contain dots are not split incorrectly.
+    """
+    if hasattr(fk, "target_tokens"):
+        tokens = fk.target_tokens
+        return (
+            tokens.schema,
+            tokens.table_name,
+            tokens.column_name,
+            fk.target_table_key,
+        )
+
+    spec = fk._get_colspec()
+    parts = spec.split(".")
+    colname = parts[-1]
+    tname = parts[-2]
+    schema = parts[0] if len(parts) == 3 else None
+    table_key = f"{schema}.{tname}" if schema is not None else tname
+    return schema, tname, colname, table_key
+
+
 def _fk_is_self_referential(constraint: ForeignKeyConstraint) -> bool:
-    spec = constraint.elements[0]._get_colspec()
-    tokens = spec.split(".")
-    tokens.pop(-1)  # colname
-    tablekey = ".".join(tokens)
     assert constraint.parent is not None
-    return tablekey == constraint.parent.key
+    return _fk_target_info(constraint.elements[0])[3] == constraint.parent.key
 
 
 def _is_type_bound(constraint: Constraint) -> bool:

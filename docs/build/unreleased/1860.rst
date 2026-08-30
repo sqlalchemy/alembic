@@ -1,0 +1,8 @@
+.. change::
+    :tags: bug, autogenerate, batch
+    :tickets: 1860
+
+    Foreign key target lookup now uses SQLAlchemy 2.1's public
+    ``ForeignKey`` accessors when available, instead of splitting a dotted
+    colspec string.  Names that contain dots are no longer mis-parsed, and
+    Alembic no longer reads private ``ForeignKey`` attributes for this.

@@ -274,12 +274,15 @@ class SchemaObjects:
         ForeignKey.
 
         """
-        if isinstance(fk._colspec, str):
-            table_key, cname = fk._colspec.rsplit(".", 1)
-            sname, tname = self._parse_table_key(table_key)
+        if hasattr(fk, "target_column"):
+            needs_placeholder = fk.target_column is None
+        else:
+            needs_placeholder = isinstance(fk._colspec, str)
+        if needs_placeholder:
+            sname, tname, cname, table_key = sqla_compat._fk_target_info(fk)
             if table_key not in metadata.tables:
                 rel_t = sa_schema.Table(tname, metadata, schema=sname)
             else:
                 rel_t = metadata.tables[table_key]
-            if cname not in rel_t.c:
+            if cname is not None and cname not in rel_t.c:
                 rel_t.append_column(sa_schema.Column(cname, NULLTYPE))
