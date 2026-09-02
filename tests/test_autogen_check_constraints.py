@@ -1,6 +1,7 @@
 from sqlalchemy import Boolean
 from sqlalchemy import CheckConstraint
 from sqlalchemy import Column
+from sqlalchemy import Enum
 from sqlalchemy import Integer
 from sqlalchemy import MetaData
 from sqlalchemy import Table
@@ -281,6 +282,84 @@ class AutogenCheckConstraintTest(AutogenFixtureTest, TestBase):
             m2,
             Column("x", Integer),
             Column("flag", Boolean(create_constraint=True)),
+        )
+
+        diffs = self._fixture(m1, m2)
+
+        check_diffs = [
+            d
+            for d in diffs
+            if d[0] in ("add_constraint", "remove_constraint")
+            and isinstance(d[1], CheckConstraint)
+        ]
+        eq_(check_diffs, [])
+
+    def test_existing_type_bound_boolean_not_detected(self):
+        # test #1859
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table(
+            "t",
+            m1,
+            Column("x", Integer),
+            Column("flag", Boolean(create_constraint=True)),
+        )
+
+        Table(
+            "t",
+            m2,
+            Column("x", Integer),
+            Column("flag", Boolean(create_constraint=True)),
+        )
+
+        diffs = self._fixture(m1, m2)
+
+        check_diffs = [
+            d
+            for d in diffs
+            if d[0] in ("add_constraint", "remove_constraint")
+            and isinstance(d[1], CheckConstraint)
+        ]
+        eq_(check_diffs, [])
+
+    def test_existing_type_bound_enum_not_detected(self):
+        # test #1859
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table(
+            "t",
+            m1,
+            Column("x", Integer),
+            Column(
+                "status",
+                Enum(
+                    "active",
+                    "inactive",
+                    name="t_status",
+                    native_enum=False,
+                    create_constraint=True,
+                ),
+                nullable=False,
+            ),
+        )
+
+        Table(
+            "t",
+            m2,
+            Column("x", Integer),
+            Column(
+                "status",
+                Enum(
+                    "active",
+                    "inactive",
+                    name="t_status",
+                    native_enum=False,
+                    create_constraint=True,
+                ),
+                nullable=False,
+            ),
         )
 
         diffs = self._fixture(m1, m2)

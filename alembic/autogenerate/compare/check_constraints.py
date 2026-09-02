@@ -68,10 +68,15 @@ def _compare_check_constraints(
     except NotImplementedError:
         return PriorityDispatchResult.CONTINUE
 
+    type_bound_names = sqla_compat.type_bound_check_constraint_names(
+        metadata_table
+    )
+
     conn_ck_list = [
         ck
         for ck in conn_ck_list
         if ck.get("name") is not None
+        and ck["name"] not in type_bound_names
         and autogen_context.run_name_filters(
             ck["name"],
             "check_constraint",
