@@ -1,0 +1,10 @@
+.. change::
+    :tags: bug, autogenerate, postgresql
+    :tickets: 1462
+
+    Fixed false-positive "Computed default cannot be modified" warning emitted
+    during autogenerate when comparing PostgreSQL ``Computed`` columns whose
+    reflected SQL expression includes type cast specifiers such as
+    ``::regconfig`` or ``::text``.  These cast specifiers are now stripped
+    before comparison so that semantically equivalent expressions no longer
+    trigger the warning.

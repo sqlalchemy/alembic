@@ -21,6 +21,7 @@ from sqlalchemy import Table
 from sqlalchemy import text
 from sqlalchemy import types
 from sqlalchemy import UniqueConstraint
+from sqlalchemy.dialects import postgresql
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.dialects.postgresql import BYTEA
 from sqlalchemy.dialects.postgresql import ExcludeConstraint
@@ -70,6 +71,9 @@ if True:
     )  # noqa: E501
     from alembic.autogenerate.compare.server_defaults import (
         _dialect_impl_compare_server_default as _compare_server_default,
+    )
+    from alembic.autogenerate.compare.server_defaults import (
+        _normalize_computed_default,
     )
 
 
@@ -392,6 +396,22 @@ class PostgresqlOpTest(TestBase):
             "c1",
             server_default=sd(),
             existing_server_default=esd(),
+        )
+
+    def test_normalize_computed_default_strips_type_casts(self):
+        # type cast specifiers such as ``::regconfig`` only appear on the
+        # reflected (connection) side and would otherwise cause a
+        # false-positive "cannot be modified" warning.  issue #1462
+        dialect = postgresql.dialect()
+        eq_(
+            _normalize_computed_default(
+                "setweight(to_tsvector('english', title), 'a')", dialect
+            ),
+            _normalize_computed_default(
+                "setweight(to_tsvector('english'::regconfig, "
+                "title::text), 'a'::\"char\")",
+                dialect,
+            ),
         )
 
     @combinations(
