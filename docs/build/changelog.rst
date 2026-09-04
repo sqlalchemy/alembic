@@ -5,7 +5,48 @@ Changelog
 
 .. changelog::
     :version: 1.19.2
-    :include_notes_from: unreleased
+    :released: September 4, 2026
+
+    .. change::
+        :tags: changed, autogenerate
+        :tickets: 1859
+
+        The autogenerate plugin for CHECK constraint detection by name, added in
+        1.19.0. for :ticket:`508`, is no longer enabled by default.  It has been
+        renamed from ``alembic.autogenerate.checkconstraint_byname`` to
+        ``alembic.ext.checkconstraint_byname`` and no longer matches on the
+        ``"alembic.autogenerate.*"`` wildcard, which remains the default plugin
+        specification.  The previous name will still function as well if placed in
+        the plugins list explicitly,  both to enable the plugin and within a
+        ``"~"`` exclusion, so that an ``env.py`` written against 1.19.0 or 1.19.1
+        requires no change.
+
+        The plugin is now recommended only for schemas that ensure the naming of
+        all constraints using a client side naming convention, otherwise there's a
+        persistent risk of false positives. See
+        :ref:`autogenerate_check_constraints` for background on things to be aware
+        of when using this plugin.
+
+        As part of this change "type bound" CHECK constraints, which include
+        constraints generated for the ``Boolean`` and ``Enum`` datatypes when the
+        ``create_constraint`` parameter is set to True, are no longer ignored in
+        the metadata side, so that normal name-based matching can occur for
+        these constraints.
+
+    .. change::
+        :tags: usecase, autogenerate, batch
+        :tickets: 1860
+
+        The target of a :class:`~sqlalchemy.schema.ForeignKey` is now located
+        using the ``ForeignKey.target_tokens`` and
+        ``ForeignKey.target_table_key`` accessors added in SQLAlchemy 2.1, rather
+        than by splitting the dotted string form of that target on ``"."``.  As a
+        dot inside a schema, table or column name cannot be told apart from the
+        separator between those names, a foreign key whose target name contained
+        a dot was previously mis-parsed by autogenerate rendering as well as by
+        batch migrations.  The dotted string continues to be split when running
+        against SQLAlchemy 2.0, where these accessors are not present.  Thanks to
+        Gyanu Mayank for the initial pull request.
 
 .. changelog::
     :version: 1.19.1
