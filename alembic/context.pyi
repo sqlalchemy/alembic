@@ -627,7 +627,10 @@ def configure(
     :param autogenerate_plugins: A list of string names of "plugins" that
      should participate in this autogenerate run.   Defaults to the list
      ``["alembic.autogenerate.*"]``, which indicates that Alembic's default
-     autogeneration plugins will be used.
+     autogeneration plugins will be used.   A small number of plugins are
+     opt-in and are named outside of the ``alembic.autogenerate.``
+     namespace, so that they are not matched by this wildcard and must
+     be named explicitly; see :ref:`plugins_opt_in`.
 
      See the section :ref:`plugins_autogenerate` for complete background
      on how to use this parameter.

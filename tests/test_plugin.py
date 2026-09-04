@@ -7,6 +7,7 @@ from alembic import testing
 from alembic import util
 from alembic.runtime.plugins import _all_plugins
 from alembic.runtime.plugins import _make_re
+from alembic.runtime.plugins import _translate_legacy_name
 from alembic.runtime.plugins import Plugin
 from alembic.testing import eq_
 from alembic.testing.fixtures import TestBase
@@ -185,6 +186,58 @@ class PluginTest(TestBase):
         )
         # Should not raise error
 
+    def test_legacy_name_translated_on_include(self):
+        """a renamed plugin is still reachable by its former name."""
+        plugin = Plugin("alembic.ext.checkconstraint_byname")
+        m = mock.Mock()
+        plugin.add_autogenerate_comparator(m, "test")
+
+        dispatcher = PriorityDispatcher()
+        Plugin.populate_autogenerate_priority_dispatch(
+            dispatcher, ["alembic.autogenerate.checkconstraint_byname"]
+        )
+
+        dispatcher.dispatch("test")()
+        eq_(m.mock_calls, [mock.call()])
+
+    def test_legacy_name_translated_on_exclude(self):
+        """an exclusion written against the former name still excludes."""
+        plugin1 = Plugin("alembic.ext.checkconstraint_byname")
+        plugin2 = Plugin("alembic.ext.other")
+
+        mock1 = mock.Mock()
+        mock2 = mock.Mock()
+        plugin1.add_autogenerate_comparator(mock1, "test")
+        plugin2.add_autogenerate_comparator(mock2, "test")
+
+        dispatcher = PriorityDispatcher()
+        Plugin.populate_autogenerate_priority_dispatch(
+            dispatcher,
+            [
+                "alembic.ext.*",
+                "~alembic.autogenerate.checkconstraint_byname",
+            ],
+        )
+
+        dispatcher.dispatch("test")()
+        eq_(mock1.mock_calls, [])
+        eq_(mock2.mock_calls, [mock.call()])
+
+    def test_error_message_reports_expression_as_written(self):
+        """a name that resolves to nothing is reported as the user wrote
+        it, not as its translation."""
+        Plugin("test.plugin1")
+
+        dispatcher = PriorityDispatcher()
+        with testing.expect_raises_message(
+            util.CommandError,
+            "Did not locate plugins: "
+            "alembic.autogenerate.checkconstraint_byname",
+        ):
+            Plugin.populate_autogenerate_priority_dispatch(
+                dispatcher, ["alembic.autogenerate.checkconstraint_byname"]
+            )
+
     def test_setup_plugin_from_module(self):
         """Test setting up plugin from a module."""
         # Create a mock module with a setup function
@@ -311,3 +364,30 @@ class MakeReTest(TestBase):
         pattern = _make_re("test.MyPlugin")
         assert pattern.match("test.MyPlugin")
         assert not pattern.match("test.myplugin")
+
+
+class TranslateLegacyNameTest(TestBase):
+    """Tests for the _translate_legacy_name helper function."""
+
+    def test_known_legacy_name(self):
+        eq_(
+            _translate_legacy_name(
+                "alembic.autogenerate.checkconstraint_byname"
+            ),
+            "alembic.ext.checkconstraint_byname",
+        )
+
+    def test_current_name_passes_through(self):
+        eq_(
+            _translate_legacy_name("alembic.ext.checkconstraint_byname"),
+            "alembic.ext.checkconstraint_byname",
+        )
+
+    def test_unknown_name_passes_through(self):
+        eq_(_translate_legacy_name("mycompany.plugin"), "mycompany.plugin")
+
+    def test_wildcard_not_translated(self):
+        eq_(
+            _translate_legacy_name("alembic.autogenerate.*"),
+            "alembic.autogenerate.*",
+        )

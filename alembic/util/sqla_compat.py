@@ -567,13 +567,9 @@ def _inherit_schema_deprecated() -> bool:
 
 
 def all_table_check_constraints(table: Table) -> set[CheckConstraint]:
-    """Returns all check constraint that are not type-bound,
-    including those on columns."""
+    """Returns all check constraint including type bound ones and
+    those on columns."""
     candidates = chain(
         table.constraints, *(c.constraints for c in table.columns)
     )
-    return {
-        ck
-        for ck in candidates
-        if isinstance(ck, CheckConstraint) and not _is_type_bound(ck)
-    }
+    return {ck for ck in candidates if isinstance(ck, CheckConstraint)}

@@ -97,8 +97,9 @@ or disabled using the
 :meth:`.EnvironmentContext.configure` call, typically as used within the
 ``env.py`` file.   This parameter is passed as a list of strings each naming a
 specific plugin or a matching wildcard.  The default value is
-``["alembic.autogenerate.*"]`` which indicates that the full set of Alembic's
-internal plugins should be used.
+``["alembic.autogenerate.*"]`` which indicates that Alembic's default set of
+internal plugins should be used.  A small number of plugins are opt-in and
+are not matched by a wildcard; see :ref:`plugins_opt_in`.
 
 The :paramref:`.EnvironmentContext.configure.autogenerate_plugins` parameter
 accepts a list of string patterns:
@@ -138,14 +139,49 @@ invoked are:
   depends on the ``tables`` plugin in order to iterate through columns.
 * ``alembic.autogenerate.comments`` - Table and column comment changes.  This
   plugin depends on the ``tables`` plugin in order to iterate through columns.
-* ``alembic.autogenerate.checkconstraint_byname`` - Named CHECK constraint
-  creation and dropping. This plugin depends on the ``tables`` plugin in
-  order to iterate through columns.  See
-  :ref:`autogenerate_check_constraints` for background, including how to
-  disable this plugin specifically.
 
 While these names can be specified individually, they are subject to change
 as Alembic evolves. Using the wildcard pattern is recommended.
+
+.. _plugins_opt_in:
+
+Opt-in Plugins
+==============
+
+Plugins that ship with Alembic but do not participate in the default set are
+named outside of the ``alembic.autogenerate.`` namespace, within
+``alembic.ext.`` instead, and are implemented within the ``alembic/ext/``
+package of the same name.   As they are not matched by the
+``"alembic.autogenerate.*"`` wildcard, such a plugin is enabled only when its
+name is stated in the
+:paramref:`.EnvironmentContext.configure.autogenerate_plugins` list.
+
+Alembic includes one such plugin:
+
+* ``alembic.ext.checkconstraint_byname`` - Named CHECK constraint creation
+  and dropping.  This plugin depends on the ``tables`` plugin in order to
+  iterate through columns.  It has significant limitations; see
+  :ref:`autogenerate_check_constraints` for background before enabling it.
+
+  .. versionchanged:: 1.19.2  changed the name of this plugin from
+     ``alembic.autogenerate.checkconstraint_byname`` to ``alembic.ext.checkconstraint_byname``
+     and changed it to disabled by default.
+
+To enable it, name it in addition to the wildcard::
+
+    context.configure(
+        # ...
+        autogenerate_plugins=[
+            "alembic.autogenerate.*",
+            "alembic.ext.checkconstraint_byname",
+        ]
+    )
+
+A plugin that has been renamed continues to be addressable by its former
+name, so an ``env.py`` written against an earlier release keeps working
+without modification.   This applies to a ``"~"`` exclusion as well, which
+for an opt-in plugin is accepted but redundant, as the plugin is already
+inactive unless named.
 
 Omitting the built-in plugins entirely would prevent autogeneration from
 proceeding, unless other plugins were provided that replaced its functionality
@@ -158,8 +194,6 @@ parameter only controls which plugins participate in autogenerate
 operations. Other plugin functionality, such as custom operations
 registered with :meth:`.Operations.register_operation`, is available
 regardless of this setting.
-
-
 
 
 Writing a Plugin
