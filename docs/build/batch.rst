@@ -272,6 +272,19 @@ by a batch migration.  Therefore it may be necessary to manipulate the
 ``PRAGMA FOREIGN KEYS`` setting if a migration seeks to rename a table vs.
 batch migrate it.
 
+.. _batch_referencing_views:
+
+Dealing with Referencing Views
+------------------------------
+
+On SQLite, batch migrations that use the "move and copy" workflow may fail
+when a view references the table being altered.  The workflow temporarily
+drops the original table before renaming the replacement table, and SQLite
+may reject the rename while the view refers to the missing table.
+
+As a workaround, SQLite's ``PRAGMA legacy_alter_table`` setting may be
+temporarily enabled while the replacement table is renamed.
+
 .. _batch_offline_mode:
 
 Working in Offline Mode
