@@ -36,6 +36,13 @@ def _compare_column_comment(
 
     metadata_comment = metadata_col.comment
     conn_col_comment = conn_col.comment
+    # An empty-string comment is indistinguishable from no comment: the
+    # database stores/reflects it as NULL, so normalize '' to None to avoid a
+    # false-positive diff (#1085).
+    if metadata_comment == "":
+        metadata_comment = None
+    if conn_col_comment == "":
+        conn_col_comment = None
     if conn_col_comment is None and metadata_comment is None:
         return PriorityDispatchResult.CONTINUE
 
@@ -67,22 +74,30 @@ def _compare_table_comment(
     if conn_table is None or metadata_table is None:
         return PriorityDispatchResult.CONTINUE
 
-    if conn_table.comment is None and metadata_table.comment is None:
+    conn_comment = conn_table.comment
+    meta_comment = metadata_table.comment
+    # An empty-string comment is indistinguishable from no comment (stored as
+    # NULL), so normalize '' to None to avoid a false-positive diff (#1085).
+    if conn_comment == "":
+        conn_comment = None
+    if meta_comment == "":
+        meta_comment = None
+    if conn_comment is None and meta_comment is None:
         return PriorityDispatchResult.CONTINUE
 
-    if metadata_table.comment is None and conn_table.comment is not None:
+    if meta_comment is None and conn_comment is not None:
         modify_table_ops.ops.append(
             ops.DropTableCommentOp(
-                tname, existing_comment=conn_table.comment, schema=schema
+                tname, existing_comment=conn_comment, schema=schema
             )
         )
         return PriorityDispatchResult.STOP
-    elif metadata_table.comment != conn_table.comment:
+    elif meta_comment != conn_comment:
         modify_table_ops.ops.append(
             ops.CreateTableCommentOp(
                 tname,
-                metadata_table.comment,
-                existing_comment=conn_table.comment,
+                meta_comment,
+                existing_comment=conn_comment,
                 schema=schema,
             )
         )

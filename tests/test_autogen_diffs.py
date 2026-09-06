@@ -39,6 +39,8 @@ from sqlalchemy.types import VARBINARY
 from alembic import autogenerate
 from alembic import testing
 from alembic.autogenerate import api
+from alembic.autogenerate.compare.comments import _compare_column_comment
+from alembic.autogenerate.compare.comments import _compare_table_comment
 from alembic.autogenerate.compare.tables import _compare_tables
 from alembic.migration import MigrationContext
 from alembic.operations import ops
@@ -59,6 +61,7 @@ from alembic.testing.suite._autogen_fixtures import AutogenFixtureTest
 from alembic.testing.suite._autogen_fixtures import AutogenTest
 from alembic.testing.suite._autogen_fixtures import ModelOne
 from alembic.util import CommandError
+from alembic.util.langhelpers import PriorityDispatchResult
 
 if True:
     from alembic.autogenerate.compare.types import (
@@ -2683,3 +2686,89 @@ class AutogenPlaceholderTableTest(AutogenFixtureTest, TestBase):
         diffs = self._fixture(m1, m2, name_filters=include_name)
         eq_(len(diffs), 1)
         eq_(diffs[0][0], "remove_fk")
+class CommentEmptyStringNoFalsePositiveTest(TestBase):
+    """Empty string comments must not diff against no comment.
+
+    Databases store empty comment strings as NULL on reflection, so
+    comparing '' against None reported a false positive change (#1085).
+    The comparators are exercised directly with a comment-supporting
+    dialect stub, so these run on any backend.
+    """
+
+    def _ctx(self):
+        return mock.Mock(dialect=mock.Mock(supports_comments=True))
+
+    def test_column_comment_empty_string_vs_none(self):
+        ctx = self._ctx()
+        for conn_comment, meta_comment in [
+            (None, ""),
+            ("", None),
+            ("", ""),
+            (None, None),
+        ]:
+            alter = ops.AlterTableOp("t")
+            conn_col = Column("c", String(), comment=conn_comment)
+            meta_col = Column("c", String(), comment=meta_comment)
+            res = _compare_column_comment(
+                ctx, alter, None, "t", "c", conn_col, meta_col
+            )
+            is_(res, PriorityDispatchResult.CONTINUE)
+            is_(getattr(alter, "modify_comment", None), None)
+
+    def test_column_comment_real_change_still_detected(self):
+        ctx = self._ctx()
+        for conn_comment, meta_comment, expected in [
+            (None, "x", "x"),
+            ("x", None, None),
+            ("a", "b", "b"),
+        ]:
+            alter = ops.AlterTableOp("t")
+            conn_col = Column("c", String(), comment=conn_comment)
+            meta_col = Column("c", String(), comment=meta_comment)
+            res = _compare_column_comment(
+                ctx, alter, None, "t", "c", conn_col, meta_col
+            )
+            is_(res, PriorityDispatchResult.STOP)
+            eq_(alter.modify_comment, expected)
+
+    def test_table_comment_empty_string_vs_none(self):
+        ctx = self._ctx()
+        for conn_comment, meta_comment in [
+            (None, ""),
+            ("", None),
+            ("", ""),
+            (None, None),
+        ]:
+            conn_table = Table(
+                "t", MetaData(), Column("c", String()), comment=conn_comment
+            )
+            meta_table = Table(
+                "t", MetaData(), Column("c", String()), comment=meta_comment
+            )
+            mops = ops.ModifyTableOps("t", [])
+            res = _compare_table_comment(
+                ctx, mops, None, "t", conn_table, meta_table
+            )
+            is_(res, PriorityDispatchResult.CONTINUE)
+            eq_(len(mops.ops), 0)
+
+    def test_table_comment_real_change_still_detected(self):
+        ctx = self._ctx()
+        for conn_comment, meta_comment, op_kind in [
+            (None, "x", ops.CreateTableCommentOp),
+            ("x", None, ops.DropTableCommentOp),
+            ("a", "b", ops.CreateTableCommentOp),
+        ]:
+            conn_table = Table(
+                "t", MetaData(), Column("c", String()), comment=conn_comment
+            )
+            meta_table = Table(
+                "t", MetaData(), Column("c", String()), comment=meta_comment
+            )
+            mops = ops.ModifyTableOps("t", [])
+            res = _compare_table_comment(
+                ctx, mops, None, "t", conn_table, meta_table
+            )
+            is_(res, PriorityDispatchResult.STOP)
+            eq_(len(mops.ops), 1)
+            assert isinstance(mops.ops[0], op_kind)

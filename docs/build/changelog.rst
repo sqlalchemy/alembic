@@ -4,6 +4,20 @@ Changelog
 ==========
 
 .. changelog::
+    :version: unreleased
+
+    .. change::
+        :tags: bug, autogenerate
+        :tickets: 1085
+
+        Fixed a false positive in autogenerate where a column or table comment
+        set to the empty string (``comment=""``) in the metadata was reported
+        as a change against a database state with no comment.  Empty comments
+        are reflected back as ``None``, so the comment comparators now treat
+        ``""`` and ``None`` as equivalent.
+
+
+.. changelog::
     :version: 1.20.0
     :include_notes_from: unreleased
 
