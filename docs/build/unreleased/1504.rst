@@ -1,0 +1,13 @@
+.. change::
+    :tags: bug, postgresql
+    :tickets: 1504
+
+    Fixed bug where :meth:`.Operations.alter_column` against a PostgreSQL
+    identity column would render an incomplete, invalid ``ALTER TABLE ...
+    ALTER COLUMN`` statement with no clause at all when
+    ``existing_server_default`` was left at its default of not being
+    specified. The identity-column DDL compiler only recognized an explicit
+    ``None`` as "no existing default", not the sentinel value used
+    internally by :meth:`.Operations.alter_column` when the argument is
+    omitted, so the "add identity" branch was skipped and no options were
+    ever rendered.
