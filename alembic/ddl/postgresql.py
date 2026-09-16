@@ -569,8 +569,9 @@ def visit_identity_column(
         # drop identity
         text += "DROP IDENTITY"
         return text
-    elif element.existing_server_default is None:
-        # add identity options
+    elif element.existing_server_default in (None, False):
+        # None/ False can get here via different default / explicit paths,
+        # see issue #1504
         text += "ADD "
         text += compiler.visit_identity_column(element.default)
         return text

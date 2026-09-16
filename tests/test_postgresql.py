@@ -1,4 +1,5 @@
 import itertools
+from typing import Any
 
 from sqlalchemy import BigInteger
 from sqlalchemy import Boolean
@@ -416,20 +417,35 @@ class PostgresqlOpTest(TestBase):
 
     @combinations(
         ({}, None),
+        ({}, None),
         (dict(always=True), None),
         (
             dict(start=3, increment=33, maxvalue=99, cycle=True),
             "INCREMENT BY 33 START WITH 3 MAXVALUE 99 CYCLE",
         ),
+        argnames="kw, text",
     )
-    def test_add_identity_to_column(self, kw, text):
+    @testing.variation(
+        "pass_existing_server_default", ["omit", "none", "false"]
+    )
+    def test_add_identity_to_column(
+        self, kw, text, pass_existing_server_default
+    ):
         context = op_fixture("postgresql")
-        op.alter_column(
-            "t1",
-            "some_column",
-            server_default=Identity(**kw),
-            existing_server_default=None,
-        )
+        alter_column_kw: dict[str, Any] = {
+            "server_default": Identity(**kw),
+        }
+        if pass_existing_server_default.none:
+            alter_column_kw["existing_server_default"] = None
+        elif pass_existing_server_default.false:
+            alter_column_kw["existing_server_default"] = False
+        elif pass_existing_server_default.omit:
+            # pass nothing, tests #1504
+            pass
+        else:
+            pass_existing_server_default.fail()
+
+        op.alter_column("t1", "some_column", **alter_column_kw)
         qualification = "ALWAYS" if kw.get("always", False) else "BY DEFAULT"
         options = " (%s)" % text if text else ""
         context.assert_(

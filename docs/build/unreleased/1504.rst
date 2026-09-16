@@ -1,0 +1,9 @@
+.. change::
+    :tags: bug, postgresql
+    :tickets: 1504
+
+    Fixed bug where :meth:`.Operations.alter_column` against a PostgreSQL
+    identity column would render an incomplete, invalid ``ALTER TABLE ... ALTER
+    COLUMN`` statement with no clause at all when ``existing_server_default``
+    was omitted, even if there were no existing server default.  Pull request
+    courtesy Riti Grover.
