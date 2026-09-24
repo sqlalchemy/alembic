@@ -1,0 +1,12 @@
+.. change::
+    :tags: bug, batch migrations
+    :tickets: 1120
+
+    Fixed data loss in SQLite batch migrations when altering a column to a
+    :class:`~sqlalchemy.types.TypeDecorator` that augments
+    :class:`~sqlalchemy.types.JSON`.  The data transfer step suppresses the
+    ``CAST`` for :class:`~sqlalchemy.types.JSON`, as CASTing to ``JSON`` in
+    SQLite yields ``0``, however the check used ``isinstance()`` and therefore
+    did not match a ``TypeDecorator`` wrapping ``JSON``; every value in the
+    column was replaced with ``0``.  The check now compares type affinity, so
+    augmented types are detected as well.
