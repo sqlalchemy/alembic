@@ -1,0 +1,12 @@
+.. change::
+    :tags: bug, autogenerate
+    :tickets: 326
+
+    Autogenerate now uses :func:`sqlalchemy.schema.sort_tables_and_constraints`
+    when arranging ``CREATE TABLE`` / ``DROP TABLE`` operations.  Foreign key
+    constraints that are marked ``use_alter=True``, or that participate in a
+    dependency cycle between new or dropped tables, are rendered as separate
+    :meth:`.Operations.create_foreign_key` /
+    :meth:`.Operations.drop_constraint` directives instead of being inlined
+    into the table DDL, which previously produced CREATE TABLE statements
+    that referenced tables not yet created.

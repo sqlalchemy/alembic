@@ -8,7 +8,9 @@ import logging
 from typing import TYPE_CHECKING
 
 from sqlalchemy import event
+from sqlalchemy import exc as sa_exc
 from sqlalchemy import schema as sa_schema
+from sqlalchemy.schema import sort_tables_and_constraints
 from sqlalchemy.util import OrderedSet
 
 from .util import _InspectorConv
@@ -18,6 +20,7 @@ from ...util import PriorityDispatchResult
 if TYPE_CHECKING:
     from sqlalchemy.engine.reflection import Inspector
     from sqlalchemy.sql.elements import quoted_name
+    from sqlalchemy.sql.schema import ForeignKeyConstraint
     from sqlalchemy.sql.schema import Table
 
     from ...autogenerate.api import AutogenContext
@@ -64,8 +67,14 @@ def _autogen_for_tables(
         insp = _InspectorConv(inspector)
         insp.pre_cache_tables(schema_name, tablenames, available)
 
+    # Use table insertion order rather than MetaData.sorted_tables so that
+    # mutually-dependent FKs don't emit SAWarning here; CREATE/DROP TABLE
+    # ops are reordered afterwards via sort_tables_and_constraints (#326).
     metadata_table_names = OrderedSet(
-        [(table.schema, table.name) for table in autogen_context.sorted_tables]
+        [
+            (table.schema, table.name)
+            for table in autogen_context.table_key_to_table.values()
+        ]
     ).difference([(version_table_schema, version_table)])
 
     _compare_tables(
@@ -226,6 +235,211 @@ def _compare_tables(
 
             if not modify_table_ops.is_empty():
                 upgrade_ops.ops.append(modify_table_ops)
+
+    _rewrite_create_drop_table_fks(autogen_context, upgrade_ops)
+
+
+def _create_table_op_from_stripped(
+    op: ops.CreateTableOp, remaining_ids: set[int]
+) -> ops.CreateTableOp:
+    new_cols = [c for c in op.columns if id(c) not in remaining_ids]
+    if len(new_cols) == len(op.columns):
+        return op
+    return ops.CreateTableOp(
+        op.table_name,
+        new_cols,
+        schema=op.schema,
+        if_not_exists=op.if_not_exists,
+        _namespace_metadata=op._namespace_metadata,
+        _constraints_included=op._constraints_included,
+        comment=op.comment,
+        info=dict(op.info) if op.info else {},
+        prefixes=list(op.prefixes) if op.prefixes else None,
+        **op.kw,
+    )
+
+
+def _sort_tables_for_ops(
+    tables: list[Table],
+) -> tuple[list[Table], list[ForeignKeyConstraint]]:
+    remaining_fks: list[ForeignKeyConstraint] = []
+    ordered: list[Table] = []
+    for table, fks in sort_tables_and_constraints(tables):
+        if table is None:
+            remaining_fks.extend(fks)
+        else:
+            ordered.append(table)
+    return ordered, remaining_fks
+
+
+def _rewrite_create_table_fks(
+    autogen_context: AutogenContext, upgrade_ops: UpgradeOps
+) -> None:
+    """Emit cyclic / use_alter FKs as create_foreign_key, reorder CREATE."""
+
+    ops_list = list(upgrade_ops.ops)
+    create_positions = [
+        i for i, op in enumerate(ops_list) if isinstance(op, ops.CreateTableOp)
+    ]
+    if not create_positions:
+        return
+
+    key_to_table = autogen_context.table_key_to_table
+    tables: list[Table] = []
+    for i in create_positions:
+        cop = ops_list[i]
+        assert isinstance(cop, ops.CreateTableOp)
+        key = sa_schema._get_table_key(cop.table_name, cop.schema)
+        table = key_to_table.get(key)
+        if table is None:
+            table = cop.to_table()
+        tables.append(table)
+
+    try:
+        ordered_tables, remaining_fks = _sort_tables_for_ops(tables)
+    except sa_exc.NoReferencedTableError:
+        return
+    remaining_ids = {id(fk) for fk in remaining_fks}
+
+    skip: set[int] = set()
+    groups: dict[tuple[str | None, str], list] = {}
+    for i in create_positions:
+        cop = ops_list[i]
+        assert isinstance(cop, ops.CreateTableOp)
+        group: list = [_create_table_op_from_stripped(cop, remaining_ids)]
+        skip.add(i)
+        j = i + 1
+        while j < len(ops_list) and isinstance(
+            ops_list[j], ops.ModifyTableOps
+        ):
+            mop = ops_list[j]
+            assert isinstance(mop, ops.ModifyTableOps)
+            if mop.table_name == cop.table_name and mop.schema == cop.schema:
+                group.append(mop)
+                skip.add(j)
+                j += 1
+            else:
+                break
+        groups[(cop.schema, cop.table_name)] = group
+
+    fk_ops = [
+        ops.CreateForeignKeyOp.from_constraint(fk) for fk in remaining_fks
+    ]
+
+    new_ops: list = []
+    placed = False
+    for i, op in enumerate(ops_list):
+        if i in skip:
+            if not placed:
+                for table in ordered_tables:
+                    group = groups.get((table.schema, table.name))
+                    if group is not None:
+                        new_ops.extend(group)
+                new_ops.extend(fk_ops)
+                placed = True
+            continue
+        new_ops.append(op)
+    if not placed:
+        for table in ordered_tables:
+            group = groups.get((table.schema, table.name))
+            if group is not None:
+                new_ops.extend(group)
+        new_ops.extend(fk_ops)
+
+    upgrade_ops.ops[:] = new_ops
+
+
+def _table_from_drop_op(dop: ops.DropTableOp) -> Table | None:
+    rev = dop._reverse
+    if rev is None:
+        return None
+    md = rev._namespace_metadata
+    if md is None:
+        return dop.to_table()
+    key = sa_schema._get_table_key(dop.table_name, dop.schema)
+    return md.tables.get(key, dop.to_table())
+
+
+def _rewrite_drop_table_fks(upgrade_ops: UpgradeOps) -> None:
+    """Drop cyclic FKs before DROP TABLE, reverse-toposort the drops."""
+
+    ops_list = list(upgrade_ops.ops)
+    drop_positions = [
+        i for i, op in enumerate(ops_list) if isinstance(op, ops.DropTableOp)
+    ]
+    if not drop_positions:
+        return
+
+    tables: list[Table] = []
+    for i in drop_positions:
+        dop = ops_list[i]
+        assert isinstance(dop, ops.DropTableOp)
+        table = _table_from_drop_op(dop)
+        if table is None:
+            table = dop.to_table()
+        tables.append(table)
+
+    try:
+        ordered_tables, remaining_fks = _sort_tables_for_ops(tables)
+    except sa_exc.NoReferencedTableError:
+        # Dropped table FKs may point at tables that aren't in this
+        # DropTableOp set (and aren't reconstructed onto the same MetaData).
+        return
+
+    skip: set[int] = set()
+    groups: dict[tuple[str | None, str], list] = {}
+    for i in drop_positions:
+        dop = ops_list[i]
+        assert isinstance(dop, ops.DropTableOp)
+        group: list = []
+        prev = i - 1
+        if (
+            prev >= 0
+            and prev not in skip
+            and isinstance(ops_list[prev], ops.ModifyTableOps)
+        ):
+            mop = ops_list[prev]
+            assert isinstance(mop, ops.ModifyTableOps)
+            if mop.table_name == dop.table_name and mop.schema == dop.schema:
+                group.append(mop)
+                skip.add(prev)
+        group.append(dop)
+        skip.add(i)
+        groups[(dop.schema, dop.table_name)] = group
+
+    fk_ops = [ops.DropConstraintOp.from_constraint(fk) for fk in remaining_fks]
+
+    # DROP TABLE in reverse dependency order (dependents first)
+    drop_order = list(reversed(ordered_tables))
+
+    new_ops: list = []
+    placed = False
+    for i, op in enumerate(ops_list):
+        if i in skip:
+            if not placed:
+                new_ops.extend(fk_ops)
+                for table in drop_order:
+                    group = groups.get((table.schema, table.name))
+                    if group is not None:
+                        new_ops.extend(group)
+                placed = True
+            continue
+        new_ops.append(op)
+    if not placed:
+        new_ops.extend(fk_ops)
+        for table in drop_order:
+            group = groups.get((table.schema, table.name))
+            if group is not None:
+                new_ops.extend(group)
+
+    upgrade_ops.ops[:] = new_ops
+
+
+def _rewrite_create_drop_table_fks(
+    autogen_context: AutogenContext, upgrade_ops: UpgradeOps
+) -> None:
+    _rewrite_create_table_fks(autogen_context, upgrade_ops)
+    _rewrite_drop_table_fks(upgrade_ops)
 
 
 @contextlib.contextmanager
