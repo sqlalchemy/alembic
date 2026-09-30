@@ -209,7 +209,7 @@ def add_column(operations: "Operations", operation: "ops.AddColumnOp") -> None:
         and not operations.impl.dialect.inline_comments
     )
     comment = column.comment
-    if comment and with_comment:
+    if comment is not None and with_comment:
         operations.impl.create_column_comment(column)
 
 

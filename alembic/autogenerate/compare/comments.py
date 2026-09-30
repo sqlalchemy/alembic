@@ -36,6 +36,11 @@ def _compare_column_comment(
 
     metadata_comment = metadata_col.comment
     conn_col_comment = conn_col.comment
+    if autogen_context.dialect.name == "oracle":
+        if metadata_comment == "":
+            metadata_comment = None
+        if conn_col_comment == "":
+            conn_col_comment = None
     if conn_col_comment is None and metadata_comment is None:
         return PriorityDispatchResult.CONTINUE
 
@@ -70,19 +75,27 @@ def _compare_table_comment(
     if conn_table.comment is None and metadata_table.comment is None:
         return PriorityDispatchResult.CONTINUE
 
-    if metadata_table.comment is None and conn_table.comment is not None:
+    conn_comment = conn_table.comment
+    metadata_comment = metadata_table.comment
+    if autogen_context.dialect.name == "oracle":
+        if conn_comment == "":
+            conn_comment = None
+        if metadata_comment == "":
+            metadata_comment = None
+
+    if metadata_comment is None and conn_comment is not None:
         modify_table_ops.ops.append(
             ops.DropTableCommentOp(
-                tname, existing_comment=conn_table.comment, schema=schema
+                tname, existing_comment=conn_comment, schema=schema
             )
         )
         return PriorityDispatchResult.STOP
-    elif metadata_table.comment != conn_table.comment:
+    elif metadata_comment != conn_comment:
         modify_table_ops.ops.append(
             ops.CreateTableCommentOp(
                 tname,
-                metadata_table.comment,
-                existing_comment=conn_table.comment,
+                metadata_comment,
+                existing_comment=conn_comment,
                 schema=schema,
             )
         )
