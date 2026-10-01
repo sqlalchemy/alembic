@@ -632,6 +632,9 @@ class DefaultImpl(metaclass=ImplMeta):
     ):
         return rendered_inspector_default != rendered_metadata_default
 
+    def normalize_comment(self, comment: str | None) -> str | None:
+        return comment
+
     def correct_for_autogen_constraints(
         self,
         conn_uniques: set[UniqueConstraint],

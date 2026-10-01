@@ -34,13 +34,9 @@ def _compare_column_comment(
     if not autogen_context.dialect.supports_comments:
         return PriorityDispatchResult.CONTINUE
 
-    metadata_comment = metadata_col.comment
-    conn_col_comment = conn_col.comment
-    if autogen_context.dialect.name == "oracle":
-        if metadata_comment == "":
-            metadata_comment = None
-        if conn_col_comment == "":
-            conn_col_comment = None
+    impl = autogen_context.migration_context.impl
+    metadata_comment = impl.normalize_comment(metadata_col.comment)
+    conn_col_comment = impl.normalize_comment(conn_col.comment)
     if conn_col_comment is None and metadata_comment is None:
         return PriorityDispatchResult.CONTINUE
 
@@ -75,13 +71,9 @@ def _compare_table_comment(
     if conn_table.comment is None and metadata_table.comment is None:
         return PriorityDispatchResult.CONTINUE
 
-    conn_comment = conn_table.comment
-    metadata_comment = metadata_table.comment
-    if autogen_context.dialect.name == "oracle":
-        if conn_comment == "":
-            conn_comment = None
-        if metadata_comment == "":
-            metadata_comment = None
+    impl = autogen_context.migration_context.impl
+    conn_comment = impl.normalize_comment(conn_table.comment)
+    metadata_comment = impl.normalize_comment(metadata_table.comment)
 
     if metadata_comment is None and conn_comment is not None:
         modify_table_ops.ops.append(

@@ -2371,16 +2371,23 @@ class AutogenRenderTest(TestBase):
         from types import SimpleNamespace
 
         from alembic.autogenerate.compare import comments
+        from alembic.ddl.impl import DefaultImpl
+        from alembic.ddl.oracle import OracleImpl
         from alembic.util import PriorityDispatchResult
 
-        for dialect_name, expected in (
-            ("postgresql", PriorityDispatchResult.STOP),
-            ("oracle", PriorityDispatchResult.CONTINUE),
+        for impl_cls, expected in (
+            (DefaultImpl, PriorityDispatchResult.STOP),
+            (OracleImpl, PriorityDispatchResult.CONTINUE),
         ):
             ctx = SimpleNamespace(
-                dialect=SimpleNamespace(
-                    supports_comments=True, name=dialect_name
-                )
+                dialect=SimpleNamespace(supports_comments=True),
+                migration_context=SimpleNamespace(
+                    impl=SimpleNamespace(
+                        normalize_comment=lambda c, _cls=impl_cls: (
+                            _cls.normalize_comment(None, c)
+                        )
+                    )
+                ),
             )
             alter_op = ops.AlterColumnOp("t", "c")
             result = comments._compare_column_comment(
@@ -2398,16 +2405,23 @@ class AutogenRenderTest(TestBase):
         from types import SimpleNamespace
 
         from alembic.autogenerate.compare import comments
+        from alembic.ddl.impl import DefaultImpl
+        from alembic.ddl.oracle import OracleImpl
         from alembic.util import PriorityDispatchResult
 
-        for dialect_name, expected in (
-            ("postgresql", PriorityDispatchResult.STOP),
-            ("oracle", PriorityDispatchResult.CONTINUE),
+        for impl_cls, expected in (
+            (DefaultImpl, PriorityDispatchResult.STOP),
+            (OracleImpl, PriorityDispatchResult.CONTINUE),
         ):
             ctx = SimpleNamespace(
-                dialect=SimpleNamespace(
-                    supports_comments=True, name=dialect_name
-                )
+                dialect=SimpleNamespace(supports_comments=True),
+                migration_context=SimpleNamespace(
+                    impl=SimpleNamespace(
+                        normalize_comment=lambda c, _cls=impl_cls: (
+                            _cls.normalize_comment(None, c)
+                        )
+                    )
+                ),
             )
             mops = ops.ModifyTableOps("t", [])
             result = comments._compare_table_comment(

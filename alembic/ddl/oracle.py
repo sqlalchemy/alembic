@@ -55,6 +55,11 @@ class OracleImpl(DefaultImpl):
             self.static_output(self.batch_separator)
         return result
 
+    def normalize_comment(self, comment: str | None) -> str | None:
+        if comment == "":
+            return None
+        return comment
+
     def compare_server_default(
         self,
         inspector_column,
