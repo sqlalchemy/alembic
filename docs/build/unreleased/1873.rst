@@ -1,0 +1,12 @@
+.. change::
+    :tags: bug, environment
+    :tickets: 1873
+
+    Fixed issue where a third party plugin published using the
+    ``alembic.plugins`` entrypoint, configured to refer to a plugin module as
+    documented at :ref:`alembic.plugins.toplevel`, would cause ``import
+    alembic`` to fail with a ``TypeError``, as the loaded module was
+    erroneously iterated rather than being set up directly. An entrypoint
+    that refers to a collection of modules, the form which inadvertently
+    worked previously, continues to be accepted but now emits a deprecation
+    warning.

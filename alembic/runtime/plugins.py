@@ -196,8 +196,19 @@ def _make_re(name: str) -> Pattern[str]:
 def _setup() -> None:
     # setup third party plugins
     for entrypoint in metadata.entry_points(group="alembic.plugins"):
-        for mod in entrypoint.load():
-            Plugin.setup_plugin_from_module(mod, entrypoint.name)
+        loaded = entrypoint.load()
+        if isinstance(loaded, ModuleType):
+            Plugin.setup_plugin_from_module(loaded, entrypoint.name)
+        else:
+            # prior to #1873, the entrypoint was erroneously iterated;
+            # continue to accept a collection of modules for now
+            util.warn_deprecated(
+                f"Plugin entrypoint {entrypoint.name!r} refers to a "
+                "collection of modules; the entrypoint should refer to a "
+                "single plugin module that includes a setup() function."
+            )
+            for mod in loaded:
+                Plugin.setup_plugin_from_module(mod, entrypoint.name)
 
 
 _setup()
