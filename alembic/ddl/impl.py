@@ -21,6 +21,8 @@ from sqlalchemy import schema
 from sqlalchemy import String
 from sqlalchemy import Table
 from sqlalchemy import text
+from sqlalchemy.exc import NoSuchModuleError
+from sqlalchemy.util import PluginLoader
 
 from . import _autogen
 from . import base
@@ -68,23 +70,17 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
-class ImplMeta(type):
-    def __init__(
-        cls,
-        classname: str,
-        bases: tuple[type[DefaultImpl]],
-        dict_: dict[str, Any],
-    ):
-        newtype = type.__init__(cls, classname, bases, dict_)
-        if "__dialect__" in dict_:
-            _impls[dict_["__dialect__"]] = cls  # type: ignore[assignment]
-        return newtype
-
-
 _impls: dict[str, type[DefaultImpl]] = {}
 
 
-class DefaultImpl(metaclass=ImplMeta):
+# PluginLoader only caches on hits, not misses.
+_entrypoints_checked: set[str] = set()
+
+
+registry = PluginLoader("alembic.dialects")
+
+
+class DefaultImpl:
     """Provide the entrypoint for major migration operations,
     including database-specific behavioral variances.
 
@@ -135,9 +131,72 @@ class DefaultImpl(metaclass=ImplMeta):
                     "Can't use literal_binds setting without as_sql mode"
                 )
 
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        super().__init_subclass__(**kwargs)
+        cls._register()
+
     @classmethod
     def get_by_dialect(cls, dialect: Dialect) -> type[DefaultImpl]:
-        return _impls[dialect.name]
+        if dialect.name not in _entrypoints_checked:
+            _entrypoints_checked.add(dialect.name)
+            try:
+                registry.load(dialect.name)
+            except NoSuchModuleError:
+                pass
+        try:
+            return _impls[dialect.name]
+        except KeyError:
+            raise util.NoSuchDialectError(
+                f"Implementation for dialect {dialect.name!r} not found"
+            ) from None
+
+    @classmethod
+    def _register(cls) -> None:
+        if "__dialect__" in cls.__dict__:
+            dialect = cls.__dict__["__dialect__"]
+            existing = _impls.get(dialect)
+            if existing is None:
+                _impls[dialect] = cls
+                return
+
+            # By default, the latest registrant always wins, but a warning
+            # occurs when the latest registrant is not a subclass of the
+            # existing one. Newcomer is asked first.
+            new_cls = cls.resolve_registration_conflict(
+                new=cls, existing=existing
+            )
+            if new_cls is None:
+                new_cls = existing.resolve_registration_conflict(
+                    new=cls, existing=existing
+                )
+            if new_cls is None:
+                msg = (
+                    "Overwriting existing registered implementation "
+                    "%s for dialect %s with new implementation %s."
+                    " %s will be used. To make this intentional,"
+                    " subclass the other implementation, or remove one of"
+                    " them." % (repr(existing), dialect, repr(cls), repr(cls))
+                )
+                if issubclass(cls, existing):
+                    log.debug(msg)
+                else:
+                    util.warn(msg)
+                new_cls = cls
+            _impls[dialect] = new_cls
+
+    @classmethod
+    def resolve_registration_conflict(
+        cls, new: type[DefaultImpl], existing: type[DefaultImpl]
+    ) -> type[DefaultImpl] | None:
+        """Decide which implementation to register when ``new`` declares a
+        ``__dialect__`` that is already registered to ``existing``.
+
+        Both the new and existing may enforce registration conflict behavior.
+        ``None`` essentially means 'no opinion'. The newcomer is asked for
+        its opinion first; then the existing impl. If neither has an
+        opinion, the newcomer wins.
+        """
+        return None
 
     def static_output(self, text: str) -> None:
         assert self.output_buffer is not None
@@ -860,6 +919,9 @@ class DefaultImpl(metaclass=ImplMeta):
         self, reflected_object: _ReflectedConstraint, kind: str
     ) -> dict[str, Any]:
         return reflected_object.get("dialect_options", {})  # type: ignore[return-value]   # noqa: E501
+
+
+DefaultImpl._register()
 
 
 class Params(NamedTuple):
