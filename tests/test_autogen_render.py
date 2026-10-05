@@ -1,4 +1,5 @@
 import re
+from types import SimpleNamespace
 
 import sqlalchemy as sa  # noqa
 from sqlalchemy import BigInteger
@@ -41,6 +42,9 @@ from alembic import autogenerate
 from alembic import op  # noqa
 from alembic import testing
 from alembic.autogenerate import api
+from alembic.autogenerate.compare import comments
+from alembic.ddl.impl import DefaultImpl
+from alembic.ddl.oracle import OracleImpl
 from alembic.migration import MigrationContext
 from alembic.operations import ops
 from alembic.testing import assert_raises
@@ -52,6 +56,7 @@ from alembic.testing import is_not_
 from alembic.testing import mock
 from alembic.testing import TestBase
 from alembic.testing.fixtures import op_fixture
+from alembic.util import PriorityDispatchResult
 from alembic.util import sqla_compat
 
 
@@ -2368,13 +2373,6 @@ class AutogenRenderTest(TestBase):
         )
 
     def test_compare_column_empty_comment_distinct(self):
-        from types import SimpleNamespace
-
-        from alembic.autogenerate.compare import comments
-        from alembic.ddl.impl import DefaultImpl
-        from alembic.ddl.oracle import OracleImpl
-        from alembic.util import PriorityDispatchResult
-
         for impl_cls, expected in (
             (DefaultImpl, PriorityDispatchResult.STOP),
             (OracleImpl, PriorityDispatchResult.CONTINUE),
@@ -2402,13 +2400,6 @@ class AutogenRenderTest(TestBase):
             eq_(result, expected)
 
     def test_compare_table_empty_comment_distinct(self):
-        from types import SimpleNamespace
-
-        from alembic.autogenerate.compare import comments
-        from alembic.ddl.impl import DefaultImpl
-        from alembic.ddl.oracle import OracleImpl
-        from alembic.util import PriorityDispatchResult
-
         for impl_cls, expected in (
             (DefaultImpl, PriorityDispatchResult.STOP),
             (OracleImpl, PriorityDispatchResult.CONTINUE),
