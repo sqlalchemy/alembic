@@ -1,0 +1,9 @@
+.. change::
+    :tags: bug, autogenerate
+    :tickets: 1526
+
+    Fixed bug in autogenerate rendering where a schema name passed as a
+    SQLAlchemy ``quoted_name`` object with an explicit ``quote=True`` or
+    ``quote=False`` setting would be rendered as a plain string literal,
+    losing the explicit quoting preference. The rendered migration now
+    preserves the ``quoted_name(...)`` wrapper in this case.
