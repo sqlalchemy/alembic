@@ -11,6 +11,7 @@ from alembic import testing
 from alembic import util
 from alembic.ddl import impl
 from alembic.ddl.impl import DefaultImpl
+from alembic.ddl.impl import RegisterImpl
 from alembic.migration import MigrationContext
 from alembic.testing import eq_
 from alembic.testing import expect_raises
@@ -36,7 +37,7 @@ def _no_warnings():
 class _RegistryFixture(TestBase):
     @testing.fixture(scope="function", autouse=True)
     def _restore_registry(self):
-        impls = impl._impls.copy()
+        impls = RegisterImpl._impls.copy()
         checked = impl._entrypoints_checked.copy()
         loaders = impl.registry.impls.copy()
 
@@ -47,8 +48,8 @@ class _RegistryFixture(TestBase):
 
         yield
 
-        impl._impls.clear()
-        impl._impls.update(impls)
+        RegisterImpl._impls.clear()
+        RegisterImpl._impls.update(impls)
         impl._entrypoints_checked.clear()
         impl._entrypoints_checked.update(checked)
         impl.registry.impls.clear()
@@ -82,9 +83,9 @@ class RegistrationTest(_RegistryFixture):
         class NewDbImpl(DefaultImpl):
             __dialect__ = "newdb"
 
-        is_(impl._impls["newdb"], NewDbImpl)
+        is_(RegisterImpl._impls["newdb"], NewDbImpl)
 
-    def test_inherited_dialect_does_not_register(self):
+    def test_inherited_dialect_registers(self):
         class NewDbImpl(DefaultImpl):
             __dialect__ = "newdb"
 
@@ -93,7 +94,7 @@ class RegistrationTest(_RegistryFixture):
             class Helper(NewDbImpl):
                 pass
 
-        is_(impl._impls["newdb"], NewDbImpl)
+        is_(RegisterImpl._impls["newdb"], Helper)
 
     def test_builtins_registered(self):
         eq_(
@@ -106,7 +107,7 @@ class RegistrationTest(_RegistryFixture):
                 "postgresql",
                 "sqlite",
             }
-            - set(impl._impls),
+            - set(RegisterImpl._impls),
             set(),
         )
 
@@ -132,7 +133,7 @@ class RegistrationTest(_RegistryFixture):
             class CustomNewDbImpl(NewDbImpl):
                 __dialect__ = "newdb"
 
-        is_(impl._impls["newdb"], CustomNewDbImpl)
+        is_(RegisterImpl._impls["newdb"], CustomNewDbImpl)
 
     def test_conflict_with_non_subclass_warns(self):
         class NewDbImpl(DefaultImpl):
@@ -143,7 +144,7 @@ class RegistrationTest(_RegistryFixture):
             class OtherNewDbImpl(DefaultImpl):
                 __dialect__ = "newdb"
 
-        is_(impl._impls["newdb"], OtherNewDbImpl)
+        is_(RegisterImpl._impls["newdb"], OtherNewDbImpl)
 
 
 class ConflictHookTest(_RegistryFixture):
@@ -186,7 +187,9 @@ class ConflictHookTest(_RegistryFixture):
             second = type("Second", (second_base,), {"__dialect__": "newdb"})
 
         # the class with the hook keeps the other one, whichever side it is on
-        is_(impl._impls["newdb"], second if hook_on.existing else first)
+        is_(
+            RegisterImpl._impls["newdb"], second if hook_on.existing else first
+        )
 
     @testing.variation("hook_on", ["existing", "new", "both"])
     def test_hook_returning_none_is_default(self, hook_on):
@@ -202,7 +205,7 @@ class ConflictHookTest(_RegistryFixture):
         with expect_warnings(OVERWRITE_WARNING):
             second = type("Second", (second_base,), {"__dialect__": "newdb"})
 
-        is_(impl._impls["newdb"], second)
+        is_(RegisterImpl._impls["newdb"], second)
 
     def test_both_hooks_newcomer_asked_first(self):
         class PrefersSelf(DefaultImpl):
@@ -213,7 +216,7 @@ class ConflictHookTest(_RegistryFixture):
         type("First", (PrefersSelf,), {"__dialect__": "newdb"})
         second = type("Second", (PrefersSelf,), {"__dialect__": "newdb"})
 
-        is_(impl._impls["newdb"], second)
+        is_(RegisterImpl._impls["newdb"], second)
 
 
 class EntryPointTest(_RegistryFixture):
@@ -228,7 +231,7 @@ class EntryPointTest(_RegistryFixture):
             result = DefaultImpl.get_by_dialect(_dialect("newdb"))
 
         eq_(result.__name__, "NewDbImpl")
-        is_(impl._impls["newdb"], result)
+        is_(RegisterImpl._impls["newdb"], result)
 
     def test_entry_point_used_by_migration_context(self):
         def load():

@@ -10,6 +10,7 @@ import logging
 import re
 from typing import Any
 from typing import Callable
+from typing import ClassVar
 from typing import NamedTuple
 from typing import TYPE_CHECKING
 
@@ -70,9 +71,6 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
-_impls: dict[str, type[DefaultImpl]] = {}
-
-
 # PluginLoader only caches on hits, not misses.
 _entrypoints_checked: set[str] = set()
 
@@ -80,7 +78,70 @@ _entrypoints_checked: set[str] = set()
 registry = PluginLoader("alembic.dialects")
 
 
-class DefaultImpl:
+class RegisterImpl:
+    _impls: ClassVar[dict[str, type[RegisterImpl]]] = {}
+    __dialect__: ClassVar[str]
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        super().__init_subclass__(**kwargs)
+        cls._register()
+
+    @classmethod
+    def _register(cls) -> None:
+        dialect: str | None = getattr(cls, "__dialect__", None)
+        if dialect:
+            existing_cls = cls._impls.get(dialect)
+            if existing_cls is None:
+                cls._impls[dialect] = cls
+                return
+
+            # By default, the latest registrant always wins, but a warning
+            # occurs when the latest registrant is not a subclass of the
+            # existing one. Newcomer is asked first.
+            newcomer_cls = cls
+            chosen_cls = newcomer_cls.resolve_registration_conflict(
+                new=newcomer_cls, existing=existing_cls
+            )
+            if chosen_cls is None:
+                chosen_cls = existing_cls.resolve_registration_conflict(
+                    new=newcomer_cls, existing=existing_cls
+                )
+            if chosen_cls is None:
+                msg = (
+                    "Overwriting existing registered implementation "
+                    "%r for dialect %s with new implementation %r."
+                    " %r will be used."
+                    % (existing_cls, dialect, newcomer_cls, newcomer_cls)
+                )
+                if issubclass(newcomer_cls, existing_cls):
+                    # Assumed to be intentional if newcomer subclasses
+                    # existing; log.debug() for telemetry.
+                    log.debug(msg)
+                else:
+                    util.warn(
+                        f"{msg} To make this intentional,"
+                        " subclass the other implementation, or remove one of"
+                        " them."
+                    )
+                chosen_cls = newcomer_cls
+            cls._impls[dialect] = chosen_cls
+
+    @classmethod
+    def resolve_registration_conflict(
+        cls, new: type[RegisterImpl], existing: type[RegisterImpl]
+    ) -> type[RegisterImpl] | None:
+        """Decide which implementation to register when ``new`` declares a
+        ``__dialect__`` that is already registered to ``existing``.
+
+        Both the new and existing may enforce registration conflict behavior.
+        ``None`` essentially means 'no opinion'. The newcomer is asked for
+        its opinion first; then the existing impl. If neither has an
+        opinion, the newcomer wins.
+        """
+        return None
+
+
+class DefaultImpl(RegisterImpl):
     """Provide the entrypoint for major migration operations,
     including database-specific behavioral variances.
 
@@ -131,10 +192,6 @@ class DefaultImpl:
                     "Can't use literal_binds setting without as_sql mode"
                 )
 
-    def __init_subclass__(cls, **kwargs: Any) -> None:
-        super().__init_subclass__(**kwargs)
-        cls._register()
-
     @classmethod
     def get_by_dialect(cls, dialect: Dialect) -> type[DefaultImpl]:
         if dialect.name not in _entrypoints_checked:
@@ -144,59 +201,11 @@ class DefaultImpl:
             except NoSuchModuleError:
                 pass
         try:
-            return _impls[dialect.name]
-        except KeyError:
+            return cls._impls[dialect.name]  # type: ignore[return-value]
+        except KeyError as ke:
             raise util.NoSuchDialectError(
                 f"Implementation for dialect {dialect.name!r} not found"
-            ) from None
-
-    @classmethod
-    def _register(cls) -> None:
-        if "__dialect__" in cls.__dict__:
-            dialect = cls.__dict__["__dialect__"]
-            existing = _impls.get(dialect)
-            if existing is None:
-                _impls[dialect] = cls
-                return
-
-            # By default, the latest registrant always wins, but a warning
-            # occurs when the latest registrant is not a subclass of the
-            # existing one. Newcomer is asked first.
-            new_cls = cls.resolve_registration_conflict(
-                new=cls, existing=existing
-            )
-            if new_cls is None:
-                new_cls = existing.resolve_registration_conflict(
-                    new=cls, existing=existing
-                )
-            if new_cls is None:
-                msg = (
-                    "Overwriting existing registered implementation "
-                    "%s for dialect %s with new implementation %s."
-                    " %s will be used. To make this intentional,"
-                    " subclass the other implementation, or remove one of"
-                    " them." % (repr(existing), dialect, repr(cls), repr(cls))
-                )
-                if issubclass(cls, existing):
-                    log.debug(msg)
-                else:
-                    util.warn(msg)
-                new_cls = cls
-            _impls[dialect] = new_cls
-
-    @classmethod
-    def resolve_registration_conflict(
-        cls, new: type[DefaultImpl], existing: type[DefaultImpl]
-    ) -> type[DefaultImpl] | None:
-        """Decide which implementation to register when ``new`` declares a
-        ``__dialect__`` that is already registered to ``existing``.
-
-        Both the new and existing may enforce registration conflict behavior.
-        ``None`` essentially means 'no opinion'. The newcomer is asked for
-        its opinion first; then the existing impl. If neither has an
-        opinion, the newcomer wins.
-        """
-        return None
+            ) from ke
 
     def static_output(self, text: str) -> None:
         assert self.output_buffer is not None
@@ -919,9 +928,6 @@ class DefaultImpl:
         self, reflected_object: _ReflectedConstraint, kind: str
     ) -> dict[str, Any]:
         return reflected_object.get("dialect_options", {})  # type: ignore[return-value]   # noqa: E501
-
-
-DefaultImpl._register()
 
 
 class Params(NamedTuple):

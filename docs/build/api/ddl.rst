@@ -32,7 +32,7 @@ Subclass :class:`.DefaultImpl` and set ``__dialect__``::
     class NewDbImpl(DefaultImpl):
         __dialect__ = "newdb"
 
-The ``DefaultImpl.__init_subclass__`` hook will register the implementation
+The ``RegisterImpl.__init_subclass__`` hook will register the implementation
 to map to the ``__dialect__``.
 
 Registering via entry point
