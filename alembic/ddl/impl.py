@@ -442,12 +442,12 @@ class DefaultImpl(metaclass=ImplMeta):
             self.dialect.supports_comments and not self.dialect.inline_comments
         )
         comment = table.comment
-        if comment and with_comment:
+        if comment is not None and with_comment:
             self.create_table_comment(table)
 
         for column in table.columns:
             comment = column.comment
-            if comment and with_comment:
+            if comment is not None and with_comment:
                 self.create_column_comment(column)
 
     def drop_table(self, table: Table, **kw: Any) -> None:
@@ -631,6 +631,9 @@ class DefaultImpl(metaclass=ImplMeta):
         rendered_inspector_default,
     ):
         return rendered_inspector_default != rendered_metadata_default
+
+    def normalize_comment(self, comment: str | None) -> str | None:
+        return comment
 
     def correct_for_autogen_constraints(
         self,

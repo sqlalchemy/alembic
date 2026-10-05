@@ -267,7 +267,7 @@ def _add_table(autogen_context: AutogenContext, op: ops.CreateTableOp) -> str:
         text += ",\nschema=%r" % _ident(op.schema)
 
     comment = table.comment
-    if comment:
+    if comment is not None:
         text += ",\ncomment=%r" % _ident(comment)
 
     info = table.info
@@ -808,7 +808,7 @@ def _render_column(
         opts.append(("system", column.system))
 
     comment = column.comment
-    if comment:
+    if comment is not None:
         opts.append(("comment", "%r" % comment))
 
     # TODO: for non-ascii colname, assign a "key"
