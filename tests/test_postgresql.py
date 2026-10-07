@@ -24,6 +24,8 @@ from sqlalchemy import types
 from sqlalchemy import UniqueConstraint
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.dialects.postgresql import BYTEA
+from sqlalchemy.dialects.postgresql import CITEXT
+from sqlalchemy.dialects.postgresql import DOMAIN
 from sqlalchemy.dialects.postgresql import ExcludeConstraint
 from sqlalchemy.dialects.postgresql import HSTORE
 from sqlalchemy.dialects.postgresql import JSON
@@ -1361,6 +1363,70 @@ class PostgresqlAutogenRenderTest(TestBase):
         eq_ignore_whitespace(
             autogenerate.render._repr_type(JSONB(), self.autogen_context),
             "postgresql.JSONB(astext_type=sa.Text())",
+        )
+
+    def test_domain_type(self):
+        """test #1360"""
+
+        eq_ignore_whitespace(
+            autogenerate.render._repr_type(
+                DOMAIN("email", CITEXT(), check=r"value ~ '^my_.*$'"),
+                self.autogen_context,
+            ),
+            "postgresql.DOMAIN('email', postgresql.CITEXT(), "
+            "check=\"value ~ '^my_.*$'\")",
+        )
+
+    def test_domain_type_full(self):
+        """test #1360"""
+
+        eq_ignore_whitespace(
+            autogenerate.render._repr_type(
+                DOMAIN(
+                    "mydom",
+                    String(),
+                    collation="C",
+                    default="x",
+                    constraint_name="ck",
+                    not_null=True,
+                    check="value > 0",
+                    schema="myschema",
+                    create_type=False,
+                ),
+                self.autogen_context,
+            ),
+            "postgresql.DOMAIN('mydom', sa.String(), collation='C', "
+            "default='x', constraint_name='ck', not_null=True, "
+            "check='value > 0', schema='myschema', create_type=False)",
+        )
+
+    def test_domain_type_text_default(self):
+        """test #1360"""
+
+        eq_ignore_whitespace(
+            autogenerate.render._repr_type(
+                DOMAIN("mydom", Integer, default=text("5")),
+                self.autogen_context,
+            ),
+            "postgresql.DOMAIN('mydom', sa.Integer(), default=sa.text('5'))",
+        )
+
+    @config.requirements.sqlalchemy_2_1
+    def test_domain_type_collation_schema(self):
+        """test #1360"""
+
+        eq_ignore_whitespace(
+            autogenerate.render._repr_type(
+                DOMAIN(
+                    "mydom",
+                    String(),
+                    collation="C",
+                    collation_schema="pg_catalog",
+                ),
+                self.autogen_context,
+            ),
+            "postgresql.DOMAIN('mydom', sa.String(), collation='C', "
+            "collation_schema='pg_catalog')",
         )
 
     def test_jsonb_expression_in_index(self):
