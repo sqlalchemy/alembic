@@ -836,6 +836,22 @@ class AutogenCheckConstraintRenderTest(TestBase):
             "schema='test_schema')",
         )
 
+    def test_render_add_check_constraint_dialect_kwargs(self):
+        """test #1876"""
+
+        m = MetaData()
+        t = Table("t", m, Column("x", Integer), schema="test_schema")
+        ck = CheckConstraint(
+            t.c.x > 0, name="ck_x_positive", postgresql_not_valid=True
+        )
+        op_obj = ops.CreateCheckConstraintOp.from_constraint(ck)
+
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.create_check_constraint('ck_x_positive', 't', 'x > 0', "
+            "schema='test_schema', postgresql_not_valid=True)",
+        )
+
 
 class AutogenCheckConstraintNamingConvTest(
     _CheckConstraintPluginFixture, TestBase

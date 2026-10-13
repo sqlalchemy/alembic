@@ -453,6 +453,11 @@ def _add_check_constraint(
     )
     if not autogen_context._has_batch and op.schema:
         args.append("schema=%r" % _ident(op.schema))
+    args.extend(
+        _render_dialect_kwargs_items(
+            autogen_context, constraint.dialect_kwargs
+        )
+    )
     return "%(prefix)screate_check_constraint(%(args)s)" % {
         "prefix": _alembic_autogenerate_prefix(autogen_context),
         "args": ", ".join(args),
@@ -1122,6 +1127,10 @@ def _render_foreign_key(
 
     _populate_render_fk_opts(constraint, opts)
 
+    dialect_kwargs = _render_dialect_kwargs_items(
+        autogen_context, constraint.dialect_kwargs
+    )
+
     apply_metadata_schema = (
         namespace_metadata.schema if namespace_metadata is not None else None
     )
@@ -1139,6 +1148,7 @@ def _render_foreign_key(
             ),
             "args": ", ".join(
                 ["%s=%s" % (kwname, val) for kwname, val in opts]
+                + dialect_kwargs
             ),
         }
     )
@@ -1185,13 +1195,15 @@ def _render_check_constraint(
         opts.append(
             ("name", repr(_render_gen_name(autogen_context, constraint.name)))
         )
+    args = ["%s=%s" % (k, v) for k, v in opts]
+    args.extend(
+        _render_dialect_kwargs_items(
+            autogen_context, constraint.dialect_kwargs
+        )
+    )
     return "%(prefix)sCheckConstraint(%(sqltext)s%(opts)s)" % {
         "prefix": _sqlalchemy_autogenerate_prefix(autogen_context),
-        "opts": (
-            ", " + (", ".join("%s=%s" % (k, v) for k, v in opts))
-            if opts
-            else ""
-        ),
+        "opts": ", " + ", ".join(args) if args else "",
         "sqltext": _render_potential_expr(
             constraint.sqltext, autogen_context, wrap_in_element=False
         ),
