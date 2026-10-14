@@ -2682,3 +2682,78 @@ class AutogenPlaceholderTableTest(AutogenFixtureTest, TestBase):
         diffs = self._fixture(m1, m2, name_filters=include_name)
         eq_(len(diffs), 1)
         eq_(diffs[0][0], "remove_fk")
+
+
+class CompareCommentTest(AutogenFixtureTest, TestBase):
+    """Empty string comments are distinct from NULL, except on Oracle
+    where empty string equals NULL.  See #1085."""
+
+    __backend__ = True
+    __requires__ = ("comments",)
+
+    def test_column_empty_comment_no_change(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table("a", m1, Column("x", Integer, comment=""))
+        Table("a", m2, Column("x", Integer, comment=""))
+
+        diffs = self._fixture(m1, m2)
+        eq_(diffs, [])
+
+    def test_column_none_to_empty_comment(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table("a", m1, Column("x", Integer))
+        Table("a", m2, Column("x", Integer, comment=""))
+
+        diffs = self._fixture(m1, m2)
+        if config.db.name == "oracle":
+            eq_(diffs, [])
+        else:
+            eq_(len(diffs), 1)
+            eq_(diffs[0][0][0], "modify_comment")
+            eq_(diffs[0][0][5], None)
+            eq_(diffs[0][0][6], "")
+
+    def test_table_empty_comment_no_change(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table(
+            "some_table",
+            m1,
+            Column("x", Integer, primary_key=True),
+            comment="",
+        )
+        Table(
+            "some_table",
+            m2,
+            Column("x", Integer, primary_key=True),
+            comment="",
+        )
+
+        diffs = self._fixture(m1, m2)
+        eq_(diffs, [])
+
+    def test_table_none_to_empty_comment(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table("some_table", m1, Column("x", Integer, primary_key=True))
+        Table(
+            "some_table",
+            m2,
+            Column("x", Integer, primary_key=True),
+            comment="",
+        )
+
+        diffs = self._fixture(m1, m2)
+        if config.db.name == "oracle":
+            eq_(diffs, [])
+        else:
+            eq_(len(diffs), 1)
+            eq_(diffs[0][0], "add_table_comment")
+            eq_(diffs[0][1].comment, "")
+            eq_(diffs[0][2], None)

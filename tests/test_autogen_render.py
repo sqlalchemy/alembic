@@ -1,5 +1,4 @@
 import re
-from types import SimpleNamespace
 
 import sqlalchemy as sa  # noqa
 from sqlalchemy import BigInteger
@@ -42,9 +41,6 @@ from alembic import autogenerate
 from alembic import op  # noqa
 from alembic import testing
 from alembic.autogenerate import api
-from alembic.autogenerate.compare import comments
-from alembic.ddl.impl import DefaultImpl
-from alembic.ddl.oracle import OracleImpl
 from alembic.migration import MigrationContext
 from alembic.operations import ops
 from alembic.testing import assert_raises
@@ -56,7 +52,6 @@ from alembic.testing import is_not_
 from alembic.testing import mock
 from alembic.testing import TestBase
 from alembic.testing.fixtures import op_fixture
-from alembic.util import PriorityDispatchResult
 from alembic.util import sqla_compat
 
 
@@ -2371,69 +2366,6 @@ class AutogenRenderTest(TestBase):
             "op.add_column('foo', sa.Column('x', sa.Integer(), "
             "nullable=True, comment=''))",
         )
-
-    def test_compare_column_empty_comment_distinct(self):
-        for impl_cls, expected in (
-            (DefaultImpl, PriorityDispatchResult.STOP),
-            (OracleImpl, PriorityDispatchResult.CONTINUE),
-        ):
-            ctx = SimpleNamespace(
-                dialect=SimpleNamespace(supports_comments=True),
-                migration_context=SimpleNamespace(
-                    impl=SimpleNamespace(
-                        normalize_comment=lambda c, _cls=impl_cls: (
-                            _cls.normalize_comment(None, c)
-                        )
-                    )
-                ),
-            )
-            alter_op = ops.AlterColumnOp("t", "c")
-            result = comments._compare_column_comment(
-                ctx,
-                alter_op,
-                None,
-                "t",
-                "c",
-                Column("c", Integer, comment=None),
-                Column("c", Integer, comment=""),
-            )
-            eq_(result, expected)
-
-    def test_compare_table_empty_comment_distinct(self):
-        for impl_cls, expected in (
-            (DefaultImpl, PriorityDispatchResult.STOP),
-            (OracleImpl, PriorityDispatchResult.CONTINUE),
-        ):
-            ctx = SimpleNamespace(
-                dialect=SimpleNamespace(supports_comments=True),
-                migration_context=SimpleNamespace(
-                    impl=SimpleNamespace(
-                        normalize_comment=lambda c, _cls=impl_cls: (
-                            _cls.normalize_comment(None, c)
-                        )
-                    )
-                ),
-            )
-            mops = ops.ModifyTableOps("t", [])
-            result = comments._compare_table_comment(
-                ctx,
-                mops,
-                None,
-                "t",
-                Table(
-                    "t",
-                    MetaData(),
-                    Column("c", Integer),
-                    comment=None,
-                ),
-                Table(
-                    "t",
-                    MetaData(),
-                    Column("c", Integer),
-                    comment="",
-                ),
-            )
-            eq_(result, expected)
 
     def test_render_create_table_comment_op(self):
         op_obj = ops.CreateTableCommentOp("table_name", "comment")
