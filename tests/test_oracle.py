@@ -445,3 +445,35 @@ class IdentityTest(AutogenFixtureTest, TestBase):
 
         is_true(isinstance(old, sa.Identity))
         is_true(isinstance(new, sa.Identity))
+
+    def test_identity_compare_server_default_false(self):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        Table(
+            "user",
+            m1,
+            Column("id", Integer, Identity(start=2)),
+            Column("other", sa.Text),
+        )
+
+        Table(
+            "user",
+            m2,
+            Column("id", Integer, Identity(start=5)),
+            Column("other", sa.Text),
+        )
+
+        diffs = self._fixture(
+            m1, m2, opts={"compare_server_default": False}
+        )
+        eq_(len(diffs[0]), 1)
+        diffs = diffs[0][0]
+        eq_(diffs[0], "modify_default")
+        eq_(diffs[2], "user")
+        eq_(diffs[3], "id")
+        old = diffs[5]
+        new = diffs[6]
+
+        is_true(isinstance(old, sa.Identity))
+        is_true(isinstance(new, sa.Identity))

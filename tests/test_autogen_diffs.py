@@ -943,6 +943,88 @@ class CompareServerDefaultTest(TestBase):
         else:
             assert not diff
 
+    def test_computed_default_when_compare_server_default_false(
+        self, connection, metadata
+    ):
+        import warnings
+        from sqlalchemy import Computed
+
+        t1 = Table(
+            "t1",
+            metadata,
+            Column("id", Integer, primary_key=True),
+            Column("x", Integer),
+            Column("c", Integer, Computed("x * 2")),
+        )
+        t1.create(connection)
+
+        new_metadata = MetaData()
+        Table(
+            "t1",
+            new_metadata,
+            Column("id", Integer, primary_key=True),
+            Column("x", Integer),
+            Column("c", Integer, Computed("x * 3")),
+        )
+
+        mc = MigrationContext.configure(connection)
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            api.compare_metadata(mc, new_metadata)
+
+        eq_(len(w), 1)
+        assert "Computed default on t1.c cannot be modified" in str(
+            w[0].message
+        )
+
+    def test_identity_default_when_compare_server_default_false(
+        self, connection, metadata
+    ):
+        from sqlalchemy import event
+        from sqlalchemy import Identity
+
+        t1 = Table(
+            "t1",
+            metadata,
+            Column("id", Integer, primary_key=True),
+        )
+        t1.create(connection)
+
+        def set_identity(inspector, table, column_info):
+            if column_info["name"] == "id":
+                column_info["identity"] = {"start": 1, "increment": 1}
+
+        event.listen(Table, "column_reflect", set_identity)
+        try:
+            new_metadata = MetaData()
+            Table(
+                "t1",
+                new_metadata,
+                Column(
+                    "id",
+                    Integer,
+                    Identity(start=1, increment=5),
+                    primary_key=True,
+                ),
+            )
+
+            mc = MigrationContext.configure(connection)
+
+            diff = api.compare_metadata(mc, new_metadata)
+            eq_(len(diff), 1)
+            eq_(diff[0][0][0], "modify_default")
+            eq_(diff[0][0][2], "t1")
+            eq_(diff[0][0][3], "id")
+            old = diff[0][0][5]
+            new = diff[0][0][6]
+            assert isinstance(old, Identity)
+            assert isinstance(new, Identity)
+            eq_(old.increment, 1)
+            eq_(new.increment, 5)
+        finally:
+            event.remove(Table, "column_reflect", set_identity)
+
 
 class CompareMetadataToInspectorTest(TestBase):
     __backend__ = True

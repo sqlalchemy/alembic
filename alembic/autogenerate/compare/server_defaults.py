@@ -194,9 +194,6 @@ def _user_compare_server_default(
 
     migration_context = autogen_context.migration_context
 
-    if migration_context._user_compare_server_default is False:
-        return PriorityDispatchResult.STOP
-
     if not callable(migration_context._user_compare_server_default):
         return PriorityDispatchResult.CONTINUE
 
@@ -265,6 +262,9 @@ def _dialect_impl_compare_server_default(
         return PriorityDispatchResult.CONTINUE
 
     migration_context = autogen_context.migration_context
+
+    if migration_context._user_compare_server_default is False:
+        return PriorityDispatchResult.STOP
 
     rendered_metadata_default = _render_server_default_for_compare(
         metadata_default, autogen_context

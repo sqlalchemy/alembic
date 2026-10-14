@@ -1,0 +1,9 @@
+.. change::
+    :tags: bug, autogenerate
+    :tickets: 1877
+
+    Fixed regression where ``compare_metadata`` skipped comparing identity
+    and computed default changes when ``compare_server_default`` was not
+    configured (the default setting of ``False``). The comparator dispatch
+    prematurely halted comparison rather than deferring the plain default
+    comparison skip to the dialect implementation.
