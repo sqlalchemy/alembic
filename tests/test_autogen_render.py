@@ -1213,6 +1213,45 @@ class AutogenRenderTest(TestBase):
             "sa.Column('x', sa.Boolean(), nullable=True))",
         )
 
+    @config.requirements.sqlalchemy_copies_fk_ck_dialect_kwargs
+    def test_render_table_fk_ck_dialect_kwargs(self):
+        """test #1876"""
+
+        m = MetaData()
+        Table("address", m, Column("id", Integer, primary_key=True))
+        t = Table(
+            "test",
+            m,
+            Column("id", Integer, primary_key=True),
+            Column("x", Integer),
+            Column(
+                "address_id",
+                Integer,
+                ForeignKey("address.id", postgresql_not_valid=True),
+            ),
+            ForeignKeyConstraint(
+                ["x"], ["address.id"], name="fk_x", postgresql_not_valid=True
+            ),
+            CheckConstraint("x > 5", name="ck_x", postgresql_not_valid=True),
+        )
+
+        op_obj = ops.CreateTableOp.from_table(t)
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.create_table('test',"
+            "sa.Column('id', sa.Integer(), nullable=False),"
+            "sa.Column('x', sa.Integer(), nullable=True),"
+            "sa.Column('address_id', sa.Integer(), nullable=True),"
+            "sa.CheckConstraint('x > 5', name='ck_x', "
+            "postgresql_not_valid=True),"
+            "sa.ForeignKeyConstraint(['address_id'], ['address.id'], "
+            "postgresql_not_valid=True),"
+            "sa.ForeignKeyConstraint(['x'], ['address.id'], name='fk_x', "
+            "postgresql_not_valid=True),"
+            "sa.PrimaryKeyConstraint('id')"
+            ")",
+        )
+
     def test_render_pk_with_col_name_vs_col_key(self):
         m = MetaData()
         t1 = Table("t1", m, Column("x", Integer, key="y", primary_key=True))
@@ -1653,6 +1692,29 @@ class AutogenRenderTest(TestBase):
             "match='FULL')",
         )
 
+    def test_render_fk_constraint_dialect_kwargs(self):
+        """test #1876"""
+
+        m = MetaData()
+        t1 = Table("t", m, Column("c", Integer))
+        t2 = Table("t2", m, Column("c_rem", Integer))
+
+        fk = ForeignKeyConstraint(
+            [t1.c.c],
+            [t2.c.c_rem],
+            name="fk1",
+            onupdate="CASCADE",
+            postgresql_not_valid=True,
+        )
+
+        eq_ignore_whitespace(
+            autogenerate.render._render_constraint(
+                fk, self.autogen_context, m
+            ),
+            "sa.ForeignKeyConstraint(['c'], ['t2.c_rem'], name='fk1', "
+            "onupdate='CASCADE', postgresql_not_valid=True)",
+        )
+
     def test_render_fk_constraint_resolve_key(self):
         m = MetaData()
         t1 = Table("t", m, Column("c", Integer))
@@ -1781,6 +1843,33 @@ class AutogenRenderTest(TestBase):
                 None,
             ),
             "sa.CheckConstraint('im a constraint', name='cc1')",
+        )
+
+    @testing.combinations(
+        (
+            {"name": "cc1"},
+            "sa.CheckConstraint('im a constraint', name='cc1', "
+            "postgresql_not_valid=True)",
+        ),
+        (
+            {},
+            "sa.CheckConstraint('im a constraint', "
+            "postgresql_not_valid=True)",
+        ),
+        argnames="kw, expected",
+    )
+    def test_render_check_constraint_dialect_kwargs(self, kw, expected):
+        """test #1876"""
+
+        eq_ignore_whitespace(
+            autogenerate.render._render_check_constraint(
+                CheckConstraint(
+                    "im a constraint", postgresql_not_valid=True, **kw
+                ),
+                self.autogen_context,
+                None,
+            ),
+            expected,
         )
 
     def test_render_check_constraint_sqlexpr(self):
