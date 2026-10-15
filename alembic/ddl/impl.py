@@ -442,12 +442,12 @@ class DefaultImpl(metaclass=ImplMeta):
             self.dialect.supports_comments and not self.dialect.inline_comments
         )
         comment = table.comment
-        if comment and with_comment:
+        if comment is not None and with_comment:
             self.create_table_comment(table)
 
         for column in table.columns:
             comment = column.comment
-            if comment and with_comment:
+            if comment is not None and with_comment:
                 self.create_column_comment(column)
 
     def drop_table(self, table: Table, **kw: Any) -> None:

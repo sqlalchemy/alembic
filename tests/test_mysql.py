@@ -83,6 +83,11 @@ class MySQLOpTest(TestBase):
             "ALTER TABLE t ADD COLUMN q INTEGER COMMENT 'This is a comment'"
         )
 
+    def test_add_column_with_empty_comment(self):
+        context = op_fixture("mysql")
+        op.add_column("t", Column("q", Integer, comment=""))
+        context.assert_("ALTER TABLE t ADD COLUMN q INTEGER COMMENT ''")
+
     def test_add_column_if_not_exists(self):
         context = op_fixture("mysql")
         op.add_column("t", Column("c", Integer), if_not_exists=True)
