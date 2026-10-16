@@ -45,6 +45,10 @@ _legacy_rev = re.compile(r"([a-f0-9]+)\.py$")
 _slug_re = re.compile(r"\w+")
 _default_file_template = "%(rev)s_%(slug)s"
 
+def _escape_docstring_message(message: str) -> str:
+    """Escape a revision message for embedding in a triple-quoted docstring."""
+    return message.replace("\\", "\\\\").replace('"""', '\\"\\"\\"')
+
 
 class ScriptDirectory:
     """Provides operations upon an Alembic script directory.
@@ -740,7 +744,9 @@ class ScriptDirectory:
             depends_on=revision.tuple_rev_as_scalar(resolved_depends_on),
             create_date=create_date,
             comma=util.format_as_comma,
-            message=message if message is not None else ("empty message"),
+            message=_escape_docstring_message(
+                message if message is not None else "empty message"
+            ),
             **kw,
         )
 

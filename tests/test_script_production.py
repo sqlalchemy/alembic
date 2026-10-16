@@ -406,6 +406,20 @@ class RevisionCommandTest(TestBase):
         eq_(rev.down_revision, self.c)
         assert "some message" in rev.doc
 
+    def test_create_script_message_with_triple_quotes(self):
+        msg = 'add users"""' + "\nprint(\"injected\")\n__doc__ = " + '"""'
+        rev = command.revision(self.cfg, message=msg)
+        script = ScriptDirectory.from_config(self.cfg)
+        rev = script.get_revision(rev.revision)
+        eq_(rev.doc, msg)
+
+    def test_create_script_message_with_backslashes(self):
+        msg = r"C:\path\new"
+        rev = command.revision(self.cfg, message=msg)
+        script = ScriptDirectory.from_config(self.cfg)
+        rev = script.get_revision(rev.revision)
+        eq_(rev.doc, msg)
+
     def test_create_script_splice(self):
         rev = command.revision(
             self.cfg, message="some message", head=self.b, splice=True
