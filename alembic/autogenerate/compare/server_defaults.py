@@ -74,11 +74,14 @@ def _compare_computed_default(
     if sqla_compat._server_default_is_computed(
         conn_col_default
     ) and not sqla_compat._server_default_is_computed(metadata_default):
+        alter_column_op.existing_server_default = conn_col_default
         _warn_computed_not_supported(tname, cname)
         return PriorityDispatchResult.STOP
 
     if not sqla_compat._server_default_is_computed(metadata_default):
         return PriorityDispatchResult.CONTINUE
+
+    alter_column_op.existing_server_default = conn_col_default
 
     rendered_metadata_default = str(
         cast(sa_schema.Computed, metadata_col.server_default).sqltext.compile(
@@ -145,6 +148,8 @@ def _compare_identity_default(
     ):
         return PriorityDispatchResult.CONTINUE
 
+    alter_column_op.existing_server_default = conn_col_default
+
     assert isinstance(
         metadata_col.server_default,
         (sa_schema.Identity, sa_schema.Sequence, NoneType),
@@ -170,9 +175,7 @@ def _compare_identity_default(
                 sorted(diff),
             )
 
-            return PriorityDispatchResult.STOP
-
-    return PriorityDispatchResult.CONTINUE
+    return PriorityDispatchResult.STOP
 
 
 def _user_compare_server_default(
@@ -312,27 +315,30 @@ def _setup_autoincrement(
 
 def setup(plugin: Plugin) -> None:
     plugin.add_autogenerate_comparator(
-        _user_compare_server_default,
-        "column",
-        "server_default",
-        priority=DispatchPriority.FIRST,
-    )
-    plugin.add_autogenerate_comparator(
         _compare_computed_default,
         "column",
         "server_default",
+        priority=DispatchPriority.FIRST,
     )
 
     plugin.add_autogenerate_comparator(
         _compare_identity_default,
         "column",
         "server_default",
+        priority=DispatchPriority.FIRST,
+    )
+
+    plugin.add_autogenerate_comparator(
+        _user_compare_server_default,
+        "column",
+        "server_default",
+        priority=DispatchPriority.MEDIUM,
     )
 
     plugin.add_autogenerate_comparator(
         _setup_autoincrement,
         "column",
-        "server_default",
+        "autoincrement",
     )
     plugin.add_autogenerate_comparator(
         _dialect_impl_compare_server_default,

@@ -1,0 +1,7 @@
+.. change::
+    :tags: bug, autogenerate
+    :tickets: 1877
+
+    Fixed regression introduced in 1.18.0 where identity and computed column
+    comparisons, as well as autoincrement metadata setting, were skipped during
+    autogenerate when ``compare_server_default`` was not enabled.

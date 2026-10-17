@@ -4,6 +4,7 @@ from sqlalchemy import Boolean
 from sqlalchemy import CHAR
 from sqlalchemy import CheckConstraint
 from sqlalchemy import Column
+from sqlalchemy import Computed
 from sqlalchemy import DATE
 from sqlalchemy import DateTime
 from sqlalchemy import DECIMAL
@@ -12,6 +13,7 @@ from sqlalchemy import FLOAT
 from sqlalchemy import ForeignKey
 from sqlalchemy import ForeignKeyConstraint
 from sqlalchemy import func
+from sqlalchemy import Identity
 from sqlalchemy import Index
 from sqlalchemy import inspect
 from sqlalchemy import INTEGER
@@ -942,6 +944,126 @@ class CompareServerDefaultTest(TestBase):
             eq_(diff[0][0][0], "modify_default")
         else:
             assert not diff
+
+    def test_computed_warning_when_compare_server_default_false(
+        self, connection, metadata
+    ):
+        t1 = Table(
+            "t1",
+            metadata,
+            Column("id", Integer, primary_key=True),
+            Column("x", Integer),
+            Column("y", Integer, Computed("x + 1")),
+        )
+        t1.create(connection)
+
+        new_metadata = MetaData()
+        Table(
+            "t1",
+            new_metadata,
+            Column("id", Integer, primary_key=True),
+            Column("x", Integer),
+            Column("y", Integer, Computed("x + 2")),
+        )
+
+        mc = MigrationContext.configure(
+            connection, opts={"compare_server_default": False}
+        )
+
+        with mock.patch("alembic.util.warn") as mock_warn:
+            diff = api.compare_metadata(mc, new_metadata)
+
+        eq_(
+            mock_warn.mock_calls,
+            [mock.call("Computed default on t1.y cannot be modified")],
+        )
+        eq_(diff, [])
+
+    def test_identity_compared_when_compare_server_default_false(
+        self, connection, metadata
+    ):
+        t1 = Table(
+            "t1",
+            metadata,
+            Column("id", Integer, primary_key=True),
+        )
+        t1.create(connection)
+
+        new_metadata = MetaData()
+        Table(
+            "t1",
+            new_metadata,
+            Column("id", Integer, Identity(start=10), primary_key=True),
+        )
+
+        orig_get_columns = connection.dialect.get_columns
+
+        def mock_get_columns(conn, table_name, schema=None, **kw):
+            cols = orig_get_columns(conn, table_name, schema=schema, **kw)
+            if table_name == "t1":
+                for c in cols:
+                    if c["name"] == "id":
+                        c["identity"] = {"start": 1, "increment": 1}
+            return cols
+
+        mc = MigrationContext.configure(
+            connection, opts={"compare_server_default": False}
+        )
+
+        with mock.patch.object(
+            connection.dialect, "get_columns", side_effect=mock_get_columns
+        ):
+            diff = api.compare_metadata(mc, new_metadata)
+
+        eq_(len(diff), 1)
+        eq_(diff[0][0][0], "modify_default")
+        eq_(diff[0][0][2], "t1")
+        eq_(diff[0][0][3], "id")
+        old = diff[0][0][5]
+        new = diff[0][0][6]
+        is_(isinstance(old, Identity), True)
+        eq_(old.start, 1)
+        eq_(old.increment, 1)
+        is_(isinstance(new, Identity), True)
+        eq_(new.start, 10)
+
+    def test_autoincrement_preserved_when_compare_server_default_false(
+        self, connection, metadata
+    ):
+        t1 = Table(
+            "t1",
+            metadata,
+            Column("id", Integer, primary_key=True),
+            Column("x", Integer, server_default="0"),
+        )
+        t1.create(connection)
+
+        new_metadata = MetaData()
+        Table(
+            "t1",
+            new_metadata,
+            Column("id", Integer, primary_key=True),
+            Column("x", BigInteger, server_default="0", autoincrement=True),
+        )
+
+        mc = MigrationContext.configure(
+            connection,
+            opts={"compare_type": True, "compare_server_default": False},
+        )
+
+        script = api.produce_migrations(mc, new_metadata)
+        uo = script.upgrade_ops_list[-1]
+        modify_table_ops = [
+            op for op in uo.ops if isinstance(op, ops.ModifyTableOps)
+        ]
+        eq_(len(modify_table_ops), 1)
+        alter_col_ops = [
+            op
+            for op in modify_table_ops[0].ops
+            if isinstance(op, ops.AlterColumnOp)
+        ]
+        eq_(len(alter_col_ops), 1)
+        eq_(alter_col_ops[0].kw.get("autoincrement"), True)
 
 
 class CompareMetadataToInspectorTest(TestBase):
