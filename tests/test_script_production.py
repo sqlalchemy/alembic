@@ -406,6 +406,27 @@ class RevisionCommandTest(TestBase):
         eq_(rev.down_revision, self.c)
         assert "some message" in rev.doc
 
+    def test_revision_message_escapes_triple_quotes(self):
+        # Message must not terminate the generated module docstring (#1879).
+        message = 'add users"""\nprint("injected")'
+        message = (
+            "add users"
+            + '"""'
+            + chr(10)
+            + 'print("injected")'
+        )
+        rev = command.revision(self.cfg, message=message)
+        script = ScriptDirectory.from_config(self.cfg)
+        rev = script.get_revision(rev.revision)
+        eq_(rev.doc, message)
+
+    def test_revision_message_escapes_backslashes(self):
+        message = "C:" + chr(92) + "path" + chr(92) + "new"
+        rev = command.revision(self.cfg, message=message)
+        script = ScriptDirectory.from_config(self.cfg)
+        rev = script.get_revision(rev.revision)
+        eq_(rev.doc, message)
+
     def test_create_script_splice(self):
         rev = command.revision(
             self.cfg, message="some message", head=self.b, splice=True
