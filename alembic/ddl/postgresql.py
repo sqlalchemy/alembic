@@ -279,15 +279,31 @@ class PostgresqlImpl(DefaultImpl):
         re.compile(" desc( nulls first)$"),  # case 7
     )
 
+    # a complete type name, so that SQL following a cast is left intact
+    _type_name_re = r"""
+        (?:"[^"]+"|\w+)(?:\.(?:"[^"]+"|\w+))?    # name, "char", schema.name
+        (?:\s+(?:varying|precision))?            # character varying
+        (?:\s*\(\s*\d+(?:\s*,\s*\d+)?\s*\))?     # (10), (10, 2)
+        (?:\s+with(?:out)?\s+time\s+zone)?       # timestamp with time zone
+        (?:\s*\[\s*\d*\s*\])*                    # text[]
+        """
+
+    # a "::" cast as rendered by PostgreSQL
+    _cast_re = re.compile(r"::\s*" + _type_name_re, re.I | re.X)
+
+    # CAST(expr AS type) as rendered by SQLAlchemy
+    _cast_fn_re = re.compile(
+        r"\bcast\s*\((.*?)\s+as\s+" + _type_name_re + r"\s*\)", re.I | re.X
+    )
+
     def _cleanup_index_expr(self, index: Index, expr: str) -> str:
         expr = expr.lower().replace('"', "").replace("'", "")
         if index.table is not None:
             # should not be needed, since include_table=False is in compile
             expr = expr.replace(f"{index.table.name.lower()}.", "")
 
-        if "::" in expr:
-            # strip :: cast. types can have spaces in them
-            expr = re.sub(r"(::[\w ]+\w)", "", expr)
+        # strip :: cast. types can have spaces in them
+        expr = self._cast_re.sub("", expr)
 
         while expr and expr[0] == "(" and expr[-1] == ")":
             expr = expr[1:-1]
@@ -303,15 +319,24 @@ class PostgresqlImpl(DefaultImpl):
         while expr and expr[0] == "(" and expr[-1] == ")":
             expr = expr[1:-1]
 
-        # strip casts
-        cast_re = re.compile(r"cast\s*\(")
-        if cast_re.match(expr):
-            expr = cast_re.sub("", expr)
-            # remove the as type
-            expr = re.sub(r"as\s+[^)]+\)", "", expr)
+        # strip CAST(expr AS type); repeat for nested casts
+        n = 1
+        while n:
+            expr, n = self._cast_fn_re.subn(r"\1", expr)
+
         # remove spaces
         expr = expr.replace(" ", "")
         return expr
+
+    def _normalize_computed_default(self, sqltext: str) -> str:
+        # PostgreSQL adds :: casts to the reflected expression, e.g.
+        # ``'english'::regconfig``, ``(name)::text``, which are usually not
+        # present in the metadata expression.  remove them from both sides
+        # ahead of the default normalization, while whitespace and
+        # parenthesis still delimit where each cast ends.
+        return super()._normalize_computed_default(
+            self._cast_re.sub("", sqltext)
+        )
 
     def _dialect_options(
         self, item: Index | UniqueConstraint

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 import logging
-import re
 from types import NoneType
 from typing import Any
 from typing import cast
@@ -46,16 +45,6 @@ def _render_server_default_for_compare(
         return None
 
 
-def _normalize_computed_default(sqltext: str) -> str:
-    """we want to warn if a computed sql expression has changed.  however
-    we don't want false positives and the warning is not that critical.
-    so filter out most forms of variability from the SQL text.
-
-    """
-
-    return re.sub(r"[ \(\)'\"`\[\]\t\r\n]", "", sqltext).lower()
-
-
 def _compare_computed_default(
     autogen_context: AutogenContext,
     alter_column_op: AlterColumnOp,
@@ -91,7 +80,8 @@ def _compare_computed_default(
     # here where we try to eliminate syntactical differences in order to
     # get a minimal comparison just to emit a warning.
 
-    rendered_metadata_default = _normalize_computed_default(
+    impl = autogen_context.migration_context.impl
+    rendered_metadata_default = impl._normalize_computed_default(
         rendered_metadata_default
     )
 
@@ -102,7 +92,7 @@ def _compare_computed_default(
                 compile_kwargs={"literal_binds": True},
             )
         )
-        rendered_conn_default = _normalize_computed_default(
+        rendered_conn_default = impl._normalize_computed_default(
             rendered_conn_default
         )
     else:

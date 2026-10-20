@@ -713,6 +713,15 @@ class DefaultImpl(metaclass=ImplMeta):
     ) -> str | Literal[False]:
         return False
 
+    def _normalize_computed_default(self, sqltext: str) -> str:
+        """we want to warn if a computed sql expression has changed.  however
+        we don't want false positives and the warning is not that critical.
+        so filter out most forms of variability from the SQL text.
+
+        """
+
+        return re.sub(r"[ \(\)'\"`\[\]\t\r\n]", "", sqltext).lower()
+
     def _compare_identity_default(self, metadata_identity, inspector_identity):
         # ignored contains the attributes that were not considered
         # because assumed to their default values in the db.
