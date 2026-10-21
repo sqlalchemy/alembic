@@ -1439,6 +1439,17 @@ class AutogenRenderTest(TestBase):
             "comment='This is a comment')",
         )
 
+    def test_render_col_with_empty_comment(self):
+        c = Column("some_key", Integer, comment="")
+        Table("some_table", MetaData(), c)
+        result = autogenerate.render._render_column(c, self.autogen_context)
+        eq_ignore_whitespace(
+            result,
+            "sa.Column('some_key', sa.Integer(), "
+            "nullable=True, "
+            "comment='')",
+        )
+
     def test_render_col_comment_with_quote(self):
         c = Column("some_key", Integer, comment="This is a john's comment")
         Table("some_table", MetaData(), c)
@@ -2388,6 +2399,24 @@ class AutogenRenderTest(TestBase):
             ")",
         )
 
+    def test_render_table_with_empty_comment(self):
+        m = MetaData()
+        t = Table(
+            "test",
+            m,
+            Column("id", Integer, primary_key=True, comment=""),
+            comment="",
+        )
+        op_obj = ops.CreateTableOp.from_table(t)
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.create_table('test',"
+            "sa.Column('id', sa.Integer(), nullable=False, comment=''),"
+            "sa.PrimaryKeyConstraint('id'),"
+            "comment=''"
+            ")",
+        )
+
     def test_render_table_with_info(self):
         m = MetaData()
         t = Table(
@@ -2417,6 +2446,14 @@ class AutogenRenderTest(TestBase):
             autogenerate.render_op_text(self.autogen_context, op_obj),
             "op.add_column('foo', sa.Column('x', sa.Integer(), "
             "nullable=True, comment='This is a Column'))",
+        )
+
+    def test_render_add_column_with_empty_comment(self):
+        op_obj = ops.AddColumnOp("foo", Column("x", Integer, comment=""))
+        eq_ignore_whitespace(
+            autogenerate.render_op_text(self.autogen_context, op_obj),
+            "op.add_column('foo', sa.Column('x', sa.Integer(), "
+            "nullable=True, comment=''))",
         )
 
     def test_render_create_table_comment_op(self):

@@ -251,6 +251,14 @@ class PostgresqlOpTest(TestBase):
             "COMMENT ON COLUMN t.q IS 'This is a comment'",
         )
 
+    def test_add_column_with_empty_comment(self):
+        context = op_fixture("postgresql")
+        op.add_column("t", Column("q", Integer, comment=""))
+        context.assert_(
+            "ALTER TABLE t ADD COLUMN q INTEGER",
+            "COMMENT ON COLUMN t.q IS ''",
+        )
+
     def test_alter_column_with_comment(self):
         context = op_fixture("postgresql")
         op.alter_column(
@@ -350,6 +358,21 @@ class PostgresqlOpTest(TestBase):
             "COMMENT ON TABLE t2 IS 't2 comment'",
             "COMMENT ON COLUMN t2.c1 IS 'c1 comment'",
             "COMMENT ON COLUMN t2.c2 IS 'c2 comment'",
+        )
+
+    def test_create_table_with_empty_comments(self):
+        context = op_fixture("postgresql")
+        op.create_table(
+            "t2",
+            Column("c1", Integer, primary_key=True, comment=""),
+            Column("c2", Integer),
+            comment="",
+        )
+        context.assert_(
+            "CREATE TABLE t2 (c1 SERIAL NOT NULL, "
+            "c2 INTEGER, PRIMARY KEY (c1))",
+            "COMMENT ON TABLE t2 IS ''",
+            "COMMENT ON COLUMN t2.c1 IS ''",
         )
 
     def test_create_table_comment(self):
