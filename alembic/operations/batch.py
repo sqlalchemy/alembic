@@ -16,6 +16,9 @@ from sqlalchemy import schema as sql_schema
 from sqlalchemy import select
 from sqlalchemy import Table
 from sqlalchemy import types as sqltypes
+from sqlalchemy.sql import visitors
+from sqlalchemy.sql.elements import ColumnElement
+from sqlalchemy.sql.elements import TextClause
 from sqlalchemy.sql.schema import SchemaEventTarget
 from sqlalchemy.util import OrderedDict
 from sqlalchemy.util import topological
@@ -35,6 +38,7 @@ from ..util.sqla_compat import _is_type_bound
 from ..util.sqla_compat import _name_type_bound_constraints
 from ..util.sqla_compat import _remove_column_from_collection
 from ..util.sqla_compat import _resolve_for_variant
+from ..util.sqla_compat import _textual_index_element
 from ..util.sqla_compat import constraint_name_defined
 from ..util.sqla_compat import constraint_name_string
 
@@ -432,11 +436,40 @@ class ApplyBatchImpl:
                 Index(
                     index.name,
                     unique=index.unique,
-                    *[self.new_table.c[col] for col in index.columns.keys()],
+                    *[
+                        self._copy_new_index_expression(expr)
+                        for expr in _idx_table_bound_expressions(index)
+                    ],
+                    _table=self.new_table,
                     **index.kwargs,
                 )
             )
         return idx
+
+    def _copy_new_index_expression(
+        self, expr: ColumnElement[Any]
+    ) -> ColumnElement[Any] | TextClause:
+        """Copy an expression from an index created within the batch
+        onto the new table.
+
+        These indexes are built by ``create_index()`` against a placeholder
+        table, so their columns are located in the new table by key.
+
+        """
+        assert self.new_table is not None
+        new_table = self.new_table
+
+        if isinstance(expr, _textual_index_element):
+            return expr.text
+
+        def replace(col: Any) -> Column[Any] | None:
+            if isinstance(col, Column) and col.table is not new_table:
+                return new_table.c[col.key]
+            return None
+
+        return visitors.replacement_traverse(  # type: ignore[call-overload]
+            expr, {}, replace
+        )
 
     def _setup_referent(
         self, metadata: MetaData, constraint: ForeignKeyConstraint

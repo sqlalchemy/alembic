@@ -1289,6 +1289,37 @@ class CopyFromTest(TestBase):
             "ALTER TABLE _alembic_tmp_foo RENAME TO foo",
         )
 
+    @testing.combinations(
+        ("func", lambda: [func.lower(column("data"))], "lower(data)"),
+        ("text", lambda: [text("lower(data)")], "lower(data)"),
+        ("desc", lambda: [column("data").desc()], "data DESC"),
+        (
+            "mixed",
+            lambda: [func.lower(column("data")), "x"],
+            "lower(data), x",
+        ),
+        argnames="cols, expected",
+        id_="iaa",
+    )
+    def test_create_index_w_expressions_w_always(self, cols, expected):
+        """test #1888"""
+        context = self._fixture()
+        with self.op.batch_alter_table(
+            "foo", copy_from=self.table, recreate="always"
+        ) as batch_op:
+            batch_op.create_index("ix_data", cols(), unique=True)
+
+        context.assert_(
+            "CREATE TABLE _alembic_tmp_foo (id INTEGER NOT NULL, "
+            "data VARCHAR(50), "
+            "x INTEGER, PRIMARY KEY (id))",
+            "INSERT INTO _alembic_tmp_foo (id, data, x) "
+            "SELECT foo.id, foo.data, foo.x FROM foo",
+            "DROP TABLE foo",
+            "ALTER TABLE _alembic_tmp_foo RENAME TO foo",
+            f"CREATE UNIQUE INDEX ix_data ON foo ({expected})",
+        )
+
     def test_create_drop_index_wo_always(self):
         context = self._fixture()
         with self.op.batch_alter_table(
@@ -1668,6 +1699,22 @@ class BatchRoundTripTest(_BatchRoundTripBase, TestBase):
             },
             {("ix_data", ("data",)), ("ix_thing", ("thing",))},
         )
+
+    @config.requirements.indexes_with_expressions
+    def test_create_expression_index_w_always(self, connection):
+        """test #1888"""
+        with self.op.batch_alter_table("foo", recreate="always") as batch_op:
+            batch_op.create_index(
+                "ix_lower_data", [func.lower(column("data"))], unique=True
+            )
+
+        # "d1" is present; the index is against lower(data) so "D1"
+        # conflicts with it
+        with expect_raises_message(sqla_exc.IntegrityError, "(?i)unique"):
+            with connection.begin_nested():
+                connection.execute(
+                    text("INSERT INTO foo (id, data, x) VALUES (6, 'D1', 10)")
+                )
 
     def test_fk_points_to_me_auto(self, connection, metadata):
         self._test_fk_points_to_me(metadata, connection, "auto")
