@@ -10,6 +10,7 @@ import logging
 import re
 from typing import Any
 from typing import Callable
+from typing import ClassVar
 from typing import NamedTuple
 from typing import TYPE_CHECKING
 
@@ -21,6 +22,8 @@ from sqlalchemy import schema
 from sqlalchemy import String
 from sqlalchemy import Table
 from sqlalchemy import text
+from sqlalchemy.exc import NoSuchModuleError
+from sqlalchemy.util import PluginLoader
 
 from . import _autogen
 from . import base
@@ -68,23 +71,77 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
-class ImplMeta(type):
-    def __init__(
-        cls,
-        classname: str,
-        bases: tuple[type[DefaultImpl]],
-        dict_: dict[str, Any],
-    ):
-        newtype = type.__init__(cls, classname, bases, dict_)
-        if "__dialect__" in dict_:
-            _impls[dict_["__dialect__"]] = cls  # type: ignore[assignment]
-        return newtype
+# PluginLoader only caches on hits, not misses.
+_entrypoints_checked: set[str] = set()
 
 
-_impls: dict[str, type[DefaultImpl]] = {}
+registry = PluginLoader("alembic.dialects")
 
 
-class DefaultImpl(metaclass=ImplMeta):
+class RegisterImpl:
+    _impls: ClassVar[dict[str, type[RegisterImpl]]] = {}
+    __dialect__: ClassVar[str]
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        super().__init_subclass__(**kwargs)
+        cls._register()
+
+    @classmethod
+    def _register(cls) -> None:
+        dialect: str | None = getattr(cls, "__dialect__", None)
+        if dialect:
+            existing_cls = cls._impls.get(dialect)
+            if existing_cls is None:
+                cls._impls[dialect] = cls
+                return
+
+            # By default, the latest registrant always wins, but a warning
+            # occurs when the latest registrant is not a subclass of the
+            # existing one. Newcomer is asked first.
+            newcomer_cls = cls
+            chosen_cls = newcomer_cls.resolve_registration_conflict(
+                new=newcomer_cls, existing=existing_cls
+            )
+            if chosen_cls is None:
+                chosen_cls = existing_cls.resolve_registration_conflict(
+                    new=newcomer_cls, existing=existing_cls
+                )
+            if chosen_cls is None:
+                msg = (
+                    "Overwriting existing registered implementation "
+                    "%r for dialect %s with new implementation %r."
+                    " %r will be used."
+                    % (existing_cls, dialect, newcomer_cls, newcomer_cls)
+                )
+                if issubclass(newcomer_cls, existing_cls):
+                    # Assumed to be intentional if newcomer subclasses
+                    # existing; log.debug() for telemetry.
+                    log.debug(msg)
+                else:
+                    util.warn(
+                        f"{msg} To make this intentional,"
+                        " subclass the other implementation, or remove one of"
+                        " them."
+                    )
+                chosen_cls = newcomer_cls
+            cls._impls[dialect] = chosen_cls
+
+    @classmethod
+    def resolve_registration_conflict(
+        cls, new: type[RegisterImpl], existing: type[RegisterImpl]
+    ) -> type[RegisterImpl] | None:
+        """Decide which implementation to register when ``new`` declares a
+        ``__dialect__`` that is already registered to ``existing``.
+
+        Both the new and existing may enforce registration conflict behavior.
+        ``None`` essentially means 'no opinion'. The newcomer is asked for
+        its opinion first; then the existing impl. If neither has an
+        opinion, the newcomer wins.
+        """
+        return None
+
+
+class DefaultImpl(RegisterImpl):
     """Provide the entrypoint for major migration operations,
     including database-specific behavioral variances.
 
@@ -137,7 +194,18 @@ class DefaultImpl(metaclass=ImplMeta):
 
     @classmethod
     def get_by_dialect(cls, dialect: Dialect) -> type[DefaultImpl]:
-        return _impls[dialect.name]
+        if dialect.name not in _entrypoints_checked:
+            _entrypoints_checked.add(dialect.name)
+            try:
+                registry.load(dialect.name)
+            except NoSuchModuleError:
+                pass
+        try:
+            return cls._impls[dialect.name]  # type: ignore[return-value]
+        except KeyError as ke:
+            raise util.NoSuchDialectError(
+                f"Implementation for dialect {dialect.name!r} not found"
+            ) from ke
 
     def static_output(self, text: str) -> None:
         assert self.output_buffer is not None
