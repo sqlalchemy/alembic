@@ -8,7 +8,6 @@ from sqlalchemy import schema as sa_schema
 from . import ops
 from .base import Operations
 from ..util.sqla_compat import _copy
-from ..util.sqla_compat import sqla_2
 
 if TYPE_CHECKING:
     from sqlalchemy.sql.schema import Table
@@ -210,7 +209,7 @@ def add_column(operations: "Operations", operation: "ops.AddColumnOp") -> None:
         and not operations.impl.dialect.inline_comments
     )
     comment = column.comment
-    if comment and with_comment:
+    if comment is not None and with_comment:
         operations.impl.create_column_comment(column)
 
 
@@ -229,8 +228,6 @@ def drop_constraint(
 ) -> None:
     kw = {}
     if operation.if_exists is not None:
-        if not sqla_2:
-            raise NotImplementedError("SQLAlchemy 2.0 required")
         kw["if_exists"] = operation.if_exists
     operations.impl.drop_constraint(
         operations.schema_obj.generic_constraint(

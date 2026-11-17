@@ -27,12 +27,12 @@ PYTHON_VERSIONS = [
     "3.11",
     "3.12",
     "3.13",
-    "3.13t",
     "3.14",
     "3.14t",
+    "3.15",
 ]
 DATABASES = ["sqlite", "postgresql", "mysql", "oracle", "mssql"]
-SQLALCHEMY_VERSIONS = ["default", "sqla14", "sqla20", "sqlamain"]
+SQLALCHEMY_VERSIONS = ["default", "sqla20", "sqlamain"]
 BACKEND = ["_nobackend", "backendonly"]
 
 pyproject = nox.project.load_toml("pyproject.toml")
@@ -48,9 +48,7 @@ def filter_sqla(
     backendonly: str | None = None,
 ) -> bool:
     python_version = parse_version(python.rstrip("t"))
-    if sqlalchemy == "sqla14":
-        return python_version < parse_version("3.14")
-    elif sqlalchemy == "sqlamain":
+    if sqlalchemy == "sqlamain":
         return python_version >= parse_version("3.10")
     else:
         return True
@@ -95,8 +93,6 @@ def _tests(
     backendonly: bool = False,
 ) -> None:
     match sqlalchemy:
-        case "sqla14":
-            session.install(f"{SQLA_REPO}@rel_1_4#egg=sqlalchemy")
         case "sqla20":
             session.install(f"{SQLA_REPO}@rel_2_0#egg=sqlalchemy")
         case "sqlamain":
@@ -114,8 +110,6 @@ def _tests(
 
     if coverage:
         session.install(*nox.project.dependency_groups(pyproject, "coverage"))
-
-    session.env["SQLALCHEMY_WARN_20"] = "1"
 
     cmd = ["python", "-m", "pytest"]
 
@@ -152,8 +146,6 @@ def _tests(
             )
             cmd.extend(os.environ.get("TOX_MYSQL", "--db=mysql").split())
         case "oracle":
-            # we'd like to use oracledb but SQLAlchemy 1.4 does not have
-            # oracledb support...
             session.install(
                 *nox.project.dependency_groups(pyproject, "tests_oracle")
             )
@@ -237,7 +229,6 @@ def test_pyoptimize(session: nox.Session) -> None:
     session.install(".")
 
     session.env["PYTHONOPTIMIZE"] = "1"
-    session.env["SQLALCHEMY_WARN_20"] = "1"
 
     cmd = [
         "python",

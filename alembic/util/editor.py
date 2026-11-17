@@ -1,21 +1,18 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 import os
 from os.path import exists
 from os.path import join
 from os.path import splitext
 from subprocess import check_call
-from typing import Dict
-from typing import List
-from typing import Mapping
-from typing import Optional
 
 from .compat import is_posix
 from .exc import CommandError
 
 
 def open_in_editor(
-    filename: str, environ: Optional[Dict[str, str]] = None
+    filename: str, environ: dict[str, str] | None = None
 ) -> None:
     """
     Opens the given file in a text editor. If the environment variable
@@ -58,9 +55,7 @@ def _find_editor(environ: Mapping[str, str]) -> str:
     )
 
 
-def _find_executable(
-    candidate: str, environ: Mapping[str, str]
-) -> Optional[str]:
+def _find_executable(candidate: str, environ: Mapping[str, str]) -> str | None:
     # Assuming this is on the PATH, we need to determine it's absolute
     # location. Otherwise, ``check_call`` will fail
     if not is_posix and splitext(candidate)[1] != ".exe":
@@ -72,7 +67,7 @@ def _find_executable(
     return None
 
 
-def _default_editors() -> List[str]:
+def _default_editors() -> list[str]:
     # Look for an editor. Prefer the user's choice by env-var, fall back to
     # most commonly installed editor (nano/vim)
     if is_posix:

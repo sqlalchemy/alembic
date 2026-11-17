@@ -5,9 +5,7 @@ from __future__ import annotations
 
 import re
 from typing import Any
-from typing import Optional
 from typing import TYPE_CHECKING
-from typing import Union
 
 from sqlalchemy import schema
 from sqlalchemy import types as sqltypes
@@ -38,7 +36,51 @@ if TYPE_CHECKING:
     from sqlalchemy.sql.schema import Constraint
     from sqlalchemy.sql.type_api import TypeEngine
 
+    from .base import _ServerDefaultArgument
     from .base import _ServerDefaultType
+
+
+def _strip_numeric_default(default: str | None) -> str | None:
+    """Strip the quoting or parenthesis MySQL applies to a literal
+    numeric server default.
+
+    MySQL reports an integral literal default in quoted form, e.g.
+    ``'1'``, and a fractional one as a parenthesized expression, e.g.
+    ``(2.5)``.
+
+    """
+    if default is None:
+        return None
+    return re.sub(r"^'(.*)'$|^\((.*)\)$", r"\1\2", default)
+
+
+def _normalize_expression_default(default: str) -> str:
+    """Normalize an expression server default for comparison.
+
+    MySQL reports an expression default parenthesized, e.g.
+    ``(rand())``, whereas MariaDB reports the same default as
+    ``rand()``; MariaDB also renders a no-argument function call with
+    its parenthesis, e.g. ``current_timestamp()`` vs.
+    ``CURRENT_TIMESTAMP``.
+
+    """
+    default = default.lower()
+    default = re.sub(r"^\((.*)\)$", r"\1", default)
+    return re.sub(r"\(\)$", "", default)
+
+
+def _is_numeric_affinity(type_: TypeEngine) -> bool:
+    """Return True for types of Integer, Numeric or Float affinity.
+
+    :class:`sqlalchemy.Float` has ``Numeric`` affinity under SQLAlchemy
+    2.0 but its own affinity under SQLAlchemy 2.1, hence all three are
+    tested here.
+
+    """
+    affinity = type_._type_affinity
+    return affinity is not None and issubclass(
+        affinity, (sqltypes.Integer, sqltypes.Numeric, sqltypes.Float)
+    )
 
 
 class MySQLImpl(DefaultImpl):
@@ -81,22 +123,18 @@ class MySQLImpl(DefaultImpl):
         table_name: str,
         column_name: str,
         *,
-        nullable: Optional[bool] = None,
-        server_default: Optional[
-            Union[_ServerDefaultType, Literal[False]]
-        ] = False,
-        name: Optional[str] = None,
-        type_: Optional[TypeEngine] = None,
-        schema: Optional[str] = None,
-        existing_type: Optional[TypeEngine] = None,
-        existing_server_default: Optional[
-            Union[_ServerDefaultType, Literal[False]]
-        ] = None,
-        existing_nullable: Optional[bool] = None,
-        autoincrement: Optional[bool] = None,
-        existing_autoincrement: Optional[bool] = None,
-        comment: Optional[Union[str, Literal[False]]] = False,
-        existing_comment: Optional[str] = None,
+        nullable: bool | None = None,
+        server_default: _ServerDefaultArgument = False,
+        name: str | None = None,
+        type_: TypeEngine | None = None,
+        schema: str | None = None,
+        existing_type: TypeEngine | None = None,
+        existing_server_default: _ServerDefaultArgument = None,
+        existing_nullable: bool | None = None,
+        autoincrement: bool | None = None,
+        existing_autoincrement: bool | None = None,
+        comment: str | Literal[False] | None = False,
+        existing_comment: str | None = None,
         **kw: Any,
     ) -> None:
         if sqla_compat._server_default_is_identity(
@@ -208,8 +246,8 @@ class MySQLImpl(DefaultImpl):
 
     def _is_mysql_allowed_functional_default(
         self,
-        type_: Optional[TypeEngine],
-        server_default: Optional[Union[_ServerDefaultType, Literal[False]]],
+        type_: TypeEngine | None,
+        server_default: _ServerDefaultArgument,
     ) -> bool:
         return (
             type_ is not None
@@ -236,26 +274,28 @@ class MySQLImpl(DefaultImpl):
             and rendered_inspector_default == "'0'"
         ):
             return False
-        elif (
-            rendered_inspector_default
-            and inspector_column.type._type_affinity is sqltypes.Integer
+        elif rendered_inspector_default and _is_numeric_affinity(
+            inspector_column.type
         ):
-            rendered_inspector_default = (
-                re.sub(r"^'|'$", "", rendered_inspector_default)
-                if rendered_inspector_default is not None
-                else None
-            )
-            return rendered_inspector_default != rendered_metadata_default
+            # MySQL quotes a literal numeric default, e.g. "'1'", and
+            # reports a fractional one as a parenthesized expression,
+            # e.g. "(2.5)"; MariaDB uses neither form.  Stripping either
+            # wrapper from both sides also settles an expression default
+            # such as "(rand())" when the two sides match exactly.
+            # Anything else falls through to the case insensitive
+            # comparison below.
+            if _strip_numeric_default(
+                rendered_inspector_default
+            ) == _strip_numeric_default(rendered_metadata_default):
+                return False
         elif (
             rendered_metadata_default
             and metadata_column.type._type_affinity is sqltypes.String
         ):
             metadata_default = re.sub(r"^'|'$", "", rendered_metadata_default)
             return rendered_inspector_default != f"'{metadata_default}'"
-        elif rendered_inspector_default and rendered_metadata_default:
-            # adjust for "function()" vs. "FUNCTION" as can occur particularly
-            # for the CURRENT_TIMESTAMP function on newer MariaDB versions
 
+        if rendered_inspector_default and rendered_metadata_default:
             # SQLAlchemy MySQL dialect bundles ON UPDATE into the server
             # default; adjust for this possibly being present.
             onupdate_ins = re.match(
@@ -276,11 +316,9 @@ class MySQLImpl(DefaultImpl):
                 rendered_inspector_default = onupdate_ins.group(1)
                 rendered_metadata_default = onupdate_met.group(1)
 
-            return re.sub(
-                r"(.*?)(?:\(\))?$", r"\1", rendered_inspector_default.lower()
-            ) != re.sub(
-                r"(.*?)(?:\(\))?$", r"\1", rendered_metadata_default.lower()
-            )
+            return _normalize_expression_default(
+                rendered_inspector_default
+            ) != _normalize_expression_default(rendered_metadata_default)
         else:
             return rendered_inspector_default != rendered_metadata_default
 
@@ -395,8 +433,8 @@ class MySQLAlterDefault(AlterColumn):
         self,
         name: str,
         column_name: str,
-        default: Optional[_ServerDefaultType],
-        schema: Optional[str] = None,
+        default: _ServerDefaultType | None,
+        schema: str | None = None,
     ) -> None:
         super(AlterColumn, self).__init__(name, schema=schema)
         self.column_name = column_name
@@ -408,13 +446,13 @@ class MySQLChangeColumn(AlterColumn):
         self,
         name: str,
         column_name: str,
-        schema: Optional[str] = None,
-        newname: Optional[str] = None,
-        type_: Optional[TypeEngine] = None,
-        nullable: Optional[bool] = None,
-        default: Optional[Union[_ServerDefaultType, Literal[False]]] = False,
-        autoincrement: Optional[bool] = None,
-        comment: Optional[Union[str, Literal[False]]] = False,
+        schema: str | None = None,
+        newname: str | None = None,
+        type_: TypeEngine | None = None,
+        nullable: bool | None = None,
+        default: _ServerDefaultArgument = False,
+        autoincrement: bool | None = None,
+        comment: str | Literal[False] | None = False,
     ) -> None:
         super(AlterColumn, self).__init__(name, schema=schema)
         self.column_name = column_name
@@ -500,11 +538,11 @@ def _mysql_change_column(
 
 def _mysql_colspec(
     compiler: MySQLDDLCompiler,
-    nullable: Optional[bool],
-    server_default: Optional[Union[_ServerDefaultType, Literal[False]]],
+    nullable: bool | None,
+    server_default: _ServerDefaultArgument,
     type_: TypeEngine,
-    autoincrement: Optional[bool],
-    comment: Optional[Union[str, Literal[False]]],
+    autoincrement: bool | None,
+    comment: str | Literal[False] | None,
 ) -> str:
     spec = "%s %s" % (
         compiler.dialect.type_compiler.process(type_),
@@ -514,7 +552,7 @@ def _mysql_colspec(
         spec += " AUTO_INCREMENT"
     if server_default is not False and server_default is not None:
         spec += " DEFAULT %s" % format_server_default(compiler, server_default)
-    if comment:
+    if comment is not None:
         spec += " COMMENT %s" % compiler.sql_compiler.render_literal_value(
             comment, sqltypes.String()
         )

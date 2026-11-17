@@ -92,9 +92,7 @@ def upgrade():
         do some SQL thing with a % percent sign %
     ''')
 
-""".format(
-                a_rev
-            ),
+""".format(a_rev),
         )
         with capture_context_buffer(transactional_ddl=True) as buf:
             command.upgrade(self.cfg, "arev", sql=True)
@@ -129,8 +127,7 @@ def upgrade():
 def downgrade():
     pass
 
-"""
-            % a_rev,
+""" % a_rev,
         )
         migration_fn = mock.MagicMock()
 

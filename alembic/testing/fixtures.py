@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Generator
 import configparser
 from contextlib import contextmanager
 import io
@@ -7,8 +8,6 @@ import os
 import re
 import shutil
 from typing import Any
-from typing import Dict
-from typing import Generator
 from typing import Literal
 from typing import overload
 
@@ -23,7 +22,6 @@ from sqlalchemy import text
 from sqlalchemy.testing import config
 from sqlalchemy.testing import mock
 from sqlalchemy.testing.assertions import eq_
-from sqlalchemy.testing.fixtures import FutureEngineMixin
 from sqlalchemy.testing.fixtures import TablesTest as SQLAlchemyTablesTest
 from sqlalchemy.testing.fixtures import TestBase as SQLAlchemyTestBase
 from sqlalchemy.testing.util import drop_all_tables_from_metadata
@@ -35,15 +33,12 @@ from ..environment import EnvironmentContext
 from ..migration import MigrationContext
 from ..operations import Operations
 from ..util import sqla_compat
-from ..util.sqla_compat import sqla_2
 
 testing_config = configparser.ConfigParser()
 testing_config.read(["test.cfg"])
 
 
 class TestBase(SQLAlchemyTestBase):
-    is_sqlalchemy_future = sqla_2
-
     @testing.fixture()
     def clear_staging_dir(self):
         yield
@@ -56,7 +51,7 @@ class TestBase(SQLAlchemyTestBase):
                 shutil.rmtree(file_path)
 
     @contextmanager
-    def pushd(self, dirname) -> Generator[None, None, None]:
+    def pushd(self, dirname) -> Generator[None]:
         current_dir = os.getcwd()
         try:
             os.chdir(dirname)
@@ -145,9 +140,6 @@ class TablesTest(TestBase, SQLAlchemyTablesTest):
     pass
 
 
-FutureEngineMixin.is_sqlalchemy_future = True
-
-
 def capture_db(dialect="postgresql://"):
     buf = []
 
@@ -158,27 +150,27 @@ def capture_db(dialect="postgresql://"):
     return engine, buf
 
 
-_engs: Dict[Any, Any] = {}
+_engs: dict[Any, Any] = {}
 
 
 @overload
 @contextmanager
 def capture_context_buffer(
     bytes_io: Literal[True], **kw: Any
-) -> Generator[io.BytesIO, None, None]: ...
+) -> Generator[io.BytesIO]: ...
 
 
 @overload
 @contextmanager
 def capture_context_buffer(
     **kw: Any,
-) -> Generator[io.StringIO, None, None]: ...
+) -> Generator[io.StringIO]: ...
 
 
 @contextmanager
 def capture_context_buffer(
     **kw: Any,
-) -> Generator[io.StringIO | io.BytesIO, None, None]:
+) -> Generator[io.StringIO | io.BytesIO]:
     if kw.pop("bytes_io", False):
         buf = io.BytesIO()
     else:
@@ -198,7 +190,7 @@ def capture_context_buffer(
 @contextmanager
 def capture_engine_context_buffer(
     **kw: Any,
-) -> Generator[io.StringIO, None, None]:
+) -> Generator[io.StringIO]:
     from .env import _sqlite_file_db
     from sqlalchemy import event
 

@@ -40,6 +40,7 @@ from alembic import autogenerate
 from alembic import testing
 from alembic.autogenerate import api
 from alembic.autogenerate.compare.tables import _compare_tables
+from alembic.autogenerate.compare.util import _InspectorConv
 from alembic.migration import MigrationContext
 from alembic.operations import ops
 from alembic.testing import assert_raises_message
@@ -2075,7 +2076,6 @@ class AutogenInspectorCacheTest(AutogenFixtureTest, TestBase):
     """test for the new inspector caching added for #1771."""
 
     __only_on__ = ("sqlite", "postgresql", "oracle")
-    __requires__ = ("sqlalchemy_2",)
 
     @testing.fixture
     def instrument_inspector_conv(self, connection):
@@ -2169,9 +2169,8 @@ class AutogenInspectorCacheTest(AutogenFixtureTest, TestBase):
 
     @testing.fixture(params=[True, False])
     def disable_pre_cache(self, request):
-        from alembic.autogenerate.compare.util import _SQLA2InspectorConv
 
-        patcher = mock.patch.object(_SQLA2InspectorConv, "pre_cache_tables")
+        patcher = mock.patch.object(_InspectorConv, "pre_cache_tables")
 
         param = request.param
 

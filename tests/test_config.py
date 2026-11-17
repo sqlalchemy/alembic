@@ -28,12 +28,10 @@ from alembic.testing.fixtures import TestBase
 
 class FileConfigTest(TestBase):
     def test_config_args(self):
-        cfg = _write_config_file(
-            """
+        cfg = _write_config_file("""
 [alembic]
 migrations = %(base_path)s/db/migrations
-"""
-        )
+""")
         test_cfg = config.Config(
             cfg.config_file_name, config_args=dict(base_path="/home/alembic")
         )
@@ -61,12 +59,10 @@ class ConfigTest(TestBase):
             logger.addHandler(handler)
             logger.setLevel(logging.INFO)
 
-            cfg = _write_config_file(
-                """
+            cfg = _write_config_file("""
 [alembic]
 script_location = %(base_path)s/db/migrations
-"""
-            )
+""")
             test_cfg = config.Config(
                 cfg.config_file_name, config_args=dict(base_path="/tmp")
             )
@@ -464,14 +460,12 @@ class PyprojectConfigTest(TestBase):
     def test_script_location(self, pyproject_only_env):
         cfg = pyproject_only_env
         with cfg._toml_file_path.open("wb") as file_:
-            file_.write(
-                rb"""
+            file_.write(rb"""
 
 [tool.alembic]
 script_location = "%(here)s/scripts"
 
-"""
-            )
+""")
 
         new_cfg = config.Config(
             file_=cfg.config_file_name, toml_file=cfg._toml_file_path
@@ -486,13 +480,11 @@ script_location = "%(here)s/scripts"
 
         cfg = pyproject_only_env
         with cfg._toml_file_path.open("ba") as file_:
-            file_.write(
-                b"""
+            file_.write(b"""
 version_locations = [
     "%(here)s/foo/bar"
 ]
-"""
-            )
+""")
 
         if "toml_alembic_config" in cfg.__dict__:
             cfg.__dict__.pop("toml_alembic_config")
@@ -510,8 +502,7 @@ version_locations = [
 
         cfg = pyproject_only_env
         with cfg._toml_file_path.open("wb") as file_:
-            file_.write(
-                rb"""
+            file_.write(rb"""
 
 [tool.alembic]
 script_location = "%(here)s/scripts"
@@ -521,8 +512,7 @@ prepend_sys_path = [
     "%(here)s/path/to/python",
     "c:\\some\\path"
 ]
-"""
-            )
+""")
 
         if "toml_alembic_config" in cfg.__dict__:
             cfg.__dict__.pop("toml_alembic_config")
@@ -542,8 +532,7 @@ prepend_sys_path = [
 
         cfg = pyproject_only_env
         with cfg._toml_file_path.open("wb") as file_:
-            file_.write(
-                rb"""
+            file_.write(rb"""
 
 [tool.alembic]
 script_location = "%(here)s/scripts"
@@ -554,8 +543,7 @@ type = "exec"
 executable = "%(here)s/.venv/bin/ruff"
 options = "-l 79 REVISION_SCRIPT_FILENAME"
 
-"""
-            )
+""")
 
         if "toml_alembic_config" in cfg.__dict__:
             cfg.__dict__.pop("toml_alembic_config")
@@ -579,8 +567,7 @@ options = "-l 79 REVISION_SCRIPT_FILENAME"
 
         cfg = pyproject_only_env
         with cfg._toml_file_path.open("wb") as file_:
-            file_.write(
-                rb"""
+            file_.write(rb"""
 
 [tool.alembic]
 script_location = "%(here)s/scripts"
@@ -590,8 +577,7 @@ my_list = [
     "two %(here)s three"
 ]
 
-"""
-            )
+""")
         if "toml_alembic_config" in cfg.__dict__:
             cfg.__dict__.pop("toml_alembic_config")
 
@@ -626,15 +612,13 @@ my_list = [
             else:
                 argtype.fail()
 
-            file_.write(
-                rf"""
+            file_.write(rf"""
 
 [tool.alembic]
 script_location = "%(here)s/scripts"
 
 {config_option}
-"""
-            )
+""")
         if "toml_alembic_config" in cfg.__dict__:
             cfg.__dict__.pop("toml_alembic_config")
 
@@ -668,14 +652,12 @@ script_location = "%(here)s/scripts"
             else:
                 arg_type.fail()
 
-            file_.write(
-                rf"""
+            file_.write(rf"""
 [tool.alembic]
 script_location = "%(here)s/scripts"
 
 {config_option}
-"""
-            )
+""")
         if "toml_alembic_config" in cfg.__dict__:
             cfg.__dict__.pop("toml_alembic_config")
 

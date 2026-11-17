@@ -20,13 +20,15 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
     "Topic :: Database :: Front-Ends",
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "SQLAlchemy>=1.4.23",
+    "SQLAlchemy>=2.0",
     "Mako",
     "typing-extensions>=4.12",
     "tomli;python_version<'3.11'",
@@ -54,7 +56,7 @@ alembic = "alembic.config:main"
 tests = [
     "pytest>8,<10",
     "pytest-xdist",
-    "black==25.9.0",  # for test_post_write.py
+    "black==26.5.1",  # for test_post_write.py
     "zimports",  # for stub testing
     "tzdata",
     "junitparser"
@@ -78,11 +80,11 @@ lint = [
     "flake8-rst-docstrings",
     "pydocstyle",
     "pygments",
-    "black==25.9.0"
+    "black==26.5.1"
 ]
 
 mypy = [
-    "mypy>=1.16.0",
+    "mypy>=2.3.0",
     "nox",  # because we check noxfile.py
     "pytest>8,<10",  # alembic/testing imports pytest
 ]

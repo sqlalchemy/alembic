@@ -3,9 +3,9 @@ from __future__ import annotations
 from importlib import metadata
 import logging
 import re
+from re import Pattern
 from types import ModuleType
 from typing import Callable
-from typing import Pattern
 from typing import TYPE_CHECKING
 
 from .. import util
@@ -99,10 +99,12 @@ class Plugin:
         matched_expressions: set[str] = set()
 
         for name in include_plugins:
+            # the expression as written is retained as the dictionary key
+            # so that error messages report what was actually passed
             if name.startswith("~"):
-                exclude.add(_make_re(name[1:]))
+                exclude.add(_make_re(_translate_legacy_name(name[1:])))
             else:
-                include[name] = _make_re(name)
+                include[name] = _make_re(_translate_legacy_name(name))
 
         for plugin in _all_plugins.values():
             if any(excl.match(plugin.name) for excl in exclude):
@@ -153,6 +155,28 @@ class Plugin:
         module.setup(Plugin(name))
 
 
+_legacy_plugin_names = {
+    # renamed in 1.19.2 when the plugin became opt-in; see #1859.  the
+    # "alembic.ext." namespace is deliberately outside of the
+    # "alembic.autogenerate.*" wildcard.
+    "alembic.autogenerate.checkconstraint_byname": (
+        "alembic.ext.checkconstraint_byname"
+    ),
+}
+
+
+def _translate_legacy_name(name: str) -> str:
+    """Resolve a plugin name that has been renamed to its current name.
+
+    This allows an ``env.py`` written against an earlier Alembic release to
+    keep working, whether the name is used to include or to exclude the
+    plugin.  Wildcard expressions are never translated, as only fully
+    stated names are eligible.
+
+    """
+    return _legacy_plugin_names.get(name, name)
+
+
 def _make_re(name: str) -> Pattern[str]:
     tokens = name.split(".")
 
@@ -172,8 +196,19 @@ def _make_re(name: str) -> Pattern[str]:
 def _setup() -> None:
     # setup third party plugins
     for entrypoint in metadata.entry_points(group="alembic.plugins"):
-        for mod in entrypoint.load():
-            Plugin.setup_plugin_from_module(mod, entrypoint.name)
+        loaded = entrypoint.load()
+        if isinstance(loaded, ModuleType):
+            Plugin.setup_plugin_from_module(loaded, entrypoint.name)
+        else:
+            # prior to #1873, the entrypoint was erroneously iterated;
+            # continue to accept a collection of modules for now
+            util.warn_deprecated(
+                f"Plugin entrypoint {entrypoint.name!r} refers to a "
+                "collection of modules; the entrypoint should refer to a "
+                "single plugin module that includes a setup() function."
+            )
+            for mod in loaded:
+                Plugin.setup_plugin_from_module(mod, entrypoint.name)
 
 
 _setup()

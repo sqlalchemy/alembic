@@ -12,8 +12,6 @@ import re
 import tempfile
 from types import ModuleType
 from typing import Any
-from typing import Optional
-from typing import Union
 
 from mako import exceptions
 from mako.template import Template
@@ -22,8 +20,8 @@ from .exc import CommandError
 
 
 def template_to_file(
-    template_file: Union[str, os.PathLike[str]],
-    dest: Union[str, os.PathLike[str]],
+    template_file: str | os.PathLike[str],
+    dest: str | os.PathLike[str],
     output_encoding: str,
     *,
     append_with_newlines: bool = False,
@@ -78,8 +76,8 @@ def coerce_resource_to_filename(fname_or_resource: str) -> pathlib.Path:
 
 
 def pyc_file_from_path(
-    path: Union[str, os.PathLike[str]],
-) -> Optional[pathlib.Path]:
+    path: str | os.PathLike[str],
+) -> pathlib.Path | None:
     """Given a python source path, locate the .pyc."""
 
     pathpath = pathlib.Path(path)
@@ -100,7 +98,7 @@ def pyc_file_from_path(
 
 
 def load_python_file(
-    dir_: Union[str, os.PathLike[str]], filename: Union[str, os.PathLike[str]]
+    dir_: str | os.PathLike[str], filename: str | os.PathLike[str]
 ) -> ModuleType:
     """Load a file from the given path as a Python module."""
 
@@ -127,9 +125,7 @@ def load_python_file(
     return module
 
 
-def load_module_py(
-    module_id: str, path: Union[str, os.PathLike[str]]
-) -> ModuleType:
+def load_module_py(module_id: str, path: str | os.PathLike[str]) -> ModuleType:
     spec = importlib.util.spec_from_file_location(module_id, path)
     assert spec
     module = importlib.util.module_from_spec(spec)
@@ -137,7 +133,7 @@ def load_module_py(
     return module
 
 
-def _preserving_path_as_str(path: Union[str, os.PathLike[str]]) -> str:
+def _preserving_path_as_str(path: str | os.PathLike[str]) -> str:
     """receive str/pathlike and return a string.
 
     Does not convert an incoming string path to a Path first, to help with

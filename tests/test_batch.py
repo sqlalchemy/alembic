@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+import random
 import re
 
 from sqlalchemy import Boolean
@@ -7,6 +8,7 @@ from sqlalchemy import Column
 from sqlalchemy import Computed
 from sqlalchemy import DateTime
 from sqlalchemy import Enum
+from sqlalchemy import exc as sqla_exc
 from sqlalchemy import ForeignKey
 from sqlalchemy import ForeignKeyConstraint
 from sqlalchemy import func
@@ -41,6 +43,7 @@ from alembic.testing import config
 from alembic.testing import eq_
 from alembic.testing import exclusions
 from alembic.testing import expect_raises_message
+from alembic.testing import expect_warnings
 from alembic.testing import is_
 from alembic.testing import mock
 from alembic.testing import TestBase
@@ -54,6 +57,7 @@ from alembic.util import CommandError
 from alembic.util import exc as alembic_exc
 from alembic.util.sqla_compat import _NONE_NAME
 from alembic.util.sqla_compat import _safe_commit_connection_transaction
+from alembic.util.sqla_compat import _safe_rollback_connection_transaction
 
 
 class BatchApplyTest(TestBase):
@@ -170,6 +174,17 @@ class BatchApplyTest(TestBase):
             Column("id", Integer, primary_key=True),
             Column("email", String()),
             Column("user_id", Integer, ForeignKey("user.id")),
+        )
+        return ApplyBatchImpl(self.impl, t, table_args, table_kwargs, False)
+
+    def _dotted_name_fk_fixture(self, table_args=(), table_kwargs={}):
+        m = MetaData()
+        referent = Table("my.user", m, Column("id", Integer, primary_key=True))
+        t = Table(
+            "tname",
+            m,
+            Column("id", Integer, primary_key=True),
+            Column("user_id", Integer, ForeignKey(referent.c.id)),
         )
         return ApplyBatchImpl(self.impl, t, table_args, table_kwargs, False)
 
@@ -704,6 +719,22 @@ class BatchApplyTest(TestBase):
             ddl_contains="FOREIGN KEY(user_id_3, user_id_version) "
             'REFERENCES foo_schema."user" (id, id_version)',
             schema="foo_schema",
+        )
+
+    @config.requirements.sqlalchemy_2_1
+    def test_regen_fk_dotted_referent_name(self):
+        """the referent's name is not mistaken for a schema-qualified name.
+
+        the dot in ``my.user`` is part of the table name, so the referent
+        placeholder is located as the table ``my.user`` in the default
+        schema rather than a table ``user`` in a schema ``my``.
+
+        """
+        impl = self._dotted_name_fk_fixture()
+        self._assert_impl(
+            impl,
+            colnames=["id", "user_id"],
+            ddl_contains='FOREIGN KEY(user_id) REFERENCES "my.user" (id)',
         )
 
     def test_do_not_add_existing_columns_columns(self):
@@ -1258,6 +1289,37 @@ class CopyFromTest(TestBase):
             "ALTER TABLE _alembic_tmp_foo RENAME TO foo",
         )
 
+    @testing.combinations(
+        ("func", lambda: [func.lower(column("data"))], "lower(data)"),
+        ("text", lambda: [text("lower(data)")], "lower(data)"),
+        ("desc", lambda: [column("data").desc()], "data DESC"),
+        (
+            "mixed",
+            lambda: [func.lower(column("data")), "x"],
+            "lower(data), x",
+        ),
+        argnames="cols, expected",
+        id_="iaa",
+    )
+    def test_create_index_w_expressions_w_always(self, cols, expected):
+        """test #1888"""
+        context = self._fixture()
+        with self.op.batch_alter_table(
+            "foo", copy_from=self.table, recreate="always"
+        ) as batch_op:
+            batch_op.create_index("ix_data", cols(), unique=True)
+
+        context.assert_(
+            "CREATE TABLE _alembic_tmp_foo (id INTEGER NOT NULL, "
+            "data VARCHAR(50), "
+            "x INTEGER, PRIMARY KEY (id))",
+            "INSERT INTO _alembic_tmp_foo (id, data, x) "
+            "SELECT foo.id, foo.data, foo.x FROM foo",
+            "DROP TABLE foo",
+            "ALTER TABLE _alembic_tmp_foo RENAME TO foo",
+            f"CREATE UNIQUE INDEX ix_data ON foo ({expected})",
+        )
+
     def test_create_drop_index_wo_always(self):
         context = self._fixture()
         with self.op.batch_alter_table(
@@ -1314,24 +1376,50 @@ class CopyFromTest(TestBase):
         )
 
 
-class BatchRoundTripTest(TestBase):
+class _BatchRoundTripBase:
+    """common fixtures for the batch round trip tests.
+
+    provides ``self.op`` against the ``connection`` fixture, and ensures
+    tables created by a test are dropped afterwards.
+
+    """
+
+    @testing.fixture(autouse=True)
+    def _transaction_fixture(self, metadata, connection):
+
+        context = MigrationContext.configure(connection)
+        self.op = Operations(context)
+
+        yield
+
+        # why commit?  because SQLite has inconsistent treatment
+        # of transactional DDL. A test that runs CREATE TABLE and then
+        # ALTER TABLE to change the name of that table, will end up
+        # committing the CREATE TABLE but not the ALTER. As batch mode
+        # does this with a temp table name that's not even in the
+        # metadata collection, we don't have an explicit drop for it
+        # (though we could do that too).  calling commit means the
+        # ALTER will go through and the drop_all() will then catch it.
+        _safe_commit_connection_transaction(connection)
+
+
+class BatchRoundTripTest(_BatchRoundTripBase, TestBase):
     __only_on__ = "sqlite"
 
-    def setUp(self):
-        self.conn = config.db.connect()
-        self.metadata = MetaData()
+    @testing.fixture(autouse=True)
+    def _table_fixture(self, metadata, connection):
         t1 = Table(
             "foo",
-            self.metadata,
+            metadata,
             Column("id", Integer, primary_key=True),
             Column("data", String(50)),
             Column("x", Integer),
             mysql_engine="InnoDB",
         )
-        with self.conn.begin():
-            t1.create(self.conn)
+        with connection.begin():
+            t1.create(connection)
 
-            self.conn.execute(
+            connection.execute(
                 t1.insert(),
                 [
                     {"id": 1, "data": "d1", "x": 5},
@@ -1341,124 +1429,139 @@ class BatchRoundTripTest(TestBase):
                     {"id": 5, "data": "d5", "x": 9},
                 ],
             )
-        context = MigrationContext.configure(self.conn)
-        self.op = Operations(context)
+        return t1
 
-    def tearDown(self):
-        # why commit?  because SQLite has inconsistent treatment
-        # of transactional DDL. A test that runs CREATE TABLE and then
-        # ALTER TABLE to change the name of that table, will end up
-        # committing the CREATE TABLE but not the ALTER. As batch mode
-        # does this with a temp table name that's not even in the
-        # metadata collection, we don't have an explicit drop for it
-        # (though we could do that too).  calling commit means the
-        # ALTER will go through and the drop_all() will then catch it.
-        _safe_commit_connection_transaction(self.conn)
-        with self.conn.begin():
-            self.metadata.drop_all(self.conn)
-        self.conn.close()
+    @testing.fixture
+    def sqlite_referential_integrity(self, connection, metadata):
+        """turn on SQLite referential integrity for a single test.
 
-    @contextmanager
-    def _sqlite_referential_integrity(self):
-        self.conn.exec_driver_sql("PRAGMA foreign_keys=ON")
+        the tests using this are ``only_on("sqlite")``, however they are
+        inherited by the MySQL / PostgreSQL round trip tests, and that skip
+        is raised only once the test itself is invoked, i.e. after fixture
+        setup.  the fixture therefore skips on its own, rather than being
+        decorated with ``exclusions.only_on()``; under SQLAlchemy 2.0.52
+        and earlier, exclusion decorators turn a generator fixture into a
+        plain function which pytest then never runs.  see #1868
+
+        """
+
+        if not exclusions.against(config._current, "sqlite"):
+            config.skip_test("SQLite PRAGMA foreign_keys only")
+
+        # the PRAGMA autobegins; end that transaction so that the test
+        # can call connection.begin()
+        connection.exec_driver_sql("PRAGMA foreign_keys=ON")
+        _safe_commit_connection_transaction(connection)
         try:
             yield
         finally:
-            self.conn.exec_driver_sql("PRAGMA foreign_keys=OFF")
+            _safe_rollback_connection_transaction(connection)
+            connection.exec_driver_sql("PRAGMA foreign_keys=OFF")
+            _safe_commit_connection_transaction(connection)
 
-            # as these tests are typically intentional fails, clean out
-            # tables left over
-            m = MetaData()
-            m.reflect(self.conn)
-            with self.conn.begin():
-                m.drop_all(self.conn)
+            # these tests fail partway through a batch recreate; reflect
+            # all tables, including the leftover _alembic_tmp table, so
+            # that the metadata fixture drops them
+            metadata.reflect(connection)
 
-    def _no_pk_fixture(self):
-        with self.conn.begin():
+    @testing.fixture
+    def no_pk_fixture(self, metadata, connection):
+        with connection.begin():
             nopk = Table(
                 "nopk",
-                self.metadata,
+                metadata,
                 Column("a", Integer),
                 Column("b", Integer),
                 Column("c", Integer),
                 mysql_engine="InnoDB",
             )
-            nopk.create(self.conn)
-            self.conn.execute(
+            nopk.create(connection)
+            connection.execute(
                 nopk.insert(),
                 [{"a": 1, "b": 2, "c": 3}, {"a": 2, "b": 4, "c": 5}],
             )
             return nopk
 
-    def _table_w_index_fixture(self):
-        with self.conn.begin():
+    @testing.fixture
+    def table_w_index_fixture(self, metadata, connection):
+        with connection.begin():
             t = Table(
                 "t_w_ix",
-                self.metadata,
+                metadata,
                 Column("id", Integer, primary_key=True),
                 Column("thing", Integer),
                 Column("data", String(20)),
             )
             Index("ix_thing", t.c.thing)
-            t.create(self.conn)
+            t.create(connection)
             return t
 
-    def _boolean_fixture(self):
-        with self.conn.begin():
+    @testing.fixture
+    def boolean_fixture(self, metadata, connection):
+        with connection.begin():
             t = Table(
                 "hasbool",
-                self.metadata,
+                metadata,
                 Column("x", Boolean(create_constraint=True, name="ck1")),
                 Column("y", Integer),
             )
-            t.create(self.conn)
-
-    def _timestamp_fixture(self):
-        with self.conn.begin():
-            t = Table("hasts", self.metadata, Column("x", DateTime()))
-            t.create(self.conn)
+            t.create(connection)
             return t
 
-    def _ck_constraint_fixture(self):
-        with self.conn.begin():
+    @testing.fixture
+    def timestamp_fixture(self, metadata, connection):
+        with connection.begin():
+            t = Table("hasts", metadata, Column("x", DateTime()))
+            t.create(connection)
+            return t
+
+    @testing.fixture
+    def ck_constraint_fixture(self, metadata, connection):
+        with connection.begin():
             t = Table(
                 "ck_table",
-                self.metadata,
+                metadata,
                 Column("id", Integer, nullable=False),
                 CheckConstraint("id is not NULL", name="ck"),
             )
-            t.create(self.conn)
+            t.create(connection)
             return t
 
-    def _datetime_server_default_fixture(self):
+    @testing.fixture
+    def datetime_server_default(self):
         return func.datetime("now", "localtime")
 
-    def _timestamp_w_expr_default_fixture(self):
-        with self.conn.begin():
+    @testing.fixture
+    def timestamp_w_expr_default_fixture(
+        self, metadata, connection, datetime_server_default
+    ):
+        with connection.begin():
             t = Table(
                 "hasts",
-                self.metadata,
+                metadata,
                 Column(
                     "x",
                     DateTime(),
-                    server_default=self._datetime_server_default_fixture(),
+                    server_default=datetime_server_default,
                     nullable=False,
                 ),
             )
-            t.create(self.conn)
+            t.create(connection)
             return t
 
-    def _int_to_boolean_fixture(self):
-        with self.conn.begin():
-            t = Table("hasbool", self.metadata, Column("x", Integer))
-            t.create(self.conn)
+    @testing.fixture
+    def int_to_boolean_fixture(self, metadata, connection):
+        with connection.begin():
+            t = Table("hasbool", metadata, Column("x", Integer))
+            t.create(connection)
+            return t
 
-    def test_add_constraint_type(self):
+    def test_add_constraint_type(self, connection):
         """test for #1195."""
 
         with self.op.batch_alter_table("foo") as batch_op:
             batch_op.add_column(Column("q", Boolean(create_constraint=True)))
-        insp = inspect(self.conn)
+        insp = inspect(connection)
 
         assert {
             c["type"]._type_affinity
@@ -1466,15 +1569,14 @@ class BatchRoundTripTest(TestBase):
             if c["name"] == "q"
         }.intersection([Boolean, Integer])
 
-    def test_change_type_boolean_to_int(self):
-        self._boolean_fixture()
+    def test_change_type_boolean_to_int(self, boolean_fixture, connection):
         with self.op.batch_alter_table("hasbool") as batch_op:
             batch_op.alter_column(
                 "x",
                 type_=Integer,
                 existing_type=Boolean(create_constraint=True, name="ck1"),
             )
-        insp = inspect(self.conn)
+        insp = inspect(connection)
 
         eq_(
             [
@@ -1485,13 +1587,13 @@ class BatchRoundTripTest(TestBase):
             [Integer],
         )
 
-    def test_no_net_change_timestamp(self):
-        t = self._timestamp_fixture()
+    def test_no_net_change_timestamp(self, timestamp_fixture, connection):
+        t = timestamp_fixture
 
         import datetime
 
-        with self.conn.begin():
-            self.conn.execute(
+        with connection.begin():
+            connection.execute(
                 t.insert(), {"x": datetime.datetime(2012, 5, 18, 15, 32, 5)}
             )
 
@@ -1499,43 +1601,48 @@ class BatchRoundTripTest(TestBase):
             batch_op.alter_column("x", type_=DateTime())
 
         eq_(
-            self.conn.execute(select(t.c.x)).fetchall(),
+            connection.execute(select(t.c.x)).fetchall(),
             [(datetime.datetime(2012, 5, 18, 15, 32, 5),)],
         )
 
-    def test_no_net_change_timestamp_w_default(self):
-        t = self._timestamp_w_expr_default_fixture()
+    def test_no_net_change_timestamp_w_default(
+        self,
+        timestamp_w_expr_default_fixture,
+        datetime_server_default,
+        connection,
+    ):
+        t = timestamp_w_expr_default_fixture
 
         with self.op.batch_alter_table("hasts") as batch_op:
             batch_op.alter_column(
                 "x",
                 type_=DateTime(),
                 nullable=False,
-                server_default=self._datetime_server_default_fixture(),
+                server_default=datetime_server_default,
             )
 
-        with self.conn.begin():
-            self.conn.execute(t.insert())
-        res = self.conn.execute(select(t.c.x))
+        with connection.begin():
+            connection.execute(t.insert())
+        res = connection.execute(select(t.c.x))
         assert res.scalar_one_or_none() is not None
 
-    def test_drop_col_schematype(self):
-        self._boolean_fixture()
+    def test_drop_col_schematype(self, boolean_fixture, connection):
         with self.op.batch_alter_table("hasbool") as batch_op:
             batch_op.drop_column(
                 "x", existing_type=Boolean(create_constraint=True, name="ck1")
             )
-        insp = inspect(self.conn)
+        insp = inspect(connection)
 
         assert "x" not in (c["name"] for c in insp.get_columns("hasbool"))
 
-    def test_change_type_int_to_boolean(self):
-        self._int_to_boolean_fixture()
+    def test_change_type_int_to_boolean(
+        self, int_to_boolean_fixture, connection
+    ):
         with self.op.batch_alter_table("hasbool") as batch_op:
             batch_op.alter_column(
                 "x", type_=Boolean(create_constraint=True, name="ck1")
             )
-        insp = inspect(self.conn)
+        insp = inspect(connection)
 
         if exclusions.against(config, "sqlite"):
             eq_(
@@ -1556,19 +1663,35 @@ class BatchRoundTripTest(TestBase):
                 [Integer],
             )
 
-    def _assert_data(self, data, tablename="foo"):
-        res = self.conn.execute(text("select * from %s" % tablename))
+    def _assert_data(self, connection, data, tablename="foo"):
+        token = random.randint(0, 1000)
+
+        # random token here is a workaround to fix
+        # "(psycopg.errors.FeatureNotSupported) cached plan must not change
+        # result type" with the psycopg3 driver.
+        #
+        # this happens because this suite recreates the same table with
+        # different datatypes, and PG's prepared statement cache eventually
+        # complains.
+        #
+        # setting prepare_threshold=0 on the connection would also disable
+        # the creation of server-side prepared statements.
+        #
+        # attempts to reset the connection doing things like "DISCARD PREPARED"
+        # leave the psycopg connection in a corrupted state where it can't
+        # locate specific named prepared statements.
+        res = connection.execute(
+            text(f"select * from %s where '{token}' = '{token}'" % tablename)
+        )
         res = res.mappings()
         eq_([dict(row) for row in res], data)
 
-    def test_ix_existing(self):
-        self._table_w_index_fixture()
-
+    def test_ix_existing(self, table_w_index_fixture, connection):
         with self.op.batch_alter_table("t_w_ix") as batch_op:
             batch_op.alter_column("data", type_=String(30))
             batch_op.create_index("ix_data", ["data"])
 
-        insp = inspect(self.conn)
+        insp = inspect(connection)
         eq_(
             {
                 (ix["name"], tuple(ix["column_names"]))
@@ -1577,43 +1700,62 @@ class BatchRoundTripTest(TestBase):
             {("ix_data", ("data",)), ("ix_thing", ("thing",))},
         )
 
-    def test_fk_points_to_me_auto(self):
-        self._test_fk_points_to_me("auto")
+    @config.requirements.indexes_with_expressions
+    def test_create_expression_index_w_always(self, connection):
+        """test #1888"""
+        with self.op.batch_alter_table("foo", recreate="always") as batch_op:
+            batch_op.create_index(
+                "ix_lower_data", [func.lower(column("data"))], unique=True
+            )
+
+        # "d1" is present; the index is against lower(data) so "D1"
+        # conflicts with it
+        with expect_raises_message(sqla_exc.IntegrityError, "(?i)unique"):
+            with connection.begin_nested():
+                connection.execute(
+                    text("INSERT INTO foo (id, data, x) VALUES (6, 'D1', 10)")
+                )
+
+    def test_fk_points_to_me_auto(self, connection, metadata):
+        self._test_fk_points_to_me(metadata, connection, "auto")
 
     # in particular, this tests that the failures
     # on PG and MySQL result in recovery of the batch system,
     # e.g. that the _alembic_tmp_temp table is dropped
     @config.requirements.no_referential_integrity
-    def test_fk_points_to_me_recreate(self):
-        self._test_fk_points_to_me("always")
+    def test_fk_points_to_me_recreate(self, connection, metadata):
+        self._test_fk_points_to_me(metadata, connection, "always")
 
     @exclusions.only_on("sqlite")
-    @exclusions.fails(
-        "intentionally asserting that this "
-        "doesn't work w/ pragma foreign keys"
-    )
-    def test_fk_points_to_me_sqlite_refinteg(self):
-        with self._sqlite_referential_integrity():
-            self._test_fk_points_to_me("auto")
+    def test_fk_points_to_me_sqlite_refinteg(
+        self, sqlite_referential_integrity, connection, metadata
+    ):
+        # intentionally asserting that this doesn't work w/ pragma foreign
+        # keys; assert the specific error, as a generic "fails" rule would
+        # also pass for a test that breaks for some unrelated reason
+        with expect_raises_message(
+            sqla_exc.IntegrityError, "FOREIGN KEY constraint failed"
+        ):
+            self._test_fk_points_to_me(metadata, connection, "auto")
 
-    def _test_fk_points_to_me(self, recreate):
+    def _test_fk_points_to_me(self, metadata, connection, recreate):
         bar = Table(
             "bar",
-            self.metadata,
+            metadata,
             Column("id", Integer, primary_key=True),
             Column("foo_id", Integer, ForeignKey("foo.id")),
             mysql_engine="InnoDB",
         )
-        with self.conn.begin():
-            bar.create(self.conn)
-            self.conn.execute(bar.insert(), {"id": 1, "foo_id": 3})
+        with connection.begin():
+            bar.create(connection)
+            connection.execute(bar.insert(), {"id": 1, "foo_id": 3})
 
         with self.op.batch_alter_table("foo", recreate=recreate) as batch_op:
             batch_op.alter_column(
                 "data", new_column_name="newdata", existing_type=String(50)
             )
 
-        insp = inspect(self.conn)
+        insp = inspect(connection)
         eq_(
             [
                 (
@@ -1626,37 +1768,39 @@ class BatchRoundTripTest(TestBase):
             [("foo", ["id"], ["foo_id"])],
         )
 
-    def test_selfref_fk_auto(self):
-        self._test_selfref_fk("auto")
+    def test_selfref_fk_auto(self, connection, metadata):
+        self._test_selfref_fk(metadata, connection, "auto")
 
     @config.requirements.no_referential_integrity
-    def test_selfref_fk_recreate(self):
-        self._test_selfref_fk("always")
+    def test_selfref_fk_recreate(self, connection, metadata):
+        self._test_selfref_fk(metadata, connection, "always")
 
     @exclusions.only_on("sqlite")
-    @exclusions.fails(
-        "intentionally asserting that this "
-        "doesn't work w/ pragma foreign keys"
-    )
-    def test_selfref_fk_sqlite_refinteg(self):
-        with self._sqlite_referential_integrity():
-            self._test_selfref_fk("auto")
+    def test_selfref_fk_sqlite_refinteg(
+        self, sqlite_referential_integrity, connection, metadata
+    ):
+        # intentionally asserting that this doesn't work w/ pragma foreign
+        # keys; see test_fk_points_to_me_sqlite_refinteg
+        with expect_raises_message(
+            sqla_exc.IntegrityError, "FOREIGN KEY constraint failed"
+        ):
+            self._test_selfref_fk(metadata, connection, "auto")
 
-    def _test_selfref_fk(self, recreate):
+    def _test_selfref_fk(self, metadata, connection, recreate):
         bar = Table(
             "bar",
-            self.metadata,
+            metadata,
             Column("id", Integer, primary_key=True),
             Column("bar_id", Integer, ForeignKey("bar.id")),
             Column("data", String(50)),
             mysql_engine="InnoDB",
         )
-        with self.conn.begin():
-            bar.create(self.conn)
-            self.conn.execute(
+        with connection.begin():
+            bar.create(connection)
+            connection.execute(
                 bar.insert(), {"id": 1, "data": "x", "bar_id": None}
             )
-            self.conn.execute(
+            connection.execute(
                 bar.insert(), {"id": 2, "data": "y", "bar_id": 1}
             )
 
@@ -1665,7 +1809,7 @@ class BatchRoundTripTest(TestBase):
                 "data", new_column_name="newdata", existing_type=String(50)
             )
 
-        insp = inspect(self.conn)
+        insp = inspect(connection)
 
         eq_(
             [
@@ -1679,42 +1823,44 @@ class BatchRoundTripTest(TestBase):
             [("bar", ["id"], ["bar_id"])],
         )
 
-    def test_change_type(self):
+    def test_change_type(self, connection):
         with self.op.batch_alter_table("foo") as batch_op:
             batch_op.alter_column("data", type_=Integer)
 
         self._assert_data(
+            connection,
             [
                 {"id": 1, "data": 0, "x": 5},
                 {"id": 2, "data": 22, "x": 6},
                 {"id": 3, "data": 8, "x": 7},
                 {"id": 4, "data": 9, "x": 8},
                 {"id": 5, "data": 0, "x": 9},
-            ]
+            ],
         )
 
-    def test_drop_column(self):
+    def test_drop_column(self, connection):
         with self.op.batch_alter_table("foo") as batch_op:
             batch_op.drop_column("data")
 
         self._assert_data(
+            connection,
             [
                 {"id": 1, "x": 5},
                 {"id": 2, "x": 6},
                 {"id": 3, "x": 7},
                 {"id": 4, "x": 8},
                 {"id": 5, "x": 9},
-            ]
+            ],
         )
 
-    def test_drop_pk_col_readd_col(self):
+    def test_drop_pk_col_readd_col(self, connection):
         # drop a column, add it back without primary_key=True, should no
         # longer be in the constraint
         with self.op.batch_alter_table("foo") as batch_op:
             batch_op.drop_column("id")
             batch_op.add_column(Column("id", Integer))
 
-        pk_const = inspect(self.conn).get_pk_constraint("foo")
+        pk_const = inspect(connection).get_pk_constraint("foo")
         eq_(pk_const["constrained_columns"], [])
 
     @testing.variation(
@@ -1724,7 +1870,7 @@ class BatchRoundTripTest(TestBase):
             (False, exclusions.fails_on(["postgresql", "mysql", "mariadb"])),
         ],
     )
-    def test_drop_pk_col_readd_pk_col(self, use_inline_pk):
+    def test_drop_pk_col_readd_pk_col(self, use_inline_pk, connection):
         # drop a column, add it back with primary_key=True, should remain
         with self.op.batch_alter_table("foo") as batch_op:
             batch_op.drop_column("id")
@@ -1733,10 +1879,10 @@ class BatchRoundTripTest(TestBase):
                 inline_primary_key=bool(use_inline_pk),
             )
 
-        pk_const = inspect(self.conn).get_pk_constraint("foo")
+        pk_const = inspect(connection).get_pk_constraint("foo")
         eq_(pk_const["constrained_columns"], ["id"])
 
-    def test_drop_pk_col_readd_col_also_pk_const(self):
+    def test_drop_pk_col_readd_col_also_pk_const(self, connection):
         # drop a column, add it back without primary_key=True, but then
         # also make anew PK constraint that includes it, should remain
         with self.op.batch_alter_table("foo") as batch_op:
@@ -1744,27 +1890,26 @@ class BatchRoundTripTest(TestBase):
             batch_op.add_column(Column("id", Integer))
             batch_op.create_primary_key("newpk", ["id"])
 
-        pk_const = inspect(self.conn).get_pk_constraint("foo")
+        pk_const = inspect(connection).get_pk_constraint("foo")
         eq_(pk_const["constrained_columns"], ["id"])
 
     @testing.combinations(("always",), ("auto",), argnames="recreate")
-    def test_add_pk_constraint(self, recreate):
-        self._no_pk_fixture()
+    def test_add_pk_constraint(self, recreate, no_pk_fixture, connection):
         with self.op.batch_alter_table("nopk", recreate=recreate) as batch_op:
             batch_op.create_primary_key("newpk", ["a", "b"])
 
-        pk_const = inspect(self.conn).get_pk_constraint("nopk")
+        pk_const = inspect(connection).get_pk_constraint("nopk")
         with config.requirements.reflects_pk_names.fail_if():
             eq_(pk_const["name"], "newpk")
         eq_(pk_const["constrained_columns"], ["a", "b"])
 
     @testing.combinations(("always",), ("auto",), argnames="recreate")
     @config.requirements.check_constraint_reflection
-    def test_add_ck_constraint(self, recreate):
+    def test_add_ck_constraint(self, recreate, connection):
         with self.op.batch_alter_table("foo", recreate=recreate) as batch_op:
             batch_op.create_check_constraint("newck", text("x > 0"))
 
-        ck_consts = inspect(self.conn).get_check_constraints("foo")
+        ck_consts = inspect(connection).get_check_constraints("foo")
         ck_consts[0]["sqltext"] = re.sub(
             r"[\'\"`\(\)]", "", ck_consts[0]["sqltext"]
         )
@@ -1774,42 +1919,42 @@ class BatchRoundTripTest(TestBase):
 
     @testing.combinations(("always",), ("auto",), argnames="recreate")
     @config.requirements.check_constraint_reflection
-    def test_drop_ck_constraint(self, recreate):
-        self._ck_constraint_fixture()
-
+    def test_drop_ck_constraint(
+        self, recreate, ck_constraint_fixture, connection
+    ):
         with self.op.batch_alter_table(
             "ck_table", recreate=recreate
         ) as batch_op:
             batch_op.drop_constraint("ck", type_="check")
 
-        ck_consts = inspect(self.conn).get_check_constraints("ck_table")
+        ck_consts = inspect(connection).get_check_constraints("ck_table")
         eq_(ck_consts, [])
 
     @config.requirements.check_constraint_reflection
-    def test_drop_ck_constraint_legacy_type(self):
-        self._ck_constraint_fixture()
-
+    def test_drop_ck_constraint_legacy_type(
+        self, ck_constraint_fixture, connection
+    ):
         with self.op.batch_alter_table(
             "ck_table", recreate="always"
         ) as batch_op:
             # matches the docs that were written for this originally
             batch_op.drop_constraint("ck", "check")
 
-        ck_consts = inspect(self.conn).get_check_constraints("ck_table")
+        ck_consts = inspect(connection).get_check_constraints("ck_table")
         eq_(ck_consts, [])
 
     @config.requirements.unnamed_constraints
-    def test_drop_foreign_key(self):
+    def test_drop_foreign_key(self, connection, metadata):
         bar = Table(
             "bar",
-            self.metadata,
+            metadata,
             Column("id", Integer, primary_key=True),
             Column("foo_id", Integer, ForeignKey("foo.id")),
             mysql_engine="InnoDB",
         )
-        with self.conn.begin():
-            bar.create(self.conn)
-            self.conn.execute(bar.insert(), {"id": 1, "foo_id": 3})
+        with connection.begin():
+            bar.create(connection)
+            connection.execute(bar.insert(), {"id": 1, "foo_id": 3})
 
         naming_convention = {
             "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s"
@@ -1818,34 +1963,35 @@ class BatchRoundTripTest(TestBase):
             "bar", naming_convention=naming_convention
         ) as batch_op:
             batch_op.drop_constraint("fk_bar_foo_id_foo", type_="foreignkey")
-        eq_(inspect(self.conn).get_foreign_keys("bar"), [])
+        eq_(inspect(connection).get_foreign_keys("bar"), [])
 
-    def test_drop_column_fk_recreate(self):
+    def test_drop_column_fk_recreate(self, connection):
         with self.op.batch_alter_table("foo", recreate="always") as batch_op:
             batch_op.drop_column("data")
 
         self._assert_data(
+            connection,
             [
                 {"id": 1, "x": 5},
                 {"id": 2, "x": 6},
                 {"id": 3, "x": 7},
                 {"id": 4, "x": 8},
                 {"id": 5, "x": 9},
-            ]
+            ],
         )
 
-    def _assert_table_comment(self, tname, comment):
-        insp = inspect(self.conn)
+    def _assert_table_comment(self, connection, tname, comment):
+        insp = inspect(connection)
 
         tcomment = insp.get_table_comment(tname)
         eq_(tcomment, {"text": comment})
 
     @testing.combinations(("always",), ("auto",), argnames="recreate")
-    def test_add_uq(self, recreate):
+    def test_add_uq(self, recreate, connection):
         with self.op.batch_alter_table("foo", recreate=recreate) as batch_op:
             batch_op.create_unique_constraint("newuk", ["x"])
 
-        uq_consts = inspect(self.conn).get_unique_constraints("foo")
+        uq_consts = inspect(connection).get_unique_constraints("foo")
         eq_(
             [
                 {"name": uc["name"], "column_names": uc["column_names"]}
@@ -1855,12 +2001,12 @@ class BatchRoundTripTest(TestBase):
         )
 
     @testing.combinations(("always",), ("auto",), argnames="recreate")
-    def test_add_uq_plus_col(self, recreate):
+    def test_add_uq_plus_col(self, recreate, connection):
         with self.op.batch_alter_table("foo", recreate=recreate) as batch_op:
             batch_op.add_column(Column("y", Integer))
             batch_op.create_unique_constraint("newuk", ["x", "y"])
 
-        uq_consts = inspect(self.conn).get_unique_constraints("foo")
+        uq_consts = inspect(connection).get_unique_constraints("foo")
 
         eq_(
             [
@@ -1871,131 +2017,136 @@ class BatchRoundTripTest(TestBase):
         )
 
     @config.requirements.comments
-    def test_add_table_comment(self):
+    def test_add_table_comment(self, connection):
         with self.op.batch_alter_table("foo") as batch_op:
             batch_op.create_table_comment("some comment")
 
-        self._assert_table_comment("foo", "some comment")
+        self._assert_table_comment(connection, "foo", "some comment")
 
         with self.op.batch_alter_table("foo") as batch_op:
             batch_op.create_table_comment(
                 "some new comment", existing_comment="some comment"
             )
 
-        self._assert_table_comment("foo", "some new comment")
+        self._assert_table_comment(connection, "foo", "some new comment")
 
     @config.requirements.comments
-    def test_drop_table_comment(self):
+    def test_drop_table_comment(self, connection):
         with self.op.batch_alter_table("foo") as batch_op:
             batch_op.create_table_comment("some comment")
 
         with self.op.batch_alter_table("foo") as batch_op:
             batch_op.drop_table_comment(existing_comment="some comment")
 
-        self._assert_table_comment("foo", None)
+        self._assert_table_comment(connection, "foo", None)
 
-    def _assert_column_comment(self, tname, cname, comment):
-        insp = inspect(self.conn)
+    def _assert_column_comment(self, connection, tname, cname, comment):
+        insp = inspect(connection)
 
         cols = {col["name"]: col for col in insp.get_columns(tname)}
         eq_(cols[cname]["comment"], comment)
 
     @config.requirements.comments
-    def test_add_column_comment(self):
+    def test_add_column_comment(self, connection):
         with self.op.batch_alter_table("foo") as batch_op:
             batch_op.add_column(Column("y", Integer, comment="some comment"))
 
-        self._assert_column_comment("foo", "y", "some comment")
+        self._assert_column_comment(connection, "foo", "y", "some comment")
 
         self._assert_data(
+            connection,
             [
                 {"id": 1, "data": "d1", "x": 5, "y": None},
                 {"id": 2, "data": "22", "x": 6, "y": None},
                 {"id": 3, "data": "8.5", "x": 7, "y": None},
                 {"id": 4, "data": "9.46", "x": 8, "y": None},
                 {"id": 5, "data": "d5", "x": 9, "y": None},
-            ]
+            ],
         )
 
     @config.requirements.comments
-    def test_add_column_comment_recreate(self):
+    def test_add_column_comment_recreate(self, connection):
         with self.op.batch_alter_table("foo", recreate="always") as batch_op:
             batch_op.add_column(Column("y", Integer, comment="some comment"))
 
-        self._assert_column_comment("foo", "y", "some comment")
+        self._assert_column_comment(connection, "foo", "y", "some comment")
 
         self._assert_data(
+            connection,
             [
                 {"id": 1, "data": "d1", "x": 5, "y": None},
                 {"id": 2, "data": "22", "x": 6, "y": None},
                 {"id": 3, "data": "8.5", "x": 7, "y": None},
                 {"id": 4, "data": "9.46", "x": 8, "y": None},
                 {"id": 5, "data": "d5", "x": 9, "y": None},
-            ]
+            ],
         )
 
     @config.requirements.comments
-    def test_alter_column_comment(self):
+    def test_alter_column_comment(self, connection):
         with self.op.batch_alter_table("foo") as batch_op:
             batch_op.alter_column(
                 "x", existing_type=Integer(), comment="some comment"
             )
 
-        self._assert_column_comment("foo", "x", "some comment")
+        self._assert_column_comment(connection, "foo", "x", "some comment")
 
         self._assert_data(
+            connection,
             [
                 {"id": 1, "data": "d1", "x": 5},
                 {"id": 2, "data": "22", "x": 6},
                 {"id": 3, "data": "8.5", "x": 7},
                 {"id": 4, "data": "9.46", "x": 8},
                 {"id": 5, "data": "d5", "x": 9},
-            ]
+            ],
         )
 
     @config.requirements.comments
-    def test_alter_column_comment_recreate(self):
+    def test_alter_column_comment_recreate(self, connection):
         with self.op.batch_alter_table("foo", recreate="always") as batch_op:
             batch_op.alter_column("x", comment="some comment")
 
-        self._assert_column_comment("foo", "x", "some comment")
+        self._assert_column_comment(connection, "foo", "x", "some comment")
 
         self._assert_data(
+            connection,
             [
                 {"id": 1, "data": "d1", "x": 5},
                 {"id": 2, "data": "22", "x": 6},
                 {"id": 3, "data": "8.5", "x": 7},
                 {"id": 4, "data": "9.46", "x": 8},
                 {"id": 5, "data": "d5", "x": 9},
-            ]
+            ],
         )
 
-    def test_rename_column(self):
+    def test_rename_column(self, connection):
         with self.op.batch_alter_table("foo") as batch_op:
             batch_op.alter_column("x", new_column_name="y")
 
         self._assert_data(
+            connection,
             [
                 {"id": 1, "data": "d1", "y": 5},
                 {"id": 2, "data": "22", "y": 6},
                 {"id": 3, "data": "8.5", "y": 7},
                 {"id": 4, "data": "9.46", "y": 8},
                 {"id": 5, "data": "d5", "y": 9},
-            ]
+            ],
         )
 
-    def test_rename_column_boolean(self):
+    def test_rename_column_boolean(self, connection, metadata):
         bar = Table(
             "bar",
-            self.metadata,
+            metadata,
             Column("id", Integer, primary_key=True),
             Column("flag", Boolean(create_constraint=True)),
             mysql_engine="InnoDB",
         )
-        with self.conn.begin():
-            bar.create(self.conn)
-            self.conn.execute(bar.insert(), {"id": 1, "flag": True})
-            self.conn.execute(bar.insert(), {"id": 2, "flag": False})
+        with connection.begin():
+            bar.create(connection)
+            connection.execute(bar.insert(), {"id": 1, "flag": True})
+            connection.execute(bar.insert(), {"id": 2, "flag": False})
 
         with self.op.batch_alter_table("bar") as batch_op:
             batch_op.alter_column(
@@ -2003,22 +2154,24 @@ class BatchRoundTripTest(TestBase):
             )
 
         self._assert_data(
-            [{"id": 1, "bflag": True}, {"id": 2, "bflag": False}], "bar"
+            connection,
+            [{"id": 1, "bflag": True}, {"id": 2, "bflag": False}],
+            "bar",
         )
 
     #    @config.requirements.check_constraint_reflection
-    def test_rename_column_boolean_named_ck(self):
+    def test_rename_column_boolean_named_ck(self, connection, metadata):
         bar = Table(
             "bar",
-            self.metadata,
+            metadata,
             Column("id", Integer, primary_key=True),
             Column("flag", Boolean(create_constraint=True, name="ck1")),
             mysql_engine="InnoDB",
         )
-        with self.conn.begin():
-            bar.create(self.conn)
-            self.conn.execute(bar.insert(), {"id": 1, "flag": True})
-            self.conn.execute(bar.insert(), {"id": 2, "flag": False})
+        with connection.begin():
+            bar.create(connection)
+            connection.execute(bar.insert(), {"id": 1, "flag": True})
+            connection.execute(bar.insert(), {"id": 2, "flag": False})
 
         with self.op.batch_alter_table("bar", recreate="always") as batch_op:
             batch_op.alter_column(
@@ -2028,23 +2181,27 @@ class BatchRoundTripTest(TestBase):
             )
 
         self._assert_data(
-            [{"id": 1, "bflag": True}, {"id": 2, "bflag": False}], "bar"
+            connection,
+            [{"id": 1, "bflag": True}, {"id": 2, "bflag": False}],
+            "bar",
         )
 
     @config.requirements.non_native_boolean
-    def test_rename_column_non_native_boolean_no_ck(self):
+    def test_rename_column_non_native_boolean_no_ck(
+        self, connection, metadata
+    ):
         bar = Table(
             "bar",
-            self.metadata,
+            metadata,
             Column("id", Integer, primary_key=True),
             Column("flag", Boolean(create_constraint=False)),
             mysql_engine="InnoDB",
         )
-        with self.conn.begin():
-            bar.create(self.conn)
-            self.conn.execute(bar.insert(), {"id": 1, "flag": True})
-            self.conn.execute(bar.insert(), {"id": 2, "flag": False})
-            self.conn.execute(
+        with connection.begin():
+            bar.create(connection)
+            connection.execute(bar.insert(), {"id": 1, "flag": True})
+            connection.execute(bar.insert(), {"id": 2, "flag": False})
+            connection.execute(
                 # override Boolean type which as of 1.1 coerces numerics
                 # to 1/0
                 text("insert into bar (id, flag) values (:id, :flag)"),
@@ -2060,6 +2217,7 @@ class BatchRoundTripTest(TestBase):
             )
 
         self._assert_data(
+            connection,
             [
                 {"id": 1, "bflag": True},
                 {"id": 2, "bflag": False},
@@ -2068,35 +2226,37 @@ class BatchRoundTripTest(TestBase):
             "bar",
         )
 
-    def test_drop_column_pk(self):
+    def test_drop_column_pk(self, connection):
         with self.op.batch_alter_table("foo") as batch_op:
             batch_op.drop_column("id")
 
         self._assert_data(
+            connection,
             [
                 {"data": "d1", "x": 5},
                 {"data": "22", "x": 6},
                 {"data": "8.5", "x": 7},
                 {"data": "9.46", "x": 8},
                 {"data": "d5", "x": 9},
-            ]
+            ],
         )
 
-    def test_rename_column_pk(self):
+    def test_rename_column_pk(self, connection):
         with self.op.batch_alter_table("foo") as batch_op:
             batch_op.alter_column("id", new_column_name="ident")
 
         self._assert_data(
+            connection,
             [
                 {"ident": 1, "data": "d1", "x": 5},
                 {"ident": 2, "data": "22", "x": 6},
                 {"ident": 3, "data": "8.5", "x": 7},
                 {"ident": 4, "data": "9.46", "x": 8},
                 {"ident": 5, "data": "d5", "x": 9},
-            ]
+            ],
         )
 
-    def test_add_column_auto(self):
+    def test_add_column_auto(self, connection):
         # note this uses ALTER
         with self.op.batch_alter_table("foo") as batch_op:
             batch_op.add_column(
@@ -2104,48 +2264,52 @@ class BatchRoundTripTest(TestBase):
             )
 
         self._assert_data(
+            connection,
             [
                 {"id": 1, "data": "d1", "x": 5, "data2": "hi"},
                 {"id": 2, "data": "22", "x": 6, "data2": "hi"},
                 {"id": 3, "data": "8.5", "x": 7, "data2": "hi"},
                 {"id": 4, "data": "9.46", "x": 8, "data2": "hi"},
                 {"id": 5, "data": "d5", "x": 9, "data2": "hi"},
-            ]
+            ],
         )
         eq_(
             [col["name"] for col in inspect(config.db).get_columns("foo")],
             ["id", "data", "x", "data2"],
         )
 
-    def test_add_column_auto_server_default_calculated(self):
+    def test_add_column_auto_server_default_calculated(
+        self, datetime_server_default, connection
+    ):
         """test #883"""
         with self.op.batch_alter_table("foo") as batch_op:
             batch_op.add_column(
                 Column(
                     "data2",
                     DateTime(),
-                    server_default=self._datetime_server_default_fixture(),
+                    server_default=datetime_server_default,
                 )
             )
 
         self._assert_data(
+            connection,
             [
                 {"id": 1, "data": "d1", "x": 5, "data2": mock.ANY},
                 {"id": 2, "data": "22", "x": 6, "data2": mock.ANY},
                 {"id": 3, "data": "8.5", "x": 7, "data2": mock.ANY},
                 {"id": 4, "data": "9.46", "x": 8, "data2": mock.ANY},
                 {"id": 5, "data": "d5", "x": 9, "data2": mock.ANY},
-            ]
+            ],
         )
         eq_(
-            [col["name"] for col in inspect(self.conn).get_columns("foo")],
+            [col["name"] for col in inspect(connection).get_columns("foo")],
             ["id", "data", "x", "data2"],
         )
 
-    @testing.combinations((True,), (False,))
+    @testing.combinations((True,), (False,), argnames="persisted")
     @testing.exclusions.only_on("sqlite")
     @config.requirements.computed_columns
-    def test_add_column_auto_generated(self, persisted):
+    def test_add_column_auto_generated(self, persisted, connection):
         """test #883"""
         with self.op.batch_alter_table("foo") as batch_op:
             batch_op.add_column(
@@ -2155,29 +2319,29 @@ class BatchRoundTripTest(TestBase):
             )
 
         self._assert_data(
+            connection,
             [
                 {"id": 1, "data": "d1", "x": 5, "data2": 2},
                 {"id": 2, "data": "22", "x": 6, "data2": 2},
                 {"id": 3, "data": "8.5", "x": 7, "data2": 2},
                 {"id": 4, "data": "9.46", "x": 8, "data2": 2},
                 {"id": 5, "data": "d5", "x": 9, "data2": 2},
-            ]
+            ],
         )
         eq_(
-            [col["name"] for col in inspect(self.conn).get_columns("foo")],
+            [col["name"] for col in inspect(connection).get_columns("foo")],
             ["id", "data", "x", "data2"],
         )
 
     @config.requirements.identity_columns
-    def test_add_column_auto_identity(self):
+    def test_add_column_auto_identity(self, no_pk_fixture, connection):
         """test #883"""
-
-        self._no_pk_fixture()
 
         with self.op.batch_alter_table("nopk") as batch_op:
             batch_op.add_column(Column("id", Integer, Identity()))
 
         self._assert_data(
+            connection,
             [
                 {"a": 1, "b": 2, "c": 3, "id": 1},
                 {"a": 2, "b": 4, "c": 5, "id": 2},
@@ -2185,47 +2349,49 @@ class BatchRoundTripTest(TestBase):
             tablename="nopk",
         )
         eq_(
-            [col["name"] for col in inspect(self.conn).get_columns("foo")],
+            [col["name"] for col in inspect(connection).get_columns("foo")],
             ["id", "data", "x"],
         )
 
-    def test_add_column_insert_before_recreate(self):
+    def test_add_column_insert_before_recreate(self, connection):
         with self.op.batch_alter_table("foo", recreate="always") as batch_op:
             batch_op.add_column(
                 Column("data2", String(50), server_default="hi"),
                 insert_before="data",
             )
         self._assert_data(
+            connection,
             [
                 {"id": 1, "data": "d1", "x": 5, "data2": "hi"},
                 {"id": 2, "data": "22", "x": 6, "data2": "hi"},
                 {"id": 3, "data": "8.5", "x": 7, "data2": "hi"},
                 {"id": 4, "data": "9.46", "x": 8, "data2": "hi"},
                 {"id": 5, "data": "d5", "x": 9, "data2": "hi"},
-            ]
+            ],
         )
         eq_(
-            [col["name"] for col in inspect(self.conn).get_columns("foo")],
+            [col["name"] for col in inspect(connection).get_columns("foo")],
             ["id", "data2", "data", "x"],
         )
 
-    def test_add_column_insert_after_recreate(self):
+    def test_add_column_insert_after_recreate(self, connection):
         with self.op.batch_alter_table("foo", recreate="always") as batch_op:
             batch_op.add_column(
                 Column("data2", String(50), server_default="hi"),
                 insert_after="data",
             )
         self._assert_data(
+            connection,
             [
                 {"id": 1, "data": "d1", "x": 5, "data2": "hi"},
                 {"id": 2, "data": "22", "x": 6, "data2": "hi"},
                 {"id": 3, "data": "8.5", "x": 7, "data2": "hi"},
                 {"id": 4, "data": "9.46", "x": 8, "data2": "hi"},
                 {"id": 5, "data": "d5", "x": 9, "data2": "hi"},
-            ]
+            ],
         )
         eq_(
-            [col["name"] for col in inspect(self.conn).get_columns("foo")],
+            [col["name"] for col in inspect(connection).get_columns("foo")],
             ["id", "data", "data2", "x"],
         )
 
@@ -2243,43 +2409,45 @@ class BatchRoundTripTest(TestBase):
             go,
         )
 
-    def test_add_column_recreate(self):
+    def test_add_column_recreate(self, connection):
         with self.op.batch_alter_table("foo", recreate="always") as batch_op:
             batch_op.add_column(
                 Column("data2", String(50), server_default="hi")
             )
 
         self._assert_data(
+            connection,
             [
                 {"id": 1, "data": "d1", "x": 5, "data2": "hi"},
                 {"id": 2, "data": "22", "x": 6, "data2": "hi"},
                 {"id": 3, "data": "8.5", "x": 7, "data2": "hi"},
                 {"id": 4, "data": "9.46", "x": 8, "data2": "hi"},
                 {"id": 5, "data": "d5", "x": 9, "data2": "hi"},
-            ]
+            ],
         )
         eq_(
-            [col["name"] for col in inspect(self.conn).get_columns("foo")],
+            [col["name"] for col in inspect(connection).get_columns("foo")],
             ["id", "data", "x", "data2"],
         )
 
-    def test_create_drop_index(self):
-        insp = inspect(self.conn)
+    def test_create_drop_index(self, connection):
+        insp = inspect(connection)
         eq_(insp.get_indexes("foo"), [])
 
         with self.op.batch_alter_table("foo", recreate="always") as batch_op:
             batch_op.create_index("ix_data", ["data"], unique=True)
 
         self._assert_data(
+            connection,
             [
                 {"id": 1, "data": "d1", "x": 5},
                 {"id": 2, "data": "22", "x": 6},
                 {"id": 3, "data": "8.5", "x": 7},
                 {"id": 4, "data": "9.46", "x": 8},
                 {"id": 5, "data": "d5", "x": 9},
-            ]
+            ],
         )
-        insp = inspect(self.conn)
+        insp = inspect(connection)
         eq_(
             [
                 dict(
@@ -2295,7 +2463,7 @@ class BatchRoundTripTest(TestBase):
         with self.op.batch_alter_table("foo", recreate="always") as batch_op:
             batch_op.drop_index("ix_data")
 
-        insp = inspect(self.conn)
+        insp = inspect(connection)
         eq_(insp.get_indexes("foo"), [])
 
 
@@ -2303,48 +2471,54 @@ class BatchRoundTripMySQLTest(BatchRoundTripTest):
     __only_on__ = "mysql", "mariadb"
     __backend__ = True
 
-    def _datetime_server_default_fixture(self):
+    @testing.fixture
+    def datetime_server_default(self):
         return func.current_timestamp()
 
     @exclusions.fails()
-    def test_drop_pk_col_readd_col_also_pk_const(self):
-        super().test_drop_pk_col_readd_col_also_pk_const()
+    def test_drop_pk_col_readd_col_also_pk_const(self, connection):
+        super().test_drop_pk_col_readd_col_also_pk_const(connection)
 
     @exclusions.fails()
-    def test_rename_column_pk(self):
-        super().test_rename_column_pk()
+    def test_rename_column_pk(self, connection):
+        super().test_rename_column_pk(connection)
 
     @exclusions.fails()
-    def test_rename_column(self):
-        super().test_rename_column()
+    def test_rename_column(self, connection):
+        super().test_rename_column(connection)
 
     @exclusions.fails()
-    def test_change_type(self):
-        super().test_change_type()
+    def test_change_type(self, connection):
+        super().test_change_type(connection)
 
-    def test_create_drop_index(self):
-        super().test_create_drop_index()
+    def test_create_drop_index(self, connection):
+        super().test_create_drop_index(connection)
 
     # fails on mariadb 10.2, succeeds on 10.3
     @exclusions.fails_if(config.requirements.mysql_check_col_name_change)
-    def test_rename_column_boolean(self):
-        super().test_rename_column_boolean()
+    def test_rename_column_boolean(self, connection, metadata):
+        super().test_rename_column_boolean(connection, metadata)
 
-    def test_change_type_boolean_to_int(self):
-        super().test_change_type_boolean_to_int()
+    def test_change_type_boolean_to_int(self, boolean_fixture, connection):
+        super().test_change_type_boolean_to_int(boolean_fixture, connection)
 
-    def test_change_type_int_to_boolean(self):
-        super().test_change_type_int_to_boolean()
+    def test_change_type_int_to_boolean(
+        self, int_to_boolean_fixture, connection
+    ):
+        super().test_change_type_int_to_boolean(
+            int_to_boolean_fixture, connection
+        )
 
 
 class BatchRoundTripPostgresqlTest(BatchRoundTripTest):
     __only_on__ = "postgresql"
     __backend__ = True
 
-    def _native_boolean_fixture(self):
+    @testing.fixture
+    def native_boolean_fixture(self, metadata, connection):
         t = Table(
             "has_native_bool",
-            self.metadata,
+            metadata,
             Column(
                 "x",
                 Boolean(create_constraint=True),
@@ -2353,34 +2527,40 @@ class BatchRoundTripPostgresqlTest(BatchRoundTripTest):
             ),
             Column("y", Integer),
         )
-        with self.conn.begin():
-            t.create(self.conn)
+        with connection.begin():
+            t.create(connection)
+        return t
 
-    def _datetime_server_default_fixture(self):
+    @testing.fixture
+    def datetime_server_default(self):
         return func.current_timestamp()
 
     @exclusions.fails()
-    def test_drop_pk_col_readd_col_also_pk_const(self):
-        super().test_drop_pk_col_readd_col_also_pk_const()
+    def test_drop_pk_col_readd_col_also_pk_const(self, connection):
+        super().test_drop_pk_col_readd_col_also_pk_const(connection)
 
     @exclusions.fails()
-    def test_change_type(self):
-        super().test_change_type()
+    def test_change_type(self, connection):
+        super().test_change_type(connection)
 
-    def test_create_drop_index(self):
-        super().test_create_drop_index()
-
-    @exclusions.fails()
-    def test_change_type_int_to_boolean(self):
-        super().test_change_type_int_to_boolean()
+    def test_create_drop_index(self, connection):
+        super().test_create_drop_index(connection)
 
     @exclusions.fails()
-    def test_change_type_boolean_to_int(self):
-        super().test_change_type_boolean_to_int()
+    def test_change_type_int_to_boolean(
+        self, int_to_boolean_fixture, connection
+    ):
+        super().test_change_type_int_to_boolean(
+            int_to_boolean_fixture, connection
+        )
 
-    def test_add_col_table_has_native_boolean(self):
-        self._native_boolean_fixture()
+    @exclusions.fails()
+    def test_change_type_boolean_to_int(self, boolean_fixture, connection):
+        super().test_change_type_boolean_to_int(boolean_fixture, connection)
 
+    def test_add_col_table_has_native_boolean(
+        self, native_boolean_fixture, connection
+    ):
         # to ensure test coverage on SQLAlchemy 1.4 and above,
         # force the create_constraint flag to True even though it
         # defaults to false in 1.4.  this test wants to ensure that the
@@ -2398,7 +2578,7 @@ class BatchRoundTripPostgresqlTest(BatchRoundTripTest):
         ) as batch_op:
             batch_op.add_column(Column("data", Integer))
 
-        insp = inspect(self.conn)
+        insp = inspect(connection)
 
         eq_(
             [
@@ -2416,6 +2596,355 @@ class BatchRoundTripPostgresqlTest(BatchRoundTripTest):
             ],
             [Boolean],
         )
+
+
+class BatchNamingConventionTest(_BatchRoundTripBase, TestBase):
+    """test the interaction of naming conventions with batch "recreate".
+
+    See #1768, #1844, #1845.
+
+    """
+
+    __only_on__ = "sqlite"
+
+    naming_convention = {
+        "ck": "ck_%(table_name)s_%(constraint_name)s",
+        "pk": "pk_%(table_name)s",
+    }
+
+    @testing.fixture(autouse=True)
+    def _reflect_for_teardown_fixture(self, metadata, connection):
+        yield
+        metadata.reflect(connection)
+
+    @testing.fixture
+    def table_fixture(self, connection):
+        def go(*cols, naming_convention=True):
+            if naming_convention:
+                m = MetaData(naming_convention=self.naming_convention)
+            else:
+                m = MetaData()
+            t = Table(
+                "user", m, Column("id", Integer, primary_key=True), *cols
+            )
+            with connection.begin():
+                t.create(connection)
+            return t
+
+        return go
+
+    @testing.fixture
+    def ops_for_metadata(self, connection):
+        def go(metadata):
+            return Operations(
+                MigrationContext.configure(
+                    connection, opts={"target_metadata": metadata}
+                )
+            )
+
+        return go
+
+    def _ck_constraints(self, connection):
+        return sorted(
+            (c["name"], c["sqltext"])
+            for c in inspect(connection).get_check_constraints("user")
+        )
+
+    def test_add_column_boolean(
+        self, table_fixture, ops_for_metadata, connection
+    ):
+        """#1768"""
+
+        t = table_fixture()
+        op = ops_for_metadata(t.metadata)
+
+        with op.batch_alter_table(
+            "user", naming_convention=self.naming_convention
+        ) as batch_op:
+            batch_op.add_column(
+                Column(
+                    "is_active",
+                    Boolean(create_constraint=True, name="is_active"),
+                    nullable=False,
+                    server_default="1",
+                )
+            )
+
+        eq_(
+            self._ck_constraints(connection),
+            [("ck_user_is_active", "is_active IN (0, 1)")],
+        )
+
+    def test_add_column_enum(
+        self, table_fixture, ops_for_metadata, connection
+    ):
+        """#1768"""
+
+        t = table_fixture()
+        op = ops_for_metadata(t.metadata)
+
+        with op.batch_alter_table(
+            "user", naming_convention=self.naming_convention
+        ) as batch_op:
+            batch_op.add_column(
+                Column(
+                    "status",
+                    Enum("a", "b", create_constraint=True, name="status"),
+                    nullable=False,
+                    server_default="a",
+                )
+            )
+
+        eq_(
+            self._ck_constraints(connection),
+            [("ck_user_status", "status IN ('a', 'b')")],
+        )
+
+    def test_add_column_boolean_no_convention(
+        self, table_fixture, ops_for_metadata, connection
+    ):
+        """#1768, the type's own name is used when there's no convention"""
+
+        t = table_fixture(naming_convention=False)
+        op = ops_for_metadata(t.metadata)
+
+        with op.batch_alter_table("user") as batch_op:
+            batch_op.add_column(
+                Column(
+                    "is_active",
+                    Boolean(create_constraint=True, name="is_active"),
+                    nullable=False,
+                    server_default="1",
+                )
+            )
+
+        eq_(
+            self._ck_constraints(connection),
+            [("is_active", "is_active IN (0, 1)")],
+        )
+
+    def test_type_bound_constraint_name_preserved(
+        self, table_fixture, ops_for_metadata, connection
+    ):
+        """#1844"""
+
+        t = table_fixture(
+            Column(
+                "is_active", Boolean(create_constraint=True, name="is_active")
+            )
+        )
+        eq_(
+            self._ck_constraints(connection),
+            [("ck_user_is_active", "is_active IN (0, 1)")],
+        )
+
+        op = ops_for_metadata(t.metadata)
+        with op.batch_alter_table(
+            "user", copy_from=t, recreate="always"
+        ) as batch_op:
+            batch_op.add_column(Column("y", Integer))
+
+        eq_(
+            self._ck_constraints(connection),
+            [("ck_user_is_active", "is_active IN (0, 1)")],
+        )
+
+    def test_unnamed_type_bound_constraint_warns(
+        self, ops_for_metadata, connection
+    ):
+        """#1844, the convention can't name a constraint whose type has no
+        name of its own; the constraint stays unnamed and a warning refers
+        the user to naming the type"""
+
+        # the table can't be created from this Table object; SQLAlchemy
+        # raises for the unnamed constraint in the same way.  it can
+        # however be an existing table that's now being migrated.
+        with connection.begin():
+            connection.exec_driver_sql(
+                "CREATE TABLE user (id INTEGER NOT NULL, "
+                "is_active BOOLEAN, "
+                "CONSTRAINT pk_user PRIMARY KEY (id), "
+                "CHECK (is_active IN (0, 1)))"
+            )
+        m = MetaData(naming_convention=self.naming_convention)
+        t = Table(
+            "user",
+            m,
+            Column("id", Integer, primary_key=True),
+            Column("is_active", Boolean(create_constraint=True)),
+        )
+
+        op = ops_for_metadata(t.metadata)
+        with expect_warnings(
+            "The CHECK constraint generated by the type of column "
+            "'user.is_active' has no name"
+        ):
+            with op.batch_alter_table(
+                "user", copy_from=t, recreate="always"
+            ) as batch_op:
+                batch_op.add_column(Column("y", Integer))
+
+        eq_(self._ck_constraints(connection), [(None, "is_active IN (0, 1)")])
+
+    def test_reflected_constraint_name_preserved(
+        self, table_fixture, ops_for_metadata, connection
+    ):
+        """#1845"""
+
+        table_fixture(
+            Column("age", Integer),
+            CheckConstraint("age > 0", name="positive_age"),
+        )
+        eq_(
+            self._ck_constraints(connection),
+            [("ck_user_positive_age", "age > 0")],
+        )
+
+        op = ops_for_metadata(None)
+        with op.batch_alter_table(
+            "user",
+            naming_convention=self.naming_convention,
+            recreate="always",
+        ) as batch_op:
+            batch_op.add_column(Column("y", Integer))
+
+        eq_(
+            self._ck_constraints(connection),
+            [("ck_user_positive_age", "age > 0")],
+        )
+
+    def test_reflected_unnamed_constraint_named(
+        self, table_fixture, ops_for_metadata, connection
+    ):
+        """#1845, the convention still names constraints that come back
+        from reflection with no name"""
+
+        table_fixture(
+            Column("age", Integer),
+            CheckConstraint("age > 0"),
+            naming_convention=False,
+        )
+        eq_(self._ck_constraints(connection), [(None, "age > 0")])
+
+        op = ops_for_metadata(None)
+        with op.batch_alter_table(
+            "user",
+            naming_convention={"ck": "ck_%(table_name)s_ck"},
+            recreate="always",
+        ) as batch_op:
+            batch_op.add_column(Column("y", Integer))
+
+        eq_(self._ck_constraints(connection), [("ck_user_ck", "age > 0")])
+
+
+class BatchUnnamedCheckConstraintTest(_BatchRoundTripBase, TestBase):
+    """test that the omission of unnamed reflected CHECK constraints from a
+    table recreate is warned on.
+
+    See #1846.
+
+    """
+
+    __only_on__ = "sqlite"
+
+    @testing.fixture(autouse=True)
+    def _reflect_for_teardown_fixture(self, metadata, connection):
+        yield
+        metadata.reflect(connection)
+
+    @testing.fixture
+    def table_fixture(self, metadata, connection):
+        def go(*cols):
+            t = Table(
+                "foo",
+                metadata,
+                Column("id", Integer, primary_key=True),
+                *cols,
+            )
+            with connection.begin():
+                t.create(connection)
+            return t
+
+        return go
+
+    def _check_constraints(self, connection):
+        return sorted(
+            (c["name"], c["sqltext"])
+            for c in inspect(connection).get_check_constraints("foo")
+        )
+
+    def _recreate(self):
+        with self.op.batch_alter_table("foo", recreate="always") as batch_op:
+            batch_op.add_column(Column("y", Integer))
+
+    def test_unnamed_check_constraint_warns(self, table_fixture, connection):
+        table_fixture(Column("x", Integer), CheckConstraint("x > 5"))
+        eq_(self._check_constraints(connection), [(None, "x > 5")])
+
+        with expect_warnings(
+            "Unnamed CHECK constraint on reflected table 'foo' is being "
+            "omitted from the table recreate"
+        ):
+            self._recreate()
+
+        eq_(self._check_constraints(connection), [])
+
+    def test_unnamed_type_bound_check_constraint_warns(
+        self, table_fixture, connection
+    ):
+        table_fixture(Column("val", Boolean(create_constraint=True)))
+        eq_(self._check_constraints(connection), [(None, "val IN (0, 1)")])
+
+        with expect_warnings(
+            "Unnamed CHECK constraint on reflected table 'foo' is being "
+            "omitted from the table recreate"
+        ):
+            self._recreate()
+
+        eq_(self._check_constraints(connection), [])
+
+    def test_named_check_constraint_no_warning(
+        self, table_fixture, connection
+    ):
+        """a named constraint is carried over, and doesn't warn"""
+
+        table_fixture(
+            Column("x", Integer), CheckConstraint("x > 5", name="ck1")
+        )
+
+        self._recreate()
+
+        eq_(self._check_constraints(connection), [("ck1", "x > 5")])
+
+    def test_named_type_no_warning(self, table_fixture, connection):
+        """a named datatype is carried over, and doesn't warn"""
+
+        table_fixture(
+            Column("val", Boolean(create_constraint=True, name="ck1"))
+        )
+
+        self._recreate()
+
+        eq_(self._check_constraints(connection), [("ck1", "val IN (0, 1)")])
+
+    def test_table_args_workaround_no_warning(self, table_fixture, connection):
+        """the documented workaround restates the constraint explicitly.
+
+        as any CheckConstraint passed in table_args indicates the case has
+        been dealt with, no warning is emitted.
+
+        """
+
+        table_fixture(Column("x", Integer), CheckConstraint("x > 5"))
+
+        with self.op.batch_alter_table(
+            "foo",
+            recreate="always",
+            table_args=[CheckConstraint("x > 5")],
+        ) as batch_op:
+            batch_op.add_column(Column("y", Integer))
+
+        eq_(self._check_constraints(connection), [(None, "x > 5")])
 
 
 class OfflineTest(TestBase):
@@ -2467,8 +2996,7 @@ class OfflineTest(TestBase):
             batch_op.drop_column('foo')
             batch_op.add_column(Column('bar', String))
 
-    """  # noqa: E501
-                % a,
+    """ % a,  # noqa: E501
             )
 
         yield go
@@ -2510,8 +3038,7 @@ class OfflineTest(TestBase):
             batch_op.drop_column('foo')
             batch_op.add_column(Column('bar', String))
 
-    """
-                % a,
+    """ % a,
             )
 
         yield go

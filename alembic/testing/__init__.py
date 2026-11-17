@@ -8,7 +8,6 @@ from sqlalchemy.testing import skip_if
 from sqlalchemy.testing import uses_deprecated
 from sqlalchemy.testing.config import combinations
 from sqlalchemy.testing.config import fixture
-from sqlalchemy.testing.config import requirements as requires
 from sqlalchemy.testing.config import Variation
 from sqlalchemy.testing.config import variation
 
@@ -21,7 +20,6 @@ from .assertions import expect_deprecated
 from .assertions import expect_raises
 from .assertions import expect_raises_message
 from .assertions import expect_sqlalchemy_deprecated
-from .assertions import expect_sqlalchemy_deprecated_20
 from .assertions import expect_warnings
 from .assertions import is_
 from .assertions import is_false

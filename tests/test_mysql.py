@@ -11,11 +11,14 @@ from sqlalchemy import Index
 from sqlalchemy import inspect
 from sqlalchemy import Integer
 from sqlalchemy import MetaData
+from sqlalchemy import Numeric
 from sqlalchemy import String
 from sqlalchemy import Table
 from sqlalchemy import text
 from sqlalchemy import TIMESTAMP
+from sqlalchemy.dialects.mysql import DOUBLE as MySQL_DOUBLE
 from sqlalchemy.dialects.mysql import ENUM as MySQL_ENUM
+from sqlalchemy.dialects.mysql import TINYINT as MySQL_TINYINT
 from sqlalchemy.dialects.mysql import VARCHAR
 
 from alembic import autogenerate
@@ -31,8 +34,6 @@ from alembic.testing import combinations
 from alembic.testing import config
 from alembic.testing import eq_ignore_whitespace
 from alembic.testing import is_
-from alembic.testing.env import clear_staging_env
-from alembic.testing.env import staging_env
 from alembic.testing.fixtures import AlterColRoundTripFixture
 from alembic.testing.fixtures import op_fixture
 from alembic.testing.fixtures import TestBase
@@ -81,6 +82,11 @@ class MySQLOpTest(TestBase):
         context.assert_(
             "ALTER TABLE t ADD COLUMN q INTEGER COMMENT 'This is a comment'"
         )
+
+    def test_add_column_with_empty_comment(self):
+        context = op_fixture("mysql")
+        op.add_column("t", Column("q", Integer, comment=""))
+        context.assert_("ALTER TABLE t ADD COLUMN q INTEGER COMMENT ''")
 
     def test_add_column_if_not_exists(self):
         context = op_fixture("mysql")
@@ -619,100 +625,274 @@ class MySQLBackendOpTest(AlterColRoundTripFixture, TestBase):
         )
 
 
-class MySQLDefaultCompareTest(TestBase):
+_server_default_combinations = combinations(
+    (Integer(), None, "5", "5", "'5'", "5", False),
+    (Integer(), None, "5", "7", "'5'", "5", True),
+    (Integer(), None, None, "0", None, None, True),
+    # a Boolean column is reflected as TINYINT(1)
+    (
+        Boolean(),
+        MySQL_TINYINT(display_width=1),
+        "1",
+        "1",
+        "'1'",
+        "1",
+        False,
+    ),
+    (Boolean(), MySQL_TINYINT(display_width=1), "1", "0", "'1'", "1", True),
+    (MySQL_TINYINT(display_width=1), None, "1", "1", "'1'", "1", False),
+    (MySQL_TINYINT(display_width=1), None, "1", "0", "'1'", "1", True),
+    (Float(), None, "1", "1", "'1'", "1", False),
+    (Float(), None, "1", "2", "'1'", "1", True),
+    # SQLAlchemy renders a fractional literal as an expression default,
+    # e.g. "DEFAULT (2.5)", which MySQL then reports with the parenthesis
+    (MySQL_DOUBLE(), None, "2.5", "2.5", "(2.5)", "2.5", False),
+    (MySQL_DOUBLE(), None, "2.5", "3.5", "(2.5)", "2.5", True),
+    (MySQL_DOUBLE(), None, "3", "3", "'3'", "3", False),
+    (Numeric(10, 2), None, "3.50", "3.50", "(3.50)", "3.50", False),
+    (Numeric(10, 2), None, "3.50", "4.50", "(3.50)", "3.50", True),
+    (String(20), None, "'x'", "'x'", "'x'", "'x'", False),
+    (String(20), None, "'x'", "'y'", "'x'", "'x'", True),
+    # an expression default is reported by MySQL with the parenthesis
+    # SQLAlchemy rendered and by MariaDB without them; either form
+    # compares as equal to either form in the metadata, and the
+    # comparison remains case insensitive
+    (
+        Float(),
+        None,
+        "(rand())",
+        "(rand())",
+        "(rand())",
+        "rand()",
+        False,
+        config.requirements.expression_server_defaults,
+    ),
+    (
+        Float(),
+        None,
+        "(rand())",
+        "(RAND())",
+        "(rand())",
+        "rand()",
+        False,
+        config.requirements.expression_server_defaults,
+    ),
+    (
+        Float(),
+        None,
+        "(rand())",
+        "rand()",
+        "(rand())",
+        "rand()",
+        False,
+        config.requirements.expression_server_defaults,
+    ),
+    (
+        Float(),
+        None,
+        "(rand())",
+        "1",
+        "(rand())",
+        "rand()",
+        True,
+        config.requirements.expression_server_defaults,
+    ),
+    # MariaDB renders CURRENT_TIMESTAMP as the function call
+    # "current_timestamp()"
+    (
+        TIMESTAMP(),
+        None,
+        "CURRENT_TIMESTAMP",
+        "CURRENT_TIMESTAMP",
+        "CURRENT_TIMESTAMP",
+        "current_timestamp()",
+        False,
+    ),
+    (
+        TIMESTAMP(),
+        None,
+        None,
+        "CURRENT_TIMESTAMP",
+        None,
+        None,
+        True,
+    ),
+    # note SQLAlchemy reflection bundles the ON UPDATE part into the
+    # server default reflection, see
+    # https://github.com/sqlalchemy/sqlalchemy/issues/4652
+    (
+        TIMESTAMP(),
+        None,
+        "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
+        "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
+        "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
+        "current_timestamp() ON UPDATE current_timestamp()",
+        False,
+    ),
+    (
+        TIMESTAMP(),
+        None,
+        None,
+        "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
+        None,
+        None,
+        True,
+    ),
+    argnames="type_, inspector_type, ddl_default, "
+    "rendered_metadata_default, mysql_inspector_default, "
+    "mariadb_inspector_default, expected",
+    # ids read as "<repr of type_>-<ddl_default>-<metadata default>"; the
+    # remaining positions are passed to the test but left out of the id
+    id_="rassaaa",
+)
+"""Server default comparison cases shared by the unit tests and the round
+trip test below.
+
+``ddl_default`` is the default as rendered into the CREATE TABLE
+statement, or ``None`` for a column created with no default.
+``mysql_inspector_default`` and ``mariadb_inspector_default`` are what
+each backend reports for such a column, and ``inspector_type`` the type
+it reports where that differs from ``type_``; the round trip test gets
+all three from reflection against the database actually being tested
+instead.
+
+"""
+
+
+class _CompareServerDefaultFixture(TestBase):
+    """Run the shared combinations against
+    :meth:`.MySQLImpl.compare_server_default` for a single dialect.
+
+    """
+
+    __dialect__: str
+
+    @testing.fixture
+    def impl(self):
+        return MigrationContext.configure(dialect_name=self.__dialect__).impl
+
+    def _inspector_default(
+        self, mysql_inspector_default, mariadb_inspector_default
+    ):
+        raise NotImplementedError()
+
+    @_server_default_combinations
+    def test_compare_server_default(
+        self,
+        impl,
+        type_,
+        inspector_type,
+        ddl_default,
+        rendered_metadata_default,
+        mysql_inspector_default,
+        mariadb_inspector_default,
+        expected,
+    ):
+        is_(
+            impl.compare_server_default(
+                Column("somecol", inspector_type or type_),
+                Column("somecol", type_),
+                rendered_metadata_default,
+                self._inspector_default(
+                    mysql_inspector_default, mariadb_inspector_default
+                ),
+            ),
+            expected,
+        )
+
+
+class MySQLCompareServerDefaultTest(_CompareServerDefaultFixture):
+    """unit tests for :meth:`.MySQLImpl.compare_server_default` against the
+    values MySQL 8 / MySQL 9 report.
+
+    MySQL reports a literal server default in quoted form, e.g. ``'1'``,
+    and an expression default with the parenthesis included, e.g.
+    ``(rand())``.
+
+    """
+
+    __dialect__ = "mysql"
+
+    def _inspector_default(
+        self, mysql_inspector_default, mariadb_inspector_default
+    ):
+        return mysql_inspector_default
+
+
+class MariaDBCompareServerDefaultTest(_CompareServerDefaultFixture):
+    """unit tests for :meth:`.MySQLImpl.compare_server_default` against the
+    values MariaDB reports.
+
+    MariaDB reports a literal server default unquoted, an expression
+    default without the parenthesis SQLAlchemy rendered, and a
+    no-argument function such as ``CURRENT_TIMESTAMP`` as a function
+    call.
+
+    """
+
+    __dialect__ = "mariadb"
+
+    def _inspector_default(
+        self, mysql_inspector_default, mariadb_inspector_default
+    ):
+        return mariadb_inspector_default
+
+
+class MySQLCompareServerDefaultRoundTripTest(TestBase):
+    """round trip tests for :meth:`.MySQLImpl.compare_server_default`.
+
+    the table is created on the target backend and the reflected server
+    default is compared against the metadata default, so that the
+    quoting and casing conventions of the backend in use are those
+    actually tested.
+
+    """
+
     __only_on__ = "mysql", "mariadb"
     __backend__ = True
 
-    @classmethod
-    def setup_class(cls):
-        cls.bind = config.db
-        staging_env()
-        context = MigrationContext.configure(
-            connection=cls.bind.connect(),
-            opts={"compare_type": True, "compare_server_default": True},
-        )
-        connection = context.bind
-        cls.autogen_context = {
-            "imports": set(),
-            "connection": connection,
-            "dialect": connection.dialect,
-            "context": context,
-        }
-
-    @classmethod
-    def teardown_class(cls):
-        clear_staging_env()
-
-    def setUp(self):
-        self.metadata = MetaData()
-
-    def tearDown(self):
-        with config.db.begin() as conn:
-            self.metadata.drop_all(conn)
-
-    def _compare_default_roundtrip(self, type_, txt, alternate=None):
-        if alternate:
-            expected = True
-        else:
-            alternate = txt
-            expected = False
-        t = Table(
+    @_server_default_combinations
+    def test_compare_server_default(
+        self,
+        connection,
+        metadata,
+        type_,
+        inspector_type,
+        ddl_default,
+        rendered_metadata_default,
+        mysql_inspector_default,
+        mariadb_inspector_default,
+        expected,
+    ):
+        Table(
             "test",
-            self.metadata,
+            metadata,
             Column(
-                "somecol", type_, server_default=text(txt) if txt else None
+                "somecol",
+                type_,
+                server_default=text(ddl_default) if ddl_default else None,
             ),
+        ).create(connection)
+
+        reflected = Table("test", MetaData(), autoload_with=connection)
+        inspector_default = inspect(connection).get_columns("test")[0][
+            "default"
+        ]
+
+        impl = MigrationContext.configure(
+            connection,
+            opts={"compare_type": True, "compare_server_default": True},
+        ).impl
+
+        is_(
+            impl.compare_server_default(
+                reflected.c.somecol,
+                Column("somecol", type_),
+                rendered_metadata_default,
+                inspector_default,
+            ),
+            expected,
         )
-        t2 = Table(
-            "test",
-            MetaData(),
-            Column("somecol", type_, server_default=text(alternate)),
-        )
-        assert (
-            self._compare_default(t, t2, t2.c.somecol, alternate) is expected
-        )
-
-    def _compare_default(self, t1, t2, col, rendered):
-        t1.create(self.bind)
-        insp = inspect(self.bind)
-        cols = insp.get_columns(t1.name)
-        refl = Table(t1.name, MetaData())
-        insp.reflect_table(refl, include_columns=None)
-        ctx = self.autogen_context["context"]
-        return ctx.impl.compare_server_default(
-            refl.c[cols[0]["name"]], col, rendered, cols[0]["default"]
-        )
-
-    def test_compare_timestamp_current_timestamp(self):
-        self._compare_default_roundtrip(TIMESTAMP(), "CURRENT_TIMESTAMP")
-
-    def test_compare_timestamp_current_timestamp_diff(self):
-        self._compare_default_roundtrip(TIMESTAMP(), None, "CURRENT_TIMESTAMP")
-
-    def test_compare_timestamp_current_timestamp_bundle_onupdate(self):
-        self._compare_default_roundtrip(
-            TIMESTAMP(), "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
-        )
-
-    def test_compare_timestamp_current_timestamp_diff_bundle_onupdate(self):
-        self._compare_default_roundtrip(
-            TIMESTAMP(), None, "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
-        )
-
-    def test_compare_integer_from_none(self):
-        self._compare_default_roundtrip(Integer(), None, "0")
-
-    def test_compare_integer_same(self):
-        self._compare_default_roundtrip(Integer(), "5")
-
-    def test_compare_integer_diff(self):
-        self._compare_default_roundtrip(Integer(), "5", "7")
-
-    def test_compare_boolean_same(self):
-        self._compare_default_roundtrip(Boolean(), "1")
-
-    def test_compare_boolean_diff(self):
-        self._compare_default_roundtrip(Boolean(), "1", "0")
 
 
 class MySQLAutogenRenderTest(TestBase):

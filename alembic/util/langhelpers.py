@@ -2,22 +2,17 @@ from __future__ import annotations
 
 import collections
 from collections.abc import Iterable
+from collections.abc import Mapping
+from collections.abc import MutableMapping
+from collections.abc import Sequence
 import enum
 import textwrap
 from typing import Any
 from typing import Callable
 from typing import cast
 from typing import Dict
-from typing import List
-from typing import Mapping
-from typing import MutableMapping
 from typing import NoReturn
-from typing import Optional
 from typing import overload
-from typing import Sequence
-from typing import Set
-from typing import Tuple
-from typing import Type
 from typing import TypeVar
 import uuid
 import warnings
@@ -57,11 +52,11 @@ class ModuleClsProxy(metaclass=_ModuleClsMeta):
 
     """
 
-    _setups: Dict[
-        Type[Any],
-        Tuple[
-            Set[str],
-            List[Tuple[MutableMapping[str, Any], MutableMapping[str, Any]]],
+    _setups: dict[
+        type[Any],
+        tuple[
+            set[str],
+            list[tuple[MutableMapping[str, Any], MutableMapping[str, Any]]],
         ],
     ] = collections.defaultdict(lambda: (set(), []))
 
@@ -100,7 +95,7 @@ class ModuleClsProxy(metaclass=_ModuleClsMeta):
         cls,
         globals_: MutableMapping[str, Any],
         locals_: MutableMapping[str, Any],
-        attr_names: Set[str],
+        attr_names: set[str],
     ) -> None:
         for methname in dir(cls):
             cls._add_proxied_attribute(methname, globals_, locals_, attr_names)
@@ -111,7 +106,7 @@ class ModuleClsProxy(metaclass=_ModuleClsMeta):
         methname: str,
         globals_: MutableMapping[str, Any],
         locals_: MutableMapping[str, Any],
-        attr_names: Set[str],
+        attr_names: set[str],
     ) -> None:
         if not methname.startswith("_"):
             meth = getattr(cls, methname)
@@ -233,22 +228,22 @@ def rev_id() -> str:
 
 
 @overload
-def to_tuple(x: Any, default: Tuple[Any, ...]) -> Tuple[Any, ...]: ...
+def to_tuple(x: Any, default: tuple[Any, ...]) -> tuple[Any, ...]: ...
 
 
 @overload
-def to_tuple(x: None, default: Optional[_T] = ...) -> _T: ...
+def to_tuple(x: None, default: _T | None = ...) -> _T: ...
 
 
 @overload
 def to_tuple(
-    x: Any, default: Optional[Tuple[Any, ...]] = None
-) -> Tuple[Any, ...]: ...
+    x: Any, default: tuple[Any, ...] | None = None
+) -> tuple[Any, ...]: ...
 
 
 def to_tuple(
-    x: Any, default: Optional[Tuple[Any, ...]] = None
-) -> Optional[Tuple[Any, ...]]:
+    x: Any, default: tuple[Any, ...] | None = None
+) -> tuple[Any, ...] | None:
     if x is None:
         return default
     elif isinstance(x, str):
@@ -259,7 +254,7 @@ def to_tuple(
         return (x,)
 
 
-def dedupe_tuple(tup: Tuple[str, ...]) -> Tuple[str, ...]:
+def dedupe_tuple(tup: tuple[str, ...]) -> tuple[str, ...]:
     return tuple(unique_list(tup))
 
 
@@ -303,7 +298,7 @@ class DispatchPriority(enum.IntEnum):
 
 class Dispatcher:
     def __init__(self) -> None:
-        self._registry: Dict[Tuple[Any, ...], Any] = {}
+        self._registry: dict[tuple[Any, ...], Any] = {}
 
     def dispatch_for(
         self,
@@ -440,6 +435,6 @@ class PriorityDispatcher:
             self._registry[k].extend(new_list)
 
 
-def not_none(value: Optional[_T]) -> _T:
+def not_none(value: _T | None) -> _T:
     assert value is not None
     return value

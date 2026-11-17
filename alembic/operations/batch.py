@@ -4,12 +4,7 @@
 from __future__ import annotations
 
 from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
 from typing import TYPE_CHECKING
-from typing import Union
 
 from sqlalchemy import CheckConstraint
 from sqlalchemy import Column
@@ -21,20 +16,29 @@ from sqlalchemy import schema as sql_schema
 from sqlalchemy import select
 from sqlalchemy import Table
 from sqlalchemy import types as sqltypes
+from sqlalchemy.sql import visitors
+from sqlalchemy.sql.elements import ColumnElement
+from sqlalchemy.sql.elements import TextClause
 from sqlalchemy.sql.schema import SchemaEventTarget
 from sqlalchemy.util import OrderedDict
 from sqlalchemy.util import topological
 
+from .. import util
 from ..util import exc
 from ..util.sqla_compat import _columns_for_constraint
+from ..util.sqla_compat import _conv_constraint_names
 from ..util.sqla_compat import _copy
 from ..util.sqla_compat import _copy_expression
 from ..util.sqla_compat import _ensure_scope_for_ddl
 from ..util.sqla_compat import _fk_is_self_referential
+from ..util.sqla_compat import _fk_target_tokens
+from ..util.sqla_compat import _get_table_key
 from ..util.sqla_compat import _idx_table_bound_expressions
 from ..util.sqla_compat import _is_type_bound
+from ..util.sqla_compat import _name_type_bound_constraints
 from ..util.sqla_compat import _remove_column_from_collection
 from ..util.sqla_compat import _resolve_for_variant
+from ..util.sqla_compat import _textual_index_element
 from ..util.sqla_compat import constraint_name_defined
 from ..util.sqla_compat import constraint_name_string
 
@@ -114,10 +118,7 @@ class BatchOperationsImpl:
                     fn = getattr(self.operations.impl, opname)
                     fn(*arg, **kw)
             else:
-                if self.naming_convention:
-                    m1 = MetaData(naming_convention=self.naming_convention)
-                else:
-                    m1 = MetaData()
+                m1 = MetaData()
 
                 if self.copy_from is not None:
                     existing_table = self.copy_from
@@ -147,6 +148,19 @@ class BatchOperationsImpl:
                         **self.reflect_kwargs,
                     )
                     reflected = True
+
+                    if self.naming_convention:
+                        # names that came back from reflection are already
+                        # the names that are in the database, so mark them
+                        # as final; the naming convention is then applied
+                        # only to those constraints that were reflected
+                        # without a name, which is what this parameter is
+                        # for.  see the docstring for
+                        # sqlalchemy.schema.conv.
+                        _conv_constraint_names(existing_table)
+                        existing_table = existing_table.to_metadata(
+                            MetaData(naming_convention=self.naming_convention)
+                        )
 
                 batch_impl = ApplyBatchImpl(
                     self.impl,
@@ -215,7 +229,7 @@ class ApplyBatchImpl:
         impl: DefaultImpl,
         table: Table,
         table_args: tuple,
-        table_kwargs: Dict[str, Any],
+        table_kwargs: dict[str, Any],
         reflected: bool,
         partial_reordering: tuple = (),
     ) -> None:
@@ -224,11 +238,11 @@ class ApplyBatchImpl:
         self.table_args = table_args
         self.table_kwargs = table_kwargs
         self.temp_table_name = self._calc_temp_name(table.name)
-        self.new_table: Optional[Table] = None
+        self.new_table: Table | None = None
 
         self.partial_reordering = partial_reordering  # tuple of tuples
-        self.add_col_ordering: Tuple[
-            Tuple[str, str], ...
+        self.add_col_ordering: tuple[
+            tuple[str, str], ...
         ] = ()  # tuple of tuples
 
         self.column_transfers = OrderedDict(
@@ -240,12 +254,12 @@ class ApplyBatchImpl:
         self._grab_table_elements()
 
     @classmethod
-    def _calc_temp_name(cls, tablename: Union[quoted_name, str]) -> str:
+    def _calc_temp_name(cls, tablename: quoted_name | str) -> str:
         return ("_alembic_tmp_%s" % tablename)[0:50]
 
     def _grab_table_elements(self) -> None:
         schema = self.table.schema
-        self.columns: Dict[str, Column[Any]] = OrderedDict()
+        self.columns: dict[str, Column[Any]] = OrderedDict()
         for c in self.table.c:
             c_copy = _copy(c, schema=schema)
             c_copy.unique = c_copy.index = False
@@ -254,11 +268,22 @@ class ApplyBatchImpl:
             if isinstance(c.type, SchemaEventTarget):
                 assert c_copy.type is not c.type
             self.columns[c.name] = c_copy
-        self.named_constraints: Dict[str, Constraint] = {}
+        self.named_constraints: dict[str, Constraint] = {}
         self.unnamed_constraints = []
         self.col_named_constraints = {}
-        self.indexes: Dict[str, Index] = {}
-        self.new_indexes: Dict[str, Index] = {}
+        self.indexes: dict[str, Index] = {}
+        self.new_indexes: dict[str, Index] = {}
+
+        # a reflected CHECK constraint that has no name can't be linked
+        # to the column or datatype it applies to, so it is omitted from
+        # the recreate; the documented remedy is to restate it using
+        # batch_alter_table.table_args.  Individual constraints can't be
+        # matched up to those that were passed, as the reflected text is
+        # normalized by the database, so the presence of any CheckConstraint
+        # in table_args is taken to mean the case has been dealt with.
+        check_constraints_in_table_args = any(
+            isinstance(arg, CheckConstraint) for arg in self.table_args
+        )
 
         for const in self.table.constraints:
             if _is_type_bound(const):
@@ -271,7 +296,16 @@ class ApplyBatchImpl:
                 # TODO: we are skipping unnamed reflected CheckConstraint
                 # because
                 # we have no way to determine _is_type_bound() for these.
-                pass
+                # warn, as the constraint is otherwise dropped from the
+                # table without any indication that this has occurred.
+                if not check_constraints_in_table_args:
+                    util.warn(
+                        f"Unnamed CHECK constraint on reflected table "
+                        f"'{self.table.name}' is being omitted from the "
+                        f"table recreate; pass the constraint explicitly "
+                        f"using batch_alter_table.table_args.  Naming CHECK "
+                        f"constraints avoids this going forward."
+                    )
             elif constraint_name_string(const.name):
                 self.named_constraints[const.name] = const
             else:
@@ -336,6 +370,12 @@ class ApplyBatchImpl:
             **self.table_kwargs,
         )
 
+        # CHECK constraints regenerated on the new table by a SchemaType
+        # such as Boolean or Enum are named using the naming convention of
+        # the table being replaced; the new table is under a temporary name
+        # at this point so it can't supply the convention itself.
+        _name_type_bound_constraints(new_table, self.table)
+
         for const in (
             list(self.named_constraints.values()) + self.unnamed_constraints
         ):
@@ -369,9 +409,9 @@ class ApplyBatchImpl:
                 self._setup_referent(m, const)
             new_table.append_constraint(const_copy)
 
-    def _gather_indexes_from_both_tables(self) -> List[Index]:
+    def _gather_indexes_from_both_tables(self) -> list[Index]:
         assert self.new_table is not None
-        idx: List[Index] = []
+        idx: list[Index] = []
 
         for idx_existing in self.indexes.values():
             # this is a lift-and-move from Table.to_metadata
@@ -396,46 +436,67 @@ class ApplyBatchImpl:
                 Index(
                     index.name,
                     unique=index.unique,
-                    *[self.new_table.c[col] for col in index.columns.keys()],
+                    *[
+                        self._copy_new_index_expression(expr)
+                        for expr in _idx_table_bound_expressions(index)
+                    ],
+                    _table=self.new_table,
                     **index.kwargs,
                 )
             )
         return idx
 
+    def _copy_new_index_expression(
+        self, expr: ColumnElement[Any]
+    ) -> ColumnElement[Any] | TextClause:
+        """Copy an expression from an index created within the batch
+        onto the new table.
+
+        These indexes are built by ``create_index()`` against a placeholder
+        table, so their columns are located in the new table by key.
+
+        """
+        assert self.new_table is not None
+        new_table = self.new_table
+
+        if isinstance(expr, _textual_index_element):
+            return expr.text
+
+        def replace(col: Any) -> Column[Any] | None:
+            if isinstance(col, Column) and col.table is not new_table:
+                return new_table.c[col.key]
+            return None
+
+        return visitors.replacement_traverse(  # type: ignore[call-overload]
+            expr, {}, replace
+        )
+
     def _setup_referent(
         self, metadata: MetaData, constraint: ForeignKeyConstraint
     ) -> None:
-        spec = constraint.elements[0]._get_colspec()
-        parts = spec.split(".")
-        tname = parts[-2]
-        if len(parts) == 3:
-            referent_schema = parts[0]
-        else:
-            referent_schema = None
+        referent_schema, tname, _ = _fk_target_tokens(constraint.elements[0])
 
         if tname != self.temp_table_name:
-            key = sql_schema._get_table_key(tname, referent_schema)
-
-            def colspec(elem: Any):
-                return elem._get_colspec()
+            key = _get_table_key(tname, referent_schema)
+            colnames = [
+                name
+                for name in (
+                    _fk_target_tokens(elem).column_name
+                    for elem in constraint.elements
+                )
+                if name is not None
+            ]
 
             if key in metadata.tables:
                 t = metadata.tables[key]
-                for elem in constraint.elements:
-                    colname = colspec(elem).split(".")[-1]
-                    if colname not in t.c:
-                        t.append_column(Column(colname, sqltypes.NULLTYPE))
+                for name in colnames:
+                    if name not in t.c:
+                        t.append_column(Column(name, sqltypes.NULLTYPE))
             else:
                 Table(
                     tname,
                     metadata,
-                    *[
-                        Column(n, sqltypes.NULLTYPE)
-                        for n in [
-                            colspec(elem).split(".")[-1]
-                            for elem in constraint.elements
-                        ]
-                    ],
+                    *[Column(name, sqltypes.NULLTYPE) for name in colnames],
                     schema=referent_schema,
                 )
 
@@ -484,18 +545,16 @@ class ApplyBatchImpl:
         self,
         table_name: str,
         column_name: str,
-        nullable: Optional[bool] = None,
-        server_default: Union[
-            _ServerDefaultType, None, Literal[False]
-        ] = False,
-        name: Optional[str] = None,
-        type_: Optional[TypeEngine] = None,
-        autoincrement: Optional[Union[bool, Literal["auto"]]] = None,
-        comment: Union[str, Literal[False]] = False,
+        nullable: bool | None = None,
+        server_default: _ServerDefaultType | None | Literal[False] = False,
+        name: str | None = None,
+        type_: TypeEngine | None = None,
+        autoincrement: bool | Literal["auto"] | None = None,
+        comment: str | Literal[False] = False,
         **kw,
     ) -> None:
         existing = self.columns[column_name]
-        existing_transfer: Dict[str, Any] = self.column_transfers[column_name]
+        existing_transfer: dict[str, Any] = self.column_transfers[column_name]
         if name is not None and name != column_name:
             # note that we don't change '.key' - we keep referring
             # to the renamed column by its old key in _create().  neat!
@@ -511,10 +570,10 @@ class ApplyBatchImpl:
                 # pop named constraints for Boolean/Enum for rename
                 if (
                     isinstance(resolved_existing_type, SchemaEventTarget)
-                    and resolved_existing_type.name  # type:ignore[attr-defined]  # noqa E501
+                    and resolved_existing_type.name  # type: ignore[attr-defined]  # noqa E501
                 ):
                     self.named_constraints.pop(
-                        resolved_existing_type.name,  # type:ignore[attr-defined]  # noqa E501
+                        resolved_existing_type.name,  # type: ignore[attr-defined]  # noqa E501
                         None,
                     )
 
@@ -527,8 +586,8 @@ class ApplyBatchImpl:
             # Operations.implementation_for(alter_column)
 
             if isinstance(existing.type, SchemaEventTarget):
-                existing.type._create_events = (  # type:ignore[attr-defined]
-                    existing.type.create_constraint  # type:ignore[attr-defined] # noqa
+                existing.type._create_events = (  # type: ignore[attr-defined]
+                    existing.type.create_constraint  # type: ignore[attr-defined] # noqa
                 ) = False
 
             self.impl.cast_for_batch_migrate(
@@ -560,8 +619,8 @@ class ApplyBatchImpl:
     def _setup_dependencies_for_add_column(
         self,
         colname: str,
-        insert_before: Optional[str],
-        insert_after: Optional[str],
+        insert_before: str | None,
+        insert_after: str | None,
     ) -> None:
         index_cols = self.existing_ordering
         col_indexes = {name: i for i, name in enumerate(index_cols)}
@@ -609,8 +668,8 @@ class ApplyBatchImpl:
         self,
         table_name: str,
         column: Column[Any],
-        insert_before: Optional[str] = None,
-        insert_after: Optional[str] = None,
+        insert_before: str | None = None,
+        insert_after: str | None = None,
         **kw,
     ) -> None:
         self._setup_dependencies_for_add_column(
@@ -618,13 +677,25 @@ class ApplyBatchImpl:
         )
         # we copy the column because operations.add_column()
         # gives us a Column that is part of a Table already.
-        self.columns[column.name] = _copy(column, schema=self.table.schema)
+        col_copy = _copy(column, schema=self.table.schema)
+
+        # turn off eventing rules for a SchemaType such as Boolean / Enum,
+        # so that the type doesn't emit its own CHECK constraint onto the
+        # new table.  Operations.implementation_for(add_column) already
+        # emits an add_constraint() for this constraint, which is where
+        # the naming convention has been applied.
+        if isinstance(col_copy.type, SchemaEventTarget):
+            col_copy.type._create_events = (  # type: ignore[attr-defined]
+                col_copy.type.create_constraint  # type: ignore[attr-defined]
+            ) = False
+
+        self.columns[column.name] = col_copy
         self.column_transfers[column.name] = {}
 
     def drop_column(
         self,
         table_name: str,
-        column: Union[ColumnClause[Any], Column[Any]],
+        column: ColumnClause[Any] | Column[Any],
         **kw,
     ) -> None:
         if column.name in self.table.primary_key.columns:
@@ -639,10 +710,10 @@ class ApplyBatchImpl:
         if (
             "existing_type" in kw
             and isinstance(kw["existing_type"], SchemaEventTarget)
-            and kw["existing_type"].name  # type:ignore[attr-defined]
+            and kw["existing_type"].name  # type: ignore[attr-defined]
         ):
             self.named_constraints.pop(
-                kw["existing_type"].name, None  # type:ignore[attr-defined]
+                kw["existing_type"].name, None  # type: ignore[attr-defined]
             )
 
     def create_column_comment(self, column):

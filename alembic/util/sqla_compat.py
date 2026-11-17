@@ -3,43 +3,47 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
+from collections.abc import Iterator
 import contextlib
+from itertools import chain
 import re
 from typing import Any
 from typing import Callable
-from typing import Dict
-from typing import Iterable
-from typing import Iterator
-from typing import Optional
+from typing import NamedTuple
 from typing import Protocol
-from typing import Set
-from typing import Type
 from typing import TYPE_CHECKING
+from typing import TypeGuard
 from typing import TypeVar
 from typing import Union
 
 from sqlalchemy import __version__
+from sqlalchemy import exc as sa_exc
 from sqlalchemy import schema
 from sqlalchemy import sql
 from sqlalchemy import types as sqltypes
 from sqlalchemy.schema import CheckConstraint
 from sqlalchemy.schema import Column
 from sqlalchemy.schema import ForeignKeyConstraint
+from sqlalchemy.schema import Table
 from sqlalchemy.sql import visitors
+from sqlalchemy.sql.base import _NoneName
 from sqlalchemy.sql.base import DialectKWArgs
 from sqlalchemy.sql.elements import BindParameter
 from sqlalchemy.sql.elements import ColumnClause
+from sqlalchemy.sql.elements import conv
 from sqlalchemy.sql.elements import TextClause
 from sqlalchemy.sql.elements import UnaryExpression
+from sqlalchemy.sql.naming import _constraint_name_for_table
 from sqlalchemy.sql.naming import _NONE_NAME as _NONE_NAME  # type: ignore[attr-defined] # noqa: E501
 from sqlalchemy.sql.visitors import traverse
-from typing_extensions import TypeGuard
+
+from .messaging import warn
 
 if TYPE_CHECKING:
     from sqlalchemy import ClauseElement
     from sqlalchemy import Identity
     from sqlalchemy import Index
-    from sqlalchemy import Table
     from sqlalchemy.engine import Connection
     from sqlalchemy.engine import Dialect
     from sqlalchemy.engine import Transaction
@@ -47,6 +51,7 @@ if TYPE_CHECKING:
     from sqlalchemy.sql.compiler import SQLCompiler
     from sqlalchemy.sql.elements import ColumnElement
     from sqlalchemy.sql.schema import Constraint
+    from sqlalchemy.sql.schema import ForeignKey
     from sqlalchemy.sql.schema import SchemaItem
 
 _CE = TypeVar("_CE", bound=Union["ColumnElement[Any]", "SchemaItem"])
@@ -56,7 +61,7 @@ class _CompilerProtocol(Protocol):
     def __call__(self, element: Any, compiler: Any, **kw: Any) -> str: ...
 
 
-def _safe_int(value: str) -> Union[int, str]:
+def _safe_int(value: str) -> int | str:
     try:
         return int(value)
     except:
@@ -66,10 +71,6 @@ def _safe_int(value: str) -> Union[int, str]:
 _vers = tuple(
     [_safe_int(x) for x in re.findall(r"(\d+|[abc]\d)", __version__)]
 )
-# https://docs.sqlalchemy.org/en/latest/changelog/changelog_14.html#change-0c6e0cc67dfe6fac5164720e57ef307d
-sqla_14_18 = _vers >= (1, 4, 18)
-sqla_14_26 = _vers >= (1, 4, 26)
-sqla_2 = _vers >= (2,)
 sqla_2_0_25 = _vers >= (2, 25)
 sqla_2_1 = _vers >= (2, 1)
 sqlalchemy_version = __version__
@@ -77,7 +78,7 @@ sqlalchemy_version = __version__
 if TYPE_CHECKING:
 
     def compiles(
-        element: Type[ClauseElement], *dialects: str
+        element: type[ClauseElement], *dialects: str
     ) -> Callable[[_CompilerProtocol], _CompilerProtocol]: ...
 
 else:
@@ -88,9 +89,9 @@ identity_has_dialect_kwargs = issubclass(schema.Identity, DialectKWArgs)
 
 
 def _get_identity_options_dict(
-    identity: Union[Identity, schema.Sequence, None],
+    identity: Identity | schema.Sequence | None,
     dialect_kwargs: bool = False,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     if identity is None:
         return {}
     elif identity_has_dialect_kwargs:
@@ -128,12 +129,6 @@ def _get_identity_options_dict(
     return as_dict
 
 
-if sqla_2:
-    from sqlalchemy.sql.base import _NoneName
-else:
-    from sqlalchemy.util import symbol as _NoneName  # type: ignore[assignment]
-
-
 _ConstraintName = Union[None, str, _NoneName]
 _ConstraintNameDefined = Union[str, _NoneName]
 
@@ -148,7 +143,7 @@ def constraint_name_string(name: _ConstraintName) -> TypeGuard[str]:
     return isinstance(name, str)
 
 
-def constraint_name_or_none(name: _ConstraintName) -> Optional[str]:
+def constraint_name_or_none(name: _ConstraintName) -> str | None:
     return name if constraint_name_string(name) else None
 
 
@@ -157,7 +152,7 @@ AUTOINCREMENT_DEFAULT = "auto"
 
 @contextlib.contextmanager
 def _ensure_scope_for_ddl(
-    connection: Optional[Connection],
+    connection: Connection | None,
 ) -> Iterator[None]:
     try:
         in_transaction = connection.in_transaction  # type: ignore[union-attr]
@@ -204,7 +199,7 @@ def _safe_rollback_connection_transaction(
         transaction.rollback()
 
 
-def _get_connection_in_transaction(connection: Optional[Connection]) -> bool:
+def _get_connection_in_transaction(connection: Connection | None) -> bool:
     try:
         in_transaction = connection.in_transaction  # type: ignore
     except AttributeError:
@@ -226,7 +221,7 @@ def _copy(schema_item: _CE, **kw) -> _CE:
 
 
 def _connectable_has_table(
-    connectable: Connection, tablename: str, schemaname: Union[str, None]
+    connectable: Connection, tablename: str, schemaname: str | None
 ) -> bool:
     return connectable.dialect.has_table(connectable, tablename, schemaname)
 
@@ -255,6 +250,14 @@ def _table_for_constraint(constraint: Constraint) -> Table:
         table = constraint.parent
         assert table is not None
         return table  # type: ignore[return-value]
+    elif isinstance(constraint, CheckConstraint):
+        parent = constraint.parent
+        if not isinstance(parent, Table):
+            table = parent.table
+            assert table is not None
+            return table
+        else:
+            return parent
     else:
         return constraint.table
 
@@ -293,7 +296,7 @@ else:
         return type_.impl, type_.mapping
 
 
-def _get_table_key(name: str, schema: Optional[str]) -> str:
+def _get_table_key(name: str, schema: str | None) -> str:
     if schema is None:
         return name
     else:
@@ -333,13 +336,62 @@ def _fk_spec(constraint: ForeignKeyConstraint) -> Any:
     )
 
 
+class _ForeignKeyTarget(NamedTuple):
+    """Stand-in for SQLAlchemy 2.1's ``ForeignKeyTarget`` named tuple."""
+
+    schema: str | None
+    table_name: str
+    column_name: str | None
+
+
+def _fk_target_tokens(fk: ForeignKey) -> _ForeignKeyTarget:
+    """Return the ``(schema, table_name, column_name)`` names that identify
+    the target of a :class:`.ForeignKey`.
+
+    These names are the representation SQLAlchemy computes against; unlike
+    the dotted string form of ``ForeignKey._get_colspec()`` they remain
+    unambiguous when a name itself contains a dot.
+
+    """
+    fk_any: Any = fk
+    if sqla_2_1:
+        return _ForeignKeyTarget(*fk_any.target_tokens)
+    else:
+        return _ForeignKeyTarget(*fk_any._column_tokens)
+
+
+def _fk_target_table_key(fk: ForeignKey) -> str | None:
+    """Return the :attr:`.MetaData.tables` key under which the target of a
+    :class:`.ForeignKey` is, or would be, registered.
+
+    Returns ``None`` when the target was given as a :class:`.Column` that is
+    not associated with a :class:`.Table`, in which case no key can be named.
+
+    """
+    fk_any: Any = fk
+    if sqla_2_1:
+        return fk_any.target_table_key
+    else:
+        return fk_any._table_key()
+
+
+def _fk_target_is_named(fk: ForeignKey) -> bool:
+    """Return True if a :class:`.ForeignKey` identifies its target by name
+    rather than by a :class:`.Column` object.
+
+    """
+    fk_any: Any = fk
+    if sqla_2_1:
+        return fk_any.target_column is None
+    else:
+        return isinstance(fk_any._colspec, str)
+
+
 def _fk_is_self_referential(constraint: ForeignKeyConstraint) -> bool:
-    spec = constraint.elements[0]._get_colspec()
-    tokens = spec.split(".")
-    tokens.pop(-1)  # colname
-    tablekey = ".".join(tokens)
     assert constraint.parent is not None
-    return tablekey == constraint.parent.key
+    return (
+        _fk_target_table_key(constraint.elements[0]) == constraint.parent.key
+    )
 
 
 def _is_type_bound(constraint: Constraint) -> bool:
@@ -349,16 +401,76 @@ def _is_type_bound(constraint: Constraint) -> bool:
     return constraint._type_bound
 
 
+def _conv_constraint_names(table: Table) -> None:
+    """Mark the names of constraints and indexes on ``table`` as final.
+
+    A name that came back from reflection is the name that's actually in
+    the database, so it should not be elaborated further by a naming
+    convention; :class:`sqlalchemy.schema.conv` is the marker that
+    indicates this.
+
+    """
+    for const in table.constraints:
+        if constraint_name_string(const.name) and not isinstance(
+            const.name, conv
+        ):
+            const.name = conv(const.name)
+
+    for idx in table.indexes:
+        if constraint_name_string(idx.name) and not isinstance(idx.name, conv):
+            idx.name = conv(idx.name)
+
+
+def _name_type_bound_constraints(table: Table, source_table: Table) -> None:
+    """Apply the naming convention on ``source_table.metadata`` to the
+    type-bound constraints on ``table``.
+
+    ``table`` here is a copy of ``source_table`` under a different name, so
+    the convention is resolved against ``source_table`` in order for the
+    ``%(table_name)s`` token to produce the real table name.
+
+    """
+    if not source_table.metadata.naming_convention:
+        return
+
+    for const in table.constraints:
+        if not _is_type_bound(const):
+            continue
+        try:
+            newname = _constraint_name_for_table(const, source_table)
+        except sa_exc.InvalidRequestError:
+            # the convention includes %(constraint_name)s but the type that
+            # generates this constraint has no name of its own, so there's
+            # nothing to interpolate.  the constraint is emitted without a
+            # name, which is what it was before the naming convention was
+            # taken into account here at all.
+            colnames = ", ".join(
+                c.name for c in _columns_for_constraint(const)
+            )
+            warn(
+                f"The CHECK constraint generated by the type of column "
+                f"'{source_table.name}.{colnames}' has no name, while the "
+                f"naming convention in use requires one; the constraint is "
+                f"emitted without a name.  Boolean and Enum datatypes should "
+                f"be given a name, e.g. Boolean(name='...'), in order for "
+                f"their CHECK constraints to participate fully in batch "
+                f"mode."
+            )
+            continue
+        if newname:
+            const.name = newname
+
+
 def _find_columns(clause):
     """locate Column objects within the given expression."""
 
-    cols: Set[ColumnElement[Any]] = set()
+    cols: set[ColumnElement[Any]] = set()
     traverse(clause, {}, {"column": cols.add})
     return cols
 
 
 def _remove_column_from_collection(
-    collection: ColumnCollection, column: Union[Column[Any], ColumnClause[Any]]
+    collection: ColumnCollection, column: Column[Any] | ColumnClause[Any]
 ) -> None:
     """remove a column from a ColumnCollection."""
 
@@ -376,8 +488,8 @@ def _remove_column_from_collection(
 
 
 def _textual_index_column(
-    table: Table, text_: Union[str, TextClause, ColumnElement[Any]]
-) -> Union[ColumnElement[Any], Column[Any]]:
+    table: Table, text_: str | TextClause | ColumnElement[Any]
+) -> ColumnElement[Any] | Column[Any]:
     """a workaround for the Index construct's severe lack of flexibility"""
     if isinstance(text_, str):
         c = Column(text_, sqltypes.NULLTYPE)
@@ -462,23 +574,20 @@ def _render_literal_bindparam(
 
 
 def _get_constraint_final_name(
-    constraint: Union[Index, Constraint], dialect: Optional[Dialect]
-) -> Optional[str]:
+    constraint: Index | Constraint, dialect: Dialect | None
+) -> str | None:
     if constraint.name is None:
         return None
     assert dialect is not None
-    # for SQLAlchemy 1.4 we would like to have the option to expand
-    # the use of "deferred" names for constraints as well as to have
-    # some flexibility with "None" name and similar; make use of new
-    # SQLAlchemy API to return what would be the final compiled form of
-    # the name for this dialect.
+    # make use of SQLAlchemy API to return what would be the final
+    # compiled form of the name for this dialect.
     return dialect.identifier_preparer.format_constraint(
         constraint, _alembic_quote=False
     )
 
 
 def _constraint_is_named(
-    constraint: Union[Constraint, Index], dialect: Optional[Dialect]
+    constraint: Constraint | Index, dialect: Dialect | None
 ) -> bool:
     if constraint.name is None:
         return False
@@ -508,3 +617,12 @@ def _inherit_schema_deprecated() -> bool:
     # at some point in 2.1 inherit_schema was replaced with a property
     # so that's preset at the class level, while before it wasn't.
     return sqla_2_1 and hasattr(sqltypes.Enum, "inherit_schema")
+
+
+def all_table_check_constraints(table: Table) -> set[CheckConstraint]:
+    """Returns all check constraint including type bound ones and
+    those on columns."""
+    candidates = chain(
+        table.constraints, *(c.constraints for c in table.columns)
+    )
+    return {ck for ck in candidates if isinstance(ck, CheckConstraint)}

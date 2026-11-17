@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from argparse import ArgumentParser
 from argparse import Namespace
+from collections.abc import Mapping
+from collections.abc import Sequence
 from configparser import ConfigParser
 import inspect
 import logging
@@ -11,14 +13,9 @@ import re
 import sys
 from typing import Any
 from typing import cast
-from typing import Dict
-from typing import Mapping
-from typing import Optional
 from typing import overload
 from typing import Protocol
-from typing import Sequence
 from typing import TextIO
-from typing import Union
 
 from typing_extensions import TypedDict
 
@@ -27,7 +24,6 @@ from . import command
 from . import util
 from .util import compat
 from .util.pyfiles import _preserving_path_as_str
-
 
 log = logging.getLogger(__name__)
 
@@ -121,14 +117,14 @@ class Config:
 
     def __init__(
         self,
-        file_: Union[str, os.PathLike[str], None] = None,
-        toml_file: Union[str, os.PathLike[str], None] = None,
+        file_: str | os.PathLike[str] | None = None,
+        toml_file: str | os.PathLike[str] | None = None,
         ini_section: str = "alembic",
-        output_buffer: Optional[TextIO] = None,
+        output_buffer: TextIO | None = None,
         stdout: TextIO = sys.stdout,
-        cmd_opts: Optional[Namespace] = None,
+        cmd_opts: Namespace | None = None,
         config_args: Mapping[str, Any] = util.immutabledict(),
-        attributes: Optional[Dict[str, Any]] = None,
+        attributes: dict[str, Any] | None = None,
     ) -> None:
         """Construct a new :class:`.Config`"""
         self.config_file_name = (
@@ -146,7 +142,7 @@ class Config:
         if attributes:
             self.attributes.update(attributes)
 
-    cmd_opts: Optional[Namespace] = None
+    cmd_opts: Namespace | None = None
     """The command-line options passed to the ``alembic`` script.
 
     Within an ``env.py`` script this can be accessed via the
@@ -158,10 +154,10 @@ class Config:
 
     """
 
-    config_file_name: Optional[str] = None
+    config_file_name: str | None = None
     """Filesystem path to the .ini file in use."""
 
-    toml_file_name: Optional[str] = None
+    toml_file_name: str | None = None
     """Filesystem path to the pyproject.toml file in use.
 
     .. versionadded:: 1.16.0
@@ -169,18 +165,18 @@ class Config:
     """
 
     @property
-    def _config_file_path(self) -> Optional[Path]:
+    def _config_file_path(self) -> Path | None:
         if self.config_file_name is None:
             return None
         return Path(self.config_file_name)
 
     @property
-    def _toml_file_path(self) -> Optional[Path]:
+    def _toml_file_path(self) -> Path | None:
         if self.toml_file_name is None:
             return None
         return Path(self.toml_file_name)
 
-    config_ini_section: str = None  # type:ignore[assignment]
+    config_ini_section: str = None  # type: ignore[assignment]
     """Name of the config file section to read basic configuration
     from.  Defaults to ``alembic``, that is the ``[alembic]`` section
     of the .ini file.  This value is modified using the ``-n/--name``
@@ -189,7 +185,7 @@ class Config:
     """
 
     @util.memoized_property
-    def attributes(self) -> Dict[str, Any]:
+    def attributes(self) -> dict[str, Any]:
         """A Python dictionary for storage of additional state.
 
 
@@ -310,24 +306,24 @@ class Config:
     @overload
     def get_section(
         self, name: str, default: None = ...
-    ) -> Optional[Dict[str, str]]: ...
+    ) -> dict[str, str] | None: ...
 
     # "default" here could also be a TypeVar
     # _MT = TypeVar("_MT", bound=Mapping[str, str]),
     # however mypy wasn't handling that correctly (pyright was)
     @overload
     def get_section(
-        self, name: str, default: Dict[str, str]
-    ) -> Dict[str, str]: ...
+        self, name: str, default: dict[str, str]
+    ) -> dict[str, str]: ...
 
     @overload
     def get_section(
         self, name: str, default: Mapping[str, str]
-    ) -> Union[Dict[str, str], Mapping[str, str]]: ...
+    ) -> dict[str, str] | Mapping[str, str]: ...
 
     def get_section(
-        self, name: str, default: Optional[Mapping[str, str]] = None
-    ) -> Optional[Mapping[str, str]]:
+        self, name: str, default: Mapping[str, str] | None = None
+    ) -> Mapping[str, str] | None:
         """Return all the configuration options from a given .ini file section
         as a dictionary.
 
@@ -391,8 +387,8 @@ class Config:
         self.file_config.set(section, name, value)
 
     def get_section_option(
-        self, section: str, name: str, default: Optional[str] = None
-    ) -> Optional[str]:
+        self, section: str, name: str, default: str | None = None
+    ) -> str | None:
         """Return an option from the given section of the .ini file."""
         if not self.file_config.has_section(section):
             raise util.CommandError(
@@ -409,12 +405,12 @@ class Config:
 
     @overload
     def get_main_option(
-        self, name: str, default: Optional[str] = None
-    ) -> Optional[str]: ...
+        self, name: str, default: str | None = None
+    ) -> str | None: ...
 
     def get_main_option(
-        self, name: str, default: Optional[str] = None
-    ) -> Optional[str]:
+        self, name: str, default: str | None = None
+    ) -> str | None:
         """Return an option from the 'main' section of the .ini file.
 
         This defaults to being a key from the ``[alembic]``
@@ -435,14 +431,12 @@ class Config:
 
     @overload
     def get_alembic_option(
-        self, name: str, default: Optional[str] = None
-    ) -> Optional[str]: ...
+        self, name: str, default: str | None = None
+    ) -> str | None: ...
 
     def get_alembic_option(
-        self, name: str, default: Optional[str] = None
-    ) -> Union[
-        None, str, list[str], dict[str, str], list[dict[str, str]], int
-    ]:
+        self, name: str, default: str | None = None
+    ) -> None | str | list[str] | dict[str, str] | list[dict[str, str]] | int:
         """Return an option from the "[alembic]" or "[tool.alembic]" section
         of the configparser-parsed .ini file (e.g. ``alembic.ini``) or
         toml-parsed ``pyproject.toml`` file.
@@ -485,12 +479,10 @@ class Config:
             return value
 
     def _get_toml_config_value(
-        self, name: str, default: Optional[Any] = None
-    ) -> Union[
-        None, str, list[str], dict[str, str], list[dict[str, str]], int
-    ]:
+        self, name: str, default: Any | None = None
+    ) -> None | str | list[str] | dict[str, str] | list[dict[str, str]] | int:
         USE_DEFAULT = object()
-        value: Union[None, str, list[str], dict[str, str], int] = (
+        value: None | str | list[str] | dict[str, str] | int = (
             self.toml_alembic_config.get(name, USE_DEFAULT)
         )
         if value is USE_DEFAULT:
@@ -531,7 +523,7 @@ class Config:
             ),
         )
 
-    def _get_file_separator_char(self, *names: str) -> Optional[str]:
+    def _get_file_separator_char(self, *names: str) -> str | None:
         for name in names:
             separator = self.get_main_option(name)
             if separator is not None:
@@ -563,7 +555,7 @@ class Config:
                 )
             return sep
 
-    def get_version_locations_list(self) -> Optional[list[str]]:
+    def get_version_locations_list(self) -> list[str] | None:
 
         version_locations_str = self.file_config.get(
             self.config_ini_section, "version_locations", fallback=None
@@ -598,7 +590,7 @@ class Config:
                 self._get_toml_config_value("version_locations", None),
             )
 
-    def get_prepend_sys_paths_list(self) -> Optional[list[str]]:
+    def get_prepend_sys_paths_list(self) -> list[str] | None:
         prepend_sys_path_str = self.file_config.get(
             self.config_ini_section, "prepend_sys_path", fallback=None
         )
@@ -690,7 +682,7 @@ class CommandFunction(Protocol):
 class CommandLine:
     """Provides the command line interface to Alembic."""
 
-    def __init__(self, prog: Optional[str] = None) -> None:
+    def __init__(self, prog: str | None = None) -> None:
         self._generate_args(prog)
 
     _KWARGS_OPTS = {
@@ -848,7 +840,7 @@ class CommandLine:
         command.stamp: {"revision": "revisions"}
     }
 
-    def _generate_args(self, prog: Optional[str]) -> None:
+    def _generate_args(self, prog: str | None) -> None:
         parser = ArgumentParser(prog=prog)
 
         parser.add_argument(
@@ -927,11 +919,11 @@ class CommandLine:
             if arg in self._KWARGS_OPTS:
                 kwarg_opt = self._KWARGS_OPTS[arg]
                 args, opts = kwarg_opt[0:-1], kwarg_opt[-1]
-                subparser.add_argument(*args, **opts)  # type:ignore
+                subparser.add_argument(*args, **opts)  # type: ignore
 
         for arg in positional:
             opts = self._POSITIONAL_OPTS.get(arg, {})
-            subparser.add_argument(arg, **opts)  # type:ignore
+            subparser.add_argument(arg, **opts)  # type: ignore
 
     def _inspect_function(self, fn: CommandFunction) -> tuple[Any, Any, str]:
         spec = compat.inspect_getfullargspec(fn)
@@ -1019,7 +1011,7 @@ class CommandLine:
             ini if ini else default_alembic_config
         )
 
-    def main(self, argv: Optional[Sequence[str]] = None) -> None:
+    def main(self, argv: Sequence[str] | None = None) -> None:
         """Executes the command line with the provided arguments."""
         options = self.parser.parse_args(argv)
         if not hasattr(options, "cmd"):
@@ -1038,8 +1030,8 @@ class CommandLine:
 
 
 def main(
-    argv: Optional[Sequence[str]] = None,
-    prog: Optional[str] = None,
+    argv: Sequence[str] | None = None,
+    prog: str | None = None,
     **kwargs: Any,
 ) -> None:
     """The console runner function for Alembic."""

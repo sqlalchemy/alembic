@@ -10,6 +10,7 @@ from . import server_defaults
 from . import tables
 from . import types
 from ... import util
+from ...ext import checkconstraint_byname
 from ...runtime.plugins import Plugin
 
 if TYPE_CHECKING:
@@ -60,3 +61,10 @@ Plugin.setup_plugin_from_module(
     server_defaults, "alembic.autogenerate.defaults"
 )
 Plugin.setup_plugin_from_module(comments, "alembic.autogenerate.comments")
+# this plugin is opt-in.  It lives in the "alembic.ext" namespace rather
+# than "alembic.autogenerate", so that it is not matched by the default
+# "alembic.autogenerate.*" wildcard and must be named explicitly.
+# See #1859 and :ref:`autogenerate_check_constraints`.
+Plugin.setup_plugin_from_module(
+    checkconstraint_byname, "alembic.ext.checkconstraint_byname"
+)

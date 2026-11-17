@@ -20,14 +20,14 @@ jobs:
     name: ${{ matrix.python-version }}-${{ matrix.sqlalchemy }}-${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
-      # run this job using this matrix, excluding some combinations below.
+      # run this job using this matrix
       matrix:
         os:
           - "ubuntu-22.04"
         python-version:
-          - "3.13"
+          - "3.14"
+          - "3.15"
         sqlalchemy:
-          - sqla14
           - sqla20
           - sqlamain
       # abort all jobs as soon as one fails
@@ -36,13 +36,14 @@ jobs:
     # steps to run in each job. Some are github actions, others run shell commands
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up python
         uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
           architecture: ${{ matrix.architecture }}
+          allow-prereleases: true
 
       - name: Install dependencies
         run: |
@@ -61,20 +62,22 @@ jobs:
         os:
           - "ubuntu-latest"
         python-version:
-          - "3.12"
           - "3.13"
+          - "3.14"
+          - "3.15"
 
       fail-fast: false
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up python
         uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
           architecture: ${{ matrix.architecture }}
+          allow-prereleases: true
 
       - name: Install dependencies
         run: |

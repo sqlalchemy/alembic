@@ -5,10 +5,7 @@ from __future__ import annotations
 
 import re
 from typing import Any
-from typing import Dict
-from typing import Optional
 from typing import TYPE_CHECKING
-from typing import Union
 
 from sqlalchemy import cast
 from sqlalchemy import Computed
@@ -103,8 +100,8 @@ class SQLiteImpl(DefaultImpl):
         self,
         inspector_column: Column[Any],
         metadata_column: Column[Any],
-        rendered_metadata_default: Optional[str],
-        rendered_inspector_default: Optional[str],
+        rendered_metadata_default: str | None,
+        rendered_inspector_default: str | None,
     ) -> bool:
         if rendered_metadata_default is not None:
             rendered_metadata_default = re.sub(
@@ -127,7 +124,7 @@ class SQLiteImpl(DefaultImpl):
         return rendered_inspector_default != rendered_metadata_default
 
     def _guess_if_default_is_unparenthesized_sql_expr(
-        self, expr: Optional[str]
+        self, expr: str | None
     ) -> bool:
         """Determine if a server default is a SQL expression or a constant.
 
@@ -151,7 +148,7 @@ class SQLiteImpl(DefaultImpl):
         self,
         inspector: Inspector,
         table: Table,
-        column_info: Dict[str, Any],
+        column_info: dict[str, Any],
     ) -> None:
         # SQLite expression defaults require parenthesis when sent
         # as DDL
@@ -179,7 +176,7 @@ class SQLiteImpl(DefaultImpl):
     def cast_for_batch_migrate(
         self,
         existing: Column[Any],
-        existing_transfer: Dict[str, Union[TypeEngine, Cast]],
+        existing_transfer: dict[str, TypeEngine | Cast],
         new_type: TypeEngine,
     ) -> None:
         if (

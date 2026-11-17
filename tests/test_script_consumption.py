@@ -5,8 +5,6 @@ import os
 import re
 import shutil
 import textwrap
-from typing import Dict
-from typing import List
 
 import sqlalchemy as sa
 from sqlalchemy import pool
@@ -35,13 +33,10 @@ from alembic.testing.env import staging_env
 from alembic.testing.env import three_rev_fixture
 from alembic.testing.env import write_script
 from alembic.testing.fixtures import capture_context_buffer
-from alembic.testing.fixtures import FutureEngineMixin
 from alembic.testing.fixtures import TestBase
 
 
 class PatchEnvironment:
-    branched_connection = False
-
     @contextmanager
     def _patch_environment(self, transactional_ddl, transaction_per_migration):
         conf = EnvironmentContext.configure
@@ -65,61 +60,6 @@ class PatchEnvironment:
             # mode
             assert not conn[0].in_transaction()
 
-    @staticmethod
-    def _branched_connection_env():
-        connect_warning = (
-            'r"The Connection.connect\\(\\) method is considered legacy"'
-        )
-        close_warning = (
-            'r"The .close\\(\\) method on a '
-            "so-called 'branched' connection\""
-        )
-
-        env_file_fixture(
-            textwrap.dedent(
-                """\
-            import alembic
-            from alembic import context
-            from sqlalchemy import engine_from_config, pool
-            from sqlalchemy.testing import expect_warnings
-
-            config = context.config
-
-            target_metadata = None
-
-            def run_migrations_online():
-                connectable = engine_from_config(
-                    config.get_section(config.config_ini_section),
-                    prefix='sqlalchemy.',
-                    poolclass=pool.NullPool)
-
-                with connectable.connect() as conn:
-
-                    with expect_warnings(%(connect_warning)s):
-                        connection = conn.connect()
-                    try:
-                            context.configure(
-                                connection=connection,
-                                target_metadata=target_metadata,
-                            )
-                            with context.begin_transaction():
-                                context.run_migrations()
-                    finally:
-                        with expect_warnings(%(close_warning)s):
-                            connection.close()
-
-            if context.is_offline_mode():
-                assert False
-            else:
-                run_migrations_online()
-            """
-                % {
-                    "connect_warning": connect_warning,
-                    "close_warning": close_warning,
-                }
-            )
-        )
-
 
 @testing.combinations(
     (False, True),
@@ -132,21 +72,15 @@ class ApplyVersionsFunctionalTest(PatchEnvironment, TestBase):
     __only_on__ = "sqlite"
 
     sourceless = False
-    future = False
     transactional_ddl = False
     transaction_per_migration = True
-    branched_connection = False
 
     def setUp(self):
-        self.bind = _sqlite_file_db(
-            future=self.future, poolclass=pool.NullPool
-        )
+        self.bind = _sqlite_file_db(poolclass=pool.NullPool)
         self.env = staging_env(sourceless=self.sourceless)
         self.cfg = _sqlite_testing_config(
-            sourceless=self.sourceless, future=self.future
+            sourceless=self.sourceless,
         )
-        if self.branched_connection:
-            self._branched_connection_env()
 
     def tearDown(self):
         clear_staging_env()
@@ -187,8 +121,7 @@ class ApplyVersionsFunctionalTest(PatchEnvironment, TestBase):
     def downgrade():
         op.execute("DROP TABLE foo")
 
-    """
-            % a,
+    """ % a,
             sourceless=self.sourceless,
         )
 
@@ -210,8 +143,7 @@ class ApplyVersionsFunctionalTest(PatchEnvironment, TestBase):
     def downgrade():
         op.execute("DROP TABLE bar")
 
-    """
-            % (b, a),
+    """ % (b, a),
             sourceless=self.sourceless,
         )
 
@@ -233,8 +165,7 @@ class ApplyVersionsFunctionalTest(PatchEnvironment, TestBase):
     def downgrade():
         op.execute("DROP TABLE bat")
 
-    """
-            % (c, b),
+    """ % (c, b),
             sourceless=self.sourceless,
         )
 
@@ -288,24 +219,6 @@ class ApplyVersionsFunctionalTest(PatchEnvironment, TestBase):
             assert not db.dialect.has_table(conn, "bat")
 
 
-class LegacyApplyVersionsFunctionalTest(ApplyVersionsFunctionalTest):
-    __requires__ = ("sqlalchemy_1x",)
-    branched_connection = True
-
-
-# class level combinations can't do the skips for SQLAlchemy 1.3
-# so we have a separate class
-@testing.combinations(
-    (False, True),
-    (True, False),
-    (True, True),
-    argnames="transactional_ddl,transaction_per_migration",
-    id_="rr",
-)
-class FutureApplyVersionsTest(FutureEngineMixin, ApplyVersionsFunctionalTest):
-    future = True
-
-
 class SimpleSourcelessApplyVersionsTest(ApplyVersionsFunctionalTest):
     sourceless = "simple"
 
@@ -325,9 +238,7 @@ class CallbackEnvironmentTest(ApplyVersionsFunctionalTest):
 
     @staticmethod
     def _env_file_fixture():
-        env_file_fixture(
-            textwrap.dedent(
-                """\
+        env_file_fixture(textwrap.dedent("""\
             import alembic
             from alembic import context
             from sqlalchemy import engine_from_config, pool
@@ -364,9 +275,7 @@ class CallbackEnvironmentTest(ApplyVersionsFunctionalTest):
                 run_migrations_offline()
             else:
                 run_migrations_online()
-            """
-            )
-        )
+            """))
 
     def test_steps(self):
         import alembic
@@ -451,16 +360,10 @@ class OnlineTransactionalDDLTest(PatchEnvironment, TestBase):
     def tearDown(self):
         clear_staging_env()
 
-    def _opened_transaction_fixture(self, future=False):
+    def _opened_transaction_fixture(self):
         self.env = staging_env()
 
-        if future:
-            self.cfg = _sqlite_testing_config(future=future)
-        else:
-            self.cfg = _sqlite_testing_config()
-
-        if self.branched_connection:
-            self._branched_connection_env()
+        self.cfg = _sqlite_testing_config()
 
         script = ScriptDirectory.from_config(self.cfg)
         a = util.rev_id()
@@ -483,8 +386,7 @@ def upgrade():
 def downgrade():
     pass
 
-"""
-            % (a,),
+""" % (a,),
         )
         script.generate_revision(b, "revision b", refresh=True)
         write_script(
@@ -508,8 +410,7 @@ def upgrade():
 def downgrade():
     pass
 
-"""
-            % (b, a),
+""" % (b, a),
         )
         script.generate_revision(c, "revision c", refresh=True)
         write_script(
@@ -530,8 +431,7 @@ def upgrade():
 def downgrade():
     pass
 
-"""
-            % (c, b),
+""" % (c, b),
         )
         return a, b, c
 
@@ -544,18 +444,11 @@ def downgrade():
         with self._patch_environment(
             transactional_ddl=False, transaction_per_migration=False
         ):
-            if self.is_sqlalchemy_future:
-                with testing.expect_raises_message(
-                    sa.exc.InvalidRequestError,
-                    r".*already",
-                ):
-                    command.upgrade(self.cfg, c)
-            else:
-                with testing.expect_sqlalchemy_deprecated_20(
-                    r"Calling .begin\(\) when a transaction "
-                    "is already begun"
-                ):
-                    command.upgrade(self.cfg, c)
+            with testing.expect_raises_message(
+                sa.exc.InvalidRequestError,
+                r".*already",
+            ):
+                command.upgrade(self.cfg, c)
 
     def test_raise_when_rev_leaves_open_transaction_tpm(self):
         a, b, c = self._opened_transaction_fixture()
@@ -563,18 +456,11 @@ def downgrade():
         with self._patch_environment(
             transactional_ddl=False, transaction_per_migration=True
         ):
-            if self.is_sqlalchemy_future:
-                with testing.expect_raises_message(
-                    sa.exc.InvalidRequestError,
-                    r".*already",
-                ):
-                    command.upgrade(self.cfg, c)
-            else:
-                with testing.expect_sqlalchemy_deprecated_20(
-                    r"Calling .begin\(\) when a transaction is "
-                    "already begun"
-                ):
-                    command.upgrade(self.cfg, c)
+            with testing.expect_raises_message(
+                sa.exc.InvalidRequestError,
+                r".*already",
+            ):
+                command.upgrade(self.cfg, c)
 
     def test_noerr_rev_leaves_open_transaction_transactional_ddl(self):
         a, b, c = self._opened_transaction_fixture()
@@ -582,24 +468,16 @@ def downgrade():
         with self._patch_environment(
             transactional_ddl=True, transaction_per_migration=False
         ):
-            if self.is_sqlalchemy_future:
-                with testing.expect_raises_message(
-                    sa.exc.InvalidRequestError,
-                    r".*already",
-                ):
-                    command.upgrade(self.cfg, c)
-            else:
-                with testing.expect_sqlalchemy_deprecated_20(
-                    r"Calling .begin\(\) when a transaction "
-                    "is already begun"
-                ):
-                    command.upgrade(self.cfg, c)
+            with testing.expect_raises_message(
+                sa.exc.InvalidRequestError,
+                r".*already",
+            ):
+                command.upgrade(self.cfg, c)
 
     def test_noerr_transaction_opened_externally(self):
         a, b, c = self._opened_transaction_fixture()
 
-        env_file_fixture(
-            """
+        env_file_fixture("""
 from sqlalchemy import engine_from_config, pool
 
 def run_migrations_online():
@@ -621,21 +499,9 @@ def run_migrations_online():
 
 run_migrations_online()
 
-"""
-        )
+""")
 
         command.stamp(self.cfg, c)
-
-
-class BranchedOnlineTransactionalDDLTest(OnlineTransactionalDDLTest):
-    __requires__ = ("sqlalchemy_1x",)
-    branched_connection = True
-
-
-class FutureOnlineTransactionalDDLTest(
-    FutureEngineMixin, OnlineTransactionalDDLTest
-):
-    pass
 
 
 class EncodingTest(TestBase):
@@ -650,8 +516,7 @@ class EncodingTest(TestBase):
         write_script(
             script,
             self.a,
-            (
-                """# coding: utf-8
+            ("""# coding: utf-8
 from __future__ import unicode_literals
 revision = '%s'
 down_revision = None
@@ -664,9 +529,7 @@ def upgrade():
 def downgrade():
     op.execute("drôle de petite voix m’a réveillé")
 
-"""
-                % self.a
-            ),
+""" % self.a),
             encoding="utf-8",
         )
 
@@ -711,8 +574,7 @@ class VersionNameTemplateTest(TestBase):
     def downgrade():
         op.execute("DROP TABLE foo")
 
-    """
-            % a,
+    """ % a,
         )
 
         script = ScriptDirectory.from_config(self.cfg)
@@ -757,8 +619,7 @@ class VersionNameTemplateTest(TestBase):
 
         path = script.get_revision(a).path
         with open(path, "w") as fp:
-            fp.write(
-                """
+            fp.write("""
 down_revision = None
 
 from alembic import op
@@ -771,8 +632,7 @@ def upgrade():
 def downgrade():
     op.execute("DROP TABLE foo")
 
-"""
-            )
+""")
         pyc_path = util.pyc_file_from_path(path)
         if pyc_path is not None and os.access(pyc_path, os.F_OK):
             os.unlink(pyc_path)
@@ -886,8 +746,7 @@ class SourcelessNeedsFlagTest(TestBase):
     def downgrade():
         op.execute("DROP TABLE foo")
 
-    """
-            % a,
+    """ % a,
             sourceless=True,
         )
 
@@ -902,11 +761,11 @@ class SourcelessNeedsFlagTest(TestBase):
 class RecursiveScriptDirectoryTest(TestBase):
     """test recursive version directory consumption for #760"""
 
-    rev: List[str]
+    rev: list[str]
     org_script_dir: ScriptDirectory
     cfg: Config
-    _script_by_name: Dict[str, Script]
-    _name_by_revision: Dict[str, str]
+    _script_by_name: dict[str, Script]
+    _name_by_revision: dict[str, str]
 
     def _setup_revision_files(
         self, listing, destination=".", version_path="scripts/versions"
@@ -1329,7 +1188,7 @@ class ScriptDirectoryMethodsTest(TestBase):
 
     def test_get_revisions(self, linear_fixture):
         revs = linear_fixture.get_revisions((self.a, self.c))
-        eq_(set(r.revision for r in revs), {self.a, self.c})
+        eq_({r.revision for r in revs}, {self.a, self.c})
 
     def test_walk_revisions(self, linear_fixture):
         revs = list(linear_fixture.walk_revisions())
@@ -1367,7 +1226,7 @@ class ScriptDirectoryMethodsTest(TestBase):
     def test_walk_revisions_multiple_heads(self, multi_heads_fixture):
         revs = list(multi_heads_fixture.walk_revisions())
         eq_(
-            set(r.revision for r in revs),
+            {r.revision for r in revs},
             {self.a, self.b, self.c, self.d, self.e, self.f},
         )
 

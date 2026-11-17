@@ -2,9 +2,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any
-from typing import Optional
 from typing import TYPE_CHECKING
-from typing import Union
 
 from ...operations import ops
 from ...util import PriorityDispatchResult
@@ -23,11 +21,18 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
+def _normalize_comment(comment: str | None) -> str | None:
+    # most backends, including PostgreSQL, MySQL and Oracle, don't store
+    # an empty string comment distinctly from no comment, so treat them
+    # the same
+    return comment or None
+
+
 def _compare_column_comment(
     autogen_context: AutogenContext,
     alter_column_op: AlterColumnOp,
-    schema: Optional[str],
-    tname: Union[quoted_name, str],
+    schema: str | None,
+    tname: quoted_name | str,
     cname: quoted_name,
     conn_col: Column[Any],
     metadata_col: Column[Any],
@@ -36,8 +41,8 @@ def _compare_column_comment(
     if not autogen_context.dialect.supports_comments:
         return PriorityDispatchResult.CONTINUE
 
-    metadata_comment = metadata_col.comment
-    conn_col_comment = conn_col.comment
+    metadata_comment = _normalize_comment(metadata_col.comment)
+    conn_col_comment = _normalize_comment(conn_col.comment)
     if conn_col_comment is None and metadata_comment is None:
         return PriorityDispatchResult.CONTINUE
 
@@ -55,10 +60,10 @@ def _compare_column_comment(
 def _compare_table_comment(
     autogen_context: AutogenContext,
     modify_table_ops: ModifyTableOps,
-    schema: Optional[str],
-    tname: Union[quoted_name, str],
-    conn_table: Optional[Table],
-    metadata_table: Optional[Table],
+    schema: str | None,
+    tname: quoted_name | str,
+    conn_table: Table | None,
+    metadata_table: Table | None,
 ) -> PriorityDispatchResult:
     assert autogen_context.dialect is not None
     if not autogen_context.dialect.supports_comments:
@@ -69,22 +74,25 @@ def _compare_table_comment(
     if conn_table is None or metadata_table is None:
         return PriorityDispatchResult.CONTINUE
 
-    if conn_table.comment is None and metadata_table.comment is None:
+    conn_comment = _normalize_comment(conn_table.comment)
+    metadata_comment = _normalize_comment(metadata_table.comment)
+
+    if conn_comment is None and metadata_comment is None:
         return PriorityDispatchResult.CONTINUE
 
-    if metadata_table.comment is None and conn_table.comment is not None:
+    if metadata_comment is None and conn_comment is not None:
         modify_table_ops.ops.append(
             ops.DropTableCommentOp(
-                tname, existing_comment=conn_table.comment, schema=schema
+                tname, existing_comment=conn_comment, schema=schema
             )
         )
         return PriorityDispatchResult.STOP
-    elif metadata_table.comment != conn_table.comment:
+    elif metadata_comment != conn_comment:
         modify_table_ops.ops.append(
             ops.CreateTableCommentOp(
                 tname,
-                metadata_table.comment,
-                existing_comment=conn_table.comment,
+                metadata_comment,
+                existing_comment=conn_comment,
                 schema=schema,
             )
         )

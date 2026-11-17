@@ -4,7 +4,6 @@ import contextlib
 import re
 import sys
 from typing import Any
-from typing import Dict
 
 from sqlalchemy import exc as sa_exc
 from sqlalchemy.engine import default
@@ -119,7 +118,7 @@ def eq_ignore_whitespace(a, b, msg=None):
     assert a == b, msg or "%r != %r" % (a, b)
 
 
-_dialect_mods: Dict[Any, Any] = {}
+_dialect_mods: dict[Any, Any] = {}
 
 
 def _get_dialect(name):
@@ -174,7 +173,3 @@ def expect_deprecated(*messages, **kw):
 
 def expect_sqlalchemy_deprecated(*messages, **kw):
     return _expect_warnings(sa_exc.SADeprecationWarning, messages, **kw)
-
-
-def expect_sqlalchemy_deprecated_20(*messages, **kw):
-    return _expect_warnings(sa_exc.RemovedIn20Warning, messages, **kw)

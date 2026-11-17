@@ -2,19 +2,16 @@
 # mypy: no-warn-return-any, allow-any-generics
 from __future__ import annotations
 
+from collections.abc import Collection
 from typing import Any
-from typing import cast
-from typing import Collection
 from typing import TYPE_CHECKING
 
 from sqlalchemy.sql.elements import conv
-from typing_extensions import Self
-
-from ...util import sqla_compat
 
 if TYPE_CHECKING:
     from sqlalchemy import Table
     from sqlalchemy.engine import Inspector
+    from sqlalchemy.engine.interfaces import ReflectedCheckConstraint
     from sqlalchemy.engine.interfaces import ReflectedForeignKeyConstraint
     from sqlalchemy.engine.interfaces import ReflectedIndex
     from sqlalchemy.engine.interfaces import ReflectedUniqueConstraint
@@ -42,95 +39,8 @@ _CONSTRAINT_INSP_KEYS = (
 class _InspectorConv:
     __slots__ = ("inspector",)
 
-    def __new__(cls, inspector: Inspector) -> Self:
-        obj: Any
-        if sqla_compat.sqla_2:
-            obj = object.__new__(_SQLA2InspectorConv)
-            _SQLA2InspectorConv.__init__(obj, inspector)
-        else:
-            obj = object.__new__(_LegacyInspectorConv)
-            _LegacyInspectorConv.__init__(obj, inspector)
-        return cast(Self, obj)
-
     def __init__(self, inspector: Inspector):
         self.inspector = inspector
-
-    def pre_cache_tables(
-        self,
-        schema: str | None,
-        tablenames: list[str],
-        all_available_tablenames: Collection[str],
-    ) -> None:
-        pass
-
-    def get_unique_constraints(
-        self, tname: str, schema: str | None
-    ) -> list[ReflectedUniqueConstraint]:
-        raise NotImplementedError()
-
-    def get_indexes(
-        self, tname: str, schema: str | None
-    ) -> list[ReflectedIndex]:
-        raise NotImplementedError()
-
-    def get_foreign_keys(
-        self, tname: str, schema: str | None
-    ) -> list[ReflectedForeignKeyConstraint]:
-        raise NotImplementedError()
-
-    def reflect_table(self, table: Table) -> None:
-        raise NotImplementedError()
-
-
-class _LegacyInspectorConv(_InspectorConv):
-
-    def _apply_reflectinfo_conv(self, consts):
-        if not consts:
-            return consts
-        for const in consts:
-            if const["name"] is not None and not isinstance(
-                const["name"], conv
-            ):
-                const["name"] = conv(const["name"])
-        return consts
-
-    def _apply_constraint_conv(self, consts):
-        if not consts:
-            return consts
-        for const in consts:
-            if const.name is not None and not isinstance(const.name, conv):
-                const.name = conv(const.name)
-        return consts
-
-    def get_indexes(
-        self, tname: str, schema: str | None
-    ) -> list[ReflectedIndex]:
-        return self._apply_reflectinfo_conv(
-            self.inspector.get_indexes(tname, schema=schema)
-        )
-
-    def get_unique_constraints(
-        self, tname: str, schema: str | None
-    ) -> list[ReflectedUniqueConstraint]:
-        return self._apply_reflectinfo_conv(
-            self.inspector.get_unique_constraints(tname, schema=schema)
-        )
-
-    def get_foreign_keys(
-        self, tname: str, schema: str | None
-    ) -> list[ReflectedForeignKeyConstraint]:
-        return self._apply_reflectinfo_conv(
-            self.inspector.get_foreign_keys(tname, schema=schema)
-        )
-
-    def reflect_table(self, table: Table) -> None:
-        self.inspector.reflect_table(table, include_columns=None)
-
-        self._apply_constraint_conv(table.constraints)
-        self._apply_constraint_conv(table.indexes)
-
-
-class _SQLA2InspectorConv(_InspectorConv):
 
     def _pre_cache(
         self,
@@ -250,6 +160,18 @@ class _SQLA2InspectorConv(_InspectorConv):
             "alembic_foreign_keys",
             self.inspector.get_foreign_keys,
             apply_constraint_conv=True,
+        )
+
+    def get_check_constraints(
+        self, tname: str, schema: str | None
+    ) -> list[ReflectedCheckConstraint]:
+        return self._return_from_cache(
+            tname,
+            schema,
+            "alembic_check_constraints",
+            self.inspector.get_check_constraints,
+            apply_constraint_conv=True,
+            optional=False,
         )
 
     def _apply_reflectinfo_conv(self, consts):

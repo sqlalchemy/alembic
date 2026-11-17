@@ -2,14 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 import contextlib
 import logging
-from typing import Iterator
-from typing import Optional
-from typing import Set
-from typing import Tuple
 from typing import TYPE_CHECKING
-from typing import Union
 
 from sqlalchemy import event
 from sqlalchemy import schema as sa_schema
@@ -36,11 +32,11 @@ log = logging.getLogger(__name__)
 def _autogen_for_tables(
     autogen_context: AutogenContext,
     upgrade_ops: UpgradeOps,
-    schemas: Set[Optional[str]],
+    schemas: set[str | None],
 ) -> PriorityDispatchResult:
     inspector = autogen_context.inspector
 
-    conn_table_names: Set[Tuple[Optional[str], str]] = set()
+    conn_table_names: set[tuple[str | None, str]] = set()
 
     version_table_schema = (
         autogen_context.migration_context.version_table_schema
@@ -234,8 +230,8 @@ def _compare_tables(
 
 @contextlib.contextmanager
 def _compare_columns(
-    schema: Optional[str],
-    tname: Union[quoted_name, str],
+    schema: str | None,
+    tname: quoted_name | str,
     conn_table: Table,
     metadata_table: Table,
     modify_table_ops: ModifyTableOps,

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+from collections.abc import Sequence
 from configparser import ConfigParser
 from importlib import metadata
 from importlib.metadata import EntryPoint
@@ -11,8 +13,6 @@ from pathlib import Path
 import sys
 import typing
 from typing import Any
-from typing import Iterator
-from typing import Sequence
 
 if True:
     # zimports hack for too-long names

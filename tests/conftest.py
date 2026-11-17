@@ -6,11 +6,11 @@ This script is an extension to py.test which
 installs SQLAlchemy's testing plugin into the local environment.
 
 """
+
+import inspect
 import os
 
 import pytest
-
-os.environ["SQLALCHEMY_WARN_20"] = "true"
 
 pytest.register_assert_rewrite("sqlalchemy.testing.assertions")
 
@@ -51,3 +51,24 @@ with open(bootstrap_file) as f:
         from alembic.testing import warnings
 
         warnings.setup_filters()
+
+    @pytest.hookimpl(wrapper=True)
+    def pytest_fixture_setup(fixturedef, request):
+        result = yield
+
+        # pytest only runs a fixture as a generator if
+        # inspect.isgeneratorfunction() is true for it.  a decorator that
+        # wraps a generator function in a plain function, such as an
+        # exclusions / requirements rule under SQLAlchemy 2.0.52 and
+        # earlier, defeats that; pytest then hands the un-iterated
+        # generator to the test as the fixture value, so neither setup nor
+        # teardown ever runs.  fail loudly rather than silently.
+        if inspect.isgenerator(result):
+            raise TypeError(
+                f"fixture {fixturedef.argname!r} returned a generator object "
+                "rather than being run as a generator fixture; a decorator "
+                "applied to it most likely does not preserve generator "
+                "functions.  Apply exclusions / requirements to the tests "
+                "or class that use the fixture instead."
+            )
+        return result

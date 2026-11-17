@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 from typing import Any
-from typing import Dict
 from typing import Literal
 from typing import overload
-from typing import Set
 
 from sqlalchemy import CHAR
 from sqlalchemy import CheckConstraint
@@ -34,7 +32,7 @@ from ...testing import eq_
 from ...testing.env import clear_staging_env
 from ...testing.env import staging_env
 
-names_in_this_test: Set[Any] = set()
+names_in_this_test: set[Any] = set()
 
 
 @event.listens_for(Table, "after_parent_attach")
@@ -331,7 +329,7 @@ class AutogenTest(_ComparesFKs):
     def _get_bind(cls):
         return config.db
 
-    configure_opts: Dict[Any, Any] = {}
+    configure_opts: dict[Any, Any] = {}
 
     @classmethod
     def setup_class(cls):

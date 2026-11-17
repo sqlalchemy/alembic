@@ -105,23 +105,11 @@ class DefaultRequirements(SuiteRequirements):
 
     @property
     def fk_ondelete_is_reflected(self):
-        def go(config):
-            if exclusions.against(config, "mssql"):
-                return not sqla_compat.sqla_14_26
-            else:
-                return False
-
-        return exclusions.fails_if(go)
+        return exclusions.open()
 
     @property
     def fk_onupdate_is_reflected(self):
-        def go(config):
-            if exclusions.against(config, "mssql"):
-                return not sqla_compat.sqla_14_26
-            else:
-                return False
-
-        return self.fk_onupdate + exclusions.fails_if(go)
+        return self.fk_onupdate
 
     @property
     def fk_onupdate(self):
@@ -259,6 +247,16 @@ class DefaultRequirements(SuiteRequirements):
             self._mysql_and_check_constraints_exist,
         )
 
+    @property
+    def inline_check_constraint_reflection(self):
+        return exclusions.only_on(
+            [
+                "postgresql",
+                "sqlite",
+                "oracle",
+            ]
+        )
+
     def mysql_check_col_name_change(self, config):
         # MySQL has check constraints that enforce an reflect, however
         # they prevent a column's name from being changed due to a bug in
@@ -376,32 +374,35 @@ class DefaultRequirements(SuiteRequirements):
             requirements, "black and zimports are required for this test"
         )
         version_low = exclusions.only_if(
-            lambda _: compat.py312, "python 3.12 is required"
+            lambda _: compat.py314, "python 3.14 is required"
         )
 
-        version_high = exclusions.only_if(
-            lambda _: not compat.py314, "python 3.14 does not work right now"
-        )
-
-        sqlalchemy = exclusions.only_if(
-            lambda _: sqla_compat.sqla_2, "sqlalchemy 2 is required"
-        )
-
-        return imports + version_low + version_high + sqlalchemy
+        return imports + version_low
 
     @property
     def reflect_indexes_with_expressions(self):
-        sqlalchemy = exclusions.only_if(
-            lambda _: sqla_compat.sqla_2, "sqlalchemy 2 is required"
-        )
-
-        postgresql = exclusions.only_on(["postgresql"])
-
-        return sqlalchemy + postgresql
+        return exclusions.only_on(["postgresql"])
 
     @property
     def indexes_with_expressions(self):
         return exclusions.only_on(["postgresql", "sqlite>=3.9.0"])
+
+    @property
+    def expression_server_defaults(self):
+        """target database supports a server default that is a SQL
+        expression, such as ``DEFAULT (rand())``.
+
+        Mirrors the requirement of the same name in SQLAlchemy's own test
+        suite, deferring to the MySQL dialect's own notion of which
+        server versions render an expression default at all.
+
+        """
+
+        return exclusions.skip_if(
+            lambda config: exclusions.against(config, "mysql", "mariadb")
+            and not config.db.dialect._support_default_function,
+            "backend has no expression server defaults",
+        )
 
     @property
     def nulls_not_distinct_sa(self):

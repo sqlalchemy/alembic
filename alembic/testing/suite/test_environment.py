@@ -6,7 +6,6 @@ from ...testing import config
 from ...testing import eq_
 from ...testing import is_
 from ...testing import is_false
-from ...testing import is_not_
 from ...testing import is_true
 from ...testing import ne_
 from ...testing.fixtures import TestBase
@@ -233,15 +232,9 @@ class MigrationTransactionTest(TestBase):
                 is_true(self.conn.in_transaction())
 
                 with context.autocommit_block():
-                    # in 1.x, self.conn is separate due to the
-                    # execution_options call.  however for future they are the
-                    # same connection and there is a "transaction" block
-                    # despite autocommit
-                    if self.is_sqlalchemy_future:
-                        is_(context.connection, self.conn)
-                    else:
-                        is_not_(context.connection, self.conn)
-                        is_false(self.conn.in_transaction())
+                    # the connection is the same connection and there is a
+                    # "transaction" block despite autocommit
+                    is_(context.connection, self.conn)
 
                     eq_(
                         context.connection._execution_options[
@@ -270,14 +263,9 @@ class MigrationTransactionTest(TestBase):
         with context.autocommit_block():
             is_true(context.connection.in_transaction())
 
-            # in 1.x, self.conn is separate due to the execution_options
-            # call.  however for future they are the same connection and there
-            # is a "transaction" block despite autocommit
-            if self.is_sqlalchemy_future:
-                is_(context.connection, self.conn)
-            else:
-                is_not_(context.connection, self.conn)
-                is_false(self.conn.in_transaction())
+            # the connection is the same connection and there is a
+            # "transaction" block despite autocommit
+            is_(context.connection, self.conn)
 
             eq_(
                 context.connection._execution_options["isolation_level"],

@@ -5,7 +5,6 @@ from sqlalchemy.sql import text
 
 from alembic import testing
 from alembic.testing import eq_
-from alembic.testing.fixtures import FutureEngineMixin
 from alembic.testing.fixtures import TablesTest
 
 
@@ -66,7 +65,3 @@ class ImplTest(TablesTest):
             TypeError, "SQL parameters not allowed with as_sql"
         ):
             as_sql_impl._exec(text("select :my_param"), multiparams=[])
-
-
-class FutureImplTest(FutureEngineMixin, ImplTest):
-    pass
