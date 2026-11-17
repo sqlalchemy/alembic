@@ -41,6 +41,7 @@ TRIM_MODULE = [
     "alembic.autogenerate.api.",
     "alembic.operations.base.",
     "alembic.operations.ops.",
+    "alembic.runtime.environment.",
     "alembic.runtime.migration.",
     "collections.abc.",
     "sqlalchemy.engine.base.",

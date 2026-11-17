@@ -4,10 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 from typing import Callable
-from typing import Collection
 from typing import Iterable
 from typing import Literal
-from typing import Mapping
 from typing import MutableMapping
 from typing import overload
 from typing import Sequence
@@ -29,9 +27,9 @@ if TYPE_CHECKING:
     from .autogenerate.api import AutogenContext
     from .config import Config
     from .operations.ops import MigrationScript
+    from .runtime.environment import OnVersionApplyFn
     from .runtime.migration import _ProxyTransaction
     from .runtime.migration import MigrationContext
-    from .runtime.migration import MigrationInfo
     from .script import ScriptDirectory
 
 ### end imports ###
@@ -193,16 +191,7 @@ def configure(
     sqlalchemy_module_prefix: str = "sa.",
     user_module_prefix: str | None = None,
     on_version_apply: (
-        Callable[
-            [
-                MigrationContext,
-                MigrationInfo,
-                Collection[Any],
-                Mapping[str, Any],
-            ],
-            None,
-        ]
-        | None
+        OnVersionApplyFn | Sequence[OnVersionApplyFn] | None
     ) = None,
     autogenerate_plugins: Sequence[str] | None = None,
     **kw: Any,
@@ -319,6 +308,9 @@ def configure(
         * ``heads``: a collection of version strings representing the
           current heads,
         * ``run_args``: the ``**kwargs`` passed to :meth:`.run_migrations`.
+
+        The expected signature is described by the
+        :class:`.OnVersionApplyFn` protocol.
 
     Parameters specific to the autogenerate feature, when
     ``alembic revision`` is run with the ``--autogenerate`` feature:

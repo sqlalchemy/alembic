@@ -9,6 +9,7 @@ from typing import Callable
 from typing import Literal
 from typing import Optional
 from typing import overload
+from typing import Protocol
 from typing import TextIO
 from typing import TYPE_CHECKING
 from typing import Union
@@ -76,10 +77,24 @@ IncludeObjectFn = Callable[
     bool,
 ]
 
-OnVersionApplyFn = Callable[
-    [MigrationContext, "MigrationInfo", Collection[Any], Mapping[str, Any]],
-    None,
-]
+
+class OnVersionApplyFn(Protocol):
+    """Signature of a callable passed to
+    :paramref:`.EnvironmentContext.configure.on_version_apply`.
+
+    The callable is invoked with keyword arguments only.
+
+    """
+
+    def __call__(
+        self,
+        *,
+        ctx: MigrationContext,
+        step: MigrationInfo,
+        heads: Collection[Any],
+        run_args: Mapping[str, Any],
+    ) -> None: ...
+
 
 CompareServerDefault = Callable[
     [
@@ -438,7 +453,9 @@ class EnvironmentContext(util.ModuleClsProxy):
         alembic_module_prefix: str = "op.",
         sqlalchemy_module_prefix: str = "sa.",
         user_module_prefix: str | None = None,
-        on_version_apply: OnVersionApplyFn | None = None,
+        on_version_apply: (
+            OnVersionApplyFn | Sequence[OnVersionApplyFn] | None
+        ) = None,
         autogenerate_plugins: Sequence[str] | None = None,
         **kw: Any,
     ) -> None:
@@ -554,6 +571,9 @@ class EnvironmentContext(util.ModuleClsProxy):
             * ``heads``: a collection of version strings representing the
               current heads,
             * ``run_args``: the ``**kwargs`` passed to :meth:`.run_migrations`.
+
+            The expected signature is described by the
+            :class:`.OnVersionApplyFn` protocol.
 
         Parameters specific to the autogenerate feature, when
         ``alembic revision`` is run with the ``--autogenerate`` feature:
