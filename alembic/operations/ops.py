@@ -2676,13 +2676,13 @@ class OpContainer(MigrateOperation):
     def is_empty(self) -> bool:
         return not self.ops
 
-    def as_diffs(self) -> Any:
+    def as_diffs(self) -> list[tuple[Any, ...] | list[tuple[Any, ...]]]:
         return list(OpContainer._ops_as_diffs(self))
 
     @classmethod
     def _ops_as_diffs(
         cls, migrations: OpContainer
-    ) -> Iterator[tuple[Any, ...]]:
+    ) -> Iterator[tuple[Any, ...] | list[tuple[Any, ...]]]:
         for op in migrations.ops:
             if hasattr(op, "ops"):
                 yield from cls._ops_as_diffs(cast("OpContainer", op))
