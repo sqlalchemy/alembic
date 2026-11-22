@@ -42,9 +42,11 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
-def compare_metadata(context: MigrationContext, metadata: MetaData) -> Any:
+def compare_metadata(
+    context: MigrationContext, metadata: MetaData | Sequence[MetaData]
+) -> Sequence[tuple[Any, ...] | Sequence[tuple[Any, ...]]]:
     """Compare a database schema to that given in a
-    :class:`~sqlalchemy.schema.MetaData` instance.
+    :class:`~sqlalchemy.schema.MetaData` instance or sequence of instances.
 
     The database connection is presented in the context
     of a :class:`.MigrationContext` object, which
@@ -154,7 +156,7 @@ def compare_metadata(context: MigrationContext, metadata: MetaData) -> Any:
     :param context: a :class:`.MigrationContext`
      instance.
     :param metadata: a :class:`~sqlalchemy.schema.MetaData`
-     instance.
+     instance or a sequence of instances.
 
     .. seealso::
 
@@ -169,7 +171,7 @@ def compare_metadata(context: MigrationContext, metadata: MetaData) -> Any:
 
 
 def produce_migrations(
-    context: MigrationContext, metadata: MetaData
+    context: MigrationContext, metadata: MetaData | Sequence[MetaData]
 ) -> MigrationScript:
     """Produce a :class:`.MigrationScript` structure based on schema
     comparison.
@@ -178,6 +180,10 @@ def produce_migrations(
     but then runs the resulting list of diffs to produce the full
     :class:`.MigrationScript` object.   For an example of what this looks like,
     see the example in :ref:`customizing_revision`.
+
+    :param context: a :class:`.MigrationContext` instance.
+    :param metadata: a :class:`~sqlalchemy.schema.MetaData` instance or a
+     sequence of instances.
 
     .. seealso::
 
