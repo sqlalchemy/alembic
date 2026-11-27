@@ -11,6 +11,55 @@ and :ref:`sqlalchemy.ext.compiler_toplevel` systems.
 For programmatic usage of Alembic's migration directives, the easiest
 route is to use the higher level functions given by :ref:`alembic.operations.toplevel`.
 
+.. _alembic.ddl.third_party:
+
+Implementations for Third Party Dialects
+========================================
+
+Alembic selects a :class:`.DefaultImpl` based on the name of the SQLAlchemy
+dialect being used. If an implementation does not exist for a dialect,
+Alembic will raise :class:`.NoSuchDialectError`. Third-party SQLAlchemy
+libraries are therefore encouraged to implement their own
+:class:`.DefaultImpl`.
+
+Declaring an implementation
+---------------------------
+
+Subclass :class:`.BaseImpl` and set ``__dialect__``::
+
+    from alembic.ddl.impl import BaseImpl
+
+    class NewDbImpl(BaseImpl):
+        __dialect__ = "newdb"
+
+The implementation is registered for the ``__dialect__`` when the class is
+defined.
+
+Registering via entry point
+---------------------------
+
+.. versionadded:: 1.21.0
+
+Third-party implementations can be registered via entry-points.
+The name of the entry-point should match the name of the SQLAlchemy dialect:
+
+.. code-block:: toml
+
+    [project.entry-points."alembic.dialects"]
+    newdb = "newdb_sqlalchemy.alembic:NewDbImpl"
+
+When the ``context.configure()`` in ``env.py`` builds a
+:class:`.MigrationContext`, Alembic will scan for entry-points matching to
+the dialect required for the migration.  Entry-points are not consulted for
+dialects Alembic implements itself.
+
+If ``env.py`` declares an implementation for a dialect defined in an entry
+point, the one in ``env.py`` is used; see
+:meth:`.BaseImpl.resolve_registration_conflict`.
+
+Built-In Implementation Reference
+=================================
+
 .. automodule:: alembic.ddl
     :members:
     :undoc-members:

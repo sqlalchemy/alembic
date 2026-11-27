@@ -1,0 +1,24 @@
+.. change::
+    :tags: feature, api
+    :tickets: 1874
+
+    Added the ``alembic.dialects`` entry point group, which allows third party
+    dialects to register a :class:`.DefaultImpl` subclass for their dialect
+    without requiring it to be eagerly loaded.
+
+    When a :class:`.BaseImpl` subclass declares a ``__dialect__`` that exists
+    as an entry point, and it is not a subclass of that implementation,
+    a warning is now presented.  The new
+    :meth:`.BaseImpl.resolve_registration_conflict` hook is used to resolve
+    conflicts; by default, the in-process registered subclass wins, which
+    emulates the existing behavior that an implementation imported or
+    defined in the user's ``env.py`` would take precedence.
+
+    An unknown dialect name now raises :class:`.NoSuchDialectError`, which
+    is a subclass of :class:`.CommandError`.  Registration now uses a
+    ``BaseImpl`` base class, and the ``ImplMeta`` metaclass has been
+    removed.  Pull request courtesy Daniel Reeves.
+
+    .. seealso::
+
+        :ref:`alembic.ddl.third_party`

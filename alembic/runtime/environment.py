@@ -35,7 +35,7 @@ if TYPE_CHECKING:
     from .migration import MigrationInfo
     from ..autogenerate.api import AutogenContext
     from ..config import Config
-    from ..ddl import DefaultImpl
+    from ..ddl.impl import BaseImpl
     from ..operations.ops import MigrationScript
     from ..script.base import ScriptDirectory
 
@@ -1091,5 +1091,5 @@ class EnvironmentContext(util.ModuleClsProxy):
         """
         return self.get_context().bind  # type: ignore[return-value]
 
-    def get_impl(self) -> DefaultImpl:
+    def get_impl(self) -> BaseImpl:
         return self.get_context().impl

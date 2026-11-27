@@ -40,6 +40,9 @@ detect changes to them.
     operations and implementations that would be suitable for packaging
     as a plugin
 
+    :ref:`alembic.ddl.third_party` - Plugins are not used to register
+    implementations for third party dialects; see this section instead
+
 Installing and Using Plugins
 ============================
 

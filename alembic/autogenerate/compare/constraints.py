@@ -37,7 +37,7 @@ if TYPE_CHECKING:
 
     from ...autogenerate.api import AutogenContext
     from ...ddl._autogen import _constraint_sig
-    from ...ddl.impl import DefaultImpl
+    from ...ddl.impl import BaseImpl
     from ...operations.ops import AlterColumnOp
     from ...operations.ops import ModifyTableOps
     from ...runtime.plugins import Plugin
@@ -516,7 +516,7 @@ _IndexColumnSortingOps: Mapping[str, Any] = util.immutabledict(
 
 
 def _make_index(
-    impl: DefaultImpl, params: ReflectedIndex, conn_table: Table
+    impl: BaseImpl, params: ReflectedIndex, conn_table: Table
 ) -> Index | None:
     exprs: list[Column[Any] | TextClause] = []
     sorting = params.get("column_sorting")
@@ -548,7 +548,7 @@ def _make_index(
 
 
 def _make_unique_constraint(
-    impl: DefaultImpl, params: ReflectedUniqueConstraint, conn_table: Table
+    impl: BaseImpl, params: ReflectedUniqueConstraint, conn_table: Table
 ) -> UniqueConstraint:
     uq = sa_schema.UniqueConstraint(
         *[conn_table.c[cname] for cname in params["column_names"]],
