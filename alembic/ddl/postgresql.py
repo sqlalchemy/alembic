@@ -57,6 +57,7 @@ if TYPE_CHECKING:
     from sqlalchemy.dialects.postgresql.hstore import HSTORE
     from sqlalchemy.dialects.postgresql.json import JSON
     from sqlalchemy.dialects.postgresql.json import JSONB
+    from sqlalchemy.dialects.postgresql.named_types import DOMAIN
     from sqlalchemy.sql.elements import ClauseElement
     from sqlalchemy.sql.elements import ColumnElement
     from sqlalchemy.sql.elements import quoted_name
@@ -278,15 +279,31 @@ class PostgresqlImpl(DefaultImpl):
         re.compile(" desc( nulls first)$"),  # case 7
     )
 
+    # a complete type name, so that SQL following a cast is left intact
+    _type_name_re = r"""
+        (?:"[^"]+"|\w+)(?:\.(?:"[^"]+"|\w+))?    # name, "char", schema.name
+        (?:\s+(?:varying|precision))?            # character varying
+        (?:\s*\(\s*\d+(?:\s*,\s*\d+)?\s*\))?     # (10), (10, 2)
+        (?:\s+with(?:out)?\s+time\s+zone)?       # timestamp with time zone
+        (?:\s*\[\s*\d*\s*\])*                    # text[]
+        """
+
+    # a "::" cast as rendered by PostgreSQL
+    _cast_re = re.compile(r"::\s*" + _type_name_re, re.I | re.X)
+
+    # CAST(expr AS type) as rendered by SQLAlchemy
+    _cast_fn_re = re.compile(
+        r"\bcast\s*\((.*?)\s+as\s+" + _type_name_re + r"\s*\)", re.I | re.X
+    )
+
     def _cleanup_index_expr(self, index: Index, expr: str) -> str:
         expr = expr.lower().replace('"', "").replace("'", "")
         if index.table is not None:
             # should not be needed, since include_table=False is in compile
             expr = expr.replace(f"{index.table.name.lower()}.", "")
 
-        if "::" in expr:
-            # strip :: cast. types can have spaces in them
-            expr = re.sub(r"(::[\w ]+\w)", "", expr)
+        # strip :: cast. types can have spaces in them
+        expr = self._cast_re.sub("", expr)
 
         while expr and expr[0] == "(" and expr[-1] == ")":
             expr = expr[1:-1]
@@ -302,15 +319,24 @@ class PostgresqlImpl(DefaultImpl):
         while expr and expr[0] == "(" and expr[-1] == ")":
             expr = expr[1:-1]
 
-        # strip casts
-        cast_re = re.compile(r"cast\s*\(")
-        if cast_re.match(expr):
-            expr = cast_re.sub("", expr)
-            # remove the as type
-            expr = re.sub(r"as\s+[^)]+\)", "", expr)
+        # strip CAST(expr AS type); repeat for nested casts
+        n = 1
+        while n:
+            expr, n = self._cast_fn_re.subn(r"\1", expr)
+
         # remove spaces
         expr = expr.replace(" ", "")
         return expr
+
+    def _normalize_computed_default(self, sqltext: str) -> str:
+        # PostgreSQL adds :: casts to the reflected expression, e.g.
+        # ``'english'::regconfig``, ``(name)::text``, which are usually not
+        # present in the metadata expression.  remove them from both sides
+        # ahead of the default normalization, while whitespace and
+        # parenthesis still delimit where each cast ends.
+        return super()._normalize_computed_default(
+            self._cast_re.sub("", sqltext)
+        )
 
     def _dialect_options(
         self, item: Index | UniqueConstraint
@@ -501,6 +527,44 @@ class PostgresqlImpl(DefaultImpl):
                 type_, autogen_context, "astext_type", r"(.+?\(.*astext_type=)"
             ),
         )
+
+    def _render_DOMAIN_type(
+        self, type_: DOMAIN, autogen_context: AutogenContext
+    ) -> str:
+        prefix = _postgresql_autogenerate_prefix(autogen_context)
+        args = [
+            repr(render._ident(type_.name)),
+            render._repr_type(type_.data_type, autogen_context),
+        ]
+        if type_.collation is not None:
+            args.append("collation=%r" % type_.collation)
+        # collation_schema is new in SQLAlchemy 2.1
+        collation_schema = getattr(type_, "collation_schema", None)
+        if collation_schema is not None:
+            args.append("collation_schema=%r" % collation_schema)
+        if type_.default is not None:
+            args.append(
+                "default=%s"
+                % render._render_potential_expr(
+                    type_.default, autogen_context, wrap_in_element=True
+                )
+            )
+        if type_.constraint_name is not None:
+            args.append("constraint_name=%r" % type_.constraint_name)
+        if type_.not_null:
+            args.append("not_null=True")
+        if type_.check is not None:
+            args.append(
+                "check=%s"
+                % render._render_potential_expr(
+                    type_.check, autogen_context, wrap_in_element=False
+                )
+            )
+        if type_.schema is not None:
+            args.append("schema=%r" % render._ident(type_.schema))
+        if type_.create_type is not True:
+            args.append("create_type=False")
+        return "%sDOMAIN(%s)" % (prefix, ", ".join(args))
 
 
 class PostgresqlColumnType(AlterColumn):

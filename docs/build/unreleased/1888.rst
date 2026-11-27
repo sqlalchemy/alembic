@@ -1,0 +1,13 @@
+.. change::
+    :tags: bug, batch
+    :tickets: 1888
+
+    Fixed bug in batch mode where an index created within
+    :meth:`.Operations.batch_alter_table` that included SQL expressions, such
+    as ``func.lower(column("name"))`` or ``column("name").desc()``, would be
+    emitted against the plain column names alone when the table was
+    recreated, silently producing a different index than the one specified;
+    a :func:`~sqlalchemy.sql.expression.text` expression would raise a
+    ``KeyError``.  Indexes created within the batch operation now retain
+    their full expressions, in the same way as indexes that are already
+    present on the table being recreated.

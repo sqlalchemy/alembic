@@ -552,7 +552,7 @@ def _mysql_colspec(
         spec += " AUTO_INCREMENT"
     if server_default is not False and server_default is not None:
         spec += " DEFAULT %s" % format_server_default(compiler, server_default)
-    if comment:
+    if comment is not None:
         spec += " COMMENT %s" % compiler.sql_compiler.render_literal_value(
             comment, sqltypes.String()
         )

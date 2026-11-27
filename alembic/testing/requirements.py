@@ -4,6 +4,7 @@ from sqlalchemy.testing.requirements import Requirements
 
 from alembic import util
 from ..testing import exclusions
+from ..util import sqla_compat
 
 
 class SuiteRequirements(Requirements):
@@ -92,6 +93,21 @@ class SuiteRequirements(Requirements):
         return exclusions.skip_if(
             lambda config: not util.sqla_2_1,
             "SQLAlchemy 2.1 or greater required",
+        )
+
+    @property
+    def sqlalchemy_copies_fk_ck_dialect_kwargs(self):
+        """SQLAlchemy carries along the dialect kwargs of foreign key and
+        check constraints when a Table is copied; SQLAlchemy issue #13677
+
+        """
+
+        def go(config):
+            vers = sqla_compat._vers
+            return (2, 0, 55) <= vers < (2, 1) or vers >= (2, 1, 5)
+
+        return exclusions.only_if(
+            go, "SQLAlchemy 2.0.55 / 2.1.5 or greater required"
         )
 
     @property

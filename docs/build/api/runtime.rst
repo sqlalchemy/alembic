@@ -24,7 +24,7 @@ In particular, the key method used within ``env.py`` is :meth:`.EnvironmentConte
 which establishes all the details about how the database will be accessed.
 
 .. automodule:: alembic.runtime.environment
-    :members: EnvironmentContext
+    :members: EnvironmentContext, OnVersionApplyFn
 
 .. _alembic.runtime.migration.toplevel:
 

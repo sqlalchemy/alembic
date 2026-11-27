@@ -7,6 +7,7 @@ from alembic import testing
 from alembic import util
 from alembic.runtime.plugins import _all_plugins
 from alembic.runtime.plugins import _make_re
+from alembic.runtime.plugins import _setup
 from alembic.runtime.plugins import _translate_legacy_name
 from alembic.runtime.plugins import Plugin
 from alembic.testing import eq_
@@ -257,6 +258,49 @@ class PluginTest(TestBase):
 
         # Verify plugin was created
         assert "mock.plugin" in _all_plugins
+
+    def _entrypoint_fixture(self, loaded):
+        entrypoint = mock.Mock()
+        entrypoint.name = "mock.plugin"
+        entrypoint.load.return_value = loaded
+        return mock.patch(
+            "alembic.runtime.plugins.metadata.entry_points",
+            return_value=[entrypoint],
+        )
+
+    def _mock_module(self):
+        mock_module = ModuleType("mock_plugin")
+        mock_module.setup = mock.Mock()
+        return mock_module
+
+    def test_setup_from_entrypoint_module(self):
+        """an entrypoint referring to a module, as documented, sets up
+        that module as a plugin; see #1873"""
+        mock_module = self._mock_module()
+
+        with self._entrypoint_fixture(mock_module):
+            _setup()
+
+        eq_(
+            mock_module.setup.mock_calls,
+            [mock.call(_all_plugins["mock.plugin"])],
+        )
+
+    def test_setup_from_entrypoint_iterable_deprecated(self):
+        """an entrypoint referring to a collection of modules continues
+        to work, with a deprecation warning"""
+        mock_module = self._mock_module()
+
+        with self._entrypoint_fixture([mock_module]):
+            with testing.expect_deprecated(
+                "Plugin entrypoint 'mock.plugin' refers to a collection"
+            ):
+                _setup()
+
+        eq_(
+            mock_module.setup.mock_calls,
+            [mock.call(_all_plugins["mock.plugin"])],
+        )
 
     def test_autogenerate_comparators_dispatcher(self):
         """Test that autogenerate_comparators is a PriorityDispatcher."""

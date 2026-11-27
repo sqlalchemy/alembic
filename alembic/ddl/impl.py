@@ -537,12 +537,12 @@ class BaseImpl:
             self.dialect.supports_comments and not self.dialect.inline_comments
         )
         comment = table.comment
-        if comment and with_comment:
+        if comment is not None and with_comment:
             self.create_table_comment(table)
 
         for column in table.columns:
             comment = column.comment
-            if comment and with_comment:
+            if comment is not None and with_comment:
                 self.create_column_comment(column)
 
     def drop_table(self, table: Table, **kw: Any) -> None:
@@ -807,6 +807,15 @@ class BaseImpl:
         self, type_obj: TypeEngine, autogen_context: AutogenContext
     ) -> str | Literal[False]:
         return False
+
+    def _normalize_computed_default(self, sqltext: str) -> str:
+        """we want to warn if a computed sql expression has changed.  however
+        we don't want false positives and the warning is not that critical.
+        so filter out most forms of variability from the SQL text.
+
+        """
+
+        return re.sub(r"[ \(\)'\"`\[\]\t\r\n]", "", sqltext).lower()
 
     def _compare_identity_default(self, metadata_identity, inspector_identity):
         # ignored contains the attributes that were not considered

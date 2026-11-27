@@ -19,16 +19,20 @@ from sqlalchemy import Numeric
 from sqlalchemy import Sequence
 from sqlalchemy import String
 from sqlalchemy import Table
+from sqlalchemy import Text
 from sqlalchemy import text
 from sqlalchemy import types
 from sqlalchemy import UniqueConstraint
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.dialects.postgresql import BYTEA
+from sqlalchemy.dialects.postgresql import CITEXT
+from sqlalchemy.dialects.postgresql import DOMAIN
 from sqlalchemy.dialects.postgresql import ExcludeConstraint
 from sqlalchemy.dialects.postgresql import HSTORE
 from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import TSRANGE
+from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import column
 from sqlalchemy.sql import false
@@ -50,6 +54,7 @@ from alembic.testing import combinations
 from alembic.testing import config
 from alembic.testing import eq_
 from alembic.testing import eq_ignore_whitespace
+from alembic.testing import mock
 from alembic.testing import provide_metadata
 from alembic.testing import resolve_lambda
 from alembic.testing import schemacompare
@@ -246,6 +251,14 @@ class PostgresqlOpTest(TestBase):
             "COMMENT ON COLUMN t.q IS 'This is a comment'",
         )
 
+    def test_add_column_with_empty_comment(self):
+        context = op_fixture("postgresql")
+        op.add_column("t", Column("q", Integer, comment=""))
+        context.assert_(
+            "ALTER TABLE t ADD COLUMN q INTEGER",
+            "COMMENT ON COLUMN t.q IS ''",
+        )
+
     def test_alter_column_with_comment(self):
         context = op_fixture("postgresql")
         op.alter_column(
@@ -347,6 +360,21 @@ class PostgresqlOpTest(TestBase):
             "COMMENT ON COLUMN t2.c2 IS 'c2 comment'",
         )
 
+    def test_create_table_with_empty_comments(self):
+        context = op_fixture("postgresql")
+        op.create_table(
+            "t2",
+            Column("c1", Integer, primary_key=True, comment=""),
+            Column("c2", Integer),
+            comment="",
+        )
+        context.assert_(
+            "CREATE TABLE t2 (c1 SERIAL NOT NULL, "
+            "c2 INTEGER, PRIMARY KEY (c1))",
+            "COMMENT ON TABLE t2 IS ''",
+            "COMMENT ON COLUMN t2.c1 IS ''",
+        )
+
     def test_create_table_comment(self):
         # this is handled by SQLAlchemy's compilers
         context = op_fixture("postgresql")
@@ -392,6 +420,46 @@ class PostgresqlOpTest(TestBase):
             "c1",
             server_default=sd(),
             existing_server_default=esd(),
+        )
+
+    @combinations(
+        (
+            "setweight(to_tsvector('english', title), 'A')",
+            "setweight(to_tsvector('english'::regconfig, title), "
+            "'A'::\"char\")",
+        ),
+        ("lower(name) IS NULL", "(lower((name)::text) IS NULL)"),
+        (
+            "name = 'x' AND title = 'y'",
+            "(((name)::text = 'x'::text) AND (title = 'y'::text))",
+        ),
+        (
+            "CASE WHEN name IS NULL THEN 'x' ELSE name END",
+            "CASE WHEN (name IS NULL) THEN 'x'::character varying "
+            "ELSE name END",
+        ),
+        ("bar * 2", "((bar)::numeric(10,2) * (2)::numeric)"),
+        ("bar / 2.0", "((bar)::double precision / (2.0)::double precision)"),
+        (
+            "ts > '2020-01-01'",
+            "(ts > '2020-01-01'::timestamp(3) without time zone)",
+        ),
+        (
+            "name = ANY(ARRAY['a'])",
+            "(name = ANY ((ARRAY['a'::text])::text[]))",
+        ),
+        ("status = 'x'", "(status = 'x'::my_schema.\"MyEnum\")"),
+        argnames="metadata_sqltext,reflected_sqltext",
+    )
+    def test_normalize_computed_default_strips_type_casts(
+        self, metadata_sqltext, reflected_sqltext
+    ):
+        """test #1462"""
+
+        impl = op_fixture("postgresql").impl
+        eq_(
+            impl._normalize_computed_default(reflected_sqltext),
+            impl._normalize_computed_default(metadata_sqltext),
         )
 
     @combinations(
@@ -1363,6 +1431,70 @@ class PostgresqlAutogenRenderTest(TestBase):
             "postgresql.JSONB(astext_type=sa.Text())",
         )
 
+    def test_domain_type(self):
+        """test #1360"""
+
+        eq_ignore_whitespace(
+            autogenerate.render._repr_type(
+                DOMAIN("email", CITEXT(), check=r"value ~ '^my_.*$'"),
+                self.autogen_context,
+            ),
+            "postgresql.DOMAIN('email', postgresql.CITEXT(), "
+            "check=\"value ~ '^my_.*$'\")",
+        )
+
+    def test_domain_type_full(self):
+        """test #1360"""
+
+        eq_ignore_whitespace(
+            autogenerate.render._repr_type(
+                DOMAIN(
+                    "mydom",
+                    String(),
+                    collation="C",
+                    default="x",
+                    constraint_name="ck",
+                    not_null=True,
+                    check="value > 0",
+                    schema="myschema",
+                    create_type=False,
+                ),
+                self.autogen_context,
+            ),
+            "postgresql.DOMAIN('mydom', sa.String(), collation='C', "
+            "default='x', constraint_name='ck', not_null=True, "
+            "check='value > 0', schema='myschema', create_type=False)",
+        )
+
+    def test_domain_type_text_default(self):
+        """test #1360"""
+
+        eq_ignore_whitespace(
+            autogenerate.render._repr_type(
+                DOMAIN("mydom", Integer, default=text("5")),
+                self.autogen_context,
+            ),
+            "postgresql.DOMAIN('mydom', sa.Integer(), default=sa.text('5'))",
+        )
+
+    @config.requirements.sqlalchemy_2_1
+    def test_domain_type_collation_schema(self):
+        """test #1360"""
+
+        eq_ignore_whitespace(
+            autogenerate.render._repr_type(
+                DOMAIN(
+                    "mydom",
+                    String(),
+                    collation="C",
+                    collation_schema="pg_catalog",
+                ),
+                self.autogen_context,
+            ),
+            "postgresql.DOMAIN('mydom', sa.String(), collation='C', "
+            "collation_schema='pg_catalog')",
+        )
+
     def test_jsonb_expression_in_index(self):
         """test #1322"""
 
@@ -1622,6 +1754,33 @@ def _equal_indexes():
             lambda t: Index("idx", text("cast(jb->'x' as integer)"), _table=t),
             lambda t: Index("idx", text("(jb -> 'x')::integer"), _table=t),
         ),
+        # column name ending in "as" is not mistaken for the "AS" keyword
+        (
+            lambda t: Index("idx", t.c.alias.cast(Text)),
+            lambda t: Index("idx", t.c.alias.cast(Text)),
+        ),
+        # type with precision / scale
+        (
+            lambda t: Index(
+                "idx", t.c.not_jsonb_path_ops.cast(Numeric(10, 2))
+            ),
+            lambda t: Index(
+                "idx", t.c.not_jsonb_path_ops.cast(Numeric(10, 2))
+            ),
+        ),
+        (
+            lambda t: Index("idx", t.c.alias.cast(String(10))),
+            lambda t: Index("idx", t.c.alias.cast(String(10))),
+        ),
+        # nested casts
+        (
+            lambda t: Index(
+                "idx", t.c.not_jsonb_path_ops.cast(Numeric(10, 2)).cast(Text)
+            ),
+            lambda t: Index(
+                "idx", t.c.not_jsonb_path_ops.cast(Numeric(10, 2)).cast(Text)
+            ),
+        ),
     ]
     return the_indexes
 
@@ -1701,6 +1860,7 @@ class PGIndexAutogenerateTest(AutogenFixtureTest, TestBase):
             Column("aa", ARRAY(Integer)),
             Column("jb", JSONB),
             Column("not_jsonb_path_ops", Integer),
+            Column("alias", String(50)),
         )
 
         t_new = Table(
@@ -1710,6 +1870,7 @@ class PGIndexAutogenerateTest(AutogenFixtureTest, TestBase):
             Column("aa", ARRAY(Integer)),
             Column("jb", JSONB),
             Column("not_jsonb_path_ops", Integer),
+            Column("alias", String(50)),
         )
 
         return m1, m2, t_old, t_new
@@ -1893,3 +2054,78 @@ class PGNullsNotDistinctAutogenerateTest(AutogenFixtureTest, TestBase):
         )
         diffs = self._fixture(m1, m2)
         eq_(len(diffs), 0, str(diffs))
+
+
+class PGComputedAutogenerateTest(AutogenFixtureTest, TestBase):
+    """test #1462; PostgreSQL adds :: casts to the reflected expression"""
+
+    __requires__ = ("computed_columns",)
+    __only_on__ = "postgresql"
+    __backend__ = True
+
+    def _computed_fixture(self, type_, before, after):
+        m1 = MetaData()
+        m2 = MetaData()
+
+        for m, sqltext in ((m1, before), (m2, after)):
+            Table(
+                "user",
+                m,
+                Column("id", Integer, primary_key=True),
+                Column("bar", Integer),
+                Column("name", String(50)),
+                Column("title", Text),
+                Column("ts", DateTime),
+                Column("foo", type_, Computed(sqltext, persisted=True)),
+            )
+
+        with mock.patch("alembic.util.warn") as mock_warn:
+            diffs = self._fixture(m1, m2)
+
+        eq_(list(diffs), [])
+        return mock_warn
+
+    @combinations(
+        (TSVECTOR, "setweight(to_tsvector('english', title), 'A')"),
+        (Text, "lower(name)"),
+        (Text, "name || ' ' || title"),
+        (String(50), "coalesce(name, '')"),
+        (Boolean, "lower(name) IS NULL"),
+        (Boolean, "name = 'x' AND title = 'y'"),
+        (Text, "CASE WHEN name IS NULL THEN 'x' ELSE name END"),
+        (Numeric(10, 2), "bar::numeric(10, 2) * 2"),
+        (Float, "bar / 2.0::double precision"),
+        (Boolean, "ts > '2020-01-01 00:00:00'"),
+        (Boolean, "name = ANY(ARRAY['a', 'b'])"),
+        argnames="type_,sqltext",
+    )
+    def test_computed_unchanged(self, type_, sqltext):
+        mock_warn = self._computed_fixture(type_, sqltext, sqltext)
+        eq_(mock_warn.mock_calls, [])
+
+    @combinations(
+        (
+            TSVECTOR,
+            "setweight(to_tsvector('english', title), 'A')",
+            "setweight(to_tsvector('english', title), 'B')",
+        ),
+        (Text, "lower(name)", "upper(name)"),
+        (Boolean, "lower(name) IS NULL", "lower(name) IS NOT NULL"),
+        (
+            Boolean,
+            "name = 'x' AND title = 'y'",
+            "name = 'x' AND title = 'z'",
+        ),
+        (
+            Text,
+            "CASE WHEN name IS NULL THEN 'x' ELSE name END",
+            "CASE WHEN name IS NULL THEN 'x' ELSE title END",
+        ),
+        argnames="type_,before,after",
+    )
+    def test_cant_change_computed_warning(self, type_, before, after):
+        mock_warn = self._computed_fixture(type_, before, after)
+        eq_(
+            mock_warn.mock_calls,
+            [mock.call("Computed default on user.foo cannot be modified")],
+        )
