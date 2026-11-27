@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     from typing import Literal
 
     from alembic.autogenerate.api import AutogenContext
-    from alembic.ddl.impl import DefaultImpl
+    from alembic.ddl.impl import BaseImpl
 
 CompareConstraintType = Union[Constraint, Index]
 
@@ -78,7 +78,7 @@ class _constraint_sig(Generic[_C]):
     _sig: tuple[Any, ...]
     name: sqla_compat._ConstraintNameDefined | None
 
-    impl: DefaultImpl
+    impl: BaseImpl
 
     _is_index: ClassVar[bool] = False
     _is_fk: ClassVar[bool] = False
@@ -94,9 +94,7 @@ class _constraint_sig(Generic[_C]):
     def _register(cls):
         raise NotImplementedError()
 
-    def __init__(
-        self, is_metadata: bool, impl: DefaultImpl, const: _C
-    ) -> None:
+    def __init__(self, is_metadata: bool, impl: BaseImpl, const: _C) -> None:
         raise NotImplementedError()
 
     def compare_to_reflected(
@@ -115,7 +113,7 @@ class _constraint_sig(Generic[_C]):
 
     @classmethod
     def from_constraint(
-        cls, is_metadata: bool, impl: DefaultImpl, constraint: _C
+        cls, is_metadata: bool, impl: BaseImpl, constraint: _C
     ) -> _constraint_sig[_C]:
         # these could be cached by constraint/impl, however, if the
         # constraint is modified in place, then the sig is wrong.  the mysql
@@ -167,7 +165,7 @@ class _uq_constraint_sig(_constraint_sig[UniqueConstraint]):
     def __init__(
         self,
         is_metadata: bool,
-        impl: DefaultImpl,
+        impl: BaseImpl,
         const: UniqueConstraint,
     ) -> None:
         self.impl = impl
@@ -203,7 +201,7 @@ class _ix_constraint_sig(_constraint_sig[Index]):
         _clsreg["index"] = cls
 
     def __init__(
-        self, is_metadata: bool, impl: DefaultImpl, const: Index
+        self, is_metadata: bool, impl: BaseImpl, const: Index
     ) -> None:
         self.impl = impl
         self.const = const
@@ -254,7 +252,7 @@ class _fk_constraint_sig(_constraint_sig[ForeignKeyConstraint]):
     def __init__(
         self,
         is_metadata: bool,
-        impl: DefaultImpl,
+        impl: BaseImpl,
         const: ForeignKeyConstraint,
     ) -> None:
         self._is_metadata = is_metadata
@@ -327,7 +325,7 @@ class _ck_constraint_sig(_constraint_sig[CheckConstraint]):
     def __init__(
         self,
         is_metadata: bool,
-        impl: DefaultImpl,
+        impl: BaseImpl,
         const: CheckConstraint,
     ) -> None:
         self._is_metadata = is_metadata

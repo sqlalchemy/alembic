@@ -25,15 +25,15 @@ libraries are therefore encouraged to implement their own
 Declaring an implementation
 ---------------------------
 
-Subclass :class:`.DefaultImpl` and set ``__dialect__``::
+Subclass :class:`.BaseImpl` and set ``__dialect__``::
 
-    from alembic.ddl.impl import DefaultImpl
+    from alembic.ddl.impl import BaseImpl
 
-    class NewDbImpl(DefaultImpl):
+    class NewDbImpl(BaseImpl):
         __dialect__ = "newdb"
 
-The ``RegisterImpl.__init_subclass__`` hook will register the implementation
-to map to the ``__dialect__``.
+The implementation is registered for the ``__dialect__`` when the class is
+defined.
 
 Registering via entry point
 ---------------------------
@@ -50,7 +50,12 @@ The name of the entry-point should match the name of the SQLAlchemy dialect:
 
 When the ``context.configure()`` in ``env.py`` builds a
 :class:`.MigrationContext`, Alembic will scan for entry-points matching to
-the dialect required for the migration.
+the dialect required for the migration.  Entry-points are not consulted for
+dialects Alembic implements itself.
+
+If ``env.py`` declares an implementation for a dialect defined in an entry
+point, the one in ``env.py`` is used; see
+:meth:`.BaseImpl.resolve_registration_conflict`.
 
 Built-In Implementation Reference
 =================================

@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from sqlalchemy.sql.schema import Table
 
     from ..autogenerate.api import AutogenContext
-    from ..ddl.impl import DefaultImpl
+    from ..ddl.impl import BaseImpl
     from ..operations.ops import ModifyTableOps
     from ..runtime.plugins import Plugin
 
@@ -30,7 +30,7 @@ log = logging.getLogger(__name__)
 
 
 def _make_check_constraint(
-    impl: DefaultImpl,
+    impl: BaseImpl,
     params: ReflectedCheckConstraint,
     conn_table: Table,
 ) -> CheckConstraint:

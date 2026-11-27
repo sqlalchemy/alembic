@@ -59,7 +59,7 @@ if TYPE_CHECKING:
     from .ops import DropTableOp
     from .ops import ExecuteSQLOp
     from .ops import MigrateOperation
-    from ..ddl import DefaultImpl
+    from ..ddl.impl import BaseImpl
     from ..runtime.migration import MigrationContext
 __all__ = ("Operations", "BatchOperations")
 _T = TypeVar("_T")
@@ -74,7 +74,7 @@ class AbstractOperations(util.ModuleClsProxy):
 
     """
 
-    impl: DefaultImpl | BatchOperationsImpl
+    impl: BaseImpl | BatchOperationsImpl
     _to_impl = util.Dispatcher()
 
     def __init__(
